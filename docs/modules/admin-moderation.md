@@ -17,53 +17,50 @@
 
 ## 目前狀態
 隱藏後台 `/mh-console-8k2p` 已完成（Issue #3）：中途認證審核、管理員授權／移除、網站標誌（存 `site_settings`）。頁尾的管理者設定入口已移除。檢舉與內容審核尚未開始。
-MeowHQ（`/MeowHQ`，取代隱藏後台）開發中：階段 0（共用型別與資料表草案，Issue #18）已完成待審；階段 1 起尚未開工，需等 #18 合併。T-HQ-11（虛擬體驗元件管理）等 Issue #15 決定儲存位置。
+MeowHQ（`/MeowHQ`，取代隱藏後台）開發中：階段 0（共用型別，Issue #18）已合併；階段 1 的 db（Issue #19：`0002_meow_hq.sql` 與 SQL 測試）已完成待審，**尚未在 Supabase 執行**；logic（#20）、shell（#21）進行中。T-HQ-11（虛擬體驗元件管理）等 Issue #15 決定儲存位置。
 
 ## 資料表（Supabase）
 - 已建立（`0001_meow.sql`）：`meow_shelter_verifications`（同一貓戶同時只能一筆審核中）、`meow_notifications`、`meow_site_settings`（key/value，公開讀、管理員寫）
-- `meow_profiles.role`（member/admin）、`meow_profiles.email`
-- 待建立：`reports`
+- `meow_profiles.role`（0001：member/admin；0002 起：member/admin/system_admin）、`meow_profiles.email`
+- 0002（尚未執行）新增：`meow_admin_module_grants`、`meow_audit_logs`、`meow_user_suspensions`、`meow_banlist`（見下）\n- 待建立：`reports`
 
-### 0002_meow_hq.sql 草案（MeowHQ 階段 0，T-HQ-01；**草案，尚未建立 migration、尚未執行**）
+### 0002_meow_hq.sql（MeowHQ，T-HQ-02，Issue #19；**已寫成檔案，尚未在 Supabase 執行**）
 
-> 依據：規格書 §3、§4.5、§4.6、R1～R8；決策 003。供階段 1 的 db Issue（T-HQ-02）實作；欄位若有調整，由 db Issue 更新本節。
-> 全部 `meow_` 開頭；每張表啟用 RLS；migration 須可重複執行；寫入一律經 `security definer` 函式，前端只用 anon key。
-> 後台模組代號與 `src/lib/hq/types.ts` 的 `ADMIN_MODULES` 相同。
+> 檔案：`supabase/migrations/0002_meow_hq.sql`（可重複執行）；測試：`supabase/tests/0002_meow_hq.test.sql`，以 `node supabase/tests/run-pglite.mjs` 在本機臨時資料庫執行（先 `npm i --no-save @electric-sql/pglite`），不連 Supabase。
+> 對應測試：UT-HQDB-01～13（12 暫跳過，待領養申請表）、UT-HQ-39～40。結果：101 通過、1 跳過。
 
 **既有表變更**
 | 物件 | 變更 |
 |---|---|
-| `meow_profiles.role` | check 改為 `('member','admin','system_admin')`；現有 `admin` 資料遷移：一律視為 `system_admin`（Tina 已同意，目前只有她一位 admin） |
-| `meow_profiles` 新增欄位 | `suspended_at timestamptz`、`suspended_until timestamptz`（null＝直到手動解除）；是否停權＝`suspended_at is not null and (suspended_until is null or suspended_until > now())` |
+| `meow_profiles.role` | check 改為 `member／admin／system_admin`；現有 `admin` 一律升為 `system_admin`（只在尚未升級時執行一次，重跑不會再升級；Tina 已同意） |
+| 停權狀態 | 只以 `meow_user_suspensions` 為準；`meow_profiles` **不**加欄位（審查建議） |
+| `meow_guard_profile` | 角色只能經 `meow_set_role` 變更；黑名單帳號不能建立會員資料；**修正 0001 的錯誤**：更新別人的資料時不再把 Email 蓋成操作者的 |
+| `meow_protect_verified` | 改為需「用戶權限管理」模組 |
+| `meow_notify_admins_verification` | 改為只通知有「用戶權限管理」者＋全部系統管理員 |
+| RLS | 管理員讀取全部會員／貓戶／認證申請改為需「用戶權限管理」；網站設定寫入限系統管理員；相關 policy 改為 `to authenticated`（匿名訪客不會呼叫權限函式） |
 
-**新資料表**
-| 資料表 | 欄位（草案） | RLS |
+**新資料表**（全部啟用 RLS；前端只能 select，寫入一律經函式）
+| 資料表 | 用途與重點 | 誰能讀 |
 |---|---|---|
-| `meow_admin_module_grants` | `id uuid pk`、`admin_id uuid → meow_profiles`、`module text check in (可授權的 5 個模組，不含 admin_authorization)`、`granted_by uuid`、`granted_at timestamptz`；unique(`admin_id`,`module`) | 管理員只讀自己的列；系統管理員讀全部；寫入只經函式 |
-| `meow_audit_logs` | `id bigint identity pk`、`actor_id uuid`、`action text`（處置類型或授權／徽章變更）、`target_type text`、`target_id text`、`reason text not null check (char_length(trim(reason)) > 0)`、`detail jsonb`、`created_at timestamptz default now()` | 管理員只讀自己（`actor_id`）的列；系統管理員讀全部；**禁止 update／delete（含系統管理員）**，以 trigger 擋下；只能經函式 insert |
-| `meow_user_suspensions` | `id uuid pk`、`user_id uuid`、`reason text not null`、`suspended_by uuid`、`suspended_at`、`until timestamptz`（null＝直到手動解除）、`lifted_by uuid`、`lifted_at`、`lift_reason text`；同一帳號同時只有一筆生效中 | 有「用戶權限管理」者與系統管理員讀；寫入只經函式 |
-| `meow_banlist` | `id uuid pk`、`google_email text not null unique`（小寫）、`reason text not null`、`banned_by uuid`、`banned_at`、`lifted_by`、`lifted_at`、`lift_reason` | 僅系統管理員讀寫（函式） |
+| `meow_admin_module_grants` | 管理員的模組授權（不含 `admin_authorization`）；unique(admin_id, module) | 自己的列；系統管理員全部 |
+| `meow_audit_logs` | 稽核日誌：actor、action、對象、原因（必填）、detail；**update／delete／truncate 一律擋下（含擁有者）**，不設外鍵 | 自己的列（須為管理員）；系統管理員全部 |
+| `meow_user_suspensions` | 停權紀錄（原因、期限、解除者與原因）；同一帳號只能有一筆未解除 | 本人；有「用戶權限管理」者 |
+| `meow_banlist` | 黑名單：`google_email`（去空白小寫）、`auth_user_id`、原因；可移出（保留紀錄） | 系統管理員 |
 
-**函式（`security definer`，每次呼叫都重新判斷權限）**
-| 函式 | 說明 | 對應測試 |
-|---|---|---|
-| `meow_is_system_admin()` | 呼叫者是否系統管理員 | — |
-| `meow_has_module(module text)` | 系統管理員恆為 true；管理員看授權表；且未被停權 | UT-HQDB-01、10 |
-| `meow_is_admin()` | 改為 `role in ('admin','system_admin')`（保留舊名，避免既有 policy 失效） | — |
-| `meow_grant_module(admin_id, module, reason)`／`meow_revoke_module(admin_id, module, reason)` | 僅系統管理員；不可授予 `admin_authorization`；寫稽核日誌 | UT-HQDB-06 |
-| `meow_set_role(target_email, role, reason)` | 取代 `meow_set_admin`；僅系統管理員；撤銷最後一位系統管理員時拋例外 | UT-HQDB-09 |
-| `meow_suspend_user(user_id, reason, until)`／`meow_unsuspend_user(user_id, reason)` | 需「用戶權限管理」；對象是管理員時須為系統管理員，並清空其模組授權；對象是系統管理員一律拒絕；原因必填；停權時自動婉拒審核中領養申請並通知（領養申請表建立後啟用） | UT-HQDB-01～05、12 |
-| `meow_ban_email(email, reason)`／`meow_unban_email(email, reason)` | 僅系統管理員；建議黑名單同時記錄 `auth.users.id`（審查建議，由 #19 決定） | UT-HQDB-06 |
-| `meow_review_verification(...)` | 既有函式；改為需「用戶權限管理」；撤銷徽章函式 `meow_revoke_badge(household_id, reason)` 同樣需原因並寫日誌 | UT-HQDB-06 |
-| `meow_notify_module(module text, type text, payload jsonb)` | 通知有該模組權限者＋全部系統管理員（取代「通知所有管理員」的 trigger） | UT-HQ-39、40 |
-| 登入建立會員資料檢查 | `meow_profiles` insert 時（網站第一次登入）若 email 在黑名單則拒絕；**不可在 `auth.users` 加 trigger**（AGENTS.md §7.3） | UT-HQDB-11 |
+**函式**（`security definer`，每次呼叫重新判斷權限；錯誤以代碼回報：`permission_denied`、`need_system_admin`、`target_is_system_admin`、`target_not_admin`、`reason_required`、`last_system_admin`、`module_not_grantable`、`invalid_role`、`invalid_until`、`invalid_email`、`already_suspended`、`not_suspended`、`already_banned`、`banned`、`role_change_via_function_only`、`audit_logs_immutable`、`not_found`）
+| 函式 | 說明 |
+|---|---|
+| `meow_is_system_admin()`、`meow_is_admin()`、`meow_has_module(module)` | 權限判斷；系統管理員恆有全部模組，管理員看授權且未停權，Admin 授權只有系統管理員 |
+| `meow_grant_module`／`meow_revoke_module(admin_id, module, reason)` | 僅系統管理員；不可授予 `admin_authorization`；只能授予管理員 |
+| `meow_set_role(email, role, reason)` | 僅系統管理員；降級會清空授權；撤銷最後一位系統管理員由 trigger 擋下。`meow_set_admin(email, bool)` 保留舊介面並轉呼叫它 |
+| `meow_suspend_user(user_id, reason, until)`／`meow_unsuspend_user(user_id, reason)` | 需「用戶權限管理」；對象是管理員須為系統管理員並清空其授權；系統管理員不能被停權。R1 自動婉拒領養申請待領養申請表建立後補（UT-HQDB-12） |
+| `meow_ban_email`／`meow_unban_email(email, reason)` | 僅系統管理員；不能封鎖系統管理員的帳號 |
+| `meow_review_verification(id, approve, note)`、`meow_revoke_badge(household_id, reason)` | 需「用戶權限管理」；授予／撤銷徽章寫稽核日誌 |
+| `meow_notify_module(module, type, title, body, link)` | 內部用；通知對象＝有該模組權限者＋全部系統管理員（前端不能呼叫） |
 
-**稽核日誌 `action` 值（草案）**：`suspend`、`unsuspend`、`revoke_grant`、`revoke_badge`、`takedown`、`relist`、`ban`、`unban`（同 `HqDisposition`，共 8 種），另加授予類 `grant_module`、`grant_badge`、`set_role`（不是處置，只作稽核日誌 action；Tina 已同意）。
+**稽核日誌 action（11 種）**：`suspend`、`unsuspend`、`revoke_grant`、`revoke_badge`、`takedown`、`relist`、`ban`、`unban`（同 `HqDisposition`），另有授予類 `grant_module`、`grant_badge`、`set_role`（不是處置，只作日誌）。`takedown`、`relist` 的函式屬內容審核與元件管理模組，由各模組 Issue 實作。
 
-**已確認（Tina 同意審查建議）**
-1. 現有 `admin` 一律遷移為 `system_admin`。
-2. `unban` 納入處置類型；`grant_module`、`grant_badge`、`set_role` 不納入，只作稽核日誌 action。
-3. 以 `revoke execute ... from anon` 收緊四個 SECURITY DEFINER 函式，併入 T-HQ-02（#19）。\n4. 停權狀態建議只以 `meow_user_suspensions` 為單一來源（生效中＝未解除且未到期），`meow_profiles` 的 `suspended_*` 欄位是否保留由 #19 決定（審查建議）。
+**函式執行權**：上述後台函式與 `meow_is_admin`、`meow_set_admin`、`meow_review_verification` 已收回 `anon`／`PUBLIC`，只開放 `authenticated`；內部函式與 trigger 函式不開放給前端。
 
 ## API／主要函式
 - 資料庫函式：`meow_is_admin()`、`meow_set_admin(email, bool)`、`meow_review_verification(id, approve, note)`（核准時給徽章並通知申請人）
@@ -81,17 +78,22 @@ MeowHQ（`/MeowHQ`，取代隱藏後台）開發中：階段 0（共用型別與
 - 第一位管理員用 SQL 指定，之後在後台以 Email 授權（對方需先登入過一次）。
 - 認證機制目前由管理員人工審核。
 
-- 2026-10-28｜後台權限改為「系統管理員按模組授權」，後台分 6 個模組；第一位系統管理員以 SQL 指定；黑名單僅系統管理員；所有管理動作寫入稽核日誌。見 `docs/decisions/003-module-based-admin-authorization.md`。目前程式仍是 member／admin 兩種角色，待 PLAN 任務 23 調整。
+- 2026-10-28｜後台權限改為「系統管理員按模組授權」，後台分 6 個模組；第一位系統管理員以 SQL 指定；黑名單僅系統管理員；所有管理動作寫入稽核日誌。見 `docs/decisions/003-module-based-admin-authorization.md`。資料庫面由 `0002_meow_hq.sql` 實作（Issue #19）；前端待 #21 等調整。
 
 - 2026-10-28｜MeowHQ 階段 0（Issue #18）：模組代號用英文（`report_moderation`、`user_management`、`products`、`knowledge`、`virtual_assets`、`admin_authorization`），中文名稱放 `ADMIN_MODULE_LABELS`；「貓友」「貓戶長」不是角色（角色只有 `system_admin`／`admin`／`member`）。
 
+- 2026-10-29｜0002（Issue #19）：停權狀態只存在 `meow_user_suspensions`（profiles 不加欄位）；黑名單同時記 `auth_user_id`；角色只能經 `meow_set_role` 變更（`meow.hq_fn` 旗標，僅在該 update 期間有效）；稽核日誌連資料表擁有者都不能改刪；錯誤以代碼回報；收回 `anon`／`PUBLIC` 執行權的同時，把會被匿名訪客觸發的 policy 改為 `to authenticated`，避免 `meow_is_admin` 等被收回後匿名讀取公開貓戶出錯。
+
 ## 待確認
-- 停權單一來源、黑名單記 `auth.users.id`：交給 #19 決定。
+- 黑名單加入「已登入的現有會員」後是否同時強制登出或停權？目前只擋新建會員資料（UT-HQDB-11）；登入阻擋屬前端／Auth 層，待 #21 或另案。
+- 停權中的會員能使用哪些前台功能（寫入類 RLS 尚未依停權收緊），待另案。
 - 規格書 §4.7 只列停權、下架、撤銷的快選原因；解除停權、重新上架、加入／移出黑名單目前為空清單。
 
 ## 地雷
+- **執行 0002 後，舊隱藏後台 `/mh-console-8k2p` 與前台 `isAdmin` 會失效**：`src/components/Auth.tsx` 以 `role === "admin"` 判斷管理員，而現有 admin 會升為 `system_admin`；舊後台列管理員的查詢也是 `.eq("role", "admin")`。在 #21（shell）把前端改成新角色之前，不建議在正式環境執行 0002，或由 Tina 決定先接受舊後台暫時不可用。
+ole === "admin" 判斷管理員，而現有 admin 會升為 system_admin；舊後台列管理員的查詢也是 eq("role", "admin")。在 #21（shell）把前端改成新角色之前，不建議在正式環境執行 0002，或由 Tina 決定先接受舊後台暫時不可用。
 - 隱藏網址若外流，非管理員仍讀不到任何資料，但要避免在文件、聊天群組外公開。
-- 管理員不能移除自己的權限（避免沒有管理員）。
+- ~~管理員不能移除自己的權限~~［已失效，0002 起改為「不能移除最後一位系統管理員」，由 trigger 保證］
 
 ## 變更紀錄
 | 日期 | 發起人 × 工具 | 變更 | PR |
@@ -99,3 +101,4 @@ MeowHQ（`/MeowHQ`，取代隱藏後台）開發中：階段 0（共用型別與
 | 2026-10-28 | Tina × Claude Code | 建立模組文件 | — |
 | 2026-10-28 | Tina × Claude Code | 隱藏後台、中途認證審核、管理員授權、站台標誌存資料庫、站內通知 | #3 |
 | 2026-10-28 | Tina × Cursor | MeowHQ 階段 0：`src/lib/hq/types.ts` 與測試（8 種處置含 `unban`）、0002 資料表草案 | #18 |
+| 2026-10-29 | Tina × Cursor | MeowHQ 階段 1 db：`0002_meow_hq.sql`、`supabase/tests/`（SQL 測試與本機執行器） | #19 |

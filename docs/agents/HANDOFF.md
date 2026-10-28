@@ -15,6 +15,8 @@
 
 - **MeowHQ 後台開發中**（規格 `docs/hq/01～03`）：階段 0（T-HQ-01，Issue #18，分支 `feat/18-hq-contract`）已完成、PR 待 Tina 審查。內容：`src/lib/hq/types.ts`（模組代號、角色、處置類型、快選原因、錯誤代碼、側欄順序）＋測試，以及 `docs/modules/admin-moderation.md` 的 `0002_meow_hq.sql` 資料表草案。**`0002_meow_hq.sql` 檔案尚未建立、也沒有執行任何 SQL**（階段 1 的 db Issue 才寫檔）。**#18 合併前不要開始階段 1**；T-HQ-11 等 Issue #15（儲存位置）。待 Tina 決定的問題在 `PLAN.md`「建議」區的 MeowHQ 項目。
 
+- **`0002_meow_hq.sql` 已寫好（Issue #19，分支 `feat/19-hq-db`，PR 待審）但尚未在 Supabase 執行**。執行前須 Tina 確認（AGENTS.md §7.4）。⚠ 執行後現有 admin 會升為 `system_admin`，前端 `isAdmin`（`role === "admin"`）與舊後台 `/mh-console-8k2p` 會失效，要等 #21 調整前端。本機驗證：`npm i --no-save @electric-sql/pglite` 後 `node supabase/tests/run-pglite.mjs`（101 項通過、1 項跳過）。細節在 `docs/modules/admin-moderation.md`。
+
 ## 下一步（建議第一個動作）
 0. #18 合併後，平行開工階段 1：#19（db）、#20（logic）、#21（shell）；階段 2 為 #22（lists-home）、#23（admin-auth）、#24（users），等階段 1 合併後開始。Issue 都已建立，不用再建。
 1. 資料庫已建好（`0001_meow.sql` 於 2026-10-28 執行）。剩下依 `docs/setup/SUPABASE_LLM_SETUP.md`：Google OAuth Redirect URL、LLM 金鑰、Vercel 環境變數，以及登入一次後指定第一位管理員。
