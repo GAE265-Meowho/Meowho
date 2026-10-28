@@ -50,3 +50,4 @@ Google 登入（Supabase Auth）與條款同意已完成（Issue #1）。未設�
 |---|---|---|---|
 | 2026-10-28 | Tina × Claude Code | 建立模組文件 | — |
 | 2026-10-28 | Tina × Claude Code | Supabase Auth、Google 登入、條款同意 | #1 |
+| 2026-10-28 | Tina × Claude Code | 條款頁加站台 LOGO（`PageBrandTitle`）、名稱改為 Meow Home；頁尾精簡移除 LOGO | #9 |

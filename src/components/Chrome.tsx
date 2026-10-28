@@ -64,18 +64,25 @@ function UserArea() {
 }
 
 export function SiteFooter() {
-  const { logo } = useUi();
   return (
     <footer className="footer">
       <div className="wrap footer-in">
-        <img src={logo.src} alt="" className="foot-logo" />
-        <p><b>MeowHome 貓戶</b>｜溫暖陪伴、真實認養，用 AI 支持終養不棄養 🐾</p>
-        <p className="fine foot-links">
-          <Link href="/legal">隱私權政策與服務條款</Link>
-        </p>
-        <p className="fine">原型版本：部分畫面資料為示意</p>
+        <span><b>Meow Home 貓戶</b>｜用 AI 支持終養不棄養 🐾</span>
+        <Link href="/legal">隱私權政策與服務條款</Link>
+        <span>原型版本：部分畫面資料為示意</span>
       </div>
     </footer>
+  );
+}
+
+/** 條款等內頁的標題列：站台 LOGO＋頁面名稱 */
+export function PageBrandTitle({ title }: { title: string }) {
+  const { logo } = useUi();
+  return (
+    <div className="page-brand">
+      <img src={logo.src} alt="Meow Home 標誌" />
+      <div><span className="page-brand-name">Meow Home 貓戶</span><h1>{title}</h1></div>
+    </div>
   );
 }
 
