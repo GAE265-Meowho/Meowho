@@ -33,6 +33,7 @@
 - `src/components/onboarding/Chat.tsx`、`HouseholdFlow.tsx`、`CatFlow.tsx`、`src/app/onboarding/page.tsx`
 
 ## 決策
+- 新貓入戶一律先登入，並由使用者明確選擇貓咪歸屬的貓戶（即使只有一個貓戶也要選），避免放錯戶。
 - LLM 抽取結果一律先給使用者確認才寫入。
 - 必填最少化，其他欄位之後由週報提醒補。
 
@@ -51,4 +52,5 @@
 |---|---|---|---|
 | 2026-10-28 | Tina × Claude Code | 建立模組文件 | — |
 | 2026-10-28 | Tina × Claude Code | 中途之家 onboarding（聊天建立貓戶、拍照＋問答＋口述建立貓咪） | #1 |
-| 2026-10-28 | Tina × Claude Code | 建立貓戶前先顯示說明（WelcomeHousehold）；`?cat=1` 新貓入戶：一個貓戶直接新增、兩個先選、沒有先建立 | #5 |
+| 2026-10-28 | Tina × Claude Code | 建立貓戶前先顯示說明（WelcomeHousehold）；`?cat=1` 新貓入戶 | #5 |
+| 2026-10-28 | Tina × Claude Code | 新貓入戶改為：先 Google 登入 → 一律選擇「既有貓戶」或「住進新家」；進入點決策抽成 `src/lib/onboarding/route.ts`（`decideStart`） | #7 |

@@ -372,3 +372,5 @@ dialog h2 { margin: 0; font-size: 1.3rem }
 .console-section { display: grid; gap: 1rem }
 .admin-row { display: flex; justify-content: space-between; align-items: center; gap: 1rem }
 .admin-row small { display: block; color: var(--cocoa-2) }
+.chooser-item.new-home { border-style: dashed; border-color: var(--peach); background: #FFF6F1 }
+.chooser-item .sub { display: block }

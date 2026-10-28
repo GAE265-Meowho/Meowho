@@ -8,6 +8,7 @@ import { HouseholdFlow } from "@/components/onboarding/HouseholdFlow";
 import { WelcomeHousehold } from "@/components/onboarding/WelcomeHousehold";
 import { MAX_HOUSEHOLDS_PER_ACCOUNT, canCreateHousehold } from "@/lib/onboarding/household";
 import { getBrowserSupabase } from "@/lib/supabase/client";
+import { decideStart } from "@/lib/onboarding/route";
 
 type Phase = "checking" | "intro" | "choose" | "household" | "cat" | "done";
 interface Home { id: string | null; name: string; city?: string; district?: string }
@@ -21,25 +22,27 @@ export default function OnboardingPage() {
   const [catName, setCatName] = useState("");
   const [agree, setAgree] = useState(false);
   const [catRound, setCatRound] = useState(0);
+  const [catMode, setCatMode] = useState(false);
 
-  // 讀取我的貓戶：沒有 → 建立；有 → 選擇要新增貓咪到哪一戶，或建立新貓戶（最多 2 個）
+  // 進入點：新貓入戶一律先登入並選擇「新家」或「既有貓戶」；建立貓戶時沒有貓戶先看說明
   useEffect(() => {
     if (loading) return;
     const sb = getBrowserSupabase();
     const params = new URLSearchParams(window.location.search);
     const wantCat = params.get("cat") === "1";
-    if (!sb || !user) {
-      if (wantCat) { setCurrent({ id: null, name: "示範貓戶" }); setPhase("cat"); } else setPhase("intro"); // 示範模式
-      return;
-    }
+    setCatMode(wantCat);
+    const decide = (list: Home[]) => {
+      const target = list.find(h => h.id === params.get("household"));
+      const phase = decideStart({ configured: Boolean(sb), loggedIn: Boolean(user), wantCat, wantNew: params.get("new") === "1", homesCount: list.length, targetFound: Boolean(target) });
+      if (phase === "login") return; // 由下方登入畫面處理
+      if (phase === "cat" && target) setCurrent(target);
+      setPhase(phase);
+    };
+    if (!sb || !user) { decide([]); return; }
     sb.from("meow_households").select("id, name, city, district").eq("owner_id", user.id).order("created_at").then(({ data }) => {
       const list = (data ?? []) as Home[];
       setHomes(list);
-      const target = list.find(h => h.id === params.get("household")) ?? (wantCat && list.length === 1 ? list[0] : undefined);
-      if (target) { setCurrent(target); setPhase("cat"); }
-      else if (list.length === 0) setPhase("intro");
-      else if (params.get("new") === "1" && canCreateHousehold(list.length)) setPhase("household");
-      else setPhase("choose");
+      decide(list);
     });
   }, [loading, user]);
 
@@ -48,6 +51,15 @@ export default function OnboardingPage() {
   let body: React.ReactNode;
   if (loading || phase === "checking") {
     body = <p className="sub center">載入中…</p>;
+  } else if (configured && !user && catMode) {
+    body = (
+      <section className="profile-card center">
+        <div className="big-emoji" aria-hidden="true">🐱</div>
+        <h2>新貓入戶，先登入</h2>
+        <p className="sub">用 Google 帳號登入後，選擇新來的貓咪要住進「新家」還是你已經有的貓戶。</p>
+        <button className="btn block" onClick={() => login(window.location.pathname + window.location.search)}>使用 Google 註冊／登入</button>
+      </section>
+    );
   } else if (configured && !user) {
     body = (
       <>
@@ -74,18 +86,23 @@ export default function OnboardingPage() {
     const canNew = canCreateHousehold(homes.length);
     body = (
       <section className="profile-card">
-        <h2>🐾 要做什麼呢？</h2>
-        <div className="chooser">
+        <h2>{catMode ? "🐱 新來的貓咪要住進哪一戶？" : "🐾 要做什麼呢？"}</h2>
+        {catMode && <p className="sub">選好貓戶後，再拍照、聊幾句幫牠建立名片。</p>}
+        <div className="chooser" role="list">
           {homes.map(h => (
-            <div className="chooser-item" key={h.id}>
+            <div className="chooser-item" role="listitem" key={h.id}>
               <div><b>🏠 {h.name}</b><span className="sub">📍 {h.city}{h.district}</span></div>
-              <button className="btn mint sm" onClick={() => startCat(h)}>＋ 新增貓咪到這裡</button>
+              <button className="btn mint sm" onClick={() => startCat(h)}>{catMode ? "住進這一戶" : "＋ 新增貓咪到這裡"}</button>
             </div>
           ))}
+          {canNew && (
+            <div className="chooser-item new-home" role="listitem">
+              <div><b>✨ 住進新家</b><span className="sub">{homes.length === 0 ? "你還沒有貓戶，先幫貓咪建一個家" : `建立新的貓戶（還可以建立 ${MAX_HOUSEHOLDS_PER_ACCOUNT - homes.length} 個）`}</span></div>
+              <button className="btn sm" onClick={() => setPhase(catMode ? "household" : "intro")}>建立新家</button>
+            </div>
+          )}
         </div>
-        {canNew
-          ? <button className="btn ghost block" onClick={() => setPhase("intro")}>🏠 建立新的貓戶（還可以建立 {MAX_HOUSEHOLDS_PER_ACCOUNT - homes.length} 個）</button>
-          : <p className="fine">每個帳號最多 {MAX_HOUSEHOLDS_PER_ACCOUNT} 個貓戶，你已經建立滿了；每個貓戶可以新增很多貓咪。</p>}
+        {!canNew && <p className="fine">每個帳號最多 {MAX_HOUSEHOLDS_PER_ACCOUNT} 個貓戶，你已經建立滿了；每個貓戶可以新增很多貓咪。</p>}
       </section>
     );
   } else if (phase === "household") {
