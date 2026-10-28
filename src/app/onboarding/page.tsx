@@ -5,10 +5,11 @@ import { useAuth } from "@/components/Auth";
 import { SiteHeader } from "@/components/Chrome";
 import { CatFlow } from "@/components/onboarding/CatFlow";
 import { HouseholdFlow } from "@/components/onboarding/HouseholdFlow";
+import { WelcomeHousehold } from "@/components/onboarding/WelcomeHousehold";
 import { MAX_HOUSEHOLDS_PER_ACCOUNT, canCreateHousehold } from "@/lib/onboarding/household";
 import { getBrowserSupabase } from "@/lib/supabase/client";
 
-type Phase = "checking" | "choose" | "household" | "cat" | "done";
+type Phase = "checking" | "intro" | "choose" | "household" | "cat" | "done";
 interface Home { id: string | null; name: string; city?: string; district?: string }
 
 export default function OnboardingPage() {
@@ -25,14 +26,19 @@ export default function OnboardingPage() {
   useEffect(() => {
     if (loading) return;
     const sb = getBrowserSupabase();
-    if (!sb || !user) { setPhase("household"); return; }
     const params = new URLSearchParams(window.location.search);
+    const wantCat = params.get("cat") === "1";
+    if (!sb || !user) {
+      if (wantCat) { setCurrent({ id: null, name: "示範貓戶" }); setPhase("cat"); } else setPhase("intro"); // 示範模式
+      return;
+    }
     sb.from("meow_households").select("id, name, city, district").eq("owner_id", user.id).order("created_at").then(({ data }) => {
       const list = (data ?? []) as Home[];
       setHomes(list);
-      const target = list.find(h => h.id === params.get("household"));
+      const target = list.find(h => h.id === params.get("household")) ?? (wantCat && list.length === 1 ? list[0] : undefined);
       if (target) { setCurrent(target); setPhase("cat"); }
-      else if (list.length === 0 || (params.get("new") === "1" && canCreateHousehold(list.length))) setPhase("household");
+      else if (list.length === 0) setPhase("intro");
+      else if (params.get("new") === "1" && canCreateHousehold(list.length)) setPhase("household");
       else setPhase("choose");
     });
   }, [loading, user]);
@@ -44,11 +50,14 @@ export default function OnboardingPage() {
     body = <p className="sub center">載入中…</p>;
   } else if (configured && !user) {
     body = (
+      <>
+      <WelcomeHousehold />
       <section className="profile-card center">
-        <h2>🏠 建立貓戶，給貓貓一個家</h2>
+        <h2>🏠 先登入，開始建立貓戶</h2>
         <p className="sub">用 Google 帳號註冊／登入後，喵喵小幫手會用聊天的方式陪你建立貓戶和貓咪名片，大約 3 分鐘。一個帳號最多可以建立 {MAX_HOUSEHOLDS_PER_ACCOUNT} 個貓戶。</p>
-        <button className="btn block" onClick={() => login("/onboarding")}>使用 Google 註冊／登入</button>
+        <button className="btn block" onClick={() => login(window.location.pathname + window.location.search)}>使用 Google 註冊／登入</button>
       </section>
+      </>
     );
   } else if (needsTerms) {
     body = (
@@ -59,6 +68,8 @@ export default function OnboardingPage() {
         <button className="btn block" disabled={!agree} onClick={agreeTerms}>同意並繼續</button>
       </section>
     );
+  } else if (phase === "intro") {
+    body = <WelcomeHousehold onStart={() => setPhase("household")} />;
   } else if (phase === "choose") {
     const canNew = canCreateHousehold(homes.length);
     body = (
@@ -73,7 +84,7 @@ export default function OnboardingPage() {
           ))}
         </div>
         {canNew
-          ? <button className="btn ghost block" onClick={() => setPhase("household")}>🏠 建立新的貓戶（還可以建立 {MAX_HOUSEHOLDS_PER_ACCOUNT - homes.length} 個）</button>
+          ? <button className="btn ghost block" onClick={() => setPhase("intro")}>🏠 建立新的貓戶（還可以建立 {MAX_HOUSEHOLDS_PER_ACCOUNT - homes.length} 個）</button>
           : <p className="fine">每個帳號最多 {MAX_HOUSEHOLDS_PER_ACCOUNT} 個貓戶，你已經建立滿了；每個貓戶可以新增很多貓咪。</p>}
       </section>
     );
