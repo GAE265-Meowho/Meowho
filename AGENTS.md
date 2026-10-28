@@ -188,14 +188,15 @@
 - **Google 登入設定共用**：Google 登入畫面顯示的 App 名稱可能是另一個 App；若要改，需與該 App 負責人協調。
 - **容量共用**：資料庫 500 MB、檔案儲存 1 GB、每月 5 萬活躍使用者是兩個 App 加總。照片一律先縮到最長邊 1024px。
 - **暫停共用**：免費專案閒置一週會被暫停；Demo、評分前要先打開確認。
-- **沒有自動 migration**：SQL 由組長在 Supabase SQL Editor 手動執行；新 migration 必須可重複執行（`if not exists`、`drop ... if exists` 只用在 `meow_` 物件）。
+- **沒有自動 migration**：SQL 由 AI 透過 Supabase 連接器執行，**執行前須把 SQL（或 migration 檔名與內容摘要）給發起人確認**；沒有連接器時由組長在 SQL Editor 手動執行。執行後在每日紀錄寫下 migration 檔名與結果，並跑一次 Supabase 安全檢查（advisors）。新 migration 必須可重複執行（`if not exists`、`drop ... if exists` 只用在 `meow_` 物件）。
+- **執行紀錄**：`0001_meow.sql` 已於 2026-10-28 執行（Supabase migration 名稱 `meow_0001`）。
 - **前端只用 anon key**：所有權限靠 RLS；每張 `meow_` 表都必須啟用 RLS 並寫好 policy。
 
 ### 7.5 新增資料表的流程
 1. 在 `supabase/migrations/` 新增 `NNNN_meow_<說明>.sql`（遵守 7.2、7.3）
 2. 每張表啟用 RLS、寫 policy；需要提權的操作用 `security definer` 函式並先檢查 `meow_is_admin()` 或擁有者
 3. 更新對應 `docs/modules/*.md` 的「資料表」區與每日紀錄
-4. PR 說明中註明「需要在 Supabase 執行的 SQL」，由組長執行
+4. PR 說明中註明「需要在 Supabase 執行的 SQL」；PR 合併後由 AI 經發起人確認後執行（見 7.4）
 5. `npm test` 內的命名守門測試（`src/lib/db-naming.test.ts`）會擋下非 `meow_` 開頭的資料表、RPC 與 auth trigger
 
 ---

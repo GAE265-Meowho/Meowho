@@ -71,6 +71,7 @@
 
 - 首頁還缺：貓咪詳細頁（點卡片進入）、中途之家專區（找中途、認證中途）、領養人 onboarding 入口（目前「我想領養」只導到搜尋列）、知識區完整頁、登入後的個人化首頁（我的貓戶摘要、通知）
 - 貓咪公開頁 `/cats/[id]` 與分享預覽（任務 2 剩餘部分）
+- Supabase 安全檢查：`meow_is_admin`、`meow_set_admin`、`meow_review_verification`、`meow_notify_admins_verification` 為 SECURITY DEFINER 且 anon 可呼叫（函式內有管理員檢查，風險低）；建議在 `0002_meow_hq.sql` 以 `revoke execute ... from anon` 收緊
 - PWA：補 `src/app/manifest.ts` 與 192／512 App 圖示（T-P0-01 剩餘部分）
 - 系統圖表 PNG 仍顯示舊名 CAT Home，需重新輸出（`.mmd` 已改）
 - 語音輸入的 Whisper 備援（Safari／Firefox 不支援瀏覽器語音辨識）
