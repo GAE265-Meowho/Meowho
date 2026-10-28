@@ -7,8 +7,9 @@ import { SiteHeader, TabBar } from "@/components/Chrome";
 import { CARETAKER_LABEL, MAX_HOUSEHOLDS_PER_ACCOUNT, canCreateHousehold, type CaretakerType } from "@/lib/onboarding/household";
 import { ageLabel } from "@/lib/onboarding/cat";
 import { getBrowserSupabase } from "@/lib/supabase/client";
+import { VerificationApply, type VerificationRow } from "@/components/VerificationApply";
 
-interface Household { id: string; name: string; caretaker_type: CaretakerType; city: string; district: string; intro: string; cat_count: number | null }
+interface Household { id: string; name: string; caretaker_type: CaretakerType; city: string; district: string; intro: string; cat_count: number | null; verified_shelter: boolean }
 interface CatRow { id: string; household_id: string; name: string; sex: string; birthday: string | null; est_age_months: number | null; zodiac: string | null; breed: string | null; coat: string | null; traits: string[]; photo_url: string | null; status: string }
 
 // 我的貓戶（時光小屋入口）
@@ -16,17 +17,20 @@ export default function MyHomePage() {
   const { configured, loading, user, login, logout } = useAuth();
   const [homes, setHomes] = useState<Household[] | undefined>(undefined);
   const [cats, setCats] = useState<CatRow[]>([]);
+  const [verifs, setVerifs] = useState<VerificationRow[]>([]);
 
   useEffect(() => {
     const sb = getBrowserSupabase();
     if (loading || !sb || !user) return;
     (async () => {
-      const { data: h } = await sb.from("households").select("id, name, caretaker_type, city, district, intro, cat_count").eq("owner_id", user.id).order("created_at");
+      const { data: h } = await sb.from("households").select("id, name, caretaker_type, city, district, intro, cat_count, verified_shelter").eq("owner_id", user.id).order("created_at");
       const list = (h ?? []) as Household[];
       setHomes(list);
       if (list.length) {
         const { data: c } = await sb.from("cats").select("id, household_id, name, sex, birthday, est_age_months, zodiac, breed, coat, traits, photo_url, status").in("household_id", list.map(x => x.id)).order("created_at");
         setCats((c ?? []) as CatRow[]);
+        const { data: v } = await sb.from("shelter_verifications").select("id, household_id, status, review_note, created_at").in("household_id", list.map(x => x.id)).order("created_at", { ascending: false });
+        setVerifs((v ?? []) as VerificationRow[]);
       }
     })();
   }, [loading, user]);
@@ -54,7 +58,12 @@ export default function MyHomePage() {
         return (
           <div key={home.id} style={{ display: "grid", gap: "1rem", marginBottom: "1.5rem" }}>
             <section className="profile-card">
-              <p className="pill mint" style={{ justifySelf: "start" }}>{CARETAKER_LABEL[home.caretaker_type]}</p>
+              <div className="badge-row">
+                <span className="pill mint">{CARETAKER_LABEL[home.caretaker_type]}</span>
+                <VerificationApply householdId={home.id} verified={home.verified_shelter}
+                  latest={verifs.find(v => v.household_id === home.id) ?? null}
+                  onSubmitted={row => setVerifs(v => [row, ...v])} />
+              </div>
               <h1 className="h2">🏠 {home.name}</h1>
               <p className="sub">📍 {home.city}{home.district}{home.cat_count !== null ? `｜照顧 ${home.cat_count} 隻貓` : ""}</p>
               <p style={{ margin: 0 }}>{home.intro}</p>

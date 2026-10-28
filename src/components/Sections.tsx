@@ -42,6 +42,7 @@ export function WelcomeHousehold() {
     { ico: "📍", title: "設定所在縣市地區", body: "每個貓戶都有自己的縣市＋區，只公開到「區」，不會顯示詳細地址。" },
     { ico: "🐱", title: "一個貓戶，很多貓咪", body: "拍照＋聊天就能幫每一隻貓建立名片，不限隻數。" },
     { ico: "🏠", title: "一個帳號兩個貓戶", body: "用 Google 帳號註冊，最多可以建立 2 個貓戶，例如自家貓和中途貓分開管理。" },
+    { ico: "🏅", title: "申請中途之家認證", body: "做中途的你可以申請認證徽章，經管理員審核後會顯示在貓戶上，讓領養人更安心。" },
   ];
   return (
     <section className="section wrap" aria-labelledby="welcomeTitle">

@@ -10,8 +10,11 @@
    - `anon public` key → `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 
 ## 2. 建立資料表
-**SQL Editor → New query**，貼上 `supabase/migrations/0001_onboarding.sql` 全文 → **Run**。
-完成後 Table Editor 會出現 `profiles`、`households`、`cats`，Storage 會有 `cat-photos`。
+**SQL Editor → New query**，依序貼上並 **Run**：
+1. `supabase/migrations/0001_onboarding.sql`
+2. `supabase/migrations/0002_admin_verification.sql`
+
+完成後 Table Editor 會出現 `profiles`、`households`、`cats`、`notifications`、`shelter_verifications`、`site_settings`，Storage 會有 `cat-photos`。
 
 ## 3. Google 登入
 1. https://console.cloud.google.com → 建立專案 `MeowHome` → **APIs & Services → OAuth consent screen**：External、App name `MeowHome`、填支援信箱 → 儲存
@@ -44,6 +47,16 @@ Vercel → meow-home → **Settings → Environment Variables**，加入（Produ
 
 ## 6. 本機開發
 複製 `.env.example` 為 `.env.local` 填入同樣的值，`npm run dev`。
+
+## 7. 指定第一位管理員
+1. 先用你的 Google 帳號登入網站一次（會自動建立 profile）
+2. Supabase **SQL Editor** 執行（換成你的 Gmail）：
+   ```sql
+   update public.profiles set role = 'admin' where email = '你的Gmail@gmail.com';
+   ```
+3. 開啟隱藏後台 **`/mh-console-8k2p`**（例如 `https://meowhome.hsiangsolutions.com/mh-console-8k2p`），之後可在「管理員」分頁用 Email 授權其他人。
+   - 這個網址不會出現在任何介面上，也不給搜尋引擎收錄；但真正的保護是資料庫權限，非管理員打開只會看到「找不到頁面」。
+   - 想換網址：把 `src/app/mh-console-8k2p` 資料夾改名即可。
 
 ## 驗證
 1. 打開網站 → 首頁「我想建立貓戶」→ Google 登入 → 同意條款

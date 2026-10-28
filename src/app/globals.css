@@ -271,7 +271,7 @@ dialog h2 { margin: 0; font-size: 1.3rem }
 .foot-links { display: flex; gap: 1.2rem; justify-content: center; flex-wrap: wrap }
 .btn { white-space: nowrap }
 @media (max-width: 600px) {
-  .brand-name small, .top-actions .icon-btn { display: none }
+  .brand-name small { display: none }
   .task { flex-wrap: wrap }
   .task .act { margin-left: auto }
 }
@@ -348,3 +348,22 @@ dialog h2 { margin: 0; font-size: 1.3rem }
 .chooser { display: grid; gap: .7rem }
 .chooser-item { display: flex; gap: .8rem; align-items: center; justify-content: space-between; background: #FFFDF5; border: 2px solid var(--line-soft); border-radius: 20px; padding: .8rem 1rem; flex-wrap: wrap }
 .chooser-item b { display: block }
+.bell { position: relative; text-decoration: none }
+.bell .badge { position: absolute; top: -4px; right: -6px; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 10px; background: var(--pink); color: #FFF; font-size: .7rem; font-weight: 700; line-height: 20px; text-align: center; box-shadow: 0 2px 0 var(--pink-dk) }
+.verified { display: inline-flex; align-items: center; gap: .25rem; padding: .15rem .65rem; border-radius: var(--r-full); background: var(--butter); color: #6B5A10; font-size: .8rem; font-weight: 700; box-shadow: 0 2px 0 var(--butter-dk) }
+.welcome-points li:last-child:nth-child(odd) { grid-column: 1 / -1 }
+.badge-row { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center }
+.verify-cta { display: grid; gap: .3rem }
+.verify-form { flex-basis: 100%; display: grid; gap: .7rem; background: #FFFDF5; border: 2px dashed var(--butter-dk); border-radius: 22px; padding: 1rem }
+.verify-form h3 { margin: 0; font-size: 1.05rem }
+.verify-form .fine { margin: 0 }
+.notes { list-style: none; margin: 0; padding: 0; display: grid; gap: .7rem }
+.notes li > a, .notes li > div { display: grid; gap: .2rem; background: var(--card); border: 2px solid var(--line-soft); border-radius: 20px; padding: .9rem 1.1rem; text-decoration: none; color: inherit }
+.notes li.unread > a, .notes li.unread > div { border-color: var(--peach); background: #FFF1EA }
+.notes p { margin: 0; color: var(--cocoa-2); font-size: .92rem }
+.notes small { color: var(--cocoa-2); font-size: .78rem }
+.notes .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: var(--pink); margin-right: .45rem; vertical-align: middle }
+.console { max-width: 900px; padding-top: 1.5rem; padding-bottom: 4rem; display: grid; gap: 1rem }
+.console-section { display: grid; gap: 1rem }
+.admin-row { display: flex; justify-content: space-between; align-items: center; gap: 1rem }
+.admin-row small { display: block; color: var(--cocoa-2) }

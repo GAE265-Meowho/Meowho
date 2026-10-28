@@ -4,13 +4,14 @@ import type { User } from "@supabase/supabase-js";
 import { getBrowserSupabase } from "@/lib/supabase/client";
 import { TERMS_VERSION, isSupabaseConfigured } from "@/lib/supabase/config";
 
-export interface Profile { id: string; display_name: string | null; avatar_url: string | null; terms_version: string | null }
+export interface Profile { id: string; display_name: string | null; avatar_url: string | null; terms_version: string | null; role: "member" | "admin"; email: string | null }
 interface AuthCtx {
   configured: boolean;
   loading: boolean;
   user: User | null;
   profile: Profile | null;
   needsTerms: boolean;
+  isAdmin: boolean;
   login: (next?: string) => Promise<void>;
   logout: () => Promise<void>;
   agreeTerms: () => Promise<void>;
@@ -30,7 +31,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const loadProfile = useCallback(async (uid: string) => {
     if (!sb) return;
-    const { data } = await sb.from("profiles").select("id, display_name, avatar_url, terms_version").eq("id", uid).maybeSingle();
+    const { data } = await sb.from("profiles").select("id, display_name, avatar_url, terms_version, role, email").eq("id", uid).maybeSingle();
     setProfile(data as Profile | null);
   }, [sb]);
 
@@ -67,7 +68,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const needsTerms = Boolean(user && profile && profile.terms_version !== TERMS_VERSION);
 
   return (
-    <Ctx.Provider value={{ configured: isSupabaseConfigured, loading, user, profile, needsTerms, login, logout, agreeTerms }}>
+    <Ctx.Provider value={{ configured: isSupabaseConfigured, loading, user, profile, needsTerms, isAdmin: profile?.role === "admin", login, logout, agreeTerms }}>
       {children}
     </Ctx.Provider>
   );

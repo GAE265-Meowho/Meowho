@@ -1,4 +1,4 @@
-import { AdminLogoDialog, SiteFooter, SiteHeader, TabBar } from "@/components/Chrome";
+import { SiteFooter, SiteHeader, TabBar } from "@/components/Chrome";
 import { Hero } from "@/components/Hero";
 import { Adopt, Consult, Feed, Stats, Steps, TrialBoard, WelcomeHousehold } from "@/components/Sections";
 
@@ -18,7 +18,6 @@ export default function Home() {
       </main>
       <SiteFooter />
       <TabBar />
-      <AdminLogoDialog />
     </>
   );
 }
