@@ -44,7 +44,10 @@ export const HQ_SIDEBAR_ORDER: readonly SidebarItem[] = ["home", ...ADMIN_MODULE
 export const HQ_ROLES = ["system_admin", "admin", "member"] as const;
 export type HqRole = (typeof HQ_ROLES)[number];
 
-/** 需要填寫原因、並寫入稽核日誌的處置（規格書 §4.6）。 */
+/**
+ * 需要填寫原因、並寫入稽核日誌的處置（規格書 §4.6）。
+ * 授予類動作（grant_module、grant_badge、set_role）不是「處置」，只作為稽核日誌的 action（見 admin-moderation.md）。
+ */
 export const HQ_DISPOSITIONS = [
   "suspend", // 停權
   "unsuspend", // 解除停權
@@ -53,6 +56,7 @@ export const HQ_DISPOSITIONS = [
   "takedown", // 下架內容／元件
   "relist", // 重新上架
   "ban", // 加入黑名單（僅系統管理員）
+  "unban", // 移出黑名單（僅系統管理員；規格書 §4.6 要求同樣填原因）
 ] as const;
 export type HqDisposition = (typeof HQ_DISPOSITIONS)[number];
 
@@ -64,6 +68,7 @@ export const DISPOSITION_LABELS: Record<HqDisposition, string> = {
   takedown: "下架",
   relist: "重新上架",
   ban: "加入黑名單",
+  unban: "移出黑名單",
 };
 
 /** 快選原因（規格書 §4.7）。規格書未列的處置為空清單，只填自由文字；各模組日後可再調整。 */
@@ -75,6 +80,7 @@ export const QUICK_REASONS: Record<HqDisposition, readonly string[]> = {
   takedown: ["非貓內容", "不當內容", "重複", "其他"],
   relist: [],
   ban: [],
+  unban: [],
 };
 
 /** 後台操作的錯誤代碼；畫面只顯示白話說明，不顯示代碼（規格書 §4.7）。 */

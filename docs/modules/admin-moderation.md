@@ -33,7 +33,7 @@ MeowHQ（`/MeowHQ`，取代隱藏後台）開發中：階段 0（共用型別與
 **既有表變更**
 | 物件 | 變更 |
 |---|---|
-| `meow_profiles.role` | check 改為 `('member','admin','system_admin')`；現有 `admin` 資料遷移：視為 `system_admin`（授權前全部管理員權限不應縮水；是否如此請 Tina 確認，見 PR 備註） |
+| `meow_profiles.role` | check 改為 `('member','admin','system_admin')`；現有 `admin` 資料遷移：一律視為 `system_admin`（Tina 已同意，目前只有她一位 admin） |
 | `meow_profiles` 新增欄位 | `suspended_at timestamptz`、`suspended_until timestamptz`（null＝直到手動解除）；是否停權＝`suspended_at is not null and (suspended_until is null or suspended_until > now())` |
 
 **新資料表**
@@ -53,17 +53,17 @@ MeowHQ（`/MeowHQ`，取代隱藏後台）開發中：階段 0（共用型別與
 | `meow_grant_module(admin_id, module, reason)`／`meow_revoke_module(admin_id, module, reason)` | 僅系統管理員；不可授予 `admin_authorization`；寫稽核日誌 | UT-HQDB-06 |
 | `meow_set_role(target_email, role, reason)` | 取代 `meow_set_admin`；僅系統管理員；撤銷最後一位系統管理員時拋例外 | UT-HQDB-09 |
 | `meow_suspend_user(user_id, reason, until)`／`meow_unsuspend_user(user_id, reason)` | 需「用戶權限管理」；對象是管理員時須為系統管理員，並清空其模組授權；對象是系統管理員一律拒絕；原因必填；停權時自動婉拒審核中領養申請並通知（領養申請表建立後啟用） | UT-HQDB-01～05、12 |
-| `meow_ban_email(email, reason)`／`meow_unban_email(email, reason)` | 僅系統管理員 | UT-HQDB-06 |
+| `meow_ban_email(email, reason)`／`meow_unban_email(email, reason)` | 僅系統管理員；建議黑名單同時記錄 `auth.users.id`（審查建議，由 #19 決定） | UT-HQDB-06 |
 | `meow_review_verification(...)` | 既有函式；改為需「用戶權限管理」；撤銷徽章函式 `meow_revoke_badge(household_id, reason)` 同樣需原因並寫日誌 | UT-HQDB-06 |
 | `meow_notify_module(module text, type text, payload jsonb)` | 通知有該模組權限者＋全部系統管理員（取代「通知所有管理員」的 trigger） | UT-HQ-39、40 |
 | 登入建立會員資料檢查 | `meow_profiles` insert 時（網站第一次登入）若 email 在黑名單則拒絕；**不可在 `auth.users` 加 trigger**（AGENTS.md §7.3） | UT-HQDB-11 |
 
-**稽核日誌 `action` 值（草案）**：`suspend`、`unsuspend`、`revoke_grant`、`revoke_badge`、`takedown`、`relist`、`ban`（同 `HqDisposition`），另加 `grant_module`、`grant_badge`、`unban`、`set_role`（見 PR 備註：這四個不在 `HqDisposition`，因規格書的處置清單未列）。
+**稽核日誌 `action` 值（草案）**：`suspend`、`unsuspend`、`revoke_grant`、`revoke_badge`、`takedown`、`relist`、`ban`、`unban`（同 `HqDisposition`，共 8 種），另加授予類 `grant_module`、`grant_badge`、`set_role`（不是處置，只作稽核日誌 action；Tina 已同意）。
 
-**待 Tina 確認（寫在 PR 備註）**
-1. 現有 `admin` 是否一律遷移為 `system_admin`？
-2. `unban`（移出黑名單，規格書 §4.6 要求需原因）、`grant_module`、`grant_badge` 是否納入處置類型？
-3. `PLAN.md` 建議區：以 `revoke execute ... from anon` 收緊四個 SECURITY DEFINER 函式，併入 T-HQ-02。
+**已確認（Tina 同意審查建議）**
+1. 現有 `admin` 一律遷移為 `system_admin`。
+2. `unban` 納入處置類型；`grant_module`、`grant_badge`、`set_role` 不納入，只作稽核日誌 action。
+3. 以 `revoke execute ... from anon` 收緊四個 SECURITY DEFINER 函式，併入 T-HQ-02（#19）。\n4. 停權狀態建議只以 `meow_user_suspensions` 為單一來源（生效中＝未解除且未到期），`meow_profiles` 的 `suspended_*` 欄位是否保留由 #19 決定（審查建議）。
 
 ## API／主要函式
 - 資料庫函式：`meow_is_admin()`、`meow_set_admin(email, bool)`、`meow_review_verification(id, approve, note)`（核准時給徽章並通知申請人）
@@ -86,8 +86,8 @@ MeowHQ（`/MeowHQ`，取代隱藏後台）開發中：階段 0（共用型別與
 - 2026-10-28｜MeowHQ 階段 0（Issue #18）：模組代號用英文（`report_moderation`、`user_management`、`products`、`knowledge`、`virtual_assets`、`admin_authorization`），中文名稱放 `ADMIN_MODULE_LABELS`；「貓友」「貓戶長」不是角色（角色只有 `system_admin`／`admin`／`member`）。
 
 ## 待確認
-- 0002 草案的三個問題（見上方「待 Tina 確認」）。
-- 規格書 §4.7 只列停權、下架、撤銷的快選原因；解除停權、重新上架、黑名單目前為空清單。
+- 停權單一來源、黑名單記 `auth.users.id`：交給 #19 決定。
+- 規格書 §4.7 只列停權、下架、撤銷的快選原因；解除停權、重新上架、加入／移出黑名單目前為空清單。
 
 ## 地雷
 - 隱藏網址若外流，非管理員仍讀不到任何資料，但要避免在文件、聊天群組外公開。
@@ -98,4 +98,4 @@ MeowHQ（`/MeowHQ`，取代隱藏後台）開發中：階段 0（共用型別與
 |---|---|---|---|
 | 2026-10-28 | Tina × Claude Code | 建立模組文件 | — |
 | 2026-10-28 | Tina × Claude Code | 隱藏後台、中途認證審核、管理員授權、站台標誌存資料庫、站內通知 | #3 |
-| 2026-10-28 | Tina × Cursor | MeowHQ 階段 0：`src/lib/hq/types.ts` 與測試、0002 資料表草案 | #18 |
+| 2026-10-28 | Tina × Cursor | MeowHQ 階段 0：`src/lib/hq/types.ts` 與測試（8 種處置含 `unban`）、0002 資料表草案 | #18 |

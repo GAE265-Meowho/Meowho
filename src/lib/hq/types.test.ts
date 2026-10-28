@@ -72,10 +72,13 @@ describe("角色（規格書 §3）", () => {
 });
 
 describe("處置類型（規格書 §4.6，UT-HQ-19 基礎）", () => {
-  it("七種：停權、解除停權、撤銷授權、撤銷徽章、下架、重新上架、黑名單", () => {
+  it("八種：停權、解除停權、撤銷授權、撤銷徽章、下架、重新上架、加入黑名單、移出黑名單", () => {
     expect([...HQ_DISPOSITIONS].sort()).toEqual(
-      ["ban", "relist", "revoke_badge", "revoke_grant", "suspend", "takedown", "unsuspend"].sort()
+      ["ban", "relist", "revoke_badge", "revoke_grant", "suspend", "takedown", "unban", "unsuspend"].sort()
     );
+  });
+  it("授予類（授權、授予徽章、變更角色）不是處置，只作為稽核日誌 action", () => {
+    for (const a of ["grant_module", "grant_badge", "set_role"]) expect(HQ_DISPOSITIONS).not.toContain(a);
   });
   it("每個處置都有快選原因清單（可為空陣列）", () => {
     for (const d of HQ_DISPOSITIONS) expect(Array.isArray(QUICK_REASONS[d])).toBe(true);
@@ -93,7 +96,8 @@ describe("快選原因（UT-HQ-28 基礎，規格書 §4.7）", () => {
     expect(QUICK_REASONS.revoke_grant).toEqual(["職務異動", "資料不符", "其他"]);
     expect(QUICK_REASONS.revoke_badge).toEqual(["職務異動", "資料不符", "其他"]);
   });
-  it("規格書未列快選原因的處置（解除停權、重新上架、黑名單）為空清單，只填自由文字", () => {
+  it("規格書未列快選原因的處置（解除停權、重新上架、黑名單、移出黑名單）為空清單，只填自由文字", () => {
+    expect(QUICK_REASONS.unban).toEqual([]);
     expect(QUICK_REASONS.unsuspend).toEqual([]);
     expect(QUICK_REASONS.relist).toEqual([]);
     expect(QUICK_REASONS.ban).toEqual([]);

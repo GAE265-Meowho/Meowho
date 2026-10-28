@@ -76,11 +76,11 @@
 
 - 首頁還缺：貓咪詳細頁（點卡片進入）、中途之家專區（找中途、認證中途）、領養人 onboarding 入口（目前「我想領養」只導到搜尋列）、知識區完整頁、登入後的個人化首頁（我的貓戶摘要、通知）
 - 貓咪公開頁 `/cats/[id]` 與分享預覽（任務 2 剩餘部分）
-- Supabase 安全檢查：`meow_is_admin`、`meow_set_admin`、`meow_review_verification`、`meow_notify_admins_verification` 為 SECURITY DEFINER 且 anon 可呼叫（函式內有管理員檢查，風險低）；建議在 `0002_meow_hq.sql` 以 `revoke execute ... from anon` 收緊
+- Supabase 安全檢查：`meow_is_admin`、`meow_set_admin`、`meow_review_verification`、`meow_notify_admins_verification` 為 SECURITY DEFINER 且 anon 可呼叫（函式內有管理員檢查，風險低）；✅ Tina 同意：在 `0002_meow_hq.sql` 以 `revoke execute ... from anon` 收緊（併入 #19）
 - PWA：補 `src/app/manifest.ts` 與 192／512 App 圖示（T-P0-01 剩餘部分）
 - 系統圖表 PNG 仍顯示舊名 CAT Home，需重新輸出（`.mmd` 已改）
 - MeowHQ（T-HQ-01 實作時發現，待 Tina 決定）：
-  - 規格書 §4.6 要求「移出黑名單需原因」，但 Issue #18 的處置類型只有 7 種、沒有 `unban`；授權、授予徽章也要寫稽核日誌卻不在處置類型內。目前 `types.ts` 只放 7 種，稽核日誌的 action 草案另加 `grant_module`、`grant_badge`、`unban`、`set_role`。
-  - 規格書 §4.7 沒列「解除停權、重新上架、黑名單」的快選原因，目前為空清單。
-  - 現有 `role = 'admin'` 的使用者，升級到 `system_admin`／`admin` 兩種角色時要遷移成哪一種（草案：全部視為 `system_admin`）。
+  - ✅ 已決定（Tina 同意）：`unban` 納入處置類型（共 8 種）；`grant_module`、`grant_badge`、`set_role` 只作稽核日誌 action。
+  - 規格書 §4.7 沒列「解除停權、重新上架、加入／移出黑名單」的快選原因，目前為空清單。
+  - 現有 `role = 'admin'` 的使用者，✅ 已決定（Tina 同意）：現有 `admin` 一律遷移成 `system_admin`。
 - 語音輸入的 Whisper 備援（Safari／Firefox 不支援瀏覽器語音辨識）
