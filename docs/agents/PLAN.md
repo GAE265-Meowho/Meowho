@@ -2,7 +2,7 @@
 
 > GitHub Issues 是任務的正式來源；本檔是給 agent 快速掌握全局的鏡像與排程。
 > 狀態只用：`待辦`、`進行中`、`審查中`、`完成`、`卡住`。開工改「進行中」並填負責人，收工更新。
-> 最後更新：2026-10-28 17:00｜Tina × Claude Code
+> 最後更新：2026-10-29 00:10｜Tina × Cursor
 
 ## 里程碑
 
@@ -44,7 +44,11 @@
 | 21 | AI 層改用 LangChain，可切換模型 | ai-onboarding | 1 | P1 | #11 | Tina | 完成 |
 | 22 | SRS v1.1（後台按模組授權，決策 003）、名詞表、任務清單狀態更新、改名 Meow Home | admin-moderation | — | P0 | — | Tina | 審查中 |
 | 24 | 首次登入條款：看完才能勾選同意 | account | 1 | P1 | #16 | Tina | 審查中 |
-| 23 | 後台改為按模組授權：系統管理員、模組授權、稽核日誌、停權／黑名單、虛擬體驗元件管理（T-15-06～09） | admin-moderation | 17、22 | P2 | 待建立 | C、B | 待辦 |
+| 23 | 後台改為按模組授權：系統管理員、模組授權、稽核日誌、停權／黑名單、虛擬體驗元件管理（T-15-06～09）。拆為 MeowHQ 階段（見 `docs/hq/03`） | admin-moderation | 17、22 | P2 | 見下列 | C、B | 進行中 |
+| 23-0 | MeowHQ 階段 0：共用約定型別（T-HQ-01）＋0002 資料表草案 | admin-moderation | — | P2 | #18 | Tina × Cursor | 審查中 |
+| 23-1 | MeowHQ 階段 1：db（T-HQ-02、12）、logic（T-HQ-03、04）、shell（T-HQ-05、06） | admin-moderation | 23-0 | P2 | 待建立 | C、B | 待辦（等 #18 合併） |
+| 23-2 | MeowHQ 階段 2：待辦總覽與列表、Admin 授權、用戶權限管理（T-HQ-07～10） | admin-moderation | 23-1 | P2 | 待建立 | C、B | 待辦 |
+| 23-3 | MeowHQ 階段 3：虛擬體驗元件管理（T-HQ-11）、獨立審查（T-HQ-13） | admin-moderation | 23-2 | P2 | 待建立 | C、B | 卡住（T-HQ-11 等 #15 儲存位置） |
 
 ## 高風險 PoC（11/05 前）
 
@@ -75,4 +79,9 @@
 - Supabase 安全檢查：`meow_is_admin`、`meow_set_admin`、`meow_review_verification`、`meow_notify_admins_verification` 為 SECURITY DEFINER 且 anon 可呼叫（函式內有管理員檢查，風險低）；建議在 `0002_meow_hq.sql` 以 `revoke execute ... from anon` 收緊
 - PWA：補 `src/app/manifest.ts` 與 192／512 App 圖示（T-P0-01 剩餘部分）
 - 系統圖表 PNG 仍顯示舊名 CAT Home，需重新輸出（`.mmd` 已改）
+- MeowHQ（T-HQ-01 實作時發現，待 Tina 決定）：
+  - 規格書 §4.6 要求「移出黑名單需原因」，但 Issue #18 的處置類型只有 7 種、沒有 `unban`；授權、授予徽章也要寫稽核日誌卻不在處置類型內。目前 `types.ts` 只放 7 種，稽核日誌的 action 草案另加 `grant_module`、`grant_badge`、`unban`、`set_role`。
+  - 規格書 §4.7 沒列「解除停權、重新上架、黑名單」的快選原因，目前為空清單。
+  - 現有 `role = 'admin'` 的使用者，升級到 `system_admin`／`admin` 兩種角色時要遷移成哪一種（草案：全部視為 `system_admin`）。
+  - 開發計畫 §4 第 4 點「為每個階段建立 GitHub Issue」：目前只有階段 0（#18）。
 - 語音輸入的 Whisper 備援（Safari／Firefox 不支援瀏覽器語音辨識）
