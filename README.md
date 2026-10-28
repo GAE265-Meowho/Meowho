@@ -3,7 +3,7 @@
 愛貓社群與中途之家的貓貓追蹤管理與待領養人交流互動平台。
 GAE265 AI 團體專案（6 人）｜皇家寵物食品專題合作｜用 AI 支持終養不棄養。
 
-> 目前階段：**首頁原型**（畫面資料為示意），功能依 [GitHub Issues](../../issues) 逐步疊加。
+> 目前階段：首頁原型＋**中途之家 onboarding**（聊天建立貓戶與貓咪名片）。未設定 Supabase／LLM 環境變數時為示範模式，設定方式見 [docs/setup/SUPABASE_LLM_SETUP.md](docs/setup/SUPABASE_LLM_SETUP.md)。
 
 ## 快速開始
 
@@ -27,7 +27,7 @@ npm run dev        # http://localhost:3000
 |---|---|---|
 | 本機 `npm run dev` | 開發者 | 最快 |
 | **GitHub Codespaces** | 不想裝環境的組員 | Repo 頁面 → Code → Codespaces → Create。自動安裝並開啟 3000 埠預覽。個人帳號每月有免費額度 |
-| **Vercel 正式網址** | 給老師、組外的人看 | https://meow-home-orcin.vercel.app （`main` 有新 commit 會自動重新部署；部署限制見 [CONTRIBUTING.md](CONTRIBUTING.md#8-部署)） |
+| **Vercel 正式網址** | 給老師、組外的人看 | https://meowhome.hsiangsolutions.com （`main` 有新 commit 會自動重新部署；部署限制見 [CONTRIBUTING.md](CONTRIBUTING.md#8-部署)） |
 
 ## 技術架構
 

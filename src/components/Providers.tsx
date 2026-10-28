@@ -1,6 +1,7 @@
 "use client";
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { LOGOS, type Logo } from "@/lib/mock-data";
+import { useAuth } from "./Auth";
 
 interface UiCtx {
   toast: (msg: string) => void;
@@ -20,6 +21,7 @@ export const useUi = () => {
 const LOGO_KEY = "mh.logo";
 
 export function Providers({ children }: { children: React.ReactNode }) {
+  const { configured, user, login } = useAuth();
   const [msg, setMsg] = useState("");
   const [show, setShow] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -54,13 +56,20 @@ export function Providers({ children }: { children: React.ReactNode }) {
     const onClick = (e: MouseEvent) => {
       const el = e.target as HTMLElement;
       const login = el.closest("[data-login]");
-      if (login) { e.preventDefault(); toast("原型：Google 登入尚未串接"); return; }
+      if (login) {
+        e.preventDefault();
+        if (!configured) toast("登入功能尚未設定（需要 Supabase 環境變數）");
+        else if (!user) void doLogin();
+        else toast(`「${(login as HTMLElement).dataset.login || "這個功能"}」下一階段製作`);
+        return;
+      }
       const proto = el.closest<HTMLElement>("[data-proto]");
       if (proto) { e.preventDefault(); toast(`原型：「${proto.dataset.proto}」下一階段製作`); }
     };
+    const doLogin = () => login();
     document.addEventListener("click", onClick);
     return () => document.removeEventListener("click", onClick);
-  }, [toast]);
+  }, [toast, configured, user, login]);
 
   return (
     <Ctx.Provider value={{ toast, logo, setLogo, adminOpen, openAdmin: () => setAdminOpen(true), closeAdmin: () => setAdminOpen(false) }}>

@@ -1,6 +1,6 @@
 import { AdminLogoDialog, SiteFooter, SiteHeader, TabBar } from "@/components/Chrome";
 import { Hero } from "@/components/Hero";
-import { Adopt, Consult, Feed, Stats, Steps, TrialBoard } from "@/components/Sections";
+import { Adopt, Consult, Feed, Stats, Steps, TrialBoard, WelcomeHousehold } from "@/components/Sections";
 
 export default function Home() {
   return (
@@ -9,6 +9,7 @@ export default function Home() {
       <main id="top">
         <Hero />
         <Stats />
+        <WelcomeHousehold />
         <Adopt />
         <Steps />
         <TrialBoard />

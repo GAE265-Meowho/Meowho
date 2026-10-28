@@ -275,3 +275,76 @@ dialog h2 { margin: 0; font-size: 1.3rem }
   .task { flex-wrap: wrap }
   .task .act { margin-left: auto }
 }
+
+/* ---------- 首頁意圖入口 ---------- */
+.intent { display: grid; gap: .9rem; margin: 0 0 1.2rem }
+.intent-ask { justify-self: start; background: #FFFDF5 }
+.intent-options { display: grid; gap: .75rem }
+.intent-btn { display: flex; gap: .9rem; align-items: center; text-align: left; text-decoration: none; border: 2px solid var(--cocoa-line); border-radius: 24px; padding: .9rem 1.1rem; font: inherit; color: var(--cocoa); transition: transform .08s, box-shadow .08s }
+.intent-btn.peach { background: #FFE9DE; box-shadow: 0 6px 0 var(--peach-dk) }
+.intent-btn.mint { background: #E3F8F1; box-shadow: 0 6px 0 var(--mint-dk) }
+.intent-btn:hover { transform: translateY(-2px) }
+.intent-btn:active { transform: translateY(4px); box-shadow: 0 2px 0 var(--cocoa-line) }
+.intent-btn .ico { width: 52px; height: 52px; flex: none; border-radius: 18px; background: #FFFDF5; display: grid; place-items: center; font-size: 1.6rem }
+.intent-btn b { display: block; font-size: 1.08rem }
+.intent-btn small { display: block; color: var(--cocoa-2); font-size: .85rem; line-height: 1.45 }
+.search-label { display: block; font-weight: 700; font-size: .92rem; color: var(--cocoa-2); margin: 0 .3rem .2rem }
+@media (min-width: 600px) { .intent-options { grid-template-columns: 1fr 1fr } }
+
+/* ---------- 聊天 onboarding ---------- */
+.onboarding { max-width: 720px; padding-top: 1.2rem; padding-bottom: 6rem; display: grid; gap: 1rem }
+.center { text-align: center }
+.demo-note { background: #FFF3C4; border: 2px dashed var(--butter-dk); border-radius: 18px; padding: .6rem 1rem; font-size: .88rem; font-weight: 700; margin: 0 }
+.chat-shell { display: grid; gap: 1rem }
+.chat-log { display: grid; gap: .7rem; padding: .3rem 0 }
+.chat-row { display: flex; gap: .55rem; align-items: flex-end }
+.chat-row.me { justify-content: flex-end }
+.chat-avatar { width: 38px; height: 38px; flex: none; border-radius: 50%; background: var(--butter); display: grid; place-items: center; box-shadow: 0 3px 0 var(--butter-dk) }
+.chat-bubble { max-width: 82%; padding: .7rem 1rem; border-radius: 22px; font-size: .97rem; line-height: 1.6; white-space: pre-wrap; box-shadow: var(--sh-1) }
+.chat-bubble.bot { background: #FFFDF5; border: 2px solid var(--line-soft); border-bottom-left-radius: 6px }
+.chat-bubble.me { background: #FFE1D4; border-bottom-right-radius: 6px }
+.chat-img { width: 180px; max-width: 100%; border-radius: 14px; display: block }
+.typing { display: flex; gap: 4px; align-items: center; min-height: 2.6rem }
+.typing i { width: 7px; height: 7px; border-radius: 50%; background: var(--cocoa-2); animation: blink 1s infinite }
+.typing i:nth-child(2) { animation-delay: .15s } .typing i:nth-child(3) { animation-delay: .3s }
+@keyframes blink { 0%, 100% { opacity: .25 } 50% { opacity: 1 } }
+.chat-input { position: sticky; bottom: 0; background: var(--canvas); padding: .6rem 0; display: grid; gap: .5rem; border-top: 2px dashed var(--line-soft) }
+.chat-chips { display: flex; flex-wrap: wrap; gap: .45rem }
+.chat-form { display: flex; gap: .5rem; align-items: flex-end }
+.chat-form textarea { flex: 1; min-width: 0; min-height: 48px; max-height: 140px; resize: vertical; border: 2px solid #D5C7B7; background: var(--card); border-radius: 20px; padding: .7rem 1rem; font: inherit; color: var(--cocoa); outline: none }
+.chat-form textarea:focus { border-color: var(--peach); box-shadow: 0 0 0 4px rgba(255, 158, 121, .25) }
+.icon-btn.rec { background: var(--pink); box-shadow: 0 4px 0 var(--pink-dk) }
+.btn:disabled, .chip:disabled, .icon-btn:disabled { opacity: .5; cursor: not-allowed; transform: none }
+.profile-card { background: var(--card); border: 2px solid var(--cocoa-line); border-radius: 28px; padding: 1.3rem; box-shadow: 0 6px 0 var(--cocoa-line); display: grid; gap: .8rem }
+.profile-card h2 { margin: 0; font-size: 1.25rem }
+.field { display: grid; gap: .25rem; min-width: 0 }
+.field label, .field .label { font-size: .85rem; font-weight: 700; color: var(--cocoa-2) }
+.field input, .field select, .field textarea { width: 100%; border: 2px solid #D5C7B7; background: #FFFDF5; border-radius: 16px; padding: .6rem .8rem; font: inherit; color: var(--cocoa); outline: none }
+.field input:focus, .field select:focus, .field textarea:focus { border-color: var(--peach); box-shadow: 0 0 0 4px rgba(255, 158, 121, .25) }
+.field-row { display: grid; grid-template-columns: 1fr 1fr; gap: .7rem }
+.form-error { margin: 0; color: #A5385D; font-weight: 700; font-size: .9rem }
+.row-actions { display: flex; gap: .6rem; justify-content: center; flex-wrap: wrap }
+.diff { margin: 0; padding-left: 1.1rem; display: grid; gap: .3rem }
+.check { display: flex; gap: .5rem; align-items: center; font-weight: 700 }
+.check input { width: 20px; height: 20px; accent-color: var(--pink) }
+.big-emoji { font-size: 3rem }
+.cat-card-head { display: flex; gap: 1rem; align-items: center }
+.cat-card-head img { width: 96px; height: 96px; border-radius: 20px; object-fit: cover; border: 4px solid #FFFFFFAA; box-shadow: var(--sh-1); flex: none }
+.cat-card-head .tags { display: flex; flex-wrap: wrap; gap: .3rem; margin-top: .3rem }
+.me-link { width: 44px; height: 44px; border-radius: 50%; overflow: hidden; border: 3px solid var(--peach); display: grid; place-items: center; background: var(--card) }
+.me-link img { width: 100%; height: 100%; object-fit: cover }
+.legal { max-width: 760px; padding-top: 1.5rem; padding-bottom: 3rem }
+.legal-text { white-space: pre-wrap; font-size: .95rem; line-height: 1.8; background: var(--card); border-radius: 24px; padding: 1.4rem; border: 2px solid var(--line-soft) }
+
+
+/* ---------- 首頁：歡迎建立貓戶 ---------- */
+.welcome { background: linear-gradient(180deg, #FFEADF, #FFF9ED); border: 2px solid var(--cocoa-line); border-radius: var(--r-lg); padding: 1.4rem; box-shadow: 0 6px 0 var(--cocoa-line); display: grid; gap: 1.1rem }
+.welcome-points { list-style: none; margin: 0; padding: 0; display: grid; gap: .8rem }
+.welcome-points li { display: flex; gap: .8rem; align-items: flex-start; background: #FFFDF5; border-radius: 20px; padding: .8rem 1rem; box-shadow: var(--sh-1) }
+.welcome-points .ico { width: 44px; height: 44px; flex: none; border-radius: 14px; background: #FFE1D4; display: grid; place-items: center; font-size: 1.3rem }
+.welcome-points b { display: block }
+.welcome-points p { margin: .1rem 0 0; font-size: .88rem; color: var(--cocoa-2) }
+@media (min-width: 768px) { .welcome-points { grid-template-columns: 1fr 1fr } .welcome { padding: 2rem } }
+.chooser { display: grid; gap: .7rem }
+.chooser-item { display: flex; gap: .8rem; align-items: center; justify-content: space-between; background: #FFFDF5; border: 2px solid var(--line-soft); border-radius: 20px; padding: .8rem 1rem; flex-wrap: wrap }
+.chooser-item b { display: block }

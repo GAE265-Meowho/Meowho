@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Providers } from "@/components/Providers";
+import { AuthProvider } from "@/components/Auth";
 
 export const metadata: Metadata = {
   title: "MeowHome 貓戶",
@@ -24,7 +25,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;700&family=Zen+Maru+Gothic:wght@500;700&family=Noto+Sans+TC:wght@500;700&display=swap" rel="stylesheet" />
       </head>
       <body>
-        <Providers>{children}</Providers>
+        <AuthProvider><Providers>{children}</Providers></AuthProvider>
       </body>
     </html>
   );

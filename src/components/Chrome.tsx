@@ -1,31 +1,52 @@
 "use client";
 import { useEffect, useRef } from "react";
 import { LOGOS } from "@/lib/mock-data";
+import Link from "next/link";
 import { useUi } from "./Providers";
+import { useAuth } from "./Auth";
 
 export function SiteHeader() {
   const { logo } = useUi();
   return (
     <header className="topbar">
       <div className="wrap topbar-in">
-        <a className="brand" href="#top" aria-label="MeowHome 首頁">
+        <Link className="brand" href="/" aria-label="MeowHome 首頁">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={logo.src} alt="" />
           <span className="brand-name">MeowHome<small>貓戶・讓每隻貓都被好好記得</small></span>
-        </a>
+        </Link>
         <nav className="mainnav" aria-label="主選單">
-          <a href="#top" className="on">首頁大廳</a>
-          <a href="#adopt">尋找貓咪</a>
-          <a href="#trial">虛擬試養</a>
-          <a href="#feed">貓咪動態</a>
-          <a href="#consult">養貓知識</a>
+          <Link href="/">首頁大廳</Link>
+          <Link href="/#adopt">尋找貓咪</Link>
+          <Link href="/#trial">虛擬試養</Link>
+          <Link href="/#feed">貓咪動態</Link>
+          <Link href="/#consult">養貓知識</Link>
+          <Link href="/onboarding" className="on">🏠 建立貓戶</Link>
         </nav>
-        <div className="top-actions">
-          <button className="icon-btn" aria-label="通知" data-login>🔔</button>
-          <button className="btn sm" data-login>Google 登入</button>
-        </div>
+        <UserArea />
       </div>
     </header>
+  );
+}
+
+function UserArea() {
+  const { user, profile } = useAuth();
+  if (user) {
+    const avatar = profile?.avatar_url ?? (user.user_metadata?.avatar_url as string | undefined);
+    return (
+      <div className="top-actions">
+        <button className="icon-btn" aria-label="通知" data-login="通知">🔔</button>
+        <Link href="/me" className="me-link" aria-label="我的貓戶">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          {avatar ? <img src={avatar} alt="" referrerPolicy="no-referrer" /> : <span aria-hidden="true">🐱</span>}
+        </Link>
+      </div>
+    );
+  }
+  return (
+    <div className="top-actions">
+      <button className="btn sm" data-login>貓戶註冊/登入</button>
+    </div>
   );
 }
 
@@ -51,11 +72,11 @@ export function SiteFooter() {
 export function TabBar() {
   return (
     <nav className="tabbar" aria-label="手機導覽">
-      <a href="#top" className="on"><span aria-hidden="true">🐾</span>首頁大廳</a>
-      <a href="#adopt"><span aria-hidden="true">🔍</span>尋找貓咪</a>
-      <a href="#trial"><span aria-hidden="true">🧶</span>虛擬試養</a>
-      <a href="#feed"><span aria-hidden="true">📷</span>貓咪動態</a>
-      <a href="#" data-login><span aria-hidden="true">🏠</span>我的貓戶</a>
+      <Link href="/"><span aria-hidden="true">🐾</span>首頁大廳</Link>
+      <Link href="/#adopt"><span aria-hidden="true">🔍</span>尋找貓咪</Link>
+      <Link href="/onboarding" className="on"><span aria-hidden="true">➕</span>建立貓戶</Link>
+      <Link href="/#feed"><span aria-hidden="true">📷</span>貓咪動態</Link>
+      <Link href="/me"><span aria-hidden="true">🏠</span>我的貓戶</Link>
     </nav>
   );
 }

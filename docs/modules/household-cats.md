@@ -15,17 +15,21 @@
 - PLAN 任務：2、4
 
 ## 目前狀態
-尚未開始。首頁卡片使用 `mock-data.ts` 的 `CATS`。
+貓戶與貓咪資料表、RLS、照片儲存已建立；可透過 `/onboarding` 聊天建立貓戶與貓咪，`/me` 檢視（Issue #1）。首頁卡片仍使用 `mock-data.ts` 的示意資料（任務 3 改讀真實資料）。日記、相簿、時間軸尚未開始。
 
 ## 資料表（Supabase）
-- `households`、`cats`、`cat_adoption_settings`、`cat_diagnoses`、`cat_ownerships`
-- `posts`、`post_cats`、`media`
+- 已建立：`households`（owner_id unique＝一人一戶）、`cats`（visibility null＝沿用貓戶預設、status own/adoptable/adopted）、Storage bucket `cat-photos`（路徑 `<uid>/<uuid>.jpg`）
+- 待建立：`cat_adoption_settings`、`cat_diagnoses`、`cat_ownerships`、`posts`、`post_cats`、`media`
 
 ## API／主要函式
-- 待建立：年紀與星座推導、公開設定判斷（貓戶預設＋貓覆寫、待領養強制公開）、影片 60 秒檢查
+- `src/lib/onboarding/household.ts`：縣市＋區解析、驗證、`toHouseholdRow`
+- `src/lib/onboarding/cat.ts`：`zodiacOf`、`ageLabel`、`ageBandOf`、`toCatRow`、`validateCat`
+- 待建立：公開設定判斷函式、影片 60 秒檢查
 
 ## 主要檔案
-- `src/lib/mock-data.ts`（`Cat` 型別可作為資料表草稿）
+- `supabase/migrations/0001_onboarding.sql`
+- `src/app/me/page.tsx`（我的貓戶）
+- `src/lib/mock-data.ts`（首頁示意資料）
 
 ## 決策
 - 日記與貼文合併為一種內容，用公開／私密區分。
@@ -43,3 +47,4 @@
 | 日期 | 發起人 × 工具 | 變更 | PR |
 |---|---|---|---|
 | 2026-10-28 | Tina × Claude Code | 建立模組文件 | — |
+| 2026-10-28 | Tina × Claude Code | 貓戶、貓咪資料表與 RLS、照片儲存、我的貓戶頁 | #1 |
