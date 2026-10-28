@@ -14,7 +14,7 @@
 - 已部署：Vercel 專案 `meow-home`（Hobby，帳號 somebabyTina），正式網址 https://meowhome.hsiangsolutions.com （網域在 Porkbun，CNAME 指向 Vercel），連動 `main` 自動部署。
 
 ## 下一步（建議第一個動作）
-1. 組長依 `docs/setup/SUPABASE_LLM_SETUP.md` 建 Supabase、Google OAuth、LLM 金鑰並填入 Vercel，合併 PR #1 後實測。
+1. 資料庫已建好（`0001_meow.sql` 於 2026-10-28 執行）。剩下依 `docs/setup/SUPABASE_LLM_SETUP.md`：Google OAuth Redirect URL、LLM 金鑰、Vercel 環境變數，以及登入一次後指定第一位管理員。
 2. 下一個任務建議：貓咪公開頁、首頁「帶我回家」改讀真實資料（任務 3）、領養人 onboarding（任務 7）。
 3. PLAN.md 其餘任務的 Issue 尚未建立。
 
@@ -27,7 +27,7 @@
 - `npm install` 若遇到 peer 相依錯誤，測試套件版本已固定在 vitest@3、@vitejs/plugin-react@4，不要升級到最新主版本。
 
 - **Supabase 是共用專案**（`pnnehddxeujxghhnnqrv`，免費方案限 2 個專案）：MeowHome 的資料表、函式、policy 一律 `meow_` 開頭，bucket `meow-cat-photos`。**不要動任何非 `meow_` 開頭的物件、不要在 `auth.users` 加 trigger、不要改 Site URL**。完整規範：`AGENTS.md` §7。
-- **Supabase migration** 要在 SQL Editor 手動執行（`supabase/migrations/0001_meow.sql`），目前沒有自動遷移。
+- **Supabase migration** 由 AI 透過 Supabase 連接器執行，執行前須經發起人確認（AGENTS.md §7.4）；`0001` 已執行。
 - **Google 登入**：Supabase 的 Redirect URLs 要包含正式網域、Vercel 預覽網域與 localhost，否則登入後會被導回錯誤網址。
 
 ## 重要檔案

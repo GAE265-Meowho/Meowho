@@ -14,6 +14,7 @@
 
 ## 2. 建立 MeowHome 資料表
 **SQL Editor → New query**，貼上 `supabase/migrations/0001_meow.sql` 全文 → **Run**（可重複執行）。
+> 2026-10-28 已由 AI 透過 Supabase 連接器執行完成；之後的 migration 也可這樣執行（須經發起人確認，見 AGENTS.md §7.4）。
 
 完成後 Table Editor（public schema）會多出 `meow_profiles`、`meow_households`、`meow_cats`、`meow_notifications`、`meow_shelter_verifications`、`meow_site_settings`；Storage 會有 `meow-cat-photos`。其他 App 的資料表不會被改動。
 
