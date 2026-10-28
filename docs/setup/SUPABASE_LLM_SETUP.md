@@ -33,7 +33,7 @@
 
 ## 4. LLM 金鑰（擇一）
 - **Gemini（建議，有免費額度）**：https://aistudio.google.com/apikey → Create API key → `GEMINI_API_KEY`
-- OpenAI：https://platform.openai.com/api-keys → `OPENAI_API_KEY`，並設 `LLM_PROVIDER=openai`
+- OpenAI：https://platform.openai.com/api-keys → `OPENAI_API_KEY`，並設 `AI_PROVIDER=openai`（也支援 `azure`、`anthropic`，變數見 `.env.example`）
 
 ## 5. 填到 Vercel
 Vercel → meow-home → **Settings → Environment Variables**，加入（Production＋Preview 都勾）：
@@ -43,7 +43,7 @@ Vercel → meow-home → **Settings → Environment Variables**，加入（Produ
 | `NEXT_PUBLIC_SUPABASE_URL` | 步驟 1 |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | 步驟 1 |
 | `GEMINI_API_KEY` | 步驟 4 |
-| `LLM_PROVIDER` | `gemini`（或 `openai`） |
+| `AI_PROVIDER` | `gemini`（或 `openai`／`azure`／`anthropic`） |
 
 儲存後到 **Deployments → 最新一筆 → Redeploy**，環境變數才會生效。
 

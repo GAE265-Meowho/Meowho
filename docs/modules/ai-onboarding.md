@@ -25,7 +25,9 @@
 - `POST /api/onboarding/household`：解析一題回答（LLM＋規則合併，位置一律再經規則過濾到區）
 - `POST /api/onboarding/cat-photo`：照片 → 是否為貓、品種、毛色、年齡層
 - `POST /api/onboarding/cat-story`：自由口述 → 性格、癖好、補充、結紮
-- `src/lib/llm/index.ts`：`llmJson()`，以 `LLM_PROVIDER` 切換 Gemini／OpenAI，失敗重試 1 次；未設定金鑰時 `isLLMConfigured()` 為 false
+- `src/lib/ai/server.ts`：`extractHousehold()`、`recognizeCatPhoto()`、`organizeCatStory()`，未設定或失敗回傳 `null`（呼叫端改用規則式）
+- `src/lib/ai/models.ts`：`getChatModel("text"|"vision")`，以 `AI_PROVIDER` 切換 Gemini／OpenAI／Azure OpenAI／Anthropic（LangChain）
+- `src/lib/ai/schemas.ts`：三個任務的 zod 輸出格式；`chain.ts`：訊息組裝 → `withStructuredOutput` → zod 驗證
 - 語音：瀏覽器內建語音辨識（zh-TW）；不支援時提示改用打字（Whisper 備援待做）
 
 ## 主要檔案
@@ -38,7 +40,7 @@
 - 必填最少化，其他欄位之後由週報提醒補。
 
 ## 待確認
-- LLM 供應商：程式已支援 Gemini 與 OpenAI，預設 Gemini（`gemini-2.5-flash`），最終選擇待組內確認。
+- LLM 供應商：改用 LangChain，可切換 Gemini／OpenAI／Azure OpenAI／Anthropic，預設 Gemini（`gemini-2.5-flash`），最終選擇待組內確認。見 `docs/decisions/002-langchain-and-media-storage.md`。
 - Whisper 語音備援是否需要。
 
 ## 地雷

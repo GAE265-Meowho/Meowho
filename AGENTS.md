@@ -49,7 +49,8 @@
 - `src/app/`：路由（App Router）
 - `src/components/`：元件；`Providers.tsx` 提供 toast、站台標誌、管理者設定
 - `src/lib/`：商業邏輯（純函式＋`*.test.ts`）；`mock-data.ts` 為示意資料（之後換 Supabase）；`photos.ts`
-- `src/lib/prompts/`：所有 LLM 提示詞（建立後集中在此）
+- `src/lib/ai/`：AI 層（LangChain）。`models.ts` 依環境變數產生模型、`schemas.ts` 輸出格式（zod）、`chain.ts` 通用結構化鏈、`server.ts` 給 API 呼叫；**業務程式不可直接 import 任何供應商 SDK**
+- `src/lib/prompts/`：所有 LLM 提示詞（只放指示，輸出格式寫在 `src/lib/ai/schemas.ts`）
 - `docs/`：規格、模組文件、每日紀錄、交接
 
 ---

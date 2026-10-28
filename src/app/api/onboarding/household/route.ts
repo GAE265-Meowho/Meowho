@@ -1,10 +1,7 @@
 import { NextResponse } from "next/server";
-import { isLLMConfigured, llmJson } from "@/lib/llm";
-import { HOUSEHOLD_EXTRACT } from "@/lib/prompts/onboarding";
+import { extractHousehold } from "@/lib/ai/server";
 import { requireUserForApi } from "@/lib/supabase/server";
-import {
-  HOUSEHOLD_STEPS, mergeHouseholdExtraction, type HouseholdDraft, type HouseholdExtraction, type HouseholdStep,
-} from "@/lib/onboarding/household";
+import { HOUSEHOLD_STEPS, mergeHouseholdExtraction, type HouseholdDraft, type HouseholdStep } from "@/lib/onboarding/household";
 
 // 解析建立貓戶聊天中「一題」的回答（FR-02-01、FR-03-02）
 export async function POST(req: Request) {
@@ -15,16 +12,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "參數錯誤" }, { status: 400 });
   }
   const answer = body.answer.slice(0, 1000);
-  let llm: HouseholdExtraction | null = null;
-  if (isLLMConfigured()) {
-    try {
-      llm = await llmJson<HouseholdExtraction>({
-        system: HOUSEHOLD_EXTRACT.system,
-        jsonShape: HOUSEHOLD_EXTRACT.jsonShape,
-        user: `目前題目：${body.step}\n使用者回答：${answer}`,
-      });
-    } catch { llm = null; }
-  }
+  const llm = await extractHousehold(body.step, answer);
   const draft = mergeHouseholdExtraction(body.draft, body.step, answer, llm);
   return NextResponse.json({ draft, reply: llm?.reply ?? null, ai: Boolean(llm) });
 }

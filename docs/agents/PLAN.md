@@ -41,6 +41,7 @@
 | 18 | AR 3D 貓 | readiness | 13 | P3 | 待建立 | F | 待辦 |
 | 19 | 雙向評分（不公開）與申訴 | adoption | 11 | P3 | 待建立 | C | 待辦 |
 | 20 | 退養流程 | adoption | 11 | P3 | 待建立 | C | 卡住（需求待確認） |
+| 21 | AI 層改用 LangChain，可切換模型 | ai-onboarding | 1 | P1 | #11 | Tina | 完成 |
 
 ## 高風險 PoC（11/05 前）
 
@@ -55,7 +56,8 @@
 ## 待確認（需要人決定）
 
 - 退養流程細節
-- LLM 供應商（Gemini／OpenAI）、影像生成方案
+- LLM 供應商（程式已可切換 Gemini／OpenAI／Azure／Anthropic，只差決定）、影像生成方案
+- 3D 模型與影片的儲存位置：建議 Azure Blob（需有人申請 Azure for Students），見 `docs/decisions/002-langchain-and-media-storage.md`
 - 皇家專題要求（必做功能、KPI、品牌規範、資料提供、購買連結導向）
 - Vercel 部署方式（repo 維持 private 或改 public）
 - 組員姓名與 A–F 對應
