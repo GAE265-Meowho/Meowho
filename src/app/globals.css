@@ -215,9 +215,10 @@ button { font: inherit; color: inherit; cursor: pointer }
 .why { font-size: .85rem; color: var(--cocoa-2); margin: .1rem 0 0 }
 
 /* ---------- 頁尾 ---------- */
-.footer { margin-top: 3rem; background: #FFF1EA; border-top: 2px solid var(--line-soft); padding: 2rem 0 2.2rem }
-.footer-in { display: grid; gap: 1rem; justify-items: center; text-align: center }
-.foot-logo { width: 104px; height: 104px; border-radius: 26px; object-fit: cover; border: 2px solid var(--line-soft) }
+.footer { margin-top: 2.5rem; background: #FFF1EA; border-top: 2px solid var(--line-soft); padding: .9rem 0 }
+.footer-in { display: flex; flex-wrap: wrap; gap: .4rem 1.2rem; justify-content: center; align-items: center; text-align: center; font-size: .85rem; color: var(--cocoa-2) }
+.footer-in b { color: var(--cocoa) }
+.footer-in a { color: var(--cocoa-2) }
 .footer p { margin: 0 }
 .fine { font-size: .85rem; color: var(--cocoa-2) }
 .fine a { color: var(--cocoa-2) }
@@ -374,3 +375,7 @@ dialog h2 { margin: 0; font-size: 1.3rem }
 .admin-row small { display: block; color: var(--cocoa-2) }
 .chooser-item.new-home { border-style: dashed; border-color: var(--peach); background: #FFF6F1 }
 .chooser-item .sub { display: block }
+.page-brand { display: flex; gap: 1rem; align-items: center; margin: .5rem 0 1.2rem }
+.page-brand img { width: 72px; height: 72px; border-radius: 20px; object-fit: cover; border: 2px solid var(--line-soft); flex: none }
+.page-brand-name { font-weight: 700; color: var(--brick); font-size: .95rem }
+.page-brand h1 { margin: .1rem 0 0; font-size: clamp(1.25rem, 1rem + 1.2vw, 1.6rem); line-height: 1.35 }
