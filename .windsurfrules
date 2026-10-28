@@ -1,0 +1,1 @@
+請完整閱讀並遵守根目錄的 `AGENTS.md`（MeowHome 所有 AI 助理的唯一共同規範）。開工先讀 `docs/agents/HANDOFF.md`、`docs/agents/PLAN.md` 與相關 `docs/modules/*.md`；收工寫 `docs/daily/` 每日紀錄。Commit trailer 的 Agent 欄寫 `GitHub Copilot (<模型>)`。

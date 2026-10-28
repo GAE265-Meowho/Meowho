@@ -1,0 +1,8 @@
+---
+description: MeowHome 共同 AI 開發規範
+alwaysApply: true
+---
+
+請完整閱讀並遵守根目錄的 `AGENTS.md`（所有 AI 助理的唯一共同規範）。
+
+開工先讀 `docs/agents/HANDOFF.md`、`docs/agents/PLAN.md`，以及要修改模組的 `docs/modules/*.md`；收工依 AGENTS.md §1 寫每日紀錄並更新文件。Commit trailer 的 Agent 欄寫 `Cursor (<模型>)`。

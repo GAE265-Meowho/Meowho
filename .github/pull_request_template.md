@@ -13,4 +13,10 @@ Closes #
 
 ## 截圖（有畫面變動時）
 
-## 備註（AI 協助範圍、待確認事項）
+## AI 協助範圍
+- 發起人：
+- AI 工具與模型：
+- [ ] 已寫 `docs/daily/` 每日紀錄
+- [ ] 已更新相關 `docs/modules/*.md`、`docs/agents/PLAN.md`、`HANDOFF.md`（如有需要）
+
+## 備註（待確認事項）
