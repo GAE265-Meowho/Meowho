@@ -3,6 +3,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/components/Auth";
 import { SiteHeader } from "@/components/Chrome";
+import { TermsGate } from "@/components/TermsGate";
 import { CatFlow } from "@/components/onboarding/CatFlow";
 import { HouseholdFlow } from "@/components/onboarding/HouseholdFlow";
 import { WelcomeHousehold } from "@/components/onboarding/WelcomeHousehold";
@@ -20,7 +21,6 @@ export default function OnboardingPage() {
   const [current, setCurrent] = useState<Home>({ id: null, name: "" });
   const [justCreated, setJustCreated] = useState(false);
   const [catName, setCatName] = useState("");
-  const [agree, setAgree] = useState(false);
   const [catRound, setCatRound] = useState(0);
   const [catMode, setCatMode] = useState(false);
 
@@ -72,14 +72,7 @@ export default function OnboardingPage() {
       </>
     );
   } else if (needsTerms) {
-    body = (
-      <section className="profile-card">
-        <h2>開始之前</h2>
-        <p className="sub">請閱讀並同意 MeowHome 的隱私權政策與服務條款。我們只會公開貓戶到「縣市＋區」，你上傳的照片和文字會交給 AI 服務整理成貓咪名片。</p>
-        <label className="check"><input type="checkbox" checked={agree} onChange={e => setAgree(e.target.checked)} /> 我已閱讀並同意 <Link href="/legal" target="_blank">隱私權政策與服務條款</Link></label>
-        <button className="btn block" disabled={!agree} onClick={agreeTerms}>同意並繼續</button>
-      </section>
-    );
+    body = <TermsGate onAgree={agreeTerms} />;
   } else if (phase === "intro") {
     body = <WelcomeHousehold onStart={() => setPhase("household")} />;
   } else if (phase === "choose") {
