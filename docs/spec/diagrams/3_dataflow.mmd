@@ -1,0 +1,30 @@
+flowchart LR
+  classDef in fill:#FBEEE2,stroke:#E8C9AE,color:#2B2D42
+  classDef ai fill:#2B2D42,stroke:#2B2D42,color:#FFFFFF
+  classDef db fill:#EEF2F6,stroke:#8D99AE,color:#2B2D42
+  classDef out fill:#E07A2F,stroke:#E07A2F,color:#FFFFFF
+
+  I1[照片]:::in --> P1[Vision LLM 描述＋審核]:::ai
+  I2[60 秒生活影片]:::in --> P2[抽影格＋Whisper＋Vision]:::ai
+  I3[語音／文字口述]:::in --> P3[STT＋LLM 結構化擷取]:::ai
+  I4[居家環境影片]:::in --> P4[Vision 風險偵測]:::ai
+  I5[一句話需求]:::in --> P5[LLM 條件解析＋Embedding]:::ai
+  I6[皇家官網產品頁<br/>人工參考價]:::in --> P6[爬蟲＋人工審核]:::ai
+
+  P1 --> D2[(文字紀錄<br/>描述・標籤)]:::db
+  P2 --> D2
+  P3 --> D1[(貓咪 profile<br/>領養人 profile)]:::db
+  P4 --> D4[(環境報告)]:::db
+  P6 --> D5[(產品・價格・餵食量表)]:::db
+  K[知識庫文章]:::in --> D6[(知識庫)]:::db
+
+  D1 & D2 --> W[每週排程 LLM]:::ai --> O1[每週週報]:::out
+  O1 --> V[(pgvector 向量庫)]:::db
+  D1 & D2 --> V
+  D6 --> V
+  P5 --> V --> O2[RAG 配對推薦＋理由]:::out
+  D1 & D2 & O1 --> G[影像生成＋LLM 劇本]:::ai --> O3[7 天虛擬分身＋體驗摘要]:::out
+  D4 --> O4[飼養環境建議報告]:::out
+  D1 & D5 --> C[公式計算]:::ai --> O5[首年花費＋飼料推薦]:::out
+  V -. 白話說明 .-> O5
+  O3 & O4 & O5 --> APP[領養申請單]:::out

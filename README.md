@@ -1,36 +1,47 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# MeowHome 貓戶 🐾
 
-## Getting Started
+愛貓社群與中途之家的貓貓追蹤管理與待領養人交流互動平台。
+GAE265 AI 團體專案（6 人）｜皇家寵物食品專題合作｜用 AI 支持終養不棄養。
 
-First, run the development server:
+> 目前階段：**首頁原型**（畫面資料為示意），功能依 [GitHub Issues](../../issues) 逐步疊加。
+
+## 快速開始
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run dev        # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+| 指令 | 用途 |
+|---|---|
+| `npm run dev` | 本機開發 |
+| `npm run build` | 正式建置（PR 合併前必須通過） |
+| `npm test` | 單元測試（Vitest） |
+| `npm run typecheck` | TypeScript 型別檢查 |
+| `npm run lint` | ESLint |
+| `npm run photos:download` | 把設計稿照片下載到 `public/photos`（需可連外網） |
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 預覽方式
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| 方式 | 適用 | 說明 |
+|---|---|---|
+| 本機 `npm run dev` | 開發者 | 最快 |
+| **GitHub Codespaces** | 不想裝環境的組員 | Repo 頁面 → Code → Codespaces → Create。自動安裝並開啟 3000 埠預覽。個人帳號每月有免費額度 |
+| Vercel | 給老師、組外的人看 | 見 [CONTRIBUTING.md](CONTRIBUTING.md#部署) |
 
-## Learn More
+## 技術架構
 
-To learn more about Next.js, take a look at the following resources:
+Next.js 15（App Router、TypeScript）→ 之後加入 Supabase（Auth、Postgres、pgvector、Storage、Realtime）與 Python AI Worker。詳見 [`docs/spec/01_系統需求規格書_SRS.md`](docs/spec/01_系統需求規格書_SRS.md)。
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 文件
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+| 文件 | 內容 |
+|---|---|
+| [CONTRIBUTING.md](CONTRIBUTING.md) | **協同合作分工與方式規範**（每位組員必讀） |
+| [CLAUDE.md](CLAUDE.md) | 給 AI 開發助理（Claude Code 等）的專案說明 |
+| [docs/spec/](docs/spec/) | 需求規格書、開發任務、測試計畫、系統圖表 |
+| [docs/design/DESIGN.md](docs/design/DESIGN.md) | Cozy Cat Nook 設計系統（色彩、字型、元件） |
 
-## Deploy on Vercel
+## 照片來源
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+首頁照片取自團隊 Google Stitch 設計稿（AI 生成），網址列於 `src/lib/photo-urls.json`。正式展示前請執行 `npm run photos:download`，並在 `.env.local` 設定 `NEXT_PUBLIC_LOCAL_PHOTOS=1`，避免外部網址失效。

@@ -1,0 +1,53 @@
+flowchart TB
+  classDef user fill:#FBEEE2,stroke:#E07A2F,color:#2B2D42
+  classDef fe fill:#FFFFFF,stroke:#2B2D42,color:#2B2D42
+  classDef app fill:#2B2D42,stroke:#2B2D42,color:#FFFFFF
+  classDef ai fill:#E07A2F,stroke:#E07A2F,color:#FFFFFF
+  classDef data fill:#EEF2F6,stroke:#8D99AE,color:#2B2D42
+
+  subgraph U[使用者]
+    U1[訪客]:::user
+    U2[貓戶長／中途]:::user
+    U3[領養人]:::user
+    U4[平台管理員]:::user
+  end
+
+  subgraph FE[前端｜Next.js PWA 手機優先]
+    F1[首頁／帶我回家]:::fe
+    F2[時光小屋<br/>貓戶・日記・相簿]:::fe
+    F3[動態牆／私訊／通知]:::fe
+    F4[領養流程／準備度評估]:::fe
+    F5[知識區／飼料推薦]:::fe
+    F6[AR 模組<br/>WebXR・A-Frame]:::fe
+    F7[管理後台]:::fe
+  end
+
+  subgraph APP[應用層]
+    A1[Next.js API Routes on Vercel<br/>Google OAuth・權限・領養與移轉・導購追蹤]:::app
+    A2[AI Worker｜Python FastAPI on Cloud Run<br/>ffmpeg 抽影格・Whisper・週報排程・爬蟲匯入]:::app
+  end
+
+  subgraph AI[外部 AI 服務]
+    X1[LLM＋Vision API<br/>建檔・描述・週報・風險・劇本・審核]:::ai
+    X2[Embedding API<br/>RAG 配對]:::ai
+    X3[影像生成／3D<br/>類本尊虛擬貓]:::ai
+  end
+
+  subgraph DB[資料層｜Supabase]
+    D1[(Postgres<br/>貓戶・貓・日記・申請・產品・評分)]:::data
+    D2[(pgvector<br/>貓・日記・週報・知識庫向量)]:::data
+    D3[(Storage<br/>照片・影片・居家影片)]:::data
+    D4[(Realtime<br/>私訊・通知)]:::data
+  end
+
+  EXT[皇家官網／合作通路]:::user
+
+  U1 & U2 & U3 --> FE
+  U4 --> F7
+  FE --> A1
+  A1 --> DB
+  A1 --> A2
+  A2 --> DB
+  A1 --> X1 & X2
+  A2 --> X1 & X3
+  F5 -. UTM 導購連結 .-> EXT

@@ -1,0 +1,39 @@
+flowchart LR
+  classDef pub fill:#FBEEE2,stroke:#E8C9AE,color:#2B2D42
+  classDef auth fill:#FFFFFF,stroke:#E07A2F,color:#2B2D42
+  classDef admin fill:#2B2D42,stroke:#2B2D42,color:#FFFFFF
+
+  H[首頁 /]:::pub
+  H --> S[搜尋結果 /search]:::pub
+  H --> A[帶我回家 /adopt]:::pub --> CAT[貓咪頁 /cats/:id]:::pub
+  H --> F[貓咪動態 /feed]:::pub --> POST[日記頁 /posts/:id]:::pub
+  H --> K[知識區 /knowledge]:::pub --> KA[文章 /knowledge/:slug]:::pub
+  H --> HH[貓戶頁 /h/:id]:::pub --> CAT
+  H --> LG[登入＋條款同意 /login]:::pub
+  H --> LEGAL[隱私權政策／服務條款]:::pub
+
+  LG --> OB[onboarding /onboarding<br/>貓咪 或 領養人]:::auth
+  H --> ME[會員中心 /me]:::auth
+  ME --> MH[我的貓戶 時光小屋 /me/home]:::auth
+  MH --> NC[新增貓咪 /me/cats/new]:::auth
+  MH --> CE[貓咪編輯＋獸醫診斷＋領養設定]:::auth
+  MH --> PE[寫日記 /me/posts/new]:::auth
+  MH --> WR[週報 /me/cats/:id/reports]:::auth
+  MH --> AM[申請管理 /me/applications/received]:::auth
+  ME --> AP[我的申請 /me/applications]:::auth
+  ME --> AD[領養人資料 /me/adopter]:::auth
+  ME --> NS[通知 /notifications]:::auth
+  ME --> MSG[私訊 /messages]:::auth
+
+  CAT --> APPLY[提出領養 /cats/:id/apply<br/>須知＋首年花費]:::auth
+  CAT --> VR[7 天虛擬飼養 /virtual/:catId]:::auth
+  CAT --> ER[環境報告 /env-report]:::auth
+  H --> X3D[3D 互動養貓體驗 /experience]:::auth
+  ER --> AR[AR 模式]:::auth
+
+  ADM[後台 /admin]:::admin
+  ADM --> AK[知識庫]:::admin
+  ADM --> APD[產品與價格]:::admin
+  ADM --> AV[中途認證]:::admin
+  ADM --> AR2[檢舉與審核]:::admin
+  ADM --> ADB[成效儀表板]:::admin
