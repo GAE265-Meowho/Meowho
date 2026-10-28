@@ -51,3 +51,4 @@
 |---|---|---|---|
 | 2026-10-28 | Tina × Claude Code | 建立模組文件 | — |
 | 2026-10-28 | Tina × Claude Code | 中途之家 onboarding（聊天建立貓戶、拍照＋問答＋口述建立貓咪） | #1 |
+| 2026-10-28 | Tina × Claude Code | 建立貓戶前先顯示說明（WelcomeHousehold）；`?cat=1` 新貓入戶：一個貓戶直接新增、兩個先選、沒有先建立 | #5 |

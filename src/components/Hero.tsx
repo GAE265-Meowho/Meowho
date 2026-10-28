@@ -9,6 +9,36 @@ import { useUi } from "./Providers";
 
 const EXAMPLES = ["上班族，白天不在家，想要獨立一點的貓", "家裡有小孩，想找溫和的貓", "可以照顧需要特別照護的貓"];
 
+/** 首頁最上方：你今天想做什麼？（建立貓戶／新貓入戶／我想領養） */
+export function Intent() {
+  const goSearch = () => {
+    const q = document.getElementById("q");
+    q?.scrollIntoView({ behavior: "smooth", block: "center" });
+    setTimeout(() => q?.focus(), 400);
+  };
+  return (
+    <section className="intent-section" aria-labelledby="intentTitle">
+      <div className="wrap intent">
+        <h1 id="intentTitle" className="bubble intent-ask">喵～你今天想做什麼呢？</h1>
+        <div className="intent-options">
+          <Link href="/onboarding" className="intent-btn peach">
+            <span className="ico" aria-hidden="true">🏠</span>
+            <span><b>我想建立貓戶，給貓貓一個家</b><small>有貓的你，幫貓戶取個名字、設定所在縣市地區，就能把每一隻貓都放進來</small></span>
+          </Link>
+          <Link href="/onboarding?cat=1" className="intent-btn butter">
+            <span className="ico" aria-hidden="true">🐱</span>
+            <span><b>新貓入戶</b><small>已經有貓戶了？拍張照、聊幾句，幫新來的貓咪建立名片</small></span>
+          </Link>
+          <button type="button" className="intent-btn mint" onClick={goSearch}>
+            <span className="ico" aria-hidden="true">💖</span>
+            <span><b>我想領養貓貓</b><small>用一句話說說你的生活，幫你找合得來的貓</small></span>
+          </button>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export function Hero() {
   const { toast } = useUi();
   const [q, setQ] = useState("");
@@ -26,23 +56,9 @@ export function Hero() {
     <section className="hero">
       <div className="wrap hero-in">
         <div>
-          <span className="announce">✨ 領養前，先跟牠的分身同居 7 天 <span className="pill pink">新功能</span></span>
-          <h1 className="stroked">讓貓貓找到你，<span>先試著同居，再帶牠回家！</span></h1>
+          <span className="announce" id="adopt-search">✨ 領養前，先跟牠的分身同居 7 天 <span className="pill pink">新功能</span></span>
+          <h2 className="stroked hero-title">讓貓貓找到你，<span>先試著同居，再帶牠回家！</span></h2>
           <p className="lede">中途之家、愛貓人士和想領養的人，在這裡記錄貓咪的日常，也讓好的相遇發生。</p>
-
-          <div className="intent" aria-label="你今天想做什麼">
-            <div className="bubble intent-ask">喵～你今天想做什麼呢？</div>
-            <div className="intent-options">
-              <Link href="/onboarding" className="intent-btn peach">
-                <span className="ico" aria-hidden="true">🏠</span>
-                <span><b>我想建立貓戶，給貓貓一個家</b><small>有貓的你，幫貓戶取個名字、設定所在縣市地區，就能把每一隻貓都放進來</small></span>
-              </Link>
-              <button type="button" className="intent-btn mint" onClick={() => { document.getElementById("q")?.focus(); document.getElementById("q")?.scrollIntoView({ behavior: "smooth", block: "center" }); }}>
-                <span className="ico" aria-hidden="true">💖</span>
-                <span><b>我想領養貓貓</b><small>用一句話說說你的生活，幫你找合得來的貓</small></span>
-              </button>
-            </div>
-          </div>
 
           <form className="search" role="search" onSubmit={e => { e.preventDefault(); run(q); }}>
             <label htmlFor="q" className="search-label">💖 想領養？用一句話說說你的生活</label>
