@@ -1,0 +1,14 @@
+# 001 與其他 App 共用 Supabase 專案，資料庫物件一律 meow_ 開頭
+- 日期：2026-10-28
+- 發起人 × 工具：Tina × Claude Code (claude-opus-5-5)
+- 背景：Supabase 免費方案同時只能有 2 個啟用中的專案，帳號已有其他 App 使用，MeowHome 必須共用專案 `pnnehddxeujxghhnnqrv`。
+- 決定：
+  - 所有資料表、函式、trigger、index、policy 一律 `meow_` 開頭，放在 public schema；Storage bucket 用 `meow-cat-photos`
+  - 不在 `auth.users` 加 trigger；`meow_profiles` 於第一次登入 MeowHome 時由前端建立，email 由資料庫 trigger 從登入憑證帶入（不能自填）
+  - 不修改共用專案的 Site URL 與全域 Auth 設定，只新增 Redirect URLs
+  - 規範寫入 `AGENTS.md` §7，所有 AI 工具與組員都要遵守
+- 影響：登入帳號與其他 App 共用；容量（500 MB 資料庫、1 GB 儲存、5 萬 MAU）兩個 App 加總；閒置一週會被暫停。
+- 替代方案：
+  - 使用 `profiles` 等無前綴名稱（未採用：常見名稱容易與其他 App 衝突，可能弄壞對方）
+  - 獨立 schema（未採用：需要額外設定 Exposed schemas，且組長希望用前綴辨識）
+  - 升級付費方案（未採用：專題期間不需要）

@@ -15,7 +15,7 @@
 - PLAN 任務：5、9
 
 ## 目前狀態
-首頁動態牆為示意資料；按讚只在前端切換。
+首頁動態牆為示意資料；按讚只在前端切換。站內通知已完成基本版（Issue #3）：`meow_notifications` 表、右上角鈴鐺未讀數、`/notifications` 頁（打開即標為已讀）；目前通知來源為中途認證申請與審核結果。
 
 ## 資料表（Supabase）
 - `likes`、`comments`、`follows`、`conversations`、`messages`、`notifications`
@@ -39,3 +39,4 @@
 | 日期 | 發起人 × 工具 | 變更 | PR |
 |---|---|---|---|
 | 2026-10-28 | Tina × Claude Code | 建立模組文件 | — |
+| 2026-10-28 | Tina × Claude Code | 站內通知基本版（鈴鐺、通知頁） | #3 |

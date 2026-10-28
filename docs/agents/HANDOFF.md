@@ -1,18 +1,21 @@
 # HANDOFF — 接手的 agent 需要知道的事
 
 > 寫給「完全沒有上下文的下一個 agent」。只保留**現在仍然成立**的內容。
-> 最後更新：2026-10-28｜Tina × Claude Code
+> 最後更新：2026-10-28 17:00｜Tina × Claude Code
 
 ## 目前狀態
 - `main` 上是**首頁原型**：Next.js 15＋Cozy Cat Nook 設計，資料全部來自 `src/lib/mock-data.ts`（示意）。
-- 尚未接任何後端：沒有 Supabase、沒有登入、沒有 LLM。標示 `data-login`／`data-proto` 的按鈕只會跳提示。
+- 已接 Supabase（Auth、Postgres、Storage）與 LLM（Gemini／OpenAI）的程式碼；**環境變數尚未設定時網站為「示範模式」**：可操作但不能登入、不儲存、AI 改用規則解析。設定步驟：`docs/setup/SUPABASE_LLM_SETUP.md`。
+- 已完成：中途之家 onboarding（`/onboarding`）、我的貓戶（`/me`）、條款頁（`/legal`）。其他 `data-proto` 按鈕仍只跳提示。
 - 一句話配對是**前端關鍵字規則**（`src/lib/match.ts`），是 RAG 的佔位；保留輸入輸出形狀，之後換實作。
-- 正在進行的分支：無。
-- 已部署：Vercel 專案 `meow-home`（Hobby，帳號 somebabyTina），網址 https://meow-home-orcin.vercel.app ，連動 `main` 自動部署。
+- 正在進行的分支：`feat/1-household-onboarding`（PR 待合併，含 Issue #1、#3）。
+- 隱藏管理後台：`/mh-console-8k2p`（不出現在介面上）；第一位管理員需用 SQL 指定，見 `docs/setup/SUPABASE_LLM_SETUP.md` §7。
+- 已部署：Vercel 專案 `meow-home`（Hobby，帳號 somebabyTina），正式網址 https://meowhome.hsiangsolutions.com （網域在 Porkbun，CNAME 指向 Vercel），連動 `main` 自動部署。
 
 ## 下一步（建議第一個動作）
-1. 任務 1：建立 Supabase 專案、Google 登入、條款同意（見 `docs/modules/account.md`）。
-2. 任務完成前先在 GitHub 建立對應 Issue（PLAN.md 的 Issue 欄目前都是「待建立」）。
+1. 組長依 `docs/setup/SUPABASE_LLM_SETUP.md` 建 Supabase、Google OAuth、LLM 金鑰並填入 Vercel，合併 PR #1 後實測。
+2. 下一個任務建議：貓咪公開頁、首頁「帶我回家」改讀真實資料（任務 3）、領養人 onboarding（任務 7）。
+3. PLAN.md 其餘任務的 Issue 尚未建立。
 
 ## 地雷與注意
 - **照片**：來自 Google Stitch 設計稿的外部網址（`src/lib/photo-urls.json`），可能失效。展示前執行 `npm run photos:download`，並設 `NEXT_PUBLIC_LOCAL_PHOTOS=1`。雲端 agent 的環境可能連不到這些網址，截圖驗證時看到空白屬正常。
@@ -21,6 +24,10 @@
 - **Vercel Hobby＋private repo**：非帳號擁有者的 commit 會被擋下部署（見 CONTRIBUTING §8）。
 - **GitHub Free private repo**：branch protection 不會強制生效，main 只能靠流程自律。
 - `npm install` 若遇到 peer 相依錯誤，測試套件版本已固定在 vitest@3、@vitejs/plugin-react@4，不要升級到最新主版本。
+
+- **Supabase 是共用專案**（`pnnehddxeujxghhnnqrv`，免費方案限 2 個專案）：MeowHome 的資料表、函式、policy 一律 `meow_` 開頭，bucket `meow-cat-photos`。**不要動任何非 `meow_` 開頭的物件、不要在 `auth.users` 加 trigger、不要改 Site URL**。完整規範：`AGENTS.md` §7。
+- **Supabase migration** 要在 SQL Editor 手動執行（`supabase/migrations/0001_meow.sql`），目前沒有自動遷移。
+- **Google 登入**：Supabase 的 Redirect URLs 要包含正式網域、Vercel 預覽網域與 localhost，否則登入後會被導回錯誤網址。
 
 ## 重要檔案
 | 檔案 | 用途 |

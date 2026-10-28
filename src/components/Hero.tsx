@@ -1,5 +1,6 @@
 "use client";
 /* eslint-disable @next/next/no-img-element */
+import Link from "next/link";
 import { useRef, useState } from "react";
 import { CATS, DEFAULT_CITY } from "@/lib/mock-data";
 import { matchCats } from "@/lib/match";
@@ -27,11 +28,26 @@ export function Hero() {
         <div>
           <span className="announce">✨ 領養前，先跟牠的分身同居 7 天 <span className="pill pink">新功能</span></span>
           <h1 className="stroked">讓貓貓找到你，<span>先試著同居，再帶牠回家！</span></h1>
-          <p className="lede">用一句話說說你的生活，我們從中途寫下的真實日常裡，找出跟你合得來的貓。</p>
+          <p className="lede">中途之家、愛貓人士和想領養的人，在這裡記錄貓咪的日常，也讓好的相遇發生。</p>
+
+          <div className="intent" aria-label="你今天想做什麼">
+            <div className="bubble intent-ask">喵～你今天想做什麼呢？</div>
+            <div className="intent-options">
+              <Link href="/onboarding" className="intent-btn peach">
+                <span className="ico" aria-hidden="true">🏠</span>
+                <span><b>我想建立貓戶，給貓貓一個家</b><small>有貓的你，幫貓戶取個名字、設定所在縣市地區，就能把每一隻貓都放進來</small></span>
+              </Link>
+              <button type="button" className="intent-btn mint" onClick={() => { document.getElementById("q")?.focus(); document.getElementById("q")?.scrollIntoView({ behavior: "smooth", block: "center" }); }}>
+                <span className="ico" aria-hidden="true">💖</span>
+                <span><b>我想領養貓貓</b><small>用一句話說說你的生活，幫你找合得來的貓</small></span>
+              </button>
+            </div>
+          </div>
 
           <form className="search" role="search" onSubmit={e => { e.preventDefault(); run(q); }}>
-            <label htmlFor="q" className="sr">描述你想找的貓</label>
-            <textarea id="q" rows={2} value={q} onChange={e => setQ(e.target.value)}
+            <label htmlFor="q" className="search-label">💖 想領養？用一句話說說你的生活</label>
+            <span id="q-hint" className="sr">例如住哪裡、有沒有養過貓、喜歡什麼個性</span>
+            <textarea id="q" rows={2} aria-describedby="q-hint" value={q} onChange={e => setQ(e.target.value)}
               onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); run(q); } }}
               placeholder="例如：我住台中北屯，第一次養，想要親人的成貓" />
             <div className="search-row">
@@ -70,8 +86,8 @@ export function Hero() {
           </div>
 
           <div className="hero-cta">
-            <a className="btn mint" href="#trial">🧶 開始虛擬試養</a>
-            <a className="btn ghost" href="#adopt">尋找命中注定的貓咪 💖</a>
+            <a className="btn mint" href="#trial">🧶 看看虛擬試養</a>
+            <a className="btn ghost" href="#adopt">瀏覽待領養貓咪</a>
           </div>
           <div className="proof">
             <div className="faces">
