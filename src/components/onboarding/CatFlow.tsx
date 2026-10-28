@@ -121,7 +121,7 @@ export function CatFlow({ householdId, householdName, onSaved, first = true }: {
       if (up.error) { setSaving(false); setError(`照片上傳失敗：${up.error.message}`); return; }
       photoUrl = sb.storage.from(PHOTO_BUCKET).getPublicUrl(path).data.publicUrl;
     }
-    const { error: err } = await sb.from("cats").insert({ ...toCatRow({ ...draft, photoUrl }), household_id: householdId });
+    const { error: err } = await sb.from("meow_cats").insert({ ...toCatRow({ ...draft, photoUrl }), household_id: householdId });
     setSaving(false);
     if (err) { setError(`儲存失敗：${err.message}`); return; }
     onSaved(draft.name);

@@ -53,7 +53,7 @@ export function HouseholdFlow({ onCreated }: { onCreated: (householdId: string |
     setError(null); setSaving(true);
     const sb = getBrowserSupabase();
     if (!sb || !user) { setSaving(false); onCreated(null, draft.name); return; } // 示範模式：不儲存
-    const { data, error: err } = await sb.from("households").insert({ ...toHouseholdRow(draft), owner_id: user.id }).select("id").single();
+    const { data, error: err } = await sb.from("meow_households").insert({ ...toHouseholdRow(draft), owner_id: user.id }).select("id").single();
     setSaving(false);
     if (err) { setError(err.message.includes("household_limit") ? "每個帳號最多建立 2 個貓戶，請到「我的貓戶」管理。" : `儲存失敗：${err.message}`); return; }
     onCreated(data.id, draft.name);

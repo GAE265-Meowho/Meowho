@@ -56,8 +56,8 @@ function VerifyTab() {
   const load = useCallback(async () => {
     const sb = getBrowserSupabase(); if (!sb) return;
     setRows(null);
-    const { data, error } = await sb.from("shelter_verifications")
-      .select("id, org_type, org_name, proof_url, description, status, review_note, created_at, reviewed_at, household:households(id, name, city, district, intro, caretaker_type, cat_count), applicant:profiles!shelter_verifications_applicant_id_fkey(display_name, email)")
+    const { data, error } = await sb.from("meow_shelter_verifications")
+      .select("id, org_type, org_name, proof_url, description, status, review_note, created_at, reviewed_at, household:meow_households(id, name, city, district, intro, caretaker_type, cat_count), applicant:meow_profiles!meow_shelter_verifications_applicant_id_fkey(display_name, email)")
       .eq("status", status).order("created_at", { ascending: status === "pending" });
     if (error) toast(`讀取失敗：${error.message}`);
     setRows((data ?? []) as unknown as Pending[]);
@@ -66,7 +66,7 @@ function VerifyTab() {
 
   async function review(id: string, approve: boolean) {
     const sb = getBrowserSupabase(); if (!sb) return;
-    const { error } = await sb.rpc("review_verification", { verification_id: id, approve, note: notes[id]?.trim() || null });
+    const { error } = await sb.rpc("meow_review_verification", { verification_id: id, approve, note: notes[id]?.trim() || null });
     if (error) { toast(`審核失敗：${error.message}`); return; }
     toast(approve ? "已核准，貓戶取得徽章並已通知申請人" : "已退回，並已通知申請人");
     load();
@@ -117,14 +117,14 @@ function AdminsTab() {
 
   const load = useCallback(async () => {
     const sb = getBrowserSupabase(); if (!sb) return;
-    const { data } = await sb.from("profiles").select("id, display_name, email").eq("role", "admin").order("created_at");
+    const { data } = await sb.from("meow_profiles").select("id, display_name, email").eq("role", "admin").order("created_at");
     setAdmins((data ?? []) as Admin[]);
   }, []);
   useEffect(() => { load(); }, [load]);
 
   async function setAdmin(target: string, make: boolean) {
     const sb = getBrowserSupabase(); if (!sb || !target.trim()) return;
-    const { data, error } = await sb.rpc("set_admin", { target_email: target.trim(), make_admin: make });
+    const { data, error } = await sb.rpc("meow_set_admin", { target_email: target.trim(), make_admin: make });
     if (error) { toast(error.message); return; }
     if (data === "not_found") { toast("找不到這個 Email：對方需要先用 Google 登入 MeowHome 一次"); return; }
     toast(make ? "已授權為管理員" : "已移除管理員");

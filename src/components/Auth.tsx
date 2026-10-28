@@ -29,9 +29,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(isSupabaseConfigured);
 
+  // 共用 Supabase 專案：不在 auth.users 上加 trigger，第一次登入 MeowHome 時由這裡建立 profile
   const loadProfile = useCallback(async (uid: string) => {
     if (!sb) return;
-    const { data } = await sb.from("profiles").select("id, display_name, avatar_url, terms_version, role, email").eq("id", uid).maybeSingle();
+    const cols = "id, display_name, avatar_url, terms_version, role, email";
+    let { data } = await sb.from("meow_profiles").select(cols).eq("id", uid).maybeSingle();
+    if (!data) {
+      const { data: u } = await sb.auth.getUser();
+      const meta = u.user?.user_metadata ?? {};
+      await sb.from("meow_profiles").insert({ id: uid, display_name: meta.full_name ?? meta.name ?? null, avatar_url: meta.avatar_url ?? null });
+      ({ data } = await sb.from("meow_profiles").select(cols).eq("id", uid).maybeSingle());
+    }
     setProfile(data as Profile | null);
   }, [sb]);
 
@@ -61,7 +69,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const agreeTerms = useCallback(async () => {
     if (!sb || !user) return;
-    const { error } = await sb.from("profiles").update({ terms_version: TERMS_VERSION, terms_agreed_at: new Date().toISOString() }).eq("id", user.id);
+    const { error } = await sb.from("meow_profiles").update({ terms_version: TERMS_VERSION, terms_agreed_at: new Date().toISOString() }).eq("id", user.id);
     if (!error) setProfile(p => (p ? { ...p, terms_version: TERMS_VERSION } : p));
   }, [sb, user]);
 

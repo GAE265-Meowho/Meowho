@@ -34,7 +34,7 @@ function useUnreadCount(userId: string | undefined) {
   useEffect(() => {
     const sb = getBrowserSupabase();
     if (!sb || !userId) return;
-    sb.from("notifications").select("id", { count: "exact", head: true }).eq("user_id", userId).is("read_at", null)
+    sb.from("meow_notifications").select("id", { count: "exact", head: true }).eq("user_id", userId).is("read_at", null)
       .then(({ count }) => setN(count ?? 0));
   }, [userId]);
   return n;

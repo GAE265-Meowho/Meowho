@@ -25,7 +25,7 @@ export function VerificationApply({ householdId, verified, latest, onSubmitted }
     const sb = getBrowserSupabase();
     if (!sb || !user) return;
     setSending(true); setError(null);
-    const { data, error: err } = await sb.from("shelter_verifications").insert({
+    const { data, error: err } = await sb.from("meow_shelter_verifications").insert({
       household_id: householdId, applicant_id: user.id, org_type: form.orgType,
       org_name: form.orgName.trim() || null, proof_url: form.proofUrl.trim() || null, description: form.description.trim(),
     }).select("id, household_id, status, review_note, created_at").single();

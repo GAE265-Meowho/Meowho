@@ -34,7 +34,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const sb = getBrowserSupabase();
     if (!sb) return;
-    sb.from("site_settings").select("value").eq("key", "logo").maybeSingle().then(({ data }) => {
+    sb.from("meow_site_settings").select("value").eq("key", "logo").maybeSingle().then(({ data }) => {
       const found = LOGOS.find(l => l.id === data?.value);
       if (found) setLogoState(found);
     });
@@ -44,7 +44,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
     const found = LOGOS.find(l => l.id === id) ?? LOGOS[0];
     const sb = getBrowserSupabase();
     if (!sb) { setLogoState(found); return true; }
-    const { error } = await sb.from("site_settings").upsert({ key: "logo", value: found.id, updated_at: new Date().toISOString(), updated_by: user?.id });
+    const { error } = await sb.from("meow_site_settings").upsert({ key: "logo", value: found.id, updated_at: new Date().toISOString(), updated_by: user?.id });
     if (error) { toast(`儲存失敗：${error.message}`); return false; }
     setLogoState(found);
     toast(`已套用「${found.name}」`);

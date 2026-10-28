@@ -18,7 +18,7 @@
 貓戶與貓咪資料表、RLS、照片儲存已建立；可透過 `/onboarding` 聊天建立貓戶與貓咪，`/me` 檢視（Issue #1）。首頁卡片仍使用 `mock-data.ts` 的示意資料（任務 3 改讀真實資料）。日記、相簿、時間軸尚未開始。
 
 ## 資料表（Supabase）
-- 已建立：`households`（owner_id unique＝一人一戶）、`cats`（visibility null＝沿用貓戶預設、status own/adoptable/adopted）、Storage bucket `cat-photos`（路徑 `<uid>/<uuid>.jpg`）
+- 已建立：`meow_households`（一個帳號最多 2 戶，trigger 限制）、`meow_cats`（visibility null＝沿用貓戶預設、status own/adoptable/adopted）、Storage bucket `meow-cat-photos`（路徑 `<uid>/<uuid>.jpg`）
 - 待建立：`cat_adoption_settings`、`cat_diagnoses`、`cat_ownerships`、`posts`、`post_cats`、`media`
 
 ## API／主要函式
@@ -27,7 +27,7 @@
 - 待建立：公開設定判斷函式、影片 60 秒檢查
 
 ## 主要檔案
-- `supabase/migrations/0001_onboarding.sql`
+- `supabase/migrations/0001_meow.sql`
 - `src/app/me/page.tsx`（我的貓戶）
 - `src/lib/mock-data.ts`（首頁示意資料）
 

@@ -27,7 +27,7 @@ export default function OnboardingPage() {
     const sb = getBrowserSupabase();
     if (!sb || !user) { setPhase("household"); return; }
     const params = new URLSearchParams(window.location.search);
-    sb.from("households").select("id, name, city, district").eq("owner_id", user.id).order("created_at").then(({ data }) => {
+    sb.from("meow_households").select("id, name, city, district").eq("owner_id", user.id).order("created_at").then(({ data }) => {
       const list = (data ?? []) as Home[];
       setHomes(list);
       const target = list.find(h => h.id === params.get("household"));

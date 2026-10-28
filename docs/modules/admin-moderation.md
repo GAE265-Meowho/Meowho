@@ -18,12 +18,12 @@
 隱藏後台 `/mh-console-8k2p` 已完成（Issue #3）：中途認證審核、管理員授權／移除、網站標誌（存 `site_settings`）。頁尾的管理者設定入口已移除。檢舉與內容審核尚未開始。
 
 ## 資料表（Supabase）
-- 已建立（migration 0002）：`shelter_verifications`（同一貓戶同時只能一筆審核中）、`notifications`、`site_settings`（key/value，公開讀、管理員寫）
-- `profiles.role`（member/admin）、`profiles.email`
+- 已建立（`0001_meow.sql`）：`meow_shelter_verifications`（同一貓戶同時只能一筆審核中）、`meow_notifications`、`meow_site_settings`（key/value，公開讀、管理員寫）
+- `meow_profiles.role`（member/admin）、`meow_profiles.email`
 - 待建立：`reports`
 
 ## API／主要函式
-- 資料庫函式：`is_admin()`、`set_admin(email, bool)`、`review_verification(id, approve, note)`（核准時給徽章並通知申請人）
+- 資料庫函式：`meow_is_admin()`、`meow_set_admin(email, bool)`、`meow_review_verification(id, approve, note)`（核准時給徽章並通知申請人）
 - trigger：送出認證申請 → 通知所有管理員；角色與 `verified_shelter` 只能由管理員變更
 - 前端：`src/app/mh-console-8k2p/page.tsx`、`src/components/VerificationApply.tsx`（貓戶長申請）、`src/lib/verification.ts`
 - 待建立：檢舉處理、影像與文字審核

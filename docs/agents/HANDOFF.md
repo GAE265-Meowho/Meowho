@@ -25,7 +25,8 @@
 - **GitHub Free private repo**：branch protection 不會強制生效，main 只能靠流程自律。
 - `npm install` 若遇到 peer 相依錯誤，測試套件版本已固定在 vitest@3、@vitejs/plugin-react@4，不要升級到最新主版本。
 
-- **Supabase migration** 要在 SQL Editor 依序手動執行（`0001` → `0002`），目前沒有自動遷移。
+- **Supabase 是共用專案**（`pnnehddxeujxghhnnqrv`，免費方案限 2 個專案）：MeowHome 的資料表、函式、policy 一律 `meow_` 開頭，bucket `meow-cat-photos`。**不要動任何非 `meow_` 開頭的物件、不要在 `auth.users` 加 trigger、不要改 Site URL**。完整規範：`AGENTS.md` §7。
+- **Supabase migration** 要在 SQL Editor 手動執行（`supabase/migrations/0001_meow.sql`），目前沒有自動遷移。
 - **Google 登入**：Supabase 的 Redirect URLs 要包含正式網域、Vercel 預覽網域與 localhost，否則登入後會被導回錯誤網址。
 
 ## 重要檔案

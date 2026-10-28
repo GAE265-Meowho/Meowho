@@ -16,9 +16,9 @@ export default function NotificationsPage() {
     const sb = getBrowserSupabase();
     if (loading || !sb || !user) return;
     (async () => {
-      const { data } = await sb.from("notifications").select("id, type, title, body, link, read_at, created_at").eq("user_id", user.id).order("created_at", { ascending: false }).limit(50);
+      const { data } = await sb.from("meow_notifications").select("id, type, title, body, link, read_at, created_at").eq("user_id", user.id).order("created_at", { ascending: false }).limit(50);
       setList((data ?? []) as Note[]);
-      await sb.from("notifications").update({ read_at: new Date().toISOString() }).eq("user_id", user.id).is("read_at", null);
+      await sb.from("meow_notifications").update({ read_at: new Date().toISOString() }).eq("user_id", user.id).is("read_at", null);
     })();
   }, [loading, user]);
 

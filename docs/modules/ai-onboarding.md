@@ -18,7 +18,7 @@
 中途之家／愛貓人士 onboarding 已完成（Issue #1）：首頁「我想建立貓戶」→ `/onboarding` 聊天建立貓戶 → 拍照＋問答＋自由口述建立貓咪名片。領養人 onboarding 尚未開始（任務 7）。
 
 ## 資料表（Supabase）
-- 寫入 `households`、`cats`（前端以使用者身分直接寫入，由 RLS 保護）
+- 寫入 `meow_households`、`meow_cats`（前端以使用者身分直接寫入，由 RLS 保護）
 - 待建立：`adopter_profiles`
 
 ## API／主要函式

@@ -131,6 +131,9 @@ git switch feat/12-xxx && git rebase main   # 或 git merge main
 
 ## 7. 環境變數與金鑰
 
+> **資料庫是與其他 App 共用的 Supabase 專案**（免費方案只能 2 個專案）：資料表一律 `meow_` 開頭、不能動其他 App 的東西。完整規範見 [`AGENTS.md` §7](AGENTS.md#7-共用資料庫規範supabase)。
+
+
 - 金鑰只放 `.env.local`（已被 `.gitignore` 忽略），範本在 `.env.example`。
 - 共用金鑰由組長保管，私訊給需要的人；Vercel 上的金鑰在 Vercel 專案設定裡設定。
 - 不小心把金鑰推上 GitHub：**立刻通知組長並撤銷重發**，不要只刪 commit。

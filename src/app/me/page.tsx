@@ -23,13 +23,13 @@ export default function MyHomePage() {
     const sb = getBrowserSupabase();
     if (loading || !sb || !user) return;
     (async () => {
-      const { data: h } = await sb.from("households").select("id, name, caretaker_type, city, district, intro, cat_count, verified_shelter").eq("owner_id", user.id).order("created_at");
+      const { data: h } = await sb.from("meow_households").select("id, name, caretaker_type, city, district, intro, cat_count, verified_shelter").eq("owner_id", user.id).order("created_at");
       const list = (h ?? []) as Household[];
       setHomes(list);
       if (list.length) {
-        const { data: c } = await sb.from("cats").select("id, household_id, name, sex, birthday, est_age_months, zodiac, breed, coat, traits, photo_url, status").in("household_id", list.map(x => x.id)).order("created_at");
+        const { data: c } = await sb.from("meow_cats").select("id, household_id, name, sex, birthday, est_age_months, zodiac, breed, coat, traits, photo_url, status").in("household_id", list.map(x => x.id)).order("created_at");
         setCats((c ?? []) as CatRow[]);
-        const { data: v } = await sb.from("shelter_verifications").select("id, household_id, status, review_note, created_at").in("household_id", list.map(x => x.id)).order("created_at", { ascending: false });
+        const { data: v } = await sb.from("meow_shelter_verifications").select("id, household_id, status, review_note, created_at").in("household_id", list.map(x => x.id)).order("created_at", { ascending: false });
         setVerifs((v ?? []) as VerificationRow[]);
       }
     })();
