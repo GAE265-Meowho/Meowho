@@ -8,6 +8,7 @@
 - 尚未接任何後端：沒有 Supabase、沒有登入、沒有 LLM。標示 `data-login`／`data-proto` 的按鈕只會跳提示。
 - 一句話配對是**前端關鍵字規則**（`src/lib/match.ts`），是 RAG 的佔位；保留輸入輸出形狀，之後換實作。
 - 正在進行的分支：無。
+- 已部署：Vercel 專案 `meow-home`（Hobby，帳號 somebabyTina），網址 https://meow-home-orcin.vercel.app ，連動 `main` 自動部署。
 
 ## 下一步（建議第一個動作）
 1. 任務 1：建立 Supabase 專案、Google 登入、條款同意（見 `docs/modules/account.md`）。
