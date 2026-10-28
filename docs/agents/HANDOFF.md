@@ -5,7 +5,7 @@
 
 ## 目前狀態
 - `main` 上是**首頁原型**：Next.js 15＋Cozy Cat Nook 設計，資料全部來自 `src/lib/mock-data.ts`（示意）。
-- 已接 Supabase（Auth、Postgres、Storage）與 LLM（Gemini／OpenAI）的程式碼；**環境變數尚未設定時網站為「示範模式」**：可操作但不能登入、不儲存、AI 改用規則解析。設定步驟：`docs/setup/SUPABASE_LLM_SETUP.md`。
+- 已接 Supabase（Auth、Postgres、Storage）與 AI（LangChain，`src/lib/ai/`，可切換 Gemini／OpenAI／Azure／Anthropic）的程式碼；**環境變數尚未設定時網站為「示範模式」**：可操作但不能登入、不儲存、AI 改用規則解析。設定步驟：`docs/setup/SUPABASE_LLM_SETUP.md`。
 - 已完成：中途之家 onboarding（`/onboarding`）、我的貓戶（`/me`）、條款頁（`/legal`）。其他 `data-proto` 按鈕仍只跳提示。
 - 一句話配對是**前端關鍵字規則**（`src/lib/match.ts`），是 RAG 的佔位；保留輸入輸出形狀，之後換實作。
 - 正在進行的分支：`feat/1-household-onboarding`（PR 待合併，含 Issue #1、#3）。

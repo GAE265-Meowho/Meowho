@@ -1,4 +1,5 @@
 // 中途之家 onboarding 的 LLM 提示詞（AI 組統一在這裡調整）
+// 輸出格式由 src/lib/ai/schemas.ts（zod）定義，這裡只放指示。
 
 export const HOUSEHOLD_EXTRACT = {
   system: `你是 MeowHome 貓社群平台的建檔小幫手。使用者正在用聊天方式建立「貓戶」（他照顧貓咪的家或中途之家）。
@@ -11,7 +12,6 @@ export const HOUSEHOLD_EXTRACT = {
 - catCount：目前照顧的貓咪數量（整數），沒提到填 null。
 - allowStrangerMessages：使用者願意讓陌生人私訊 → true，不願意 → false，不確定 → null。
 - reply：一句溫暖、簡短（30 字內）的回應，用繁體中文，可以有一個貓咪 emoji。不要問下一題。`,
-  jsonShape: `{"caretakerType": "personal_foster"|"shelter_org"|"cat_owner"|null, "name": string|null, "city": string|null, "district": string|null, "intro": string|null, "catCount": number|null, "allowStrangerMessages": boolean|null, "reply": string}`,
 };
 
 export const CAT_PHOTO = {
@@ -23,7 +23,6 @@ export const CAT_PHOTO = {
 - confidence：0～1 的信心分數。
 - comment：一句溫暖的觀察（25 字內，繁體中文，不要提到健康或疾病）。
 只描述外觀，不做任何健康判斷。`,
-  jsonShape: `{"isCat": boolean, "breed": string|null, "coat": string|null, "ageBand": "幼貓"|"成貓"|"熟齡"|"老貓"|null, "confidence": number, "comment": string}`,
 };
 
 export const CAT_STORY = {
@@ -35,5 +34,4 @@ export const CAT_STORY = {
 - neutered：明確說已結紮 → true，明確說未結紮 → false，沒提到 → null。
 - 嚴禁推論疾病或給醫療建議；使用者提到疾病時只原文記在 notes，並加上「（請以獸醫診斷為準）」。
 - reply：一句溫暖簡短的回應（30 字內）。`,
-  jsonShape: `{"traits": string[], "quirks": string|null, "notes": string|null, "neutered": boolean|null, "reply": string}`,
 };
