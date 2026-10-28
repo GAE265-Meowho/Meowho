@@ -1,4 +1,4 @@
-# CAT Home 貓戶｜單元功能測試計畫（Unit Test Plan）
+# Meow Home 貓戶｜單元功能測試計畫（Unit Test Plan）
 
 > v1.0｜2026/10/28｜對應《01_系統需求規格書》《02_開發任務清單》
 

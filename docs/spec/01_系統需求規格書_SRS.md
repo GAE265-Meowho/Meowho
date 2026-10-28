@@ -1,14 +1,22 @@
-# CAT Home 貓戶｜系統需求規格書（SRS）
+# Meow Home 貓戶｜系統需求規格書（SRS）
 
 | 項目 | 內容 |
 |---|---|
-| 文件版本 | v1.0（2026/10/28） |
+| 文件版本 | v1.1（2026/10/28） |
 | 專案 | GAE265 團隊專題（6 人） |
 | 專案目標 | 愛貓社群與中途之家的貓貓追蹤管理與待領養人交流互動平台 |
 | 定位 | 相遇｜Responsible Pet Ownership — 用 AI 支持終養不棄養 |
 | 合作夥伴 | 皇家寵物食品（Royal Canin）專題合作，平台可導購 |
-| 決策來源 | 需求訪談 Q1–Q24（2026/10/28）、白板討論、首頁概念圖、CatSafe AR README |
+| 決策來源 | 需求訪談 Q1–Q24（2026/10/28）、白板討論、首頁概念圖、CatSafe AR README、決策 003 |
+| 名詞定義 | 見根目錄 `GLOSSARY.md` |
 | 狀態 | UI/UX 需求訪談尚未進行；介面圖為低保真線框稿 |
+
+### 版本紀錄
+
+| 版本 | 日期 | 變更 |
+|---|---|---|
+| v1.0 | 2026/10/28 | 初版 |
+| v1.1 | 2026/10/28 | 後台權限改為「系統管理員按模組授權」（決策 003）：修改 §2、FR-01-04、M15、§7；新增停權／黑名單、稽核日誌、虛擬體驗元件管理；商品新增「用品」分類 |
 
 ---
 
@@ -42,10 +50,12 @@
 | 會員（一般） | Google | 訪客權限＋按讚、留言、追蹤、私訊、建立貓戶、3D 互動養貓體驗 |
 | 貓戶長 | Google | 建立貓戶與多隻貓；日記／相簿／影片；設定待領養與領養流程；審核申請；移轉 |
 | 領養人 | Google＋onboarding | 領養人資料；準備度評估；提出領養申請 |
-| 認證中途 | 貓戶長＋認證通過 | 認證徽章；可查看領養人收到的評分（不公開） |
-| 平台管理員 | Google＋白名單 | 後台：知識庫、產品資料、中途認證、檢舉、內容審核、成效儀表板 |
+| 認證中途 | 貓戶長＋貓戶持有中途徽章 | 認證徽章；可查看領養人收到的評分（不公開）；徽章撤銷後立即失去此權限 |
+| 管理員 | Google＋系統管理員授權 | 只能使用被授予的後台模組（見 M15）〔v1.1〕 |
+| 系統管理員 | Google；第一位以 SQL 指定 | 全部後台模組；授予／撤銷管理員與模組權限；黑名單；稽核日誌；系統設定。可有多位，至少保留一位〔v1.1〕 |
 
 > 同一帳號可同時是貓戶長與領養人。建立貓戶時詢問「是否已經有養貓」來分流 onboarding。
+> 管理員權限設計理由見 決策 003。
 
 ---
 
@@ -64,10 +74,10 @@
 | M09 | 領養流程（申請、審核、移轉、試養、追蹤） | P1 |
 | M10 | 私訊 | P1 |
 | M11 | 站內通知 | P1 |
-| M12 | 知識區、飼料資料庫與首年花費 | P2 |
+| M12 | 知識區、商品資料庫與首年花費 | P2 |
 | M13 | 導購與成效追蹤 | P2 |
 | M14 | 雙向評分（不公開） | P3 |
-| M15 | 後台管理 | P2 |
+| M15 | 後台管理（按模組授權） | P2 |
 | M16 | AI 內容審核 | P2 |
 | M17 | 首頁 | P1 |
 
@@ -75,7 +85,7 @@
 
 ## 4. 功能需求
 
-需求編號格式：`FR-模組-流水號`。優先度：Must／Should／Could。
+需求編號格式：`FR-模組-流水號`。優先度：Must／Should／Could。〔v1.1〕標示本版新增或修改。
 
 ### M01 帳號與權限
 
@@ -84,10 +94,11 @@
 | FR-01-01 | 使用 Google OAuth 登入／登出 | Must |
 | FR-01-02 | 首次登入須勾選同意「隱私權政策＋服務條款」才能繼續；條款版本更新時重新確認 | Must |
 | FR-01-03 | 首次登入詢問「是否已經有養貓」：有 → 貓咪 onboarding；想領養 → 領養人 onboarding；可略過 | Must |
-| FR-01-04 | 角色判斷：訪客、會員、貓戶長、領養人、認證中途、管理員（白名單 Email） | Must |
+| FR-01-04 | 角色判斷：訪客、會員、貓戶長、領養人、認證中途、管理員、系統管理員。第一位系統管理員以 SQL 指定（見 docs/setup/SUPABASE_LLM_SETUP.md §7），其餘於後台授權（見 決策 003）〔v1.1〕 | Must |
 | FR-01-05 | 未登入使用者觸發需登入功能時（私訊、按讚、3D 體驗等），導向登入並於登入後回到原頁 | Must |
 | FR-01-06 | 會員中心：個人資料、我的貓戶、我的申請、通知設定 | Must |
 | FR-01-07 | 不提供一鍵刪除帳號；條款註明可來信申請行使個資權利 | Must |
+| FR-01-08 | 被停權帳號無法使用會員功能；黑名單中的 Google 帳號無法註冊或登入〔v1.1〕 | Must |
 
 ### M02 貓戶與貓咪管理
 
@@ -102,7 +113,7 @@
 | FR-02-07 | 位置只存縣市＋區，不存精確地址；地圖只標到區中心點 | Must |
 | FR-02-08 | 獸醫診斷紀錄：疾病（選單：腎臟病、泌尿道、糖尿病、腸胃敏感、肥胖、其他）、診斷日期、醫院（選填）；僅貓戶長手動填寫 | Must |
 | FR-02-09 | 領養設定（設為待領養時必填）：領養費與說明、領養流程步驟勾選（面談／家訪／7 天虛擬飼養／AR 環境報告） | Must |
-| FR-02-10 | 一般愛貓人士與中途皆可送養；認證中途顯示徽章（見 M15） | Should |
+| FR-02-10 | 一般愛貓人士與中途皆可送養；中途徽章授予「貓戶」，持有者顯示徽章（見 M15）〔v1.1〕 | Should |
 
 ### M03 AI 對話建檔
 
@@ -170,13 +181,13 @@
 | FR-08-01 | 規則：有飼養經驗者可直接申請；無經驗者須完成「AR 環境報告」或「7 天虛擬飼養」其一；若貓戶長的領養流程有指定，依指定 | Must |
 | FR-08-02 | 環境報告（核心）：上傳約 30 秒居家影片或多張照片 → 抽影格 → Vision LLM 偵測風險（窗戶／陽台無防護、電線外露、有毒植物、高處易落物…）→ 飼養環境建議報告 | Must |
 | FR-08-03 | 環境報告標示「可能風險」並需使用者確認；植物不直接判定毒性，提示查證 | Must |
-| FR-08-04 | AR 3D 貓（加分）：支援 WebXR 的裝置可將 3D 貓放入空間，走到風險點播放錯誤示範；iOS 降級為 3D 模型檢視 | Could |
-| FR-08-05 | 虛擬貓生成：以本尊照片為參考產生類本尊的虛擬貓影像 | Should |
+| FR-08-04 | AR 3D 貓（加分）：支援 WebXR 的裝置可將 3D 貓放入空間，走到風險點播放錯誤示範；iOS 降級為 3D 模型檢視。使用的 3D 模型、場景與動畫來自「虛擬體驗元件」（見 FR-15-12）〔v1.1〕 | Could |
+| FR-08-05 | 虛擬貓生成：以本尊照片為參考產生類本尊的虛擬貓影像（屬於該貓，不屬於虛擬體驗元件） | Should |
 | FR-08-06 | 7 天虛擬飼養綁定「想領養的那隻貓」：以其 profile、癖好、日記與週報產生每天 2–3 個情境任務（吃喝拉撒＋突發狀況） | Must |
 | FR-08-07 | 領養人以文字或語音回應任務，LLM 評分；7 天後產生體驗摘要（例：準時餵食、清貓砂延遲 2 次） | Must |
 | FR-08-08 | 同一領養人同時只能進行一隻貓的虛擬飼養 | Must |
 | FR-08-09 | 3D 互動養貓體驗需 Google 登入 | Must |
-| FR-08-10 | Demo 加速模式：1 天＝5 分鐘（僅管理員或 Demo 帳號可啟用） | Must |
+| FR-08-10 | Demo 加速模式：1 天＝5 分鐘（僅系統管理員或 Demo 帳號可啟用）〔v1.1〕 | Must |
 | FR-08-11 | 完成者在申請單顯示徽章＋LLM 摘要 | Must |
 
 ### M09 領養流程
@@ -184,7 +195,7 @@
 | 編號 | 需求 | 優先 |
 |---|---|---|
 | FR-09-01 | 申請條件檢查：已完成 onboarding、符合 FR-08-01 規則、同時申請中不超過 3 隻 | Must |
-| FR-09-02 | 申請單自動帶入：onboarding 資料、飼養經驗、環境報告／虛擬飼養徽章與摘要、評分（僅認證中途可見） | Must |
+| FR-09-02 | 申請單自動帶入：onboarding 資料、飼養經驗、環境報告／虛擬飼養徽章與摘要、評分（僅認證中途可見，於查看當下判斷徽章是否有效） | Must |
 | FR-09-03 | 申請單補填：領養原因、能否接受家訪、勾選「已閱讀領養須知與首年花費」；不收真實姓名與電話（雙方以私訊處理） | Must |
 | FR-09-04 | 狀態：送出 → 審核中 → 面談／家訪／虛擬體驗（依貓的領養流程設定）→ 核准 → 雙方確認移轉 → 試養 14 天 → 完成；任一階段可婉拒（原因選填） | Must |
 | FR-09-05 | 若申請前已完成該貓的虛擬飼養，對應步驟自動完成 | Must |
@@ -193,6 +204,7 @@
 | FR-09-08 | 原貓戶長保留中途時期資料唯讀；送養後追蹤預設開放前 3 個月，領養人可關閉 | Must |
 | FR-09-09 | 移轉完成時刪除領養人的居家環境影片原檔，只保留報告 | Must |
 | FR-09-10 | 退養流程 | **待確認** |
+| FR-09-11 | 帳號被停權時，該帳號送出的、以及其貓收到的審核中申請一律自動婉拒並通知對方〔v1.1〕 | Must |
 
 ### M10 私訊
 
@@ -200,7 +212,7 @@
 |---|---|---|
 | FR-10-01 | 一對一私訊（需登入），即時更新 | Must |
 | FR-10-02 | 首次私訊選擇來意：詢問領養／交流 | Must |
-| FR-10-03 | 貓戶長可關閉陌生人私訊 | Should |
+| FR-10-03 | 貓戶長可關閉陌生人私訊；會員可封鎖特定會員（只擋私訊與互動，非管理員功能）〔v1.1〕 | Should |
 | FR-10-04 | 從貓咪頁、申請單可直接開啟對話 | Must |
 
 ### M11 站內通知
@@ -211,13 +223,13 @@
 | FR-11-02 | 事件：私訊、申請進度、週報產生、留言／按讚、追蹤、年齡變化提醒、移轉確認 | Must |
 | FR-11-03 | 不做 Email、Web Push、LINE 通知 | — |
 
-### M12 知識區、飼料資料庫與首年花費
+### M12 知識區、商品資料庫與首年花費
 
 | 編號 | 需求 | 優先 |
 |---|---|---|
 | FR-12-01 | 知識區（一般知識庫，非個別貓 profile）：依年齡段（幼貓 0–1、成貓 1–7、熟齡 7–10、老貓 10+）的照護重點與領養須知 | Must |
 | FR-12-02 | 每筆知識內容標示來源與更新日期；有草稿／發布與版本紀錄 | Must |
-| FR-12-03 | 飼料產品資料庫（含品牌欄位，MVP 只放皇家）：品名、類型（一般／處方）、適用年齡、品種、體況、處方適應症、熱量、餵食量表、規格 | Must |
+| FR-12-03 | 商品資料庫，分「寵物飼料」與「用品」兩類（含品牌欄位）〔v1.1〕。飼料（MVP 只放皇家）：品名、類型（一般／處方）、適用年齡、品種、體況、處方適應症、熱量、餵食量表、規格；用品欄位待定 | Must |
 | FR-12-04 | 產品資料來源：上線前爬取皇家台灣官網（先確認 robots.txt 與使用條款），約 30–50 品項，人工審核後匯入 | Must |
 | FR-12-05 | 價格：人工記錄 2–3 個通路參考價與日期，不爬電商；顯示「參考價，更新於 YYYY/MM」 | Must |
 | FR-12-06 | 一般飼料推薦：依年齡、品種、絕育、體態自動推薦 | Must |
@@ -245,18 +257,33 @@
 | FR-14-04 | 領養人評中途（透明度、送養後支持）：只有中途本人與管理員可見 | Must |
 | FR-14-05 | 被評者可查看並回覆、可向後台申訴；管理員可隱藏該筆評分 | Must |
 
-### M15 後台管理
+### M15 後台管理（按模組授權）〔v1.1 重整〕
+
+後台分為 6 個模組，系統管理員以模組為單位授權給管理員（決策 003）：
+
+| 後台模組 | 包含需求 |
+|---|---|
+| 虛擬體驗元件管理 | FR-15-12 |
+| 知識管理 | FR-15-02 |
+| 用戶權限管理 | FR-15-04、FR-15-11 |
+| 檢舉與內容審核 | FR-15-05、FR-15-06、M16 |
+| 商品 | FR-15-03、FR-15-07 |
+| Admin 授權（僅系統管理員） | FR-15-09、FR-15-10、FR-15-08 |
 
 | 編號 | 需求 | 優先 |
 |---|---|---|
-| FR-15-01 | 管理員以 Google 帳號＋白名單登入後台 | Must |
+| FR-15-01 | 管理員以 Google 登入後台，只看得到並只能操作被授予的模組；權限於每次操作時重新判斷〔v1.1〕 | Must |
 | FR-15-02 | 知識庫管理：新增／修改／草稿／發布／版本；發布後自動重建向量 | Must |
-| FR-15-03 | 飼料產品與價格管理：匯入爬取結果、人工審核、維護價格與日期 | Must |
-| FR-15-04 | 中途認證：審核申請與證明資料（立案資料、粉專連結），通過後顯示徽章 | Should |
+| FR-15-03 | 商品與價格管理（寵物飼料、用品）：匯入爬取結果、人工審核、維護價格與日期〔v1.1〕 | Must |
+| FR-15-04 | 中途認證：審核貓戶的申請與證明資料（立案資料、粉專連結），可核准、要求補件、退回（須填原因）；核准後授予中途徽章；可撤銷，撤銷立即生效〔v1.1〕 | Should |
 | FR-15-05 | 檢舉處理：查看檢舉、下架內容、停權 | Must |
 | FR-15-06 | 評分申訴處理 | Should |
 | FR-15-07 | 導購成效儀表板（M13）與平台統計 | Must |
-| FR-15-08 | Demo 加速模式開關 | Must |
+| FR-15-08 | Demo 加速模式開關（系統設定） | Must |
+| FR-15-09 | Admin 授權：系統管理員授予／撤銷管理員、設定各管理員可用模組、新增其他系統管理員；不可移除最後一位系統管理員；變更須填原因〔v1.1〕 | Must |
+| FR-15-10 | 稽核日誌：記錄授權變更、停權、黑名單、徽章授予或撤銷、內容下架的操作者、時間、對象、原因；僅系統管理員可查看〔v1.1〕 | Must |
+| FR-15-11 | 帳號處置：停權（7 天／30 天／直到手動解除，須填原因，觸發 FR-09-11）、解除停權；加入／移出黑名單（僅系統管理員）〔v1.1〕 | Must |
+| FR-15-12 | 虛擬體驗元件管理：上傳 3D 檔（.glb／.gltf）、分類（通用 3D 貓模型／場景與道具／風險點示範動畫，後者須對應風險類型）、預覽、草稿／上架／下架、版本；使用中的元件只能下架不能刪除（待確認）〔v1.1〕 | Should |
 
 ### M16 AI 內容審核
 
@@ -287,12 +314,12 @@
 | NFR-01 | 裝置 | 手機優先 RWD；支援 iOS Safari、Android Chrome 最新兩版；桌機 Chrome／Edge |
 | NFR-02 | 效能 | 首頁首次內容繪製 < 2.5 秒（4G）；RAG 搜尋回應 < 5 秒；照片描述 < 15 秒；影片摘要以背景處理，完成後站內通知 |
 | NFR-03 | 架構 | 準商業架構：Next.js（Vercel）＋Supabase（Postgres、pgvector、Storage、Realtime）＋Python AI Worker（Cloud Run） |
-| NFR-04 | 安全 | 全站 HTTPS；Supabase Row Level Security 依角色限制；API 金鑰只放伺服器端 |
+| NFR-04 | 安全 | 全站 HTTPS；Supabase Row Level Security 依角色與後台模組授權限制〔v1.1〕；API 金鑰只放伺服器端 |
 | NFR-05 | 隱私 | 位置只到區；居家影片移轉後刪除；評分不公開；不收申請人真實姓名電話；條款同意紀錄 |
 | NFR-06 | AI 可信度 | 費用數字只來自資料庫；醫療相關內容附免責；處方飼料須獸醫診斷 |
 | NFR-07 | 成本 | 素材上傳時只分析一次；影片限 60 秒；週報只處理文字 |
 | NFR-08 | 可用性 | 必填欄位最少化；AI 抽取結果一律可人工修改 |
-| NFR-09 | 可維運 | AI 呼叫記錄（模型、token、耗時、錯誤）；排程失敗可重跑 |
+| NFR-09 | 可維運 | AI 呼叫記錄（模型、token、耗時、錯誤）；排程失敗可重跑；所有管理動作寫入稽核日誌〔v1.1〕 |
 
 ---
 
@@ -316,7 +343,12 @@
 
 | 資料表 | 主要欄位 | 說明 |
 |---|---|---|
-| users | id, google_sub, email, display_name, avatar, role, terms_version, terms_agreed_at | 帳號 |
+| users | id, google_sub, email, display_name, avatar, role, terms_version, terms_agreed_at | 帳號；role 含 system_admin、admin〔v1.1〕 |
+| admin_module_grants | user_id, module, granted_by, granted_at | 管理員的模組授權〔v1.1〕 |
+| audit_logs | id, actor_id, action, target_type, target_id, reason, detail(json), created_at | 稽核日誌〔v1.1〕 |
+| account_suspensions | id, user_id, until, reason, note, created_by, lifted_at, lifted_by | 停權紀錄〔v1.1〕 |
+| banlist | google_sub, email, reason, created_by, created_at | 黑名單〔v1.1〕 |
+| user_blocks | blocker_id, blocked_id, created_at | 會員互相封鎖〔v1.1〕 |
 | adopter_profiles | user_id, city, district, has_experience, years, cat_count, other_pets, housing, landlord_ok, family, home_hours, prefs(json), embedding | 領養人資料 |
 | households | id, owner_id, name, intro, cover, city, district, default_visibility, verified_shelter | 貓戶 |
 | cats | id, household_id, name, gender, birthday, est_age, zodiac, breed, coat, blood_type, traits[], quirks, neutered, weight, notes, visibility, status, adoption_fee, adoption_fee_note, embedding | 貓咪 |
@@ -336,21 +368,24 @@
 | env_reports | id, user_id, media_url, risks(json), report, media_deleted_at | 環境報告 |
 | virtual_sessions | id, user_id, cat_id, started_at, speed_mode, status, summary, avatar_url | 虛擬飼養 |
 | virtual_tasks | session_id, day, scenario, response, score | 每日任務 |
+| virtual_components | id, name, category, risk_type, tags[], file_url, version, size, status(draft/published/unpublished), created_by, updated_at | 虛擬體驗元件〔v1.1〕 |
 | kb_articles | id, age_band, title, body, sources, version, status, updated_at, embedding | 知識庫 |
-| products | id, brand, name, type, age_band, breeds[], conditions[], indications[], kcal_per_kg, feeding_table(json), sizes(json), source_url | 飼料產品 |
+| products | id, category(food/supply), brand, name, type, age_band, breeds[], conditions[], indications[], kcal_per_kg, feeding_table(json), sizes(json), source_url | 商品〔v1.1 新增 category〕 |
 | product_prices | product_id, size, channel, price, recorded_at | 參考價 |
 | cost_items | id, age_band, item, min, max, source, updated_at | 首年花費項目 |
 | product_events | id, product_id, user_id, cat_id, placement, type(impression/click), utm, created_at | 導購追蹤 |
 | ratings | id, rater_id, ratee_id, direction, application_id, scores(json), comment, hidden | 評分 |
 | reports | id, reporter_id, target_type, target_id, reason, status | 檢舉 |
-| shelter_verifications | id, household_id, docs, status, reviewer_id | 中途認證 |
+| shelter_verifications | id, household_id, docs, status(pending/needs_info/approved/rejected/revoked), reviewer_id, note | 中途認證〔v1.1 狀態擴充〕 |
 | ai_logs | id, feature, model, tokens, latency_ms, error | AI 呼叫紀錄 |
 
 ---
 
 ## 8. 頁面清單
 
-見《網站導覽圖》。主要頁面：首頁、帶我回家（列表）、貓咪頁、貓戶頁、動態牆、知識區（列表／文章）、搜尋結果、登入與條款同意、onboarding（貓咪／領養人）、會員中心、我的貓戶（時光小屋）、日記編輯、週報、領養設定、申請單、申請管理（貓戶長）、我的申請、環境報告、虛擬飼養、3D 體驗、私訊、通知、後台（知識庫、產品、認證、檢舉、儀表板）、隱私權政策、服務條款。
+見《網站導覽圖》。主要頁面：首頁、帶我回家（列表）、貓咪頁、貓戶頁、動態牆、知識區（列表／文章）、搜尋結果、登入與條款同意、onboarding（貓咪／領養人）、會員中心、我的貓戶（時光小屋）、日記編輯、週報、領養設定、申請單、申請管理（貓戶長）、我的申請、環境報告、虛擬飼養、3D 體驗、私訊、通知、隱私權政策、服務條款。
+
+後台（依模組授權顯示）〔v1.1〕：虛擬體驗元件管理、知識管理、用戶權限管理（帳號／中途認證／黑名單）、檢舉與內容審核、商品（含導購成效）、Admin 授權（管理員授權／稽核日誌／系統設定）。設計稿見「Meow Home 後台管理」畫布。
 
 ---
 
@@ -380,3 +415,7 @@
 | 5 | Demo 資料來源（合作中途、照片影片授權） | Demo |
 | 6 | 系統正式名稱 | 品牌 |
 | 7 | 成員分工姓名與小組長 | 專案管理 |
+| 8 | 用品類商品的欄位與資料來源〔v1.1〕 | M12、M15 |
+| 9 | 使用中的虛擬體驗元件是否只能下架、不能刪除〔v1.1〕 | M15 |
+| 10 | 中途認證是否從 P3 提前（後台已設計）〔v1.1〕 | M15、期別 |
+| 11 | 停權期間該帳號的公開貓戶與待領養貓是否隱藏〔v1.1〕 | M02、M15 |
