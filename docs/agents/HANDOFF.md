@@ -9,6 +9,7 @@
 - 已完成：中途之家 onboarding（`/onboarding`）、我的貓戶（`/me`）、條款頁（`/legal`）。其他 `data-proto` 按鈕仍只跳提示。
 - 一句話配對是**前端關鍵字規則**（`src/lib/match.ts`），是 RAG 的佔位；保留輸入輸出形狀，之後換實作。
 - 正在進行的分支：`feat/1-household-onboarding`（PR 待合併，含 Issue #1、#3）。
+- 後台權限已改為「系統管理員按模組授權」（`docs/decisions/003-module-based-admin-authorization.md`，SRS v1.1 M15）；程式尚未跟上，現在任何 admin 都能授權他人（PLAN 任務 23）。名詞定義見根目錄 `GLOSSARY.md`。
 - 隱藏管理後台：`/mh-console-8k2p`（不出現在介面上）；第一位管理員需用 SQL 指定，見 `docs/setup/SUPABASE_LLM_SETUP.md` §7。
 - 已部署：Vercel 專案 `meow-home`（Hobby，帳號 somebabyTina），正式網址 https://meowhome.hsiangsolutions.com （網域在 Porkbun，CNAME 指向 Vercel），連動 `main` 自動部署。
 
