@@ -16,7 +16,7 @@
 - **MeowHQ 後台開發中**（規格 `docs/hq/01～03`）：階段 0（T-HQ-01，Issue #18，分支 `feat/18-hq-contract`）已完成、PR 待 Tina 審查。內容：`src/lib/hq/types.ts`（模組代號、角色、處置類型、快選原因、錯誤代碼、側欄順序）＋測試，以及 `docs/modules/admin-moderation.md` 的 `0002_meow_hq.sql` 資料表草案。**`0002_meow_hq.sql` 檔案尚未建立、也沒有執行任何 SQL**（階段 1 的 db Issue 才寫檔）。**#18 合併前不要開始階段 1**；T-HQ-11 等 Issue #15（儲存位置）。待 Tina 決定的問題在 `PLAN.md`「建議」區的 MeowHQ 項目。
 
 ## 下一步（建議第一個動作）
-0. 若 Tina 已確認並合併 #18：為階段 1（db／logic／shell）各建一張 Issue，再平行開工。
+0. #18 合併後，平行開工階段 1：#19（db）、#20（logic）、#21（shell）；階段 2 為 #22（lists-home）、#23（admin-auth）、#24（users），等階段 1 合併後開始。Issue 都已建立，不用再建。
 1. 資料庫已建好（`0001_meow.sql` 於 2026-10-28 執行）。剩下依 `docs/setup/SUPABASE_LLM_SETUP.md`：Google OAuth Redirect URL、LLM 金鑰、Vercel 環境變數，以及登入一次後指定第一位管理員。
 2. 下一個任務建議：貓咪公開頁、首頁「帶我回家」改讀真實資料（任務 3）、領養人 onboarding（任務 7）。
 3. PLAN.md 其餘任務的 Issue 尚未建立。
