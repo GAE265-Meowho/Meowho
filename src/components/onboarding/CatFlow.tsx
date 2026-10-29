@@ -15,12 +15,28 @@ type Story = Pick<CatDraft, "traits" | "quirks" | "notes" | "neutered">;
 const FIELD_LABEL: Partial<Record<keyof CatDraft, string>> = { traits: "性格", quirks: "特殊癖好", notes: "其他補充", neutered: "已結紮" };
 
 /** 把照片縮到最長邊 1024px 的 JPEG，減少上傳與 AI 費用 */
+/** 讀取圖片：優先 createImageBitmap（含 EXIF 轉向），失敗再用 <img> 備援；兩者都失敗代表瀏覽器讀不了這個格式（例如 HEIC） */
+async function decode(file: File): Promise<{ img: CanvasImageSource; w: number; h: number }> {
+  try {
+    const bmp = await createImageBitmap(file, { imageOrientation: "from-image" });
+    return { img: bmp, w: bmp.width, h: bmp.height };
+  } catch {
+    const url = URL.createObjectURL(file);
+    try {
+      const el = new Image();
+      el.src = url;
+      await el.decode();
+      return { img: el, w: el.naturalWidth, h: el.naturalHeight };
+    } finally { URL.revokeObjectURL(url); }
+  }
+}
+
 async function shrink(file: File): Promise<{ blob: Blob; dataUrl: string; base64: string }> {
-  const bmp = await createImageBitmap(file);
-  const scale = Math.min(1, 1024 / Math.max(bmp.width, bmp.height));
+  const { img, w, h } = await decode(file);
+  const scale = Math.min(1, 1024 / Math.max(w, h));
   const c = document.createElement("canvas");
-  c.width = Math.round(bmp.width * scale); c.height = Math.round(bmp.height * scale);
-  c.getContext("2d")!.drawImage(bmp, 0, 0, c.width, c.height);
+  c.width = Math.round(w * scale); c.height = Math.round(h * scale);
+  c.getContext("2d")!.drawImage(img, 0, 0, c.width, c.height);
   const dataUrl = c.toDataURL("image/jpeg", 0.85);
   const blob = await (await fetch(dataUrl)).blob();
   return { blob, dataUrl, base64: dataUrl.split(",")[1] };
@@ -46,15 +62,20 @@ export function CatFlow({ householdId, householdName, onSaved, first = true }: {
 
   async function onPhoto(file: File | undefined) {
     if (!file) return;
-    if (!file.type.startsWith("image/")) { say("這不是圖片檔喔，請重新選擇。"); return; }
+    if (fileRef.current) fileRef.current.value = ""; // 讓同一張照片可以再選一次
+    if (file.type && !file.type.startsWith("image/")) { say("這不是圖片檔喔，請重新選擇。"); return; }
     setBusy(true);
+    let shrunk: Awaited<ReturnType<typeof shrink>>;
+    try { shrunk = await shrink(file); }
+    catch { setBusy(false); say("這張照片的格式瀏覽器讀不了（例如 HEIC）。請改選 JPG／PNG，或把手機相機的格式設成「最相容」再拍一次。"); return; }
     try {
-      const { blob, dataUrl, base64 } = await shrink(file);
+      const { blob, dataUrl, base64 } = shrunk;
       photoBlob.current = blob;
       setDraft(d => ({ ...d, photoUrl: dataUrl }));
       setMessages(m => [...m, meMsg("", dataUrl)]);
-      const r = await postJson<{ result: { isCat: boolean; breed: string | null; coat: string | null; ageBand: string | null; confidence: number; comment: string } | null }>(
-        "/api/onboarding/cat-photo", { mime: "image/jpeg", base64 });
+      type PhotoAi = { result: { isCat: boolean; breed: string | null; coat: string | null; ageBand: string | null; confidence: number; comment: string } | null };
+      // AI 辨識失敗（未登入、額度、逾時）不應擋住上傳：照片照樣收下，品種毛色請使用者自己填
+      const r = await postJson<PhotoAi>("/api/onboarding/cat-photo", { mime: "image/jpeg", base64 }).catch((): PhotoAi => ({ result: null }));
       setBusy(false);
       if (r.result && !r.result.isCat) { say("嗯…這張照片裡好像沒有看到貓咪，換一張清楚的貓咪照片試試？"); setDraft(d => ({ ...d, photoUrl: null })); photoBlob.current = null; return; }
       if (r.result) {
