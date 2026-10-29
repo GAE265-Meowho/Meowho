@@ -163,3 +163,11 @@
   .hq-detail { position: static; max-height: none; padding-bottom: 5rem; }
   .hq-detail .hq-actions { position: fixed; left: 0; right: 0; bottom: 0; background: var(--hq-card); border-top: 1px solid var(--hq-line); padding: .6rem 1rem calc(.6rem + env(safe-area-inset-bottom)); z-index: 15; }
 }
+
+/* #24 用戶權限管理：原因欄、處置表單、貓戶清單 */
+.hq-label { display: block; font-size: .88rem; color: var(--hq-sub); }
+.hq-fieldset { border: 1px solid var(--hq-line); border-radius: 10px; padding: .85rem; margin: 0; display: flex; flex-direction: column; gap: .6rem; }
+.hq-fieldset legend { padding: 0 .3rem; font-weight: 500; }
+.hq-reason { display: flex; flex-direction: column; gap: .45rem; }
+.hq-plain { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .35rem; }
+.hq-plain .hq-tag { margin-left: .4rem; }

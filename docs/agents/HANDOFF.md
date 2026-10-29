@@ -49,3 +49,4 @@
 | `docs/daily/` | 每日紀錄 |
 | `docs/spec/01_系統需求規格書_SRS.md` | 需求 |
 | `docs/design/DESIGN.md` | 設計系統 |
+- **#24 用戶權限管理（審查中，分支 `feat/24-hq-users`）**：`/MeowHQ/users` 帳號＋中途認證兩分頁；資料庫函式呼叫統一走 `src/components/hq/users/useHqRpc.ts`（成功 toast 帶「查看紀錄」、`permission_denied` 回待辦總覽）。其他模組可重用。
