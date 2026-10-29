@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { AI_LIMITS, charCount } from "@/lib/ai/guard";
+import { MIC_UNSUPPORTED, micErrorMessage } from "@/lib/onboarding/speech";
 import { useUi } from "../Providers";
 
 export interface ChatMessage { id: number; from: "bot" | "me"; text: string; image?: string }
@@ -33,7 +34,7 @@ export function ChatLog({ messages, typing }: { messages: ChatMessage[]; typing?
   );
 }
 
-type SpeechRec = { lang: string; interimResults: boolean; onresult: (e: { results: { 0: { transcript: string } }[] }) => void; onend: () => void; onerror: () => void; start: () => void; stop: () => void };
+type SpeechRec = { lang: string; interimResults: boolean; onresult: (e: { results: { 0: { transcript: string } }[] }) => void; onend: () => void; onerror: (e: { error?: string }) => void; start: () => void; stop: () => void };
 
 /** 輸入列：文字＋語音（瀏覽器內建語音辨識，FR-03-05）＋快速選項 */
 export function ChatInput({ onSend, chips = [], disabled, placeholder = "輸入回答，或按麥克風用說的…", maxChars = AI_LIMITS.onboardingChars }: {
@@ -52,13 +53,15 @@ export function ChatInput({ onSend, chips = [], disabled, placeholder = "輸入�
     if (listening) { recRef.current?.stop(); return; }
     const W = window as unknown as { SpeechRecognition?: new () => SpeechRec; webkitSpeechRecognition?: new () => SpeechRec };
     const Ctor = W.SpeechRecognition ?? W.webkitSpeechRecognition;
-    if (!Ctor) { toast("這個瀏覽器不支援語音輸入，請改用打字"); return; }
+    if (!Ctor) { toast(MIC_UNSUPPORTED); return; }
     const rec = new Ctor();
     rec.lang = "zh-TW"; rec.interimResults = false;
-    rec.onresult = e => setText(prev => (prev ? prev + " " : "") + Array.from(e.results).map(r => r[0].transcript).join(""));
-    rec.onend = () => setListening(false);
-    rec.onerror = () => { setListening(false); toast("沒有聽清楚，再試一次或改用打字"); };
-    recRef.current = rec; setListening(true); rec.start();
+    let heard = false, failed = false;
+    rec.onresult = e => { heard = true; setText(prev => (prev ? prev + " " : "") + Array.from(e.results).map(r => r[0].transcript).join("")); };
+    rec.onend = () => { setListening(false); if (!heard && !failed) toast(micErrorMessage("no-speech")); };
+    rec.onerror = e => { failed = true; setListening(false); const m = micErrorMessage(e?.error); if (m) toast(m); };
+    recRef.current = rec;
+    try { rec.start(); setListening(true); } catch { setListening(false); toast(micErrorMessage(undefined)); }
   };
 
   return (

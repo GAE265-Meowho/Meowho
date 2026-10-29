@@ -121,6 +121,22 @@ export const RETRY_PROMPT: Record<Exclude<HouseholdStep, "review">, string> = {
   messages: "要開放陌生人私訊嗎？回答「開放」或「先不要」就可以。",
 };
 
+/** 問題文字：已經取好貓戶名稱後，位置與介紹的問題帶入名稱，讀起來是在談「這個家」 */
+export function askHousehold(step: Exclude<HouseholdStep, "review">, draft: HouseholdDraft): string {
+  const name = draft.name.trim();
+  if (!name) return HOUSEHOLD_QUESTIONS[step].ask;
+  if (step === "location") return `請提供「${name}」的位置～貓戶在哪個縣市、哪一區呢？（我們只會公開到「區」，不會顯示詳細地址）`;
+  if (step === "intro") return `用幾句話介紹「${name}」吧：目前照顧幾隻貓、平常怎麼照顧牠們、想對領養人說的話，都可以直接說或打字。`;
+  return HOUSEHOLD_QUESTIONS[step].ask;
+}
+
+/** 回答不完整時的重問；位置帶入貓戶名稱 */
+export function retryHousehold(step: Exclude<HouseholdStep, "review">, draft: HouseholdDraft): string {
+  const name = draft.name.trim();
+  if (step === "location" && name) return `可以再說一次「${name}」的縣市和區嗎？例如「台中市北屯區」。`;
+  return RETRY_PROMPT[step];
+}
+
 export function validateHousehold(d: HouseholdDraft): string[] {
   const errors: string[] = [];
   if (!d.caretakerType) errors.push("請選擇照顧者身分");
