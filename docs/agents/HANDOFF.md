@@ -10,10 +10,14 @@
 - 一句話配對是**前端關鍵字規則**（`src/lib/match.ts`），是 RAG 的佔位；保留輸入輸出形狀，之後換實作。
 - 正在進行的分支：`feat/1-household-onboarding`（PR 待合併，含 Issue #1、#3）。
 - 後台權限已改為「系統管理員按模組授權」（`docs/decisions/003-module-based-admin-authorization.md`，SRS v1.1 M15）；程式尚未跟上，現在任何 admin 都能授權他人（PLAN 任務 23）。名詞定義見根目錄 `GLOSSARY.md`。
-- 隱藏管理後台：`/mh-console-8k2p`（不出現在介面上）；第一位管理員需用 SQL 指定，見 `docs/setup/SUPABASE_LLM_SETUP.md` §7。
+- 後台：**MeowHQ `/MeowHQ`**（舊隱藏後台 `/mh-console-8k2p` 已移除，Tina 2026-10-29 決定）；第一位系統管理員需用 SQL 指定，見 `docs/setup/SUPABASE_LLM_SETUP.md` §7。
 - 已部署：Vercel 專案 `meow-home`（Hobby，帳號 somebabyTina），正式網址 https://meowhome.hsiangsolutions.com （網域在 Porkbun，CNAME 指向 Vercel），連動 `main` 自動部署。
 
 - **MeowHQ 後台開發中**（規格 `docs/hq/01～03`）：階段 0（T-HQ-01，Issue #18，分支 `feat/18-hq-contract`）已完成、PR 待 Tina 審查。內容：`src/lib/hq/types.ts`（模組代號、角色、處置類型、快選原因、錯誤代碼、側欄順序）＋測試，以及 `docs/modules/admin-moderation.md` 的 `0002_meow_hq.sql` 資料表草案。**`0002_meow_hq.sql` 檔案尚未建立、也沒有執行任何 SQL**（階段 1 的 db Issue 才寫檔）。**#18 合併前不要開始階段 1**；T-HQ-11 等 Issue #15（儲存位置）。待 Tina 決定的問題在 `PLAN.md`「建議」區的 MeowHQ 項目。
+
+- **`0002_meow_hq.sql`（#19）已合併**；Tina 授權由 Claude 試跑 rollback 後正式執行（見每日紀錄）。SQL 測試已納入 `npm test`（PGlite）。
+
+- **#20（logic）已實作待審**（分支 `feat/20-hq-logic`）：`src/lib/hq/permissions.ts`、`actions.ts` 純函式；#21 shell、#22～#24 直接 import 使用，不要重複寫判斷。時間相關函式由呼叫端傳入 `now`。
 
 ## 下一步（建議第一個動作）
 0. #18 合併後，平行開工階段 1：#19（db）、#20（logic）、#21（shell）；階段 2 為 #22（lists-home）、#23（admin-auth）、#24（users），等階段 1 合併後開始。Issue 都已建立，不用再建。
@@ -33,7 +37,7 @@
 - **Supabase migration** 由 AI 透過 Supabase 連接器執行，執行前須經發起人確認（AGENTS.md §7.4）；`0001` 已執行。
 - **Google 登入**：Supabase 的 Redirect URLs 要包含正式網域、Vercel 預覽網域與 localhost，否則登入後會被導回錯誤網址。
 
-- **MeowHQ shell（#21，分支 `feat/21-hq-shell`，PR 待審）**：外殼在 `src/app/MeowHQ/`＋`src/components/hq/`，舊 `/mh-console-8k2p` **先保留**（Tina 2026-10-29 決定；中途認證審核、管理員授權、網站標誌在 MeowHQ 做好前仍可用），#24 合併時刪除並恢復 UT-HQ-15（目前是 `it.todo`）。權限判斷是 **stub**（`src/components/hq/access.ts` 的 `visibleSidebar`）。**#20 合併後要改接**：`visibleSidebar` 換成 `permissions.ts`。**0002 執行後要改接**：`HqGate` 讀 `meow_admin_module_grants`（目前讀失敗就退回「全部模組可見」示範資料），並確認 `profile.role` 讀得到 `system_admin`；`Auth.tsx` 的 `isAdmin` 已改為 admin 或 system_admin（`src/lib/auth-role.ts`，0002 前後都正常）。本機未設 Supabase 時用 `/MeowHQ?hqPreview=1` 預覽外殼（僅非 production）。
+- **MeowHQ shell（#21）**：外殼在 `src/app/MeowHQ/`＋`src/components/hq/`。舊後台已移除（功能移到 #23 管理員授權與網站外觀、#24 中途認證）。`src/components/hq/access.ts` 的 `visibleSidebar` 讀不到授權表時會退回「全部可見」，0002 執行後由 #22 改接 `permissions.ts` 並移除退回邏輯。`Auth.tsx` 的 `isAdmin` 為 admin 或 system_admin（`src/lib/auth-role.ts`）。本機未設 Supabase 時用 `/MeowHQ?hqPreview=1` 預覽外殼（僅非 production）。
 
 ## 重要檔案
 | 檔案 | 用途 |

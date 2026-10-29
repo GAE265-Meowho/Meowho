@@ -1,4 +1,6 @@
 // MeowHQ 外殼的純函式測試：UT-HQ-12、13、14、15、16、41（docs/hq/02）
+import { existsSync } from "node:fs";
+import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { friendlyError } from "./errors";
 import { hqRedirectTarget, resolveGate, visibleSidebar } from "./access";
@@ -30,8 +32,10 @@ describe("UT-HQ-13／14 登入閘門", () => {
   it("已登入但讀不到會員資料 → 找不到頁面", () => expect(resolveGate({ ...base, signedIn: true, role: null })).toBe("not_found"));
 });
 
-// 舊後台延後移除（Tina 2026-10-29，#31 留言）：#24 合併時刪除 src/app/mh-console-8k2p 並恢復此測試
-it.todo("UT-HQ-15 舊路徑 /mh-console-8k2p 已移除（找不到頁面）— 待 #24");
+// 舊後台已移除（Tina 2026-10-29 決定，功能移到 #23、#24）
+it("UT-HQ-15 舊路徑 /mh-console-8k2p 已移除（找不到頁面）", () => {
+  expect(existsSync(path.resolve(__dirname, "../../app/mh-console-8k2p"))).toBe(false);
+});
 
 it("UT-HQ-16 metadata：標題與 noindex", () => {
   expect(metadata.title).toBe("MeowHQ｜喵星總部");

@@ -46,8 +46,7 @@
 | 24 | 首次登入條款：看完才能勾選同意 | account | 1 | P1 | #16 | Tina | 審查中 |
 | 23 | 後台改為按模組授權：系統管理員、模組授權、稽核日誌、停權／黑名單、虛擬體驗元件管理（T-15-06～09）。拆為 MeowHQ 階段（見 `docs/hq/03`） | admin-moderation | 17、22 | P2 | 見下列 | C、B | 進行中 |
 | 23-0 | MeowHQ 階段 0：共用約定型別（T-HQ-01）＋0002 資料表草案 | admin-moderation | — | P2 | #18 | Tina × Cursor | 審查中 |
-| 23-1 | MeowHQ 階段 1：db（T-HQ-02、12）、logic（T-HQ-03、04）、shell（T-HQ-05、06） | admin-moderation | 23-0 | P2 | #19 db、#20 logic、#21 shell | C、B | 待辦（等 #18 合併） |
-| 23-1s | MeowHQ shell 實作（#21）：外殼、登入閘門、Nordic Meow 樣式；權限判斷用 stub（src/components/hq/access.ts），待 #20 合併改接 | admin-moderation | 23-0 | P2 | #21 | Tina × Cursor | 審查中（PR 待開） |
+| 23-1 | MeowHQ 階段 1：db（T-HQ-02、12）、logic（T-HQ-03、04）、shell（T-HQ-05、06） | admin-moderation | 23-0 | P2 | #19 db、#20 logic、#21 shell | C、B、Claude | 進行中（#19、#20 已合併；#21 由 Claude 接手） |
 | 23-2 | MeowHQ 階段 2：待辦總覽與列表、Admin 授權、用戶權限管理（T-HQ-07～10） | admin-moderation | 23-1 | P2 | #22 lists-home、#23 admin-auth、#24 users | C、B | 待辦 |
 | 23-3 | MeowHQ 階段 3：虛擬體驗元件管理（T-HQ-11）、獨立審查（T-HQ-13） | admin-moderation | 23-2 | P2 | 待建立 | C、B | 卡住（T-HQ-11 等 #15 儲存位置） |
 
@@ -84,5 +83,14 @@
   - ✅ 已決定（Tina 同意）：`unban` 納入處置類型（共 8 種）；`grant_module`、`grant_badge`、`set_role` 只作稽核日誌 action。
   - 規格書 §4.7 沒列「解除停權、重新上架、加入／移出黑名單」的快選原因，目前為空清單。
   - 現有 `role = 'admin'` 的使用者，✅ 已決定（Tina 同意）：現有 `admin` 一律遷移成 `system_admin`。
+- MeowHQ db（#19 實作時發現）：
+  - ✅ 已處理（#21 改 `isAdmin`、舊後台移除）：執行 `0002_meow_hq.sql` 會讓前端的 `isAdmin`（`src/components/Auth.tsx`，`role === "admin"`）與舊隱藏後台 `/mh-console-8k2p` 失效（現有 admin 升為 `system_admin`）。前端在 #21 調整前，建議先不要在正式環境執行 0002，或由 Tina 決定接受舊後台暫時不可用。
+  - 0001 的 `meow_guard_profile` 有錯：管理員更新別人的會員資料時會把對方 Email 蓋成自己的（0002 已修正）。
+  - 開發計畫 T-HQ-02 要求「收緊 `meow_is_admin` 的 anon 執行權」；這會讓依賴它的 RLS policy 對匿名訪客出錯，0002 已把相關 policy 改為 `to authenticated` 才收回。之後新增 policy 若會被匿名查詢，**不要**呼叫權限函式。
+  - SQL 測試可用 `node supabase/tests/run-pglite.mjs` 在本機臨時資料庫執行（`npm i --no-save @electric-sql/pglite`）。要不要納入 `npm test` 與 CI（需把 `@electric-sql/pglite` 加進 devDependencies，屬 Issue #19 範圍外），請 Tina 決定。
+- MeowHQ 系統管理員離職流程（Tina 2026-10-29 提出，待認領）：離職＝由另一位系統管理員執行 `meow_set_role` 撤銷身分（降成一般會員或管理員），原因必填並寫稽核日誌；至少要保留一位，移除前須先指定接手者。**黑名單只用於貓友與貓戶長，不適用於管理員與系統管理員**（Tina 2026-10-29 確認），所以離職流程不包含加入黑名單。建議在 Admin 授權畫面（#23）提供「撤銷身分」操作：降級＋清空模組授權＋一筆稽核日誌。
+- MeowHQ 黑名單對象（Tina 2026-10-29 確認，規格書 R9 已更新，#29、#30）：#26 的 `meow_ban_email` 已拒絕管理員（`target_is_admin`）、系統管理員（`target_is_system_admin`），以及尚未登入過的帳號（`not_found`）。#28（#20）的 `canBan` 已同步拒絕管理員；「尚未登入過的帳號」屬前端輸入檢查，由 #23／#24 處理。
+
+  - （#20 logic）UT-HQ-05 的「貓友／貓戶長」在 `canSuspend` 都是 `role: member`，函式不區分；#20 的 `canSuspend` 對沒有「用戶權限管理」授權者回傳「沒有停權的權限」，規格書與測試計畫未規定此文字，Tina 可調整。
 - 語音輸入的 Whisper 備援（Safari／Firefox 不支援瀏覽器語音辨識）
-- MeowHQ shell（#21 實作時發現，待 Tina 決定）：(1) `Auth.tsx` 的 `isAdmin` 已納入 #21 修正（Tina 決定）；舊後台先保留，#24 合併時刪除並恢復 UT-HQ-15；(2) 規格書未定義鈴鐺點開後的通知面板，目前鈴鐺只顯示未讀數（T-HQ-12 之後處理）；(3) 規格書 §4.9 要求「手機從底部出現」的 toast 與 `查看紀錄` 連結目標（稽核日誌頁網址）尚未決定，目前由呼叫端傳入 `logHref`。
+- MeowHQ shell（#21 實作時發現，待 Tina 決定）：(1) `Auth.tsx` 的 `isAdmin` 已納入 #21；舊後台已移除（Tina 2026-10-29 決定）；(2) 規格書未定義鈴鐺點開後的通知面板，目前鈴鐺只顯示未讀數（T-HQ-12 之後處理）；(3) 規格書 §4.9 要求「手機從底部出現」的 toast 與 `查看紀錄` 連結目標（稽核日誌頁網址）尚未決定，目前由呼叫端傳入 `logHref`。
