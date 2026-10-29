@@ -26,6 +26,7 @@
 
 ## 主要檔案
 - `src/app/page.tsx`、`src/components/Hero.tsx`、`src/components/Sections.tsx`、`src/lib/match.ts`、`src/lib/photos.ts`
+- 喵戶小區：`src/app/community/page.tsx`、`src/components/community/Town.tsx`、`src/lib/community.ts`（等角小鎮，每間房子＝一個貓戶；屋頂黃＝有貓等新家、粉＝中途救援中、白＝一般貓戶；第一版為示意資料，之後換 `meow_households`，只顯示縣市＋區）
 
 ## 決策
 - 訪客預設同縣市、等最久優先；不要求 GPS。
@@ -43,3 +44,4 @@
 | 2026-10-28 | Tina × Claude Code | 建立模組文件 | — |
 | 2026-10-28 | Tina × Claude Code | 首頁新增建立貓戶／領養意圖入口、導覽加「建立貓戶」 | #1 |
 | 2026-10-28 | Tina × Claude Code | 入口置頂、新增「新貓入戶」、建立貓戶說明移出首頁 | #5 |
+| 2026-10-29 | Tina × Claude Code | 新增「喵戶小區」`/community`（示意資料）、導覽加入口 | #44 |
