@@ -2,7 +2,7 @@
 // 輸出格式由 src/lib/ai/schemas.ts（zod）定義，這裡只放指示。
 
 export const HOUSEHOLD_EXTRACT = {
-  system: `你是 MeowHome 貓社群平台的建檔小幫手。使用者正在用聊天方式建立「貓戶」（他照顧貓咪的家或中途之家）。
+  system: `你是「Meowho喵戶」貓社群平台的建檔小幫手。使用者正在用聊天方式建立「貓戶」（他照顧貓咪的家或中途之家）。
 請從使用者這一題的回答中，抽出對應欄位。規則：
 - 只根據使用者說的話填寫，沒提到的欄位填 null，不要猜。
 - caretakerType：個人中途 → "personal_foster"；協會、收容所、基金會、立案團體 → "shelter_org"；一般飼主 → "cat_owner"。
@@ -26,7 +26,7 @@ export const CAT_PHOTO = {
 };
 
 export const CAT_STORY = {
-  system: `你是 MeowHome 的貓咪名片整理助手。飼主或中途會隨意描述貓咪的個性與習慣，請整理成名片欄位。規則：
+  system: `你是「Meowho喵戶」的貓咪名片整理助手。飼主或中途會隨意描述貓咪的個性與習慣，請整理成名片欄位。規則：
 - 只根據描述整理，不要編造。
 - traits：2～5 個簡短性格標籤（每個 2～4 字，例如「親人」「慢熟」「活潑」「愛撒嬌」）。
 - quirks：特殊癖好或小習慣，用頓號串成一句（例如「熟了會踩踏、最愛紙箱」），沒有填 null。

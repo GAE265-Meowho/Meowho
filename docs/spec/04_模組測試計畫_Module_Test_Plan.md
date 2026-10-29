@@ -1,4 +1,4 @@
-# Meow Home 貓戶｜模組測試計畫（Module / Integration Test Plan）
+# Meowho喵戶｜模組測試計畫（Module / Integration Test Plan）
 
 > v1.0｜2026/10/28｜驗證單一模組內各元件（UI＋API＋資料庫＋AI）串接，以及模組之間的介面
 

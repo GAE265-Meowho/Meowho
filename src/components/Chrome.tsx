@@ -11,9 +11,9 @@ export function SiteHeader() {
   return (
     <header className="topbar">
       <div className="wrap topbar-in">
-        <Link className="brand" href="/" aria-label="MeowHome 首頁">
+        <Link className="brand" href="/" aria-label="Meowho喵戶 首頁">
           <img src={logo.src} alt="" />
-          <span className="brand-name">MeowHome<small>貓戶・讓每隻貓都被好好記得</small></span>
+          <span className="brand-name">Meowho喵戶<small>讓每隻貓都找到好的家</small></span>
         </Link>
         <nav className="mainnav" aria-label="主選單">
           <Link href="/">首頁大廳</Link>
@@ -67,7 +67,7 @@ export function SiteFooter() {
   return (
     <footer className="footer">
       <div className="wrap footer-in">
-        <span><b>Meow Home 貓戶</b>｜用 AI 支持終養不棄養 🐾</span>
+        <span><b>Meowho喵戶</b>｜用 AI 支持終養不棄養 🐾</span>
         <Link href="/legal">隱私權政策與服務條款</Link>
         <span>原型版本：部分畫面資料為示意</span>
       </div>
@@ -80,8 +80,8 @@ export function PageBrandTitle({ title }: { title: string }) {
   const { logo } = useUi();
   return (
     <div className="page-brand">
-      <img src={logo.src} alt="Meow Home 標誌" />
-      <div><span className="page-brand-name">Meow Home 貓戶</span><h1>{title}</h1></div>
+      <img src={logo.src} alt="Meowho喵戶 標誌" />
+      <div><span className="page-brand-name">Meowho喵戶</span><h1>{title}</h1></div>
     </div>
   );
 }

@@ -50,6 +50,7 @@
 | 23-1 | MeowHQ 階段 1：db（T-HQ-02、12）、logic（T-HQ-03、04）、shell（T-HQ-05、06） | admin-moderation | 23-0 | P2 | #19 db、#20 logic、#21 shell | C、B、Claude | 完成（0002 已執行） |
 | 23-2 | MeowHQ 階段 2：待辦總覽與列表、Admin 授權、用戶權限管理（T-HQ-07～10） | admin-moderation | 23-1 | P2 | #22 lists-home、#23 admin-auth、#24 users | Claude | 完成（#22、#23、#24 已合併；0003 已執行，待 Tina 登入實測） |
 | 25 | LLM 輸入防護：服務範圍、prompt injection、字數上限（決策 004） | ai-onboarding | 21 | P1 | #38 | Tina × Claude | 審查中 |
+| 26 | 品牌改名 Meowho喵戶、換新 Logo（三張）、前台新樣板、貓咪走到新家動畫 | matching | — | P1 | #42 | Tina × Claude | 進行中（改名與 Logo 已完成；樣板與動畫待素材） |
 | 23-3 | MeowHQ 階段 3：虛擬體驗元件管理（T-HQ-11）、獨立審查（T-HQ-13） | admin-moderation | 23-2 | P2 | 待建立 | C、B | 卡住（T-HQ-11 等 #15 儲存位置） |
 
 ## 高風險 PoC（11/05 前）
@@ -72,7 +73,7 @@
 - 組員姓名與 A–F 對應
 - 是否改用 Tailwind，或正式採用 `globals.css` 設計 token（影響 T-P0-01）
 - 使用中的虛擬體驗元件是否只能下架不能刪除；停權期間貓戶與待領養貓是否隱藏；用品類商品欄位（SRS §10 #8–11）
-- 品牌名稱寫法：文件為「Meow Home」，網站顯示「MeowHome」
+- 品牌名稱寫法：文件與網站一律「Meowho喵戶」（2026-10-29 Tina 決定，取代 Meow Home／MeowHome；GitHub 倉庫、Vercel 專案、`meow_` 資料庫前綴與 MeowHQ 後台名稱不變）
 
 ## 建議（agent 發現、尚未有人認領）
 

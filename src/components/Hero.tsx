@@ -109,7 +109,7 @@ export function Hero() {
             <div className="faces">
               {(["orange", "black", "calico", "gray"] as const).map(k => <img key={k} src={photo(k)} alt="" />)}
             </div>
-            <span>本月已有 <b>36</b> 隻貓透過 MeowHome 找到家</span>
+            <span>本月已有 <b>36</b> 隻貓透過 Meowho喵戶 找到家</span>
           </div>
         </div>
 

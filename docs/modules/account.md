@@ -18,7 +18,7 @@ Google 登入、條款同意、角色判斷（訪客／會員／貓戶長／領�
 Google 登入（Supabase Auth）與條款同意已完成（Issue #1）。條款同意改為「看完才能勾選」（Issue #16）：全文顯示在捲動框，捲到底才啟用 checkbox（`src/components/TermsGate.tsx`、`src/lib/terms.ts`，條款文字由 `/api/legal` 建置時產生）。未設定 Supabase 環境變數時為「示範模式」：可操作但不能登入。
 
 ## 資料表（Supabase）
-- `meow_profiles`（id＝auth.users.id、email、display_name、avatar_url、role、terms_version、terms_agreed_at），第一次登入 MeowHome 時由前端建立（`Auth.tsx`）；email 由 trigger 從登入憑證帶入，不能自填
+- `meow_profiles`（id＝auth.users.id、email、display_name、avatar_url、role、terms_version、terms_agreed_at），第一次登入 Meowho喵戶 時由前端建立（`Auth.tsx`）；email 由 trigger 從登入憑證帶入，不能自填
 - migration：`supabase/migrations/0001_meow.sql`（共用 Supabase 專案 `pnnehddxeujxghhnnqrv`，物件一律 `meow_` 開頭，見 AGENTS.md §7）
 
 ## API／主要函式
