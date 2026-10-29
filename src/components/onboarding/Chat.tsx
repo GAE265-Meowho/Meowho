@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import { AI_LIMITS, charCount } from "@/lib/ai/guard";
 import { useUi } from "../Providers";
 
 export interface ChatMessage { id: number; from: "bot" | "me"; text: string; image?: string }
@@ -35,15 +36,17 @@ export function ChatLog({ messages, typing }: { messages: ChatMessage[]; typing?
 type SpeechRec = { lang: string; interimResults: boolean; onresult: (e: { results: { 0: { transcript: string } }[] }) => void; onend: () => void; onerror: () => void; start: () => void; stop: () => void };
 
 /** 輸入列：文字＋語音（瀏覽器內建語音辨識，FR-03-05）＋快速選項 */
-export function ChatInput({ onSend, chips = [], disabled, placeholder = "輸入回答，或按麥克風用說的…" }: {
-  onSend: (text: string) => void; chips?: string[]; disabled?: boolean; placeholder?: string;
+export function ChatInput({ onSend, chips = [], disabled, placeholder = "輸入回答，或按麥克風用說的…", maxChars = AI_LIMITS.onboardingChars }: {
+  onSend: (text: string) => void; chips?: string[]; disabled?: boolean; placeholder?: string; maxChars?: number;
 }) {
   const { toast } = useUi();
   const [text, setText] = useState("");
   const [listening, setListening] = useState(false);
   const recRef = useRef<SpeechRec | null>(null);
 
-  const send = (t: string) => { const v = t.trim(); if (!v || disabled) return; onSend(v); setText(""); };
+  const count = charCount(text.trim());
+  const over = count > maxChars;
+  const send = (t: string) => { const v = t.trim(); if (!v || disabled || charCount(v) > maxChars) return; onSend(v); setText(""); };
 
   const toggleMic = () => {
     if (listening) { recRef.current?.stop(); return; }
@@ -67,12 +70,17 @@ export function ChatInput({ onSend, chips = [], disabled, placeholder = "輸入�
       )}
       <form className="chat-form" onSubmit={e => { e.preventDefault(); send(text); }}>
         <label htmlFor="chat-text" className="sr">你的回答</label>
-        <textarea id="chat-text" rows={1} value={text} disabled={disabled} placeholder={placeholder}
+        <textarea id="chat-text" rows={1} value={text} aria-invalid={over} disabled={disabled} placeholder={placeholder}
           onChange={e => setText(e.target.value)}
           onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); send(text); } }} />
         <button type="button" className={`icon-btn${listening ? " rec" : ""}`} aria-label={listening ? "停止錄音" : "用說的"} aria-pressed={listening} onClick={toggleMic} disabled={disabled}>🎙️</button>
-        <button type="submit" className="btn sm" disabled={disabled || !text.trim()}>送出</button>
+        <button type="submit" className="btn sm" disabled={disabled || !text.trim() || over}>送出</button>
       </form>
+      {count > 0 && (
+        <p className={`chat-count${over ? " over" : ""}`} aria-live="polite">
+          {count}／{maxChars} 字{over ? "，請精簡後再送出" : ""}
+        </p>
+      )}
     </div>
   );
 }
