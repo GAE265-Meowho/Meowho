@@ -11,7 +11,7 @@ import { ADMIN_QUICK_REASONS, LOGO_TYPES, logoStoragePath, validateLogoFile } fr
 import { LOGOS } from "@/lib/mock-data";
 import { resolveSiteLogo } from "@/lib/site-logo";
 import { getBrowserSupabase } from "@/lib/supabase/client";
-import { ReasonField } from "./ReasonField";
+import { ReasonField } from "@/components/hq/ReasonField";
 
 const BUCKET = "meow-site-assets";
 const LOG = "/MeowHQ/admin?tab=audit";

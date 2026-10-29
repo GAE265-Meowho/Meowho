@@ -10,7 +10,7 @@ import { roleLabel } from "@/lib/hq/audit";
 import { canRemoveSystemAdmin } from "@/lib/hq/permissions";
 import { ADMIN_MODULE_LABELS, GRANTABLE_MODULES } from "@/lib/hq/types";
 import { getBrowserSupabase } from "@/lib/supabase/client";
-import { ReasonField } from "./ReasonField";
+import { ReasonField } from "@/components/hq/ReasonField";
 
 interface AdminRow { id: string; email: string | null; display_name: string | null; role: "admin" | "system_admin" }
 const LOG = "/MeowHQ/admin?tab=audit";
