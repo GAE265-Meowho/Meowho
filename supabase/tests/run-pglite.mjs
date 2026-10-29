@@ -56,6 +56,27 @@ try {
   process.exit(1);
 }
 
+// 0003（網站外觀，Issue #23）：另開一個資料庫，0001 → 0002 → 0003（連跑兩次）→ 0003 測試
+{
+  const m = new PGlite();
+  const base = read("./stub_supabase.sql") + read("../migrations/0001_meow.sql") + read("../migrations/0002_meow_hq.sql");
+  if (!existsSync(new URL("../migrations/0003_meow_site_assets.sql", import.meta.url))) {
+    console.error("✗ 找不到 supabase/migrations/0003_meow_site_assets.sql");
+    process.exit(1);
+  }
+  try {
+    await m.exec(base);
+    await m.exec(read("../migrations/0003_meow_site_assets.sql"));
+    await m.exec(read("../migrations/0003_meow_site_assets.sql"));
+    const sql3 = read("./0003_meow_site_assets.test.sql").replace(/^\s*begin;/im, "").replace(/rollback;\s*$/i, "");
+    const out3 = await m.exec(sql3);
+    results = results.concat(out3.flatMap((r) => r.rows ?? []).filter((r) => "status" in r));
+  } catch (e) {
+    console.error(`✗ 0003 測試中斷：${e.message}`);
+    process.exit(1);
+  }
+}
+
 let failed = 0;
 for (const r of results) {
   if (r.status === "FAIL") failed++;

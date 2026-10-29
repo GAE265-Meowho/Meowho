@@ -318,6 +318,8 @@ dialog h2 { margin: 0; font-size: 1.3rem }
 .chat-chips { display: flex; flex-wrap: wrap; gap: .45rem }
 .chat-form { display: flex; gap: .5rem; align-items: flex-end }
 .chat-form textarea { flex: 1; min-width: 0; min-height: 48px; max-height: 140px; resize: vertical; border: 2px solid #D5C7B7; background: var(--card); border-radius: 20px; padding: .7rem 1rem; font: inherit; color: var(--cocoa); outline: none }
+.chat-count { margin: 0; text-align: right; font-size: .8rem; color: var(--cocoa-2) }
+.chat-count.over { color: var(--pink-dk); font-weight: 700 }
 .chat-form textarea:focus { border-color: var(--peach); box-shadow: 0 0 0 4px rgba(255, 158, 121, .25) }
 .icon-btn.rec { background: var(--pink); box-shadow: 0 4px 0 var(--pink-dk) }
 .btn:disabled, .chip:disabled, .icon-btn:disabled { opacity: .5; cursor: not-allowed; transform: none }

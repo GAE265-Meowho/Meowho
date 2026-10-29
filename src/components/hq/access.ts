@@ -1,6 +1,6 @@
-// ⚠️ STUB：待 #20（src/lib/hq/permissions.ts）合併後，visibleSidebar 改接真正的權限判斷。
-// 這裡只做「外殼要顯示哪些側欄項目」的最小判斷，不是完整權限規則（不做 canSuspend 等）。
-import { ADMIN_MODULES, HQ_SIDEBAR_ORDER, SYSTEM_ADMIN_ONLY_MODULES, type AdminModule, type SidebarItem } from "@/lib/hq/types";
+// 外殼用的小工具：網址導向、登入閘門、側欄（側欄規則來自 src/lib/hq/permissions.ts）
+import { getVisibleSidebar } from "@/lib/hq/permissions";
+import { ADMIN_MODULES, HQ_ROLES, type AdminModule, type HqRole, type SidebarItem } from "@/lib/hq/types";
 
 /** /meowhq、/MEOWHQ 等大小寫不同的寫法 → 回傳正確網址（保留子路徑與參數）；不需導向回 null（UT-HQ-12）。 */
 export function hqRedirectTarget(pathname: string, search: string): string | null {
@@ -17,17 +17,11 @@ export function resolveGate(i: { configured: boolean; loading: boolean; signedIn
   return i.role === "admin" || i.role === "system_admin" ? "ok" : "not_found";
 }
 
-/**
- * 側欄可見項目。
- * - system_admin：全部。admin：首頁＋被授權模組（不含系統管理員專屬）。其他：空。
- * - grants 為 null＝讀不到授權表（0002 尚未執行、資料庫仍是舊結構）→ 退回示範資料：當作全部模組可見
- *   （舊結構的 admin 本來就能做所有後台事，0002 會把他們升為 system_admin）。
- */
+/** 側欄可見項目：依角色與授權（permissions.ts）；授權讀取中或失敗時（grants＝null）管理員只看到首頁 */
 export function visibleSidebar(i: { role: string | null; grants: readonly AdminModule[] | null }): SidebarItem[] {
-  if (i.role !== "admin" && i.role !== "system_admin") return [];
-  const all = i.role === "system_admin" || i.grants === null;
-  const only = SYSTEM_ADMIN_ONLY_MODULES as readonly AdminModule[];
-  return HQ_SIDEBAR_ORDER.filter(item => item === "home" || (all ? true : !only.includes(item) && i.grants!.includes(item)));
+  const role = (HQ_ROLES as readonly string[]).includes(i.role ?? "") ? (i.role as HqRole) : null;
+  if (!role) return [];
+  return getVisibleSidebar({ role, modules: i.grants ?? [] });
 }
 
 export const HQ_HOME = "/MeowHQ";

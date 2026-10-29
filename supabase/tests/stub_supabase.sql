@@ -19,6 +19,7 @@ $$;
 
 create schema if not exists storage;
 create table if not exists storage.buckets (id text primary key, name text, public boolean);
+alter table storage.buckets add column if not exists file_size_limit bigint, add column if not exists allowed_mime_types text[];
 create table if not exists storage.objects (bucket_id text, name text);
 alter table storage.objects enable row level security;
 create or replace function storage.foldername(name text) returns text[] language sql immutable as $$
@@ -29,6 +30,7 @@ $$;
 grant usage on schema public, auth, storage to anon, authenticated, service_role;
 grant execute on function auth.uid(), auth.jwt() to anon, authenticated, service_role;
 grant select on auth.users to authenticated;
+grant select, insert, update, delete on storage.objects to anon, authenticated;
 alter default privileges in schema public grant all on tables to anon, authenticated, service_role;
 alter default privileges in schema public grant all on sequences to anon, authenticated, service_role;
 alter default privileges in schema public grant execute on functions to anon, authenticated, service_role;

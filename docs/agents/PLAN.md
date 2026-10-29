@@ -47,8 +47,9 @@
 | 24 | 首次登入條款：看完才能勾選同意 | account | 1 | P1 | #16 | Tina | 審查中 |
 | 23 | 後台改為按模組授權：系統管理員、模組授權、稽核日誌、停權／黑名單、虛擬體驗元件管理（T-15-06～09）。拆為 MeowHQ 階段（見 `docs/hq/03`） | admin-moderation | 17、22 | P2 | 見下列 | C、B | 進行中 |
 | 23-0 | MeowHQ 階段 0：共用約定型別（T-HQ-01）＋0002 資料表草案 | admin-moderation | — | P2 | #18 | Tina × Cursor | 審查中 |
-| 23-1 | MeowHQ 階段 1：db（T-HQ-02、12）、logic（T-HQ-03、04）、shell（T-HQ-05、06） | admin-moderation | 23-0 | P2 | #19 db、#20 logic、#21 shell | C、B、Claude | 進行中（#19、#20 已合併；#21 由 Claude 接手） |
-| 23-2 | MeowHQ 階段 2：待辦總覽與列表、Admin 授權、用戶權限管理（T-HQ-07～10） | admin-moderation | 23-1 | P2 | #22 lists-home、#23 admin-auth、#24 users | C、B | 待辦 |
+| 23-1 | MeowHQ 階段 1：db（T-HQ-02、12）、logic（T-HQ-03、04）、shell（T-HQ-05、06） | admin-moderation | 23-0 | P2 | #19 db、#20 logic、#21 shell | C、B、Claude | 完成（0002 已執行） |
+| 23-2 | MeowHQ 階段 2：待辦總覽與列表、Admin 授權、用戶權限管理（T-HQ-07～10） | admin-moderation | 23-1 | P2 | #22 lists-home、#23 admin-auth、#24 users | Claude | 完成（#22、#23、#24 已合併；0003 已執行，待 Tina 登入實測） |
+| 25 | LLM 輸入防護：服務範圍、prompt injection、字數上限（決策 004） | ai-onboarding | 21 | P1 | #38 | Tina × Claude | 審查中 |
 | 23-3 | MeowHQ 階段 3：虛擬體驗元件管理（T-HQ-11）、獨立審查（T-HQ-13） | admin-moderation | 23-2 | P2 | 待建立 | C、B | 卡住（T-HQ-11 等 #15 儲存位置） |
 
 ## 高風險 PoC（11/05 前）
@@ -95,3 +96,4 @@
   - （#20 logic）UT-HQ-05 的「貓友／貓戶長」在 `canSuspend` 都是 `role: member`，函式不區分；#20 的 `canSuspend` 對沒有「用戶權限管理」授權者回傳「沒有停權的權限」，規格書與測試計畫未規定此文字，Tina 可調整。
 - 語音輸入的 Whisper 備援（Safari／Firefox 不支援瀏覽器語音辨識）
 - MeowHQ shell（#21 實作時發現，待 Tina 決定）：(1) `Auth.tsx` 的 `isAdmin` 已納入 #21；舊後台已移除（Tina 2026-10-29 決定）；(2) 規格書未定義鈴鐺點開後的通知面板，目前鈴鐺只顯示未讀數（T-HQ-12 之後處理）；(3) 規格書 §4.9 要求「手機從底部出現」的 toast 與 `查看紀錄` 連結目標（稽核日誌頁網址）尚未決定，目前由呼叫端傳入 `logHref`。
+- #24 用戶權限管理（Claude，2026-10-29）：審查中，PR 未合併；「要求補件」目前以退回＋快選原因處理，若要獨立狀態需新 migration（待 Tina 決定）。

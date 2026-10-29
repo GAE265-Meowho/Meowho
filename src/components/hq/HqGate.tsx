@@ -1,12 +1,14 @@
 "use client";
 // MeowHQ 閘門：未登入 → 登入頁；非管理員 → 找不到頁面；管理員 → 外殼。
-// 授權資料來源（0002 執行後改接 #20 的 permissions.ts／meow_has_module）見 access.ts 與 PR 備註。
+// 角色來自 meow_profiles.role，授權來自 meow_admin_module_grants（RLS：只讀得到自己的列；系統管理員讀全部）。
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/components/Auth";
+import type { HqActor } from "@/lib/hq/permissions";
 import { ADMIN_MODULES, type AdminModule } from "@/lib/hq/types";
 import { getBrowserSupabase } from "@/lib/supabase/client";
 import { resolveGate, visibleSidebar } from "./access";
+import { HqActorContext } from "./HqActor";
 import { HqLoginPage, HqNotFound } from "./HqLoginPage";
 import { HqShell } from "./HqShell";
 import { HqSkeleton } from "./HqStates";
@@ -21,35 +23,46 @@ export function HqGate({ children }: { children: React.ReactNode }) {
   const [wantPreview, setWantPreview] = useState(false);
   useEffect(() => setWantPreview(previewWanted()), []); // 掛載後才讀網址，避免 hydration 不一致
   const preview = !configured && wantPreview;
-  const role: string | null = preview ? "system_admin" : profile?.role ?? null; // Auth.tsx 型別尚無 system_admin，以字串比對
+  const role: string | null = preview ? "system_admin" : profile?.role ?? null;
   const state = resolveGate({ configured, loading: loading && !preview, signedIn: Boolean(user) || preview, role });
   const [grants, setGrants] = useState<AdminModule[] | null>(null);
   const [unread, setUnread] = useState(0);
+  const [tick, setTick] = useState(0);
+  const reload = useCallback(() => setTick(t => t + 1), []);
 
   useEffect(() => {
+    if (preview) { setGrants([]); return; }
     const sb = getBrowserSupabase();
     if (state !== "ok" || !sb || !user) return;
-    // 0002 前沒有授權表 → 查詢失敗 → grants 維持 null（示範資料：全部模組）
     sb.from("meow_admin_module_grants").select("module").eq("admin_id", user.id).then(({ data, error }) => {
-      if (!error && data) setGrants(data.map(r => r.module).filter((m): m is AdminModule => (ADMIN_MODULES as readonly string[]).includes(m)));
+      setGrants(error || !data ? [] : data.map(r => r.module).filter((m): m is AdminModule => (ADMIN_MODULES as readonly string[]).includes(m)));
     });
     sb.from("meow_notifications").select("id", { count: "exact", head: true }).eq("user_id", user.id).is("read_at", null).then(({ count }) => setUnread(count ?? 0));
-  }, [state, user]);
+  }, [state, user, preview, tick]);
+
+  const actor: HqActor | null = useMemo(
+    () => (grants === null || (role !== "admin" && role !== "system_admin") ? null : { role, modules: grants }),
+    [grants, role],
+  );
 
   if (state === "loading") return <div className="hq-center"><HqSkeleton rows={2} /></div>;
   if (state === "login") return <HqLoginPage configured={configured} next={pathname} onLogin={() => login(window.location.pathname + window.location.search)} />;
   if (state === "not_found") return <HqNotFound />;
   return (
-    <HqToastProvider>
-      <HqShell
-        items={visibleSidebar({ role, grants })}
-        user={{ name: profile?.display_name ?? user?.email ?? "預覽", roleLabel: role === "system_admin" ? "系統管理員" : "管理員", avatarUrl: profile?.avatar_url }}
-        unread={unread}
-        onLogout={() => void logout()}
-        activePath={pathname}
-      >
-        {children}
-      </HqShell>
-    </HqToastProvider>
+    <HqActorContext.Provider value={{ actor, userId: preview ? "preview" : user?.id ?? null, email: profile?.email ?? null, preview, reload }}>
+      <HqToastProvider>
+        <HqShell
+          items={visibleSidebar({ role, grants })}
+          user={{ name: profile?.display_name ?? user?.email ?? "預覽", roleLabel: role === "system_admin" ? "系統管理員" : "管理員", avatarUrl: profile?.avatar_url }}
+          unread={unread}
+          userId={preview ? null : user?.id ?? null}
+          onNotificationsChanged={reload}
+          onLogout={() => void logout()}
+          activePath={pathname}
+        >
+          {children}
+        </HqShell>
+      </HqToastProvider>
+    </HqActorContext.Provider>
   );
 }

@@ -1,6 +1,6 @@
 # 模組：AI 對話建檔（ai-onboarding）
 
-> 最後更新：2026-10-28｜Tina × Claude Code
+> 最後更新：2026-10-29｜Tina × Claude Code
 > 規則：本檔隨程式碼同一個 PR 更新；「決策」與「地雷」只增不刪（過時的標註［已失效］）。
 
 ## 目的
@@ -27,7 +27,8 @@
 - `POST /api/onboarding/cat-story`：自由口述 → 性格、癖好、補充、結紮
 - `src/lib/ai/server.ts`：`extractHousehold()`、`recognizeCatPhoto()`、`organizeCatStory()`，未設定或失敗回傳 `null`（呼叫端改用規則式）
 - `src/lib/ai/models.ts`：`getChatModel("text"|"vision")`，以 `AI_PROVIDER` 切換 Gemini／OpenAI／Azure OpenAI／Anthropic（LangChain）
-- `src/lib/ai/schemas.ts`：三個任務的 zod 輸出格式；`chain.ts`：訊息組裝 → `withStructuredOutput` → zod 驗證
+- `src/lib/ai/schemas.ts`：三個任務的 zod 輸出格式；`chain.ts`：訊息組裝（自動附防護規則）→ `withStructuredOutput` → zod 驗證
+- `src/lib/ai/guard.ts`：`AI_LIMITS`（建檔 200 字、問答 300 字、每段 20 輪、每天 50 次）、`checkInput()`、`wrapUserInput()`、`withGuard()`；防護規則文字在 `src/lib/prompts/guard.ts`
 - 語音：瀏覽器內建語音辨識（zh-TW）；不支援時提示改用打字（Whisper 備援待做）
 
 ## 主要檔案
@@ -38,6 +39,7 @@
 - 新貓入戶一律先登入，並由使用者明確選擇貓咪歸屬的貓戶（即使只有一個貓戶也要選），避免放錯戶。
 - LLM 抽取結果一律先給使用者確認才寫入。
 - 必填最少化，其他欄位之後由週報提醒補。
+- LLM 輸入防護：只處理和貓有關的事；使用者內容一律包成 `<user_input>` 資料；建檔每題 200 字，超過前端不能送出、後端回 400（決策 004，Issue #38）。
 
 ## 待確認
 - LLM 供應商：改用 LangChain，可切換 Gemini／OpenAI／Azure OpenAI／Anthropic，預設 Gemini（`gemini-2.5-flash`），最終選擇待組內確認。見 `docs/decisions/002-langchain-and-media-storage.md`。
@@ -48,6 +50,7 @@
 - LLM 回傳的欄位一律經過合併函式檢查，只採用當題欄位，非法值忽略。
 - API 在 Supabase 已設定時要求登入，避免匿名大量呼叫 LLM。
 - 照片在瀏覽器先縮到最長邊 1024px 再送 AI 與上傳。
+- 新增 LLM 任務時，使用者內容一定要經 `wrapUserInput()`，API 一定要用 `checkInput()`；不要直接把使用者文字接進提示詞。
 
 ## 變更紀錄
 | 日期 | 發起人 × 工具 | 變更 | PR |
@@ -57,3 +60,5 @@
 | 2026-10-28 | Tina × Claude Code | 建立貓戶前先顯示說明（WelcomeHousehold）；`?cat=1` 新貓入戶 | #5 |
 | 2026-10-28 | Tina × Claude Code | 新貓入戶改為：先 Google 登入 → 一律選擇「既有貓戶」或「住進新家」；進入點決策抽成 `src/lib/onboarding/route.ts`（`decideStart`） | #7 |
 | 2026-10-29 | Tina × Codex | Issue #33：Vision 信心低於 0.5 不預填品種／毛色；結構化 AI 失敗重試一次；補 UT-03-04 | #33 |
+
+| 2026-10-29 | Tina × Claude Code | LLM 輸入防護：服務範圍、prompt injection、字數上限（決策 004） | #38 |

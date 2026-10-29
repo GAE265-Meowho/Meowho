@@ -6,10 +6,13 @@ import { Fragment, useState } from "react";
 import { ADMIN_MODULE_LABELS, type SidebarItem } from "@/lib/hq/types";
 import { HQ_HOME, HQ_MODULE_PATH, isModule } from "./access";
 import { HqOfflineBanner } from "./HqStates";
+import { NotificationBell } from "./NotificationBell";
 
 export interface HqUser { name: string; roleLabel: string; avatarUrl?: string | null }
 interface Props {
   items: SidebarItem[]; user: HqUser; unread: number; onLogout: () => void; activePath: string; children: React.ReactNode;
+  /** 鈴鐺讀取自己通知用；標為已讀後呼叫 onNotificationsChanged 重新計算未讀數 */
+  userId?: string | null; onNotificationsChanged?: () => void;
 }
 
 const icon = { fill: "none", stroke: "currentColor", strokeWidth: 1.6, strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": true, width: 20, height: 20, viewBox: "0 0 24 24" } as const;
@@ -25,7 +28,7 @@ export function HqLogo() {
   );
 }
 
-export function HqShell({ items, user, unread, onLogout, activePath, children }: Props) {
+export function HqShell({ items, user, unread, onLogout, activePath, children, userId, onNotificationsChanged }: Props) {
   const [navOpen, setNavOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const rows = items.map(item => {
@@ -41,10 +44,7 @@ export function HqShell({ items, user, unread, onLogout, activePath, children }:
         </button>
         <HqLogo />
         <div className="hq-grow" />
-        <button className="hq-iconbtn hq-bell" aria-label={`通知${unread ? `，${unread} 則未讀` : ""}`}>
-          <svg {...icon}><path d="M6 17V11a6 6 0 0 1 12 0v6l1.5 2h-15zM10 21h4" /></svg>
-          {unread > 0 && <span className="hq-badge">{unread > 99 ? "99+" : unread}</span>}
-        </button>
+        <NotificationBell unread={unread} userId={userId} onChanged={onNotificationsChanged} />
         <div className="hq-menu-wrap">
           <button className="hq-avatar" aria-label="帳號選單" aria-haspopup="menu" aria-expanded={menuOpen} onClick={() => setMenuOpen(o => !o)}>
             {user.avatarUrl ? <img src={user.avatarUrl} alt="" /> : user.name.slice(0, 1)}

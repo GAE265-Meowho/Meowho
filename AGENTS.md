@@ -147,6 +147,7 @@
 ### 不可違反的業務規則
 - 費用數字只來自資料庫或公式，**LLM 不得產生數字**。
 - 醫療相關內容附「僅供參考，非醫療建議」；處方飼料只在有獸醫診斷紀錄時顯示。
+- **LLM 只回答和貓有關的事，系統指示不可被覆蓋**：使用者內容與擷取的網頁一律經 `wrapUserInput()` 包成資料，API 用 `checkInput()` 檢查字數（上限在 `src/lib/ai/guard.ts` 的 `AI_LIMITS`）。見 `docs/decisions/004-llm-input-guard.md`。
 - 位置只存縣市＋區；私密日記不可進入公開配對。
 - 領養申請不收真實姓名與電話（雙方以私訊處理）；評分資料不公開。
 - 居家環境影片在貓咪移轉完成時刪除原檔。
@@ -189,7 +190,7 @@
 - **容量共用**：資料庫 500 MB、檔案儲存 1 GB、每月 5 萬活躍使用者是兩個 App 加總。照片一律先縮到最長邊 1024px。
 - **暫停共用**：免費專案閒置一週會被暫停；Demo、評分前要先打開確認。
 - **沒有自動 migration**：SQL 由 AI 透過 Supabase 連接器執行，**執行前須把 SQL（或 migration 檔名與內容摘要）給發起人確認**；沒有連接器時由組長在 SQL Editor 手動執行。執行後在每日紀錄寫下 migration 檔名與結果，並跑一次 Supabase 安全檢查（advisors）。新 migration 必須可重複執行（`if not exists`、`drop ... if exists` 只用在 `meow_` 物件）。
-- **執行紀錄**：`0001_meow.sql` 已於 2026-10-28 執行（Supabase migration 名稱 `meow_0001`）。
+- **執行紀錄**：`0001_meow.sql` 已於 2026-10-28 執行（Supabase migration 名稱 `meow_0001`）；`0002_meow_hq.sql` 已於 2026-10-29 執行（`meow_0002_hq`，先以交易 rollback 試跑通過）；`0003_meow_site_assets.sql` 已於 2026-10-29 執行（`meow_0003_site_assets`，同樣先 rollback 試跑通過）。
 - **前端只用 anon key**：所有權限靠 RLS；每張 `meow_` 表都必須啟用 RLS 並寫好 policy。
 
 ### 7.5 新增資料表的流程

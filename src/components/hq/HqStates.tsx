@@ -1,7 +1,7 @@
 "use client";
 // 空白、篩選無結果、載入（骨架）、載入失敗、離線橫幅、儲存按鈕（規格書 §4.7、§4.10）。
 import { useEffect, useState } from "react";
-import { errorCodeOf, friendlyError } from "./errors";
+import { hqErrorMessage } from "./errors";
 
 export function useOnline(): boolean {
   const [online, setOnline] = useState(() => (typeof navigator === "undefined" ? true : navigator.onLine));
@@ -77,7 +77,7 @@ export function HqSaveButton({ onSave, disabled, children }: { onSave: () => Pro
   const [error, setError] = useState<string | null>(null);
   async function click() {
     setBusy(true); setError(null);
-    try { await onSave(); } catch (e) { setError(friendlyError(errorCodeOf(e))); } finally { setBusy(false); }
+    try { await onSave(); } catch (e) { setError(hqErrorMessage(e)); } finally { setBusy(false); }
   }
   return (
     <span className="hq-save">

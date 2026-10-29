@@ -5,14 +5,17 @@ import { RunnableLambda, type Runnable } from "@langchain/core/runnables";
 import type { BaseChatModel } from "@langchain/core/language_models/chat_models";
 import type { z } from "zod";
 
+import { withGuard } from "./guard";
+
+/** text：送給模型的文字；使用者打的內容必須先用 guard.ts 的 wrapUserInput 包好（見 onboarding.ts） */
 export interface ChainInput { text: string; imageDataUrl?: string }
 
-/** 組成送給模型的訊息；有圖片時以 image_url 內容片段附上（各供應商通用格式） */
+/** 組成送給模型的訊息；系統指示一律附上防護規則；有圖片時以 image_url 內容片段附上（各供應商通用格式） */
 export function buildMessages(system: string, input: ChainInput): BaseMessage[] {
   const human = input.imageDataUrl
     ? new HumanMessage({ content: [{ type: "text", text: input.text }, { type: "image_url", image_url: { url: input.imageDataUrl } }] })
     : new HumanMessage(input.text);
-  return [new SystemMessage(system), human];
+  return [new SystemMessage(withGuard(system)), human];
 }
 
 /** 把聊天模型包成「輸出符合 schema」的 Runnable */
