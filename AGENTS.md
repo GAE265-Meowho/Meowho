@@ -11,8 +11,9 @@
 1. **讀交接**：`docs/agents/HANDOFF.md`（目前狀態、進行中工作、地雷）
 2. **讀計畫**：`docs/agents/PLAN.md`（要做什麼、誰在做、順序）
 3. **讀模組文件**：要改哪個模組，就讀 `docs/modules/<模組>.md`（見 §4 對照表）
-4. **確認發起人**：問清楚（或從對話中確認）這次是**哪位組員**請你做的、對應哪張 Issue。沒有 Issue 的變更，先請發起人建 Issue 或在 `PLAN.md` 加一列。
-5. **同步程式**：`git switch main && git pull`，再開分支（命名見 §5）。
+4. **讀設計規範**：只要會動到畫面（頁面、元件、CSS），先讀 `docs/design/DESIGN.md` 的第 0 節（硬性規則）與第 1 節（遷移期間做法）
+5. **確認發起人**：問清楚（或從對話中確認）這次是**哪位組員**請你做的、對應哪張 Issue。沒有 Issue 的變更，先請發起人建 Issue 或在 `PLAN.md` 加一列。
+6. **同步程式**：`git switch main && git pull`，再開分支（命名見 §5）。
 
 ## 1. 每次收工的固定步驟（必做）
 
@@ -32,7 +33,7 @@
 - 產品：貓社群＋領養媒合平台。手機優先的 Next.js 網站。介面文案、文件、回覆一律**繁體中文**。
 - 需求：`docs/spec/01_系統需求規格書_SRS.md`（需求編號 `FR-模組-流水號`，模組 M01–M17）
 - 測試計畫：`docs/spec/03`～`05`（`UT-`／`MT-`／`E2E-` 編號）
-- 設計系統：`docs/design/DESIGN.md`（Cozy Cat Nook）
+- 設計系統：`docs/design/DESIGN.md`（v2 溫暖平面的保護貓網站；舊版 Cozy Cat Nook 封存於 `docs/design/archive/`）
 - 人類協作規範：`CONTRIBUTING.md`
 
 ### 指令
@@ -140,7 +141,7 @@
 
 - **先測試後實作**：先寫會失敗的測試，再寫程式讓它通過；邏輯放 `src/lib/` 方便測試。
 - **範圍控制**：只改 Issue 需要的檔案；看到其他問題記在 `PLAN.md`「建議」區，不要順手改。
-- **設計**：只用 `globals.css` 的設計 token；按鈕用 `.btn`（`mint`／`pink`／`butter`／`ghost`、`sm`）；新元件先對照 `DESIGN.md`。
+- **設計**：照 `docs/design/DESIGN.md`。主程式正在從 Cozy Cat Nook 遷移到 v2：新畫面用 v2 的 token 與貓形 pill 按鈕；修改既有畫面時只遷移該 Issue 動到的元件，其餘頁面暫時沿用 `.btn`。前台不放小字備註，需要說明的事寫成程式碼註解（業務規則要求的聲明除外）。
 - 原型中尚未完成的按鈕加 `data-login` 或 `data-proto="功能名"`，會自動顯示提示。
 - 站台標誌由管理者設定選擇（`LOGOS`），不要自行更換 logo 檔案。2026-10-29 Tina 已將三款內建 Logo 換成 Meowho喵戶 新版（小屋摸摸款、圓形花貓款、橫式字標款）。
 

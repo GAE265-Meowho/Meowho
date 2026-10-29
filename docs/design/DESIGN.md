@@ -1,241 +1,247 @@
----
-name: Cozy Cat Nook
-colors:
-  surface: '#fff8f5'
-  surface-dim: '#edd5c9'
-  surface-bright: '#fff8f5'
-  surface-container-lowest: '#ffffff'
-  surface-container-low: '#fff1ea'
-  surface-container: '#ffeadf'
-  surface-container-high: '#fbe4d7'
-  surface-container-highest: '#f6ded1'
-  on-surface: '#251911'
-  on-surface-variant: '#54433d'
-  inverse-surface: '#3b2d25'
-  inverse-on-surface: '#ffede4'
-  outline: '#87736c'
-  outline-variant: '#dac1b9'
-  surface-tint: '#94492a'
-  primary: '#94492a'
-  on-primary: '#ffffff'
-  primary-container: '#ff9e79'
-  on-primary-container: '#783316'
-  inverse-primary: '#ffb59a'
-  secondary: '#006b59'
-  on-secondary: '#ffffff'
-  secondary-container: '#92f1d7'
-  on-secondary-container: '#00705d'
-  tertiary: '#705d05'
-  on-tertiary: '#ffffff'
-  tertiary-container: '#ceb55b'
-  on-tertiary-container: '#564600'
-  error: '#ba1a1a'
-  on-error: '#ffffff'
-  error-container: '#ffdad6'
-  on-error-container: '#93000a'
-  primary-fixed: '#ffdbce'
-  primary-fixed-dim: '#ffb59a'
-  on-primary-fixed: '#380d00'
-  on-primary-fixed-variant: '#763216'
-  secondary-fixed: '#95f4da'
-  secondary-fixed-dim: '#79d8bf'
-  on-secondary-fixed: '#002019'
-  on-secondary-fixed-variant: '#005142'
-  tertiary-fixed: '#fce182'
-  tertiary-fixed-dim: '#dfc569'
-  on-tertiary-fixed: '#221b00'
-  on-tertiary-fixed-variant: '#554600'
-  background: '#fff8f5'
-  on-background: '#251911'
-  surface-variant: '#f6ded1'
-typography:
-  headline-xl:
-    fontFamily: Quicksand
-    fontSize: 40px
-    fontWeight: '700'
-    lineHeight: 52px
-  headline-xl-mobile:
-    fontFamily: Quicksand
-    fontSize: 30px
-    fontWeight: '700'
-    lineHeight: 40px
-  headline-lg:
-    fontFamily: Quicksand
-    fontSize: 32px
-    fontWeight: '700'
-    lineHeight: 42px
-  headline-lg-mobile:
-    fontFamily: Quicksand
-    fontSize: 24px
-    fontWeight: '700'
-    lineHeight: 32px
-  headline-md:
-    fontFamily: Quicksand
-    fontSize: 22px
-    fontWeight: '700'
-    lineHeight: 30px
-  headline-sm:
-    fontFamily: Quicksand
-    fontSize: 18px
-    fontWeight: '700'
-    lineHeight: 26px
-  body-lg:
-    fontFamily: Quicksand
-    fontSize: 18px
-    fontWeight: '500'
-    lineHeight: 28px
-  body-md:
-    fontFamily: Quicksand
-    fontSize: 16px
-    fontWeight: '500'
-    lineHeight: 24px
-  body-sm:
-    fontFamily: Quicksand
-    fontSize: 14px
-    fontWeight: '500'
-    lineHeight: 20px
-  label-lg:
-    fontFamily: Quicksand
-    fontSize: 16px
-    fontWeight: '700'
-    lineHeight: 22px
-  label-md:
-    fontFamily: Quicksand
-    fontSize: 13px
-    fontWeight: '700'
-    lineHeight: 18px
-  label-sm:
-    fontFamily: Quicksand
-    fontSize: 11px
-    fontWeight: '700'
-    lineHeight: 14px
-rounded:
-  sm: 0.5rem
-  DEFAULT: 1rem
-  md: 1.5rem
-  lg: 2rem
-  xl: 3rem
-  full: 9999px
-spacing:
-  gutter: 1rem
-  gutter-desktop: 1.5rem
-  margin: 1.25rem
-  margin-desktop: 3rem
-  space-xs: 0.25rem
-  space-sm: 0.5rem
-  space-md: 1rem
-  space-lg: 1.5rem
-  space-xl: 2.25rem
+# Design System v2：溫暖平面的保護貓網站
+
+**狀態：** 目標設計 v2（2026-10-29），取代 Cozy Cat Nook（舊版封存在 [`archive/DESIGN-cozy-cat-nook.md`](archive/DESIGN-cozy-cat-nook.md)）
+**參考實作：** 分支 `feat/meowwho-v2-ui-prototype` 的 `prototypes/meowwho-v2/`（獨立的 Next.js 原型）
+**線上版：** https://meowwho-v2.vercel.app
+
+> 這份文件是前台畫面的**大框架**，寫給人和所有 AI coding agent 看（Claude Code、Codex、Cursor、Gemini…）。
+> 它只規定「不能偏離的底線」和「共用的材料」：色票、字體、按鈕、間距、跨裝置規則。版面怎麼排、插畫怎麼畫、互動怎麼做，都留給你發揮（見第 2 節）。
+> 主程式正在從 Cozy Cat Nook 遷移到這一版，遷移期間的做法見第 1 節。
+> 命名以根目錄 `GLOSSARY.md` 和 `AGENTS.md` §8 為準。MeowHQ 後台有自己的 Nordic Meow 風格，不受本文件約束。
+
 ---
 
-## Brand & Style
+## 0. 硬性規則（動到畫面前先看這段）
 
-這個設計系統是專為融合「貓咪養成互動」與「真實貓咪領養媒合」的遊戲化平台量身打造。設計語彙汲取自《動物森友會》（Animal Crossing）與《貓咪收集》（Neko Atsume）的溫暖治癒風格，融合「觸覺擬物遊戲感（Tactile Game UI）」與「軟萌馬卡龍繪本風（Pastel Storybook）」。
+**必須（MUST）**
 
-### 核心調性與受眾
-- **核心情感**：治癒陪伴、親切安心、軟萌童趣、富有成就感。
-- **目標受眾**：喜愛貓咪、偏好療癒休閒遊戲的年輕族群、潛在認養家庭以及動物保護中途夥伴。
-- **設計哲學**：告別傳統領養機構沈重哀傷的訴求模式，以繽紛明亮的陽光日常呈現每隻待領養貓咪的獨特個性。介面元素應呈現「厚實、可按壓、圓潤如貓爪肉球」的物理回饋感。
+1. 顏色、圓角、陰影、間距用 CSS 變數，不要在元件裡寫新的 hex。目標 token 見第 4 節；主程式還沒有的 token，先加進 `src/app/globals.css` 的 `:root`。
+2. 圖示用 SVG，不用 emoji。
+3. 主要行動用「貓形 pill 按鈕」（第 6 節）。
+4. 文字對比至少 **4.5:1**（18.66px 粗體或 24px 以上的大字至少 3:1）。
+5. 可以點的東西高度至少 36px，在觸控螢幕上至少 44px。
+6. 375px 寬的手機上不能出現水平捲動。
+7. 動畫要有 `prefers-reduced-motion` 的退路。
+8. 照片透過資料檔引用，並放在固定比例的框裡，保留日後換成真實照片的空間（第 8 節）。
+9. 收工時跑 `AGENTS.md` §1 的四項檢查，並在 375px 和 1280px 兩種寬度實際看過畫面。
 
-### 視覺符號原則
-- 廣泛運用貓掌印（🐾）、金色小魚乾（🐟）、閃爍星星（⭐）、愛心（💖）、毛線球與帶有紙膠帶裝飾的拍立得卡片。
-- 對話框皆帶有圓弧小尾巴，營造貓咪與照護員親暱對話的沉浸感。
+**禁止（MUST NOT）**
 
-## Colors
+1. **前台不放小字備註。** 像「本月已有 36 隻貓找到家」「資料來源：農業部…」「原型示意數據」「示意資料・公開位置只到縣市＋區」「點房子看貓戶」這類說明，都不要出現在畫面上。需要讓組員知道的事，寫成**程式碼註解**（第 7 節）。
+   - **例外：** `AGENTS.md` §6 業務規則要求的聲明不算備註，必須保留。例如醫療相關內容要附「僅供參考，非醫療建議」。這類聲明要放在相關內容旁邊，用一般內文字級寫，不要縮成小字。
+2. **前台只放最重要的資訊和按鈕。** 一個區塊只講一件事；拿不準要不要放的字，就不要放。
+3. 白字不放在 `--yellow`（`#f6b53b`）或 `--orange`（`#e8913a`）底上，對比不夠。
+4. 不要引入 Tailwind 或 CSS-in-JS，沿用專案現有的寫法：全域 token 放 `globals.css`，元件樣式用 CSS 檔或 CSS Modules。
 
-色彩系統採用溫暖甜潤的法式馬卡龍色盤，徹底摒棄冷冽刺眼的純白（#FFFFFF）與純黑（#000000），營造宛如灑滿午後陽光的和煦貓咪客廳。
+---
 
-### 基礎底色與文字色
-- **Canvas Base（奶油燕麥白）**：主背景為 `#FFFDF5`，次級背景與卡片底色為 `#FFF9ED`。
-- **Text Cocoa（溫暖可可棕）**：
-  - 主要文字（Primary Text）：`#4A3B32`（柔和深棕，維持極佳閱讀對比度同時去除黑色的銳利感）。
-  - 次要文字（Secondary Text）：`#6E5A4E`（暖可可中灰，適用於次要描述、時間戳記與後設資料）。
-  - 邊框與描邊（Border Cocoa）：`#5A4638`（用於 2px～3px 遊戲元件輪廓線）。
+## 1. 遷移期間怎麼做（Cozy Cat Nook → v2）
 
-### 活力遊戲輔色
-- **Peach Orange（暖陽蜜桃橘，主互動色）**：
-  - 表面色：`#FF9E79` / 懸浮色：`#FFAF85`
-  - 3D 立體下沉陰影底色：`#D87352`
-- **Mint Green（薄荷清爽綠，次互動/確認色）**：
-  - 表面色：`#7AD9C0` / 懸浮色：`#95E5CF`
-  - 3D 陰影底色：`#56B89E`
-- **Strawberry Pink（草莓肉球粉，喜愛/警示/獎勵色）**：
-  - 表面色：`#FF8EB0` / 懸浮色：`#FFA7C4`
-  - 3D 陰影底色：`#D96588`
-- **Butter Cream Yellow（香濃奶油黃，金幣/經驗值/高光）**：
-  - 表面色：`#FFE484` / 懸浮色：`#FFF0A5`
-  - 3D 陰影底色：`#D8BE5E`
+主程式的 `src/app/globals.css` 目前還是 Cozy Cat Nook 的 token（`--peach`、`--mint`、`--cocoa`…）和 `.btn` 按鈕。遷移期間照下面四條做：
 
-## Typography
+1. **新畫面、新元件：** 直接用本文件的 token 和元件。
+2. **修改既有畫面：** 只把這次 Issue 動到的元件換成 v2，不要順手改整頁。其他想改的地方，記到 `docs/agents/PLAN.md` 的「建議」區。
+3. **加 token：** v2 的 token 第一次用到時，整組加進 `globals.css` 的 `:root`（第 4 節的表格可以直接複製），不要只加一個。
+4. **舊 token 先別刪：** 等所有畫面都遷移完，再一次清掉。
 
-字體選用飽滿微圓的風格，英數使用 `Quicksand`，繁體中文字元降級回退依序為 `Zen Maru Gothic`、`Noto Sans TC` 與系統圓體，確保整體視覺無尖銳稜角。
+**舊 token 對照（換的時候參考）**
 
-### 遊戲化排版規範
-- **外框字（Stroked Heading）**：重大成就或大標題可疊加白底描邊 `text-shadow: 2px 2px 0px #FFF, -2px -2px 0px #FFF, 2px -2px 0px #FFF, -2px 2px 0px #FFF, 0px 4px 0px #E5D6C5`，展現如動森對話標題般的遊戲卡哇伊質感。
-- **數值徽章（Counters & Values）**：金幣數與等級數值固定採用 `700` 粗體搭配加大間距，營造街機爽快收集感。
-- **行距與可讀性**：長篇貓咪身世故事維持寬裕行高（1.6～1.75），讓長輩與全年齡受訪者皆能舒適閱讀。
+| Cozy Cat Nook | v2 | 說明 |
+|---|---|---|
+| `--canvas` `#FFFDF5` | `--paper` `#fbf5ea` | 全站底色，加上紙質斑點紋理 |
+| `--card` `#FFF9ED` | `--card` `#ffffff` | 卡片改成純白，跟紙色底做出層次 |
+| `--oat` / `--line-soft` | `--line` `#efe3cf` | 邊框、虛線 |
+| `--cocoa` `#4A3B32` | `--ink` `#3f2e24` | 主要文字 |
+| `--cocoa-2` `#6E5A4E` | `--ink-soft` `#7a6252` | 次要文字 |
+| `--peach`（主要按鈕） | `--caramel` `#a5602a` | 白字對比從不及格提高到 4.9:1 |
+| `--butter` | `--yellow` / `--yellow-soft` | 主色帶、徽章、標籤底 |
+| `--mint`、`--pink` | `--mint-soft`、`--pink`、`--pink-soft` | 降為輔助色，只用來表示狀態或點綴 |
+| `.btn` | 貓形 pill 按鈕 | 見第 6 節 |
 
-## Layout & Spacing
+---
 
-版面採定寬容器流動格線（Fluid-Responsive Grid with Max Constraint），以模擬手機遊戲視窗與溫馨平板繪本開本。
+## 2. 哪些是框架，哪些可以自由發揮
 
-### 佈局架構與中斷點
-- **行動端（< 768px）**：單欄垂直滾動流，外邊距設為 `1.25rem`，元件間距以 `0.75rem` ～ `1rem` 為主，確保單手撫摸貓咪或點擊按鈕時熱區寬大（最低點擊目標 48px × 48px）。
-- **平板端（768px - 1024px）**：採用 8 欄格線，欄寬自動等分，Gutter 為 `1rem`，適合呈現雙欄貓咪日誌與房間佈置視圖。
-- **桌面端（> 1024px）**：最大內容寬度限制為 `1180px` 置中，採用 12 欄格線，外邊距放大至 `3rem`，左右空出溫暖的燕麥色背景與小浮動裝飾物（如散落的毛線球或走動的貓影）。
+| 固定（照本文件） | 自由發揮（只要不違反第 0 節） |
+|---|---|
+| 色票與用途、對比規則 | 版面構圖、區塊排列、網格切法 |
+| 字體堆疊、字級下限 | 標題文案、插畫內容與構圖 |
+| 貓形按鈕的外型、圖示畫法 | 新的互動、動畫、捲動效果、3D 或地圖等表現方式 |
+| 間距、斷點、觸控高度 | 新元件，但要沿用這裡的色票、圓角和陰影語言 |
 
-## Elevation & Depth
+做新嘗試時，問自己一句：**「看起來還是同一個溫暖、平面、乾淨的保護貓網站嗎？」** 是的話就放手做。
 
-本系統刻意揚棄無厚度之純扁平風或高科技毛玻璃，採用**「實體童玩壓克力厚度（Tactile Chunky Depth）」**與**「溫和漫射暖色投影」**雙軌並行機制。
+---
 
-### 1. 3D 按壓厚度（Chunky Offset Depth）
-所有遊戲按鈕、功能徽章與對話泡泡下緣皆配置實色沉底陰影。
-- **常態狀態（Rest）**：底部實體厚度為 `6px`，如 `box-shadow: 0 6px 0px #D87352;`（厚度色為表面色調深 25% 的同系色）。
-- **懸浮狀態（Hover）**：輕微上浮 `translate-y-[-2px]`，厚度增至 `8px`。
-- **按壓狀態（Active）**：元素向下推移 `translate-y-[4px]`，厚度縮減至 `2px`，創造如實體玩具開關般的清脆按壓反饋。
+## 3. Visual Theme & Atmosphere
 
-### 2. 環境軟陰影（Warm Ambient Shadows）
-針對資訊卡片與浮動視窗，不採用灰黑色陰影，而是取可可棕的極淡暖調：
-- **層級 1（靜態浮貼卡片）**：`box-shadow: 0 4px 16px -2px rgba(90, 70, 56, 0.08);`
-- **層級 2（對話氣泡與懸浮選單）**：`box-shadow: 0 8px 24px -4px rgba(90, 70, 56, 0.12);`
-- **層級 3（認養成功/升級彈跳視窗）**：`box-shadow: 0 16px 36px -6px rgba(90, 70, 56, 0.18);`
+**溫暖、平面、乾淨，像一本手作繪本的保護貓網站。**
 
-## Shapes
+- **氣氛：** 午後陽光照進中途貓屋。用奶油色紙張當底，配黃橘色塊，不走科技感、玻璃擬態或霓虹色。
+- **參考：** 日本保護貓網站「ほごねこクリニック」（黃橘色帶、貓耳形的區塊上緣、有機形狀的照片框）和「保護猫カフェ285」（大圓角色塊、溫柔的留白）。
+- **密度：** 中等偏鬆，留白要大方。資訊少而清楚，比資訊多而完整更重要。
+- **貓的語彙：** 貓耳形的區塊上緣、波浪分隔、貓形按鈕、肉球圖示、紙質斑點背景。可以自由延伸新的貓元素。
+- **語氣：** 像中途愛媽在跟你聊天，溫柔、具體、講真實的日常，不推銷。
 
-幾何形狀採特大圓角系統（Pill-Shaped / Chunky Rounded），消除所有可能帶來威脅感或嚴肅感的尖銳直角。
+---
 
-- **小元件（標籤、徽章、按鈕）**：使用全膠囊形 `rounded-full`（9999px）。
-- **中型容器（對話框、狀態面板、輸入框）**：使用 `20px` 至 `28px` 圓角（相當於 `rounded-[28px]` 或 `rounded-3xl`）。
-- **拍立得卡片與照片**：外框架 `24px` 圓角，相片本身 `16px` 圓角，照片四周帶有 8px 象牙白邊框，上方角落疊加 `transform rotate-[-3deg]` 的微透明膠帶貼紙。
+## 4. Color Palette & Roles
 
-## Components
+以下是 v2 的目標 token，加進 `globals.css` 時請整組複製。
 
-### 1. 按鈕（Tactile Game Buttons）
-- **主要按鈕（蜜桃橘 Primary）**：
-  - 背景：`#FF9E79`，文字：純白加粗，下陰影：`0 6px 0 #D87352`，邊框：無或 2px 暖棕線。
-  - 互動效果：`:hover` 顏色轉亮為 `#FFAF85`；`:active` 帶有 `transform: translateY(4px)` 且陰影縮為 `0 2px 0 #D87352`。
-- **次要確認按鈕（薄荷綠 Secondary）**：用於「餵食」、「確認領養申請」，配置薄荷綠與 `#56B89E` 底沉結構。
-- **趣味圖標按鈕（Circle Paw/Fish Button）**：全圓形 48px × 48px，內置可愛 emoji 或向量圖標（🐾、🐟），支援相同的下沉彈力反饋。
+```css
+:root {
+  --paper: #fbf5ea;  --cream: #fffaf0;  --card: #ffffff;  --line: #efe3cf;
+  --ink: #3f2e24;    --ink-soft: #7a6252;
+  --yellow: #f6b53b; --yellow-deep: #e9a21f; --yellow-soft: #fdedc4;
+  --orange: #e8913a; --orange-deep: #a8562a; --orange-soft: #fde3c6;
+  --heading-orange: #b25e16;
+  --caramel: #a5602a; --caramel-deep: #7d4517;
+  --pink: #f4b2ad;   --pink-soft: #fde7e4; --mint-soft: #e3f2e7;
+  --tap: 36px;       /* 觸控螢幕改成 44px：@media (pointer: coarse) { :root { --tap: 44px } } */
+}
+```
 
-### 2. 領養卡片（Adoption Polaroid Cards）
-- **造型特徵**：模仿拍立得相紙，背景 `#FFFDF5`，配有厚實 `2px solid #5A4638` 描邊或粉彩虛線邊框（`border-2 border-dashed #FF8EB0`）。
-- **裝飾貼紙**：卡片頂端黏貼淡粉或鵝黃色半透明紙膠帶。
-- **標籤膠囊**：右上角標註「已結紮 ⭐」、「親人黏人 💖」等馬卡龍粉彩藥丸膠囊標籤。
+### 底色與文字
 
-### 3. 對話氣泡（Pet Dialogue Balloons）
-- **主體**：背景純白或奶油黃，圓角 `24px`，內距 `1rem 1.25rem`。
-- **指示尾巴（Pointer Tail）**：左下或右下方帶有平滑圓滑三角形凸起，指向貓咪立繪角色。
+| Token | Hex | 名稱 | 用途 |
+|---|---|---|---|
+| `--paper` | `#fbf5ea` | 米白紙張 | 全站背景，可疊細斑點紋理 |
+| `--cream` | `#fffaf0` | 奶油白 | 輸入框底、淺色面板、hover 底 |
+| `--card` | `#ffffff` | 純白 | 卡片、面板 |
+| `--line` | `#efe3cf` | 燕麥細線 | 邊框、虛線、卡片的平面陰影 |
+| `--ink` | `#3f2e24` | 深可可棕 | 主要文字、深色 pill 底（11.9:1） |
+| `--ink-soft` | `#7a6252` | 柔和栗棕 | 次要文字（5.2:1） |
 
-### 4. 遊戲 XP 經驗值與體力條（Candy-Stripe Progress Bar）
-- **外框槽**：厚實膠囊槽，背景深燕麥色 `#EFE6D5`，內陰影 `inset 0 2px 4px rgba(74,59,50,0.15)`。
-- **填充條（Fill）**：草莓粉或蜜桃橘斜紋糖果條紋（45度斜線斑馬紋），右側端點綴一顆發光的金色星號。
+### 品牌色
 
-### 5. 小魚乾與金幣計數器（Treat & Coin Counter）
-- **結構**：左側突出圓形金色金幣/小魚乾圖章（溢出邊界），右側銜接半透明可可棕膠囊背景，內部排版為暖可可色或白色粗體數值。
+| Token | Hex | 名稱 | 用途 | 可以放白字嗎 |
+|---|---|---|---|---|
+| `--yellow` | `#f6b53b` | 午後蜂蜜黃 | 主色帶、功能名標籤、重點徽章 | 不行，用 `--ink` 字（7.1:1） |
+| `--yellow-deep` | `#e9a21f` | 熟蜂蜜 | 黃色帶上的陰影、手繪線條 | 不行 |
+| `--yellow-soft` | `#fdedc4` | 淡奶黃 | 圖示圓底、標籤底、圖片載入前的底色 | 不行 |
+| `--orange` | `#e8913a` | 橘貓毛色 | **只用在非文字**：圖示、外框、裝飾 | **不行**（2.5:1） |
+| `--orange-deep` | `#a8562a` | 赤陶橘 | 橘色小字、連結、強調字（5.2:1） | — |
+| `--heading-orange` | `#b25e16` | 焦糖橘 | 橘色大標題（4.3:1，只用在大字） | — |
+| `--caramel` | `#a5602a` | 焦糖棕 | 主要按鈕底、需要白字的強調底 | 可以（4.9:1） |
+| `--caramel-deep` | `#7d4517` | 深焦糖 | 主要按鈕的平面陰影 | 可以 |
+| `--orange-soft` | `#fde3c6` | 淡杏色 | 淺橘底 | 不行 |
 
-### 6. 輸入框（Playful Input Fields）
-- **外觀**：`rounded-2xl`，背景 `#FFF9ED`，邊框 `2px solid #D5C7B7`，聚焦時邊框轉為 `#FF9E79` 並伴隨 `0 0 0 4px rgba(255,158,121,0.25)` 光暈，Placeholder 採柔和咖啡灰色。
+### 輔助色
 
-### 7. 核取方塊與單選紐（Paw Print Checkbox / Radio）
-- **常態**：白色圓角方塊 / 圓形，`2px solid #6E5A4E`。
-- **勾選狀態**：填入草莓粉紅背景，中央顯示粉嫩貓肉球印章（🐾）而非傳統打勾符號。
+`--pink` `#f4b2ad`、`--pink-soft` `#fde7e4`、`--mint-soft` `#e3f2e7`：用來表示狀態或作點綴。用顏色表示狀態時，一定要同時搭配文字或圖例，不能只靠顏色。
+
+---
+
+## 5. Typography Rules
+
+- **字體堆疊：** `Quicksand`（英數）→ `Zen Maru Gothic`（日系圓體）→ `Noto Sans TC`（繁中）。和主程式現在的設定相同，不需要改。
+- **字重：** 標題、按鈕、標籤用 700；內文用 400 到 500。
+- **數字：** 大數字用 Quicksand，比較圓、比較可愛。
+- **字距：** 中文標題加 `letter-spacing: 0.04–0.08em`。
+- **斷行：** 標題把語意片段包成 `<span>`，CSS 設 `display: inline-block`，避免詞從中間斷開。
+
+| 層級 | 建議大小 | 行高 |
+|---|---|---|
+| 頁面主標 h1 | `clamp(36px, 5.4vw, 64px)` | 1.2 |
+| 區塊標題 h2 | `clamp(26px, 3.2vw, 38px)` | 1.4 |
+| 卡片標題 h3 | 19–22px | 1.45 |
+| 內文 | 16px（手機 14–15px） | 1.6–2.0 |
+| 次要文字 | 13–14.5px | 1.7 |
+| **下限** | **12px** | 不可再小 |
+
+字級可以依版面調整，但要守住下限和層級關係：同一畫面裡，h2 永遠比 h3 大。
+
+---
+
+## 6. Component Stylings
+
+參考實作在原型的 `prototypes/meowwho-v2/src/components/ui/`，移植到主程式時可以直接參考。
+
+- **貓形 pill 按鈕**（參考 `CatButton.tsx`）：
+  - 外型是完整 pill：左上兩隻圓角貓耳，右端伸出一條往下彎成鉤狀的粗尾巴，尾端有兩條淺色環紋。**不要加眼睛。**
+  - **Primary：** `--caramel` 底配白字，下方 6px 的 `--caramel-deep` 平面陰影。
+  - **Ghost：** 白底、`--orange` 外框、`--orange-deep` 字。
+  - **互動：** hover 時上移 2px、尾巴搖、耳朵抖；開啟減少動態效果時停止。
+  - 耳朵和尾巴畫在 pill 底下，讓 pill 蓋住接縫；按鈕要自己預留耳朵和尾巴的空間。
+- **卡片與面板：** 白底，圓角 28 到 36px，用**平面偏移陰影** `0 6px 0 -1px var(--line)`，像紙片疊在桌上。只有浮起來的面板才用柔和的暖色模糊陰影。
+- **Pill 與標籤：**
+  - 功能名稱的 kicker：`--yellow` 底配 `--ink` 字，加 16px 圖示。
+  - 篩選 chip：選中時用 `--ink` 底配 `--yellow` 字。
+- **輸入框：** 白底 pill，`--line` 外框，聚焦時外框變 `--orange`，placeholder 字色用 `#8f7663`。每個輸入都要有 `<label>` 或 `aria-label`。
+- **圖示：** 24×24、單一 `currentColor` 填色、用 even-odd 挖空（參考 `Icon.tsx`）。純裝飾時加 `aria-hidden`。
+- **區塊邊緣：** 貓耳形的上緣、全寬波浪（參考 `Edges.tsx`）。
+- **照片：** 用有機形狀直接裁切（不規則的 `border-radius` 或 SVG `mask`），**不要外加白框**。
+
+---
+
+## 7. 畫面要乾淨：備註寫在程式碼裡
+
+前台只留使用者「需要知道、需要按」的東西。其他資訊依下表處理：
+
+| 這類資訊 | 放哪裡 |
+|---|---|
+| 資料來源、統計出處 | 該段文字上方的 JSX 註解 `{/* 數據出處：… */}` |
+| 「這是示意資料」「之後要串接 API」 | 資料檔或元件上方的註解，例如 `src/lib/mock-data.ts` 開頭 |
+| 業務規則（例：貓戶長可要求必做虛擬試養） | 用到這條規則的元件旁邊的註解，以及對應的 `docs/modules/*.md` |
+| 隱私或安全限制（例：位置只公開到縣市＋區） | 資料檔或元件的註解 |
+| 照片授權 | `src/lib/photos.ts` |
+| 操作提示（例：「點房子看貓戶」） | 優先讓介面自己說明（hover 狀態、圖示、空狀態文案），不要另外加小字 |
+
+**寫給組員的註解範例：**
+
+```tsx
+{/* 數據出處（不顯示在前台）：農業部 114 年家犬貓飼養調查。引用前請以最新公告為準。 */}
+<p className="lead">台灣家貓已有 174 萬隻…</p>
+```
+
+---
+
+## 8. 影像與素材：保留替換空間
+
+目前多數照片是示意用的免費照片，之後會換成合作中途授權的真實貓照片。為了讓替換時只要改資料、不用動版面：
+
+1. **集中登記：** 照片都透過 `src/lib/photos.ts`（或資料裡的照片欄位）引用，**不要在元件裡直接寫圖片網址**。
+2. **固定框、彈性圖：** 圖片放在有固定比例的容器裡（`aspect-ratio`，例如 4/3 或 5/4），搭配 `object-fit: cover`。不管換上什麼尺寸的照片，版面都不會跳動。需要調整焦點時用 `object-position`。
+3. **沒照片也不能空白：** 容器底色用 `--yellow-soft`；沒有照片時，顯示平面的貓剪影插畫，不留空框。
+4. **授權：** 免費素材只用 Unsplash License（不能用 Unsplash+）；真實照片要有中途或飼主的授權。`alt` 寫中文描述。
+5. **大小：** 上傳的照片照 `AGENTS.md` §7.4，先縮到最長邊 1024px。
+
+---
+
+## 9. Layout Principles
+
+- **容器：** `.wrap` 最大寬 1180px，左右留白 16 到 20px。
+- **斷點：**
+  - `≤ 767px` 手機：底部固定分頁列；固定在底部的元素都要避開它，並考慮 `env(safe-area-inset-bottom)`。
+  - `768–1023px` 平板：多欄改成單欄或雙欄。header 的選單文字一律不換行（空間不夠時先收起副標，再縮短按鈕文字）。
+  - `≥ 1024px` 桌機。
+- **區塊節奏：** 大區塊之間留 88 到 120px；色帶區塊可以用貓耳上緣接、波浪收尾。
+- **網格：** 建議桌機 3 欄、平板 2 欄、手機 1 欄。橫向捲動的列要加 `scroll-snap`，並在自己的框內捲動。
+
+---
+
+## 10. 跨裝置易讀與易用（Checklist）
+
+- [ ] 內文對比 ≥ 4.5:1，大標 ≥ 3:1。白字只放在 `--caramel`、`--caramel-deep`、`--ink` 底上。
+- [ ] 沒有小於 12px 的字；手機內文 ≥ 14px。
+- [ ] 可點目標高度 ≥ 36px（觸控螢幕 ≥ 44px），相鄰目標至少間隔 6px。
+- [ ] 所有互動都能用鍵盤操作，並顯示 `:focus-visible` 外框。
+- [ ] 375px 寬時沒有水平捲動。
+- [ ] 一頁一個 `h1`；區塊用 `<section aria-labelledby>`；會即時更新的區域加 `aria-live="polite"`。
+- [ ] 開啟「減少動態效果」時，頁面仍然可以完整使用。
+- [ ] 畫面上沒有小字備註（業務規則要求的聲明除外）。
+
+---
+
+## 11. Do / Don't 速查
+
+| Do | Don't |
+|---|---|
+| SVG 圖示 | 用 emoji |
+| 貓形 pill 按鈕，`--caramel` 底配白字 | 白字放在 `--yellow`、`--orange` 底上 |
+| 平面偏移陰影 `0 6px 0 -1px var(--line)` | 又黑又重的模糊陰影 |
+| 照片登記在 `photos.ts`，放進固定比例的容器 | 在元件裡寫死圖片網址 |
+| 備註寫成程式碼註解 | 畫面上出現「資料來源：…」「示意資料」小字 |
+| 一個區塊一個重點、一個主要按鈕 | 把所有資訊都塞進畫面 |
+| 只遷移這次 Issue 動到的元件 | 順手把整頁換成 v2 |

@@ -42,7 +42,7 @@ Next.js 15（App Router、TypeScript）→ 之後加入 Supabase（Auth、Postgr
 | [CONTRIBUTING.md](CONTRIBUTING.md) | **協同合作分工與方式規範**（每位組員必讀） |
 | [CLAUDE.md](CLAUDE.md) | 給 AI 開發助理（Claude Code 等）的專案說明 |
 | [docs/spec/](docs/spec/) | 需求規格書、開發任務、測試計畫、系統圖表 |
-| [docs/design/DESIGN.md](docs/design/DESIGN.md) | Cozy Cat Nook 設計系統（色彩、字型、元件） |
+| [docs/design/DESIGN.md](docs/design/DESIGN.md) | 設計系統 v2（色彩、字型、元件、跨裝置規則）；舊版 Cozy Cat Nook 封存於 `docs/design/archive/` |
 
 ## 照片來源
 

@@ -52,6 +52,7 @@
 | 25 | LLM 輸入防護：服務範圍、prompt injection、字數上限（決策 004） | ai-onboarding | 21 | P1 | #38 | Tina × Claude | 審查中 |
 | 26 | 品牌改名 Meowho喵戶、換新 Logo（三張）、前台新樣板 | matching | — | P1 | #42 | Tina × Claude | 進行中（改名與 Logo 完成；樣板第一批＝色票／按鈕／入口卡／頁尾已上，區塊版型細改待續） |
 | 27 | 喵戶小區（示意資料）＋貓咪走到新家動畫 | matching | 26 | P1 | #44 | Tina × Claude | 進行中（小區完成；動畫等 Tina 用 WhoMeow 3D 流程提供素材，儲存位置見 #15） |
+| 28 | 設計系統 v2：`docs/design/DESIGN.md` 取代 Cozy Cat Nook（舊版封存）、AGENTS 開工必讀設計規範；主程式頁面逐步遷移 | matching | 26 | P1 | 無（以本列代替） | ZING15 × Claude | 審查中 |
 | 23-3 | MeowHQ 階段 3：虛擬體驗元件管理（T-HQ-11）、獨立審查（T-HQ-13） | admin-moderation | 23-2 | P2 | 待建立 | C、B | 卡住（T-HQ-11 等 #15 儲存位置） |
 
 ## 高風險 PoC（11/05 前）

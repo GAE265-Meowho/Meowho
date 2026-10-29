@@ -23,6 +23,8 @@
 - **LLM 輸入防護（#38，決策 004）**：新增任何 LLM 任務，使用者內容必須經 `wrapUserInput()`、API 必須用 `checkInput()`（`src/lib/ai/guard.ts`）。問答模組上線時要實作「每段 20 輪、每天 50 次」。
 - **`0003_meow_site_assets.sql` 已在 Supabase 執行（2026-10-29，`meow_0003_site_assets`）**：Logo 上傳與網站設定可用，待 Tina 登入實測。
 
+- **設計系統 v2（PLAN 任務 28，分支 `docs/design-system-v2`，PR 待 Tina 審）**：`docs/design/DESIGN.md` 改為 v2（溫暖平面），Cozy Cat Nook 封存在 `docs/design/archive/`。主程式 `globals.css` **還沒有** v2 token；新畫面第一次用到時，照 DESIGN.md 第 4 節整組加入。既有頁面暫時沿用 `.btn`，只遷移各 Issue 動到的元件。參考實作在分支 `feat/meowwho-v2-ui-prototype` 的 `prototypes/meowwho-v2/`。
+
 ## 下一步（建議第一個動作）
 0. Issue #33：程式與四項檢查已完成，待建立 PR；正式站 `/onboarding` 停在「載入中…」，未完成登入後實際流程，PR 需保留此限制。
 1. #18 合併後，平行開工階段 1：#19（db）、#20（logic）、#21（shell）；階段 2 為 #22（lists-home）、#23（admin-auth）、#24（users），等階段 1 合併後開始。Issue 都已建立，不用再建。
