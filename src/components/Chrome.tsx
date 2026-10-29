@@ -17,6 +17,7 @@ export function SiteHeader() {
         </Link>
         <nav className="mainnav" aria-label="主選單">
           <Link href="/">首頁大廳</Link>
+          <Link href="/community">喵戶小區</Link>
           <Link href="/#adopt">尋找貓咪</Link>
           <Link href="/#trial">虛擬試養</Link>
           <Link href="/#feed">貓咪動態</Link>
