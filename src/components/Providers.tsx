@@ -1,14 +1,15 @@
 "use client";
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
-import { LOGOS, type Logo } from "@/lib/mock-data";
+import { resolveSiteLogo, type SiteLogo } from "@/lib/site-logo";
 import { getBrowserSupabase } from "@/lib/supabase/client";
 import { useAuth } from "./Auth";
 
 interface UiCtx {
   toast: (msg: string) => void;
-  logo: Logo;
-  /** 只有管理員能成功寫入（RLS 保護），回傳是否成功 */
-  setLogo: (id: Logo["id"]) => Promise<boolean>;
+  /** 內建 Logo 或上傳檔案（meow_site_settings.logo） */
+  logo: SiteLogo;
+  /** 儲存成功後立即套用新的 Logo 設定值（不寫資料庫；寫入一律走 meow_set_site_setting） */
+  applyLogo: (value: unknown) => void;
 }
 const Ctx = createContext<UiCtx | null>(null);
 export const useUi = () => {
@@ -22,7 +23,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
   const [msg, setMsg] = useState("");
   const [show, setShow] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [logo, setLogoState] = useState<Logo>(LOGOS[0]);
+  const [logo, setLogoState] = useState<SiteLogo>(() => resolveSiteLogo(null));
 
   const toast = useCallback((m: string) => {
     setMsg(m); setShow(true);
@@ -35,21 +36,12 @@ export function Providers({ children }: { children: React.ReactNode }) {
     const sb = getBrowserSupabase();
     if (!sb) return;
     sb.from("meow_site_settings").select("value").eq("key", "logo").maybeSingle().then(({ data }) => {
-      const found = LOGOS.find(l => l.id === data?.value);
-      if (found) setLogoState(found);
+      if (data) setLogoState(resolveSiteLogo(data.value));
     });
   }, []);
 
-  const setLogo = useCallback(async (id: Logo["id"]) => {
-    const found = LOGOS.find(l => l.id === id) ?? LOGOS[0];
-    const sb = getBrowserSupabase();
-    if (!sb) { setLogoState(found); return true; }
-    const { error } = await sb.from("meow_site_settings").upsert({ key: "logo", value: found.id, updated_at: new Date().toISOString(), updated_by: user?.id });
-    if (error) { toast(`儲存失敗：${error.message}`); return false; }
-    setLogoState(found);
-    toast(`已套用「${found.name}」`);
-    return true;
-  }, [toast, user]);
+  // 後台（/MeowHQ/admin?tab=settings）經 meow_set_site_setting 儲存成功後，呼叫這裡讓畫面立即套用
+  const applyLogo = useCallback((value: unknown) => setLogoState(resolveSiteLogo(value)), []);
 
   // data-login：需要登入的按鈕（未登入時導向 Google 登入）；data-proto：尚未完成的功能
   useEffect(() => {
@@ -71,7 +63,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
   }, [toast, configured, user, login]);
 
   return (
-    <Ctx.Provider value={{ toast, logo, setLogo }}>
+    <Ctx.Provider value={{ toast, logo, applyLogo }}>
       {children}
       <div className={`toast${show ? " show" : ""}`} role="status" aria-live="polite">{msg}</div>
     </Ctx.Provider>

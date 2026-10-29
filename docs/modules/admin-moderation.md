@@ -109,3 +109,4 @@ ole === "admin" 判斷管理員，而現有 admin 會升為 system_admin；舊�
 
 | 2026-10-29 | Tina × Cursor | MeowHQ 階段 1 logic：permissions.ts、actions.ts 與測試（R9～R11） | #20 |
 - 2026-10-29｜#20：黑名單只用於貓友與貓戶長，`canBan` 拒絕管理員與系統管理員（與 #26 的 `meow_ban_email` 一致）；規格書 R9 待 Tina 更新。
+| 2026-10-29 | Tina × Claude Code | #23 Admin 授權：`/MeowHQ/admin`（授權矩陣、稽核日誌、統計、網站設定）、`0003_meow_site_assets.sql`（bucket `meow-site-assets`、`meow_set_site_setting`、稽核動作 `update_setting`；待執行）、通知鈴鐺 | #23 |
