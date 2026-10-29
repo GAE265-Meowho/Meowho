@@ -45,9 +45,9 @@ MeowHQ（`/MeowHQ`，取代隱藏後台）開發中：階段 0（共用型別，
 | `meow_admin_module_grants` | 管理員的模組授權（不含 `admin_authorization`）；unique(admin_id, module) | 自己的列；系統管理員全部 |
 | `meow_audit_logs` | 稽核日誌：actor、action、對象、原因（必填）、detail；**update／delete／truncate 一律擋下（含擁有者）**，不設外鍵 | 自己的列（須為管理員）；系統管理員全部 |
 | `meow_user_suspensions` | 停權紀錄（原因、期限、解除者與原因）；同一帳號只能有一筆未解除 | 本人；有「用戶權限管理」者 |
-| `meow_banlist` | 黑名單：`google_email`（去空白小寫）、`auth_user_id`、原因；可移出（保留紀錄） | 系統管理員 |
+| `meow_banlist` | 黑名單：`google_email`（去空白小寫）、`auth_user_id`、原因；可移出（保留紀錄）；**只用於貓友與貓戶長，管理員與系統管理員不能加入** | 系統管理員 |
 
-**函式**（`security definer`，每次呼叫重新判斷權限；錯誤以代碼回報：`permission_denied`、`need_system_admin`、`target_is_system_admin`、`target_not_admin`、`reason_required`、`last_system_admin`、`module_not_grantable`、`invalid_role`、`invalid_until`、`invalid_email`、`already_suspended`、`not_suspended`、`already_banned`、`banned`、`role_change_via_function_only`、`audit_logs_immutable`、`not_found`）
+**函式**（`security definer`，每次呼叫重新判斷權限；錯誤以代碼回報：`permission_denied`、`need_system_admin`、`target_is_system_admin`、`target_is_admin`、`target_suspended`、`target_not_admin`、`reason_required`、`last_system_admin`、`module_not_grantable`、`invalid_role`、`invalid_until`、`invalid_email`、`already_suspended`、`not_suspended`、`already_banned`、`banned`、`role_change_via_function_only`、`audit_logs_immutable`、`not_found`）
 | 函式 | 說明 |
 |---|---|
 | `meow_is_system_admin()`、`meow_is_admin()`、`meow_has_module(module)` | 權限判斷；系統管理員恆有全部模組，管理員看授權且未停權，Admin 授權只有系統管理員 |
@@ -102,3 +102,4 @@ ole === "admin" 判斷管理員，而現有 admin 會升為 system_admin；舊�
 | 2026-10-28 | Tina × Claude Code | 隱藏後台、中途認證審核、管理員授權、站台標誌存資料庫、站內通知 | #3 |
 | 2026-10-28 | Tina × Cursor | MeowHQ 階段 0：`src/lib/hq/types.ts` 與測試（8 種處置含 `unban`）、0002 資料表草案 | #18 |
 | 2026-10-29 | Tina × Cursor | MeowHQ 階段 1 db：`0002_meow_hq.sql`、`supabase/tests/`（SQL 測試與本機執行器） | #19 |
+- 2026-10-29｜#26 審查修正：黑名單只用於貓友與貓戶長，`meow_ban_email` 拒絕管理員（`target_is_admin`）；`meow_set_role` 拒絕把停權中的帳號升為管理員（`target_suspended`）；註冊時黑名單同時比對 Email 與 `auth_user_id`；兩個內部函式補 `search_path`；policy 內的權限函式改包 `(select ...)`。

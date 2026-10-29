@@ -77,7 +77,7 @@ create table if not exists public.meow_banlist (
 create unique index if not exists meow_banlist_one_open on public.meow_banlist (google_email) where lifted_at is null;
 
 -- 稽核日誌永久保留，任何人都不能修改或刪除（含資料表擁有者）
-create or replace function public.meow_audit_logs_immutable() returns trigger language plpgsql as $$
+create or replace function public.meow_audit_logs_immutable() returns trigger language plpgsql set search_path = public as $$
 begin
   raise exception 'audit_logs_immutable' using hint = '稽核日誌不能修改或刪除';
 end $$;
@@ -126,7 +126,7 @@ returns boolean language sql stable security definer set search_path = public as
 $$;
 
 -- 內部工具：原因必填、寫稽核日誌、依模組發通知（不開放給前端呼叫）
-create or replace function public.meow_hq_require_reason(p_reason text) returns void language plpgsql as $$
+create or replace function public.meow_hq_require_reason(p_reason text) returns void language plpgsql set search_path = public as $$
 begin
   if p_reason is null or btrim(p_reason) = '' then
     raise exception 'reason_required' using hint = '請填寫原因';
@@ -168,7 +168,7 @@ begin
     end if;
     if tg_op = 'INSERT' then
       if new.role <> 'member' then raise exception '新會員只能是一般會員'; end if;
-      if exists (select 1 from public.meow_banlist b where b.lifted_at is null and b.google_email = new.email) then
+      if exists (select 1 from public.meow_banlist b where b.lifted_at is null and (b.google_email = new.email or b.auth_user_id = new.id)) then
         raise exception 'banned' using hint = '此帳號無法使用 Meow Home';
       end if;
     end if;
@@ -252,6 +252,7 @@ begin
   if p_role is null or p_role not in ('system_admin', 'admin', 'member') then raise exception 'invalid_role'; end if;
   select * into t from public.meow_profiles where email = lower(btrim(p_email));
   if t.id is null then raise exception 'not_found' using hint = '對方需先登入過 Meow Home'; end if;
+  if p_role <> 'member' and public.meow_is_suspended(t.id) then raise exception 'target_suspended' using hint = '停權中的帳號不能升為管理員，請先解除停權'; end if;
   perform set_config('meow.hq_fn', '1', true);   -- 只在這一個 update 期間允許變更角色（見 meow_guard_profile）
   update public.meow_profiles set role = p_role where id = t.id;
   perform set_config('meow.hq_fn', '', true);
@@ -316,7 +317,9 @@ begin
   perform public.meow_hq_require_reason(p_reason);
   if e = '' then raise exception 'invalid_email'; end if;
   select * into t from public.meow_profiles where email = e;
-  if t.role = 'system_admin' then raise exception 'target_is_system_admin' using hint = '請先撤銷其系統管理員身分'; end if;
+  -- 黑名單只用於貓友與貓戶長（一般會員）；管理員與系統管理員須先撤銷身分
+  if t.role = 'system_admin' then raise exception 'target_is_system_admin' using hint = '黑名單不適用於系統管理員，請先撤銷其身分'; end if;
+  if t.role = 'admin' then raise exception 'target_is_admin' using hint = '黑名單不適用於管理員，請先撤銷其身分'; end if;
   if exists (select 1 from public.meow_banlist where google_email = e and lifted_at is null) then raise exception 'already_banned'; end if;
   insert into public.meow_banlist (google_email, auth_user_id, reason, banned_by) values (e, t.id, btrim(p_reason), auth.uid());
   perform public.meow_hq_log('ban', 'email', e, p_reason);
@@ -380,40 +383,40 @@ grant select on public.meow_admin_module_grants, public.meow_audit_logs, public.
 
 drop policy if exists "meow_admin_module_grants: read own or system admin" on public.meow_admin_module_grants;
 create policy "meow_admin_module_grants: read own or system admin" on public.meow_admin_module_grants for select to authenticated
-  using (admin_id = auth.uid() or public.meow_is_system_admin());
+  using (admin_id = auth.uid() or (select public.meow_is_system_admin()));
 drop policy if exists "meow_audit_logs: read own or system admin" on public.meow_audit_logs;
 create policy "meow_audit_logs: read own or system admin" on public.meow_audit_logs for select to authenticated
-  using (public.meow_is_system_admin() or (actor_id = auth.uid() and public.meow_is_admin()));
+  using ((select public.meow_is_system_admin()) or (actor_id = auth.uid() and (select public.meow_is_admin())));
 drop policy if exists "meow_user_suspensions: read" on public.meow_user_suspensions;
 create policy "meow_user_suspensions: read" on public.meow_user_suspensions for select to authenticated
-  using (user_id = auth.uid() or public.meow_has_module('user_management'));
+  using (user_id = auth.uid() or (select public.meow_has_module('user_management')));
 drop policy if exists "meow_banlist: system admin read" on public.meow_banlist;
-create policy "meow_banlist: system admin read" on public.meow_banlist for select to authenticated using (public.meow_is_system_admin());
+create policy "meow_banlist: system admin read" on public.meow_banlist for select to authenticated using ((select public.meow_is_system_admin()));
 
 -- 既有資料表的 policy：管理員改依模組判斷；只給 authenticated 的 policy 不會讓匿名訪客呼叫權限函式
 drop policy if exists "meow_profiles: read own or admin" on public.meow_profiles;
 drop policy if exists "meow_profiles: read own" on public.meow_profiles;
 create policy "meow_profiles: read own" on public.meow_profiles for select to authenticated using (auth.uid() = id);
 drop policy if exists "meow_profiles: read by user management" on public.meow_profiles;
-create policy "meow_profiles: read by user management" on public.meow_profiles for select to authenticated using (public.meow_has_module('user_management'));
+create policy "meow_profiles: read by user management" on public.meow_profiles for select to authenticated using ((select public.meow_has_module('user_management')));
 drop policy if exists "meow_profiles: update own" on public.meow_profiles;
 create policy "meow_profiles: update own" on public.meow_profiles for update to authenticated using (auth.uid() = id) with check (auth.uid() = id);
 
 drop policy if exists "meow_households: read" on public.meow_households;
 create policy "meow_households: read" on public.meow_households for select using (default_visibility = 'public' or owner_id = auth.uid());
 drop policy if exists "meow_households: read by user management" on public.meow_households;
-create policy "meow_households: read by user management" on public.meow_households for select to authenticated using (public.meow_has_module('user_management'));
+create policy "meow_households: read by user management" on public.meow_households for select to authenticated using ((select public.meow_has_module('user_management')));
 
 drop policy if exists "meow_verifications: read own or admin" on public.meow_shelter_verifications;
 drop policy if exists "meow_verifications: read own" on public.meow_shelter_verifications;
 create policy "meow_verifications: read own" on public.meow_shelter_verifications for select to authenticated using (applicant_id = auth.uid());
 drop policy if exists "meow_verifications: read by user management" on public.meow_shelter_verifications;
-create policy "meow_verifications: read by user management" on public.meow_shelter_verifications for select to authenticated using (public.meow_has_module('user_management'));
+create policy "meow_verifications: read by user management" on public.meow_shelter_verifications for select to authenticated using ((select public.meow_has_module('user_management')));
 
 drop policy if exists "meow_site_settings: admin write" on public.meow_site_settings;
 drop policy if exists "meow_site_settings: system admin write" on public.meow_site_settings;
 create policy "meow_site_settings: system admin write" on public.meow_site_settings for all to authenticated
-  using (public.meow_is_system_admin()) with check (public.meow_is_system_admin());
+  using ((select public.meow_is_system_admin())) with check ((select public.meow_is_system_admin()));
 
 -- 函式執行權：收回 anon（與 PUBLIC），只開放給登入者；內部工具與 trigger 函式不開放給前端
 revoke execute on function

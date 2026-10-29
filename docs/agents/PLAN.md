@@ -89,5 +89,5 @@
   - 開發計畫 T-HQ-02 要求「收緊 `meow_is_admin` 的 anon 執行權」；這會讓依賴它的 RLS policy 對匿名訪客出錯，0002 已把相關 policy 改為 `to authenticated` 才收回。之後新增 policy 若會被匿名查詢，**不要**呼叫權限函式。
   - SQL 測試可用 `node supabase/tests/run-pglite.mjs` 在本機臨時資料庫執行（`npm i --no-save @electric-sql/pglite`）。要不要納入 `npm test` 與 CI（需把 `@electric-sql/pglite` 加進 devDependencies，屬 Issue #19 範圍外），請 Tina 決定。
 - MeowHQ 系統管理員離職流程（Tina 2026-10-29 提出，待認領）：離職＝由另一位系統管理員執行 `meow_set_role` 撤銷身分（降成一般會員或管理員），原因必填並寫稽核日誌；至少要保留一位，移除前須先指定接手者。**黑名單只用於貓友與貓戶長，不適用於管理員與系統管理員**（Tina 2026-10-29 確認），所以離職流程不包含加入黑名單。建議在 Admin 授權畫面（#23）提供「撤銷身分」操作：降級＋清空模組授權＋一筆稽核日誌。
-- MeowHQ 黑名單對象（Tina 2026-10-29 確認：只有貓友、貓戶長）：規格書 R9 目前只寫「系統管理員不能被加入黑名單」，範圍較窄；`meow_ban_email`（#26）也只擋系統管理員，**一般管理員仍可被加入黑名單**（夜間審查第 1 點的情境）。建議規格書 R9 改為「黑名單對象限貓友與貓戶長；管理員須先撤銷身分」，`meow_ban_email` 對 `role <> 'member'` 一律拒絕並補測試。規格書由 Tina 決定後再改，#26 尚未修改。
+- MeowHQ 黑名單對象（Tina 2026-10-29 確認：只有貓友、貓戶長）：#26 的 `meow_ban_email` 已改為管理員（`target_is_admin`）與系統管理員（`target_is_system_admin`）一律拒絕，並補測試。**規格書 R9 目前只寫「系統管理員不能被加入黑名單」，需 Tina 決定後改為「黑名單對象限貓友與貓戶長；管理員須先撤銷身分」**（#20 的 `actions.ts` 及測試也要同步，見 PR #28）。
 - 語音輸入的 Whisper 備援（Safari／Firefox 不支援瀏覽器語音辨識）

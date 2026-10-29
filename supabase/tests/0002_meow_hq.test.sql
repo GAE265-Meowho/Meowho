@@ -327,6 +327,36 @@ select pg_temp.expect_err('UT-HQDB-09 直接刪除最後一位的會員資料 �
 select pg_temp.expect_ok('只剩一位時，SQL 仍可指定新的系統管理員（SA2 升回）',
   pg_temp.try_sql(format($q$update public.meow_profiles set role = 'system_admin' where id = %L$q$, pg_temp.u('SA2'))));
 
+-- ---------------------------------------------------------------- #26 審查補強
+-- 黑名單只用於貓友與貓戶長；管理員、系統管理員都不能加入（Tina 2026-10-29）
+create temp table adp_before as select count(*)::text as grants from public.meow_admin_module_grants where admin_id = pg_temp.u('ADP');
+select pg_temp.expect_err('黑名單：不能加入管理員的帳號', 'target_is_admin',
+  pg_temp.run_as('SA1', $q$select public.meow_ban_email('adp@test.example', '詐騙')::text$q$));
+select pg_temp.expect_eq('黑名單：被拒絕後管理員的角色沒變、授權筆數沒變', 'admin,' || (select grants from pg_temp.adp_before),
+  (select p.role || ',' || (select count(*) from public.meow_admin_module_grants where admin_id = p.id)::text from public.meow_profiles p where p.id = pg_temp.u('ADP')));
+select pg_temp.expect_ok('黑名單：貓友的帳號可以加入',
+  pg_temp.run_as('SA1', $q$select public.meow_ban_email('cf@test.example', '詐騙')::text$q$));
+select pg_temp.expect_ok('黑名單：貓戶長的帳號可以加入',
+  pg_temp.run_as('SA1', $q$select public.meow_ban_email('ho@test.example', '詐騙')::text$q$));
+select pg_temp.expect_ok('黑名單：移出貓友', pg_temp.run_as('SA1', $q$select public.meow_unban_email('cf@test.example', '誤判')::text$q$));
+select pg_temp.expect_ok('黑名單：移出貓戶長', pg_temp.run_as('SA1', $q$select public.meow_unban_email('ho@test.example', '誤判')::text$q$));
+
+-- 黑名單以 auth 使用者 id 也要擋（Google Email 換了但同一個帳號）
+insert into public.meow_banlist (google_email, auth_user_id, reason, banned_by)
+  values ('old-address@example.com', pg_temp.u('NEWB'), '測試', pg_temp.u('SA1'));
+select pg_temp.expect_err('黑名單以 auth 使用者 id 比對（Email 不同仍拒絕）', 'banned',
+  pg_temp.run_as('NEWB', format($q$with i as (insert into public.meow_profiles (id) values (%L) returning 1) select count(*)::text from i$q$, pg_temp.u('NEWB'))));
+update public.meow_banlist set lifted_at = now() where google_email = 'old-address@example.com';
+
+-- 停權中的帳號不能升為管理員或系統管理員
+select pg_temp.expect_ok('停權 X（升級測試用）', pg_temp.run_as('SA1', $q$select public.meow_suspend_user('00000000-0000-0000-0000-0000000000d1', '測試')::text$q$));
+select pg_temp.expect_err('停權中的帳號不能升為管理員', 'target_suspended',
+  pg_temp.run_as('SA1', $q$select public.meow_set_role('x@test.example', 'admin', '測試')::text$q$));
+select pg_temp.expect_err('停權中的帳號不能升為系統管理員', 'target_suspended',
+  pg_temp.run_as('SA1', $q$select public.meow_set_role('x@test.example', 'system_admin', '測試')::text$q$));
+select pg_temp.expect_eq('升級被拒後 X 仍是一般會員', 'member', (select role from public.meow_profiles where id = pg_temp.u('X')));
+select pg_temp.expect_ok('解除 X 的停權', pg_temp.run_as('SA1', $q$select public.meow_unsuspend_user('00000000-0000-0000-0000-0000000000d1', '測試結束')::text$q$));
+
 -- ---------------------------------------------------------------- UT-HQDB-12、13
 select pg_temp.skip('UT-HQDB-12 停權 HO 時自動婉拒審核中領養申請', '待領養申請資料表建立後啟用（開發任務 10）');
 select pg_temp.expect_eq('UT-HQDB-13 public 的資料表全部 meow_ 開頭', '0',
