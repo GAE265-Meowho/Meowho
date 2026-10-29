@@ -1,0 +1,288 @@
+.panel {
+  background: var(--yellow-soft);
+  padding: 32px 0 56px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  gap: 36px;
+  align-items: stretch;
+}
+
+/* ---------- Day tracker ---------- */
+.days {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.days span {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--card);
+  font-family: var(--font-quicksand), sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink-soft);
+}
+
+.days .dayDone {
+  background: var(--yellow);
+  color: var(--ink);
+}
+
+.days .dayNow {
+  background: var(--orange);
+  color: #fff;
+  box-shadow: 0 0 0 4px rgba(232, 145, 58, 0.25);
+}
+
+.taskHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.taskHead h3 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.progress {
+  position: relative;
+  min-width: 120px;
+  padding: 4px 14px;
+  border-radius: 999px;
+  background: var(--card);
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.progress i {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--yellow);
+  z-index: -1;
+  transition: width 0.4s ease;
+}
+
+/* ---------- Tasks ---------- */
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.task {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 20px;
+  background: var(--card);
+}
+
+.taskIcon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--paper);
+  color: var(--orange);
+}
+
+.taskDone .taskIcon {
+  background: var(--yellow);
+  color: var(--ink);
+}
+
+.taskBody {
+  flex: 1;
+  min-width: 0;
+}
+
+.taskTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-weight: 700;
+}
+
+.taskTitle time {
+  font-family: var(--font-quicksand), sans-serif;
+  font-size: 13px;
+  color: var(--orange-deep);
+}
+
+.taskDone .taskTitle {
+  color: var(--ink-soft);
+}
+
+.note {
+  margin: 2px 0 0;
+  font-size: 14px;
+  color: var(--ink-soft);
+}
+
+.choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.choices button {
+  border: 1.5px solid var(--line);
+  border-radius: 999px;
+  background: var(--cream);
+  padding: 6px 14px;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.choices button:hover {
+  border-color: var(--orange);
+}
+
+.choices .good {
+  background: #e6f3e4;
+  border-color: #7cb77f;
+}
+
+.choices .bad {
+  background: var(--pink-soft);
+  border-color: var(--pink);
+}
+
+.feedback {
+  margin: 8px 0 0;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: var(--paper);
+  font-size: 13.5px;
+  line-height: 1.7;
+}
+
+.toggle {
+  flex: none;
+  align-self: center;
+  border: 1.5px solid var(--orange);
+  border-radius: 999px;
+  background: var(--card);
+  padding: 5px 14px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--orange-deep);
+}
+
+.toggle[aria-pressed="true"] {
+  background: var(--orange);
+  color: #fff;
+}
+
+.cleared {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 14px 0 0;
+  padding: 10px 14px;
+  border-radius: 16px;
+  background: var(--yellow);
+  font-weight: 700;
+}
+
+.cta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 16px;
+  margin-top: 28px;
+}
+
+.cta span {
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+/* ---------- Stage ---------- */
+.stage {
+  position: relative;
+  min-height: 420px;
+  border-radius: 32px;
+  overflow: hidden;
+  background: #fff6e4;
+}
+
+.stageArt {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.stageTag {
+  position: absolute;
+  left: 16px;
+  top: 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--yellow);
+  font-size: 12.5px;
+  font-weight: 700;
+}
+
+/* 橘子 eats on the rug in the middle of the stage */
+.perch {
+  position: absolute;
+  left: 42%;
+  bottom: 16%;
+  width: 2px;
+  height: 2px;
+}
+
+@media (max-width: 900px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .stage {
+    order: -1;
+    min-height: 260px;
+  }
+}
+
+@media (max-width: 767px) {
+  .days {
+    gap: 4px;
+  }
+
+  .days span {
+    width: 36px;
+    height: 36px;
+    font-size: 12.5px;
+  }
+
+  .task {
+    flex-wrap: wrap;
+  }
+}

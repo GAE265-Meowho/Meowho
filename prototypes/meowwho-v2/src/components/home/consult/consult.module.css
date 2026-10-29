@@ -1,0 +1,186 @@
+.grid {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  gap: 28px;
+  align-items: start;
+}
+
+.guides {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+}
+
+.guides a {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 150px;
+  padding: 20px;
+  border-radius: 26px;
+  background: var(--card);
+  box-shadow: 0 6px 0 -1px var(--line);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.guides a:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 0 -1px var(--yellow);
+}
+
+.guides a svg {
+  margin-top: auto;
+  color: var(--orange);
+}
+
+.stage {
+  align-self: flex-start;
+  padding: 2px 12px;
+  border-radius: 999px;
+  background: var(--yellow);
+  font-size: 12.5px;
+  font-weight: 700;
+}
+
+.guideTitle {
+  font-weight: 700;
+  line-height: 1.6;
+}
+
+/* ---------- Chat ---------- */
+.chat {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px;
+  border-radius: 32px;
+  background: var(--card);
+  box-shadow: var(--shadow);
+}
+
+/* 橘子 sits on the chat card's top edge, tilting its head */
+.perch {
+  position: absolute;
+  right: 18%;
+  top: 0;
+  width: 2px;
+  height: 2px;
+}
+
+.chatHead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 12px;
+  border-bottom: 2px dashed var(--line);
+}
+
+.chatHead strong {
+  display: block;
+}
+
+.chatHead small {
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+.avatar {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: var(--yellow);
+}
+
+.log {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 260px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.log p {
+  margin: 0;
+  max-width: 85%;
+  padding: 10px 14px;
+  border-radius: 18px;
+  font-size: 14.5px;
+  line-height: 1.75;
+}
+
+.bot {
+  align-self: flex-start;
+  background: var(--yellow-soft);
+  border-bottom-left-radius: 6px;
+}
+
+.me {
+  align-self: flex-end;
+  background: var(--orange);
+  color: #fff;
+  border-bottom-right-radius: 6px;
+}
+
+.faq {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.faq button {
+  border: 1.5px dashed var(--line);
+  border-radius: 999px;
+  background: transparent;
+  padding: 5px 12px;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+.faq button:hover {
+  border-color: var(--orange);
+  color: var(--orange-deep);
+}
+
+.inputRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 6px 6px 16px;
+  border-radius: 999px;
+  background: var(--paper);
+}
+
+.inputRow input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  outline: none;
+  padding: 8px 0;
+}
+
+@media (max-width: 900px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .chat {
+    order: -1;
+    margin-top: 40px;
+  }
+}
+
+@media (max-width: 767px) {
+  .guides a {
+    min-height: 130px;
+    padding: 16px;
+  }
+}

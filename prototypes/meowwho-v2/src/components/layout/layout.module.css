@@ -1,0 +1,204 @@
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  height: var(--header-h);
+  background: rgba(251, 245, 234, 0.88);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--line);
+}
+
+.headerInner {
+  height: 100%;
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  line-height: 1.2;
+}
+
+.logo strong {
+  display: block;
+  font-size: 20px;
+  letter-spacing: 0.01em;
+}
+
+.logo small {
+  display: block;
+  font-size: 11px;
+  color: var(--ink-soft);
+}
+
+.logoMark {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--yellow);
+  color: var(--ink);
+}
+
+.nav {
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.nav a {
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 15px;
+  color: var(--ink-soft);
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.nav a:hover {
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.login {
+  flex: none;
+}
+
+.footer {
+  margin-top: 160px;
+  padding: 0 0 40px;
+  border-top: 1px solid var(--line);
+  background: var(--yellow-soft);
+  font-size: 14px;
+  text-align: center;
+}
+
+.newHome {
+  position: relative;
+  width: 260px;
+  margin: -96px auto 44px;
+}
+
+.newHome svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.doorstep {
+  position: absolute;
+  left: 50%;
+  bottom: -10px;
+  width: 300px;
+  height: 14px;
+  border-radius: 999px;
+  background: #f3d9b2;
+  transform: translateX(-50%);
+}
+
+/* 橘子 sleeps in front of the door, on the doorstep */
+.homePerch {
+  position: absolute;
+  left: 32%;
+  bottom: -4px;
+  width: 2px;
+  height: 2px;
+}
+
+.footerBrand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.footerBrand svg {
+  color: var(--orange);
+}
+
+.footer p {
+  margin: 4px 0;
+}
+
+.footerMeta {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  color: var(--ink-soft);
+  font-size: 13px;
+}
+
+.footerMeta a {
+  text-decoration: underline;
+}
+
+.tabbar {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  .nav,
+  .headerInner .login,
+  .logo small {
+    display: none;
+  }
+
+  .logo strong {
+    font-size: 18px;
+  }
+
+  .logoMark {
+    width: 34px;
+    height: 34px;
+  }
+
+  .logoMark svg {
+    width: 22px;
+    height: 22px;
+  }
+
+  .tabbar {
+    position: fixed;
+    inset: auto 0 0 0;
+    z-index: 50;
+    height: var(--tabbar-h);
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(12px);
+    border-top: 1px solid var(--line);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .tabbar a {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--ink-soft);
+  }
+
+  .tabIcon {
+    display: grid;
+    place-items: center;
+    color: var(--ink-soft);
+  }
+
+  .tabMain .tabIcon {
+    width: 44px;
+    height: 44px;
+    margin-top: -20px;
+    border-radius: 50%;
+    background: var(--orange);
+    color: #fff;
+    box-shadow: 0 4px 0 -1px var(--orange-deep);
+  }
+}

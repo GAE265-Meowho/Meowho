@@ -1,0 +1,378 @@
+.section {
+  margin-top: 88px;
+}
+
+/* ---------- Intro ---------- */
+.intro {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+  gap: 48px;
+  align-items: start;
+  margin-bottom: 72px;
+}
+
+.introText {
+  padding-left: max(var(--gutter), calc((100vw - var(--wrap)) / 2 + var(--gutter)));
+}
+
+.mark {
+  display: block;
+  width: 150px;
+  height: auto;
+  margin-bottom: 28px;
+}
+
+.introText h2 {
+  margin: 0 0 28px;
+  color: var(--heading-orange);
+  font-size: clamp(28px, 3.4vw, 44px);
+  line-height: 1.5;
+  letter-spacing: 0.08em;
+}
+
+.introText h2 span {
+  display: inline-block;
+}
+
+.lead {
+  margin: 0 0 14px;
+  font-weight: 500;
+  line-height: 2.1;
+  letter-spacing: 0.04em;
+}
+
+.source {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: var(--ink-soft);
+}
+
+.perchZone {
+  position: relative;
+  height: 170px;
+}
+
+.introPerch {
+  position: absolute;
+  left: 30%;
+  bottom: 18px;
+  width: 2px;
+  height: 2px;
+}
+
+/* Photo bleeds off the right edge with a soft stepped curve, like the reference */
+.introPhoto {
+  position: relative;
+  min-height: 560px;
+  height: 100%;
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cpath d='M100 0V100H0V54C0 41 7 35 17 34C28 33 33 27 33 17V15C33 6 39 0 48 0Z'/%3E%3C/svg%3E")
+    0 0 / 100% 100% no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100' preserveAspectRatio='none'%3E%3Cpath d='M100 0V100H0V54C0 41 7 35 17 34C28 33 33 27 33 17V15C33 6 39 0 48 0Z'/%3E%3C/svg%3E")
+    0 0 / 100% 100% no-repeat;
+}
+
+.introPhoto img {
+  object-fit: cover;
+}
+
+/* ---------- Yellow band ---------- */
+.band {
+  position: relative;
+  background: var(--yellow);
+  padding: 28px 0 44px;
+  overflow: hidden;
+}
+
+/* A faint scatter of paw prints */
+.band::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='140' viewBox='0 0 24 24'%3E%3Cg fill='%23ffffff' fill-opacity='.18' transform='translate(2 2) scale(.32)'%3E%3Cpath d='M12 11.2c3 0 5.6 2.7 5.6 5.4 0 2-1.6 3.4-3.4 3.4-1 0-1.4-.5-2.2-.5s-1.2.5-2.2.5c-1.8 0-3.4-1.4-3.4-3.4 0-2.7 2.6-5.4 5.6-5.4ZM6.1 7.4a2 2.5 0 1 0 .01 0ZM10 4a2.1 2.6 0 1 0 .01 0ZM14 4a2.1 2.6 0 1 0 .01 0ZM17.9 7.4a2 2.5 0 1 0 .01 0Z'/%3E%3C/g%3E%3C/svg%3E")
+    0 0 / 220px 140px repeat;
+  pointer-events: none;
+}
+
+.bandHead {
+  position: relative;
+  text-align: center;
+  margin-bottom: 40px;
+}
+
+.kicker {
+  display: inline-block;
+  margin: 0 0 12px;
+  padding: 4px 16px;
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--yellow);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+}
+
+.bandHead h3 {
+  margin: 0;
+  font-size: clamp(26px, 3.2vw, 38px);
+  letter-spacing: 0.06em;
+}
+
+/* ---------- Pillars: photos cropped straight onto the band, no card frame ---------- */
+.pillars {
+  position: relative;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 36px;
+}
+
+.photo {
+  position: relative;
+  aspect-ratio: 5 / 4;
+  border-radius: 46% 54% 40% 60% / 54% 44% 56% 46%;
+  overflow: hidden;
+  background: var(--yellow-soft);
+}
+
+.pillar:nth-child(2) .photo {
+  border-radius: 58% 42% 52% 48% / 44% 56% 44% 56%;
+}
+
+.pillar:nth-child(3) .photo {
+  border-radius: 42% 58% 60% 40% / 50% 48% 52% 50%;
+}
+
+.photo img {
+  object-fit: cover;
+  transition: transform 0.5s ease;
+}
+
+.pillar:hover .photo img {
+  transform: scale(1.05);
+}
+
+.pillarTag {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 20px 0 10px;
+}
+
+.no {
+  font-family: var(--font-quicksand), sans-serif;
+  font-size: 30px;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1;
+}
+
+.tagPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 12px 4px 8px;
+  border-radius: 999px;
+  background: var(--card);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.tagPill svg {
+  color: var(--orange);
+}
+
+.pillar h4 {
+  margin: 0 0 8px;
+  font-size: 20px;
+  line-height: 1.45;
+}
+
+.pillarBody {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.9;
+  color: #5a3f2c;
+}
+
+.motto {
+  position: relative;
+  margin: 44px 0 0;
+  text-align: center;
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.motto span {
+  font-size: 18px;
+  letter-spacing: 0.2em;
+}
+
+/* ---------- Stats ---------- */
+.statsWrap {
+  position: relative;
+  margin-top: clamp(-70px, -5vw, -30px);
+}
+
+.statsEars {
+  position: relative;
+}
+
+.stats {
+  position: relative;
+  border-radius: 36px;
+  background: var(--card);
+  padding: 28px 28px 22px;
+  box-shadow: var(--shadow);
+}
+
+/* 橘子 naps on the card's top edge, to the right of the ears */
+.statsPerch {
+  position: absolute;
+  right: 14%;
+  top: 0;
+  width: 2px;
+  height: 2px;
+  transform: translateY(-100%);
+}
+
+.stats ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.stats li {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 12px;
+  text-align: center;
+}
+
+.stats li + li {
+  border-left: 2px dashed var(--line);
+}
+
+.statIcon {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--yellow-soft);
+  color: var(--orange);
+  margin-bottom: 4px;
+}
+
+.stats strong {
+  font-family: var(--font-quicksand), sans-serif;
+  font-size: clamp(32px, 3.6vw, 44px);
+  line-height: 1.1;
+  color: var(--ink);
+}
+
+.stats strong small {
+  margin-left: 4px;
+  font-family: var(--font-body);
+  font-size: 15px;
+  color: var(--ink-soft);
+}
+
+.statLabel {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.statsFoot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 2px dashed var(--line);
+  font-size: 12.5px;
+  color: var(--ink-soft);
+}
+
+@media (max-width: 900px) {
+  .intro {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+
+  .introText {
+    padding: 0 var(--gutter);
+  }
+
+  .introPhoto {
+    min-height: 320px;
+    margin-left: 12%;
+  }
+
+  .pillars {
+    grid-template-columns: 1fr;
+    max-width: 520px;
+    margin: 0 auto;
+  }
+}
+
+@media (max-width: 767px) {
+  .section {
+    margin-top: 56px;
+  }
+
+  .mark {
+    width: 110px;
+    margin-bottom: 18px;
+  }
+
+  .lead {
+    line-height: 2;
+  }
+
+  .perchZone {
+    height: 120px;
+  }
+
+  .introPerch {
+    left: 50%;
+  }
+
+  .bandHead {
+    text-align: left;
+  }
+
+  .stats {
+    padding: 20px 16px 18px;
+  }
+
+  .stats ul {
+    grid-template-columns: repeat(2, 1fr);
+    row-gap: 18px;
+  }
+
+  .stats li + li {
+    border-left: 0;
+  }
+
+  .stats li:nth-child(even) {
+    border-left: 2px dashed var(--line);
+  }
+
+  .statsPerch {
+    right: 10%;
+  }
+
+  .statsFoot {
+    flex-direction: column-reverse;
+    align-items: stretch;
+    text-align: center;
+  }
+}

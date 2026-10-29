@@ -1,0 +1,144 @@
+:root {
+  /* Warm, flat palette after ほごねこクリニック / 保護猫カフェ285 */
+  --cream: #fffaf0;
+  --paper: #fbf5ea;
+  --card: #ffffff;
+  --line: #efe3cf;
+  --ink: #3f2e24;
+  --ink-soft: #7a6252;
+  --orange: #e8913a;
+  --orange-deep: #c9701f;
+  --orange-soft: #fde3c6;
+  --yellow: #f6b53b;
+  --yellow-deep: #e9a21f;
+  --yellow-soft: #fdedc4;
+  /* Orange dark enough for large headings on paper (≥3:1) */
+  --heading-orange: #d0761c;
+  --pink: #f4b2ad;
+  --pink-soft: #fde7e4;
+  --mint-soft: #e3f2e7;
+
+  --radius-sm: 12px;
+  --radius: 20px;
+  --radius-lg: 32px;
+  --shadow: 0 10px 30px -12px rgba(122, 74, 38, 0.25);
+  --shadow-lift: 0 18px 40px -14px rgba(122, 74, 38, 0.35);
+
+  --wrap: 1180px;
+  --gutter: 16px;
+  --header-h: 68px;
+  --tabbar-h: 0px;
+
+  --font-body: var(--font-quicksand), var(--font-zen-maru), var(--font-noto-tc), ui-rounded,
+    system-ui, sans-serif;
+
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: calc(var(--header-h) + 12px);
+}
+
+body {
+  margin: 0;
+  background: var(--paper) url("/textures/paper.svg") repeat;
+  color: var(--ink);
+  font-family: var(--font-body);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  padding-bottom: var(--tabbar-h);
+  /* Button tails and ears may poke past a card edge; never let them cause sideways scroll */
+  overflow-x: clip;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+:focus-visible {
+  outline: 3px solid var(--orange);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+.wrap {
+  width: 100%;
+  max-width: var(--wrap);
+  margin: 0 auto;
+  padding: 0 var(--gutter);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  background: var(--orange-soft);
+  color: var(--orange-deep);
+}
+
+/* Floating name tag above the 3D cat (rendered by drei <Html>, outside CSS modules) */
+.cat-tag {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 4px 12px -4px rgba(122, 74, 38, 0.35);
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--ink);
+  white-space: nowrap;
+  user-select: none;
+}
+
+/* Sections not built yet — keep anchors working */
+.todo-section {
+  margin: 48px auto;
+}
+
+.todo-section > div {
+  border: 2px dashed var(--line);
+  border-radius: var(--radius);
+  padding: 40px 20px;
+  text-align: center;
+  color: var(--ink-soft);
+}
+
+@media (max-width: 767px) {
+  :root {
+    --header-h: 56px;
+    --tabbar-h: 68px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
