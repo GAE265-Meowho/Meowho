@@ -62,3 +62,5 @@
 | 2026-10-29 | Tina × Codex | Issue #33：Vision 信心低於 0.5 不預填品種／毛色；結構化 AI 失敗重試一次；補 UT-03-04 | #33 |
 
 | 2026-10-29 | Tina × Claude Code | LLM 輸入防護：服務範圍、prompt injection、字數上限（決策 004） | #38 |
+| 2026-10-29 | Tina × Claude Code | 登入狀態載入失敗不再永遠停在「載入中…」（Auth.tsx catch＋8 秒逾時） | #33 |
+| 2026-10-29 | Tina × Claude Code | 語音輸入依原因顯示錯誤訊息；位置／介紹提問帶入貓戶名稱；聯絡信箱填入 | #33 |
