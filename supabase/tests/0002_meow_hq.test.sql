@@ -255,17 +255,23 @@ select pg_temp.expect_err('黑名單：管理員不能操作', 'need_system_admi
   pg_temp.run_as('ADU', $q$select public.meow_ban_email('banned@example.com', '詐騙')::text$q$));
 select pg_temp.expect_err('黑名單：不能加入系統管理員的帳號', 'target_is_system_admin',
   pg_temp.run_as('SA1', format($q$select public.meow_ban_email(%L, '詐騙')::text$q$, 'sa2@test.example')));
+select pg_temp.expect_err('R9 不能預先封禁尚未登入過的 Google 帳號', 'not_found',
+  pg_temp.run_as('SA1', $q$select public.meow_ban_email('banned@example.com', '詐騙')::text$q$));
+-- NEWB 先以一般會員登入過（建立會員資料），之後才被加入黑名單
+select pg_temp.expect_eq('NEWB 首次登入建立會員資料', '1',
+  pg_temp.run_as('NEWB', format($q$with i as (insert into public.meow_profiles (id) values (%L) returning 1) select count(*)::text from i$q$, pg_temp.u('NEWB'))));
 select pg_temp.op_logged('UT-HQDB-06 加入黑名單（Email 不分大小寫、去空白）寫入稽核日誌 1 筆', 'SA1',
   $q$select public.meow_ban_email('  Banned@Example.com ', '詐騙')::text$q$, 'ban');
 select pg_temp.expect_err('已在黑名單的帳號不能重複加入', 'already_banned',
   pg_temp.run_as('SA1', $q$select public.meow_ban_email('banned@example.com', '詐騙')::text$q$));
-select pg_temp.expect_err('UT-HQDB-11 黑名單的 Google 帳號首次登入建立會員資料 → 拒絕', 'banned',
+-- 會員資料被刪除後，黑名單的帳號再次登入建立會員資料 → 拒絕
+delete from public.meow_profiles where id = pg_temp.u('NEWB');
+select pg_temp.expect_err('UT-HQDB-11 黑名單的 Google 帳號重新建立會員資料 → 拒絕', 'banned',
   pg_temp.run_as('NEWB', format($q$with i as (insert into public.meow_profiles (id) values (%L) returning 1) select count(*)::text from i$q$, pg_temp.u('NEWB'))));
 select pg_temp.op_logged('UT-HQDB-06 移出黑名單寫入稽核日誌 1 筆', 'SA1',
   $q$select public.meow_unban_email('banned@example.com', '誤判')::text$q$, 'unban');
 select pg_temp.expect_eq('移出黑名單後可以建立會員資料', '1',
   pg_temp.run_as('NEWB', format($q$with i as (insert into public.meow_profiles (id) values (%L) returning 1) select count(*)::text from i$q$, pg_temp.u('NEWB'))));
-
 -- ---------------------------------------------------------------- UT-HQDB-07：稽核日誌不可修改刪除
 select pg_temp.expect_err('UT-HQDB-07 SA1 update 稽核日誌 → 拒絕', 'permission denied',
   pg_temp.run_as('SA1', $q$with u as (update public.meow_audit_logs set reason = '改' returning 1) select count(*)::text from u$q$));

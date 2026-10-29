@@ -317,6 +317,8 @@ begin
   perform public.meow_hq_require_reason(p_reason);
   if e = '' then raise exception 'invalid_email'; end if;
   select * into t from public.meow_profiles where email = e;
+  -- R9：不能預先封禁尚未登入過 Meow Home 的 Google 帳號
+  if t.id is null then raise exception 'not_found' using hint = '這個帳號還沒登入過 Meow Home，不能加入黑名單'; end if;
   -- 黑名單只用於貓友與貓戶長（一般會員）；管理員與系統管理員須先撤銷身分
   if t.role = 'system_admin' then raise exception 'target_is_system_admin' using hint = '黑名單不適用於系統管理員，請先撤銷其身分'; end if;
   if t.role = 'admin' then raise exception 'target_is_admin' using hint = '黑名單不適用於管理員，請先撤銷其身分'; end if;
