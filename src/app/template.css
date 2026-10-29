@@ -89,3 +89,17 @@ body {
 .step .goal { background: var(--yellow-soft) }
 .board { background: linear-gradient(180deg, var(--yellow-soft), #FFF6E0); border: 0 }
 .tl-head .pill.oat { background: #FFF; }
+
+/* 登入鈕：貓耳＋條紋貓尾（同參考站） */
+.btn-cat { --s: var(--orange); --h: var(--peach-hi); --d: var(--orange-deep); --t: #FFF; min-height: 44px; padding: .5rem 1.3rem; margin-right: 22px; box-shadow: 0 5px 0 var(--d), 0 10px 18px -8px #7A472659 }
+.btn-cat::before, .btn-cat::after { content: ""; position: absolute; top: -8px; width: 15px; height: 15px; background: var(--s); clip-path: polygon(0 100%, 50% 0, 100% 100%) }
+.btn-cat::before { left: 18px; transform: rotate(-10deg) }
+.btn-cat::after { left: auto; right: 22px; transform: rotate(10deg) }
+.btn-cat:hover::before, .btn-cat:hover::after { background: var(--h) }
+.btn-cat { overflow: visible; position: relative }
+.btn-cat .tail { position: absolute; right: -22px; bottom: -8px; width: 30px; height: 34px }
+.btn-cat .tail svg { display: block; width: 100%; height: 100% }
+.bell-3d { filter: drop-shadow(0 3px 2px #7A472640); transition: transform .2s }
+.bell:hover .bell-3d { transform: rotate(-12deg) }
+@media (prefers-reduced-motion: no-preference) { .bell .bell-3d { transform-origin: 50% 12% } .bell:hover .bell-3d { animation: ring .5s ease-in-out } }
+@keyframes ring { 25% { transform: rotate(14deg) } 50% { transform: rotate(-12deg) } 75% { transform: rotate(8deg) } }
