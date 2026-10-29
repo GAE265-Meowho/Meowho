@@ -5,7 +5,7 @@ import { composeReason, confirmBanEmail, getQuickReasons } from "@/lib/hq/action
 import type { HqActor } from "@/lib/hq/permissions";
 import type { HqRole } from "@/lib/hq/types";
 import { HqSaveButton } from "../HqStates";
-import { ReasonField } from "./ReasonField";
+import { ReasonField } from "@/components/hq/ReasonField";
 
 export type BanSubmit = { ban: boolean; reason: string };
 

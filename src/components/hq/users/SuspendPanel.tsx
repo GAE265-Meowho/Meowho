@@ -4,7 +4,7 @@ import { useState } from "react";
 import { composeReason, getImpactMessage, getQuickReasons, UNSUSPEND_NOTICE, type SuspendDuration } from "@/lib/hq/actions";
 import { canSuspend, type HqActor, type HqTarget } from "@/lib/hq/permissions";
 import { HqSaveButton } from "../HqStates";
-import { ReasonField } from "./ReasonField";
+import { ReasonField } from "@/components/hq/ReasonField";
 
 export type SuspendSubmit = { suspend: true; reason: string; duration: SuspendDuration } | { suspend: false; reason: string };
 

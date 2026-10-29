@@ -164,6 +164,25 @@
   .hq-detail .hq-actions { position: fixed; left: 0; right: 0; bottom: 0; background: var(--hq-card); border-top: 1px solid var(--hq-line); padding: .6rem 1rem calc(.6rem + env(safe-area-inset-bottom)); z-index: 15; }
 }
 
+/* #23 Admin 授權：通知下拉、Logo 選擇、授權矩陣（手機時表格已轉卡片） */
+.hq-notif { width: min(360px, calc(100vw - 2rem)); max-height: 70vh; overflow-y: auto; z-index: 30; }
+.hq-notif .hq-log { border: 0; border-radius: 0; }
+.hq-notif .hq-log li { flex-direction: column; gap: .15rem; }
+.hq-notif .hq-log li.unread { background: var(--hq-sage-soft); }
+.hq-notif .hq-menu button.hq-btn, .hq-notif button.hq-btn { width: auto; min-height: 36px; }
+.hq-notif > p { padding: .5rem .65rem; margin: 0; }
+.hq-notif-head { padding: .4rem .65rem; border-bottom: 1px solid var(--hq-line); }
+@media (max-width: 767px) { .hq-notif { position: fixed; left: 1rem; right: 1rem; top: 56px; width: auto; } }
+.hq-logo-now { width: 72px; height: 72px; object-fit: contain; border-radius: 12px; border: 1px solid var(--hq-line); background: #fff; }
+.hq-logo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: .6rem; }
+.hq-logo-pick { display: flex; flex-direction: column; align-items: center; gap: .35rem; padding: .5rem; border: 1px solid var(--hq-line); border-radius: 10px; cursor: pointer; font-size: .82rem; text-align: center; overflow-wrap: anywhere; }
+.hq-logo-pick img { width: 72px; height: 72px; object-fit: contain; }
+.hq-logo-pick input { position: absolute; opacity: 0; pointer-events: none; }
+.hq-logo-pick.on { border-color: var(--hq-sage); background: var(--hq-sage-soft); }
+.hq-logo-pick:focus-within { outline: 2px solid var(--hq-sage); outline-offset: 2px; }
+.hq-matrix td .hq-check { justify-content: center; }
+@media (max-width: 767px) { .hq-matrix td .hq-check { justify-content: flex-start; } }
+
 /* #24 用戶權限管理：原因欄、處置表單、貓戶清單 */
 .hq-label { display: block; font-size: .88rem; color: var(--hq-sub); }
 .hq-fieldset { border: 1px solid var(--hq-line); border-radius: 10px; padding: .85rem; margin: 0; display: flex; flex-direction: column; gap: .6rem; }

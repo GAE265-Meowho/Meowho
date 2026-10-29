@@ -12,7 +12,7 @@ import { getBrowserSupabase } from "@/lib/supabase/client";
 import { useHqActor } from "../HqActor";
 import { HqSaveButton } from "../HqStates";
 import { HqListBody, HqPager, HqSplit, HqTable, HqToolbar } from "../list/HqList";
-import { ReasonField } from "./ReasonField";
+import { ReasonField } from "@/components/hq/ReasonField";
 import { useHqRpc } from "./useHqRpc";
 
 const DEMO: VerificationRow[] = [{
