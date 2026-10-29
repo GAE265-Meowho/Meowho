@@ -70,11 +70,15 @@ export const CATS: Cat[] = [
     why: "需要定期回診與腎臟照護，適合有經驗的照顧者。" },
 ];
 
-export const POSTS: { home: string; city: string; time: string; text: string; likes: number; comments: number; photo: PhotoKey; tape: "pink" | "mint" | "butter" }[] = [
-  { home: "小橘之家", city: "台中市北屯區", time: "2 小時前", photo: "orangeJump", tape: "pink", text: "橘子今天第一次自己走進外出籠，獎勵了一根肉泥 🧡", likes: 24, comments: 5 },
-  { home: "窗邊的黑糖", city: "台中市西屯區", time: "昨天", photo: "blackBox", tape: "mint", text: "下午的陽光剛好照在貓窩上，黑糖從一點睡到五點。", likes: 41, comments: 8 },
-  { home: "麻糬與牠的朋友們", city: "台中市南屯區", time: "3 天前", photo: "ragdoll", tape: "butter", text: "梳毛梳出一整隻小麻糬，呼嚕聲大到隔壁房間都聽得到。", likes: 33, comments: 3 },
-  { home: "三花奶茶的中途日記", city: "台中市北區", time: "4 天前", text: "奶茶今天把處方飼料吃光光，喝水量也穩定了，給牠一個大大的讚。", likes: 52, comments: 11, photo: "calicoEat", tape: "pink" },
+export type PostKind = "adoptable" | "adopted";
+/** adoptable＝待領養（中途／貓戶長寫下的日常）；adopted＝幸福家貓（移轉到新家之後） */
+export const POSTS: { kind: PostKind; home: string; city: string; time: string; text: string; likes: number; comments: number; photo: PhotoKey; tape: "pink" | "mint" | "butter" }[] = [
+  { kind: "adoptable", home: "小橘之家", city: "台中市北屯區", time: "2 小時前", photo: "orangeJump", tape: "pink", text: "橘子今天第一次自己走進外出籠，獎勵了一根肉泥 🧡", likes: 24, comments: 5 },
+  { kind: "adopted", home: "窗邊的黑糖", city: "台中市西屯區", time: "昨天", photo: "blackBox", tape: "mint", text: "下午的陽光剛好照在貓窩上，黑糖從一點睡到五點。", likes: 41, comments: 8 },
+  { kind: "adopted", home: "麻糬與牠的朋友們", city: "台中市南屯區", time: "3 天前", photo: "ragdoll", tape: "butter", text: "梳毛梳出一整隻小麻糬，呼嚕聲大到隔壁房間都聽得到。", likes: 33, comments: 3 },
+  { kind: "adoptable", home: "三花奶茶的中途日記", city: "台中市北區", time: "4 天前", text: "奶茶今天把處方飼料吃光光，喝水量也穩定了，給牠一個大大的讚。", likes: 52, comments: 11, photo: "calicoEat", tape: "pink" },
+  { kind: "adoptable", home: "大里豆花之家", city: "台中市大里區", time: "3 天前", photo: "tabby", tape: "butter", text: "豆花發現新紙箱，探頭探腦了整整十分鐘才敢進去。", likes: 33, comments: 3 },
+  { kind: "adopted", home: "阿虎的新家", city: "新北市板橋區", time: "5 天前", photo: "gray", tape: "mint", text: "移轉到新家的第 14 天，阿虎已經會在樓梯口等下班的我。", likes: 52, comments: 11 },
 ];
 
 export const KB = [

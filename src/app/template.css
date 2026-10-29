@@ -103,3 +103,43 @@ body {
 .bell:hover .bell-3d { transform: rotate(-12deg) }
 @media (prefers-reduced-motion: no-preference) { .bell .bell-3d { transform-origin: 50% 12% } .bell:hover .bell-3d { animation: ring .5s ease-in-out } }
 @keyframes ring { 25% { transform: rotate(14deg) } 50% { transform: rotate(-12deg) } 75% { transform: rotate(8deg) } }
+
+/* 三步通關（分頁） */
+.steps2 { display: grid; gap: 1.5rem; align-items: center }
+@media (min-width: 900px) { .steps2 { grid-template-columns: 1fr 1.05fr; gap: 3rem } }
+.eyebrow-chip { display: inline-block; background: var(--yellow); color: var(--cocoa); font-weight: 800; font-size: .85rem; padding: .3rem .9rem; border-radius: 999px }
+.steps-h { margin: .6rem 0 1rem; font-size: clamp(1.5rem, 1.1rem + 1.8vw, 2.1rem) }
+.step-tabs { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: 1rem }
+.step-tabs button { display: inline-flex; align-items: center; gap: .45rem; border: 1px solid var(--line-soft); background: #FFF; border-radius: 999px; padding: .3rem .9rem .3rem .35rem; font-weight: 700; font-size: .88rem; color: var(--cocoa-2) }
+.step-tabs b { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--oat); color: var(--cocoa-2); font-size: .78rem }
+.step-tabs button.on { background: var(--cocoa); border-color: var(--cocoa); color: #FFF }
+.step-tabs button.on b { background: var(--yellow); color: var(--cocoa) }
+.step-no { margin: 0; color: var(--orange-deep); font-weight: 800; font-size: .9rem }
+.step-title { margin: .2rem 0 .5rem; font-size: 1.5rem; font-weight: 800 }
+.step-body { margin: 0 0 .8rem; color: var(--cocoa-2) }
+.step-goal { display: inline-block; margin: 0 0 1rem; padding: .35rem .9rem; border: 1px dashed var(--yellow); border-radius: 999px; background: #FFF; font-weight: 700; font-size: .88rem }
+.step-note { margin: 1.2rem 0 0; padding-top: 1rem; border-top: 1px dashed var(--line-soft); color: var(--cocoa-2); font-size: .85rem }
+.step-art { position: relative; aspect-ratio: 4 / 3; border-radius: var(--r-lg); background: #FFF6E0; overflow: hidden }
+.step-art .floor { position: absolute; left: 0; right: 0; bottom: 0; height: 28%; background: #F0D9B0 }
+.step-art.ar .window { position: absolute; left: 10%; top: 14%; width: 22%; height: 38%; border: 6px solid #FFF; background: var(--yellow-soft); border-radius: 6px }
+.step-art .corner { position: absolute; width: 22px; height: 22px; border: 0 solid var(--cocoa) }
+.corner.tl { left: 12px; top: 12px; border-width: 4px 0 0 4px } .corner.tr { right: 12px; top: 12px; border-width: 4px 4px 0 0 }
+.corner.bl { left: 12px; bottom: 12px; border-width: 0 0 4px 4px } .corner.br { right: 12px; bottom: 12px; border-width: 0 4px 4px 0 }
+.step-art .flag { position: absolute; z-index: 1; background: var(--cocoa); color: var(--yellow); font-weight: 800; font-size: .82rem; padding: .25rem .7rem; border-radius: 999px }
+.flag.f1 { left: 26%; top: 14% } .flag.f2 { left: 22%; bottom: 20% }
+.step-art .days { position: absolute; z-index: 1; left: 6%; right: 6%; top: 8%; display: flex; justify-content: space-between; background: #FFF; border-radius: 999px; padding: .6rem .8rem }
+.days i { width: clamp(24px, 5vw, 34px); aspect-ratio: 1; border-radius: 50%; background: var(--yellow-soft); display: grid; place-items: center; font-style: normal; font-weight: 800; color: var(--cocoa) }
+.days i.on { background: var(--yellow) }
+.step-art .sit { position: absolute; z-index: 1; left: 50%; bottom: 6%; height: 62%; width: auto; transform: translateX(-50%) }
+.step-art .walk { position: absolute; z-index: 1; left: 4%; bottom: 6%; height: 46%; width: auto; animation: stroll 6s ease-in-out infinite alternate }
+@keyframes stroll { to { transform: translateX(70%) } }
+.step-art .house { position: absolute; right: 8%; bottom: 26%; width: 28%; aspect-ratio: 1; background: #FFF; border-radius: 6px }
+.house .roof { position: absolute; left: -8%; right: -8%; top: -30%; height: 36%; background: var(--yellow); clip-path: polygon(0 100%, 50% 0, 100% 100%) }
+.house .door { position: absolute; left: 38%; bottom: 0; width: 24%; height: 46%; background: var(--orange); border-radius: 999px 999px 0 0 }
+
+/* 動態牆分類 */
+.feed-tabs button { padding: .4rem 1rem }
+.feed-hint { margin: 0 0 .4rem }
+.feed .polaroid { position: relative }
+.kind-badge { position: absolute; z-index: 2; left: 18px; top: 18px; padding: .2rem .7rem; border-radius: 999px; font-size: .78rem; font-weight: 800; background: var(--yellow); color: var(--cocoa) }
+.kind-badge.adopted { background: var(--pink-soft); color: #A5385D }
