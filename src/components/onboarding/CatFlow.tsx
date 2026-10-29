@@ -2,7 +2,7 @@
 /* eslint-disable @next/next/no-img-element */
 import { useRef, useState } from "react";
 import {
-  CAT_QUESTIONS, CAT_STEPS, ageLabel, emptyCatDraft, extractStoryByRules, parseAge, parseSex, storyDiff,
+  CAT_QUESTIONS, CAT_STEPS, ageLabel, applyPhotoSuggestion, emptyCatDraft, extractStoryByRules, parseAge, parseSex, storyDiff,
   toCatRow, validateCat, zodiacOf, type CatDraft, type CatStep,
 } from "@/lib/onboarding/cat";
 import { getBrowserSupabase } from "@/lib/supabase/client";
@@ -53,14 +53,16 @@ export function CatFlow({ householdId, householdName, onSaved, first = true }: {
       photoBlob.current = blob;
       setDraft(d => ({ ...d, photoUrl: dataUrl }));
       setMessages(m => [...m, meMsg("", dataUrl)]);
-      const r = await postJson<{ result: { isCat: boolean; breed: string | null; coat: string | null; ageBand: string | null; comment: string } | null }>(
+      const r = await postJson<{ result: { isCat: boolean; breed: string | null; coat: string | null; ageBand: string | null; confidence: number; comment: string } | null }>(
         "/api/onboarding/cat-photo", { mime: "image/jpeg", base64 });
       setBusy(false);
       if (r.result && !r.result.isCat) { say("嗯…這張照片裡好像沒有看到貓咪，換一張清楚的貓咪照片試試？"); setDraft(d => ({ ...d, photoUrl: null })); photoBlob.current = null; return; }
       if (r.result) {
-        setDraft(d => ({ ...d, breed: r.result!.breed ?? d.breed, coat: r.result!.coat ?? d.coat }));
+        setDraft(d => applyPhotoSuggestion(d, r.result!));
         const guess = [r.result.coat && `毛色「${r.result.coat}」`, r.result.breed && `品種「${r.result.breed}」`, r.result.ageBand && `年紀像是${r.result.ageBand}`].filter(Boolean).join("、");
-        say(`${r.result.comment} 我猜是${guess}，不對的話最後可以改。`);
+        say(r.result.confidence < 0.5
+          ? `${r.result.comment} 我還不太確定，品種和毛色請在名片上自己確認。`
+          : `${r.result.comment} 我猜是${guess}，不對的話最後可以改。`);
       } else {
         say("照片收到了！（AI 辨識暫時無法使用，品種和毛色最後可以自己填）");
       }

@@ -28,6 +28,7 @@
 | 5 | 動態牆：按讚、留言、追蹤、分享預覽 | social | 4 | P1 | 待建立 | B、C | 待辦 |
 | 6 | AI 建檔：拍照＋對話問答、自由口述（中途之家 onboarding） | ai-onboarding | 2 | P1 | #1 | Tina | 審查中 |
 | 7 | 領養人 onboarding（文字＋語音） | ai-onboarding | 1 | P1 | 待建立 | D | 待辦 |
+| 33 | 真實走查並修正中途之家 onboarding | ai-onboarding、household-cats | 2、6 | P1 | #33 | Tina × Codex | 審查中 |
 | 8 | 一句話 RAG 配對（取代關鍵字原型） | matching | 3、7 | P1 | 待建立 | E | 待辦 |
 | 9 | 私訊＋站內通知鈴鐺（通知基本版已完成於 #3） | social | 1 | P1 | 待建立 | C | 待辦 |
 | 10 | 領養設定、提出申請、審核流程（含多人申請） | adoption | 2、7、9 | P1 | 待建立 | C | 待辦 |
