@@ -88,4 +88,5 @@
   - 0001 的 `meow_guard_profile` 有錯：管理員更新別人的會員資料時會把對方 Email 蓋成自己的（0002 已修正）。
   - 開發計畫 T-HQ-02 要求「收緊 `meow_is_admin` 的 anon 執行權」；這會讓依賴它的 RLS policy 對匿名訪客出錯，0002 已把相關 policy 改為 `to authenticated` 才收回。之後新增 policy 若會被匿名查詢，**不要**呼叫權限函式。
   - SQL 測試可用 `node supabase/tests/run-pglite.mjs` 在本機臨時資料庫執行（`npm i --no-save @electric-sql/pglite`）。要不要納入 `npm test` 與 CI（需把 `@electric-sql/pglite` 加進 devDependencies，屬 Issue #19 範圍外），請 Tina 決定。
+- MeowHQ 系統管理員離職流程（Tina 2026-10-29 提出，待認領）：目前離職要分兩步手動做——另一位系統管理員先 `meow_set_role` 降成一般會員，再 `meow_ban_email` 加入黑名單（系統管理員不能被停權或加入黑名單，須先撤銷身分；至少要保留一位，移除前須先指定接手者）。建議在 Admin 授權畫面（#23）提供「離職」一鍵流程：降級＋清空模組授權＋（可選）加入黑名單＋一筆稽核日誌，原因必填；並在需求中決定「已登入的現有會員被加入黑名單後是否立即登出」（目前 Auth 層尚未擋）。
 - 語音輸入的 Whisper 備援（Safari／Firefox 不支援瀏覽器語音辨識）
