@@ -66,3 +66,26 @@ body {
 
 /* 頁尾：奶油黃底＋小屋感 */
 .footer { background: var(--yellow-soft); border-top: 0; color: var(--cocoa) }
+
+/* 一條時間軸：黃底三欄，橢圓照片，頂部貓耳 */
+.timeline { position: relative; margin: 3rem 0 1rem; padding: 3rem 0 2.5rem; background: var(--yellow) }
+.timeline::before, .timeline::after { content: ""; position: absolute; left: 50%; top: -22px; width: 36px; height: 26px; background: var(--yellow); clip-path: polygon(0 100%, 50% 0, 100% 100%) }
+.timeline::before { transform: translateX(-52px) rotate(-8deg) }
+.timeline::after { transform: translateX(16px) rotate(8deg) }
+.tl-eyebrow { text-align: center; margin: 0 0 .6rem }
+.tl-title { text-align: center; margin: 0 0 1.6rem; font-size: clamp(1.5rem, 1.1rem + 2vw, 2.2rem); font-weight: 800; color: var(--cocoa) }
+.tl-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 2rem }
+.tl-photo { aspect-ratio: 4 / 3; border-radius: 50% / 46%; overflow: hidden; background: var(--yellow-soft); margin-bottom: .9rem }
+.tl-photo img { width: 100%; height: 100%; object-fit: cover }
+.tl-head { display: flex; align-items: center; gap: .5rem }
+.tl-head b { font-size: 1.6rem; color: var(--orange-deep) }
+.tl-list h3 { margin: .3rem 0; font-size: 1.1rem; font-weight: 800 }
+.tl-list p { margin: 0; font-size: .92rem; color: var(--cocoa) }
+.tl-foot { text-align: center; margin: 1.8rem 0 0; font-weight: 700; font-size: .9rem }
+@media (min-width: 900px) { .tl-list { grid-template-columns: repeat(3, 1fr); gap: 2.5rem } }
+
+/* 三步通關、虛擬試養看板配色 */
+.step { border: 1px solid var(--line-soft); border-radius: var(--r-md) }
+.step .goal { background: var(--yellow-soft) }
+.board { background: linear-gradient(180deg, var(--yellow-soft), #FFF6E0); border: 0 }
+.tl-head .pill.oat { background: #FFF; }

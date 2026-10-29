@@ -34,6 +34,34 @@ export function Stats() {
   );
 }
 
+/* ---------- 一條時間軸（樣板：黃底三欄，圓潤橢圓照片） ---------- */
+export function Timeline() {
+  const items = [
+    { n: "01", tag: "🏠 記錄｜時光小屋", title: "每隻貓，都有自己的時光小屋", body: "貓戶長拍照、說幾句話就能建檔；日記、相簿和 60 秒影片，AI 每週整理成輕鬆的週報，累積成牠完整的生活誌。", img: "orange" as const },
+    { n: "02", tag: "💬 媒合｜帶我回家", title: "一句話，找到合得來的貓", body: "說說你的生活就好。AI 比對中途寫下的真實日記，不只看標籤，還會告訴你為什麼推薦這隻貓。", img: "calicoEat" as const },
+    { n: "03", tag: "🏡 終養｜負責任的相遇", title: "先準備好，再一起回家", body: "AR 環境報告或 7 天虛擬飼養，依年紀估算的首年花費；移轉後，紀錄跟著牠搬進新家，中途也能看見牠過得好。", img: "ragdoll" as const },
+  ];
+  return (
+    <section className="timeline" aria-labelledby="timelineTitle">
+      <div className="wrap">
+        <p className="tl-eyebrow"><span className="pill butter">記錄 × 媒合 × 終養</span></p>
+        <h2 id="timelineTitle" className="tl-title">一條時間軸，串起貓的一生</h2>
+        <ol className="tl-list">
+          {items.map(i => (
+            <li key={i.n}>
+              <div className="tl-photo"><img src={photo(i.img)} alt="" loading="lazy" /></div>
+              <div className="tl-head"><b>{i.n}</b><span className="pill oat">{i.tag}</span></div>
+              <h3>{i.title}</h3>
+              <p>{i.body}</p>
+            </li>
+          ))}
+        </ol>
+        <p className="tl-foot">相遇｜Responsible Pet Ownership・用 AI 支持終養不棄養</p>
+      </div>
+    </section>
+  );
+}
+
 /* ---------- 帶我回家：拍立得卡片 ---------- */
 const FILTERS: { id: string; label: string; test: (c: Cat) => boolean }[] = [
   { id: "all", label: "全部", test: () => true },
