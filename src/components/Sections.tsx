@@ -1,9 +1,10 @@
 "use client";
 /* eslint-disable @next/next/no-img-element */
 import { useEffect, useRef, useState } from "react";
-import { CATS, DEFAULT_CITY, KB, POSTS, STATS, type Cat } from "@/lib/mock-data";
+import { CATS, DEFAULT_CITY, KB, POSTS, STATS, type Cat, type PostKind } from "@/lib/mock-data";
 import { adoptList } from "@/lib/match";
 import { photo } from "@/lib/photos";
+import { useUi } from "./Providers";
 
 /* ---------- 統計 ---------- */
 function CountUp({ to }: { to: number }) {
@@ -124,31 +125,61 @@ export function Adopt() {
   );
 }
 
-/* ---------- 三步通關 ---------- */
-export function Steps() {
-  const steps = [
-    { ico: "🏠", bg: "#FFE1D4", tag: "第 1 關", title: "打造喵星人安全窩", body: "拍一段家裡的影片，AI 幫你找出窗戶、電線、植物等風險，產出飼養環境建議報告。", goal: "🎯 完成居家環境報告" },
-    { ico: "🧶", bg: "#D4F5EC", tag: "第 2 關", title: "7 天虛擬試養", body: "跟想領養那隻貓的分身同居 7 天：半夜跑酷、吐毛球、挑食，都是牠的真實習慣。", goal: "🎯 拿到試養完成徽章" },
-    { ico: "📜", bg: "#FFF3C4", tag: "第 3 關", title: "提出領養申請", body: "看清楚第一年的照顧重點與花費，帶著報告與徽章送出申請，跟中途私訊約面談。", goal: "🎯 送出領養申請" },
-  ];
+/* ---------- 三步通關（分頁：AR 環境報告站／3D 養貓中心／帶我回家領養站） ---------- */
+const STEP_TABS = [
+  { id: "ar", tab: "AR 環境報告站", title: "打造喵星人安全窩", body: "拍一段家裡的影片或照片，AI 標出窗戶、電線、植物等「可能風險」，產出飼養環境建議報告；看不清楚的地方會直接說看不出來。", goal: "完成居家環境報告", cta: "開始 AR 環境檢查" },
+  { id: "trial", tab: "3D 養貓中心", title: "7 天虛擬飼養", body: "跟想領養那隻貓的虛擬分身同居 7 天：半夜跑酷、吐毛球、挑食，都是中途日記裡真實的習慣。", goal: "拿到虛擬飼養完成徽章", cta: "" },
+  { id: "adopt", tab: "帶我回家領養站", title: "提出領養申請", body: "看清楚第一年的照顧重點與花費，帶著報告與徽章送出申請，再用私訊跟中途約面談。", goal: "送出領養申請", cta: "" },
+] as const;
+
+function StepArt({ id }: { id: (typeof STEP_TABS)[number]["id"] }) {
+  if (id === "ar") return (
+    <div className="step-art ar">
+      <span className="corner tl" /><span className="corner tr" /><span className="corner bl" /><span className="corner br" />
+      <span className="flag f1">⚠ 窗戶</span><span className="flag f2">⚠ 電線</span>
+      <div className="window" /><div className="floor" />
+    </div>
+  );
+  if (id === "trial") return (
+    <div className="step-art trial">
+      <div className="days">{[1, 2, 3, 4, 5, 6, 7].map(d => <i key={d} className={d <= 5 ? "on" : ""}>{d <= 5 ? "✓" : ""}</i>)}</div>
+      <img src="/cat/cat-sit.png" alt="" className="sit" />
+      <div className="floor" />
+    </div>
+  );
   return (
-    <section className="section wrap" aria-labelledby="stepsTitle">
-      <div className="sec-head">
+    <div className="step-art adopt">
+      <img src="/cat/cat-walk.png" alt="" className="walk" />
+      <div className="house" aria-hidden="true"><i className="roof" /><i className="door" /></div>
+      <div className="floor" />
+    </div>
+  );
+}
+
+export function Steps() {
+  const [i, setI] = useState(0);
+  const { toast } = useUi();
+  const t = STEP_TABS[i];
+  return (
+    <section className="section wrap" id="steps" aria-labelledby="stepsTitle">
+      <div className="steps2">
+        <StepArt id={t.id} />
         <div>
-          <h2 id="stepsTitle" className="h2">三步通關，準備好再帶牠回家 🏆</h2>
-          <p className="sub">沒有養貓經驗嗎？完成第 1 或第 2 關就能申請；有經驗的貓友可以直接申請。</p>
+          <span className="eyebrow-chip">🏅 負責任的相遇</span>
+          <h2 id="stepsTitle" className="h2 steps-h">三步通關，準備好再帶牠回家</h2>
+          <div className="step-tabs" role="tablist" aria-label="三步通關">
+            {STEP_TABS.map((x, k) => (
+              <button key={x.id} role="tab" aria-selected={i === k} className={i === k ? "on" : ""} onClick={() => setI(k)}><b>{k + 1}</b>{x.tab}</button>
+            ))}
+          </div>
+          <p className="step-no">第 {i + 1} 關 / 3</p>
+          <h3 className="step-title">{t.title}</h3>
+          <p className="step-body">{t.body}</p>
+          <p className="step-goal">🎯 {t.goal}</p>
+          {t.cta && <button className="btn" onClick={() => toast("AR 功能開發中，敬請期待")} data-proto="AR 環境檢查">{t.cta}</button>}
+          <p className="step-note">沒有養貓經驗？完成第 1 或第 2 關就能申請；有經驗的貓友可以直接申請。貓戶長也能設定「必須完成 7 天虛擬飼養」。</p>
         </div>
       </div>
-      <ol className="steps" style={{ listStyle: "none", padding: 0, margin: 0 }}>
-        {steps.map(s => (
-          <li className="step" key={s.tag}>
-            <span className="ico" style={{ background: s.bg }} aria-hidden="true">{s.ico}</span>
-            <h3><span className="pill oat">{s.tag}</span>{s.title}</h3>
-            <p>{s.body}</p>
-            <span className="goal">{s.goal}</span>
-          </li>
-        ))}
-      </ol>
     </section>
   );
 }
@@ -201,26 +232,35 @@ export function TrialBoard() {
 
 /* ---------- 動態牆 ---------- */
 export function Feed() {
-  const [liked, setLiked] = useState<Record<number, boolean>>({});
+  const [liked, setLiked] = useState<Record<string, boolean>>({});
+  const [kind, setKind] = useState<PostKind>("adoptable");
+  const posts = POSTS.filter(p => p.kind === kind);
   return (
     <section className="section" id="feed" aria-labelledby="feedTitle">
       <div className="wrap">
         <div className="sec-head">
           <div>
             <h2 id="feedTitle" className="h2">貓咪生活即時動態牆 📷</h2>
-            <p className="sub">來自貓戶與中途之家的暖心瞬間</p>
+            <p className="sub">待領養的日常，和領養後的幸福家貓，時間軸不會斷</p>
           </div>
           <a className="more" href="#" data-proto="動態牆頁">看更多</a>
         </div>
+        <div className="step-tabs feed-tabs" role="tablist" aria-label="動態分類">
+          {([["adoptable", "🏠 待領養"], ["adopted", "💛 幸福家貓"]] as const).map(([k, label]) => (
+            <button key={k} role="tab" aria-selected={kind === k} className={kind === k ? "on" : ""} onClick={() => setKind(k)}>{label}</button>
+          ))}
+        </div>
+        <p className="sub feed-hint">{kind === "adoptable" ? "還在等家的貓：中途與貓戶長寫下的真實日常" : "已經回家的貓：移轉到新家之後，紀錄繼續累積"}</p>
         <div className="feed">
-          {POSTS.map((p, i) => (
+          {posts.map(p => (
             <article className="polaroid" key={p.home}>
+              <span className={`kind-badge ${p.kind}`}>{p.kind === "adopted" ? "💛 幸福家貓" : "🏠 待領養"}</span>
               <span className={`tape ${p.tape}`} aria-hidden="true" />
               <div className="photo"><img src={photo(p.photo)} alt={`${p.home}的貓咪照片`} loading="lazy" /></div>
               <p className="post-text">「{p.text}」</p>
               <p className="post-meta">🏠 {p.home}｜{p.city}｜{p.time}</p>
               <div className="post-foot">
-                <button aria-pressed={!!liked[i]} onClick={() => setLiked(l => ({ ...l, [i]: !l[i] }))}>{liked[i] ? "💖" : "🤍"} {p.likes + (liked[i] ? 1 : 0)}</button>
+                <button aria-pressed={!!liked[p.home]} onClick={() => setLiked(l => ({ ...l, [p.home]: !l[p.home] }))}>{liked[p.home] ? "💖" : "🤍"} {p.likes + (liked[p.home] ? 1 : 0)}</button>
                 <button data-login>💬 {p.comments}</button>
                 <button data-proto="分享連結">↗ 分享</button>
               </div>
