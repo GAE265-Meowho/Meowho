@@ -109,3 +109,5 @@ ole === "admin" 判斷管理員，而現有 admin 會升為 system_admin；舊�
 
 | 2026-10-29 | Tina × Cursor | MeowHQ 階段 1 logic：permissions.ts、actions.ts 與測試（R9～R11） | #20 |
 - 2026-10-29｜#20：黑名單只用於貓友與貓戶長，`canBan` 拒絕管理員與系統管理員（與 #26 的 `meow_ban_email` 一致）；規格書 R9 待 Tina 更新。
+| 2026-10-29 | Tina × Claude Code | MeowHQ #24 用戶權限管理 `/MeowHQ/users`：帳號（停權、黑名單）、中途認證（核准、退回、撤銷徽章）；`src/lib/hq/users.ts`、`src/components/hq/users/`；UT-HQ-44、45 | #24 |
+- 2026-10-29｜#24：前端呼叫 `meow_suspend_user`／`meow_unsuspend_user`／`meow_ban_email`／`meow_unban_email`／`meow_review_verification`／`meow_revoke_badge`；「要求補件」不另設狀態，用退回＋快選原因「退回並要求補件」；黑名單狀態只有系統管理員讀得到（RLS），其他管理員看不到黑名單欄與操作。
