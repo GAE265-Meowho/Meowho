@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { extractHousehold } from "@/lib/ai/server";
+import { AI_LIMITS, checkInput } from "@/lib/ai/guard";
 import { requireUserForApi } from "@/lib/supabase/server";
 import { HOUSEHOLD_STEPS, mergeHouseholdExtraction, type HouseholdDraft, type HouseholdStep } from "@/lib/onboarding/household";
 
@@ -11,7 +12,9 @@ export async function POST(req: Request) {
   if (!body?.step || !HOUSEHOLD_STEPS.includes(body.step) || typeof body.answer !== "string" || !body.draft) {
     return NextResponse.json({ error: "參數錯誤" }, { status: 400 });
   }
-  const answer = body.answer.slice(0, 1000);
+  const input = checkInput(body.answer, AI_LIMITS.onboardingChars);
+  if (!input.ok) return NextResponse.json({ error: input.error }, { status: 400 });
+  const answer = input.text;
   const llm = await extractHousehold(body.step, answer);
   const draft = mergeHouseholdExtraction(body.draft, body.step, answer, llm);
   return NextResponse.json({ draft, reply: llm?.reply ?? null, ai: Boolean(llm) });

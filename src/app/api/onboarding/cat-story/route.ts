@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { organizeCatStory } from "@/lib/ai/server";
+import { AI_LIMITS, checkInput } from "@/lib/ai/guard";
 import { requireUserForApi } from "@/lib/supabase/server";
 import { extractStoryByRules } from "@/lib/onboarding/cat";
 
@@ -9,9 +10,12 @@ export async function POST(req: Request) {
   if (!auth.ok) return NextResponse.json({ error: "請先登入" }, { status: 401 });
   const body = await req.json().catch(() => null) as { text?: string; name?: string } | null;
   if (!body?.text?.trim()) return NextResponse.json({ error: "請說說貓咪的個性" }, { status: 400 });
-  const text = body.text.slice(0, 2000);
+  const input = checkInput(body.text, AI_LIMITS.onboardingChars);
+  if (!input.ok) return NextResponse.json({ error: input.error }, { status: 400 });
+  const text = input.text;
+  const name = typeof body.name === "string" ? Array.from(body.name.trim()).slice(0, 30).join("") || undefined : undefined;
   const rules = extractStoryByRules(text);
-  const r = await organizeCatStory(body.name, text);
+  const r = await organizeCatStory(name, text);
   if (!r) return NextResponse.json({ story: rules, reply: null, ai: false });
   const traits = r.traits.filter(t => t.length <= 8).slice(0, 5);
   return NextResponse.json({
