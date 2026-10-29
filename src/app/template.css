@@ -1,0 +1,68 @@
+/* Meowho喵戶 前台樣板（參考 meowwho-v2：奶油底、橘黃主色、點點紙張、貓耳＋貓尾膠囊按鈕）
+   疊在 globals.css 之後，只換色彩、圓角、陰影與版面；元件結構不動。 */
+:root {
+  --canvas: #FFFAF0; --card: #FFFFFF; --oat: #FBF5EA;
+  --cocoa: #3F2E24; --cocoa-2: #7A6252; --cocoa-line: #3F2E24; --line-soft: #EFE3CF;
+  --orange: #E8913A; --orange-deep: #C9701F; --orange-soft: #FDE3C6;
+  --yellow: #F6B53B; --yellow-deep: #E9A21F; --yellow-soft: #FDEDC4;
+  --heading-orange: #D0761C; --pink-soft: #FDE7E4; --mint-soft: #E3F2E7;
+  --peach: var(--orange); --peach-hi: #F0A253; --peach-dk: var(--orange-deep);
+  --butter: var(--yellow); --butter-hi: #F9C45E; --butter-dk: var(--yellow-deep);
+  --brick: var(--heading-orange);
+  --r-md: 20px; --r-lg: 32px;
+  --sh-1: 0 10px 30px -12px #7A472640; --sh-2: 0 10px 30px -12px #7A472640; --sh-3: 0 18px 40px -14px #7A472659;
+}
+body {
+  background-color: var(--canvas);
+  background-image: radial-gradient(#EFE3CF 1.2px, transparent 1.4px); background-size: 28px 28px;
+}
+.topbar { background: rgba(255, 250, 240, .92); border-bottom: 1px solid var(--line-soft); box-shadow: none }
+.topbar-in { height: 68px }
+.brand img { border: 0; background: transparent; border-radius: 12px }
+.mainnav a { font-weight: 700; color: var(--cocoa) }
+.mainnav a:hover { background: var(--yellow-soft); color: var(--orange-deep) }
+
+/* 膠囊按鈕：橘色、貓耳、貓尾，扁平柔和陰影 */
+.btn { position: relative; box-shadow: 0 6px 0 var(--d), 0 10px 18px -8px #7A472659; border-radius: 999px }
+.btn:not(.sm):not(.block):not(.ghost)::before, .btn:not(.sm):not(.block):not(.ghost)::after {
+  content: ""; position: absolute; top: -7px; width: 14px; height: 14px; background: var(--s);
+  clip-path: polygon(0 100%, 50% 0, 100% 100%); transition: background .15s;
+}
+.btn:not(.sm):not(.block):not(.ghost)::before { left: 20px; transform: rotate(-10deg) }
+.btn:not(.sm):not(.block):not(.ghost)::after { right: 20px; transform: rotate(10deg) }
+.btn:not(.sm):not(.block):not(.ghost):hover::before, .btn:not(.sm):not(.block):not(.ghost):hover::after { background: var(--h) }
+.btn.mint { --s: var(--orange); --h: var(--peach-hi); --d: var(--orange-deep); --t: #FFF }
+.btn.pink { --s: var(--yellow); --h: var(--butter-hi); --d: var(--yellow-deep); --t: var(--cocoa) }
+.btn.ghost { --s: #FFF; --h: var(--yellow-soft); --d: var(--line-soft); border: 1px solid var(--line-soft) }
+
+/* 區塊標題與卡片 */
+.h2 { color: var(--cocoa); font-weight: 800 }
+.sec-head .h2::before { content: "🐾"; margin-right: .4rem; font-size: .8em }
+.stat, .search, .room, .polaroid, .intent-btn { border: 1px solid var(--line-soft); box-shadow: var(--sh-1) }
+.stat { box-shadow: var(--sh-1) }
+.search { border-radius: var(--r-lg) }
+.search:focus-within { border-color: var(--orange); box-shadow: 0 0 0 4px #E8913A33 }
+.scope button.on { background: var(--orange); color: #FFF; box-shadow: none }
+.filters button.on { background: var(--yellow); border-color: var(--yellow); color: var(--cocoa); box-shadow: none }
+.room { border: 0; box-shadow: var(--sh-3) }
+.polaroid { border-radius: var(--r-md) }
+.polaroid:nth-child(even) { transform: none }
+.stat:nth-child(1) strong, .stat:nth-child(2) strong, .stat:nth-child(3) strong { color: var(--orange-deep) }
+
+/* 首頁 Hero：奶油到黃的柔光，標題橘色重點 */
+.hero { background: radial-gradient(circle at 88% 10%, var(--orange-soft) 0, transparent 45%), radial-gradient(circle at 8% 85%, var(--yellow-soft) 0, transparent 40%) }
+.announce { border: 1px solid var(--yellow); background: var(--yellow-soft); color: var(--cocoa); border-style: solid }
+.stroked { text-shadow: none }
+.hero .hero-title { font-weight: 800; letter-spacing: .01em }
+.hero .hero-title span { color: var(--heading-orange) }
+
+/* 入口卡 */
+.intent-ask { background: var(--yellow-soft); box-shadow: none }
+.intent-btn { border-radius: var(--r-md); box-shadow: var(--sh-1) }
+.intent-btn.peach { background: var(--orange-soft); box-shadow: var(--sh-1) }
+.intent-btn.butter { background: var(--yellow-soft); box-shadow: var(--sh-1) }
+.intent-btn.mint { background: var(--pink-soft); box-shadow: var(--sh-1) }
+.intent-btn:hover { transform: translateY(-3px); box-shadow: var(--sh-3) }
+
+/* 頁尾：奶油黃底＋小屋感 */
+.footer { background: var(--yellow-soft); border-top: 0; color: var(--cocoa) }
