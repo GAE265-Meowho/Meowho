@@ -73,6 +73,7 @@ MeowHQ（`/MeowHQ`，取代隱藏後台）開發中：階段 0（共用型別與
 
 ## 主要檔案
 - `src/lib/hq/types.ts`（MeowHQ 共用約定：模組代號、角色、處置類型、快選原因、錯誤代碼、側欄順序；T-HQ-01）、`src/lib/hq/types.test.ts`
+- `src/lib/hq/permissions.ts`（可見模組、存取、`canSuspend`／`canBan`／最後一位系統管理員／授予限制；T-HQ-03）、`src/lib/hq/actions.ts`（原因必填、停權期限與到期、影響說明、黑名單 Email 確認、快選原因；含 R9～R11；T-HQ-04）及其測試（UT-HQ-01～11、17～28），Issue #20
 - `src/components/Providers.tsx`（從 `site_settings` 讀取標誌、`setLogo` 寫入）、`src/lib/mock-data.ts`（`LOGOS`）
 
 ## 決策
@@ -99,3 +100,4 @@ MeowHQ（`/MeowHQ`，取代隱藏後台）開發中：階段 0（共用型別與
 | 2026-10-28 | Tina × Claude Code | 建立模組文件 | — |
 | 2026-10-28 | Tina × Claude Code | 隱藏後台、中途認證審核、管理員授權、站台標誌存資料庫、站內通知 | #3 |
 | 2026-10-28 | Tina × Cursor | MeowHQ 階段 0：`src/lib/hq/types.ts` 與測試（8 種處置含 `unban`）、0002 資料表草案 | #18 |
+| 2026-10-29 | Tina × Cursor | MeowHQ 階段 1 logic：permissions.ts、actions.ts 與測試（R9～R11） | #20 |
