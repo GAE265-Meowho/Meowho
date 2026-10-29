@@ -65,11 +65,14 @@ export function canSuspend(actor: HqActor | null | undefined, target: HqTarget):
   return { allowed: true };
 }
 
-/** 能否加入黑名單（UT-HQ-09，R9）：僅系統管理員；對象不能是系統管理員。 */
+/** 能否加入黑名單（UT-HQ-09，R9）：僅系統管理員；對象只能是貓友與貓戶長（一般會員），管理員與系統管理員須先撤銷身分。 */
 export function canBan(actor: HqActor | null | undefined, target: HqTarget): RuleResult {
   if (!isSystemAdmin(actor)) return { allowed: false, message: "只有系統管理員可以加入黑名單" };
   if (target.role === "system_admin") {
     return { allowed: false, message: "系統管理員不能被加入黑名單，須先由另一位系統管理員撤銷其身分" };
+  }
+  if (target.role === "admin") {
+    return { allowed: false, message: "黑名單只用於貓友與貓戶長，管理員須先撤銷身分" };
   }
   return { allowed: true };
 }

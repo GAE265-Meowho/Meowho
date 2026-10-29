@@ -121,8 +121,11 @@ describe("canBan（UT-HQ-09，R9）", () => {
       message: "系統管理員不能被加入黑名單，須先由另一位系統管理員撤銷其身分",
     });
   });
-  it("SA1 可將管理員加入黑名單", () => {
-    expect(canBan(SA1, AD_P)).toEqual({ allowed: true });
+  it("黑名單只用於貓友與貓戶長：管理員也不能加入，須先撤銷其身分（Tina 2026-10-29）", () => {
+    expect(canBan(SA1, AD_P)).toEqual({
+      allowed: false,
+      message: "黑名單只用於貓友與貓戶長，管理員須先撤銷身分",
+    });
   });
 });
 
