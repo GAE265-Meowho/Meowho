@@ -15,7 +15,8 @@
 
 - **MeowHQ 後台開發中**（規格 `docs/hq/01～03`）：階段 0（T-HQ-01，Issue #18，分支 `feat/18-hq-contract`）已完成、PR 待 Tina 審查。內容：`src/lib/hq/types.ts`（模組代號、角色、處置類型、快選原因、錯誤代碼、側欄順序）＋測試，以及 `docs/modules/admin-moderation.md` 的 `0002_meow_hq.sql` 資料表草案。**`0002_meow_hq.sql` 檔案尚未建立、也沒有執行任何 SQL**（階段 1 的 db Issue 才寫檔）。**#18 合併前不要開始階段 1**；T-HQ-11 等 Issue #15（儲存位置）。待 Tina 決定的問題在 `PLAN.md`「建議」區的 MeowHQ 項目。
 
-- **`0002_meow_hq.sql`（#19）已合併**；Tina 授權由 Claude 試跑 rollback 後正式執行（見每日紀錄）。SQL 測試已納入 `npm test`（PGlite）。
+- **`0002_meow_hq.sql` 已在 Supabase 執行（2026-10-29）**：Tina 為 `system_admin`。SQL 測試已納入 `npm test`（PGlite）。
+- **MeowHQ 階段 2**：#22 待辦總覽與列表元件已完成（`src/lib/hq/todos.ts`、`listing.ts`、`audit.ts`、`src/components/hq/list/`、`HqActor.tsx` 的 `useHqActor`／`HqModuleGuard`）；#23 Admin 授權、#24 用戶權限管理由 Claude 進行中。各模組頁用 `HqModuleGuard` 包住、`HqPageHeader` 做頁首、`useListQuery` 把篩選寫進網址。尚未開發的模組（檢舉、商品、知識、虛擬元件）顯示「模組開發中」。
 
 - **#20（logic）已實作待審**（分支 `feat/20-hq-logic`）：`src/lib/hq/permissions.ts`、`actions.ts` 純函式；#21 shell、#22～#24 直接 import 使用，不要重複寫判斷。時間相關函式由呼叫端傳入 `now`。
 
