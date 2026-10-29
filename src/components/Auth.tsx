@@ -3,8 +3,9 @@ import { createContext, useCallback, useContext, useEffect, useState } from "rea
 import type { User } from "@supabase/supabase-js";
 import { getBrowserSupabase } from "@/lib/supabase/client";
 import { TERMS_VERSION, isSupabaseConfigured } from "@/lib/supabase/config";
+import { isAdminRole, type ProfileRole } from "@/lib/auth-role";
 
-export interface Profile { id: string; display_name: string | null; avatar_url: string | null; terms_version: string | null; role: "member" | "admin"; email: string | null }
+export interface Profile { id: string; display_name: string | null; avatar_url: string | null; terms_version: string | null; role: ProfileRole; email: string | null }
 interface AuthCtx {
   configured: boolean;
   loading: boolean;
@@ -76,7 +77,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const needsTerms = Boolean(user && profile && profile.terms_version !== TERMS_VERSION);
 
   return (
-    <Ctx.Provider value={{ configured: isSupabaseConfigured, loading, user, profile, needsTerms, isAdmin: profile?.role === "admin", login, logout, agreeTerms }}>
+    <Ctx.Provider value={{ configured: isSupabaseConfigured, loading, user, profile, needsTerms, isAdmin: isAdminRole(profile?.role), login, logout, agreeTerms }}>
       {children}
     </Ctx.Provider>
   );

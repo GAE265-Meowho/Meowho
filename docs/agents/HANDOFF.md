@@ -33,7 +33,7 @@
 - **Supabase migration** 由 AI 透過 Supabase 連接器執行，執行前須經發起人確認（AGENTS.md §7.4）；`0001` 已執行。
 - **Google 登入**：Supabase 的 Redirect URLs 要包含正式網域、Vercel 預覽網域與 localhost，否則登入後會被導回錯誤網址。
 
-- **MeowHQ shell（#21，分支 `feat/21-hq-shell`，PR 待審）**：外殼在 `src/app/MeowHQ/`＋`src/components/hq/`，舊 `/mh-console-8k2p` 已移除（中途認證審核、管理員授權、網站標誌三項功能暫時沒有後台入口，待階段 2 的 #23／#24 在 MeowHQ 重做；0002 執行前它們本來就會壞）。權限判斷是 **stub**（`src/components/hq/access.ts` 的 `visibleSidebar`）。**#20 合併後要改接**：`visibleSidebar` 換成 `permissions.ts`。**0002 執行後要改接**：`HqGate` 讀 `meow_admin_module_grants`（目前讀失敗就退回「全部模組可見」示範資料），並確認 `profile.role` 讀得到 `system_admin`；`Auth.tsx` 的 `isAdmin` 會失效（見 Issue #21 留言）。本機未設 Supabase 時用 `/MeowHQ?hqPreview=1` 預覽外殼（僅非 production）。
+- **MeowHQ shell（#21，分支 `feat/21-hq-shell`，PR 待審）**：外殼在 `src/app/MeowHQ/`＋`src/components/hq/`，舊 `/mh-console-8k2p` **先保留**（Tina 2026-10-29 決定；中途認證審核、管理員授權、網站標誌在 MeowHQ 做好前仍可用），#24 合併時刪除並恢復 UT-HQ-15（目前是 `it.todo`）。權限判斷是 **stub**（`src/components/hq/access.ts` 的 `visibleSidebar`）。**#20 合併後要改接**：`visibleSidebar` 換成 `permissions.ts`。**0002 執行後要改接**：`HqGate` 讀 `meow_admin_module_grants`（目前讀失敗就退回「全部模組可見」示範資料），並確認 `profile.role` 讀得到 `system_admin`；`Auth.tsx` 的 `isAdmin` 已改為 admin 或 system_admin（`src/lib/auth-role.ts`，0002 前後都正常）。本機未設 Supabase 時用 `/MeowHQ?hqPreview=1` 預覽外殼（僅非 production）。
 
 ## 重要檔案
 | 檔案 | 用途 |

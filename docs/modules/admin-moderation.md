@@ -18,7 +18,7 @@
 ## 目前狀態
 隱藏後台 `/mh-console-8k2p` 已完成（Issue #3）：中途認證審核、管理員授權／移除、網站標誌（存 `site_settings`）。頁尾的管理者設定入口已移除。檢舉與內容審核尚未開始。
 MeowHQ（`/MeowHQ`，取代隱藏後台）開發中：階段 0（共用型別與資料表草案，Issue #18）已完成待審；階段 1 起尚未開工，需等 #18 合併。T-HQ-11（虛擬體驗元件管理）等 Issue #15 決定儲存位置。
-MeowHQ 外殼（Issue #21，T-HQ-05、06）：路由／大小寫導向（middleware）／登入閘門／Nordic Meow 樣式／頂列／側欄／toast／空白、載入、錯誤、離線元件／白話錯誤已完成待審（`src/app/MeowHQ/`、`src/components/hq/`；測試 UT-HQ-12～16、41～43、46～48）。權限判斷為 stub，待 #20 改接；舊 `/mh-console-8k2p` 已移除。
+MeowHQ 外殼（Issue #21，T-HQ-05、06）：路由／大小寫導向（middleware）／登入閘門／Nordic Meow 樣式／頂列／側欄／toast／空白、載入、錯誤、離線元件／白話錯誤已完成待審（`src/app/MeowHQ/`、`src/components/hq/`；測試 UT-HQ-12～16、41～43、46～48）。權限判斷為 stub，待 #20 改接；舊 `/mh-console-8k2p` 先保留（Tina 決定），#24 合併時刪除並恢復 UT-HQ-15；`Auth.tsx` 的 `isAdmin` 已改為 admin 或 system_admin（`src/lib/auth-role.ts`）。
 
 ## 資料表（Supabase）
 - 已建立（`0001_meow.sql`）：`meow_shelter_verifications`（同一貓戶同時只能一筆審核中）、`meow_notifications`、`meow_site_settings`（key/value，公開讀、管理員寫）
