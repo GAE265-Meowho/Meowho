@@ -10,12 +10,12 @@
 - 一句話配對是**前端關鍵字規則**（`src/lib/match.ts`），是 RAG 的佔位；保留輸入輸出形狀，之後換實作。
 - 正在進行的分支：`feat/1-household-onboarding`（PR 待合併，含 Issue #1、#3）。
 - 後台權限已改為「系統管理員按模組授權」（`docs/decisions/003-module-based-admin-authorization.md`，SRS v1.1 M15）；程式尚未跟上，現在任何 admin 都能授權他人（PLAN 任務 23）。名詞定義見根目錄 `GLOSSARY.md`。
-- 隱藏管理後台：`/mh-console-8k2p`（不出現在介面上）；第一位管理員需用 SQL 指定，見 `docs/setup/SUPABASE_LLM_SETUP.md` §7。
+- 後台：**MeowHQ `/MeowHQ`**（舊隱藏後台 `/mh-console-8k2p` 已移除，Tina 2026-10-29 決定）；第一位系統管理員需用 SQL 指定，見 `docs/setup/SUPABASE_LLM_SETUP.md` §7。
 - 已部署：Vercel 專案 `meow-home`（Hobby，帳號 somebabyTina），正式網址 https://meowhome.hsiangsolutions.com （網域在 Porkbun，CNAME 指向 Vercel），連動 `main` 自動部署。
 
 - **MeowHQ 後台開發中**（規格 `docs/hq/01～03`）：階段 0（T-HQ-01，Issue #18，分支 `feat/18-hq-contract`）已完成、PR 待 Tina 審查。內容：`src/lib/hq/types.ts`（模組代號、角色、處置類型、快選原因、錯誤代碼、側欄順序）＋測試，以及 `docs/modules/admin-moderation.md` 的 `0002_meow_hq.sql` 資料表草案。**`0002_meow_hq.sql` 檔案尚未建立、也沒有執行任何 SQL**（階段 1 的 db Issue 才寫檔）。**#18 合併前不要開始階段 1**；T-HQ-11 等 Issue #15（儲存位置）。待 Tina 決定的問題在 `PLAN.md`「建議」區的 MeowHQ 項目。
 
-- **`0002_meow_hq.sql` 已寫好（Issue #19，分支 `feat/19-hq-db`，PR 待審）但尚未在 Supabase 執行**。執行前須 Tina 確認（AGENTS.md §7.4）。⚠ 執行後現有 admin 會升為 `system_admin`，前端 `isAdmin`（`role === "admin"`）與舊後台 `/mh-console-8k2p` 會失效，要等 #21 調整前端。本機驗證：`npm i --no-save @electric-sql/pglite` 後 `node supabase/tests/run-pglite.mjs`（101 項通過、1 項跳過）。細節在 `docs/modules/admin-moderation.md`。
+- **`0002_meow_hq.sql`（#19）已合併**；Tina 授權由 Claude 試跑 rollback 後正式執行（見每日紀錄）。SQL 測試已納入 `npm test`（PGlite）。
 
 - **#20（logic）已實作待審**（分支 `feat/20-hq-logic`）：`src/lib/hq/permissions.ts`、`actions.ts` 純函式；#21 shell、#22～#24 直接 import 使用，不要重複寫判斷。時間相關函式由呼叫端傳入 `now`。
 
@@ -36,6 +36,8 @@
 - **Supabase 是共用專案**（`pnnehddxeujxghhnnqrv`，免費方案限 2 個專案）：MeowHome 的資料表、函式、policy 一律 `meow_` 開頭，bucket `meow-cat-photos`。**不要動任何非 `meow_` 開頭的物件、不要在 `auth.users` 加 trigger、不要改 Site URL**。完整規範：`AGENTS.md` §7。
 - **Supabase migration** 由 AI 透過 Supabase 連接器執行，執行前須經發起人確認（AGENTS.md §7.4）；`0001` 已執行。
 - **Google 登入**：Supabase 的 Redirect URLs 要包含正式網域、Vercel 預覽網域與 localhost，否則登入後會被導回錯誤網址。
+
+- **MeowHQ shell（#21）**：外殼在 `src/app/MeowHQ/`＋`src/components/hq/`。舊後台已移除（功能移到 #23 管理員授權與網站外觀、#24 中途認證）。`src/components/hq/access.ts` 的 `visibleSidebar` 讀不到授權表時會退回「全部可見」，0002 執行後由 #22 改接 `permissions.ts` 並移除退回邏輯。`Auth.tsx` 的 `isAdmin` 為 admin 或 system_admin（`src/lib/auth-role.ts`）。本機未設 Supabase 時用 `/MeowHQ?hqPreview=1` 預覽外殼（僅非 production）。
 
 ## 重要檔案
 | 檔案 | 用途 |
