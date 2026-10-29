@@ -50,7 +50,7 @@
 | 23-1 | MeowHQ 階段 1：db（T-HQ-02、12）、logic（T-HQ-03、04）、shell（T-HQ-05、06） | admin-moderation | 23-0 | P2 | #19 db、#20 logic、#21 shell | C、B、Claude | 完成（0002 已執行） |
 | 23-2 | MeowHQ 階段 2：待辦總覽與列表、Admin 授權、用戶權限管理（T-HQ-07～10） | admin-moderation | 23-1 | P2 | #22 lists-home、#23 admin-auth、#24 users | Claude | 完成（#22、#23、#24 已合併；0003 已執行，待 Tina 登入實測） |
 | 25 | LLM 輸入防護：服務範圍、prompt injection、字數上限（決策 004） | ai-onboarding | 21 | P1 | #38 | Tina × Claude | 審查中 |
-| 26 | 品牌改名 Meowho喵戶、換新 Logo（三張）、前台新樣板 | matching | — | P1 | #42 | Tina × Claude | 進行中（改名與 Logo 已完成；樣板待參考站網域加入白名單） |
+| 26 | 品牌改名 Meowho喵戶、換新 Logo（三張）、前台新樣板 | matching | — | P1 | #42 | Tina × Claude | 進行中（改名與 Logo 完成；樣板第一批＝色票／按鈕／入口卡／頁尾已上，區塊版型細改待續） |
 | 27 | 喵戶小區（示意資料）＋貓咪走到新家動畫 | matching | 26 | P1 | #44 | Tina × Claude | 進行中（小區完成；動畫等 Tina 用 WhoMeow 3D 流程提供素材，儲存位置見 #15） |
 | 23-3 | MeowHQ 階段 3：虛擬體驗元件管理（T-HQ-11）、獨立審查（T-HQ-13） | admin-moderation | 23-2 | P2 | 待建立 | C、B | 卡住（T-HQ-11 等 #15 儲存位置） |
 

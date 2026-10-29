@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import "./template.css";
 import { Providers } from "@/components/Providers";
 import { AuthProvider } from "@/components/Auth";
 
