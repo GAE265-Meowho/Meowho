@@ -47,6 +47,7 @@
 | 23 | 後台改為按模組授權：系統管理員、模組授權、稽核日誌、停權／黑名單、虛擬體驗元件管理（T-15-06～09）。拆為 MeowHQ 階段（見 `docs/hq/03`） | admin-moderation | 17、22 | P2 | 見下列 | C、B | 進行中 |
 | 23-0 | MeowHQ 階段 0：共用約定型別（T-HQ-01）＋0002 資料表草案 | admin-moderation | — | P2 | #18 | Tina × Cursor | 審查中 |
 | 23-1 | MeowHQ 階段 1：db（T-HQ-02、12）、logic（T-HQ-03、04）、shell（T-HQ-05、06） | admin-moderation | 23-0 | P2 | #19 db、#20 logic、#21 shell | C、B | 待辦（等 #18 合併） |
+| 23-1s | MeowHQ shell 實作（#21）：外殼、登入閘門、Nordic Meow 樣式；權限判斷用 stub（src/components/hq/access.ts），待 #20 合併改接 | admin-moderation | 23-0 | P2 | #21 | Tina × Cursor | 審查中（PR 待開） |
 | 23-2 | MeowHQ 階段 2：待辦總覽與列表、Admin 授權、用戶權限管理（T-HQ-07～10） | admin-moderation | 23-1 | P2 | #22 lists-home、#23 admin-auth、#24 users | C、B | 待辦 |
 | 23-3 | MeowHQ 階段 3：虛擬體驗元件管理（T-HQ-11）、獨立審查（T-HQ-13） | admin-moderation | 23-2 | P2 | 待建立 | C、B | 卡住（T-HQ-11 等 #15 儲存位置） |
 
@@ -84,3 +85,4 @@
   - 規格書 §4.7 沒列「解除停權、重新上架、加入／移出黑名單」的快選原因，目前為空清單。
   - 現有 `role = 'admin'` 的使用者，✅ 已決定（Tina 同意）：現有 `admin` 一律遷移成 `system_admin`。
 - 語音輸入的 Whisper 備援（Safari／Firefox 不支援瀏覽器語音辨識）
+- MeowHQ shell（#21 實作時發現，待 Tina 決定）：(1) `src/components/Auth.tsx` 的 `isAdmin`／`Profile.role` 在 0002 後失效，是否納入 #21 見 Issue #21 留言；(2) 規格書未定義鈴鐺點開後的通知面板，目前鈴鐺只顯示未讀數（T-HQ-12 之後處理）；(3) 規格書 §4.9 要求「手機從底部出現」的 toast 與 `查看紀錄` 連結目標（稽核日誌頁網址）尚未決定，目前由呼叫端傳入 `logHref`。
