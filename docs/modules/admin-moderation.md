@@ -70,6 +70,7 @@ MeowHQ（`/MeowHQ`，取代隱藏後台）開發中：階段 0（共用型別，
 
 ## 主要檔案
 - `src/lib/hq/types.ts`（MeowHQ 共用約定：模組代號、角色、處置類型、快選原因、錯誤代碼、側欄順序；T-HQ-01）、`src/lib/hq/types.test.ts`
+- `src/lib/hq/permissions.ts`（可見模組、存取、`canSuspend`／`canBan`／最後一位系統管理員／授予限制；T-HQ-03）、`src/lib/hq/actions.ts`（原因必填、停權期限與到期、影響說明、黑名單 Email 確認、快選原因；含 R9～R11；T-HQ-04）及其測試（UT-HQ-01～11、17～28），Issue #20
 - `src/components/Providers.tsx`（從 `site_settings` 讀取標誌、`setLogo` 寫入）、`src/lib/mock-data.ts`（`LOGOS`）
 
 ## 決策
@@ -104,3 +105,6 @@ ole === "admin" 判斷管理員，而現有 admin 會升為 system_admin；舊�
 | 2026-10-29 | Tina × Cursor | MeowHQ 階段 1 db：`0002_meow_hq.sql`、`supabase/tests/`（SQL 測試與本機執行器） | #19 |
 - 2026-10-29｜#26 審查修正：黑名單只用於貓友與貓戶長，`meow_ban_email` 拒絕管理員（`target_is_admin`）；`meow_set_role` 拒絕把停權中的帳號升為管理員（`target_suspended`）；註冊時黑名單同時比對 Email 與 `auth_user_id`；兩個內部函式補 `search_path`；policy 內的權限函式改包 `(select ...)`。
 - 2026-10-29｜依規格書 R9（#30）：`meow_ban_email` 對尚未建立會員資料的 Email 回 `not_found`，不能預先封禁；UT-HQDB-11 改為「會員資料被刪除後，黑名單帳號重新建立會員資料 → 拒絕」。
+
+| 2026-10-29 | Tina × Cursor | MeowHQ 階段 1 logic：permissions.ts、actions.ts 與測試（R9～R11） | #20 |
+- 2026-10-29｜#20：黑名單只用於貓友與貓戶長，`canBan` 拒絕管理員與系統管理員（與 #26 的 `meow_ban_email` 一致）；規格書 R9 待 Tina 更新。

@@ -46,7 +46,8 @@
 | 24 | 首次登入條款：看完才能勾選同意 | account | 1 | P1 | #16 | Tina | 審查中 |
 | 23 | 後台改為按模組授權：系統管理員、模組授權、稽核日誌、停權／黑名單、虛擬體驗元件管理（T-15-06～09）。拆為 MeowHQ 階段（見 `docs/hq/03`） | admin-moderation | 17、22 | P2 | 見下列 | C、B | 進行中 |
 | 23-0 | MeowHQ 階段 0：共用約定型別（T-HQ-01）＋0002 資料表草案 | admin-moderation | — | P2 | #18 | Tina × Cursor | 審查中 |
-| 23-1 | MeowHQ 階段 1：db（T-HQ-02、12）、logic（T-HQ-03、04）、shell（T-HQ-05、06） | admin-moderation | 23-0 | P2 | #19 db、#20 logic、#21 shell | C、B | 進行中（#19 db 審查中；#20、#21 見各自 PR） |
+
+| 23-1 | MeowHQ 階段 1：db（T-HQ-02、12）、logic（T-HQ-03、04）、shell（T-HQ-05、06） | admin-moderation | 23-0 | P2 | #19 db、#20 logic、#21 shell | C、B、Claude | 進行中（#20 已合併；#19、#21 由 Claude 接手審查合併） |
 | 23-2 | MeowHQ 階段 2：待辦總覽與列表、Admin 授權、用戶權限管理（T-HQ-07～10） | admin-moderation | 23-1 | P2 | #22 lists-home、#23 admin-auth、#24 users | C、B | 待辦 |
 | 23-3 | MeowHQ 階段 3：虛擬體驗元件管理（T-HQ-11）、獨立審查（T-HQ-13） | admin-moderation | 23-2 | P2 | 待建立 | C、B | 卡住（T-HQ-11 等 #15 儲存位置） |
 
@@ -90,4 +91,6 @@
   - SQL 測試可用 `node supabase/tests/run-pglite.mjs` 在本機臨時資料庫執行（`npm i --no-save @electric-sql/pglite`）。要不要納入 `npm test` 與 CI（需把 `@electric-sql/pglite` 加進 devDependencies，屬 Issue #19 範圍外），請 Tina 決定。
 - MeowHQ 系統管理員離職流程（Tina 2026-10-29 提出，待認領）：離職＝由另一位系統管理員執行 `meow_set_role` 撤銷身分（降成一般會員或管理員），原因必填並寫稽核日誌；至少要保留一位，移除前須先指定接手者。**黑名單只用於貓友與貓戶長，不適用於管理員與系統管理員**（Tina 2026-10-29 確認），所以離職流程不包含加入黑名單。建議在 Admin 授權畫面（#23）提供「撤銷身分」操作：降級＋清空模組授權＋一筆稽核日誌。
 - MeowHQ 黑名單對象（Tina 2026-10-29 確認，規格書 R9 已更新，#29、#30）：#26 的 `meow_ban_email` 已拒絕管理員（`target_is_admin`）、系統管理員（`target_is_system_admin`），以及尚未登入過的帳號（`not_found`）。#28（#20）的 `canBan` 已同步拒絕管理員；「尚未登入過的帳號」屬前端輸入檢查，由 #23／#24 處理。
+
+  - （#20 logic）UT-HQ-05 的「貓友／貓戶長」在 `canSuspend` 都是 `role: member`，函式不區分；#20 的 `canSuspend` 對沒有「用戶權限管理」授權者回傳「沒有停權的權限」，規格書與測試計畫未規定此文字，Tina 可調整。
 - 語音輸入的 Whisper 備援（Safari／Firefox 不支援瀏覽器語音辨識）

@@ -17,6 +17,8 @@
 
 - **`0002_meow_hq.sql` 已寫好（Issue #19，分支 `feat/19-hq-db`，PR 待審）但尚未在 Supabase 執行**。執行前須 Tina 確認（AGENTS.md §7.4）。⚠ 執行後現有 admin 會升為 `system_admin`，前端 `isAdmin`（`role === "admin"`）與舊後台 `/mh-console-8k2p` 會失效，要等 #21 調整前端。本機驗證：`npm i --no-save @electric-sql/pglite` 後 `node supabase/tests/run-pglite.mjs`（101 項通過、1 項跳過）。細節在 `docs/modules/admin-moderation.md`。
 
+- **#20（logic）已實作待審**（分支 `feat/20-hq-logic`）：`src/lib/hq/permissions.ts`、`actions.ts` 純函式；#21 shell、#22～#24 直接 import 使用，不要重複寫判斷。時間相關函式由呼叫端傳入 `now`。
+
 ## 下一步（建議第一個動作）
 0. #18 合併後，平行開工階段 1：#19（db）、#20（logic）、#21（shell）；階段 2 為 #22（lists-home）、#23（admin-auth）、#24（users），等階段 1 合併後開始。Issue 都已建立，不用再建。
 1. 資料庫已建好（`0001_meow.sql` 於 2026-10-28 執行）。剩下依 `docs/setup/SUPABASE_LLM_SETUP.md`：Google OAuth Redirect URL、LLM 金鑰、Vercel 環境變數，以及登入一次後指定第一位管理員。
