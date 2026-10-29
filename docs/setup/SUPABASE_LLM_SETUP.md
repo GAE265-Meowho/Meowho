@@ -3,8 +3,8 @@
 > 金鑰只能貼在 Supabase、Google Cloud、Vercel 的設定頁與自己的 `.env.local`，**不要貼進聊天、程式或 commit**。
 
 ## 1. Supabase 專案（共用既有專案 `pnnehddxeujxghhnnqrv`）
-免費方案同時只能有 2 個啟用中的專案，所以 MeowHome 與其他 App **共用同一個 Supabase 專案**。規範見 `AGENTS.md` §7，重點：
-- MeowHome 所有資料表、函式、trigger、policy 一律 **`meow_` 開頭**，照片 bucket 為 **`meow-cat-photos`**
+免費方案同時只能有 2 個啟用中的專案，所以 Meowho喵戶 與其他 App **共用同一個 Supabase 專案**。規範見 `AGENTS.md` §7，重點：
+- Meowho喵戶 所有資料表、函式、trigger、policy 一律 **`meow_` 開頭**，照片 bucket 為 **`meow-cat-photos`**
 - 不在 `auth.users` 加 trigger（會員資料由網站第一次登入時建立）
 - **不要修改 Site URL**（那是其他 App 的設定），只「新增」Redirect URLs
 
@@ -12,7 +12,7 @@
 - `Project URL`（`https://pnnehddxeujxghhnnqrv.supabase.co`）→ `NEXT_PUBLIC_SUPABASE_URL`
 - `anon public` key → `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 
-## 2. 建立 MeowHome 資料表
+## 2. 建立 Meowho喵戶 資料表
 **SQL Editor → New query**，貼上 `supabase/migrations/0001_meow.sql` 全文 → **Run**（可重複執行）。
 > 2026-10-28 已由 AI 透過 Supabase 連接器執行完成；之後的 migration 也可這樣執行（須經發起人確認，見 AGENTS.md §7.4）。
 

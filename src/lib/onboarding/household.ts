@@ -34,7 +34,7 @@ export type HouseholdStep = "caretaker" | "name" | "location" | "intro" | "messa
 export const HOUSEHOLD_STEPS: HouseholdStep[] = ["caretaker", "name", "location", "intro", "messages", "review"];
 
 export const HOUSEHOLD_QUESTIONS: Record<Exclude<HouseholdStep, "review">, { ask: string; chips?: string[] }> = {
-  caretaker: { ask: "歡迎來到 MeowHome！先讓我認識你～你是哪一種貓咪照顧者呢？", chips: ["個人中途", "立案協會／收容單位", "一般飼主"] },
+  caretaker: { ask: "歡迎來到 Meowho喵戶！先讓我認識你～你是哪一種貓咪照顧者呢？", chips: ["個人中途", "立案協會／收容單位", "一般飼主"] },
   name: { ask: "幫你的貓戶取個名字吧！例如「小橘之家」「北屯貓咪中途站」。", chips: [] },
   location: { ask: "貓戶在哪個縣市、哪一區呢？（我們只會公開到「區」，不會顯示詳細地址）", chips: ["台北市大安區", "台中市北屯區", "高雄市鼓山區"] },
   intro: { ask: "用幾句話介紹你的貓戶吧：目前照顧幾隻貓、平常怎麼照顧牠們、想對領養人說的話，都可以直接說或打字。", chips: [] },

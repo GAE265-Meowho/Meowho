@@ -1,4 +1,4 @@
-/* MeowHome｜Cozy Cat Nook 設計系統（依 Google Stitch 設計稿 DESIGN.md） */
+/* Meowho喵戶｜Cozy Cat Nook 設計系統（依 Google Stitch 設計稿 DESIGN.md） */
 :root {
   /* 底色與文字（不使用純白、純黑） */
   --canvas: #FFFDF5;
@@ -70,7 +70,7 @@ button { font: inherit; color: inherit; cursor: pointer }
 .topbar { position: sticky; top: 0; z-index: 30; background: rgba(255, 253, 245, .92); backdrop-filter: blur(10px); border-bottom: 2px solid var(--line-soft) }
 .topbar-in { display: flex; align-items: center; gap: 1rem; height: 72px }
 .brand { display: flex; align-items: center; gap: .6rem; text-decoration: none }
-.brand img { width: 52px; height: 52px; border-radius: 16px; object-fit: cover; border: 2px solid var(--line-soft) }
+.brand img { width: 52px; height: 52px; border-radius: 16px; object-fit: contain; background: #FFFDF8; border: 2px solid var(--line-soft) }
 .brand-name { font-weight: 700; font-size: 1.25rem; line-height: 1.1 }
 .brand-name small { display: block; font-size: .72rem; color: var(--cocoa-2); font-weight: 500 }
 .mainnav { display: none; gap: .3rem; margin-left: .5rem }
@@ -235,7 +235,7 @@ dialog::backdrop { background: rgba(74, 59, 50, .35) }
 dialog h2 { margin: 0; font-size: 1.3rem }
 .logo-pick { display: grid; grid-template-columns: repeat(3, 1fr); gap: .7rem; margin: 1rem 0 1.2rem }
 .logo-opt { border: 2px solid var(--line-soft); border-radius: 20px; padding: .4rem; background: #FFFDF5; font-size: .78rem; font-weight: 700; color: var(--cocoa-2) }
-.logo-opt img { border-radius: 14px; margin-bottom: .3rem; aspect-ratio: 1; object-fit: cover }
+.logo-opt img { border-radius: 14px; margin-bottom: .3rem; aspect-ratio: 1; object-fit: contain; background: #FFFDF8 }
 .logo-opt[aria-pressed="true"] { border-color: var(--peach); box-shadow: 0 4px 0 var(--peach-dk); color: var(--brick) }
 .dlg-actions { text-align: right }
 

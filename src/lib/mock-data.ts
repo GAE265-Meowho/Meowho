@@ -27,9 +27,9 @@ export interface Cat {
 export interface Logo { id: "house" | "round" | "line"; name: string; src: string }
 
 export const LOGOS: Logo[] = [
-  { id: "house", name: "溫馨小屋與貓咪融合款", src: "/logos/logo-house.jpg" },
-  { id: "round", name: "圓潤療癒生活風", src: "/logos/logo-round.jpg" },
-  { id: "line", name: "極簡美學線條款", src: "/logos/logo-line.jpg" },
+  { id: "house", name: "小屋摸摸款", src: "/logos/logo-house.jpg" },
+  { id: "round", name: "圓形花貓款", src: "/logos/logo-round.jpg" },
+  { id: "line", name: "橫式字標款", src: "/logos/logo-line.jpg" },
 ];
 
 export const DEFAULT_CITY = "台中市";

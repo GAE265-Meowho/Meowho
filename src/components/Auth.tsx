@@ -30,7 +30,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(isSupabaseConfigured);
 
-  // 共用 Supabase 專案：不在 auth.users 上加 trigger，第一次登入 MeowHome 時由這裡建立 profile
+  // 共用 Supabase 專案：不在 auth.users 上加 trigger，第一次登入 Meowho喵戶 時由這裡建立 profile
   const loadProfile = useCallback(async (uid: string) => {
     if (!sb) return;
     const cols = "id, display_name, avatar_url, terms_version, role, email";

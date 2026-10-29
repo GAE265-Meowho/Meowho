@@ -29,7 +29,7 @@ export function BanPanel({ actor, target, banned, onSubmit }: {
   return (
     <section className="hq-box" aria-label="黑名單">
       <h3>黑名單</h3>
-      <p className="hq-hint" style={{ margin: 0 }}>{banned ? "此帳號在黑名單中，無法登入 Meow Home。" : "永久禁止此 Google 帳號註冊或登入。"}</p>
+      <p className="hq-hint" style={{ margin: 0 }}>{banned ? "此帳號在黑名單中，無法登入 Meowho喵戶。" : "永久禁止此 Google 帳號註冊或登入。"}</p>
       {!open && (
         <div className="hq-row">
           <button type="button" className={`hq-btn ${banned ? "ghost" : "danger"} small`} disabled={!banned && isAdmin} onClick={() => setOpen(true)}>
