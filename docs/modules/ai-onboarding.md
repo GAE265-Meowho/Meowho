@@ -15,7 +15,7 @@
 - PLAN 任務：6、7
 
 ## 目前狀態
-中途之家／愛貓人士 onboarding 已完成（Issue #1）：首頁「我想建立貓戶」→ `/onboarding` 聊天建立貓戶 → 拍照＋問答＋自由口述建立貓咪名片。領養人 onboarding 尚未開始（任務 7）。
+中途之家／愛貓人士 onboarding 已完成（Issue #1）：首頁「我想建立貓戶」→ `/onboarding` 聊天建立貓戶 → 拍照＋問答＋自由口述建立貓咪名片。Issue #33 進行真實流程走查與修正；領養人 onboarding 尚未開始（任務 7）。
 
 ## 資料表（Supabase）
 - 寫入 `meow_households`、`meow_cats`（前端以使用者身分直接寫入，由 RLS 保護）
@@ -59,4 +59,6 @@
 | 2026-10-28 | Tina × Claude Code | 中途之家 onboarding（聊天建立貓戶、拍照＋問答＋口述建立貓咪） | #1 |
 | 2026-10-28 | Tina × Claude Code | 建立貓戶前先顯示說明（WelcomeHousehold）；`?cat=1` 新貓入戶 | #5 |
 | 2026-10-28 | Tina × Claude Code | 新貓入戶改為：先 Google 登入 → 一律選擇「既有貓戶」或「住進新家」；進入點決策抽成 `src/lib/onboarding/route.ts`（`decideStart`） | #7 |
+| 2026-10-29 | Tina × Codex | Issue #33：Vision 信心低於 0.5 不預填品種／毛色；結構化 AI 失敗重試一次；補 UT-03-04 | #33 |
+
 | 2026-10-29 | Tina × Claude Code | LLM 輸入防護：服務範圍、prompt injection、字數上限（決策 004） | #38 |

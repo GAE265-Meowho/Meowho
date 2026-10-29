@@ -1,14 +1,14 @@
 # HANDOFF — 接手的 agent 需要知道的事
 
 > 寫給「完全沒有上下文的下一個 agent」。只保留**現在仍然成立**的內容。
-> 最後更新：2026-10-29 00:10｜Tina × Cursor
+> 最後更新：2026-10-29｜Tina × Codex
 
 ## 目前狀態
 - `main` 上是**首頁原型**：Next.js 15＋Cozy Cat Nook 設計，資料全部來自 `src/lib/mock-data.ts`（示意）。
 - 已接 Supabase（Auth、Postgres、Storage）與 AI（LangChain，`src/lib/ai/`，可切換 Gemini／OpenAI／Azure／Anthropic）的程式碼；**環境變數尚未設定時網站為「示範模式」**：可操作但不能登入、不儲存、AI 改用規則解析。設定步驟：`docs/setup/SUPABASE_LLM_SETUP.md`。
 - 已完成：中途之家 onboarding（`/onboarding`）、我的貓戶（`/me`）、條款頁（`/legal`）。其他 `data-proto` 按鈕仍只跳提示。
 - 一句話配對是**前端關鍵字規則**（`src/lib/match.ts`），是 RAG 的佔位；保留輸入輸出形狀，之後換實作。
-- 正在進行的分支：`feat/1-household-onboarding`（PR 待合併，含 Issue #1、#3）。
+- 正在進行的分支：`feat/33-onboarding-walkthrough`（Issue #33，待建立 PR）。
 - 後台權限已改為「系統管理員按模組授權」（`docs/decisions/003-module-based-admin-authorization.md`，SRS v1.1 M15）；程式尚未跟上，現在任何 admin 都能授權他人（PLAN 任務 23）。名詞定義見根目錄 `GLOSSARY.md`。
 - 後台：**MeowHQ `/MeowHQ`**（舊隱藏後台 `/mh-console-8k2p` 已移除，Tina 2026-10-29 決定）；第一位系統管理員需用 SQL 指定，見 `docs/setup/SUPABASE_LLM_SETUP.md` §7。
 - 已部署：Vercel 專案 `meow-home`（Hobby，帳號 somebabyTina），正式網址 https://meowhome.hsiangsolutions.com （網域在 Porkbun，CNAME 指向 Vercel），連動 `main` 自動部署。
@@ -24,9 +24,10 @@
 - **`0003_meow_site_assets.sql` 已在 Supabase 執行（2026-10-29，`meow_0003_site_assets`）**：Logo 上傳與網站設定可用，待 Tina 登入實測。
 
 ## 下一步（建議第一個動作）
-0. #18 合併後，平行開工階段 1：#19（db）、#20（logic）、#21（shell）；階段 2 為 #22（lists-home）、#23（admin-auth）、#24（users），等階段 1 合併後開始。Issue 都已建立，不用再建。
-1. 資料庫已建好（`0001_meow.sql` 於 2026-10-28 執行）。剩下依 `docs/setup/SUPABASE_LLM_SETUP.md`：Google OAuth Redirect URL、LLM 金鑰、Vercel 環境變數，以及登入一次後指定第一位管理員。
-2. 下一個任務建議：貓咪公開頁、首頁「帶我回家」改讀真實資料（任務 3）、領養人 onboarding（任務 7）。
+0. Issue #33：程式與四項檢查已完成，待建立 PR；正式站 `/onboarding` 停在「載入中…」，未完成登入後實際流程，PR 需保留此限制。
+1. #18 合併後，平行開工階段 1：#19（db）、#20（logic）、#21（shell）；階段 2 為 #22（lists-home）、#23（admin-auth）、#24（users），等階段 1 合併後開始。Issue 都已建立，不用再建。
+2. 資料庫已建好（`0001_meow.sql` 於 2026-10-28 執行）。剩下依 `docs/setup/SUPABASE_LLM_SETUP.md`：Google OAuth Redirect URL、LLM 金鑰、Vercel 環境變數，以及登入一次後指定第一位管理員。
+3. 下一個任務建議：貓咪公開頁、首頁「帶我回家」改讀真實資料（任務 3）、領養人 onboarding（任務 7）。
 3. PLAN.md 其餘任務的 Issue 尚未建立。
 
 ## 地雷與注意
