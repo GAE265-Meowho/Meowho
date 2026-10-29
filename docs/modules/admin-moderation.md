@@ -18,6 +18,7 @@
 ## 目前狀態
 隱藏後台 `/mh-console-8k2p` 已完成（Issue #3）：中途認證審核、管理員授權／移除、網站標誌（存 `site_settings`）。頁尾的管理者設定入口已移除。檢舉與內容審核尚未開始。
 MeowHQ（`/MeowHQ`，取代舊隱藏後台）開發中：階段 0（#18）、db（#19，`0002_meow_hq.sql`）、logic（#20）已合併；外殼（#21）：路由／大小寫導向／登入閘門／Nordic Meow 樣式／頂列／側欄／toast／空白、載入、錯誤、離線元件；側欄改接 `permissions.ts`。舊後台 `/mh-console-8k2p` 已移除（Tina 2026-10-29 決定），功能移到 #23（管理員授權、網站外觀）、#24（中途認證）。`Auth.tsx` 的 `isAdmin` 為 admin 或 system_admin（`src/lib/auth-role.ts`）。T-HQ-11 等 Issue #15。
+2026-10-29：`0002_meow_hq.sql` 已在 Supabase 執行。#22：待辦總覽（`/MeowHQ`）、列表共用元件（`src/components/hq/list/HqList.tsx`）、模組守門（`HqModuleGuard`）、側欄改接 `permissions.ts`（授權讀取中只顯示首頁，不再退回全部可見）、資料庫錯誤轉白話（`hqErrorMessage`，優先顯示函式 hint）。
 
 ## 資料表（Supabase）
 - 已建立（`0001_meow.sql`）：`meow_shelter_verifications`（同一貓戶同時只能一筆審核中）、`meow_notifications`、`meow_site_settings`（key/value，公開讀、管理員寫）

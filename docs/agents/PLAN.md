@@ -46,8 +46,8 @@
 | 24 | 首次登入條款：看完才能勾選同意 | account | 1 | P1 | #16 | Tina | 審查中 |
 | 23 | 後台改為按模組授權：系統管理員、模組授權、稽核日誌、停權／黑名單、虛擬體驗元件管理（T-15-06～09）。拆為 MeowHQ 階段（見 `docs/hq/03`） | admin-moderation | 17、22 | P2 | 見下列 | C、B | 進行中 |
 | 23-0 | MeowHQ 階段 0：共用約定型別（T-HQ-01）＋0002 資料表草案 | admin-moderation | — | P2 | #18 | Tina × Cursor | 審查中 |
-| 23-1 | MeowHQ 階段 1：db（T-HQ-02、12）、logic（T-HQ-03、04）、shell（T-HQ-05、06） | admin-moderation | 23-0 | P2 | #19 db、#20 logic、#21 shell | C、B、Claude | 進行中（#19、#20 已合併；#21 由 Claude 接手） |
-| 23-2 | MeowHQ 階段 2：待辦總覽與列表、Admin 授權、用戶權限管理（T-HQ-07～10） | admin-moderation | 23-1 | P2 | #22 lists-home、#23 admin-auth、#24 users | C、B | 待辦 |
+| 23-1 | MeowHQ 階段 1：db（T-HQ-02、12）、logic（T-HQ-03、04）、shell（T-HQ-05、06） | admin-moderation | 23-0 | P2 | #19 db、#20 logic、#21 shell | C、B、Claude | 完成（0002 已執行） |
+| 23-2 | MeowHQ 階段 2：待辦總覽與列表、Admin 授權、用戶權限管理（T-HQ-07～10） | admin-moderation | 23-1 | P2 | #22 lists-home、#23 admin-auth、#24 users | Claude | 進行中（#22 審查中） |
 | 23-3 | MeowHQ 階段 3：虛擬體驗元件管理（T-HQ-11）、獨立審查（T-HQ-13） | admin-moderation | 23-2 | P2 | 待建立 | C、B | 卡住（T-HQ-11 等 #15 儲存位置） |
 
 ## 高風險 PoC（11/05 前）

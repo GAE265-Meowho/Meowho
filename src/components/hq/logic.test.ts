@@ -2,7 +2,7 @@
 import { existsSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { friendlyError } from "./errors";
+import { friendlyError, hqErrorMessage } from "./errors";
 import { hqRedirectTarget, resolveGate, visibleSidebar } from "./access";
 import { metadata } from "@/app/MeowHQ/layout";
 
@@ -50,7 +50,7 @@ it("UT-HQ-41 錯誤轉白話，不顯示代碼", () => {
   for (const c of ["network", "permission_changed", "x"]) expect(friendlyError(c)).not.toContain(c);
 });
 
-describe("側欄可見模組（stub，待 #20 改接）", () => {
+describe("側欄可見模組（改接 permissions.ts）", () => {
   it("系統管理員：首頁＋全部模組，依規格順序", () => {
     expect(visibleSidebar({ role: "system_admin", grants: [] })).toEqual([
       "home", "report_moderation", "user_management", "products", "knowledge", "virtual_assets", "admin_authorization",
@@ -59,8 +59,20 @@ describe("側欄可見模組（stub，待 #20 改接）", () => {
   it("管理員：只有首頁與被授權模組，不含 Admin 授權", () => {
     expect(visibleSidebar({ role: "admin", grants: ["knowledge", "products", "admin_authorization"] })).toEqual(["home", "products", "knowledge"]);
   });
-  it("grants 為 null（資料庫還是舊結構）：退回示範資料＝全部模組", () => {
-    expect(visibleSidebar({ role: "admin", grants: null })).toHaveLength(7);
+  it("grants 為 null（讀取中或讀取失敗）：管理員只看到首頁，不再退回「全部可見」", () => {
+    expect(visibleSidebar({ role: "admin", grants: null })).toEqual(["home"]);
   });
   it("一般會員：沒有任何項目", () => expect(visibleSidebar({ role: "member", grants: [] })).toEqual([]));
+});
+
+describe("資料庫錯誤轉白話（hqErrorMessage）", () => {
+  it("有 hint 時直接顯示 hint（資料庫函式提供的中文說明）", () => {
+    expect(hqErrorMessage({ message: "need_system_admin", hint: "需由系統管理員處理" })).toBe("需由系統管理員處理");
+  });
+  it("沒有 hint 的已知代碼轉成白話", () => {
+    expect(hqErrorMessage({ message: "reason_required" })).toBe("請填寫原因");
+    expect(hqErrorMessage({ message: "permission_denied" })).toBe("你的權限已變更");
+  });
+  it("網路錯誤", () => expect(hqErrorMessage(new TypeError("Failed to fetch"))).toBe("網路中斷，請再試一次"));
+  it("未知錯誤不顯示代碼", () => expect(hqErrorMessage({ message: "xyz_internal" })).toBe("發生問題，請稍後再試"));
 });
