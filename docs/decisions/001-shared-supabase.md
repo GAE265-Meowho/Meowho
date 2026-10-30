@@ -1,4 +1,7 @@
 # 001 與其他 App 共用 Supabase 專案，資料庫物件一律 meow_ 開頭
+
+> **已被 [005](005-dedicated-supabase.md) 取代（2026-10-30）**：改用獨立專案。`meow_` 前綴規則保留。
+
 - 日期：2026-10-28
 - 發起人 × 工具：Tina × Claude Code (claude-opus-5-5)
 - 背景：Supabase 免費方案同時只能有 2 個啟用中的專案，帳號已有其他 App 使用，Meowho喵戶 必須共用專案 `pnnehddxeujxghhnnqrv`。

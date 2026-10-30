@@ -19,7 +19,7 @@ Google 登入（Supabase Auth）與條款同意已完成（Issue #1）。條款�
 
 ## 資料表（Supabase）
 - `meow_profiles`（id＝auth.users.id、email、display_name、avatar_url、role、terms_version、terms_agreed_at），第一次登入 Meowho喵戶 時由前端建立（`Auth.tsx`）；email 由 trigger 從登入憑證帶入，不能自填
-- migration：`supabase/migrations/0001_meow.sql`（共用 Supabase 專案 `pnnehddxeujxghhnnqrv`，物件一律 `meow_` 開頭，見 AGENTS.md §7）
+- migration：`supabase/migrations/0001_meow.sql`（Supabase 專案 `onebpkbkrnnwamwsoelo`，物件一律 `meow_` 開頭，見 AGENTS.md §7）
 
 ## API／主要函式
 - `useAuth()`（`src/components/Auth.tsx`）：user、profile、login(next)、logout、agreeTerms、needsTerms
