@@ -25,7 +25,7 @@ const notoTC = Noto_Sans_TC({
 });
 
 export const metadata: Metadata = {
-  title: "MeowWho 貓戶",
+  title: "Meowho喵戶",
   description: "讓每一隻貓從中途到新家立足：一句話 AI 配對、7 天虛擬飼養，再帶牠回家。",
 };
 

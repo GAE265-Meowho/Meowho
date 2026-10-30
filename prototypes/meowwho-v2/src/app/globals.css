@@ -7,13 +7,17 @@
   --ink: #3f2e24;
   --ink-soft: #7a6252;
   --orange: #e8913a;
-  --orange-deep: #c9701f;
+  /* Text-safe orange: 5.2:1 on white, use for small orange text and links */
+  --orange-deep: #a8562a;
   --orange-soft: #fde3c6;
   --yellow: #f6b53b;
   --yellow-deep: #e9a21f;
   --yellow-soft: #fdedc4;
-  /* Orange dark enough for large headings on paper (≥3:1) */
-  --heading-orange: #d0761c;
+  /* Orange for large headings on paper (4.3:1) */
+  --heading-orange: #b25e16;
+  /* Primary button body: white label passes AA (4.9:1) */
+  --caramel: #a5602a;
+  --caramel-deep: #7d4517;
   --pink: #f4b2ad;
   --pink-soft: #fde7e4;
   --mint-soft: #e3f2e7;
@@ -28,6 +32,8 @@
   --gutter: 16px;
   --header-h: 68px;
   --tabbar-h: 0px;
+  /* Minimum height of anything you tap; grows to 44px on touch screens */
+  --tap: 36px;
 
   --font-body: var(--font-quicksand), var(--font-zen-maru), var(--font-noto-tc), ui-rounded,
     system-ui, sans-serif;
@@ -121,6 +127,12 @@ button {
   padding: 40px 20px;
   text-align: center;
   color: var(--ink-soft);
+}
+
+@media (pointer: coarse) {
+  :root {
+    --tap: 44px;
+  }
 }
 
 @media (max-width: 767px) {

@@ -233,6 +233,7 @@
 }
 
 .dots button {
+  min-height: var(--tap);
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -332,15 +333,6 @@
   color: var(--orange);
 }
 
-.rule {
-  margin: 26px 0 0;
-  padding-top: 14px;
-  border-top: 2px dashed var(--line);
-  font-size: 13px;
-  line-height: 1.8;
-  color: var(--ink-soft);
-}
-
 @media (max-width: 900px) {
   .pin {
     top: var(--header-h);
@@ -392,9 +384,6 @@
     margin-bottom: 10px;
   }
 
-  .rule {
-    display: none;
-  }
 }
 
 /* Reduced motion: show each illustration's resting frame instead of looping */

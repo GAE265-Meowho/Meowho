@@ -13,7 +13,7 @@ const pillars: { no: string; tag: string; icon: IconName; title: string; body: s
     tag: "記錄｜時光小屋",
     icon: "diary",
     title: "每隻貓，都有自己的時光小屋",
-    body: "貓戶長拍照、說幾句話就能建檔；日記、相簿和 60 秒影片，AI 每週整理成週報，累積成牠完整的生活檔案。",
+    body: "喵戶長拍照、說幾句話就能建檔；日記、相簿和 60 秒影片，AI 每週整理成週報，累積成牠完整的生活檔案。",
     photo: photos.record,
   },
   {
@@ -37,7 +37,7 @@ const pillars: { no: string; tag: string; icon: IconName; title: string; body: s
 const stats: { icon: IconName; value: number; unit: string; label: string }[] = [
   { icon: "cat", value: 128, unit: "隻", label: "貓咪正在等家" },
   { icon: "house", value: 36, unit: "隻", label: "本月移轉到新家" },
-  { icon: "diary", value: 52, unit: "戶", label: "貓戶天天記錄" },
+  { icon: "diary", value: 52, unit: "戶", label: "喵戶天天記錄" },
   { icon: "badge", value: 214, unit: "位", label: "完成 7 天虛擬飼養" },
 ];
 
@@ -73,14 +73,15 @@ export default function CoreValues() {
             <span>從中途到新家立足，</span>
             <span>支撐最重要的一段路。</span>
           </h2>
+          {/* 數據出處（不顯示在前台）：農業部 114 年家犬貓飼養調查；農業部動保司 114 年 11 月
+              全國公立動物收容所收容處理情形統計。引用前請以最新公告為準。 */}
           <p className={styles.lead}>
             台灣家貓已有 174 萬隻（2025），首度超越家犬；公立收容所裡仍有 29% 的動物沒有被認領養，民間中途的貓還不在統計內。中途的紀錄散在 FB 和
             LINE，領養人只能看照片選貓，準備不足又讓貓被退養。
           </p>
           <p className={styles.lead}>
-            MeowWho 貓戶把中途寫下的每一天，接上領養人的準備度：從相遇、先試著同居，到移轉進新家，陪牠走完最重要的那一段路。
+            Meowho喵戶把中途寫下的每一天，接上領養人的準備度：從相遇、先試著同居，到移轉進新家，陪牠走完最重要的那一段路。
           </p>
-          <p className={styles.source}>資料來源：農業部 114 年家犬貓飼養調查；農業部動保司 114 年 11 月全國公立動物收容所收容處理情形統計。</p>
           <div className={styles.perchZone}>
             <CatPerch action="sit" label="從中途出發" className={styles.introPerch} />
           </div>
@@ -125,7 +126,8 @@ export default function CoreValues() {
       </div>
       <Wave color="var(--yellow)" />
 
-      {/* ---- Stats: a white cat-head card straddling the wave ---- */}
+      {/* ---- Stats: a white cat-head card straddling the wave ----
+          Numbers are prototype placeholders; wire them to real counts before launch. */}
       <div className={`wrap ${styles.statsWrap}`}>
         <EarTop color="var(--card)" className={styles.statsEars} />
         <div className={styles.stats}>
@@ -145,7 +147,6 @@ export default function CoreValues() {
             ))}
           </ul>
           <div className={styles.statsFoot}>
-            <span>原型示意數據</span>
             <CatButton href="/#adopt" arrow>
               看看等家的貓
             </CatButton>

@@ -30,7 +30,7 @@
 
 .logo small {
   display: block;
-  font-size: 11px;
+  font-size: 12px;
   color: var(--ink-soft);
 }
 
@@ -59,6 +59,30 @@
   transition: background 0.15s ease, color 0.15s ease;
 }
 
+.nav a {
+  white-space: nowrap;
+}
+
+/* Tablet widths: keep every nav label on one line */
+@media (max-width: 1100px) {
+  .headerInner {
+    gap: 12px;
+  }
+
+  .logo small {
+    display: none;
+  }
+
+  .nav {
+    gap: 0;
+  }
+
+  .nav a {
+    padding: 8px 9px;
+    font-size: 14px;
+  }
+}
+
 .nav a:hover {
   background: var(--paper);
   color: var(--ink);
@@ -66,6 +90,20 @@
 
 .login {
   flex: none;
+}
+
+.ctaShort {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .ctaFull {
+    display: none;
+  }
+
+  .ctaShort {
+    display: inline;
+  }
 }
 
 .footer {
@@ -181,7 +219,7 @@
     align-items: center;
     justify-content: center;
     gap: 2px;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 600;
     color: var(--ink-soft);
   }
@@ -197,8 +235,8 @@
     height: 44px;
     margin-top: -20px;
     border-radius: 50%;
-    background: var(--orange);
+    background: var(--caramel);
     color: #fff;
-    box-shadow: 0 4px 0 -1px var(--orange-deep);
+    box-shadow: 0 4px 0 -1px var(--caramel-deep);
   }
 }

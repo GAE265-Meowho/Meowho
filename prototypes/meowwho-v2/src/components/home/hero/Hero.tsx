@@ -8,14 +8,14 @@ import styles from "./hero.module.css";
 const intents = [
   {
     icon: "house",
-    title: "我是貓戶長，建立貓戶",
-    desc: "飼主或中途都可以：取個貓戶名、設定縣市，就能把每一隻貓放進來",
+    title: "我是喵戶長，建立喵戶",
+    desc: "飼主或中途都可以：取個喵戶名、設定縣市，就能把每一隻貓放進來",
     href: "/onboarding",
     tone: "orange",
   },
   {
     icon: "camera",
-    title: "到貓戶建檔處，新貓入戶",
+    title: "到喵戶建檔處，新貓入戶",
     desc: "拍張照、說幾句話，AI 幫新來的貓整理成一張名片",
     href: "/onboarding?step=cat",
     tone: "mint",
@@ -80,7 +80,7 @@ export default function Hero() {
               </span>
               <span>再帶牠回家！</span>
             </h1>
-            <p className={styles.lead}>中途之家、愛貓人士和想領養的人，在 MeowWho 貓戶記錄貓咪的日常，也讓好的相遇發生。</p>
+            <p className={styles.lead}>中途之家、愛貓人士和想領養的人，在 Meowho喵戶記錄貓咪的日常，也讓好的相遇發生。</p>
 
             <TypeSearch />
 
@@ -92,7 +92,6 @@ export default function Hero() {
                 逛逛帶我回家領養站 →
               </Link>
             </div>
-            <p className={styles.proof}>本月已有 36 隻貓透過 MeowWho 找到家</p>
           </div>
         </div>
       </section>

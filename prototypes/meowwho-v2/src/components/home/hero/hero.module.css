@@ -160,7 +160,7 @@
 }
 
 .searchPill input::placeholder {
-  color: #a8907e;
+  color: #8f7663;
 }
 
 .searchPill > :last-child {
@@ -183,12 +183,6 @@
 .textLink {
   font-weight: 700;
   color: var(--orange-deep);
-}
-
-.proof {
-  margin: 14px 0 0;
-  font-size: 13px;
-  color: var(--ink-soft);
 }
 
 /* ---------- Intent cards ---------- */
@@ -332,7 +326,6 @@
     padding: 9px 16px;
     font-size: 14px;
   }
-
 
   /* Swipeable row of intent cards */
   .intentGrid {

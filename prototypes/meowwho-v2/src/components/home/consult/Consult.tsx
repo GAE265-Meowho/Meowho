@@ -55,7 +55,7 @@ export default function Consult() {
             <span>問喵喵就對了</span>
           </>
         }
-        lead="依貓的年紀整理領養須知與首年花費；費用數字只來自知識庫，不由 AI 自己編。"
+        lead="依貓的年紀，整理領養須知與第一年的花費。"
       />
 
       <div className={styles.grid}>
@@ -78,8 +78,8 @@ export default function Consult() {
               <Icon name="cat" size={22} />
             </span>
             <div>
+              {/* 回答一律來自領養須知知識庫（RAG）；費用數字由知識庫計算，不讓 LLM 自己產生。 */}
               <strong>喵喵小幫手</strong>
-              <small>回答來自領養須知知識庫</small>
             </div>
           </div>
           <div ref={log} className={styles.log} aria-live="polite">

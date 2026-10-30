@@ -100,7 +100,7 @@ export default function Feed() {
               <span>即時動態牆</span>
             </>
           }
-          lead="貓戶與中途之家每天記下的暖心瞬間；移轉到新家後，時間軸也繼續往下寫。"
+          lead="喵戶與中途之家每天記下的暖心瞬間；移轉到新家後，時間軸也繼續往下寫。"
         />
         <div className={styles.perchSpot}>
           <CatPerch action="groom" label="整理儀容準備拍照" className={styles.perch} />
@@ -114,7 +114,7 @@ export default function Feed() {
             AI 每週週報
           </p>
           <h3>橘子的這一週</h3>
-          <p className={styles.reportRange}>10/20 – 10/26・由 6 篇日記與 3 段影片整理</p>
+          <p className={styles.reportRange}>10/20 – 10/26</p>
           <ul>
             <li>
               <strong>食慾</strong>穩定，濕食每餐吃完
@@ -129,7 +129,7 @@ export default function Feed() {
               <strong>新進展</strong>第一次自己走進外出籠
             </li>
           </ul>
-          <p className={styles.reportNote}>週報只整理中途寫下的文字與影片描述，健康疑慮請諮詢獸醫。</p>
+          {/* 週報只整理中途寫下的文字與影片描述，不做健康判斷；有健康字眼時，正式版要在週報內容裡提醒就醫。 */}
           <CatButton href="/#adopt" variant="ghost" size="sm" arrow>
             看橘子的時光小屋
           </CatButton>

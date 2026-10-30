@@ -12,7 +12,7 @@ export const mainNav = [
 export const tabNav: { label: string; href: string; icon: IconName }[] = [
   { label: "首頁", href: "/", icon: "cat" },
   { label: "帶我回家", href: "/#adopt", icon: "search" },
-  { label: "建立貓戶", href: "/onboarding", icon: "plus" },
+  { label: "建立喵戶", href: "/onboarding", icon: "plus" },
   { label: "時光小屋", href: "/#feed", icon: "camera" },
-  { label: "我的貓戶", href: "/me", icon: "house" },
+  { label: "我的喵戶", href: "/me", icon: "house" },
 ];

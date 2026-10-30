@@ -62,7 +62,7 @@ export default function Trial() {
               <span>同居 7 天</span>
             </>
           }
-          lead="虛擬分身參考本尊的照片生成，任務來自中途寫下的真實日記與每週週報。下面是橘子第 3 天的示意，點點看。"
+          lead="任務來自中途寫下的真實日記。點點看，陪橘子的分身過第 3 天。"
         />
       </div>
 
@@ -146,7 +146,6 @@ export default function Trial() {
               <CatButton href="/me" arrow>
                 開始我的 7 天虛擬飼養
               </CatButton>
-              <span>登入後選一隻想領養的貓就能開始。</span>
             </div>
           </div>
 
@@ -161,10 +160,7 @@ export default function Trial() {
               <rect x="0" y="206" width="400" height="8" fill="#efcd9e" />
               <ellipse cx="200" cy="246" rx="120" ry="22" fill="#f6c3b8" />
             </svg>
-            <p className={styles.stageTag}>
-              <Icon name="moon" size={14} />
-              Demo 加速模式：1 天＝5 分鐘
-            </p>
+            {/* Demo 時可開加速模式（1 天＝5 分鐘），由後台設定，不在前台顯示。 */}
             <CatPerch action="eat" label="虛擬飼養第 3 天：吃早餐" className={styles.perch} />
           </div>
         </div>

@@ -8,13 +8,13 @@ export default function SiteHeader() {
   return (
     <header className={styles.header}>
       <div className={`wrap ${styles.headerInner}`}>
-        <Link href="/" className={styles.logo} aria-label="MeowWho 貓戶 首頁">
+        <Link href="/" className={styles.logo} aria-label="Meowho喵戶 首頁">
           <span className={styles.logoMark}>
             <Icon name="cat" size={26} />
           </span>
           <span>
-            <strong>MeowWho</strong>
-            <small>貓戶・讓每隻貓都找到好的家</small>
+            <strong>Meowho</strong>
+            <small>喵戶・讓每隻貓都找到好的家</small>
           </span>
         </Link>
 
@@ -27,7 +27,8 @@ export default function SiteHeader() {
         </nav>
 
         <CatButton href="/me" size="sm" className={styles.login}>
-          登入／建立貓戶
+          <span className={styles.ctaFull}>登入／建立喵戶</span>
+          <span className={styles.ctaShort}>登入</span>
         </CatButton>
       </div>
     </header>

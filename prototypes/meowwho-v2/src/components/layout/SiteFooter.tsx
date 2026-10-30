@@ -20,6 +20,7 @@ function NewHome() {
   );
 }
 
+// Photos are Unsplash License (no attribution required); sources are listed in src/lib/photos.ts.
 export default function SiteFooter() {
   return (
     <footer className={styles.footer}>
@@ -27,17 +28,10 @@ export default function SiteFooter() {
       <div className="wrap">
         <p className={styles.footerBrand}>
           <Icon name="cat" size={22} />
-          <strong>MeowWho 貓戶</strong>｜用 AI 支持終養不棄養
+          <strong>Meowho喵戶</strong>｜用 AI 支持終養不棄養
         </p>
         <p className={styles.footerMeta}>
           <a href="#">隱私權政策與服務條款</a>
-          <span>原型版本：部分畫面資料為示意</span>
-          <span>
-            貓咪照片來自{" "}
-            <a href="https://unsplash.com/license" target="_blank" rel="noreferrer">
-              Unsplash（Unsplash License）
-            </a>
-          </span>
         </p>
       </div>
     </footer>

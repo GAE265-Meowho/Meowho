@@ -1,7 +1,7 @@
 .btn {
-  --fill: var(--orange);
+  --fill: var(--caramel);
   --ink-on: #fff;
-  --edge: var(--orange);
+  --edge: var(--caramel);
   --stripe: #fff3df;
   --h: 46px;
 
@@ -44,12 +44,12 @@
 }
 
 .primary::before {
-  box-shadow: 0 6px 0 -1px var(--orange-deep);
+  box-shadow: 0 6px 0 -1px var(--caramel-deep);
 }
 
 .primary:hover {
-  --fill: #ee9c48;
-  --edge: #ee9c48;
+  --fill: #94551f;
+  --edge: #94551f;
 }
 
 .ghost {
@@ -64,7 +64,7 @@
 }
 
 .sm {
-  --h: 36px;
+  --h: max(36px, var(--tap));
   padding: 0 16px;
   font-size: 13.5px;
 }

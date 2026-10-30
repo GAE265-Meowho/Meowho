@@ -124,7 +124,7 @@
 
 .me {
   align-self: flex-end;
-  background: var(--orange);
+  background: var(--caramel);
   color: #fff;
   border-bottom-right-radius: 6px;
 }
@@ -136,6 +136,7 @@
 }
 
 .faq button {
+  min-height: var(--tap);
   border: 1.5px dashed var(--line);
   border-radius: 999px;
   background: transparent;

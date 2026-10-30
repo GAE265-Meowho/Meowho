@@ -23,6 +23,7 @@
 
 .scope button,
 .filters button {
+  min-height: var(--tap);
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -57,8 +58,47 @@
   color: var(--yellow);
 }
 
-.count {
+.views {
+  display: inline-flex;
   margin-left: auto;
+  padding: 4px;
+  border-radius: 999px;
+  background: var(--card);
+  border: 1.5px solid var(--line);
+}
+
+.views button {
+  min-height: var(--tap);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  padding: 6px 14px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink-soft);
+}
+
+.views .on {
+  background: var(--ink);
+  color: var(--yellow);
+}
+
+/* Card picked from the map glows for a moment */
+.spotlight {
+  animation: spot 2.2s ease-out;
+}
+
+@keyframes spot {
+  0%,
+  60% {
+    box-shadow: 0 0 0 5px var(--yellow), 0 10px 0 -1px var(--yellow);
+  }
+}
+
+.count {
   font-size: 14px;
   color: var(--ink-soft);
 }
@@ -277,7 +317,7 @@
     grid-template-columns: 1fr;
   }
 
-  .count {
+  .views {
     margin-left: 0;
   }
 

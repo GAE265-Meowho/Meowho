@@ -1,4 +1,4 @@
-# MeowWho 貓戶｜首頁 UI 原型 v2
+# Meowho喵戶｜首頁 UI 原型 v2
 
 獨立的 Next.js 設計原型，用來討論首頁的視覺與互動方向。**和主程式（repo 根目錄）完全分開**：有自己的 `package.json`，不接 Supabase，資料都是示意。
 
