@@ -1,0 +1,57 @@
+.section {
+  position: relative;
+  padding-top: 120px;
+}
+
+.head {
+  position: relative;
+  max-width: 640px;
+  margin-bottom: 32px;
+}
+
+.center {
+  margin-left: auto;
+  margin-right: auto;
+  text-align: center;
+}
+
+.kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 12px;
+  padding: 5px 14px 5px 10px;
+  border-radius: 999px;
+  background: var(--yellow);
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.head h2 {
+  margin: 0;
+  font-size: clamp(26px, 3.2vw, 38px);
+  line-height: 1.4;
+  letter-spacing: 0.05em;
+}
+
+.head h2 span {
+  display: inline-block;
+}
+
+.lead {
+  margin: 10px 0 0;
+  color: var(--ink-soft);
+  line-height: 1.9;
+}
+
+@media (max-width: 767px) {
+  .section {
+    padding-top: 88px;
+  }
+
+  .center {
+    text-align: left;
+  }
+}

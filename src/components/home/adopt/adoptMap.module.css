@@ -1,0 +1,288 @@
+.wrap {
+  display: grid;
+  grid-template-columns: minmax(0, 1.9fr) minmax(0, 1fr);
+  gap: 22px;
+  align-items: start;
+}
+
+/* Let both columns shrink; the map scrolls inside its own frame on phones */
+.wrap > * {
+  min-width: 0;
+}
+
+.mapCard {
+  border-radius: 32px;
+  background: #fff8ea;
+  box-shadow: 0 6px 0 -1px var(--line);
+  padding: 8px 8px 14px;
+}
+
+.map svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* ---------- Houses ---------- */
+.house {
+  cursor: pointer;
+  outline: none;
+  transition: opacity 0.25s ease;
+}
+
+.body {
+  transition: transform 0.25s ease;
+}
+
+.house:hover .body,
+.house:focus-visible .body,
+.house.on .body {
+  transform: translateY(-4px);
+}
+
+.dim {
+  opacity: 0.32;
+}
+
+.tagFill {
+  fill: #fffdf8;
+  stroke: #ead9bd;
+  stroke-width: 1.2;
+  transition: fill 0.2s ease;
+}
+
+.tagText {
+  fill: var(--ink);
+}
+
+.on .tagFill {
+  fill: var(--ink);
+  stroke: var(--ink);
+}
+
+.on .tagText {
+  fill: #fff;
+}
+
+/* Houses with no cats waiting keep the map quiet: tag only on hover / focus / select */
+.tag {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.quiet .tag {
+  opacity: 0;
+  transform: translateY(6px);
+}
+
+.quiet:hover .tag,
+.quiet:focus-visible .tag,
+.quiet.on .tag {
+  opacity: 1;
+  transform: none;
+}
+
+.house:focus-visible .tagFill {
+  stroke: var(--orange);
+  stroke-width: 3;
+}
+
+/* ---------- Legend ---------- */
+.legend {
+  list-style: none;
+  margin: 0;
+  padding: 8px 12px 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.legend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.legend i {
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  border: 1.5px solid;
+  transform: rotate(45deg) scale(0.85);
+}
+
+/* ---------- Side panel ---------- */
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 22px;
+  border-radius: 28px;
+  background: var(--card);
+  box-shadow: 0 6px 0 -1px var(--line);
+}
+
+.kind {
+  align-self: flex-start;
+  margin: 0;
+  padding: 3px 12px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 700;
+  background: var(--paper);
+}
+
+.kind[data-kind="waiting"] {
+  background: var(--yellow);
+}
+
+.kind[data-kind="fresh"] {
+  background: var(--pink-soft);
+}
+
+.panel h3 {
+  margin: 2px 0 0;
+  font-size: 22px;
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--ink-soft);
+}
+
+.meta svg {
+  color: var(--orange);
+}
+
+.intro {
+  margin: 4px 0;
+  line-height: 1.8;
+}
+
+.sub {
+  margin: 6px 0 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--orange-deep);
+}
+
+.cats {
+  list-style: none;
+  margin: 0 0 8px;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.cats li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px;
+  border-radius: 18px;
+  background: var(--paper);
+  transition: opacity 0.2s ease;
+}
+
+.catDim {
+  opacity: 0.45;
+}
+
+.thumb {
+  position: relative;
+  flex: none;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--yellow-soft);
+  box-shadow: 0 0 0 2.5px var(--yellow);
+}
+
+.thumb img {
+  object-fit: cover;
+}
+
+.catText {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.catText strong {
+  font-size: 16px;
+}
+
+.catText small {
+  font-size: 12.5px;
+  color: var(--ink-soft);
+}
+
+.showCard {
+  min-height: var(--tap);
+  flex: none;
+  border: 1.5px solid var(--orange);
+  border-radius: 999px;
+  background: var(--card);
+  padding: 5px 12px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--orange-deep);
+}
+
+.showCard:hover {
+  background: var(--caramel);
+  color: #fff;
+}
+
+.none {
+  margin: 4px 0 8px;
+  color: var(--ink-soft);
+}
+
+.latest {
+  margin: 8px 0 0;
+  padding: 10px 14px;
+  border-left: 4px solid var(--yellow);
+  border-radius: 0 14px 14px 0;
+  background: var(--paper);
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.latest small {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--orange-deep);
+}
+
+@media (max-width: 960px) {
+  .wrap {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 767px) {
+  /* Tags stay readable: let the map be wider than the screen and pan sideways */
+  .map {
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .map svg {
+    width: 640px;
+    max-width: none;
+  }
+
+  .panel {
+    padding: 18px;
+  }
+}

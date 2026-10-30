@@ -1,31 +1,31 @@
 import type { Metadata, Viewport } from "next";
+import { Quicksand, Zen_Maru_Gothic, Noto_Sans_TC } from "next/font/google";
 import "./globals.css";
 import "./template.css";
 import { Providers } from "@/components/Providers";
 import { AuthProvider } from "@/components/Auth";
 
+const quicksand = Quicksand({ variable: "--font-quicksand", subsets: ["latin"], weight: ["500", "600", "700"] });
+// CJK fonts are large, so skip preloading and let unicode-range split them.
+const zenMaru = Zen_Maru_Gothic({ variable: "--font-zen-maru", weight: ["500", "700"], preload: false });
+const notoTC = Noto_Sans_TC({ variable: "--font-noto-tc", weight: ["400", "500", "700"], preload: false });
+
 export const metadata: Metadata = {
   title: "Meowho喵戶",
-  description: "中途之家、愛貓人士與想領養的人一起記錄、交流與相遇的貓社群。",
+  description: "讓每一隻貓從中途到新家立足：一句話 AI 配對、7 天虛擬飼養，再帶牠回家。",
 };
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: "#FFFDF5",
+  themeColor: "#FBF5EA",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="zh-Hant">
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
-        {/* eslint-disable-next-line @next/next/no-page-custom-font */}
-        <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;700&family=Zen+Maru+Gothic:wght@500;700&family=Noto+Sans+TC:wght@500;700&display=swap" rel="stylesheet" />
-      </head>
-      <body>
+      <body className={`${quicksand.variable} ${zenMaru.variable} ${notoTC.variable}`}>
         <AuthProvider><Providers>{children}</Providers></AuthProvider>
       </body>
     </html>

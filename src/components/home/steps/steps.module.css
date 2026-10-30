@@ -1,0 +1,406 @@
+/* Tall scroll track; the panel inside stays pinned while each third swaps the step. */
+.track {
+  position: relative;
+  height: 300vh;
+  margin-top: 80px;
+}
+
+.pin {
+  position: sticky;
+  top: var(--header-h);
+  height: calc(100svh - var(--header-h));
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 56px;
+  align-items: center;
+}
+
+/* ---------- Left: looping illustration ---------- */
+.stage {
+  position: relative;
+  aspect-ratio: 5 / 4;
+}
+
+.artWrap {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transform: translateY(16px) scale(0.98);
+  transition: opacity 0.45s ease, transform 0.45s ease;
+}
+
+.artWrap.show {
+  opacity: 1;
+  transform: none;
+}
+
+.art {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Step 1: scanning beam + risk markers */
+.beam {
+  animation: scan 2.6s ease-in-out infinite alternate;
+}
+
+@keyframes scan {
+  to {
+    transform: translateY(226px);
+  }
+}
+
+.marker {
+  animation: pop 3.6s ease-out infinite both;
+}
+
+@keyframes pop {
+  0%,
+  8% {
+    transform: scale(0);
+    opacity: 0;
+  }
+  16% {
+    transform: scale(1.15);
+    opacity: 1;
+  }
+  22%,
+  80% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  92%,
+  100% {
+    transform: scale(0);
+    opacity: 0;
+  }
+}
+
+/* Step 2: days tick off one by one, tail sways, a heart floats up */
+.day {
+  animation: tick 4.6s ease-out infinite both;
+}
+
+@keyframes tick {
+  0%,
+  4% {
+    transform: scale(0);
+  }
+  10%,
+  82% {
+    transform: scale(1);
+  }
+  92%,
+  100% {
+    transform: scale(0);
+  }
+}
+
+.catTail {
+  transform-origin: 64px 70px;
+  animation: sway 1.4s ease-in-out infinite alternate;
+}
+
+@keyframes sway {
+  from {
+    transform: rotate(-12deg);
+  }
+  to {
+    transform: rotate(14deg);
+  }
+}
+
+.heart {
+  transform-origin: 176px 140px;
+  animation: float 2.8s ease-out infinite;
+}
+
+@keyframes float {
+  0% {
+    transform: translateY(10px) scale(0.4);
+    opacity: 0;
+  }
+  25% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-46px) scale(1);
+    opacity: 0;
+  }
+}
+
+/* Step 3: application card + stamp, then the cat walks to its new home */
+.card {
+  animation: cardIn 4.8s ease-out infinite both;
+}
+
+@keyframes cardIn {
+  0% {
+    transform: translateY(16px);
+    opacity: 0;
+  }
+  10%,
+  86% {
+    transform: none;
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.stamp {
+  animation: stamp 4.8s ease-out infinite both;
+}
+
+@keyframes stamp {
+  0%,
+  22% {
+    transform: scale(0);
+  }
+  30% {
+    transform: scale(1.25);
+  }
+  36%,
+  100% {
+    transform: scale(1);
+  }
+}
+
+.walker {
+  animation: walk 4.8s ease-in-out infinite both;
+}
+
+@keyframes walk {
+  0%,
+  34% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translate(50px, -6px);
+  }
+  58% {
+    transform: translate(80px, 0);
+  }
+  74% {
+    transform: translate(130px, -6px);
+  }
+  84%,
+  100% {
+    transform: translate(158px, 0);
+  }
+}
+
+/* ---------- Right: text ---------- */
+.kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 10px;
+  padding: 5px 14px 5px 10px;
+  border-radius: 999px;
+  background: var(--yellow);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.text h2 {
+  margin: 0 0 22px;
+  font-size: clamp(24px, 2.8vw, 34px);
+  line-height: 1.4;
+  letter-spacing: 0.05em;
+}
+
+.text h2 span {
+  display: inline-block;
+}
+
+.dots {
+  list-style: none;
+  margin: 0 0 22px;
+  padding: 0;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.dots button {
+  min-height: var(--tap);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1.5px solid var(--line);
+  border-radius: 999px;
+  background: var(--card);
+  padding: 4px 12px 4px 4px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink-soft);
+  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+.dots button span {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--paper);
+  font-family: var(--font-quicksand), sans-serif;
+}
+
+.dots .dotOn {
+  border-color: var(--ink);
+  background: var(--ink);
+  color: var(--yellow);
+}
+
+.dots .dotOn span {
+  background: var(--yellow);
+  color: var(--ink);
+}
+
+.dots .dotDone span {
+  background: var(--yellow);
+  color: var(--ink);
+}
+
+.content {
+  min-height: 220px;
+  animation: contentIn 0.45s ease both;
+}
+
+@keyframes contentIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+
+.no {
+  margin: 0;
+  font-family: var(--font-quicksand), sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--orange-deep);
+}
+
+.no small {
+  color: var(--ink-soft);
+}
+
+.content h3 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 4px 0 12px;
+  font-size: clamp(24px, 2.6vw, 32px);
+}
+
+.content h3 svg {
+  flex: none;
+  color: var(--orange);
+}
+
+.body {
+  margin: 0 0 16px;
+  line-height: 1.95;
+  color: var(--ink-soft);
+}
+
+.reward {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: var(--card);
+  border: 1.5px dashed var(--yellow-deep);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.reward svg {
+  color: var(--orange);
+}
+
+@media (max-width: 900px) {
+  .pin {
+    top: var(--header-h);
+    height: calc(100svh - var(--header-h) - var(--tabbar-h));
+    align-items: flex-start;
+    padding-top: 12px;
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .stage {
+    width: min(100%, 360px);
+    margin: 0 auto;
+    aspect-ratio: 5 / 3.6;
+  }
+
+  .text h2 {
+    margin-bottom: 10px;
+    font-size: 21px;
+  }
+
+  .kicker {
+    display: none;
+  }
+
+  .dots {
+    margin-bottom: 10px;
+  }
+
+  .dots button {
+    font-size: 12px;
+  }
+
+  .content {
+    min-height: 0;
+  }
+
+  .content h3 {
+    font-size: 21px;
+    margin-bottom: 6px;
+  }
+
+  .body {
+    font-size: 14px;
+    line-height: 1.8;
+    margin-bottom: 10px;
+  }
+
+}
+
+/* Reduced motion: show each illustration's resting frame instead of looping */
+@media (prefers-reduced-motion: reduce) {
+  .beam,
+  .marker,
+  .day,
+  .catTail,
+  .heart,
+  .card,
+  .stamp,
+  .walker,
+  .content {
+    animation: none !important;
+  }
+
+  .artWrap {
+    transition: none;
+  }
+}

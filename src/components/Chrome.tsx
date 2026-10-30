@@ -3,6 +3,11 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { getBrowserSupabase } from "@/lib/supabase/client";
+import CatPerch from "@/components/journey/CatPerch";
+import CatButton from "@/components/ui/CatButton";
+import Icon from "@/components/ui/Icon";
+import { mainNav, tabNav } from "@/components/layout/nav";
+import styles from "@/components/layout/layout.module.css";
 import { useUi } from "./Providers";
 import { useAuth } from "./Auth";
 
@@ -25,23 +30,28 @@ export function BellIcon({ size = 28 }: { size?: number }) {
   );
 }
 
+// 版型照 docs/design/DESIGN.md v2（原型 prototypes/meowwho-v2）；LOGO 仍由後台設定（useUi().logo）
 export function SiteHeader() {
   const { logo } = useUi();
   return (
-    <header className="topbar">
-      <div className="wrap topbar-in">
-        <Link className="brand" href="/" aria-label="Meowho喵戶 首頁">
-          <img src={logo.src} alt="" />
-          <span className="brand-name">Meowho喵戶<small>讓每隻貓都找到好的家</small></span>
+    <header className={styles.header}>
+      <div className={`wrap ${styles.headerInner}`}>
+        <Link href="/" className={styles.logo} aria-label="Meowho喵戶 首頁">
+          <img className={styles.logoImg} src={logo.src} alt="" />
+          <span>
+            <strong>Meowho</strong>
+            <small>喵戶・讓每隻貓都找到好的家</small>
+          </span>
         </Link>
-        <nav className="mainnav" aria-label="主選單">
-          <Link href="/">首頁大廳</Link>
-          <Link href="/community">喵戶小區</Link>
-          <Link href="/#adopt">尋找貓咪</Link>
-          <Link href="/#trial">虛擬試養</Link>
-          <Link href="/#feed">貓咪動態</Link>
-          <Link href="/#consult">養貓知識</Link>
+
+        <nav className={styles.nav} aria-label="主選單">
+          {mainNav.map((item) => (
+            <Link key={item.href} href={item.href}>
+              {item.label}
+            </Link>
+          ))}
         </nav>
+
         <UserArea />
       </div>
     </header>
@@ -61,39 +71,61 @@ function useUnreadCount(userId: string | undefined) {
 }
 
 function UserArea() {
-  const { user, profile } = useAuth();
+  const { user, profile, configured, login } = useAuth();
+  const { toast } = useUi();
   const unread = useUnreadCount(user?.id);
   if (user) {
     const avatar = profile?.avatar_url ?? (user.user_metadata?.avatar_url as string | undefined);
     return (
-      <div className="top-actions">
-        <Link href="/notifications" className="icon-btn bell" aria-label={`通知${unread ? `，${unread} 則未讀` : ""}`}>
-          <BellIcon />{unread > 0 && <span className="badge">{unread > 99 ? "99+" : unread}</span>}
+      <div className={styles.userArea}>
+        <Link href="/notifications" className={styles.iconBtn} aria-label={`通知${unread ? `，${unread} 則未讀` : ""}`}>
+          <BellIcon />{unread > 0 && <span className={styles.badge}>{unread > 99 ? "99+" : unread}</span>}
         </Link>
-        <Link href="/me" className="me-link" aria-label="我的貓戶">
-          {avatar ? <img src={avatar} alt="" referrerPolicy="no-referrer" /> : <span aria-hidden="true">🐱</span>}
+        <Link href="/me" className={styles.avatar} aria-label="我的喵戶">
+          {avatar ? <img src={avatar} alt="" referrerPolicy="no-referrer" /> : <Icon name="cat" size={22} />}
         </Link>
       </div>
     );
   }
   return (
-    <div className="top-actions">
-      <button className="btn btn-cat" data-login>登入／建立貓戶
-        <span className="tail" aria-hidden="true">
-          <svg viewBox="0 0 30 34"><path d="M2 8c10-4 22 2 24 13 1.5 7-3 11-9 11" fill="none" stroke="#E8913A" strokeWidth="9" strokeLinecap="round" /><path d="M2 8c10-4 22 2 24 13 1.5 7-3 11-9 11" fill="none" stroke="#C9701F" strokeWidth="1" strokeLinecap="round" opacity=".0" /><path d="M17 12.5l9 3M18.5 20l8.5 1.5" stroke="#FFF" strokeWidth="2" strokeLinecap="round" opacity=".9" /></svg>
-        </span>
-      </button>
+    <CatButton size="sm" className={styles.login} onClick={() => (configured ? void login() : toast("登入功能尚未設定（需要 Supabase 環境變數）"))}>
+      <span className={styles.ctaFull}>登入／建立喵戶</span>
+      <span className={styles.ctaShort}>登入</span>
+    </CatButton>
+  );
+}
+
+/** 首頁 3D 橘子一路走到頁尾的終點：新家門口；其他頁沒有 CatJourney，這個 perch 只是看不見的定位點 */
+function NewHome() {
+  return (
+    <div className={styles.newHome} aria-hidden>
+      <svg viewBox="0 0 260 150">
+        <path d="M30 70 130 6l100 64v74a6 6 0 0 1-6 6H36a6 6 0 0 1-6-6Z" fill="#fff" />
+        <path d="M14 78 130 2l116 76-10 12L130 22 24 90Z" fill="var(--orange)" />
+        <rect x="58" y="78" width="44" height="36" rx="6" fill="var(--yellow-soft)" />
+        <path d="M80 78v36M58 96h44" stroke="#fff" strokeWidth="4" />
+        <rect x="150" y="80" width="50" height="70" rx="25" fill="var(--yellow)" />
+        <circle cx="188" cy="118" r="3.5" fill="var(--orange-deep)" />
+      </svg>
+      <span className={styles.doorstep} />
+      <CatPerch action="sleep" label="到新家了，睡得好安心" className={styles.homePerch} />
     </div>
   );
 }
 
+// 首頁照片為 Unsplash License（不需標示來源），來源清單在 src/lib/home-photos.ts
 export function SiteFooter() {
   return (
-    <footer className="footer">
-      <div className="wrap footer-in">
-        <span><b>Meowho喵戶</b>｜用 AI 支持終養不棄養 🐾</span>
-        <Link href="/legal">隱私權政策與服務條款</Link>
-        <span>原型版本：部分畫面資料為示意</span>
+    <footer className={styles.footer}>
+      <NewHome />
+      <div className="wrap">
+        <p className={styles.footerBrand}>
+          <Icon name="cat" size={22} />
+          <strong>Meowho喵戶</strong>｜用 AI 支持終養不棄養
+        </p>
+        <p className={styles.footerMeta}>
+          <Link href="/legal">隱私權政策與服務條款</Link>
+        </p>
       </div>
     </footer>
   );
@@ -112,12 +144,15 @@ export function PageBrandTitle({ title }: { title: string }) {
 
 export function TabBar() {
   return (
-    <nav className="tabbar" aria-label="手機導覽">
-      <Link href="/"><span aria-hidden="true">🐾</span>首頁大廳</Link>
-      <Link href="/#adopt"><span aria-hidden="true">🔍</span>尋找貓咪</Link>
-      <Link href="/onboarding" className="on"><span aria-hidden="true">➕</span>建立貓戶</Link>
-      <Link href="/#feed"><span aria-hidden="true">📷</span>貓咪動態</Link>
-      <Link href="/me"><span aria-hidden="true">🏠</span>我的貓戶</Link>
+    <nav className={styles.tabbar} aria-label="手機選單">
+      {tabNav.map((item) => (
+        <Link key={item.href} href={item.href} className={item.href === "/onboarding" ? styles.tabMain : undefined}>
+          <span className={styles.tabIcon}>
+            <Icon name={item.icon} size={22} />
+          </span>
+          {item.label}
+        </Link>
+      ))}
     </nav>
   );
 }
