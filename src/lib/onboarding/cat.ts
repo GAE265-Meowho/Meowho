@@ -19,10 +19,27 @@ export interface CatDraft {
   photoUrl: string | null;
 }
 
+export interface CatPhotoSuggestion {
+  isCat: boolean;
+  breed: string | null;
+  coat: string | null;
+  confidence: number;
+}
+
 export const emptyCatDraft = (): CatDraft => ({
   name: "", sex: null, birthday: null, estAgeMonths: null, breed: "", coat: "",
   bloodType: "unknown", neutered: null, traits: [], quirks: "", notes: "", photoUrl: null,
 });
+
+/** 低信心的 Vision 結果只顯示給使用者參考，不直接寫入名片。 */
+export function applyPhotoSuggestion(draft: CatDraft, result: CatPhotoSuggestion): CatDraft {
+  if (!result.isCat || result.confidence < 0.5) return draft;
+  return {
+    ...draft,
+    breed: result.breed ?? draft.breed,
+    coat: result.coat ?? draft.coat,
+  };
+}
 
 export type CatStep = "photo" | "name" | "sex" | "age" | "story" | "review";
 export const CAT_STEPS: CatStep[] = ["photo", "name", "sex", "age", "story", "review"];

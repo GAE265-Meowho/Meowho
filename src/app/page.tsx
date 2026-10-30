@@ -1,6 +1,6 @@
 import { SiteFooter, SiteHeader, TabBar } from "@/components/Chrome";
 import { Hero, Intent } from "@/components/Hero";
-import { Adopt, Consult, Feed, Stats, Steps, TrialBoard } from "@/components/Sections";
+import { Adopt, Consult, Feed, Stats, Steps, Timeline, TrialBoard } from "@/components/Sections";
 
 export default function Home() {
   return (
@@ -9,6 +9,7 @@ export default function Home() {
       <main id="top">
         <Intent />
         <Hero />
+        <Timeline />
         <Stats />
         <Adopt />
         <Steps />

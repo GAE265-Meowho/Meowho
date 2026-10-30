@@ -1,4 +1,4 @@
-# Meow Home 貓戶｜端對端測試計畫（End-to-End Test Plan）
+# Meowho喵戶｜端對端測試計畫（End-to-End Test Plan）
 
 > v1.0｜2026/10/28｜以真實使用者旅程驗證整個系統，同時作為 11/26 Demo 腳本的基礎
 

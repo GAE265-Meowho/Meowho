@@ -1,15 +1,15 @@
-# Meow Home 名詞表（Glossary）
+# Meowho喵戶 名詞表（Glossary）
 
 > 只收錄已確認的領域用語，不含實作細節。日常用語另見 `AGENTS.md` §8。更新：2026/10/28
 
 ## 產品
 
-**Meow Home**
+**Meowho喵戶**
 前台產品名稱（貓社群＋領養媒合平台）。
-避免用：MeowHome、CAT Home、貓戶（「貓戶」是會員的貓咪之家，不是產品名）
+避免用：Meow Home、MeowHome、CAT Home、貓戶（「貓戶」是會員的貓咪之家，不是產品名）。2026-10-29 起產品名改為 Meowho喵戶（標語：讓每隻貓都找到好的家）
 
 **MeowHQ｜喵星總部**（Meow Headquarters）
-Meow Home 的後台管理系統名稱。
+Meowho喵戶 的後台管理系統名稱。
 避免用：管理後台、Console、喵掌櫃
 
 ## 會員

@@ -1,9 +1,9 @@
 {
-  "name": "MeowHome",
+  "name": "Meowho喵戶",
   "image": "mcr.microsoft.com/devcontainers/javascript-node:20",
   "postCreateCommand": "npm install",
   "postAttachCommand": "npm run dev",
   "forwardPorts": [3000],
-  "portsAttributes": { "3000": { "label": "MeowHome 預覽", "onAutoForward": "openPreview" } },
+  "portsAttributes": { "3000": { "label": "Meowho喵戶 預覽", "onAutoForward": "openPreview" } },
   "customizations": { "vscode": { "extensions": ["dbaeumer.vscode-eslint"] } }
 }

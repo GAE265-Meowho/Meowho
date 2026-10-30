@@ -1,10 +1,11 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import "./template.css";
 import { Providers } from "@/components/Providers";
 import { AuthProvider } from "@/components/Auth";
 
 export const metadata: Metadata = {
-  title: "MeowHome 貓戶",
+  title: "Meowho喵戶",
   description: "中途之家、愛貓人士與想領養的人一起記錄、交流與相遇的貓社群。",
 };
 

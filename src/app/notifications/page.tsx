@@ -24,7 +24,7 @@ export default function NotificationsPage() {
 
   let body: React.ReactNode;
   if (!configured) body = <p className="demo-note">示範模式：尚未連接資料庫。</p>;
-  else if (!loading && !user) body = <section className="profile-card center"><h2>🔔 通知</h2><button className="btn block" onClick={() => login("/notifications")}>使用 Google 登入</button></section>;
+  else if (!loading && !user) body = <section className="profile-card center"><h2>通知</h2><button className="btn block" onClick={() => login("/notifications")}>使用 Google 登入</button></section>;
   else if (!list) body = <p className="sub center">載入中…</p>;
   else if (list.length === 0) body = <section className="profile-card center"><div className="big-emoji" aria-hidden="true">📭</div><h2>目前沒有通知</h2></section>;
   else body = (
@@ -39,7 +39,7 @@ export default function NotificationsPage() {
   return (
     <>
       <SiteHeader />
-      <main className="wrap onboarding"><h1 className="h2">🔔 通知</h1>{body}</main>
+      <main className="wrap onboarding"><h1 className="h2">通知</h1>{body}</main>
       <TabBar />
     </>
   );

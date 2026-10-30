@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
-  applyAnswerByRules, emptyHouseholdDraft, parseCatCount, parseCaretaker, parseCity, parseDistrict,
-  parseYesNo, stepComplete, toHouseholdRow, validateHousehold,
+  HOUSEHOLD_QUESTIONS, applyAnswerByRules, askHousehold, emptyHouseholdDraft, parseCatCount, parseCaretaker, parseCity, parseDistrict,
+  parseYesNo, retryHousehold, stepComplete, toHouseholdRow, validateHousehold,
 } from "./household";
 
 describe("縣市與區解析（FR-02-07：只存縣市＋區）", () => {
@@ -96,4 +96,20 @@ describe("貓戶數量上限", () => {
     expect(canCreateHousehold(1)).toBe(true);
     expect(canCreateHousehold(2)).toBe(false);
   });
+});
+
+describe("提問帶入貓戶名稱（Tina 2026-10-29 回報）", () => {
+  const named = { ...emptyHouseholdDraft(), name: "鳥屋" };
+  it("問位置時說「請提供「鳥屋」的位置」", () => {
+    const ask = askHousehold("location", named);
+    expect(ask).toContain("請提供「鳥屋」的位置");
+    expect(ask).toContain("哪個縣市、哪一區");
+    expect(ask).toContain("不會顯示詳細地址");
+  });
+  it("問介紹時也帶名稱", () => expect(askHousehold("intro", named)).toContain("「鳥屋」"));
+  it("還沒有名稱時用原本的問法", () => {
+    expect(askHousehold("location", emptyHouseholdDraft())).toBe(HOUSEHOLD_QUESTIONS.location.ask);
+  });
+  it("其他題目不變", () => expect(askHousehold("messages", named)).toBe(HOUSEHOLD_QUESTIONS.messages.ask));
+  it("位置重問時也帶名稱", () => expect(retryHousehold("location", named)).toContain("「鳥屋」"));
 });

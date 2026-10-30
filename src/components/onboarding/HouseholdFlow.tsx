@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import {
-  CARETAKER_LABEL, HOUSEHOLD_QUESTIONS, HOUSEHOLD_STEPS, RETRY_PROMPT, emptyHouseholdDraft, stepComplete,
+  CARETAKER_LABEL, HOUSEHOLD_QUESTIONS, HOUSEHOLD_STEPS, askHousehold, emptyHouseholdDraft, retryHousehold, stepComplete,
   toHouseholdRow, validateHousehold, type CaretakerType, type HouseholdDraft, type HouseholdStep,
 } from "@/lib/onboarding/household";
 import { CITIES } from "@/lib/match";
@@ -36,13 +36,13 @@ export function HouseholdFlow({ onCreated }: { onCreated: (householdId: string |
       setBusy(false); return;
     }
     setBusy(false);
-    if (!stepComplete(next, step)) { setMessages(m => [...m, botMsg(RETRY_PROMPT[step as Q])]); return; }
+    if (!stepComplete(next, step)) { setMessages(m => [...m, botMsg(retryHousehold(step as Q, next))]); return; }
     setDraft(next);
     const idx = HOUSEHOLD_STEPS.indexOf(step);
     const ns = HOUSEHOLD_STEPS[idx + 1];
     const out: ChatMessage[] = [];
     if (reply) out.push(botMsg(reply));
-    out.push(botMsg(ns === "review" ? "太好了，這是你的貓戶名片！確認一下，有需要可以直接修改，再按「建立貓戶」。" : HOUSEHOLD_QUESTIONS[ns as Q].ask));
+    out.push(botMsg(ns === "review" ? "太好了，這是你的貓戶名片！確認一下，有需要可以直接修改，再按「建立貓戶」。" : askHousehold(ns as Q, next)));
     setMessages(m => [...m, ...out]);
     setStep(ns);
   }

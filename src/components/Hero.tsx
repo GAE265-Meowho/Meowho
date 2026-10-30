@@ -57,7 +57,7 @@ export function Hero() {
       <div className="wrap hero-in">
         <div>
           <span className="announce" id="adopt-search">✨ 領養前，先跟牠的分身同居 7 天 <span className="pill pink">新功能</span></span>
-          <h2 className="stroked hero-title">讓貓貓找到你，<span>先試著同居，再帶牠回家！</span></h2>
+          <h2 className="stroked hero-title">讓每隻貓都找到<span>好的家</span></h2>
           <p className="lede">中途之家、愛貓人士和想領養的人，在這裡記錄貓咪的日常，也讓好的相遇發生。</p>
 
           <form className="search" role="search" onSubmit={e => { e.preventDefault(); run(q); }}>
@@ -109,7 +109,7 @@ export function Hero() {
             <div className="faces">
               {(["orange", "black", "calico", "gray"] as const).map(k => <img key={k} src={photo(k)} alt="" />)}
             </div>
-            <span>本月已有 <b>36</b> 隻貓透過 MeowHome 找到家</span>
+            <span>本月已有 <b>36</b> 隻貓透過 Meowho喵戶 找到家</span>
           </div>
         </div>
 

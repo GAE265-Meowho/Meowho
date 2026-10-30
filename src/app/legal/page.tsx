@@ -2,7 +2,7 @@ import Link from "next/link";
 import { PageBrandTitle, SiteFooter, SiteHeader } from "@/components/Chrome";
 import { loadLegalText } from "@/lib/legal.server";
 
-export const metadata = { title: "隱私權政策與服務條款｜Meow Home" };
+export const metadata = { title: "隱私權政策與服務條款｜Meowho喵戶" };
 
 // 呈現 docs/spec/08 的條款全文（標題改由 PageBrandTitle 顯示）
 export default async function LegalPage() {

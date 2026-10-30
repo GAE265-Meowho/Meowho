@@ -158,7 +158,7 @@ export function AuthTab() {
       <section className="hq-section" aria-label="新增管理員">
         <h2>新增管理員</h2>
         <div className="hq-box">
-          <p className="hq-hint">對方需先用 Google 登入過 Meow Home。管理員同時仍可以是貓戶長或貓友。</p>
+          <p className="hq-hint">對方需先用 Google 登入過 Meowho喵戶。管理員同時仍可以是貓戶長或貓友。</p>
           <div className="hq-row">
             <input className="hq-input" type="email" value={newEmail} onChange={e => setNewEmail(e.target.value)} placeholder="Email" aria-label="Email" />
             <select className="hq-input" value={newRole} onChange={e => setNewRole(e.target.value as "admin" | "system_admin")} aria-label="角色">

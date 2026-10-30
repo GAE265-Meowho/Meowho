@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
-  ageBandOf, ageLabel, ageMonths, emptyCatDraft, extractStoryByRules, parseAge, parseSex,
+  ageBandOf, ageLabel, ageMonths, applyPhotoSuggestion, emptyCatDraft, extractStoryByRules, parseAge, parseSex,
   storyDiff, toCatRow, validateCat, zodiacOf,
 } from "./cat";
 
@@ -43,6 +43,18 @@ describe("回答解析", () => {
     expect(parseAge("大約6個月", today)).toEqual({ birthday: null, estAgeMonths: 6 });
     expect(parseAge("兩歲半左右", today).estAgeMonths).toBe(24);
     expect(parseAge("2023年撿到的", today)).toEqual({ birthday: null, estAgeMonths: 36 });
+  });
+});
+
+describe("照片辨識建議（UT-03-04）", () => {
+  it("信心低於 0.5 時不預填品種與毛色", () => {
+    const draft = emptyCatDraft();
+    expect(applyPhotoSuggestion(draft, { isCat: true, breed: "米克斯", coat: "橘白", confidence: 0.49 })).toEqual(draft);
+  });
+
+  it("信心達標時才套用品種與毛色", () => {
+    const result = applyPhotoSuggestion(emptyCatDraft(), { isCat: true, breed: "米克斯", coat: "橘白", confidence: 0.5 });
+    expect(result).toMatchObject({ breed: "米克斯", coat: "橘白" });
   });
 });
 

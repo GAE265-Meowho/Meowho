@@ -1,4 +1,4 @@
-/* MeowHome｜Cozy Cat Nook 設計系統（依 Google Stitch 設計稿 DESIGN.md） */
+/* Meowho喵戶｜Cozy Cat Nook 設計系統（依 Google Stitch 設計稿 DESIGN.md） */
 :root {
   /* 底色與文字（不使用純白、純黑） */
   --canvas: #FFFDF5;
@@ -70,7 +70,7 @@ button { font: inherit; color: inherit; cursor: pointer }
 .topbar { position: sticky; top: 0; z-index: 30; background: rgba(255, 253, 245, .92); backdrop-filter: blur(10px); border-bottom: 2px solid var(--line-soft) }
 .topbar-in { display: flex; align-items: center; gap: 1rem; height: 72px }
 .brand { display: flex; align-items: center; gap: .6rem; text-decoration: none }
-.brand img { width: 52px; height: 52px; border-radius: 16px; object-fit: cover; border: 2px solid var(--line-soft) }
+.brand img { width: 52px; height: 52px; border-radius: 16px; object-fit: contain; background: #FFFDF8; border: 2px solid var(--line-soft) }
 .brand-name { font-weight: 700; font-size: 1.25rem; line-height: 1.1 }
 .brand-name small { display: block; font-size: .72rem; color: var(--cocoa-2); font-weight: 500 }
 .mainnav { display: none; gap: .3rem; margin-left: .5rem }
@@ -235,7 +235,7 @@ dialog::backdrop { background: rgba(74, 59, 50, .35) }
 dialog h2 { margin: 0; font-size: 1.3rem }
 .logo-pick { display: grid; grid-template-columns: repeat(3, 1fr); gap: .7rem; margin: 1rem 0 1.2rem }
 .logo-opt { border: 2px solid var(--line-soft); border-radius: 20px; padding: .4rem; background: #FFFDF5; font-size: .78rem; font-weight: 700; color: var(--cocoa-2) }
-.logo-opt img { border-radius: 14px; margin-bottom: .3rem; aspect-ratio: 1; object-fit: cover }
+.logo-opt img { border-radius: 14px; margin-bottom: .3rem; aspect-ratio: 1; object-fit: contain; background: #FFFDF8 }
 .logo-opt[aria-pressed="true"] { border-color: var(--peach); box-shadow: 0 4px 0 var(--peach-dk); color: var(--brick) }
 .dlg-actions { text-align: right }
 
@@ -385,3 +385,40 @@ dialog h2 { margin: 0; font-size: 1.3rem }
 .page-brand img { width: 72px; height: 72px; border-radius: 20px; object-fit: cover; border: 2px solid var(--line-soft); flex: none }
 .page-brand-name { font-weight: 700; color: var(--brick); font-size: .95rem }
 .page-brand h1 { margin: .1rem 0 0; font-size: clamp(1.25rem, 1rem + 1.2vw, 1.6rem); line-height: 1.35 }
+
+/* 喵戶小區（Issue #44） */
+.town { display: grid; gap: 1rem; padding: 1.25rem 0 2rem; position: relative }
+.town-head { background: var(--card); border: 2px solid var(--line-soft); border-radius: var(--r-md); padding: 1rem 1.2rem; box-shadow: var(--sh-1) }
+.town-kicker { margin: 0 0 .2rem; font-size: .8rem; font-weight: 700; color: var(--cocoa-2) }
+.town-head h1 { margin: 0 0 .2rem; font-size: clamp(1.4rem, 5vw, 2rem) }
+.town-back { justify-self: start; font-weight: 700; color: var(--cocoa-2); border: 2px solid var(--line-soft); border-radius: var(--r-full); padding: .4rem 1rem; background: var(--card); text-decoration: none }
+.town-map { overflow-x: auto; border-radius: var(--r-lg) }
+.town-svg { display: block; width: 100%; min-width: 620px; height: auto; background: radial-gradient(ellipse at 50% 30%, #FFF9EC, #F6EEDC); border: 2px solid var(--line-soft); border-radius: var(--r-lg) }
+.town-list { display: flex; flex-wrap: wrap; gap: .45rem }
+.town-list .chip { display: inline-flex; align-items: center; gap: .4rem }
+.town-list .chip i { width: .65rem; height: .65rem; border-radius: 50%; border: 1.5px solid #B9AB98 }
+.town-list .chip.on { background: var(--cocoa); color: #FFF; border-color: var(--cocoa) }
+.town-tag { cursor: pointer; outline: none }
+.town-tag:hover rect, .town-tag:focus-visible rect { stroke: var(--peach); stroke-width: 2 }
+.town-house.on { filter: drop-shadow(0 4px 6px rgba(90, 70, 56, .25)) }
+.town-legend { display: flex; flex-wrap: wrap; gap: .5rem 1.2rem; font-size: .85rem; font-weight: 700; color: var(--cocoa-2); background: var(--card); border: 2px solid var(--line-soft); border-radius: var(--r-full); padding: .6rem 1.1rem }
+.town-legend span { display: inline-flex; align-items: center; gap: .4rem }
+.town-legend i { width: .8rem; height: .8rem; border-radius: 50%; border: 2px solid; display: inline-block }
+.town-legend b { background: var(--oat); border-radius: var(--r-full); padding: 0 .5rem; font-size: .75rem }
+.town-card { background: var(--card); border: 2px solid var(--cocoa-line); border-radius: var(--r-md); padding: 1rem 1.2rem; box-shadow: 0 4px 0 var(--line-soft) }
+.town-card h2 { margin: 0 0 .2rem }
+.town-loc, .town-nums { margin: .2rem 0; color: var(--cocoa-2) }
+.town-actions { display: flex; gap: .6rem; flex-wrap: wrap; margin-top: .6rem }
+.town-hint, .town-note { margin: 0; font-size: .85rem; color: var(--cocoa-2) }
+@media (min-width: 900px) {
+  .town { grid-template-columns: 1fr 340px; align-items: start }
+  .town-head { grid-column: 1; max-width: 460px }
+  .town-back { position: absolute; right: 0; top: 1.25rem }
+  .town-map { grid-column: 1; grid-row: 2 / span 4 }
+  .town-svg { min-width: 0 }
+  .town-list { grid-column: 2; grid-row: 4 }
+  .town-legend, .town-card, .town-hint { grid-column: 2 }
+  .town-legend { grid-row: 2; border-radius: var(--r-md) }
+  .town-card, .town-hint { grid-row: 5 }
+  .town-note { grid-column: 1 / -1 }
+}

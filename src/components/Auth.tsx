@@ -30,7 +30,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(isSupabaseConfigured);
 
-  // 共用 Supabase 專案：不在 auth.users 上加 trigger，第一次登入 MeowHome 時由這裡建立 profile
+  // 共用 Supabase 專案：不在 auth.users 上加 trigger，第一次登入 Meowho喵戶 時由這裡建立 profile
   const loadProfile = useCallback(async (uid: string) => {
     if (!sb) return;
     const cols = "id, display_name, avatar_url, terms_version, role, email";
@@ -46,15 +46,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!sb) return;
+    // 任何失敗（網路被擋、Supabase 暫停）都要結束「載入中」，否則頁面會永遠停在載入畫面
+    const timer = setTimeout(() => setLoading(false), 8000);
+    const done = () => { clearTimeout(timer); setLoading(false); };
     sb.auth.getUser().then(({ data }) => {
       setUser(data.user);
-      if (data.user) loadProfile(data.user.id).finally(() => setLoading(false)); else setLoading(false);
-    });
+      if (data.user) loadProfile(data.user.id).catch(() => undefined).finally(done); else done();
+    }).catch(done);
     const { data: sub } = sb.auth.onAuthStateChange((_e, session) => {
       setUser(session?.user ?? null);
       if (session?.user) loadProfile(session.user.id); else setProfile(null);
     });
-    return () => sub.subscription.unsubscribe();
+    return () => { clearTimeout(timer); sub.subscription.unsubscribe(); };
   }, [sb, loadProfile]);
 
   const login = useCallback(async (next?: string) => {

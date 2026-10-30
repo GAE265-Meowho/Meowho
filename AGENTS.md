@@ -1,4 +1,4 @@
-# AGENTS.md — MeowHome 共同 AI 開發規範
+# AGENTS.md — Meowho喵戶 共同 AI 開發規範
 
 > 這是**所有 AI 開發助理的唯一共同規範**：Claude Code、Cursor、Codex、Google Antigravity／Gemini、GitHub Copilot、Windsurf 及其他工具。
 > 各工具的專屬設定檔（`CLAUDE.md`、`GEMINI.md`、`.cursor/rules/`、`.github/copilot-instructions.md`…）都只是指向本檔，**不要在那些檔案寫不同的規則**。
@@ -142,7 +142,7 @@
 - **範圍控制**：只改 Issue 需要的檔案；看到其他問題記在 `PLAN.md`「建議」區，不要順手改。
 - **設計**：只用 `globals.css` 的設計 token；按鈕用 `.btn`（`mint`／`pink`／`butter`／`ghost`、`sm`）；新元件先對照 `DESIGN.md`。
 - 原型中尚未完成的按鈕加 `data-login` 或 `data-proto="功能名"`，會自動顯示提示。
-- 站台標誌由管理者設定選擇（`LOGOS`），不要更換 logo 檔案。
+- 站台標誌由管理者設定選擇（`LOGOS`），不要自行更換 logo 檔案。2026-10-29 Tina 已將三款內建 Logo 換成 Meowho喵戶 新版（小屋摸摸款、圓形花貓款、橫式字標款）。
 
 ### 不可違反的業務規則
 - 費用數字只來自資料庫或公式，**LLM 不得產生數字**。
@@ -162,7 +162,7 @@
 ## 7. 共用資料庫規範（Supabase）
 
 ### 7.1 為什麼共用
-- Supabase 免費方案**同時只能有 2 個啟用中的專案**，帳號裡已有其他 App 在用，因此 MeowHome **與其他 App 共用同一個 Supabase 專案 `pnnehddxeujxghhnnqrv`**。
+- Supabase 免費方案**同時只能有 2 個啟用中的專案**，帳號裡已有其他 App 在用，因此 Meowho喵戶 **與其他 App 共用同一個 Supabase 專案 `pnnehddxeujxghhnnqrv`**。
 - 決策紀錄：`docs/decisions/001-shared-supabase.md`。
 
 ### 7.2 命名規則（必須遵守）
@@ -185,12 +185,12 @@
 - **不可**把 `service_role` 金鑰放進前端或 commit。
 
 ### 7.4 共用造成的限制
-- **登入帳號共用**：同一個 Google 帳號在 MeowHome 與其他 App 是同一個 `auth.users` 使用者；MeowHome 自己的資料只存在 `meow_profiles`。
+- **登入帳號共用**：同一個 Google 帳號在 Meowho喵戶 與其他 App 是同一個 `auth.users` 使用者；Meowho喵戶 自己的資料只存在 `meow_profiles`。
 - **Google 登入設定共用**：Google 登入畫面顯示的 App 名稱可能是另一個 App；若要改，需與該 App 負責人協調。
 - **容量共用**：資料庫 500 MB、檔案儲存 1 GB、每月 5 萬活躍使用者是兩個 App 加總。照片一律先縮到最長邊 1024px。
 - **暫停共用**：免費專案閒置一週會被暫停；Demo、評分前要先打開確認。
 - **沒有自動 migration**：SQL 由 AI 透過 Supabase 連接器執行，**執行前須把 SQL（或 migration 檔名與內容摘要）給發起人確認**；沒有連接器時由組長在 SQL Editor 手動執行。執行後在每日紀錄寫下 migration 檔名與結果，並跑一次 Supabase 安全檢查（advisors）。新 migration 必須可重複執行（`if not exists`、`drop ... if exists` 只用在 `meow_` 物件）。
-- **執行紀錄**：`0001_meow.sql` 已於 2026-10-28 執行（Supabase migration 名稱 `meow_0001`）；`0002_meow_hq.sql` 已於 2026-10-29 執行（`meow_0002_hq`，先以交易 rollback 試跑通過）。
+- **執行紀錄**：`0001_meow.sql` 已於 2026-10-28 執行（Supabase migration 名稱 `meow_0001`）；`0002_meow_hq.sql` 已於 2026-10-29 執行（`meow_0002_hq`，先以交易 rollback 試跑通過）；`0003_meow_site_assets.sql` 已於 2026-10-29 執行（`meow_0003_site_assets`，同樣先 rollback 試跑通過）。
 - **前端只用 anon key**：所有權限靠 RLS；每張 `meow_` 表都必須啟用 RLS 並寫好 policy。
 
 ### 7.5 新增資料表的流程

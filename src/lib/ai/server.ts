@@ -9,7 +9,12 @@ export { aiLabel, isAIConfigured } from "./models";
 
 async function safe<T>(fn: () => Promise<T>): Promise<T | null> {
   if (!isAIConfigured()) return null;
-  try { return await fn(); } catch (e) { console.warn("[ai]", e instanceof Error ? e.message : e); return null; }
+  let lastError: unknown;
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try { return await fn(); } catch (e) { lastError = e; }
+  }
+  console.warn("[ai]", lastError instanceof Error ? lastError.message : lastError);
+  return null;
 }
 
 export const extractHousehold = (step: string, answer: string) => safe(async () =>

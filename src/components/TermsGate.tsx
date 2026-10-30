@@ -29,7 +29,7 @@ export function TermsGate({ onAgree }: { onAgree: () => void }) {
   return (
     <section className="profile-card">
       <h2>開始之前</h2>
-      <p className="sub">請閱讀並同意 Meow Home 的隱私權政策與服務條款。我們只會公開貓戶到「縣市＋區」，你上傳的照片和文字會交給 AI 服務整理成貓咪名片。</p>
+      <p className="sub">請閱讀並同意 Meowho喵戶 的隱私權政策與服務條款。我們只會公開貓戶到「縣市＋區」，你上傳的照片和文字會交給 AI 服務整理成貓咪名片。</p>
       <div ref={boxRef} className="terms-box" onScroll={checkRead} tabIndex={0} role="region" aria-label="隱私權政策與服務條款全文">
         {text === null ? "條款載入中…" : failed ? "條款載入失敗，請重新整理頁面。" : text}
       </div>
