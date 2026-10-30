@@ -1,0 +1,335 @@
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 16px;
+  /* Leaves a lane above the cards for 橘子 to patrol without covering the filters */
+  margin-bottom: 120px;
+}
+
+.scope,
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.scope {
+  padding: 4px;
+  border-radius: 999px;
+  background: var(--card);
+  border: 1.5px solid var(--line);
+}
+
+.scope button,
+.filters button {
+  min-height: var(--tap);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 1.5px solid transparent;
+  border-radius: 999px;
+  padding: 6px 14px;
+  background: transparent;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink-soft);
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.filters button {
+  background: var(--card);
+  border-color: var(--line);
+}
+
+.scope button:hover,
+.filters button:hover {
+  color: var(--ink);
+}
+
+.scope .on {
+  background: var(--yellow);
+  color: var(--ink);
+}
+
+.filters .on {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--yellow);
+}
+
+.views {
+  display: inline-flex;
+  margin-left: auto;
+  padding: 4px;
+  border-radius: 999px;
+  background: var(--card);
+  border: 1.5px solid var(--line);
+}
+
+.views button {
+  min-height: var(--tap);
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  padding: 6px 14px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink-soft);
+}
+
+.views .on {
+  background: var(--ink);
+  color: var(--yellow);
+}
+
+/* Card picked from the map glows for a moment */
+.spotlight {
+  animation: spot 2.2s ease-out;
+}
+
+@keyframes spot {
+  0%,
+  60% {
+    box-shadow: 0 0 0 5px var(--yellow), 0 10px 0 -1px var(--yellow);
+  }
+}
+
+.count {
+  font-size: 14px;
+  color: var(--ink-soft);
+}
+
+/* ---------- Cards ---------- */
+.gridWrap {
+  position: relative;
+}
+
+/* 橘子 patrols along the top edge of the first row */
+.perch {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: 2px;
+  height: 2px;
+}
+
+.grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  border-radius: 28px;
+  background: var(--card);
+  overflow: hidden;
+  box-shadow: 0 6px 0 -1px var(--line);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 0 -1px var(--yellow);
+}
+
+.photo {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  background: var(--yellow-soft);
+}
+
+.photo img {
+  object-fit: cover;
+}
+
+/* Cat-ear badge: a yellow pill with two little ears */
+.wait {
+  position: absolute;
+  left: 14px;
+  top: 18px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: var(--yellow);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.wait::before,
+.wait::after {
+  content: "";
+  position: absolute;
+  top: -6px;
+  width: 11px;
+  height: 11px;
+  background: var(--yellow);
+  border-radius: 3px 0 3px 0;
+  transform: rotate(45deg) skew(8deg, 8deg);
+}
+
+.wait::before {
+  left: 12px;
+}
+
+.wait::after {
+  left: 30px;
+}
+
+.neutered {
+  position: absolute;
+  right: 14px;
+  top: 18px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  font-size: 12.5px;
+  font-weight: 700;
+}
+
+.neutered svg {
+  color: #4f9a5a;
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 18px 20px 20px;
+  flex: 1;
+}
+
+.nameRow {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.nameRow h3 {
+  margin: 0;
+  font-size: 22px;
+}
+
+.nameRow span {
+  font-size: 14px;
+  color: var(--ink-soft);
+}
+
+.district {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--ink-soft);
+}
+
+.district svg {
+  color: var(--orange);
+}
+
+.tags {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.tags li {
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: var(--yellow-soft);
+  font-size: 12.5px;
+  font-weight: 700;
+}
+
+.diary {
+  margin: 4px 0;
+  padding: 10px 14px;
+  border-radius: 16px;
+  background: var(--paper);
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.diary span {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 2px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--orange-deep);
+}
+
+.meter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+.paws {
+  display: inline-flex;
+  gap: 2px;
+}
+
+.pawOn {
+  color: var(--orange);
+}
+
+.pawOff {
+  color: var(--line);
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 12px;
+}
+
+.actions > * {
+  flex: 1;
+}
+
+@media (max-width: 1000px) {
+  .grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 767px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .views {
+    margin-left: 0;
+  }
+
+  .filters {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    margin: 0 calc(var(--gutter) * -1);
+    padding: 0 var(--gutter) 4px;
+    scrollbar-width: none;
+  }
+
+  .filters button {
+    flex: none;
+  }
+}

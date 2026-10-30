@@ -23,6 +23,8 @@
 - **LLM 輸入防護（#38，決策 004）**：新增任何 LLM 任務，使用者內容必須經 `wrapUserInput()`、API 必須用 `checkInput()`（`src/lib/ai/guard.ts`）。問答模組上線時要實作「每段 20 輪、每天 50 次」。
 - **`0003_meow_site_assets.sql` 已在 Supabase 執行（2026-10-29，`meow_0003_site_assets`）**：Logo 上傳與網站設定可用，待 Tina 登入實測。
 
+- **首頁改用 meowwho-v2 新版 UI**（Issue #64，分支 `feat/64-meowho-v2-ui`，2026-10-31 子哲 × Claude）：新元件在 `src/components/{home,journey,layout,ui}/`，只用 `globals.css` 的 v2 token（`--paper`、`--ink`、`--caramel`…）；舊 token（`--cocoa`、`--peach`…）在 `template.css` 對應到 v2，留給尚未改版的內頁與後台。按鈕用 `CatButton`，不要在新元件用 `.btn`。
+
 ## 下一步（建議第一個動作）
 0. Issue #33：程式與四項檢查已完成，待建立 PR；正式站 `/onboarding` 停在「載入中…」，未完成登入後實際流程，PR 需保留此限制。
 1. #18 合併後，平行開工階段 1：#19（db）、#20（logic）、#21（shell）；階段 2 為 #22（lists-home）、#23（admin-auth）、#24（users），等階段 1 合併後開始。Issue 都已建立，不用再建。
