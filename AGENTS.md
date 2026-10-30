@@ -151,7 +151,7 @@
 - 位置只存縣市＋區；私密日記不可進入公開配對。
 - 領養申請不收真實姓名與電話（雙方以私訊處理）；評分資料不公開。
 - 居家環境影片在貓咪移轉完成時刪除原檔。
-- 資料庫與其他 App 共用：所有資料庫物件一律 `meow_` 開頭，規則見 §7。
+- 所有資料庫物件一律 `meow_` 開頭，規則見 §7。
 
 ### 安全
 - 不要把金鑰、`.env.local` 內容、個資寫進程式、commit、文件或對話。
@@ -159,11 +159,12 @@
 
 ---
 
-## 7. 共用資料庫規範（Supabase）
+## 7. 資料庫規範（Supabase）
 
-### 7.1 為什麼共用
-- Supabase 免費方案**同時只能有 2 個啟用中的專案**，帳號裡已有其他 App 在用，因此 Meowho喵戶 **與其他 App 共用同一個 Supabase 專案 `pnnehddxeujxghhnnqrv`**。
-- 決策紀錄：`docs/decisions/001-shared-supabase.md`。
+### 7.1 使用哪個專案
+- 2026-10-30 起 Meowho喵戶 使用**獨立的 Supabase 專案 `onebpkbkrnnwamwsoelo`**（子哲的帳號），不再與其他 App 共用。
+- `meow_` 前綴規則保留：既有 migration、測試都依賴它，之後要合併或搬移專案也不會撞名。
+- 決策紀錄：`docs/decisions/005-dedicated-supabase.md`（取代 `001-shared-supabase.md`）；設定步驟：`docs/setup/SUPABASE_LLM_SETUP.md`。
 
 ### 7.2 命名規則（必須遵守）
 | 物件 | 規則 | 例子 |
@@ -177,20 +178,19 @@
 
 > Postgres 名稱一律小寫（大寫要加引號，容易出錯）。
 
-### 7.3 禁止事項（會影響其他 App）
+### 7.3 禁止事項
 - **不可**建立、修改、刪除任何不是 `meow_` 開頭的資料表、函式、trigger、policy、bucket。
 - **不可**在 `auth.users` 或其他 `auth`、`storage` 系統表上加 trigger。會員資料（`meow_profiles`）由網站在第一次登入時建立。
-- **不可**修改 Authentication 的 **Site URL**、Email 範本、全域 Auth 設定；只能**新增** Redirect URLs。
+- **Site URL 固定為 `https://meowho.vercel.app`**；Site URL、Email 範本、全域 Auth 設定只由專案擁有者（子哲）修改，agent 只能**新增** Redirect URLs。
 - **不可**執行 `drop schema`、`truncate`、不帶 `meow_` 條件的 `delete`／`update`。
 - **不可**把 `service_role` 金鑰放進前端或 commit。
 
-### 7.4 共用造成的限制
-- **登入帳號共用**：同一個 Google 帳號在 Meowho喵戶 與其他 App 是同一個 `auth.users` 使用者；Meowho喵戶 自己的資料只存在 `meow_profiles`。
-- **Google 登入設定共用**：Google 登入畫面顯示的 App 名稱可能是另一個 App；若要改，需與該 App 負責人協調。
-- **容量共用**：資料庫 500 MB、檔案儲存 1 GB、每月 5 萬活躍使用者是兩個 App 加總。照片一律先縮到最長邊 1024px。
-- **暫停共用**：免費專案閒置一週會被暫停；Demo、評分前要先打開確認。
+### 7.4 免費方案的限制與執行規則
+- **Google 登入**：OAuth 用戶端在 Google Cloud 專案 `meowho`；應用程式在「測試中」時，只有測試使用者名單上的 Gmail 能登入。
+- **容量**：資料庫 500 MB、檔案儲存 1 GB、每月 5 萬活躍使用者。照片一律先縮到最長邊 1024px。
+- **暫停**：免費專案閒置一週會被暫停；Demo、評分前要先打開確認。
 - **沒有自動 migration**：SQL 由 AI 透過 Supabase 連接器執行，**執行前須把 SQL（或 migration 檔名與內容摘要）給發起人確認**；沒有連接器時由組長在 SQL Editor 手動執行。執行後在每日紀錄寫下 migration 檔名與結果，並跑一次 Supabase 安全檢查（advisors）。新 migration 必須可重複執行（`if not exists`、`drop ... if exists` 只用在 `meow_` 物件）。
-- **執行紀錄**：`0001_meow.sql` 已於 2026-10-28 執行（Supabase migration 名稱 `meow_0001`）；`0002_meow_hq.sql` 已於 2026-10-29 執行（`meow_0002_hq`，先以交易 rollback 試跑通過）；`0003_meow_site_assets.sql` 已於 2026-10-29 執行（`meow_0003_site_assets`，同樣先 rollback 試跑通過）。
+- **執行紀錄**：`onebpkbkrnnwamwsoelo` 已於 2026-10-30 由子哲在 SQL Editor 執行 `0001`～`0003`。（舊共用專案 `pnnehddxeujxghhnnqrv` 的執行紀錄見 2026-10-28、10-29 每日紀錄，已不再使用。）
 - **前端只用 anon key**：所有權限靠 RLS；每張 `meow_` 表都必須啟用 RLS 並寫好 policy。
 
 ### 7.5 新增資料表的流程

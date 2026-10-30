@@ -1,67 +1,79 @@
 # Supabase、Google 登入與 LLM 設定（約 20 分鐘，組長做一次）
 
 > 金鑰只能貼在 Supabase、Google Cloud、Vercel 的設定頁與自己的 `.env.local`，**不要貼進聊天、程式或 commit**。
+> 正式環境已於 2026-10-30 設定完成（子哲）。這份文件是重建或接手時照著做的步驟。
 
-## 1. Supabase 專案（共用既有專案 `pnnehddxeujxghhnnqrv`）
-免費方案同時只能有 2 個啟用中的專案，所以 Meowho喵戶 與其他 App **共用同一個 Supabase 專案**。規範見 `AGENTS.md` §7，重點：
-- Meowho喵戶 所有資料表、函式、trigger、policy 一律 **`meow_` 開頭**，照片 bucket 為 **`meow-cat-photos`**
-- 不在 `auth.users` 加 trigger（會員資料由網站第一次登入時建立）
-- **不要修改 Site URL**（那是其他 App 的設定），只「新增」Redirect URLs
+## 1. Supabase 專案（Meowho喵戶 獨立專案 `onebpkbkrnnwamwsoelo`）
+Meowho喵戶 使用**自己的 Supabase 專案**，不與其他 App 共用（決策 `docs/decisions/005-dedicated-supabase.md`）。資料庫物件仍一律 `meow_` 開頭，規範見 `AGENTS.md` §7。
 
-到 **Project Settings → API** 記下：
-- `Project URL`（`https://pnnehddxeujxghhnnqrv.supabase.co`）→ `NEXT_PUBLIC_SUPABASE_URL`
-- `anon public` key → `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+新建專案時的選項：
+- Region：**Northeast Asia (Tokyo)**
+- **Enable Data API**：開
+- **Automatically expose new tables**：開（migration 依賴這個設定讓 `meow_` 表可以從前端讀寫；權限仍由 RLS 控管）
+- **Enable automatic RLS**：關（每張 `meow_` 表的 RLS 已寫在 migration 裡）
+
+到 **Project Settings → API Keys** 記下：
+- `Project URL`（`https://onebpkbkrnnwamwsoelo.supabase.co`）→ `NEXT_PUBLIC_SUPABASE_URL`
+- Publishable key（`anon`）→ `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- **`service_role`／secret key 不要用、不要放進前端或 Vercel**
 
 ## 2. 建立 Meowho喵戶 資料表
-**SQL Editor → New query**，貼上 `supabase/migrations/0001_meow.sql` 全文 → **Run**（可重複執行）。
-> 2026-10-28 已由 AI 透過 Supabase 連接器執行完成；之後的 migration 也可這樣執行（須經發起人確認，見 AGENTS.md §7.4）。
+**SQL Editor → New query**，依序貼上並執行（每個都可重複執行）：
+1. `supabase/migrations/0001_meow.sql`
+2. `supabase/migrations/0002_meow_hq.sql`
+3. `supabase/migrations/0003_meow_site_assets.sql`
 
-完成後 Table Editor（public schema）會多出 `meow_profiles`、`meow_households`、`meow_cats`、`meow_notifications`、`meow_shelter_verifications`、`meow_site_settings`；Storage 會有 `meow-cat-photos`。其他 App 的資料表不會被改動。
+> 2026-10-30 已在 `onebpkbkrnnwamwsoelo` 執行完成（0001～0003）。之後的 migration 依 `AGENTS.md` §7.4 執行。
+
+完成後 Table Editor（public schema）會有 `meow_profiles`、`meow_households`、`meow_cats`、`meow_notifications`、`meow_shelter_verifications`、`meow_site_settings` 與 MeowHQ 相關的 `meow_` 表；Storage 會有 `meow-cat-photos`。
 
 ## 3. Google 登入
-0. 如果這個 Supabase 專案的 Google 登入**已經啟用**（其他 App 在用），步驟 1～3 可以跳過，直接做步驟 4；只是 Google 登入畫面顯示的 App 名稱會是原本那個。
-1. https://console.cloud.google.com → 建立專案 `MeowHome` → **APIs & Services → OAuth consent screen**：External、App name `MeowHome`、填支援信箱 → 儲存
-2. **Credentials → Create credentials → OAuth client ID** → Web application
-   - Authorized redirect URIs：`https://<你的 Supabase 專案 ID>.supabase.co/auth/v1/callback`（Supabase 的 Google provider 頁面有這個網址可複製）
-3. 複製 Client ID、Client Secret → Supabase **Authentication → Sign In / Providers → Google** → 啟用並貼上 → Save
+1. https://console.cloud.google.com → 專案 **`meowho`** → **Google Auth Platform**
+   - **品牌**：App 名稱 `Meowho喵戶`、支援信箱
+   - **目標對象**：External
+2. **用戶端 → 建立用戶端** → 網頁應用程式，名稱 `meowho`
+   - 已授權的重新導向 URI：`https://onebpkbkrnnwamwsoelo.supabase.co/auth/v1/callback`
+   - 已授權的 JavaScript 來源：不用填
+3. 複製**用戶端 ID**與**用戶端密碼**（不是 Google 帳號密碼）→ Supabase **Authentication → Sign In / Providers → Google** → 啟用、貼上 → Save
 4. Supabase **Authentication → URL Configuration**：
-   - **Site URL 不要改**（共用專案，那是其他 App 的）
-   - Redirect URLs **新增**：
-     - `https://meowhome.hsiangsolutions.com/**`
-     - `https://*-somebabytina-3426.vercel.app/**`（Vercel 預覽網址）
-     - `http://localhost:3000/**`、`http://localhost:3001/**`
-5. OAuth consent screen 還在 Testing 狀態時，只有加入 **Test users** 的 Google 帳號能登入：把組員與老師的 Gmail 加進去（或按 Publish app）。
+   - **Site URL**：`https://meowho.vercel.app`（沒設定時登入完會被導回 `localhost:3000`）
+   - **Redirect URLs**（一次加一個）：
+     - `https://meowho.vercel.app/**`
+     - `https://*-zing15s-projects.vercel.app/**`（Vercel PR 預覽網址）
+     - `http://localhost:3000/**`
+5. 應用程式還在「測試中」時，只有 **目標對象 → 測試使用者** 名單上的 Gmail 能登入：把組員與老師的 Gmail 加進去（或按「發布應用程式」）。
 
-## 4. LLM 金鑰（擇一）
-- **Gemini（建議，有免費額度）**：https://aistudio.google.com/apikey → Create API key → `GEMINI_API_KEY`
-- OpenAI：https://platform.openai.com/api-keys → `OPENAI_API_KEY`，並設 `AI_PROVIDER=openai`（也支援 `azure`、`anthropic`，變數見 `.env.example`）
+## 4. LLM 金鑰
+- **Gemini（目前使用）**：https://aistudio.google.com/apikey → Create API key → `GEMINI_API_KEY`
+- 其他供應商：設 `AI_PROVIDER=openai`／`azure`／`anthropic` 並填對應金鑰，變數名稱見 `.env.example`
 
 ## 5. 填到 Vercel
-Vercel → meow-home → **Settings → Environment Variables**，加入（Production＋Preview 都勾）：
+Vercel 專案 **`zing15s-projects/meowho`**（https://meowho.vercel.app，連動 `GAE265-Meowho/Meowho` 的 `main`）→ **Settings → Environment Variables**，Production＋Preview 都勾：
 
-| 名稱 | 值 |
-|---|---|
-| `NEXT_PUBLIC_SUPABASE_URL` | 步驟 1 |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | 步驟 1 |
-| `GEMINI_API_KEY` | 步驟 4 |
-| `AI_PROVIDER` | `gemini`（或 `openai`／`azure`／`anthropic`） |
+| 名稱 | 值 | 類型 |
+|---|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | 步驟 1 | Config（`NEXT_PUBLIC_` 開頭不能選 Secret） |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | 步驟 1 | Config（本來就公開給前端，權限靠 RLS） |
+| `AI_PROVIDER` | `gemini` | Secret |
+| `GEMINI_API_KEY` | 步驟 4 | Secret |
+| `NEXT_PUBLIC_LOCAL_PHOTOS` | `0` | Config |
 
 儲存後到 **Deployments → 最新一筆 → Redeploy**，環境變數才會生效。
+- **Framework Preset 必須是 Next.js**（Settings → Build and Deployment）。設成 Other 時建置會成功，但每一頁都是 404。
 
 ## 6. 本機開發
 複製 `.env.example` 為 `.env.local` 填入同樣的值，`npm run dev`。
 
-## 7. 指定第一位管理員
-1. 先用你的 Google 帳號登入網站一次（會自動建立 profile）
+## 7. 指定第一位系統管理員
+1. 先用你的 Google 帳號登入網站一次（會自動建立 `meow_profiles`）
 2. Supabase **SQL Editor** 執行（換成你的 Gmail）：
    ```sql
-   update public.meow_profiles set role = 'admin' where email = '你的Gmail@gmail.com';
+   update public.meow_profiles set role = 'system_admin' where email = '你的Gmail@gmail.com';
    ```
-3. 開啟隱藏後台 **`/mh-console-8k2p`**（例如 `https://meowhome.hsiangsolutions.com/mh-console-8k2p`），之後可在「管理員」分頁用 Email 授權其他人。
-   - 這個網址不會出現在任何介面上，也不給搜尋引擎收錄；但真正的保護是資料庫權限，非管理員打開只會看到「找不到頁面」。
-   - 想換網址：把 `src/app/mh-console-8k2p` 資料夾改名即可。
+   結果應為 `1 row affected`；`0 rows` 表示還沒登入過。
+3. 開啟後台 **`/MeowHQ`**（https://meowho.vercel.app/MeowHQ），之後在後台授權其他管理員。
 
 ## 驗證
-1. 打開網站 → 首頁「我想建立貓戶」→ Google 登入 → 同意條款
-2. 聊天建立貓戶 → 拍照新增貓咪 → 建立名片
-3. 「我的貓戶」看得到剛建立的貓戶與貓咪；Supabase Table Editor 也看得到資料
+1. 打開 https://meowho.vercel.app → 「登入／建立喵戶」→ Google 登入 → 同意條款
+2. 建立喵戶 → 拍照新增貓咪 → 建立名片
+3. 「我的喵戶」看得到剛建立的喵戶與貓咪；Supabase Table Editor 也看得到資料

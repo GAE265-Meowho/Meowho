@@ -1,0 +1,18 @@
+# 005 改用 Meowho喵戶 獨立的 Supabase 專案與 Vercel 專案
+- 日期：2026-10-30
+- 發起人 × 工具：子哲 × Claude Code (claude-opus-5-5)
+- 背景：原本與其他 App 共用 Tina 帳號的 Supabase 專案 `pnnehddxeujxghhnnqrv`（決策 001），正式站由 Tina 的 Vercel 專案 `meow-home` 部署（https://meowhome.hsiangsolutions.com）。repo 移到 `GAE265-Meowho/Meowho` 後，子哲希望部署與資料庫完全從個人帳號抽離、由專題自己的專案管理。
+- 決定：
+  - Supabase 改用子哲帳號的新專案 `onebpkbkrnnwamwsoelo`（Tokyo），重新執行 migration `0001`～`0003`；不搬舊資料（舊專案只有測試資料）
+  - Google 登入改用新的 Google Cloud 專案 `meowho` 與自己的 OAuth 用戶端；Site URL 設為 `https://meowho.vercel.app`
+  - 正式站改由 Vercel 專案 `zing15s-projects/meowho` 連動 `main` 自動部署，網址 https://meowho.vercel.app；自訂網域暫不搬
+  - AI 供應商用 Gemini（`AI_PROVIDER=gemini`）
+  - `meow_` 前綴與 RLS 規則照舊（AGENTS.md §7）
+- 影響：
+  - 舊專案的帳號、喵戶、貓咪資料不會出現在新站；組員需重新登入，第一位系統管理員需重新用 SQL 指定
+  - 不再有「與其他 App 共用登入、容量」的限制；Site URL 可以設成自己的網址
+  - Vercel Hobby 只接受專案擁有者（ZING15）為作者的 commit 部署：`main` 合併時用「Create a merge commit」，由 ZING15 合併
+  - meowhome.hsiangsolutions.com 仍指向 Tina 的舊部署，內容不再更新
+- 替代方案（未採用的原因）：
+  - 繼續共用 Tina 的專案（未採用：部署與資料都綁在個人帳號，組員無法自行管理）
+  - 把舊專案資料匯出再匯入（未採用：舊資料只有開發測試用）
