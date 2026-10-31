@@ -7,8 +7,8 @@ import { buildMessages } from "./chain";
 import { catStoryChain, catStoryInput, householdChain, householdInput } from "./onboarding";
 
 describe("字數上限", () => {
-  it("上限集中設定：建檔 200、問答 300、每段對話 20 輪、每天 50 次", () => {
-    expect(AI_LIMITS).toEqual({ onboardingChars: 200, questionChars: 300, turnsPerChat: 20, callsPerDay: 50 });
+  it("上限集中設定：建檔 200、貓咪介紹文 1500、問答 300、每段對話 20 輪、每天 50 次", () => {
+    expect(AI_LIMITS).toEqual({ onboardingChars: 200, catStoryChars: 1500, questionChars: 300, turnsPerChat: 20, callsPerDay: 50 });
   });
   it("中文與 emoji 都算 1 字", () => expect(charCount("橘貓🐱")).toBe(3));
   it("剛好 200 字可送出，201 字拒絕且提示字數", () => {

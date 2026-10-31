@@ -11,7 +11,7 @@ d("AI 供應商設定", () => {
     const env = { GEMINI_API_KEY: "x" };
     expect(resolveProvider(env)).toBe("gemini");
     expect(isConfigured(env)).toBe(true);
-    expect(resolveModel(env, "gemini", "text")).toBe("gemini-2.5-flash");
+    expect(resolveModel(env, "gemini", "text")).toBe("gemini-3.1-flash-lite");
   });
   it("AI_PROVIDER 指定但缺金鑰 → 未設定", () => {
     expect(isConfigured({ AI_PROVIDER: "openai", GEMINI_API_KEY: "x" })).toBe(false);

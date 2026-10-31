@@ -19,6 +19,7 @@
 
 ## 資料表（Supabase）
 - 已建立：`meow_households`（一個帳號最多 2 戶，trigger 限制）、`meow_cats`（visibility null＝沿用貓戶預設、status own/adoptable/adopted）、Storage bucket `meow-cat-photos`（路徑 `<uid>/<uuid>.jpg`）
+- 0004 草稿（#57，**尚未執行**）：`meow_cats` 加 `life_stage`（四級，新增時必填）、`personality_tags`、`health_tags`、`description`、`photo_paths`（最多 5）；`status` 預設 `adoptable`；新表 `meow_cat_videos`（每隻最多 3 支、每支 60 秒內，RLS 同貓咪）
 - 待建立：`cat_adoption_settings`、`cat_diagnoses`、`cat_ownerships`、`posts`、`post_cats`、`media`
 
 ## API／主要函式

@@ -2,7 +2,6 @@
 
 export type Sex = "male" | "female" | "unknown";
 export type BloodType = "A" | "B" | "AB" | "unknown";
-export type AgeBand = "幼貓" | "成貓" | "熟齡" | "老貓";
 
 export interface CatDraft {
   name: string;
@@ -87,13 +86,7 @@ export function ageLabel(d: Pick<CatDraft, "birthday" | "estAgeMonths">, today =
   return m < 12 ? `${prefix}${m} 個月` : `${prefix}${Math.floor(m / 12)} 歲`;
 }
 
-export function ageBandOf(months: number | null): AgeBand | null {
-  if (months === null) return null;
-  if (months < 12) return "幼貓";
-  if (months < 84) return "成貓";
-  if (months < 120) return "熟齡";
-  return "老貓";
-}
+// 年齡層改用 src/lib/cat-profile/life-stage.ts（AAFP／AAHA 四級）
 
 export function parseSex(text: string): Sex | null {
   if (/不確定|不知道|未知/.test(text)) return "unknown";

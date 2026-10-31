@@ -73,6 +73,26 @@ Vercel 專案 **`zing15s-projects/meowho`**（https://meowho.vercel.app，連動
    結果應為 `1 row affected`；`0 rows` 表示還沒登入過。
 3. 開啟後台 **`/MeowHQ`**（https://meowho.vercel.app/MeowHQ），之後在後台授權其他管理員。
 
+## 8. Azure Blob（貓影片等大型檔案，決策 006）
+1. Azure Portal → 建立儲存體帳戶：區域 **Southeast Asia**、效能 Standard、備援 **LRS**、存取層 **Hot**。
+2. 建立容器（例如 `media`），存取層級維持**私人**（讀寫都用程式簽發的短時效網址）。
+3. 儲存體帳戶 → **資源共用 (CORS)** → Blob 服務新增一列：允許的來源 `https://meowho.vercel.app`、`http://localhost:3000`，方法 `PUT,GET,HEAD,OPTIONS`，允許與公開的標頭 `*`。Azure **不支援萬用子網域**，PR 預覽網址無法直接上傳影片。
+
+> 2026-10-31 已由子哲（26509@tibame.com）建立：儲存帳戶 `meowhomedia`（資源群組 `GAE26509RG`、Southeast Asia、Hot、LRS）、私人容器 `media`、上述 CORS；已實測上傳、讀取、刪除與 CORS。
+4. 儲存體帳戶 → 存取金鑰 → 複製帳戶名稱與 key1。
+5. 在 `.env.local` 與 Vercel 環境變數填 `MEDIA_STORAGE=azure`、`AZURE_STORAGE_ACCOUNT`、`AZURE_STORAGE_KEY`、`AZURE_STORAGE_CONTAINER`。金鑰不可 commit。
+6. 額度 2026-11-29 到期；搬家步驟見決策 006。
+
+### 測試容器 media-dev 與複製到正式
+- 同一個儲存帳戶有兩個私人容器：`media`（正式站）、`media-dev`（本機開發與 PR 預覽）。2026-10-31 建立 `media-dev`。
+- `.env.local` 的 `AZURE_STORAGE_CONTAINER` 填 `media-dev`；Vercel 只有 Production 填 `media`，Preview／Development 要填 `media-dev`。
+- 兩邊的檔案路徑完全相同（例如 `cats/<貓 id>/videos/<id>.mp4`），資料庫只存路徑，所以測試資料搬到正式時路徑不用改。
+- 把測試檔案複製到正式：
+  - `npm run media:promote -- cats/<貓 id>/`：先預覽會複製哪些。
+  - `npm run media:promote -- cats/<貓 id>/ --apply`：真的複製。
+  - 只補正式沒有的檔案，不覆蓋、不刪測試端；範圍必須是資料夾。
+- Supabase 目前開發與正式共用同一個專案，貓咪等文字資料不需要搬；檔案要先搬到正式，正式站才讀得到。
+
 ## 驗證
 1. 打開 https://meowho.vercel.app → 「登入／建立喵戶」→ Google 登入 → 同意條款
 2. 建立喵戶 → 拍照新增貓咪 → 建立名片

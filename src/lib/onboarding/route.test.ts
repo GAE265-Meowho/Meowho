@@ -11,8 +11,8 @@ describe("新貓入戶（Issue #7）", () => {
   it("示範模式不需登入", () => expect(decideStart({ ...base, configured: false, loggedIn: false, wantCat: true })).toBe("choose"));
 });
 
-describe("建立貓戶", () => {
-  it("沒有貓戶 → 說明頁", () => expect(decideStart(base)).toBe("intro"));
+describe("建立喵戶", () => {
+  it("沒有喵戶 → 直接開始對話，不先看說明", () => expect(decideStart(base)).toBe("household"));
   it("有貓戶 → 選擇", () => expect(decideStart({ ...base, homesCount: 1 })).toBe("choose"));
   it("指定建立新貓戶且未滿 → 建立", () => expect(decideStart({ ...base, homesCount: 1, wantNew: true })).toBe("household"));
   it("已滿 2 戶 → 選擇", () => expect(decideStart({ ...base, homesCount: 2, wantNew: true })).toBe("choose"));
