@@ -2,6 +2,7 @@
 /* eslint-disable @next/next/no-img-element */
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { resolveAvatarUrl } from "@/lib/avatar";
 import { getBrowserSupabase } from "@/lib/supabase/client";
 import CatPerch from "@/components/journey/CatPerch";
 import CatButton from "@/components/ui/CatButton";
@@ -76,8 +77,7 @@ function UserArea() {
   const { toast } = useUi();
   const unread = useUnreadCount(user?.id);
   if (user) {
-    const meta = user.user_metadata ?? {};
-    const avatar = profile?.avatar_url ?? (meta.avatar_url as string | undefined) ?? (meta.picture as string | undefined);
+    const avatar = resolveAvatarUrl(profile?.avatar_url, user);
     return (
       <div className={styles.userArea}>
         <Link href="/notifications" className={styles.iconBtn} aria-label={`通知${unread ? `，${unread} 則未讀` : ""}`}>

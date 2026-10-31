@@ -3,6 +3,7 @@ import { createContext, useCallback, useContext, useEffect, useState } from "rea
 import type { User } from "@supabase/supabase-js";
 import { getBrowserSupabase } from "@/lib/supabase/client";
 import { TERMS_VERSION, isSupabaseConfigured } from "@/lib/supabase/config";
+import { resolveAvatarUrl } from "@/lib/avatar";
 import { isAdminRole, type ProfileRole } from "@/lib/auth-role";
 
 export interface Profile { id: string; display_name: string | null; avatar_url: string | null; terms_version: string | null; role: ProfileRole; email: string | null }
@@ -36,9 +37,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!sb) return;
     const cols = "id, display_name, avatar_url, terms_version, role, email";
     const { data: auth } = await sb.auth.getUser();
-    const meta = auth.user?.user_metadata ?? {};
+    const u = auth.user;
+    const meta = u?.user_metadata ?? {};
     const googleName = (meta.full_name ?? meta.name ?? null) as string | null;
-    const googleAvatar = (meta.avatar_url ?? meta.picture ?? null) as string | null;
+    const googleAvatar = resolveAvatarUrl(null, u);
     let { data } = await sb.from("meow_profiles").select(cols).eq("id", uid).maybeSingle();
     if (!data) {
       await sb.from("meow_profiles").insert({ id: uid, display_name: googleName, avatar_url: googleAvatar });
@@ -49,6 +51,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (updated) data = updated;
       else data = { ...data, avatar_url: googleAvatar, display_name: data.display_name ?? googleName };
     }
+    // 即使資料庫寫入失敗，畫面仍用登入憑證的頭像
+    if (data && !data.avatar_url && googleAvatar) data = { ...data, avatar_url: googleAvatar };
     setProfile(data as Profile | null);
   }, [sb]);
 
