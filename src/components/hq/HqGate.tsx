@@ -53,7 +53,7 @@ export function HqGate({ children }: { children: React.ReactNode }) {
       <HqToastProvider>
         <HqShell
           items={visibleSidebar({ role, grants })}
-          user={{ name: profile?.display_name ?? user?.email ?? "預覽", roleLabel: role === "system_admin" ? "系統管理員" : "管理員", avatarUrl: profile?.avatar_url }}
+          user={{ name: profile?.display_name ?? user?.email ?? "預覽", roleLabel: role === "system_admin" ? "系統管理員" : "管理員", avatarUrl: profile?.avatar_url ?? user?.user_metadata?.avatar_url ?? user?.user_metadata?.picture }}
           unread={unread}
           userId={preview ? null : user?.id ?? null}
           onNotificationsChanged={reload}
