@@ -10,7 +10,7 @@ import { LIFE_STAGE_LABEL, type LifeStage } from "@/lib/cat-profile/life-stage";
 import { ageLabel } from "@/lib/onboarding/cat";
 import { useState } from "react";
 import type { CaretakerType } from "@/lib/onboarding/household";
-import { DWELLINGS, ROLE_INFO, SCREENS, type Home } from "@/lib/onboarding/household-rules";
+import { DWELLINGS, ROLE_INFO, type Home } from "@/lib/onboarding/household-rules";
 import s from "./me.module.css";
 
 export interface Household {
@@ -31,7 +31,6 @@ function homeSummary(h: Home | null): string {
     h.renting ? (h.landlordOk ? "租屋（房東同意）" : "租屋") : null,
     h.family.length ? `同住：${h.family.join("、")}` : null,
     h.pets.length ? `家裡有${h.pets.join("、")}` : null,
-    h.screens && `防護網${SCREENS[h.screens]}`,
   ].filter(Boolean).join("・");
 }
 

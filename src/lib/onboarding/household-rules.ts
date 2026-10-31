@@ -14,7 +14,6 @@ export const ROLES = Object.keys(ROLE_INFO) as CaretakerType[];
 export const DWELLINGS = { apartment: "公寓", building: "電梯大樓", house: "透天", other: "其他" } as const;
 export const FAMILY = ["小孩", "長輩", "室友"] as const;
 export const PETS = ["貓", "狗", "其他動物"] as const;
-export const SCREENS = { all: "都有裝", partial: "部分有裝", none: "還沒裝" } as const;
 
 export const HomeSchema = z.object({
   dwelling: z.enum(Object.keys(DWELLINGS) as [keyof typeof DWELLINGS]).nullable(),
@@ -22,7 +21,6 @@ export const HomeSchema = z.object({
   landlordOk: z.boolean().nullable(),
   family: z.array(z.enum(FAMILY)),
   pets: z.array(z.enum(PETS)),
-  screens: z.enum(Object.keys(SCREENS) as [keyof typeof SCREENS]).nullable(),
 });
 export type Home = z.infer<typeof HomeSchema>;
 
@@ -42,7 +40,7 @@ export interface HouseholdForm {
 
 export const emptyHouseholdForm = (): HouseholdForm => ({
   role: null, name: "", city: null, district: "", intro: "",
-  home: { dwelling: null, renting: null, landlordOk: null, family: [], pets: [], screens: null },
+  home: { dwelling: null, renting: null, landlordOk: null, family: [], pets: [] },
   terms: null, orgName: "", orgProofUrl: "", applyBadge: false,
 });
 

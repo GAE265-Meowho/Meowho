@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { CITIES } from "@/lib/match";
 import {
-  DWELLINGS, FAMILY, PETS, ROLES, ROLE_INFO, SCREENS, checkHousehold, emptyHouseholdForm, toHouseholdRow, verificationRow,
+  DWELLINGS, FAMILY, PETS, ROLES, ROLE_INFO, checkHousehold, emptyHouseholdForm, toHouseholdRow, verificationRow,
   type HouseholdForm as Form, type MissingField,
 } from "@/lib/onboarding/household-rules";
 import { getBrowserSupabase } from "@/lib/supabase/client";
@@ -114,10 +114,6 @@ export function HouseholdForm({ userId, displayName, onDemoCreated }: {
           <div className={s.field}>
             <span className={s.label}>家裡現有的寵物</span>
             <MultiPick label="家裡現有的寵物" options={PETS} value={f.home.pets} onChange={v => setHome({ pets: v })} />
-          </div>
-          <div className={s.field}>
-            <span className={s.label}>窗戶與陽台防護網</span>
-            <OnePick label="窗戶與陽台防護網" options={SCREENS} value={f.home.screens} onChange={v => setHome({ screens: v })} />
           </div>
         </>
       )}
