@@ -40,7 +40,7 @@ describe("準備上傳（記憶體版儲存）", () => {
 describe("記憶體版儲存的行為（與 Azure 版同一介面）", () => {
   it("上傳後讀得到、刪除後讀不到", async () => {
     const store = createMemoryStore();
-    store.put("cats/c/videos/1.mp4", new Uint8Array([1, 2, 3]));
+    await store.put("cats/c/videos/1.mp4", new Uint8Array([1, 2, 3]), "video/mp4");
     expect(await store.download("cats/c/videos/1.mp4")).toEqual(new Uint8Array([1, 2, 3]));
     expect(await store.readUrl("cats/c/videos/1.mp4")).toContain("cats/c/videos/1.mp4");
     await removeMedia(store, ["cats/c/videos/1.mp4", "cats/c/videos/沒這支.mp4"]);

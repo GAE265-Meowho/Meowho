@@ -35,5 +35,13 @@ export function createAzureStore(cfg: StorageConfig): MediaStore {
       return new Uint8Array(await blob.downloadToBuffer());
     },
     remove: async (path) => { await container.getBlockBlobClient(path).deleteIfExists(); },
+    put: async (path, bytes, contentType) => {
+      await container.getBlockBlobClient(path).uploadData(bytes, { blobHTTPHeaders: { blobContentType: contentType } });
+    },
+    list: async (prefix) => {
+      const paths: string[] = [];
+      for await (const blob of container.listBlobsFlat({ prefix })) paths.push(blob.name);
+      return paths.sort();
+    },
   };
 }

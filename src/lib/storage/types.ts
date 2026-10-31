@@ -13,6 +13,10 @@ export interface MediaStore {
   download(path: string): Promise<Uint8Array | null>;
   /** 刪除檔案；不存在也算成功 */
   remove(path: string): Promise<void>;
+  /** 伺服器端寫入檔案（測試→正式複製用；一般上傳走 uploadUrl） */
+  put(path: string, bytes: Uint8Array, contentType: string): Promise<void>;
+  /** 列出某資料夾（以 / 結尾）底下所有檔案路徑 */
+  list(prefix: string): Promise<string[]>;
 }
 
 export const UPLOAD_TTL_SEC = 15 * 60;
