@@ -46,6 +46,7 @@
 
 - **MeowHQ shell（#21）**：外殼在 `src/app/MeowHQ/`＋`src/components/hq/`。舊後台已移除（功能移到 #23 管理員授權與網站外觀、#24 中途認證）。`src/components/hq/access.ts` 的 `visibleSidebar` 讀不到授權表時會退回「全部可見」，0002 執行後由 #22 改接 `permissions.ts` 並移除退回邏輯。`Auth.tsx` 的 `isAdmin` 為 admin 或 system_admin（`src/lib/auth-role.ts`）。本機未設 Supabase 時用 `/MeowHQ?hqPreview=1` 預覽外殼（僅非 production）。
 
+- **虛擬體驗元件管理—貓咪模型（#75，分支 `feat/75-assets-cat-models`，2026-10-31 Tina × Cursor）**：規格 `docs/hq/04_assets-cat-models規格書.md`。PR 2a 已完成：`/MeowHQ/assets` 四分頁、貓咪列表、貓咪頁（`CatPreview` 3D 預覽、動作清單、上下架）。資料來源目前只有「本機檔案」（讀 Cat Studio 的 `adoption_cats/`，需在 `.env.local` 設 `CAT_STUDIO_ROOT`，只在 `npm run dev` 有效）。**下一步**：PR 2b 貼圖工作頁 `/cats/<id>/studio`（新增貓咪、產生選項、任務進度、貼圖結果、保留最近 1 版）；PR 3 才寫 `0004_meow_cat_models.sql`（**執行前須經 Tina 確認**）。預覽本機無 Supabase 設定時才能用 `?hqPreview=1`；有 `.env.local` 時請暫時建 `.env.development.local` 清空兩個 `NEXT_PUBLIC_SUPABASE_*`。母體 glb 的名稱約定（材質 `cat_fur`／`cat_eye`、形狀鍵 `blink_L`／`blink_R`、動作 `idle`／`walk`／`sleep`）不能改，改了預覽會壞。
 ## 重要檔案
 | 檔案 | 用途 |
 |---|---|
