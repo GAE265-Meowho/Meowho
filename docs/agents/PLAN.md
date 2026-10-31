@@ -2,7 +2,7 @@
 
 > GitHub Issues 是任務的正式來源；本檔是給 agent 快速掌握全局的鏡像與排程。
 > 狀態只用：`待辦`、`進行中`、`審查中`、`完成`、`卡住`。開工改「進行中」並填負責人，收工更新。
-> 最後更新：2026-10-29 00:10｜Tina × Cursor
+> 最後更新：2026-10-31｜子哲 × Claude Code
 
 ## 里程碑
 
@@ -71,7 +71,7 @@
 
 - 退養流程細節
 - LLM 供應商（程式已可切換 Gemini／OpenAI／Azure／Anthropic，只差決定）、影像生成方案
-- 3D 模型與影片的儲存位置：建議 Azure Blob（需有人申請 Azure for Students），見 `docs/decisions/002-langchain-and-media-storage.md`
+- ~~3D 模型與影片的儲存位置~~：已決定 Azure Blob（決策 006，2026-10-31）
 - 皇家專題要求（必做功能、KPI、品牌規範、資料提供、購買連結導向）
 - Vercel 部署方式（repo 維持 private 或改 public）
 - 組員姓名與 A–F 對應
@@ -80,6 +80,9 @@
 - 品牌名稱寫法：文件與網站一律「Meowho喵戶」（2026-10-29 Tina 決定，取代 Meow Home／MeowHome；GitHub 倉庫、Vercel 專案、`meow_` 資料庫前綴與 MeowHQ 後台名稱不變）
 
 ## 建議（agent 發現、尚未有人認領）
+
+- #56 領養人 profile 在 GitHub 指派給清俊，但 `21_第一週衝刺_Scope.md` 寫在子哲範圍；背景標記「自填」要用它的資料，負責人待組內確認
+- 難度參數暫緩（子哲 2026-10-31）：等與渝茜（#58）確認後再加進貓咪 profile
 
 - 首頁還缺：貓咪詳細頁（點卡片進入）、中途之家專區（找中途、認證中途）、領養人 onboarding 入口（目前「我想領養」只導到搜尋列）、知識區完整頁、登入後的個人化首頁（我的貓戶摘要、通知）
 - 貓咪公開頁 `/cats/[id]` 與分享預覽（任務 2 剩餘部分）
