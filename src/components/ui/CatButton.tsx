@@ -12,6 +12,7 @@ type Common = {
   tail?: boolean;
   arrow?: boolean;
   className?: string;
+  disabled?: boolean;
 };
 
 type Props = Common &
@@ -57,7 +58,7 @@ function Arrow() {
  * Pill button shaped like a cat: ears on top, a striped tail hooking down off
  * the right end. Ears and tail sit beneath the pill so their joins are hidden.
  */
-export default function CatButton({ children, variant = "primary", size = "md", ears = true, tail = true, arrow = false, className, ...rest }: Props) {
+export default function CatButton({ children, variant = "primary", size = "md", ears = true, tail = true, arrow = false, className, disabled, ...rest }: Props) {
   const cls = [styles.btn, styles[variant], styles[size], ears && styles.withEars, tail && styles.withTail, className].filter(Boolean).join(" ");
   const inner = (
     <>
@@ -76,7 +77,7 @@ export default function CatButton({ children, variant = "primary", size = "md", 
     );
   }
   return (
-    <button type={rest.type ?? "button"} onClick={rest.onClick} className={cls}>
+    <button type={rest.type ?? "button"} onClick={rest.onClick} className={cls} disabled={disabled}>
       {inner}
     </button>
   );

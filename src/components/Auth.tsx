@@ -3,6 +3,7 @@ import { createContext, useCallback, useContext, useEffect, useState } from "rea
 import type { User } from "@supabase/supabase-js";
 import { getBrowserSupabase } from "@/lib/supabase/client";
 import { TERMS_VERSION, isSupabaseConfigured } from "@/lib/supabase/config";
+import { resolveAvatarUrl } from "@/lib/avatar";
 import { isAdminRole, type ProfileRole } from "@/lib/auth-role";
 
 export interface Profile { id: string; display_name: string | null; avatar_url: string | null; terms_version: string | null; role: ProfileRole; email: string | null }
@@ -31,16 +32,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(isSupabaseConfigured);
 
   // 共用 Supabase 專案：不在 auth.users 上加 trigger，第一次登入 Meowho喵戶 時由這裡建立 profile
+  // Google 大頭貼多半在 user_metadata.picture（不一定有 avatar_url）
   const loadProfile = useCallback(async (uid: string) => {
     if (!sb) return;
     const cols = "id, display_name, avatar_url, terms_version, role, email";
+    const { data: auth } = await sb.auth.getUser();
+    const u = auth.user;
+    const meta = u?.user_metadata ?? {};
+    const googleName = (meta.full_name ?? meta.name ?? null) as string | null;
+    const googleAvatar = resolveAvatarUrl(null, u);
     let { data } = await sb.from("meow_profiles").select(cols).eq("id", uid).maybeSingle();
     if (!data) {
-      const { data: u } = await sb.auth.getUser();
-      const meta = u.user?.user_metadata ?? {};
-      await sb.from("meow_profiles").insert({ id: uid, display_name: meta.full_name ?? meta.name ?? null, avatar_url: meta.avatar_url ?? null });
+      await sb.from("meow_profiles").insert({ id: uid, display_name: googleName, avatar_url: googleAvatar });
       ({ data } = await sb.from("meow_profiles").select(cols).eq("id", uid).maybeSingle());
+    } else if (googleAvatar && data.avatar_url !== googleAvatar) {
+      // 補上／更新 Google 頭像，讓 MeowHQ 右上角能辨識已登入者
+      const { data: updated } = await sb.from("meow_profiles").update({ avatar_url: googleAvatar, display_name: data.display_name ?? googleName }).eq("id", uid).select(cols).maybeSingle();
+      if (updated) data = updated;
+      else data = { ...data, avatar_url: googleAvatar, display_name: data.display_name ?? googleName };
     }
+    // 即使資料庫寫入失敗，畫面仍用登入憑證的頭像
+    if (data && !data.avatar_url && googleAvatar) data = { ...data, avatar_url: googleAvatar };
     setProfile(data as Profile | null);
   }, [sb]);
 

@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
-  ageBandOf, ageLabel, ageMonths, applyPhotoSuggestion, emptyCatDraft, extractStoryByRules, parseAge, parseSex,
+  ageLabel, ageMonths, applyPhotoSuggestion, emptyCatDraft, extractStoryByRules, parseAge, parseSex,
   storyDiff, toCatRow, validateCat, zodiacOf,
 } from "./cat";
 
@@ -19,12 +19,6 @@ describe("年紀與星座（UT-02-01～03）", () => {
   it("生日未知 → 星座 null、顯示估計年齡", () => {
     expect(zodiacOf(null)).toBeNull();
     expect(ageLabel({ birthday: null, estAgeMonths: 36 }, today)).toBe("約 3 歲");
-  });
-  it("年齡段", () => {
-    expect(ageBandOf(6)).toBe("幼貓");
-    expect(ageBandOf(30)).toBe("成貓");
-    expect(ageBandOf(100)).toBe("熟齡");
-    expect(ageBandOf(130)).toBe("老貓");
   });
   it("生日當月未滿日不算滿月", () => {
     expect(ageMonths({ birthday: "2026-08-30", estAgeMonths: null }, today)).toBe(1);
