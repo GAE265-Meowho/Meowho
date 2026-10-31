@@ -13,7 +13,8 @@
     "typecheck": "tsc --noEmit",
     "photos:download": "node scripts/download-photos.mjs",
     "log": "node scripts/daily-log.mjs",
-    "media:promote": "npx -y tsx@4.19.2 --conditions=react-server scripts/promote-media.mts"
+    "media:promote": "npx -y tsx@4.19.2 --conditions=react-server scripts/promote-media.mts",
+    "hq:import-cat": "npx -y tsx@4.19.2 scripts/import-hq-cat-model.mts"
   },
   "dependencies": {
     "@azure/storage-blob": "12.34.0",
