@@ -1,5 +1,4 @@
 "use client";
-/* eslint-disable @next/next/no-img-element */
 // MeowHQ 外殼：頂列（Logo、鈴鐺、頭像選單）＋側欄（手機「☰」）＋內容區（規格書 §4.0、§4.9）。
 import Link from "next/link";
 import { Fragment, useState } from "react";
@@ -7,6 +6,7 @@ import { ADMIN_MODULE_LABELS, type SidebarItem } from "@/lib/hq/types";
 import { HQ_HOME, HQ_MODULE_PATH, isModule } from "./access";
 import { HqOfflineBanner } from "./HqStates";
 import { NotificationBell } from "./NotificationBell";
+import AvatarImage from "@/components/ui/AvatarImage";
 
 export interface HqUser { name: string; roleLabel: string; avatarUrl?: string | null }
 interface Props {
@@ -47,7 +47,7 @@ export function HqShell({ items, user, unread, onLogout, activePath, children, u
         <NotificationBell unread={unread} userId={userId} onChanged={onNotificationsChanged} />
         <div className="hq-menu-wrap">
           <button className="hq-avatar" aria-label="帳號選單" aria-haspopup="menu" aria-expanded={menuOpen} onClick={() => setMenuOpen(o => !o)}>
-            {user.avatarUrl ? <img src={user.avatarUrl} alt="" /> : user.name.slice(0, 1)}
+            <AvatarImage src={user.avatarUrl} fallback={user.name.slice(0, 1)} />
           </button>
           {menuOpen && (
             <div className="hq-menu" role="menu">

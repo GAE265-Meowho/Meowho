@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { getBrowserSupabase } from "@/lib/supabase/client";
 import CatPerch from "@/components/journey/CatPerch";
 import CatButton from "@/components/ui/CatButton";
+import AvatarImage from "@/components/ui/AvatarImage";
 import Icon from "@/components/ui/Icon";
 import { mainNav, tabNav } from "@/components/layout/nav";
 import styles from "@/components/layout/layout.module.css";
@@ -75,14 +76,15 @@ function UserArea() {
   const { toast } = useUi();
   const unread = useUnreadCount(user?.id);
   if (user) {
-    const avatar = profile?.avatar_url ?? (user.user_metadata?.avatar_url as string | undefined);
+    const meta = user.user_metadata ?? {};
+    const avatar = profile?.avatar_url ?? (meta.avatar_url as string | undefined) ?? (meta.picture as string | undefined);
     return (
       <div className={styles.userArea}>
         <Link href="/notifications" className={styles.iconBtn} aria-label={`通知${unread ? `，${unread} 則未讀` : ""}`}>
           <BellIcon />{unread > 0 && <span className={styles.badge}>{unread > 99 ? "99+" : unread}</span>}
         </Link>
         <Link href="/me" className={styles.avatar} aria-label="我的喵戶">
-          {avatar ? <img src={avatar} alt="" referrerPolicy="no-referrer" /> : <Icon name="cat" size={22} />}
+          <AvatarImage src={avatar} fallback={<Icon name="cat" size={22} />} />
         </Link>
       </div>
     );
