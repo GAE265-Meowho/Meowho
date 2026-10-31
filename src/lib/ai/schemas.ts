@@ -72,3 +72,10 @@ export const CatPhotoAnalysisSchema = z.object({
 export type HouseholdTurnOut = z.infer<typeof HouseholdTurnSchema>;
 export type CatTurnOut = z.infer<typeof CatTurnSchema>;
 export type CatPhotoAnalysisOut = z.infer<typeof CatPhotoAnalysisSchema>;
+
+export const CatVideoSchema = z.object({
+  isCat: z.boolean().describe("影片主角是否為貓"),
+  personalityTags: z.array(z.string()).describe("只能從個性標籤清單挑選，看不出來給空陣列"),
+  reason: z.string().describe("40 字內，說明從哪些動作看出這些個性"),
+});
+export type CatVideoOut = z.infer<typeof CatVideoSchema>;

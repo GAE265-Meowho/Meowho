@@ -3,8 +3,9 @@ import "server-only";
 import { structured } from "./chain";
 import { getChatModel, isAIConfigured } from "./models";
 import { catPhotoChain, catPhotoInput, catStoryChain, catStoryInput, householdChain, householdInput } from "./onboarding";
-import { catPhotoAnalysisChain, makeTurnExtractor } from "./intake";
-import { CatPhotoAnalysisSchema, CatPhotoSchema, CatStorySchema, CatTurnSchema, HouseholdExtractionSchema, HouseholdTurnSchema } from "./schemas";
+import { canAnalyzeVideo, catPhotoAnalysisChain, catVideoChain, catVideoInput, makeTurnExtractor } from "./intake";
+import { resolveProvider } from "./config";
+import { CatPhotoAnalysisSchema, CatPhotoSchema, CatStorySchema, CatTurnSchema, CatVideoSchema, HouseholdExtractionSchema, HouseholdTurnSchema } from "./schemas";
 import type { TurnExtractor } from "@/lib/onboarding/conversation";
 
 export { aiLabel, isAIConfigured } from "./models";
@@ -37,3 +38,10 @@ export const extractIntakeTurn: TurnExtractor = (input) => safe(async () => make
 export const analyzeCatPhoto = (mime: string, base64: string) => safe(async () =>
   catPhotoAnalysisChain(structured(await getChatModel("vision"), CatPhotoAnalysisSchema, "cat_photo_analysis"))
     .invoke({ text: "請辨識這張照片中的貓咪。", imageDataUrl: `data:${mime};base64,${base64}` }));
+
+/** 影片判讀：只支援 Gemini 且檔案不超過直接夾帶上限；其他情況回傳 null（只留影片，不給建議） */
+export const analyzeCatVideo = (mime: string, bytes: Uint8Array) => {
+  if (!canAnalyzeVideo(resolveProvider(process.env), bytes.byteLength)) return Promise.resolve(null);
+  return safe(async () => catVideoChain(structured(await getChatModel("vision"), CatVideoSchema, "cat_video"))
+    .invoke(catVideoInput(mime, Buffer.from(bytes).toString("base64"))));
+};

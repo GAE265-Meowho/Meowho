@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { RunnableLambda } from "@langchain/core/runnables";
 import type { BaseMessage } from "@langchain/core/messages";
-import { catPhotoAnalysisChain, catTurnChain, householdTurnChain, intakeTurnInput, makeTurnExtractor } from "./intake";
+import { MAX_INLINE_VIDEO_BYTES, canAnalyzeVideo, catPhotoAnalysisChain, catTurnChain, catVideoChain, catVideoInput, householdTurnChain, intakeTurnInput, makeTurnExtractor } from "./intake";
 
 const fake = (out: unknown, seen?: BaseMessage[][]) =>
   RunnableLambda.from((msgs: BaseMessage[]) => { seen?.push(msgs); return out; });
@@ -45,5 +45,22 @@ describe("建檔對話的 LLM 鏈（假模型，不連網）", () => {
     expect(r.estAgeMonths).toBe(30);
     const content = seen[0][1].content as { type: string }[];
     expect(content[1].type).toBe("image_url");
+  });
+
+  it("影片判讀：影片以 media 片段送出，回傳個性建議與理由", async () => {
+    const seen: BaseMessage[][] = [];
+    const out = { isCat: true, personalityTags: ["活潑", "好奇"], reason: "一直追逗貓棒" };
+    const r = await catVideoChain(fake(out, seen)).invoke(catVideoInput("video/mp4", "AAAA"));
+    expect(r.personalityTags).toEqual(["活潑", "好奇"]);
+    const content = seen[0][1].content as { type: string; mimeType?: string; data?: string }[];
+    expect(content[1]).toEqual({ type: "media", mimeType: "video/mp4", data: "AAAA" });
+    expect(String(seen[0][0].content)).toContain("親其他貓");
+  });
+
+  it("影片判讀只支援 Gemini，且檔案要小於直接送出的上限", () => {
+    expect(canAnalyzeVideo("gemini", 10_000_000)).toBe(true);
+    expect(canAnalyzeVideo("gemini", MAX_INLINE_VIDEO_BYTES + 1)).toBe(false);
+    expect(canAnalyzeVideo("openai", 1_000)).toBe(false);
+    expect(canAnalyzeVideo(null, 1_000)).toBe(false);
   });
 });

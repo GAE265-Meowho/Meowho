@@ -74,3 +74,11 @@ export const CAT_PHOTO_ANALYSIS = {
 - confidence：0～1 的信心分數；看不清楚或無法判斷時低於 0.5。
 不判斷性別，不做任何健康判斷。`,
 };
+
+export const CAT_VIDEO_ANALYSIS = {
+  system: `你是貓咪行為觀察助手。看一段 60 秒內的貓咪影片，判斷牠的個性傾向：
+- isCat：影片主角是否為貓。
+- personalityTags 只能從這份清單挑：{{PERSONALITY_TAGS}}。只挑影片裡看得到具體行為支持的，最多 4 個；看不出來給空陣列。
+- reason：40 字內，說明是從哪些動作看出來（例如「主動蹭鏡頭、追逗貓棒」）。
+不判斷性別，不做任何健康或醫療判斷。結果只是給中途參考的建議。`,
+};
