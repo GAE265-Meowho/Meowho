@@ -90,6 +90,14 @@ select pg_temp.expect_err('CAT-06 照片最多 5 張', 'meow_cats_photo_paths_ch
 select pg_temp.expect_ok('CAT-07 5 張照片可以', pg_temp.new_cat($v$photo_paths='{a,b,c,d,e}'$v$));
 select pg_temp.expect_ok('CAT-08 可存個性、健康標籤與原文描述',
   pg_temp.run_as('O', format($q$update public.meow_cats set personality_tags = '{親人,愛玩}', health_tags = '{已結紮}', description = '很親人' where id = '%s' returning id::text$q$, (select id from c1))));
+select pg_temp.expect_eq('CAT-11 時間軸預設為空陣列', '[]',
+  (select timeline::text from public.meow_cats where id = (select id from c1)));
+select pg_temp.expect_ok('CAT-12 可存時間軸（日期＋事件）',
+  pg_temp.run_as('O', format($q$update public.meow_cats set timeline = '[{"date":"2026-08-01","event":"在永寧站接麥麥"}]' where id = '%s' returning id::text$q$, (select id from c1))));
+select pg_temp.expect_err('CAT-13 時間軸必須是陣列', 'meow_cats_timeline_check',
+  pg_temp.run_as('O', format($q$update public.meow_cats set timeline = '{"date":"2026-08-01"}' where id = '%s' returning id::text$q$, (select id from c1))));
+select pg_temp.expect_err('CAT-14 時間軸最多 50 筆', 'meow_cats_timeline_check',
+  pg_temp.run_as('O', format($q$update public.meow_cats set timeline = (select jsonb_agg(jsonb_build_object('date','2026-01-01','event','x')) from generate_series(1,51)) where id = '%s' returning id::text$q$, (select id from c1))));
 select pg_temp.expect_eq('CAT-09 其他會員不能修改別人的貓', '0',
   pg_temp.run_as('X', format($q$with u as (update public.meow_cats set name = '偷改' where id = '%s' returning 1) select count(*)::text from u$q$, (select id from c1))));
 select pg_temp.expect_eq('CAT-10 匿名訪客讀得到待領養貓', '1',

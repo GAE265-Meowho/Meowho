@@ -1,12 +1,10 @@
 "use client";
 /* eslint-disable @next/next/no-img-element */
-// 建檔對話旁的兩張名片：喵戶與貓咪。每一欄都能直接改；AI 猜的欄位標「請確認」。
+// 新增貓咪最後的確認名片：每一欄都能直接改；AI 猜的欄位標「請確認」。
 import { LIFE_STAGES } from "@/lib/cat-profile/life-stage";
 import { HEALTH_TAGS, PERSONALITY_TAGS } from "@/lib/cat-profile/tags";
-import { CARETAKER_LABEL, type CaretakerType } from "@/lib/onboarding/household";
-import { CITIES } from "@/lib/match";
 import {
-  canCreateCat, canCreateHousehold, confirmField, removeMedia, setCatField, setCover,
+  canCreateCat, confirmField, removeMedia, setCatField, setCover,
   type IntakeState, type PendingField,
 } from "@/lib/onboarding/conversation";
 import CatButton from "../ui/CatButton";
@@ -14,51 +12,6 @@ import Icon from "../ui/Icon";
 import s from "./intake.module.css";
 
 type Update = (next: IntakeState) => void;
-
-// 位置只公開到縣市＋區（AGENTS.md §6、FR-02-07），所以這裡沒有地址欄
-export function HouseholdCard({ state, onChange, onCreate, saving, error }: {
-  state: IntakeState; onChange: Update; onCreate: () => void; saving: boolean; error: string | null;
-}) {
-  const h = state.household;
-  const set = (patch: Partial<IntakeState["household"]>) => onChange({ ...state, household: { ...h, ...patch } });
-  return (
-    <section className={s.card} aria-labelledby="household-card">
-      <h2 id="household-card">喵戶資料</h2>
-      <div className={s.field}>
-        <label className={s.label} htmlFor="h-name">喵戶名稱</label>
-        <input id="h-name" value={h.name} maxLength={30} onChange={e => set({ name: e.target.value })} />
-      </div>
-      <div className={s.field}>
-        <label className={s.label} htmlFor="h-type">你的身分</label>
-        <select id="h-type" value={h.caretakerType ?? ""} onChange={e => set({ caretakerType: e.target.value as CaretakerType })}>
-          <option value="" disabled>請選擇</option>
-          {Object.entries(CARETAKER_LABEL).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-        </select>
-      </div>
-      <div className={s.pair}>
-        <div className={s.field}>
-          <label className={s.label} htmlFor="h-city">縣市</label>
-          <select id="h-city" value={h.city ?? ""} onChange={e => set({ city: e.target.value })}>
-            <option value="" disabled>請選擇</option>
-            {CITIES.map(c => <option key={c}>{c}</option>)}
-          </select>
-        </div>
-        <div className={s.field}>
-          <label className={s.label} htmlFor="h-dist">區</label>
-          <input id="h-dist" value={h.district ?? ""} maxLength={6} onChange={e => set({ district: e.target.value })} />
-        </div>
-      </div>
-      <div className={s.field}>
-        <label className={s.label} htmlFor="h-intro">介紹喵戶</label>
-        <textarea id="h-intro" rows={3} value={h.intro} maxLength={500} onChange={e => set({ intro: e.target.value })} />
-      </div>
-      {error && <p className={s.error} role="alert">{error}</p>}
-      <div className={s.actions}>
-        <CatButton onClick={onCreate} disabled={saving || !canCreateHousehold(state)}>{saving ? "建立中…" : "建立喵戶"}</CatButton>
-      </div>
-    </section>
-  );
-}
 
 function Confirm({ state, field, onChange }: { state: IntakeState; field: PendingField; onChange: Update }) {
   if (!state.pending.includes(field)) return null;
@@ -171,6 +124,24 @@ export function CatCard({ state, onChange, onCreate, saving, error, aiUsed }: {
         {/* AGENTS.md §6：醫療相關內容要附聲明，一般字級、放在旁邊 */}
         <p className={s.lead}>僅供參考，非醫療建議。</p>
       </div>
+
+      {c.timeline.length > 0 && (
+        <div className={s.field}>
+          <span className={s.label}>時間軸</span>
+          <ol className={s.timeline}>
+            {c.timeline.map((e, i) => (
+              <li key={`${e.date}-${i}`}>
+                <time dateTime={e.date}>{e.date.slice(5).replace("-", "/")}</time>
+                <span>{e.event}</span>
+                <button type="button" className={s.thumbBtn} aria-label={`移除 ${e.date} 這一筆`}
+                  onClick={() => onChange({ ...state, cat: { ...c, timeline: c.timeline.filter((_, j) => j !== i) } })}>
+                  <Icon name="close" size={16} />
+                </button>
+              </li>
+            ))}
+          </ol>
+        </div>
+      )}
 
       <div className={s.field}>
         <label className={s.label} htmlFor="c-desc">牠的故事</label>

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  applyMediaAnalysis, beginCat, canCreateCat, canCreateHousehold, confirmField, emptyIntake, nextStep, removeMedia, setCatField, setCover, takeTurn,
+  applyMediaAnalysis, beginCat, canCreateCat, canCreateHousehold, confirmField, emptyIntake, nextStep, parseTimeline, removeMedia, setCatField, setCover, takeTurn,
   type CatTurn, type HouseholdTurn, type IntakeState, type MediaAnalysis, type TurnExtractor,
 } from "./conversation";
 
@@ -8,7 +8,7 @@ const today = new Date("2026-10-31T12:00:00+08:00");
 const hh = (o: Partial<HouseholdTurn>): HouseholdTurn => ({ caretakerType: null, name: null, city: null, district: null, intro: null, reply: "", ...o });
 const ct = (o: Partial<CatTurn>): CatTurn => ({
   name: null, sex: null, birthday: null, estAgeMonths: null, lifeStage: null, coat: null, breed: null,
-  personalityTags: [], healthTags: [], description: null, wantsReview: false, reply: "", ...o,
+  personalityTags: [], healthTags: [], description: null, timeline: [], wantsReview: false, reply: "", ...o,
 });
 const llm = (out: HouseholdTurn | CatTurn): TurnExtractor => async () => out;
 const broken: TurnExtractor = async () => { throw new Error("AI 掛了"); };
@@ -130,6 +130,12 @@ describe("建立貓咪：先看照片影片，再補問", () => {
     expect(r.state.pending).not.toContain("lifeStage");
   });
 
+  it("描述存喵戶長的原文，不用 AI 改寫過的摘要", async () => {
+    const text = "8/01 接回家，很兇但會討摸";
+    const r = await takeTurn(catPhase(), text, llm(ct({ description: "個性較兇但親人" })), today);
+    expect(r.state.cat.description).toBe(text);
+  });
+
   it("描述會保留原文，標籤只留清單內的", async () => {
     const text = "很親人，愛玩逗貓棒，已經結紮，每天要吃藥";
     const r = await takeTurn(catPhase(), text, llm(ct({ personalityTags: ["親人", "愛玩", "可愛"], healthTags: ["已結紮", "需每日用藥", "健康"], description: text })), today);
@@ -144,8 +150,10 @@ describe("建立貓咪：先看照片影片，再補問", () => {
     expect(r.state.cat.healthTags).toEqual(["已結紮"]);
   });
 
-  it("只追問缺少的必填：照片 → 名字 → 年齡層", async () => {
+  it("先上傳照片、描述牠，再依序補問名字 → 年齡層", async () => {
     let s = applyMediaAnalysis(catPhase(), { ...photo, estAgeMonths: null });
+    expect(nextStep(s)).toEqual({ kind: "ask", field: "description" });
+    s = (await takeTurn(s, "很親人", llm(ct({ personalityTags: ["親人"], description: "很親人" })), today)).state;
     expect(nextStep(s)).toEqual({ kind: "ask", field: "name" });
     s = (await takeTurn(s, "牠叫橘子", llm(ct({ name: "橘子" })), today)).state;
     expect(nextStep(s)).toEqual({ kind: "ask", field: "lifeStage" });
@@ -153,14 +161,12 @@ describe("建立貓咪：先看照片影片，再補問", () => {
 
   it("必填齊了但還有「請確認」時，不能建立", () => {
     let s = applyMediaAnalysis(catPhase(), photo);
-    s = { ...s, cat: { ...s.cat, name: "橘子" } };
+    s = { ...s, cat: { ...s.cat, name: "橘子", description: "很親人" } };
     expect(canCreateCat(s)).toBe(false);
     expect(nextStep(s)).toEqual({ kind: "confirm_fields", fields: expect.arrayContaining(["coat", "breed", "lifeStage"]) });
     for (const f of [...s.pending]) s = confirmField(s, f);
     expect(canCreateCat(s)).toBe(true);
-    // 還沒聊過個性時，邀請說說個性（非必填，只問一次）
-    expect(nextStep(s)).toEqual({ kind: "ask", field: "description" });
-    expect(nextStep({ ...s, reviewRequested: true })).toEqual({ kind: "confirm_cat" });
+    expect(nextStep(s)).toEqual({ kind: "confirm_cat" });
   });
 
   it("說「先這樣」會跳到確認畫面，但必填仍要補齊", async () => {
@@ -171,7 +177,7 @@ describe("建立貓咪：先看照片影片，再補問", () => {
 
   it("性別可以填「不確定」，不是必填", async () => {
     let s = applyMediaAnalysis(catPhase(), photo);
-    s = (await takeTurn(s, "叫橘子，性別不確定", llm(ct({ name: "橘子", sex: "unknown" })), today)).state;
+    s = (await takeTurn(s, "叫橘子，性別不確定", llm(ct({ name: "橘子", sex: "unknown", wantsReview: true })), today)).state;
     for (const f of [...s.pending]) s = confirmField(s, f);
     expect(s.cat.sex).toBe("unknown");
     expect(canCreateCat(s)).toBe(true);
@@ -220,5 +226,62 @@ describe("直接選擇的欄位（按鈕，不經過 AI）", () => {
 
   it("改個性標籤時只留清單內的", () => {
     expect(setCatField(catPhase(), "personalityTags", ["親人", "會後空翻", "親人"]).cat.personalityTags).toEqual(["親人"]);
+  });
+});
+
+describe("照片把關：不是同一隻、不適當的內容", () => {
+  const ok: MediaAnalysis = { kind: "photo", path: "u/a.jpg", isCat: true, confidence: 0.9, coat: null, breed: null, estAgeMonths: null };
+
+  it("違反善良風俗的照片直接拒收", () => {
+    const s = applyMediaAnalysis(catPhase(), { ...ok, inappropriate: true });
+    expect(s.cat.photos).toEqual([]);
+    expect(s.notice).toBe("inappropriate");
+  });
+
+  it("明顯不是同一隻貓時先不收，請喵戶長確認", () => {
+    const first = applyMediaAnalysis(catPhase(), ok);
+    const s = applyMediaAnalysis(first, { ...ok, path: "u/b.jpg", sameCat: false });
+    expect(s.cat.photos).toEqual(["u/a.jpg"]);
+    expect(s.notice).toBe("maybe_other_cat");
+    // 喵戶長確認是同一隻後再收
+    expect(applyMediaAnalysis(first, { ...ok, path: "u/b.jpg", sameCat: null }).cat.photos).toEqual(["u/a.jpg", "u/b.jpg"]);
+  });
+});
+
+describe("時間軸：中途貼文裡的日期事件", () => {
+  const post = `我的第二隻中途貓：麥麥
+麥麥是我在網路上看到有人發求助文
+8/01在永寧站接麥麥 跟我搭709到龍潭
+（到家第一週每天拆家、翻桌、企圖逃獄）
+8/08麥麥太兇了 我開始上網學習如何親訓
+8/31徒手摸到了麥麥（雖然最後被她巴了）
+當天就帶去打第一劑預防針
+9/19幫麥麥換到大籠子`;
+
+  it("規則式：每個日期開頭的段落是一筆，後面沒有日期的行併進同一筆", () => {
+    expect(parseTimeline(post, today)).toEqual([
+      { date: "2026-08-01", event: "在永寧站接麥麥 跟我搭709到龍潭\n（到家第一週每天拆家、翻桌、企圖逃獄）" },
+      { date: "2026-08-08", event: "麥麥太兇了 我開始上網學習如何親訓" },
+      { date: "2026-08-31", event: "徒手摸到了麥麥（雖然最後被她巴了）\n當天就帶去打第一劑預防針" },
+      { date: "2026-09-19", event: "幫麥麥換到大籠子" },
+    ]);
+  });
+
+  it("沒寫年份時，比今天晚的日期算去年", () => {
+    expect(parseTimeline("12/25 來到我家", today)).toEqual([{ date: "2025-12-25", event: "來到我家" }]);
+    expect(parseTimeline("2024/3/5 撿到牠", today)).toEqual([{ date: "2024-03-05", event: "撿到牠" }]);
+  });
+
+  it("沒有 AI 時也會記下時間軸、名字與原文", async () => {
+    const s = applyMediaAnalysis(catPhase(), { kind: "photo", path: "u/a.jpg", isCat: true, confidence: 0.9, coat: null, breed: null, estAgeMonths: null });
+    const r = await takeTurn(s, post, noAI, today);
+    expect(r.state.cat.name).toBe("麥麥");
+    expect(r.state.cat.timeline).toHaveLength(4);
+    expect(r.state.cat.description).toBe(post);
+  });
+
+  it("AI 給的日期會換成完整日期、依時間排序，不合理的日期丟掉", async () => {
+    const r = await takeTurn(catPhase(), "貼文", llm(ct({ timeline: [{ date: "9/19", event: "換大籠子" }, { date: "8/01", event: "接回家" }, { date: "13/40", event: "亂寫" }] })), today);
+    expect(r.state.cat.timeline).toEqual([{ date: "2026-08-01", event: "接回家" }, { date: "2026-09-19", event: "換大籠子" }]);
   });
 });

@@ -8,7 +8,7 @@ const fake = (out: unknown, seen?: BaseMessage[][]) =>
 
 const catOut = {
   name: "橘子", sex: null, birthday: null, estAgeMonths: 24, lifeStage: null, coat: null, breed: null,
-  personalityTags: ["親人"], healthTags: [], description: "很親人", wantsReview: false, reply: "好可愛",
+  personalityTags: ["親人"], healthTags: [], description: "很親人", timeline: [{ date: "8/01", event: "接回家" }], wantsReview: false, reply: "好可愛",
 };
 
 describe("建檔對話的 LLM 鏈（假模型，不連網）", () => {
@@ -40,11 +40,21 @@ describe("建檔對話的 LLM 鏈（假模型，不連網）", () => {
 
   it("照片判讀：圖片以 image_url 送出、回傳估計月齡", async () => {
     const seen: BaseMessage[][] = [];
-    const out = { isCat: true, coat: "橘白", breed: "米克斯", estAgeMonths: 30, confidence: 0.8 };
+    const out = { isCat: true, inappropriate: false, sameCatAsReference: null, coat: "橘白", breed: "米克斯", estAgeMonths: 30, confidence: 0.8 };
     const r = await catPhotoAnalysisChain(fake(out, seen)).invoke({ text: "請辨識照片中的貓。", imageDataUrl: "data:image/jpeg;base64,AAAA" });
     expect(r.estAgeMonths).toBe(30);
     const content = seen[0][1].content as { type: string }[];
     expect(content[1].type).toBe("image_url");
+  });
+
+  it("照片比對：參考照片放在新照片前面，回傳是否同一隻、是否不適當", async () => {
+    const seen: BaseMessage[][] = [];
+    const out = { isCat: true, inappropriate: false, sameCatAsReference: false, coat: "黑", breed: null, estAgeMonths: null, confidence: 0.9 };
+    const r = await catPhotoAnalysisChain(fake(out, seen))
+      .invoke({ text: "比對", referenceImageDataUrl: "data:image/jpeg;base64,REF", imageDataUrl: "data:image/jpeg;base64,NEW" });
+    expect(r.sameCatAsReference).toBe(false);
+    const content = seen[0][1].content as { type: string; image_url?: { url: string } }[];
+    expect(content.map(c => c.image_url?.url)).toEqual([undefined, "data:image/jpeg;base64,REF", "data:image/jpeg;base64,NEW"]);
   });
 
   it("影片判讀：影片以 media 片段送出，回傳個性建議與理由", async () => {

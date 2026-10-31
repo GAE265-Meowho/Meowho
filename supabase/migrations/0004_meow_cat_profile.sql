@@ -1,4 +1,4 @@
--- 0004 貓咪 profile（#57、規格 #72）：年齡層、個性／健康標籤、原文描述、多張照片、貓影片
+-- 0004 貓咪 profile（#57、規格 #72）：年齡層、個性／健康標籤、原文描述、時間軸、多張照片、貓影片
 -- 可重複執行；只動 meow_ 開頭的物件（AGENTS.md §7）。
 -- ⚠ 執行時機：新建的貓必須有年齡層，舊的 /onboarding 一問一答流程沒有送年齡層會建貓失敗。
 --   請等新版 /onboarding（同一 Issue）一起上線後再到 Supabase 執行。
@@ -12,6 +12,8 @@ alter table public.meow_cats add column if not exists personality_tags text[] no
 alter table public.meow_cats add column if not exists health_tags text[] not null default '{}';
 alter table public.meow_cats add column if not exists description text;
 alter table public.meow_cats add column if not exists photo_paths text[] not null default '{}';
+-- 時間軸：中途貼文裡的日期事件 [{date: 'YYYY-MM-DD', event}]，依日期排序（#57，子哲 2026-10-31）
+alter table public.meow_cats add column if not exists timeline jsonb not null default '[]'::jsonb;
 
 -- 年齡層：AAFP／AAHA 四級（GLOSSARY「年齡層」）；3D 體型由程式推出，不存
 alter table public.meow_cats drop constraint if exists meow_cats_life_stage_check;
@@ -25,6 +27,10 @@ alter table public.meow_cats add constraint meow_cats_description_check
 alter table public.meow_cats drop constraint if exists meow_cats_photo_paths_check;
 alter table public.meow_cats add constraint meow_cats_photo_paths_check
   check (cardinality(photo_paths) <= 5);
+
+alter table public.meow_cats drop constraint if exists meow_cats_timeline_check;
+alter table public.meow_cats add constraint meow_cats_timeline_check
+  check (jsonb_typeof(timeline) = 'array' and jsonb_array_length(timeline) <= 50);
 
 -- 這一版建立的貓一律是待領養貓（主線只有送養）
 alter table public.meow_cats alter column status set default 'adoptable';

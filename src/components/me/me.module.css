@@ -150,3 +150,10 @@
   align-items: center;
   gap: 20px;
 }
+
+.tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+  padding-top: 4px;
+}

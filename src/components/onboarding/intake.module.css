@@ -365,3 +365,40 @@
   border-radius: 30px 44px 28px 48px;
   background: var(--yellow-soft);
 }
+
+/* 時間軸：日期在左、事件在右，手機一樣排兩欄 */
+.timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.timeline li {
+  display: grid;
+  grid-template-columns: 56px 1fr auto;
+  align-items: start;
+  gap: 10px;
+  padding: 10px 6px 10px 14px;
+  border-radius: 20px;
+  background: var(--cream);
+}
+
+.timeline time {
+  font-weight: 700;
+  color: var(--orange-deep);
+  font-size: 15px;
+  line-height: 1.7;
+}
+
+.timeline span {
+  color: var(--ink);
+  font-size: 15px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.timeline .thumbBtn { background: var(--card); }

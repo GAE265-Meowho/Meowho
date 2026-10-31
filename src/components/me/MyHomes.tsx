@@ -38,6 +38,11 @@ export function MyHomes({ homes, cats, verifs, onVerification }: {
               <h2 id={`home-${home.id}`} className={s.homeName}>{home.name}</h2>
               <span className={s.place}><Icon name="pin" size={18} />{home.city}{home.district}</span>
               {home.intro && <p className={s.intro}>{home.intro}</p>}
+              {/* 3D 環境接 #60（錄影轉空間）、#61（照片轉空間）；居家安全檢測接 #62（環境安全報告）。完成前先開說明頁 */}
+              <div className={s.tools}>
+                <CatButton variant="ghost" size="sm" ears={false} href={`/homes/${home.id}/scene`}><Icon name="scan" size={18} />生成 3D 環境</CatButton>
+                <CatButton variant="ghost" size="sm" ears={false} href={`/homes/${home.id}/safety`}><Icon name="check" size={18} />居家安全檢測</CatButton>
+              </div>
             </section>
 
             <div className={s.secHead}>

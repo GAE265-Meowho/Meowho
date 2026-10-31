@@ -12,7 +12,7 @@ export async function POST(req: Request) {
   const body = await req.json().catch(() => null) as { state?: unknown; text?: unknown } | null;
   const parsed = IntakeStateSchema.safeParse(body?.state);
   if (!parsed.success) return NextResponse.json({ error: "參數錯誤" }, { status: 400 });
-  const input = checkInput(body?.text, AI_LIMITS.onboardingChars);
+  const input = checkInput(body?.text, parsed.data.phase === "cat" ? AI_LIMITS.catStoryChars : AI_LIMITS.onboardingChars);
   if (!input.ok) return NextResponse.json({ error: input.error }, { status: 400 });
   const r = await takeTurn(parsed.data, input.text, extractIntakeTurn);
   return NextResponse.json({ state: r.state, reply: r.reply, step: nextStep(r.state), ai: r.usedAI });

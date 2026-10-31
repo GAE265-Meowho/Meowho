@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/components/Auth";
 import { SiteHeader } from "@/components/Chrome";
 import { TermsGate } from "@/components/TermsGate";
+import { HouseholdForm } from "@/components/onboarding/HouseholdForm";
 import { IntakeChat, type ExistingHome } from "@/components/onboarding/IntakeChat";
 import s from "@/components/onboarding/intake.module.css";
 import CatButton from "@/components/ui/CatButton";
@@ -12,7 +13,7 @@ import { getBrowserSupabase } from "@/lib/supabase/client";
 
 interface Home extends ExistingHome { city: string | null; district: string | null }
 
-// 建立喵戶、在喵戶新增待領養貓（#72）。沒有喵戶的人一進來就直接開始對話；建好喵戶後回到「我的喵戶」，再從那裡新增貓。
+// 建立喵戶（表單）、在喵戶新增待領養貓（對話）（#72）。建好喵戶後回到「我的喵戶」，再從那裡新增貓。
 // 示範模式（沒有 Supabase）不需登入、不存檔。
 export default function OnboardingPage() {
   const { configured, loading, user, needsTerms, login, agreeTerms } = useAuth();
@@ -48,7 +49,7 @@ export default function OnboardingPage() {
     body = (
       <section className={`${s.card} ${s.center}`} aria-labelledby="login-title">
         <h2 id="login-title">先登入，再來建立喵戶</h2>
-        <p className={s.lead}>用 Google 帳號登入後，小幫手會用聊天的方式陪你建立喵戶。</p>
+        <p className={s.lead}>用 Google 帳號登入後，就可以建立喵戶、新增待領養的貓。</p>
         <div className={s.actions} style={{ justifyContent: "center" }}>
           <CatButton onClick={() => login(window.location.pathname + window.location.search)}>使用 Google 登入</CatButton>
         </div>
@@ -79,8 +80,11 @@ export default function OnboardingPage() {
         </ul>
       </section>
     );
+  } else if (phase === "cat" && home) {
+    body = <IntakeChat key={home.id} userId={user?.id ?? null} home={home} />;
   } else {
-    body = <IntakeChat key={home?.id ?? "new"} userId={user?.id ?? null} home={phase === "cat" ? home : null} />;
+    // 示範模式沒有「我的喵戶」可以回去，建好後直接在這裡新增貓
+    body = <HouseholdForm userId={user?.id ?? null} onDemoCreated={name => { setHome({ id: "demo", name, city: null, district: null }); setPhase("cat"); }} />;
   }
 
   return (

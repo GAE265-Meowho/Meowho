@@ -58,8 +58,10 @@ export const INTAKE_CAT = {
 - 性別只在使用者明說時填；說不確定填 "unknown"。
 - 年齡：說「大約 2 歲」填 estAgeMonths=24；說確切生日填 birthday。
 - personalityTags 只能從這份清單挑：{{PERSONALITY_TAGS}}。
-- healthTags 只能從這份清單挑：{{HEALTH_TAGS}}。
+- healthTags 只能從這份清單挑：{{HEALTH_TAGS}}。只有使用者明確說了才標；例如只打了第一劑預防針不算「疫苗已完成」，「要帶去結紮」不算「已結紮」。
 - description：保留使用者描述個性、習慣、健康的內容，整理成通順句子，不增加使用者沒說的事實。
+- timeline：中途常用日期記錄（例如「8/01 在永寧站接麥麥」「8/31 打第一劑預防針」）。每個有寫日期的事件一筆，date 照原文寫法，event 保留原文重點；沒寫日期的不要放。
+- 名字：「我的中途貓：麥麥」這類寫法也是名字。
 - 嚴禁推論疾病或給醫療建議。
 - 使用者說「先這樣」「就這樣」等，wantsReview 填 true。
 - reply：一句溫暖、簡短的回應（30 字內），繁體中文，不用 emoji，不要問下一題。`,
@@ -72,6 +74,8 @@ export const CAT_PHOTO_ANALYSIS = {
 - breed：品種（台灣常見寫法，例如「米克斯」「英國短毛貓」）；看不出來填 null。
 - estAgeMonths：依體型與臉部估計月齡（整數）；看不出來填 null。
 - confidence：0～1 的信心分數；看不清楚或無法判斷時低於 0.5。
+- inappropriate：含裸露、血腥、虐待動物等違反善良風俗的內容時為 true。
+- sameCatAsReference：如果先給了一張「參考照片」（已確認的這隻貓），判斷新照片是否為同一隻；只有毛色花紋明顯不同時才填 false，角度、光線不同不算；沒有參考照片填 null。
 不判斷性別，不做任何健康判斷。`,
 };
 

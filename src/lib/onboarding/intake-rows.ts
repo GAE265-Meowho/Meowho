@@ -2,7 +2,7 @@
 // 新建的喵戶預設接受私訊、公開；新建的貓一律是公開的待領養貓。
 import { z } from "zod";
 import { HEALTH_TAGS, PERSONALITY_TAGS } from "../cat-profile/tags";
-import { MAX_PHOTOS, MAX_VIDEOS, type CatFields, type HouseholdFields } from "./conversation";
+import { MAX_PHOTOS, MAX_TIMELINE, MAX_VIDEOS, type CatFields, type HouseholdFields } from "./conversation";
 
 export function toHouseholdInsert(h: HouseholdFields) {
   return {
@@ -32,6 +32,7 @@ export function toCatInsert(c: CatFields, ids: { id: string; householdId: string
     // 舊欄位 neutered 給「我的喵戶」等既有畫面用
     neutered: c.healthTags.includes("已結紮") ? true : null,
     description: c.description,
+    timeline: c.timeline,
     photo_paths: c.photos,
     // 舊欄位 photo_url 放封面網址，給既有畫面相容；新程式讀 photo_paths
     photo_url: ids.coverUrl,
@@ -74,10 +75,11 @@ export const IntakeStateSchema = z.object({
     personalityTags: z.array(z.enum(PERSONALITY_TAGS)).max(PERSONALITY_TAGS.length),
     healthTags: z.array(z.enum(HEALTH_TAGS)).max(HEALTH_TAGS.length),
     description: nullableStr(2000),
+    timeline: z.array(z.object({ date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), event: str(200) })).max(MAX_TIMELINE),
     photos: z.array(str(300)).max(MAX_PHOTOS),
     videos: z.array(str(300)).max(MAX_VIDEOS),
   }),
   pending: z.array(z.enum(["coat", "breed", "lifeStage", "personalityTags"])),
   reviewRequested: z.boolean(),
-  notice: z.enum(["not_cat", "too_many_photos", "too_many_videos"]).nullable(),
+  notice: z.enum(["not_cat", "inappropriate", "maybe_other_cat", "too_many_photos", "too_many_videos"]).nullable(),
 });

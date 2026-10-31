@@ -1,16 +1,18 @@
 "use client";
 /* eslint-disable @next/next/no-img-element */
-// 用自由對話建立喵戶，或在既有喵戶新增待領養貓（#72）。
-// 建好喵戶後回到「我的喵戶」管理介面，再從那裡新增貓（子哲 2026-10-31 決定，取代規格原本的「同一段對話接著建貓」）。對話規則都在 lib/onboarding/conversation.ts，這裡只管畫面、上傳與寫入。
+// 在喵戶裡用對話新增待領養貓（#72）。喵戶本身改用表單建立（HouseholdForm，子哲 2026-10-31）。
+// 順序：先上傳照片並描述牠 → AI 先填 → 依序補問沒講到的 → 最後才出現名片讓喵戶長確認（對話中不顯示表單）。
+// 對話規則都在 lib/onboarding/conversation.ts，這裡只管畫面、上傳與寫入。
 // 示範模式（沒有 Supabase）可以完整操作，但不會存檔；影片在沒有設定 Azure 時關閉。
-import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
+import { AI_LIMITS } from "@/lib/ai/guard";
 import { LIFE_STAGE_LABEL, lifeStageOf } from "@/lib/cat-profile/life-stage";
 import {
-  MAX_PHOTOS, MAX_VIDEOS, applyMediaAnalysis, beginCat, emptyIntake, nextStep, setCatField, type IntakeState, type Step,
+  MAX_PHOTOS, MAX_VIDEOS, applyMediaAnalysis, beginCat, emptyIntake, nextStep, setCatField,
+  type IntakeState, type MediaAnalysis, type Step,
 } from "@/lib/onboarding/conversation";
-import { CARETAKER_CHIPS, GREETING, LIFE_STAGE_CHIPS, REVIEW_CHIP, askText, noticeText } from "@/lib/onboarding/intake-copy";
-import { toCatInsert, toCatVideoInserts, toHouseholdInsert, type VideoMeta } from "@/lib/onboarding/intake-rows";
+import { LIFE_STAGE_CHIPS, REVIEW_CHIP, askText, noticeText } from "@/lib/onboarding/intake-copy";
+import { toCatInsert, toCatVideoInserts, type VideoMeta } from "@/lib/onboarding/intake-rows";
 import { MAX_VIDEO_SEC, validateVideoUpload, type VideoUploadError } from "@/lib/storage/media";
 import type { UploadTarget } from "@/lib/storage/types";
 import { getBrowserSupabase } from "@/lib/supabase/client";
@@ -18,7 +20,7 @@ import { PHOTO_BUCKET } from "@/lib/supabase/config";
 import CatButton from "../ui/CatButton";
 import Icon from "../ui/Icon";
 import { ChatInput, ChatLog, botMsg, meMsg, postJson, type ChatMessage, type Chip } from "./Chat";
-import { CatCard, HouseholdCard, MediaTray, type MediaPreview } from "./IntakeCards";
+import { CatCard, MediaTray, type MediaPreview } from "./IntakeCards";
 import { putUpload, shrinkPhoto, videoDuration } from "./media";
 import s from "./intake.module.css";
 
@@ -34,32 +36,34 @@ const VIDEO_ERROR: Record<VideoUploadError | "video_disabled" | "forbidden", str
   forbidden: "沒有權限幫這隻貓上傳影片。",
 };
 
+type Shrunk = Awaited<ReturnType<typeof shrinkPhoto>>;
+type PhotoGuess = Omit<Extract<MediaAnalysis, { kind: "photo" }>, "kind" | "path">;
+type PhotoAi = { result: { isCat: boolean; inappropriate: boolean; sameCatAsReference: boolean | null; coat: string | null; breed: string | null; estAgeMonths: number | null; confidence: number } | null };
+
 const stepKey = (st: Step) => JSON.stringify(st);
-
-function startState(home: ExistingHome | null): IntakeState {
+const startState = (home: ExistingHome): IntakeState => {
   const s0 = emptyIntake();
-  return home ? beginCat({ ...s0, household: { ...s0.household, name: home.name } }) : s0;
-}
+  return beginCat({ ...s0, household: { ...s0.household, name: home.name } });
+};
 
-export function IntakeChat({ userId, home }: { userId: string | null; home: ExistingHome | null }) {
+export function IntakeChat({ userId, home }: { userId: string | null; home: ExistingHome }) {
   const sb = getBrowserSupabase();
-  const router = useRouter();
   const [state, setState] = useState<IntakeState>(() => startState(home));
   const ref = useRef(state);
-  const householdId = home?.id ?? null;
   const [catId, setCatId] = useState(() => crypto.randomUUID());
   const [messages, setMessages] = useState<ChatMessage[]>(() => [
-    botMsg(home ? `來幫「${home.name}」新增一隻待領養的貓吧。` : GREETING),
-    botMsg(askText(nextStep(startState(home)), home ? "cat" : "household")),
+    botMsg(`來幫「${home.name}」新增一隻待領養的貓吧。`),
+    botMsg(askText(nextStep(startState(home)), "cat")),
   ]);
   const [busy, setBusy] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [aiUsed, setAiUsed] = useState(false);
   const [previews, setPreviews] = useState<Record<string, MediaPreview>>({});
+  // 看起來不是同一隻的照片先放這裡，等喵戶長確認
+  const [held, setHeld] = useState<{ shrunk: Shrunk; guess: PhotoGuess } | null>(null);
   const videoMeta = useRef<Record<string, VideoMeta>>({});
   const [done, setDone] = useState<{ name: string; cover: string | null; stage: string } | null>(null);
-  const [demoHome, setDemoHome] = useState<string | null>(null);
   const photoInput = useRef<HTMLInputElement>(null);
   const videoInput = useRef<HTMLInputElement>(null);
 
@@ -73,8 +77,8 @@ export function IntakeChat({ userId, home }: { userId: string | null; home: Exis
   function advance(prev: IntakeState, next: IntakeState, reply?: string) {
     commit(next);
     const before = nextStep(prev), after = nextStep(next);
-    const again = stepKey(before) === stepKey(after) && after.kind === "ask" && after.field !== "description";
-    say(reply, noticeText(next.notice), stepKey(before) !== stepKey(after) ? askText(after, next.phase) : again && !reply ? `我還沒聽懂，${askText(after, next.phase)}` : null);
+    const again = stepKey(before) === stepKey(after) && after.kind === "ask" && after.field !== "description" && after.field !== "photos";
+    say(reply, noticeText(next.notice), stepKey(before) !== stepKey(after) ? askText(after, "cat") : again && !reply ? `我還沒聽懂，${askText(after, "cat")}` : null);
   }
 
   async function sendText(text: string) {
@@ -83,7 +87,9 @@ export function IntakeChat({ userId, home }: { userId: string | null; home: Exis
     const prev = ref.current;
     try {
       const r = await postJson<{ state: IntakeState; reply: string; ai: boolean }>("/api/onboarding/turn", { state: prev, text });
-      advance(prev, r.state, r.reply);
+      if (r.ai) setAiUsed(true);
+      const added = r.state.cat.timeline.length - prev.cat.timeline.length;
+      advance(prev, r.state, [r.reply, added > 0 ? `我把 ${added} 個有日期的事整理成時間軸了。` : ""].filter(Boolean).join(""));
     } catch (e) {
       say(`連線有點問題（${(e as Error).message}），請再送一次。`);
     } finally { setBusy(false); }
@@ -95,43 +101,65 @@ export function IntakeChat({ userId, home }: { userId: string | null; home: Exis
     advance(prev, setCatField(prev, "lifeStage", id));
   }
 
-  // ---------- 照片 ----------
+  // ---------- 照片：先判讀，通過才上傳（不適當的照片不會進到儲存空間） ----------
+  async function keepPhoto(shrunk: Shrunk, guess: PhotoGuess, fromAI: boolean) {
+    let path = `demo/${crypto.randomUUID()}.jpg`;
+    if (sb && userId) {
+      path = `${userId}/${crypto.randomUUID()}.jpg`;
+      const up = await sb.storage.from(PHOTO_BUCKET).upload(path, shrunk.blob, { contentType: "image/jpeg" });
+      if (up.error) { say(`照片上傳失敗：${up.error.message}`); return; }
+    }
+    const prev = ref.current;
+    const next = applyMediaAnalysis(prev, { kind: "photo", path, ...guess, sameCat: null });
+    if (next.cat.photos.length === prev.cat.photos.length) { advance(prev, next); return; }
+    setPreviews(p => ({ ...p, [path]: { url: shrunk.dataUrl, kind: "photo" } }));
+    const guessed = [
+      next.cat.coat !== prev.cat.coat && `毛色是「${next.cat.coat}」`,
+      next.cat.breed !== prev.cat.breed && `品種像是「${next.cat.breed}」`,
+      next.cat.lifeStage !== prev.cat.lifeStage && next.cat.lifeStage && `年紀看起來是${LIFE_STAGE_LABEL[lifeStageOf(next.cat.estAgeMonths) ?? next.cat.lifeStage]}`,
+    ].filter(Boolean);
+    if (guessed.length) setAiUsed(true);
+    advance(prev, next, guessed.length ? `我猜${guessed.join("、")}，最後會請你確認。` : fromAI ? "照片收到了。" : "照片收到了，外觀的部分最後可以自己填。");
+  }
+
   async function addPhotos(files: File[]) {
     setBusy(true);
     for (const file of files) {
       if (ref.current.cat.photos.length >= MAX_PHOTOS) { say(noticeText("too_many_photos")); break; }
       if (file.type && !file.type.startsWith("image/")) { say("這不是圖片檔喔，請重新選擇。"); continue; }
-      let shrunk: Awaited<ReturnType<typeof shrinkPhoto>>;
+      let shrunk: Shrunk;
       try { shrunk = await shrinkPhoto(file); }
       catch { say("這張照片的格式瀏覽器讀不了（例如 HEIC）。請改選 JPG／PNG，或把手機相機的格式設成「最相容」再拍一次。"); continue; }
       setMessages(m => [...m, meMsg("", shrunk.dataUrl)]);
 
-      let path = `demo/${crypto.randomUUID()}.jpg`;
-      if (sb && userId) {
-        path = `${userId}/${crypto.randomUUID()}.jpg`;
-        const up = await sb.storage.from(PHOTO_BUCKET).upload(path, shrunk.blob, { contentType: "image/jpeg" });
-        if (up.error) { say(`照片上傳失敗：${up.error.message}`); continue; }
-      }
-      type PhotoAi = { result: { isCat: boolean; coat: string | null; breed: string | null; estAgeMonths: number | null; confidence: number } | null };
+      const cover = previews[ref.current.cat.photos[0]]?.url;
       // AI 失敗不擋上傳：照片照收，欄位由喵戶長自己填
-      const r = await postJson<PhotoAi>("/api/onboarding/cat-photo", { mime: "image/jpeg", base64: shrunk.base64 }).catch((): PhotoAi => ({ result: null }));
-      const a = r.result ?? { isCat: true, coat: null, breed: null, estAgeMonths: null, confidence: 0 };
-      const prev = ref.current;
-      const next = applyMediaAnalysis(prev, { kind: "photo", path, ...a });
-      if (next.notice === "not_cat") {
-        if (sb && userId) await sb.storage.from(PHOTO_BUCKET).remove([path]);
-        advance(prev, next);
-        continue;
+      const r = await postJson<PhotoAi>("/api/onboarding/cat-photo", { mime: "image/jpeg", base64: shrunk.base64, reference: cover?.split(",")[1] })
+        .catch((): PhotoAi => ({ result: null }));
+      const a = r.result;
+      const guess: PhotoGuess = a
+        ? { isCat: a.isCat, confidence: a.confidence, coat: a.coat, breed: a.breed, estAgeMonths: a.estAgeMonths, inappropriate: a.inappropriate, sameCat: a.sameCatAsReference }
+        : { isCat: true, confidence: 0, coat: null, breed: null, estAgeMonths: null };
+      const check = applyMediaAnalysis(ref.current, { kind: "photo", path: "check", ...guess });
+      if (check.notice === "maybe_other_cat") {
+        setHeld({ shrunk, guess });
+        say(noticeText("maybe_other_cat"));
+        break; // 其他照片等確認完再加
       }
-      setPreviews(p => ({ ...p, [path]: { url: shrunk.dataUrl, kind: "photo" } }));
-      const guessed = [
-        next.cat.coat !== prev.cat.coat && `毛色是「${next.cat.coat}」`,
-        next.cat.breed !== prev.cat.breed && `品種像是「${next.cat.breed}」`,
-        next.cat.lifeStage !== prev.cat.lifeStage && next.cat.lifeStage && `年紀看起來是${LIFE_STAGE_LABEL[lifeStageOf(next.cat.estAgeMonths) ?? next.cat.lifeStage]}`,
-      ].filter(Boolean);
-      if (guessed.length) setAiUsed(true);
-      advance(prev, next, guessed.length ? `我猜${guessed.join("、")}，請在名片上確認。` : r.result ? "照片收到了。" : "照片收到了，外觀的部分最後可以自己填。");
+      if (check.notice === "inappropriate" || check.notice === "not_cat") { say(noticeText(check.notice)); continue; }
+      await keepPhoto(shrunk, guess, Boolean(a));
     }
+    setBusy(false);
+  }
+
+  async function resolveHeld(keep: boolean) {
+    if (!held) return;
+    setMessages(m => [...m, meMsg(keep ? "是同一隻" : "不要這張")]);
+    const h = held;
+    setHeld(null);
+    if (!keep) { say("好，這張不收。"); return; }
+    setBusy(true);
+    await keepPhoto(h.shrunk, h.guess, true);
     setBusy(false);
   }
 
@@ -164,7 +192,7 @@ export function IntakeChat({ userId, home }: { userId: string | null; home: Exis
       const added = next.cat.personalityTags.filter(t => !prev.cat.personalityTags.includes(t));
       if (added.length) setAiUsed(true);
       advance(prev, next, added.length
-        ? `從影片看起來，牠可能是「${added.join("、")}」${r.result?.reason ? `：${r.result.reason}` : ""}。請在名片上確認。`
+        ? `從影片看起來，牠可能是「${added.join("、")}」${r.result?.reason ? `：${r.result.reason}` : ""}。最後會請你確認。`
         : r.result && !r.result.isCat ? "影片收到了，不過我在影片裡沒看到貓。" : "影片收到了。");
     }
     setBusy(false);
@@ -179,38 +207,13 @@ export function IntakeChat({ userId, home }: { userId: string | null; home: Exis
   }
 
   // ---------- 寫入 ----------
-  async function createHousehold() {
-    setError(null); setSaving(true);
-    const cur = ref.current;
-    if (sb && userId) {
-      const { error: err } = await sb.from("meow_households").insert({ ...toHouseholdInsert(cur.household), owner_id: userId });
-      if (err) {
-        setSaving(false);
-        setError(err.message.includes("household_limit") ? "每個帳號最多建立 2 個喵戶，請到「我的喵戶」管理。" : `儲存失敗：${err.message}`);
-        return;
-      }
-      router.push("/me");
-      return;
-    }
-    // 示範模式沒有「我的喵戶」可以回去，改在這裡顯示建好的喵戶，並從這裡新增貓
-    setSaving(false);
-    setDemoHome(cur.household.name);
-  }
-
-  function startDemoCat() {
-    const next = beginCat(ref.current);
-    commit(next);
-    setDemoHome(null);
-    setMessages([botMsg(`來幫「${next.household.name}」新增一隻待領養的貓吧。`), botMsg(askText(nextStep(next), "cat"))]);
-  }
-
   async function createCat() {
     setError(null); setSaving(true);
     const cur = ref.current;
     const cover = previews[cur.cat.photos[0]]?.url ?? null;
-    if (sb && userId && householdId) {
+    if (sb && userId) {
       const coverUrl = sb.storage.from(PHOTO_BUCKET).getPublicUrl(cur.cat.photos[0]).data.publicUrl;
-      const { error: err } = await sb.from("meow_cats").insert(toCatInsert(cur.cat, { id: catId, householdId, coverUrl }));
+      const { error: err } = await sb.from("meow_cats").insert(toCatInsert(cur.cat, { id: catId, householdId: home.id, coverUrl }));
       if (err) {
         setSaving(false);
         setError(err.message.includes("life_stage_required") ? "請選擇年齡層。" : `儲存失敗：${err.message}`);
@@ -226,23 +229,11 @@ export function IntakeChat({ userId, home }: { userId: string | null; home: Exis
   }
 
   function anotherCat() {
-    const next = beginCat({ ...emptyIntake(), household: ref.current.household });
+    const next = startState(home);
     commit(next);
     setCatId(crypto.randomUUID());
-    setPreviews({}); videoMeta.current = {}; setAiUsed(false); setDone(null); setError(null);
+    setPreviews({}); videoMeta.current = {}; setAiUsed(false); setDone(null); setError(null); setHeld(null);
     setMessages([botMsg("再來新增下一隻吧。"), botMsg(askText(nextStep(next), "cat"))]);
-  }
-
-  if (demoHome) {
-    return (
-      <section className={`${s.card} ${s.center}`} aria-labelledby="home-done">
-        <span className={s.avatar} aria-hidden="true"><Icon name="house" /></span>
-        <h2 id="home-done">「{demoHome}」建好了</h2>
-        <div className={s.actions} style={{ justifyContent: "center" }}>
-          <CatButton onClick={startDemoCat}>新增貓咪</CatButton>
-        </div>
-      </section>
-    );
   }
 
   if (done) {
@@ -260,38 +251,41 @@ export function IntakeChat({ userId, home }: { userId: string | null; home: Exis
   }
 
   const step = nextStep(state);
-  const catPhase = state.phase === "cat";
   const chips: Chip[] =
-    step.kind === "ask" && step.field === "caretakerType" ? CARETAKER_CHIPS.map(label => ({ label })) :
+    held ? [{ label: "是同一隻", onPick: () => resolveHeld(true) }, { label: "不要這張", onPick: () => resolveHeld(false) }] :
     step.kind === "ask" && step.field === "lifeStage" ? LIFE_STAGE_CHIPS.map(c => ({ label: c.label, onPick: () => pickLifeStage(c.id) })) :
     step.kind === "ask" && step.field === "description" ? [{ label: REVIEW_CHIP }] : [];
   const askingPhotos = step.kind === "ask" && step.field === "photos";
-  const showCatCard = catPhase && state.cat.photos.length > 0 && !askingPhotos;
+  // 名片只在最後確認時出現；對話過程中不顯示表單
+  const reviewing = step.kind === "confirm_fields" || step.kind === "confirm_cat";
 
   return (
     <>
       <ChatLog messages={messages} typing={busy} />
 
-      {catPhase && (
-        <>
-          <input ref={photoInput} type="file" accept="image/*" multiple hidden onChange={e => { const f = Array.from(e.target.files ?? []); e.target.value = ""; if (f.length) addPhotos(f); }} />
-          <input ref={videoInput} type="file" accept="video/mp4,video/quicktime,video/webm" multiple hidden onChange={e => { const f = Array.from(e.target.files ?? []); e.target.value = ""; if (f.length) addVideos(f); }} />
-          <MediaTray state={state} previews={previews} onChange={commit} onRemoved={onRemoved} />
-          <div className={s.mediaBar}>
-            <CatButton variant={askingPhotos ? "primary" : "ghost"} size="sm" disabled={busy || state.cat.photos.length >= MAX_PHOTOS} onClick={() => photoInput.current?.click()}>
-              <Icon name="camera" size={18} /> 加照片
-            </CatButton>
-            <CatButton variant="ghost" size="sm" disabled={busy || state.cat.videos.length >= MAX_VIDEOS} onClick={() => videoInput.current?.click()}>
-              <Icon name="video" size={18} /> 加影片
-            </CatButton>
-          </div>
-        </>
+      <input ref={photoInput} type="file" accept="image/*" multiple hidden onChange={e => { const f = Array.from(e.target.files ?? []); e.target.value = ""; if (f.length) addPhotos(f); }} />
+      <input ref={videoInput} type="file" accept="video/mp4,video/quicktime,video/webm" multiple hidden onChange={e => { const f = Array.from(e.target.files ?? []); e.target.value = ""; if (f.length) addVideos(f); }} />
+      {!reviewing && <MediaTray state={state} previews={previews} onChange={commit} onRemoved={onRemoved} />}
+      {!reviewing && (
+        <div className={s.mediaBar}>
+          <CatButton variant={askingPhotos ? "primary" : "ghost"} size="sm" disabled={busy || Boolean(held) || state.cat.photos.length >= MAX_PHOTOS} onClick={() => photoInput.current?.click()}>
+            <Icon name="camera" size={18} /> 加照片
+          </CatButton>
+          <CatButton variant="ghost" size="sm" disabled={busy || state.cat.videos.length >= MAX_VIDEOS} onClick={() => videoInput.current?.click()}>
+            <Icon name="video" size={18} /> 加影片
+          </CatButton>
+        </div>
       )}
 
-      <ChatInput onSend={sendText} chips={chips} disabled={busy || saving} />
+      <ChatInput onSend={sendText} chips={chips} disabled={busy || saving || Boolean(held)} maxChars={AI_LIMITS.catStoryChars}
+        placeholder={askingPhotos || (step.kind === "ask" && step.field === "description") ? "說說牠，或直接貼上你寫過的介紹文…" : undefined} />
 
-      {step.kind === "confirm_household" && <HouseholdCard state={state} onChange={commit} onCreate={createHousehold} saving={saving} error={error} />}
-      {showCatCard && <CatCard state={state} onChange={commit} onCreate={createCat} saving={saving} error={error} aiUsed={aiUsed} />}
+      {reviewing && (
+        <>
+          <MediaTray state={state} previews={previews} onChange={commit} onRemoved={onRemoved} />
+          <CatCard state={state} onChange={commit} onCreate={createCat} saving={saving} error={error} aiUsed={aiUsed} />
+        </>
+      )}
     </>
   );
 }

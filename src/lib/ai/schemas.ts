@@ -57,12 +57,18 @@ export const CatTurnSchema = z.object({
   personalityTags: z.array(z.string()).describe("只能從個性標籤清單挑選"),
   healthTags: z.array(z.string()).describe("只能從健康標籤清單挑選"),
   description: z.string().nullable().describe("使用者描述個性、習慣、健康的原話，整理成通順句子但不增減事實"),
+  timeline: z.array(z.object({
+    date: z.string().describe("照使用者寫的日期，例如 8/01、2024/3/5"),
+    event: z.string().describe("那天發生的事，保留原文重點，60 字內"),
+  })).describe("有寫日期的事件，依原文順序；沒有就給空陣列"),
   wantsReview: z.boolean().describe("使用者表示「先這樣」、想直接看名片時為 true"),
   reply: z.string().describe("30 字內的溫暖回應，不用 emoji"),
 });
 
 export const CatPhotoAnalysisSchema = z.object({
   isCat: z.boolean().describe("照片主角是否為貓"),
+  inappropriate: z.boolean().describe("是否含裸露、血腥、虐待動物等違反善良風俗的內容"),
+  sameCatAsReference: z.boolean().nullable().describe("有參考照片時，是否為同一隻貓；明顯不同才填 false；沒有參考照片填 null"),
   coat: z.string().nullable().describe("毛色花紋"),
   breed: z.string().nullable().describe("品種，看不出來填 null"),
   estAgeMonths: z.number().int().nullable().describe("估計月齡，看不出來填 null"),

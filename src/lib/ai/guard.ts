@@ -4,7 +4,8 @@ import { GUARD_RULES } from "@/lib/prompts/guard";
 
 /** 上限集中在這裡，要調整只改一處（中文字數，以字元計） */
 export const AI_LIMITS = {
-  onboardingChars: 200, // 建檔每題回答、貓咪口述
+  onboardingChars: 200, // 建檔每題回答
+  catStoryChars: 1500, // 新增貓咪時貼上的介紹文（中途貼文常有三、四百字；描述欄位上限 2000）
   questionChars: 300, // 貓咪知識問答（之後的問答模組使用）
   turnsPerChat: 20, // 一次對話最多輪數（問答模組使用）
   callsPerDay: 50, // 每位會員每天呼叫次數（問答模組使用）

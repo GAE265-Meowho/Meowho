@@ -34,9 +34,12 @@ export const extractIntakeTurn: TurnExtractor = (input) => safe(async () => make
   cat: structured(await getChatModel("text", { temperature: 0.2 }), CatTurnSchema, "cat_turn"),
 })(input));
 
-export const analyzeCatPhoto = (mime: string, base64: string) => safe(async () =>
+/** reference：這隻貓已確認的封面（JPEG base64），用來判斷新照片是不是同一隻 */
+export const analyzeCatPhoto = (mime: string, base64: string, reference?: string) => safe(async () =>
   catPhotoAnalysisChain(structured(await getChatModel("vision"), CatPhotoAnalysisSchema, "cat_photo_analysis"))
-    .invoke({ text: "請辨識這張照片中的貓咪。", imageDataUrl: `data:${mime};base64,${base64}` }));
+    .invoke(reference
+      ? { text: "第一張是參考照片（已確認的這隻貓），第二張是新照片，請辨識新照片。", referenceImageDataUrl: `data:image/jpeg;base64,${reference}`, imageDataUrl: `data:${mime};base64,${base64}` }
+      : { text: "請辨識這張照片中的貓咪。", imageDataUrl: `data:${mime};base64,${base64}` }));
 
 /** 影片判讀：只支援 Gemini 且檔案不超過直接夾帶上限；其他情況回傳 null（只留影片，不給建議） */
 export const analyzeCatVideo = (mime: string, bytes: Uint8Array) => {
