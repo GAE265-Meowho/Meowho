@@ -1,6 +1,6 @@
 "use client";
-// 貓咪模型資料（規格書 04 §3、§4）：目前只有「本機檔案」來源（PR 2a，開發模式、設了 CAT_STUDIO_ROOT 才有資料）。
-// PR 3 會加上 Supabase 來源；元件只依賴這個 hook，不用改。
+// 貓咪模型資料（規格書 04 §3、§4）：本機 CAT_STUDIO_ROOT，或正式站 public/hq-cat-models 示範貓。
+// PR 3 會再加 Supabase；元件只依賴這個 hook。
 import { useCallback, useEffect, useState } from "react";
 import type { CatModelView } from "@/lib/hq/cat-models/types";
 
