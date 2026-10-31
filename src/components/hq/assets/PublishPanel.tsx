@@ -5,7 +5,7 @@ import { composeReason } from "@/lib/hq/actions";
 import { canPublish, type CatModelStatus, type PublishAction } from "@/lib/hq/cat-models/types";
 import { ReasonField } from "../ReasonField";
 import { HqSaveButton } from "../HqStates";
-import { CAT_API } from "./useCatModels";
+import { CAT_API, postJson } from "./useCatModels";
 
 const ERRORS: Record<string, string> = {
   reason_required: "請填寫原因",
@@ -14,10 +14,7 @@ const ERRORS: Record<string, string> = {
 };
 
 export async function postPublish(id: string, action: PublishAction, reason: string): Promise<void> {
-  const res = await fetch(`${CAT_API}/${id}/publish`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action, reason }) });
-  if (res.ok) return;
-  const json = await res.json().catch(() => ({}));
-  throw new Error(ERRORS[json?.error] ?? "操作失敗，請稍後再試");
+  await postJson(`${CAT_API}/${id}/publish`, { action, reason }, ERRORS);
 }
 
 export function PublishPanel({ id, status, onDone }: { id: string; status: CatModelStatus; onDone: (message: string) => void }) {

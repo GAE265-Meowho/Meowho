@@ -4,11 +4,13 @@ import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { GET as getList } from "./route";
+import { GET as getList, POST as postCreate } from "./route";
 import { GET as getOne } from "./[id]/route";
 import { GET as getFile } from "./[id]/file/[kind]/route";
 import { GET as getBase } from "./base/route";
 import { POST as postPublish } from "./[id]/publish/route";
+import { POST as postPaint } from "./[id]/paint/route";
+import { POST as postRestore } from "./[id]/restore/route";
 
 const ID = "cat_20261031_100000";
 const ctx = <T extends Record<string, string>>(p: T) => ({ params: Promise.resolve(p) });
@@ -36,6 +38,9 @@ describe("沒有啟用", () => {
     expect((await getOne(new Request("http://x"), ctx({ id: ID }))).status).toBe(404);
     expect((await getBase()).status).toBe(404);
     expect((await postPublish(req({ action: "publish", reason: "x" }), ctx({ id: ID }))).status).toBe(404);
+    expect((await postCreate(req({ name: "A" }))).status).toBe(404);
+    expect((await postPaint(req({ view: "front", fill: "none" }), ctx({ id: ID }))).status).toBe(404);
+    expect((await postRestore(req({ reason: "x" }), ctx({ id: ID }))).status).toBe(404);
   });
   it("production：即使設了路徑也 404", async () => {
     vi.stubEnv("CAT_STUDIO_ROOT", root);
@@ -74,5 +79,39 @@ describe("啟用（開發模式）", () => {
     expect(await noReason.json()).toEqual({ error: "reason_required" });
     expect(await (await postPublish(req({ action: "publish", reason: "OK" }), ctx({ id: ID }))).json()).toEqual({ ok: true, status: "published" });
     expect((await postPublish(req({ action: "publish", reason: "again" }), ctx({ id: ID }))).status).toBe(409);
+  });
+});
+
+describe("新增、產生、換版", () => {
+  const photo = `data:image/png;base64,${Buffer.from([1, 2, 3]).toString("base64")}`;
+  const enable = () => vi.stubEnv("CAT_STUDIO_ROOT", root);
+
+  it("新增貓咪：201 並回傳 ID；缺名稱或照片不合法回 400", async () => {
+    enable();
+    const ok = await postCreate(req({ name: "新貓", photo }));
+    expect(ok.status).toBe(201);
+    const { id } = await ok.json();
+    expect(id).toMatch(/^cat_\d{8}_\d{6}/);
+    expect((await postCreate(req({ name: "", photo }))).status).toBe(400);
+    expect(await (await postCreate(req({ name: "A", photo: "x" }))).json()).toEqual({ error: "photo_invalid" });
+  });
+  it("新增貓咪：請求標頭顯示過大直接回 413", async () => {
+    enable();
+    const big = new Request("http://x/api", { method: "POST", headers: { "content-length": String(20 * 1024 * 1024) }, body: "{}" });
+    expect((await postCreate(big)).status).toBe(413);
+  });
+  it("產生：選項不合法 400、成功 200、已排隊 409", async () => {
+    enable();
+    expect((await postPaint(req({ view: "top", fill: "none" }), ctx({ id: ID }))).status).toBe(400);
+    expect((await postPaint(req({ view: "right", fill: "tabby" }), ctx({ id: ID }))).status).toBe(200);
+    expect((await postPaint(req({ view: "right", fill: "tabby" }), ctx({ id: ID }))).status).toBe(409);
+    expect((await postPaint(req({ view: "front", fill: "none" }), ctx({ id: "cat_20261031_999999" }))).status).toBe(404);
+  });
+  it("改用上一版：沒原因 400、沒有上一版 409、有上一版 200", async () => {
+    enable();
+    expect((await postRestore(req({ reason: "" }), ctx({ id: ID }))).status).toBe(400);
+    expect((await postRestore(req({ reason: "顏色不對" }), ctx({ id: ID }))).status).toBe(409);
+    await fs.writeFile(path.join(root, "adoption_cats", ID, "paint_albedo_prev.png"), Buffer.from([8]));
+    expect((await postRestore(req({ reason: "顏色不對" }), ctx({ id: ID }))).status).toBe(200);
   });
 });

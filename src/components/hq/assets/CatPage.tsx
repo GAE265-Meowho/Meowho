@@ -15,11 +15,10 @@ import { useHqToast } from "../HqToast";
 import type { PreviewInfo } from "./CatPreview";
 import { ClipList } from "./ClipList";
 import { PublishPanel } from "./PublishPanel";
+import { ASSETS_CATS_HREF, studioHref } from "./hrefs";
 import { BASE_GLB_URL, catFileUrl, useCat } from "./useCatModels";
 
 const CatPreview = dynamic(() => import("./CatPreview"), { ssr: false, loading: () => <HqSkeleton rows={4} /> });
-
-export const ASSETS_CATS_HREF = "/MeowHQ/assets";
 
 function Preview({ cat }: { cat: CatModelView }) {
   const router = useRouter();
@@ -43,13 +42,13 @@ function Preview({ cat }: { cat: CatModelView }) {
     router.replace(`?${next.toString()}`, { scroll: false });
   }, [params, router]);
 
-  const albedoUrl = cat.hasAlbedo && !textureFailed ? catFileUrl(cat.id, "albedo", cat.updatedAt) : null;
+  const albedoUrl = cat.hasAlbedo && !textureFailed ? catFileUrl(cat.id, "albedo", cat.albedoVersion ?? undefined) : null;
 
   return (
     <div className="hq-catpage">
       <div className="hq-catstage">
         {!cat.hasAlbedo && (
-          <div className="hq-note" role="status">尚未產生這隻貓的貼圖，目前顯示母體預設貼圖。貼圖工作頁會在下一個 PR 開放。</div>
+          <div className="hq-note" role="status">尚未產生這隻貓的貼圖，目前顯示母體預設貼圖。<Link href={studioHref(cat.id)}>前往貼圖工作頁</Link></div>
         )}
         {textureFailed && <div className="hq-note" role="alert">貼圖載入失敗，改顯示母體預設貼圖。</div>}
         {failed ? (
@@ -96,6 +95,7 @@ function Preview({ cat }: { cat: CatModelView }) {
         <section className="hq-box" aria-label="動作">
           <h3>動作</h3>
           <ClipList available={clips} current={clip} onPick={pick} />
+          <Link href={studioHref(cat.id)} className="hq-btn ghost small">貼圖工作頁</Link>
           <p className="hq-hint">灰色的是規劃中的動作，母體補入後會自動可點。</p>
         </section>
       </div>

@@ -8,6 +8,7 @@ import { CLIP_LIBRARY } from "@/lib/hq/cat-models/clips";
 import { CAT_MODEL_STATUSES, CAT_STATUS_LABELS, CAT_STATUS_TONE, type CatModelView } from "@/lib/hq/cat-models/types";
 import { paginate, type ListQuery } from "@/lib/hq/listing";
 import { HqListBody, HqPager, HqTable, HqToolbar, type Column } from "../list/HqList";
+import { assetsHref, NEW_CAT_HREF, studioHref } from "./hrefs";
 import { catFileUrl, useCatList } from "./useCatModels";
 
 const READY_CLIPS = CLIP_LIBRARY.filter(c => c.status === "ready").length;
@@ -16,8 +17,6 @@ export function filterCats(cats: readonly CatModelView[], q: { q?: string; statu
   const text = q.q?.trim().toLowerCase();
   return cats.filter(c => (!q.status || c.status === q.status) && (!text || c.name.toLowerCase().includes(text)));
 }
-
-export const assetsHref = (id: string) => `/MeowHQ/assets/cats/${id}`;
 
 export function CatsTab({ query, update }: { query: ListQuery & { page: number }; update: (p: Partial<ListQuery>) => void }) {
   const router = useRouter();
@@ -46,11 +45,22 @@ export function CatsTab({ query, update }: { query: ListQuery & { page: number }
     { key: "status", label: "狀態", render: c => <span className={`hq-tag${CAT_STATUS_TONE[c.status] ? ` ${CAT_STATUS_TONE[c.status]}` : ""}`}>{CAT_STATUS_LABELS[c.status]}</span> },
     { key: "clips", label: "動作數", render: () => `${READY_CLIPS} / ${CLIP_LIBRARY.length}` },
     { key: "updated", label: "更新時間", render: c => formatTaipeiDate(new Date(c.updatedAt)) },
-    { key: "ops", label: "操作", render: c => <Link href={assetsHref(c.id)} onClick={e => e.stopPropagation()}>預覽動作</Link> },
+    {
+      key: "ops", label: "操作",
+      render: c => (
+        <span className="hq-row">
+          <Link href={assetsHref(c.id)} onClick={e => e.stopPropagation()}>預覽動作</Link>
+          <Link href={studioHref(c.id)} onClick={e => e.stopPropagation()}>貼圖工作頁</Link>
+        </span>
+      ),
+    },
   ];
 
   return (
     <>
+      <div className="hq-row hq-actions">
+        <Link href={NEW_CAT_HREF} className="hq-btn small">新增貓咪模型</Link>
+      </div>
       <HqToolbar
         q={query.q} onSearch={q => update({ q })} placeholder="搜尋貓咪名稱"
         statuses={CAT_MODEL_STATUSES.map(s => ({ value: s, label: CAT_STATUS_LABELS[s] }))}
@@ -59,7 +69,7 @@ export function CatsTab({ query, update }: { query: ListQuery & { page: number }
       <HqListBody
         loading={value.state === "loading"} error={value.state === "error"} onRetry={reload}
         total={filtered.length} filtered={Boolean(query.q || query.status)}
-        empty={{ message: "還沒有貓咪模型。新增與貼圖工作頁會在下一個 PR 開放；目前可先用 Cat Studio 建立貓咪。", actionLabel: "重新整理", onAction: reload }}
+        empty={{ message: "還沒有貓咪模型。按上方「新增貓咪模型」上傳照片開始。", actionLabel: "重新整理", onAction: reload }}
         onClear={() => update({ q: undefined, status: undefined })}
       >
         <HqTable rows={page.rows} columns={columns} rowKey={c => c.id} onSelect={c => router.push(assetsHref(c.id))} />

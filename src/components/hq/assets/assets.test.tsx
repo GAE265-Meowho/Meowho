@@ -7,14 +7,18 @@ import { ClipList } from "./ClipList";
 import { filterCats } from "./CatsTab";
 import { PlannedTab } from "./PlannedTab";
 import { PublishPanel } from "./PublishPanel";
+import { checkPhoto, NewCat } from "./NewCat";
+import { StudioPageBody } from "./StudioPage";
+import { HqToastProvider } from "../HqToast";
 
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), replace: vi.fn() }) }));
 vi.mock("../HqStates", async orig => ({ ...(await orig<typeof import("../HqStates")>()), useOnline: () => true }));
 
 afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 
 const cat = (over: Partial<CatModelView>): CatModelView => ({
   id: "cat_20261031_100000", name: "小橘", ownerType: "template", status: "ready", ageMonths: null, weightKg: null, notes: "",
-  photoView: null, fillPattern: null, hasAlbedo: true, hasPrevAlbedo: false, jobStep: null, jobError: null,
+  photoView: null, fillPattern: null, hasAlbedo: true, hasPrevAlbedo: false, albedoVersion: null, jobStatus: null, jobQueuedAt: null, jobStartedAt: null, jobSeconds: null, jobStep: null, jobError: null,
   createdAt: "2026-10-31T10:00:00", updatedAt: "2026-10-31T10:00:00", ...over,
 });
 
@@ -87,5 +91,86 @@ describe("PublishPanel", () => {
     fireEvent.click(screen.getByRole("button", { name: "確認上架" }));
     expect(await screen.findByRole("alert")).toBeInTheDocument();
     expect(screen.getByLabelText("原因")).toHaveValue("x");
+  });
+});
+
+describe("checkPhoto", () => {
+  it("接受 JPG、PNG、WebP", () => {
+    for (const type of ["image/jpeg", "image/png", "image/webp"]) expect(checkPhoto({ type, size: 1000 })).toBeNull();
+  });
+  it("其他格式與超過 10 MB 說明白話原因", () => {
+    expect(checkPhoto({ type: "image/gif", size: 1000 })).toBe("請上傳 JPG、PNG 或 WebP 照片");
+    expect(checkPhoto({ type: "image/png", size: 10 * 1024 * 1024 + 1 })).toBe("照片太大（上限 10 MB）");
+  });
+});
+
+describe("NewCat", () => {
+  it("沒選照片就送出：顯示提示，不呼叫 API", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    render(<NewCat />);
+    fireEvent.change(screen.getByLabelText("名稱（必填）"), { target: { value: "小橘" } });
+    fireEvent.click(screen.getByRole("button", { name: "儲存並前往貼圖工作頁" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("請先選一張貓咪照片");
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+  it("顯示拍攝提示與「儲存後是草稿」說明", () => {
+    render(<NewCat />);
+    expect(screen.getByText(/側拍、坐姿或站姿/)).toBeInTheDocument();
+    expect(screen.getByText("儲存後狀態是「草稿」，不會自動開始生成。")).toBeInTheDocument();
+  });
+});
+
+describe("貼圖工作頁", () => {
+  function mockCat(over: Partial<CatModelView>) {
+    const fetchMock = vi.fn().mockImplementation(async (url: string, init?: { method?: string }) => ({
+      ok: true, status: 200, json: async () => (init?.method === "POST" ? { ok: true } : { enabled: true, cat: cat(over) }),
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+    return fetchMock;
+  }
+  const renderStudio = () => render(<HqToastProvider><StudioPageBody id="cat_20261031_100000" /></HqToastProvider>);
+
+  it("草稿：預設正面、不補花紋；按「產生動作 glb」送出選項", async () => {
+    const fetchMock = mockCat({ status: "draft", hasAlbedo: false });
+    renderStudio();
+    fireEvent.click(await screen.findByRole("button", { name: "左側" }));
+    fireEvent.click(screen.getByRole("button", { name: "虎斑" }));
+    fireEvent.click(screen.getByRole("button", { name: "產生動作 glb" }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/hq/cat-models/cat_20261031_100000/paint",
+      expect.objectContaining({ method: "POST", body: JSON.stringify({ view: "left", fill: "tabby" }) })));
+  });
+  it("排隊中：按鈕停用並說明原因；排隊超過 2 分鐘提示 worker 可能沒開", async () => {
+    mockCat({ status: "queued", jobStatus: "queued", jobQueuedAt: new Date(Date.now() - 5 * 60000).toISOString(), jobStep: "排隊中" });
+    renderStudio();
+    expect(await screen.findByRole("button", { name: "重新產生動作 glb" })).toBeDisabled();
+    expect(screen.getByText("已有排隊中或生成中的任務，完成後才能再送出。")).toBeInTheDocument();
+    expect(screen.getByText(/paint_worker 可能沒有開啟/)).toBeInTheDocument();
+  });
+  it("失敗：顯示原因與「重試」，並說明沒動到現在的貼圖", async () => {
+    mockCat({ status: "failed", jobStatus: "error", jobError: "CUDA out of memory" });
+    renderStudio();
+    expect(await screen.findByRole("button", { name: "重試" })).toBeEnabled();
+    expect(screen.getByRole("alert")).toHaveTextContent("CUDA out of memory");
+  });
+  it("沒有上一版時「改用上一版」停用；有上一版時需填原因才能確認", async () => {
+    mockCat({ status: "ready", hasPrevAlbedo: false });
+    const { unmount } = renderStudio();
+    expect(await screen.findByRole("button", { name: "改用上一版" })).toBeDisabled();
+    unmount();
+    const fetchMock = mockCat({ status: "ready", hasPrevAlbedo: true });
+    renderStudio();
+    fireEvent.click(await screen.findByRole("button", { name: "改用上一版" }));
+    const confirm = screen.getByRole("button", { name: "確認改用上一版" });
+    expect(confirm).toBeDisabled();
+    fireEvent.change(screen.getByLabelText("原因"), { target: { value: "顏色不對" } });
+    fireEvent.click(confirm);
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/hq/cat-models/cat_20261031_100000/restore",
+      expect.objectContaining({ method: "POST", body: JSON.stringify({ reason: "顏色不對" }) })));
+  });
+  it("有貼圖時提供「回到貓咪頁看動作」", async () => {
+    mockCat({ status: "ready" });
+    renderStudio();
+    expect(await screen.findByRole("link", { name: "回到貓咪頁看動作" })).toHaveAttribute("href", "/MeowHQ/assets/cats/cat_20261031_100000");
   });
 });

@@ -32,6 +32,8 @@ export interface JobInfo {
   view?: PhotoView;
   fill?: FillPattern;
   seconds?: number;
+  queued_at?: string;
+  started_at?: string;
   finished_at?: string;
 }
 
@@ -72,8 +74,35 @@ export interface CatModelView {
   fillPattern: FillPattern | null;
   hasAlbedo: boolean;
   hasPrevAlbedo: boolean;
+  /** 貼圖檔的修改時間（毫秒），畫面用來避開瀏覽器快取 */
+  albedoVersion: string | null;
+  jobStatus: JobStatus | null;
+  jobQueuedAt: string | null;
+  jobStartedAt: string | null;
+  jobSeconds: number | null;
   jobStep: string | null;
   jobError: string | null;
   createdAt: string;
   updatedAt: string;
 }
+
+/** 任務是否在忙（排隊中或生成中）：忙的時候不能再送、不能換版 */
+export const isJobActive = (status: CatModelStatus) => status === "queued" || status === "running";
+
+/** 排隊超過 2 分鐘還沒被領取：多半是 paint_worker 沒開（沿用 Cat Studio 的提示） */
+export const QUEUE_STALL_MS = 2 * 60 * 1000;
+export function queueStalled(status: CatModelStatus, queuedAt: string | null, nowMs: number): boolean {
+  if (status !== "queued" || !queuedAt) return false;
+  const at = Date.parse(queuedAt);
+  return Number.isFinite(at) && nowMs - at > QUEUE_STALL_MS;
+}
+
+/** 已經過幾分鐘（無條件進位到整分鐘顯示用；時間不合法回 null） */
+export function elapsedMinutes(since: string | null, nowMs: number): number | null {
+  if (!since) return null;
+  const at = Date.parse(since);
+  return Number.isFinite(at) ? Math.max(0, Math.floor((nowMs - at) / 60000)) : null;
+}
+
+export const MAX_PHOTO_BYTES = 10 * 1024 * 1024;
+export const PHOTO_MIME = ["image/jpeg", "image/png", "image/webp"] as const;

@@ -305,7 +305,7 @@
 |---|---|---|
 | 1 | 規格書（本文件）＋ 01 規格書同步更新（R3、TBD-1、§4.2） | — |
 | 2a | `/MeowHQ/assets` 四個分頁外殼＋貓咪列表＋共用 `CatPreview` 元件（母體 glb＋換貼圖、動作淡入淡出、眨眼、看游標）＋**貓咪頁** `/cats/<id>`（動作清單、`?clip=`、上下架畫面）＋repository 介面與**本機檔案實作**（先用母體預設貼圖與 Cat Studio 既有的貓示範） | PR 1 |
-| 2b | **貼圖工作頁** `/cats/<id>/studio`：新增與上傳照片、產生選項、任務進度、貼圖結果檢視（驅動現有 paint_worker） | PR 2a |
+| 2b | **貼圖工作頁** `/cats/<id>/studio` 與新增頁 `/cats/new`：新增與上傳照片、產生選項、任務進度、貼圖結果檢視、改用上一版（驅動現有 paint_worker）。**已完成**；工作頁不內嵌 3D 預覽（改以按鈕導向貓咪頁）、「換照片」與「取消任務」尚未做 | PR 2a |
 | 3 | migration `0004_meow_cat_models.sql`（資料表、RLS、bucket、稽核動作）＋ Supabase 實作＋上下架與稽核 | PR 2、Tina 確認 |
 | 4 | worker 增加 Supabase 實作、匯出單檔 GLB、任務狀態顯示 | PR 3 |
 | 5 | 動作庫 manifest 與動作清單子頁；之後陸續補入吃飯、上廁所、撒嬌、跳躍、休息、理毛 | PR 2 之後皆可 |

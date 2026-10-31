@@ -12,6 +12,17 @@ export const catFileUrl = (id: string, kind: "photo" | "albedo" | "albedo_prev",
   `${CAT_API}/${id}/file/${kind}${bust ? `?t=${encodeURIComponent(bust)}` : ""}`;
 export const BASE_GLB_URL = `${CAT_API}/base`;
 
+/** 帶白話訊息的錯誤：HqSaveButton 只會顯示 hint（見 errors.ts），所以訊息要放在 hint */
+export const hintError = (message: string) => Object.assign(new Error(message), { hint: message });
+
+/** POST JSON；失敗時依 API 回的 error 代碼丟出白話訊息 */
+export async function postJson<T = Record<string, unknown>>(url: string, body: unknown, errors: Record<string, string>): Promise<T> {
+  const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  const json = await res.json().catch(() => ({}));
+  if (res.ok) return json as T;
+  throw hintError(errors[json?.error] ?? "操作失敗，請稍後再試");
+}
+
 async function load<T>(url: string, pick: (json: { cats?: CatModelView[]; cat?: CatModelView | null }) => T | null): Promise<Loadable<T>> {
   try {
     const res = await fetch(url, { cache: "no-store" });
