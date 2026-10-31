@@ -45,6 +45,7 @@ Google 登入（Supabase Auth）與條款同意已完成（Issue #1）。條款�
 - 條款版本更新時要讓使用者重新同意（FR-01-02）：修改 `TERMS_VERSION`（`src/lib/supabase/config.ts`）即可。
 - Google OAuth consent screen 在 Testing 狀態時，只有 Test users 能登入。
 - profiles 的 update policy 限制 role 只能是 member，避免自行升級為 admin。
+- Google 大頭貼網址（lh3.googleusercontent.com）帶 Referer 可能 403、大量讀取會 429：頭像一律用 `src/components/ui/AvatarImage.tsx`（不送 Referer、失敗顯示替代內容）。
 
 ## 變更紀錄
 | 日期 | 發起人 × 工具 | 變更 | PR |
@@ -52,3 +53,4 @@ Google 登入（Supabase Auth）與條款同意已完成（Issue #1）。條款�
 | 2026-10-28 | Tina × Claude Code | 建立模組文件 | — |
 | 2026-10-28 | Tina × Claude Code | Supabase Auth、Google 登入、條款同意 | #1 |
 | 2026-10-28 | Tina × Claude Code | 條款頁加站台 LOGO（`PageBrandTitle`）、名稱改為 Meow Home；頁尾精簡移除 LOGO | #9 |
+| 2026-10-31 | 子哲 × Claude Code | 頭像改用 AvatarImage，修正 Google 登入後看不到頭像 | #68 |
