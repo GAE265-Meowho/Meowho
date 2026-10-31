@@ -116,7 +116,8 @@
 }
 
 .chip:hover:not(:disabled) { border-color: var(--orange); }
-.chip[aria-pressed="true"] { border-color: var(--ink); background: var(--ink); color: var(--yellow); }
+.chip[aria-pressed="true"],
+.chip[aria-checked="true"] { border-color: var(--ink); background: var(--ink); color: var(--yellow); }
 .chip:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .form {
