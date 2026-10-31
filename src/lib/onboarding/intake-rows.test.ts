@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { beginCat, emptyIntake, type IntakeState } from "./conversation";
-import { IntakeStateSchema, toCatInsert, toCatVideoInserts, toHouseholdInsert } from "./intake-rows";
+import { IntakeStateSchema, fromCatRow, toCatInsert, toCatUpdate, toCatVideoInserts, toHouseholdInsert } from "./intake-rows";
 
 const ready = (): IntakeState => {
   const s = beginCat({ ...emptyIntake(), household: { caretakerType: "personal_foster", name: "小橘之家", city: "台中市", district: "北屯區", intro: "" } });
@@ -44,5 +44,24 @@ describe("瀏覽器送來的對話草稿要先檢查", () => {
   it("格式不對就拒絕", () => {
     expect(IntakeStateSchema.safeParse({ ...ready(), phase: "admin" }).success).toBe(false);
     expect(IntakeStateSchema.safeParse({ ...ready(), cat: { ...ready().cat, photos: Array(6).fill("u/a.jpg") } }).success).toBe(false);
+  });
+});
+
+describe("修改貓咪：資料庫一筆 → 名片欄位 → 更新欄位", () => {
+  it("來回轉換不會掉資料；舊資料缺的新欄位用預設值", () => {
+    const row = toCatInsert(ready().cat, { id: "c1", householdId: "h1", coverUrl: null });
+    const back = fromCatRow({ ...row, est_age_months: 30, birthday: null, videos: ["cats/c1/videos/v.mp4"] });
+    expect(back).toMatchObject({ name: "橘子", lifeStage: "young_adult", personalityTags: ["親人"], photos: ["u/a.jpg", "u/b.jpg"], videos: ["cats/c1/videos/v.mp4"] });
+    const old = fromCatRow({ name: "老資料", sex: "male", life_stage: null, est_age_months: null, birthday: null, coat: null, breed: null } as never);
+    expect(old.medical.neutered).toBe("unknown");
+    expect(old.habits).toEqual([]);
+    expect(old.status).toBe("adoptable");
+  });
+
+  it("更新時不改 id、喵戶、狀態以外的系統欄位", () => {
+    const u = toCatUpdate(ready().cat, "https://x/a.jpg");
+    expect(u).not.toHaveProperty("id");
+    expect(u).not.toHaveProperty("household_id");
+    expect(u).toMatchObject({ name: "橘子", photo_url: "https://x/a.jpg" });
   });
 });

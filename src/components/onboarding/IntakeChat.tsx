@@ -4,7 +4,7 @@
 // 順序：先上傳照片並描述牠 → AI 先填 → 依序補問沒講到的 → 最後才出現名片讓喵戶長確認（對話中不顯示表單）。
 // 對話規則都在 lib/onboarding/conversation.ts，這裡只管畫面、上傳與寫入。
 // 示範模式（沒有 Supabase）可以完整操作，但不會存檔；影片在沒有設定 Azure 時關閉。
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AI_LIMITS } from "@/lib/ai/guard";
 import { LIFE_STAGE_LABEL, lifeStageOf } from "@/lib/cat-profile/life-stage";
 import type { AdoptionTerms } from "@/lib/cat-profile/adoption";
@@ -16,7 +16,7 @@ import {
 } from "@/lib/onboarding/conversation";
 import { LIFE_STAGE_CHIPS, REVIEW_CHIP, askText, noticeText } from "@/lib/onboarding/intake-copy";
 import { toCatInsert, toCatVideoInserts, type VideoMeta } from "@/lib/onboarding/intake-rows";
-import { MAX_VIDEO_SEC, validateVideoUpload, type VideoUploadError } from "@/lib/storage/media";
+import { MAX_ANALYZE_VIDEO_BYTES, MAX_VIDEO_SEC, validateVideoUpload, type VideoUploadError } from "@/lib/storage/media";
 import type { UploadTarget } from "@/lib/storage/types";
 import { getBrowserSupabase } from "@/lib/supabase/client";
 import { PHOTO_BUCKET } from "@/lib/supabase/config";
@@ -55,8 +55,9 @@ export function IntakeChat({ userId, home }: { userId: string | null; home: Exis
   const [state, setState] = useState<IntakeState>(() => startState(home));
   const ref = useRef(state);
   const [catId, setCatId] = useState(() => crypto.randomUUID());
+  const own = defaultCatStatus(home.role) === "own";
   const [messages, setMessages] = useState<ChatMessage[]>(() => [
-    botMsg(`來幫「${home.name}」新增一隻待領養的貓吧。`),
+    botMsg(`來幫「${home.name}」新增一隻${own ? "" : "待領養的"}貓吧。`),
     botMsg(askText(nextStep(startState(home)), "cat")),
   ]);
   const [busy, setBusy] = useState(false);
@@ -70,6 +71,24 @@ export function IntakeChat({ userId, home }: { userId: string | null; home: Exis
   const [done, setDone] = useState<{ name: string; cover: string | null; stage: string } | null>(null);
   const photoInput = useRef<HTMLInputElement>(null);
   const videoInput = useRef<HTMLInputElement>(null);
+  const [upload, setUpload] = useState<{ pct: number; cancel: () => void } | null>(null);
+  // 同一個喵戶已有同名的貓：先提醒，喵戶長按「仍要建立」才繼續
+  const [duplicate, setDuplicate] = useState<string | null>(null);
+
+  // 已上傳但還沒建立成貓的檔案；放棄建檔（離開頁面、重新開始）時清掉，不留下沒有主人的檔案
+  const unsaved = useRef<{ photos: Set<string>; videos: Set<string> }>({ photos: new Set(), videos: new Set() });
+  const discardUnsaved = () => {
+    const { photos, videos } = unsaved.current;
+    if (!sb || !userId || (!photos.size && !videos.size)) return;
+    const body = JSON.stringify({ photos: [...photos], videos: [...videos] });
+    navigator.sendBeacon?.("/api/onboarding/discard", new Blob([body], { type: "application/json" }));
+    unsaved.current = { photos: new Set(), videos: new Set() };
+  };
+  useEffect(() => {
+    window.addEventListener("pagehide", discardUnsaved);
+    return () => { window.removeEventListener("pagehide", discardUnsaved); discardUnsaved(); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const say = (...t: (string | null | undefined)[]) => {
     const list = t.filter((x): x is string => Boolean(x && x.trim()));
@@ -112,6 +131,7 @@ export function IntakeChat({ userId, home }: { userId: string | null; home: Exis
       path = `${userId}/${crypto.randomUUID()}.jpg`;
       const up = await sb.storage.from(PHOTO_BUCKET).upload(path, shrunk.blob, { contentType: "image/jpeg" });
       if (up.error) { say(`照片上傳失敗：${up.error.message}`); return; }
+      unsaved.current.photos.add(path);
     }
     const prev = ref.current;
     const next = applyMediaAnalysis(prev, { kind: "photo", path, ...guess, sameCat: null });
@@ -174,20 +194,35 @@ export function IntakeChat({ userId, home }: { userId: string | null; home: Exis
       const durationSec = await videoDuration(file);
       const err = validateVideoUpload({ mime: file.type, sizeBytes: file.size, durationSec }, ref.current.cat.videos.length);
       if (err) { say(VIDEO_ERROR[err]); continue; }
-      let path: string;
+      const tooBigForAI = file.size > MAX_ANALYZE_VIDEO_BYTES;
+      let path: string | null = null;
+      const abort = new AbortController();
       try {
         const t = await postJson<{ path: string; upload: UploadTarget }>("/api/onboarding/cat-video", { catId, mime: file.type, sizeBytes: file.size, durationSec });
-        say("影片上傳中，等我一下…");
-        await putUpload(t.upload, file);
         path = t.path;
+        say(tooBigForAI
+          ? `這支影片 ${Math.round(file.size / 1024 / 1024)} MB，上傳要一點時間。超過 20 MB 的影片會存下來，但不會由 AI 判讀個性。`
+          : "影片上傳中，等我一下…");
+        setUpload({ pct: 0, cancel: () => abort.abort() });
+        await putUpload(t.upload, file, { onProgress: pct => setUpload(u => (u ? { ...u, pct } : u)), signal: abort.signal });
+        unsaved.current.videos.add(t.path);
       } catch (e) {
+        setUpload(null);
+        if ((e as Error).name === "AbortError") {
+          say("已取消上傳。");
+          // 取消時雲端可能已收到一部分，保險起見刪一次
+          if (path) fetch("/api/onboarding/cat-video", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ path }) }).catch(() => {});
+          continue;
+        }
         const code = (e as Error).message as keyof typeof VIDEO_ERROR;
         say(VIDEO_ERROR[code] ?? "影片上傳失敗，請再試一次。");
         if (code === "video_disabled") break;
         continue;
       }
-      type VideoAi = { result: { isCat: boolean; personalityTags: string[]; reason: string } | null };
-      const r = await postJson<VideoAi>("/api/onboarding/cat-video/analyze", { path, sizeBytes: file.size }).catch((): VideoAi => ({ result: null }));
+      setUpload(null);
+      type VideoAi = { result: { isCat: boolean; personalityTags: string[]; reason: string } | null; skipped?: string | null };
+      const r = tooBigForAI ? { result: null, skipped: "too_large" } as VideoAi
+        : await postJson<VideoAi>("/api/onboarding/cat-video/analyze", { path, sizeBytes: file.size }).catch((): VideoAi => ({ result: null }));
       const tags = r.result?.isCat ? r.result.personalityTags : [];
       videoMeta.current[path] = { durationSec, tags, reason: r.result?.reason ?? null };
       const prev = ref.current;
@@ -197,13 +232,16 @@ export function IntakeChat({ userId, home }: { userId: string | null; home: Exis
       if (added.length) setAiUsed(true);
       advance(prev, next, added.length
         ? `從影片看起來，牠可能是「${added.join("、")}」${r.result?.reason ? `：${r.result.reason}` : ""}。最後會請你確認。`
-        : r.result && !r.result.isCat ? "影片收到了，不過我在影片裡沒看到貓。" : "影片收到了。");
+        : r.result && !r.result.isCat ? "影片收到了，不過我在影片裡沒看到貓。"
+        : tooBigForAI ? "影片存好了（這支太大，沒有判讀個性）。" : "影片收到了，這次沒有判讀出個性。");
     }
     setBusy(false);
   }
 
   async function onRemoved(path: string) {
     delete videoMeta.current[path];
+    unsaved.current.photos.delete(path);
+    unsaved.current.videos.delete(path);
     setPreviews(p => { const n = { ...p }; delete n[path]; return n; });
     if (path.startsWith("cats/")) await fetch("/api/onboarding/cat-video", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ path }) }).catch(() => {});
     else if (sb && userId && !path.startsWith("demo/")) await sb.storage.from(PHOTO_BUCKET).remove([path]);
@@ -211,10 +249,15 @@ export function IntakeChat({ userId, home }: { userId: string | null; home: Exis
   }
 
   // ---------- 寫入 ----------
-  async function createCat() {
+  async function createCat(allowDuplicate = false) {
     setError(null); setSaving(true);
     const cur = ref.current;
     const cover = previews[cur.cat.photos[0]]?.url ?? null;
+    if (sb && userId && !allowDuplicate) {
+      const { data: same } = await sb.from("meow_cats").select("id").eq("household_id", home.id).eq("name", cur.cat.name.trim()).limit(1);
+      if (same?.length) { setSaving(false); setDuplicate(cur.cat.name.trim()); return; }
+    }
+    setDuplicate(null);
     if (sb && userId) {
       const coverUrl = sb.storage.from(PHOTO_BUCKET).getPublicUrl(cur.cat.photos[0]).data.publicUrl;
       const { error: err } = await sb.from("meow_cats").insert(toCatInsert(cur.cat, { id: catId, householdId: home.id, coverUrl }));
@@ -228,15 +271,17 @@ export function IntakeChat({ userId, home }: { userId: string | null; home: Exis
         if (vErr) say(`貓咪建好了，但影片沒有存進去：${vErr.message}`);
       }
     }
+    unsaved.current = { photos: new Set(), videos: new Set() };
     setSaving(false);
     setDone({ name: cur.cat.name.trim(), cover, stage: cur.cat.lifeStage ? LIFE_STAGE_LABEL[cur.cat.lifeStage] : "" });
   }
 
   function anotherCat() {
+    discardUnsaved();
     const next = startState(home);
     commit(next);
     setCatId(crypto.randomUUID());
-    setPreviews({}); videoMeta.current = {}; setAiUsed(false); setDone(null); setError(null); setHeld(null);
+    setPreviews({}); videoMeta.current = {}; setAiUsed(false); setDone(null); setError(null); setHeld(null); setDuplicate(null);
     setMessages([botMsg("再來新增下一隻吧。"), botMsg(askText(nextStep(next), "cat"))]);
   }
 
@@ -245,7 +290,7 @@ export function IntakeChat({ userId, home }: { userId: string | null; home: Exis
       <section className={`${s.card} ${s.center}`} aria-labelledby="done-title">
         {done.cover ? <img className={s.doneCover} src={done.cover} alt={`${done.name}的照片`} /> : <span className={s.avatar} aria-hidden="true"><Icon name="cat" /></span>}
         <h2 id="done-title">{done.name}的名片建立好了</h2>
-        <p className={s.lead}>{done.stage ? `${done.stage}・` : ""}待領養{sb ? "" : "（示範模式：資料沒有儲存）"}</p>
+        <p className={s.lead}>{done.stage ? `${done.stage}・` : ""}{own ? "自家貓" : "待領養"}{sb ? "" : "（示範模式：資料沒有儲存）"}</p>
         <div className={s.actions} style={{ justifyContent: "center" }}>
           <CatButton variant="ghost" onClick={anotherCat}>再新增一隻</CatButton>
           <CatButton href="/me">去我的喵戶</CatButton>
@@ -265,7 +310,14 @@ export function IntakeChat({ userId, home }: { userId: string | null; home: Exis
 
   return (
     <>
-      <ChatLog messages={messages} typing={busy} />
+      <ChatLog messages={messages} typing={busy && !upload} />
+      {upload && (
+        <div className={s.progress} role="status" aria-live="polite">
+          <div className={s.progressBar}><i style={{ width: `${upload.pct}%` }} /></div>
+          <span>影片上傳中 {upload.pct}%</span>
+          <button type="button" className={s.linkBtn} onClick={upload.cancel}>取消上傳</button>
+        </div>
+      )}
 
       <input ref={photoInput} type="file" accept="image/*" multiple hidden onChange={e => { const f = Array.from(e.target.files ?? []); e.target.value = ""; if (f.length) addPhotos(f); }} />
       <input ref={videoInput} type="file" accept="video/mp4,video/quicktime,video/webm" multiple hidden onChange={e => { const f = Array.from(e.target.files ?? []); e.target.value = ""; if (f.length) addVideos(f); }} />
@@ -287,7 +339,16 @@ export function IntakeChat({ userId, home }: { userId: string | null; home: Exis
       {reviewing && (
         <>
           <MediaTray state={state} previews={previews} onChange={commit} onRemoved={onRemoved} />
-          <CatCard state={state} onChange={commit} onCreate={createCat} saving={saving} error={error} aiUsed={aiUsed} />
+          <CatCard state={state} onChange={commit} onCreate={() => createCat()} saving={saving} error={error} aiUsed={aiUsed} homeTerms={home.terms}
+            notice={duplicate && (
+              <div className={s.warn}>
+                「{home.name}」已經有一隻叫「{duplicate}」的貓，確定不是同一隻嗎？
+                <div className={s.actions}>
+                  <button type="button" className={s.linkBtn} onClick={() => createCat(true)}>仍要建立</button>
+                  <button type="button" className={s.linkBtn} onClick={() => setDuplicate(null)}>先不要</button>
+                </div>
+              </div>
+            )} />
         </>
       )}
     </>
