@@ -28,7 +28,7 @@ export function CatsTab({ query, update }: { query: ListQuery & { page: number }
     return (
       <div className="hq-state">
         <p>貓咪模型的資料來源還沒有啟用。</p>
-        <p className="hq-hint">本機預覽：在 .env.local 設定 CAT_STUDIO_ROOT（指到放 adoption_cats 與 cat_base 的資料夾），再重新啟動 npm run dev。</p>
+        <p className="hq-hint">本機可在 .env.local 設定 CAT_STUDIO_ROOT（adoption_cats 與 cat_base）後重開 dev；正式站會帶已完成的示範貓。</p>
       </div>
     );
   }

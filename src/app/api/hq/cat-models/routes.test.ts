@@ -30,23 +30,34 @@ beforeEach(async () => {
 });
 afterEach(async () => { vi.unstubAllEnvs(); await fs.rm(root, { recursive: true, force: true }); });
 
-describe("沒有啟用", () => {
-  it("沒設 CAT_STUDIO_ROOT：全部 404", async () => {
+describe("沒有本機路徑（改走 bundled 示範貓）", () => {
+  const BUNDLED_ID = "cat_20261030_140731";
+  it("沒設 CAT_STUDIO_ROOT：列表讀示範貓；寫入仍 404", async () => {
     vi.stubEnv("CAT_STUDIO_ROOT", "");
-    expect((await getList()).status).toBe(404);
-    expect(await (await getList()).json()).toEqual({ enabled: false });
-    expect((await getOne(new Request("http://x"), ctx({ id: ID }))).status).toBe(404);
-    expect((await getBase()).status).toBe(404);
-    expect((await postPublish(req({ action: "publish", reason: "x" }), ctx({ id: ID }))).status).toBe(404);
-    expect((await postCreate(req({ name: "A" }))).status).toBe(404);
-    expect((await postPaint(req({ view: "front", fill: "none" }), ctx({ id: ID }))).status).toBe(404);
-    expect((await postRestore(req({ reason: "x" }), ctx({ id: ID }))).status).toBe(404);
+    vi.stubEnv("NODE_ENV", "development");
+    const list = await (await getList()).json();
+    expect(list.enabled).toBe(true);
+    expect(list.cats.some((c: { id: string }) => c.id === BUNDLED_ID)).toBe(true);
+    expect((await getOne(new Request("http://x"), ctx({ id: BUNDLED_ID }))).status).toBe(200);
+    expect((await getOne(new Request("http://x"), ctx({ id: ID }))).status).toBe(404); // 本機測試貓不在 bundled
+    const base = await getBase();
+    expect(base.status).toBe(302);
+    expect(base.headers.get("location")).toContain("/hq-cat-models/base/base_clips.glb");
+    const alb = await getFile(new Request("http://localhost/api"), ctx({ id: BUNDLED_ID, kind: "albedo" }));
+    expect(alb.status).toBe(302);
+    expect((await postPublish(req({ action: "publish", reason: "x" }), ctx({ id: BUNDLED_ID }))).status).toBe(404);
+    expect((await postCreate(req({ name: "A", photo: "data:image/jpeg;base64,QQ==" }))).status).toBe(404);
+    expect((await postPaint(req({ view: "front", fill: "none" }), ctx({ id: BUNDLED_ID }))).status).toBe(404);
+    expect((await postRestore(req({ reason: "x" }), ctx({ id: BUNDLED_ID }))).status).toBe(404);
   });
-  it("production：即使設了路徑也 404", async () => {
+  it("production：忽略 CAT_STUDIO_ROOT，仍讀 bundled", async () => {
     vi.stubEnv("CAT_STUDIO_ROOT", root);
     vi.stubEnv("NODE_ENV", "production");
-    expect((await getList()).status).toBe(404);
-    expect((await getFile(new Request("http://x"), ctx({ id: ID, kind: "albedo" }))).status).toBe(404);
+    const list = await (await getList()).json();
+    expect(list.enabled).toBe(true);
+    expect(list.cats[0].id).toBe(BUNDLED_ID);
+    // 本機測試目錄的檔不能在 production 讀到
+    expect((await getFile(new Request("http://localhost/api"), ctx({ id: ID, kind: "albedo" }))).status).toBe(404);
   });
 });
 

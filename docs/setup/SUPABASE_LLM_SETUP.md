@@ -75,14 +75,14 @@ Vercel 專案 **`zing15s-projects/meowho`**（https://meowho.vercel.app，連動
 ## 6. 本機開發
 複製 `.env.example` 為 `.env.local` 填入同樣的值，`npm run dev`。
 
-## 7. 指定第一位系統管理員
-1. 先用你的 Google 帳號登入網站一次（會自動建立 `meow_profiles`）
-2. Supabase **SQL Editor** 執行（換成你的 Gmail）：
+## 7. 指定系統管理員（可多位）
+1. 每位要當系統管理員的人，先用自己的 Google 帳號登入網站一次（會自動建立 `meow_profiles`）
+2. Supabase **SQL Editor** 執行（可一次多人）：完整腳本見 [`set_system_admins.sql`](./set_system_admins.sql)。單人也可：
    ```sql
    update public.meow_profiles set role = 'system_admin' where email = '你的Gmail@gmail.com';
    ```
-   結果應為 `1 row affected`；`0 rows` 表示還沒登入過。
-3. 開啟後台 **`/MeowHQ`**（https://meowho.vercel.app/MeowHQ），之後在後台授權其他管理員。
+   結果應為 `1 row affected`；`0 rows` 表示還沒登入過。系統管理員可有多位，不能撤銷最後一位。
+3. 開啟後台 **`/MeowHQ`**（https://meowho.vercel.app/MeowHQ），之後在後台授權其他「管理員」（一般 admin）。
 
 ## 8. Azure Blob（貓影片等大型檔案，決策 006）
 1. Azure Portal → 建立儲存體帳戶：區域 **Southeast Asia**、效能 Standard、備援 **LRS**、存取層 **Hot**。
