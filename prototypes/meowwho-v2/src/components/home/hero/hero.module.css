@@ -1,0 +1,347 @@
+/* ---------- Hero: flat illustrated room; 橘子 roams on the cushion area ---------- */
+.hero {
+  position: relative;
+  min-height: clamp(560px, calc(100svh - var(--header-h)), 860px);
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  background: linear-gradient(180deg, #fdf3e3 0%, #fbe9cf 100%);
+}
+
+.room {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.window {
+  position: absolute;
+  top: 9%;
+  right: 16%;
+  width: clamp(150px, 16vw, 230px);
+  height: auto;
+}
+
+.plant {
+  position: absolute;
+  right: 3%;
+  bottom: 24%;
+  width: clamp(80px, 8vw, 120px);
+  height: auto;
+}
+
+.floor {
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 26%;
+  background: #f3d9b2;
+  border-top: 10px solid #efcd9e;
+}
+
+.sun {
+  position: absolute;
+  right: 12%;
+  bottom: 6%;
+  width: 34%;
+  height: 14%;
+  border-radius: 50%;
+  background: rgba(255, 250, 235, 0.55);
+  transform: skewX(-24deg);
+}
+
+.cushion {
+  position: absolute;
+  right: 22%;
+  bottom: 9%;
+  width: clamp(170px, 16vw, 240px);
+}
+
+.cushion svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* 橘子's paws land on the middle of the cushion */
+.perch {
+  position: absolute;
+  left: 50%;
+  top: 44%;
+  width: 2px;
+  height: 2px;
+  transform: translate(-50%, -100%);
+}
+
+/* The copy layer lets clicks fall through to the cat, except on its own controls */
+.content {
+  position: relative;
+  z-index: 1;
+  pointer-events: none;
+  padding-top: 56px;
+  padding-bottom: 72px;
+}
+
+.content a,
+.content form {
+  pointer-events: auto;
+}
+
+.copy {
+  max-width: 540px;
+}
+
+.eyebrow {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 14px;
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--ink-soft);
+}
+
+.hero h1 {
+  margin: 0;
+  font-size: clamp(36px, 5.4vw, 64px);
+  line-height: 1.2;
+  letter-spacing: 0.02em;
+}
+
+/* Break only between phrases, never inside one */
+.hero h1 span {
+  display: inline-block;
+}
+
+.hero h1 em {
+  font-style: normal;
+  color: var(--orange-deep);
+  background: linear-gradient(transparent 62%, var(--orange-soft) 62%);
+}
+
+.lead {
+  margin: 16px 0 26px;
+  color: var(--ink-soft);
+  max-width: 30em;
+}
+
+/* ---------- Search ---------- */
+.search label {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.searchPill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 6px 6px 20px;
+  border-radius: 999px;
+  background: var(--card);
+  border: 1.5px solid var(--line);
+  box-shadow: var(--shadow-lift);
+  transition: border-color 0.15s ease;
+}
+
+.searchPill:focus-within {
+  border-color: var(--orange);
+}
+
+.searchPill input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  padding: 10px 0;
+  outline: none;
+  font-size: 15px;
+}
+
+.searchPill input::placeholder {
+  color: #8f7663;
+}
+
+.searchPill > :last-child {
+  flex: none;
+}
+
+.sent {
+  margin: 10px 0 0;
+  font-size: 13px;
+  color: var(--orange-deep);
+}
+
+.secondary {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-top: 22px;
+}
+
+.textLink {
+  font-weight: 700;
+  color: var(--orange-deep);
+}
+
+/* ---------- Intent cards ---------- */
+.intent {
+  padding-top: 40px;
+}
+
+.intent h2 {
+  margin: 0 0 14px;
+  font-size: 18px;
+  color: var(--ink-soft);
+}
+
+.intentGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+
+.intentCard {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  padding: 18px;
+  border-radius: var(--radius);
+  border: 1.5px solid var(--line);
+  background: var(--card);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.intentText {
+  flex: 1;
+  min-width: 0;
+}
+
+.intentArrow {
+  flex: none;
+  align-self: center;
+  width: 16px;
+  height: 16px;
+  color: var(--orange);
+  transition: transform 0.2s ease;
+}
+
+.intentCard:hover .intentArrow {
+  transform: translate(2px, -2px);
+}
+
+.intentCard:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-lift);
+  border-color: transparent;
+}
+
+.intentCard strong {
+  display: block;
+  font-size: 16px;
+  margin-bottom: 4px;
+}
+
+.intentCard small {
+  display: block;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+
+.intentIcon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  color: var(--ink);
+}
+
+.orange .intentIcon {
+  background: var(--yellow);
+}
+.mint .intentIcon {
+  background: var(--mint-soft);
+}
+.pink .intentIcon {
+  background: var(--pink-soft);
+}
+
+@media (max-width: 767px) {
+  /* Copy on top, the cat roams the floor in the bottom part */
+  .hero {
+    min-height: max(700px, calc(100svh - var(--header-h)));
+    align-items: flex-start;
+  }
+
+  .floor {
+    height: 24%;
+  }
+
+  .window {
+    top: auto;
+    bottom: 22%;
+    right: 6%;
+    width: 110px;
+  }
+
+  .plant {
+    right: auto;
+    left: 4%;
+    bottom: 20%;
+    width: 64px;
+  }
+
+  .sun {
+    right: 6%;
+    bottom: 12%;
+    width: 70%;
+  }
+
+  .cushion {
+    right: auto;
+    left: 50%;
+    bottom: calc(var(--tabbar-h) + 20px);
+    width: 150px;
+    transform: translateX(-50%);
+  }
+
+  .content {
+    padding-top: 28px;
+    padding-bottom: 0;
+  }
+
+  .searchPill {
+    padding-left: 16px;
+  }
+
+  .searchPill input {
+    font-size: 14px;
+  }
+
+  .searchPill > :last-child {
+    padding: 9px 16px;
+    font-size: 14px;
+  }
+
+  /* Swipeable row of intent cards */
+  .intentGrid {
+    grid-template-columns: none;
+    grid-auto-flow: column;
+    grid-auto-columns: 80%;
+    gap: 10px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    margin: 0 calc(var(--gutter) * -1);
+    padding: 0 var(--gutter) 4px;
+    scrollbar-width: none;
+  }
+
+  .intentCard {
+    padding: 14px;
+    scroll-snap-align: start;
+  }
+}

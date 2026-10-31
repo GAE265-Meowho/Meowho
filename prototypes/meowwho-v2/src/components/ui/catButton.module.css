@@ -1,0 +1,199 @@
+.btn {
+  --fill: var(--caramel);
+  --ink-on: #fff;
+  --edge: var(--caramel);
+  --stripe: #fff3df;
+  --h: 46px;
+
+  position: relative;
+  isolation: isolate;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: var(--h);
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink-on);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: transform 0.18s ease;
+}
+
+/* The pill body is a layer of its own so ears and tail can tuck in underneath it */
+.btn::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border: 2px solid var(--edge);
+  border-radius: inherit;
+  background: var(--fill);
+  transition: background 0.18s ease, box-shadow 0.18s ease;
+}
+
+.btn:hover {
+  transform: translateY(-2px);
+}
+
+.btn:active {
+  transform: translateY(0) scale(0.98);
+}
+
+.primary::before {
+  box-shadow: 0 6px 0 -1px var(--caramel-deep);
+}
+
+.primary:hover {
+  --fill: #94551f;
+  --edge: #94551f;
+}
+
+.ghost {
+  --fill: var(--card);
+  --ink-on: var(--orange-deep);
+  --edge: var(--orange);
+  --stripe: var(--orange-soft);
+}
+
+.ghost:hover {
+  --fill: var(--cream);
+}
+
+.sm {
+  --h: max(36px, var(--tap));
+  padding: 0 16px;
+  font-size: 13.5px;
+}
+
+.md {
+  padding: 0 24px;
+  font-size: 15px;
+}
+
+.lg {
+  --h: 56px;
+  padding: 0 30px;
+  font-size: 17px;
+}
+
+/* Leave room around the pill for the ears above and the tail to the right */
+.withEars {
+  margin-top: calc(var(--h) * 0.24);
+}
+
+.withTail {
+  margin-right: calc(var(--h) * 0.5);
+}
+
+/* ---- Ears ---- */
+.ears {
+  position: absolute;
+  z-index: -2;
+  left: calc(var(--h) * 0.42);
+  bottom: calc(100% - var(--h) * 0.16);
+  width: calc(var(--h) * 1.05);
+  height: calc(var(--h) * 0.36);
+  overflow: visible;
+  transform-origin: 50% 100%;
+  transition: transform 0.25s ease;
+  pointer-events: none;
+}
+
+.ears path {
+  fill: var(--fill);
+  stroke: var(--edge);
+  stroke-width: 2px;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+  transition: fill 0.18s ease;
+}
+
+.btn:hover .ears {
+  animation: twitch 0.9s ease-in-out infinite;
+}
+
+@keyframes twitch {
+  0%,
+  60%,
+  100% {
+    transform: none;
+  }
+  70% {
+    transform: scaleY(1.14) rotate(-4deg);
+  }
+  80% {
+    transform: scaleY(0.96) rotate(2deg);
+  }
+}
+
+/* ---- Tail: hooks down off the right end, wags on hover ---- */
+.tail {
+  position: absolute;
+  z-index: -2;
+  left: calc(100% - var(--h) * 0.2);
+  top: calc(var(--h) * 0.5);
+  width: calc(var(--h) * 0.62);
+  height: calc(var(--h) * 1.06);
+  overflow: visible;
+  transform-origin: 0 12%;
+  transition: transform 0.3s ease;
+  pointer-events: none;
+}
+
+.tailBody {
+  fill: var(--fill);
+  stroke: var(--edge);
+  stroke-width: 2px;
+  vector-effect: non-scaling-stroke;
+  transition: fill 0.18s ease;
+}
+
+.stripes path {
+  fill: none;
+  stroke: var(--stripe);
+  stroke-width: 9;
+}
+
+.btn:hover .tail {
+  animation: wag 0.6s ease-in-out infinite alternate;
+}
+
+@keyframes wag {
+  from {
+    transform: rotate(-9deg);
+  }
+  to {
+    transform: rotate(11deg);
+  }
+}
+
+.arrow {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  margin-left: 2px;
+  transition: transform 0.18s ease;
+}
+
+.btn:hover .arrow {
+  transform: translate(2px, -2px);
+}
+
+.label {
+  position: relative;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn:hover .tail,
+  .btn:hover .ears {
+    animation: none;
+  }
+
+  .btn:hover .tail {
+    transform: rotate(8deg);
+  }
+}

@@ -1,0 +1,7 @@
+---
+description: Meowho UI design system — read before changing any page, component or style
+globs: src/**/*.tsx, src/**/*.css
+alwaysApply: true
+---
+
+Before changing UI, read `DESIGN.md` at the project root and follow its §0 hard rules: show only key info and buttons, with no small-print notes in the UI (put them in code comments); no emoji; CSS variables only; `CatButton` for actions; `Icon` for icons; contrast ≥ 4.5:1; tap targets ≥ `var(--tap)`; no sideways scroll at 375px; reduced-motion fallbacks; images via `src/lib/photos.ts` in fixed aspect-ratio frames. Layout, illustration and interaction are free to explore within those rules. See `AGENTS.md` for stack and commands.
