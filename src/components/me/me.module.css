@@ -157,3 +157,29 @@
   gap: 12px 24px;
   padding-top: 4px;
 }
+
+.catActions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 12px;
+  margin: 2px 6px 0;
+}
+
+.textBtn {
+  min-height: var(--tap);
+  padding: 0 4px;
+  border: 0;
+  background: none;
+  color: var(--orange-deep);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.textBtn:disabled { opacity: 0.5; cursor: not-allowed; }
+.confirmText { flex-basis: 100%; color: var(--ink); font-size: 14px; line-height: 1.6; }

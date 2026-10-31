@@ -6,24 +6,30 @@ import type { VerificationRow } from "@/components/VerificationApply";
 import { MyHomes, type CatRow, type Household } from "@/components/me/MyHomes";
 import f from "@/components/onboarding/intake.module.css";
 import CatButton from "@/components/ui/CatButton";
-import { MAX_HOUSEHOLDS_PER_ACCOUNT, canCreateHousehold } from "@/lib/onboarding/household";
+import { deleteCat } from "@/components/me/delete-cat";
+import { canAddHousehold, parseHouseholdLimit } from "@/lib/onboarding/household-rules";
 import { getBrowserSupabase } from "@/lib/supabase/client";
 import s from "@/components/me/me.module.css";
 
 // 我的喵戶：喵戶長管理自己的喵戶，並從這裡新增待領養貓（#72）。也是時光小屋的入口。
-// 貓咪欄位用 0004 新增的 life_stage、personality_tags，這頁要和 0004 一起上線。
+// 依身分顯示不同入口（#82）；喵戶數量上限讀 meow_site_settings.household_limit（null＝不限制）。
 export default function MyHomePage() {
   const { configured, loading, user, login, logout } = useAuth();
   const [homes, setHomes] = useState<Household[] | undefined>(undefined);
   const [cats, setCats] = useState<CatRow[]>([]);
   const [verifs, setVerifs] = useState<VerificationRow[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [limit, setLimit] = useState<number | null>(null);
 
   useEffect(() => {
     const sb = getBrowserSupabase();
     if (loading || !sb || !user) return;
     (async () => {
-      const { data: h, error } = await sb.from("meow_households").select("id, name, caretaker_type, city, district, intro, verified_shelter").eq("owner_id", user.id).order("created_at");
+      const [{ data: h, error }, { data: setting }] = await Promise.all([
+        sb.from("meow_households").select("id, name, caretaker_type, city, district, intro, verified_shelter, home").eq("owner_id", user.id).order("created_at"),
+        sb.from("meow_site_settings").select("value").eq("key", "household_limit").maybeSingle(),
+      ]);
+      setLimit(parseHouseholdLimit(setting?.value));
       if (error) { setLoadError(error.message); setHomes([]); return; }
       const list = (h ?? []) as Household[];
       setHomes(list);
@@ -51,7 +57,7 @@ export default function MyHomePage() {
   else if (!homes?.length) body = (
     <section className={`${f.card} ${f.center}`} aria-labelledby="me-empty">
       <h2 id="me-empty">你還沒有喵戶</h2>
-      <p className={f.lead}>用聊天的方式，幾分鐘就能建好。</p>
+      <p className={f.lead}>選好身分、填幾個欄位就能建好。</p>
       {loadError && <p className={f.error} role="alert">讀取失敗：{loadError}</p>}
       <div className={f.actions} style={{ justifyContent: "center" }}><CatButton href="/onboarding">建立喵戶</CatButton></div>
     </section>
@@ -59,11 +65,16 @@ export default function MyHomePage() {
   else body = (
     <>
       {loadError && <p className={f.error} role="alert">讀取失敗：{loadError}</p>}
-      <MyHomes homes={homes} cats={cats} verifs={verifs} onVerification={row => setVerifs(v => [row, ...v])} />
+      <MyHomes homes={homes} cats={cats} verifs={verifs} onVerification={row => setVerifs(v => [row, ...v])}
+        onDeleteCat={async id => {
+          const sb = getBrowserSupabase();
+          const err = sb ? await deleteCat(sb, id) : null;
+          if (err) setLoadError(`刪除失敗：${err}`); else setCats(list => list.filter(c => c.id !== id));
+        }} />
       <div className={s.footer}>
-        {canCreateHousehold(homes.length)
+        {canAddHousehold(homes.length, limit)
           ? <CatButton variant="ghost" href="/onboarding?new=1">建立新的喵戶</CatButton>
-          : <p className={f.lead}>每個帳號最多 {MAX_HOUSEHOLDS_PER_ACCOUNT} 個喵戶，每個喵戶都可以新增很多隻貓。</p>}
+          : <p className={f.lead}>每個帳號最多 {limit} 個喵戶，每個喵戶都可以新增很多隻貓。</p>}
         <CatButton variant="ghost" size="sm" ears={false} tail={false} onClick={logout}>登出</CatButton>
       </div>
     </>

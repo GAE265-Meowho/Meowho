@@ -114,3 +114,7 @@ export function verificationRow(f: HouseholdForm, ids: { householdId: string; us
 
 /** 喵戶數量上限：null 表示不限制（開發期間，#82）；之後要限制改 meow_site_settings 的 household_limit */
 export const canAddHousehold = (existing: number, limit: number | null) => limit === null || existing < limit;
+
+/** meow_site_settings.household_limit 的值 → 上限；不是正整數就當作不限制 */
+export const parseHouseholdLimit = (value: unknown): number | null =>
+  typeof value === "number" && Number.isInteger(value) && value > 0 ? value : null;

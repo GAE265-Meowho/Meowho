@@ -4,6 +4,7 @@ import type { BaseMessage } from "@langchain/core/messages";
 import type { Runnable } from "@langchain/core/runnables";
 import { CAT_PHOTO_ANALYSIS, CAT_VIDEO_ANALYSIS, INTAKE_CAT, INTAKE_HOUSEHOLD } from "@/lib/prompts/onboarding";
 import { HEALTH_TAGS, PERSONALITY_TAGS } from "@/lib/cat-profile/tags";
+import { ADOPTION_TERMS, HABITS, HANDOVER_ITEMS } from "@/lib/cat-profile/adoption";
 import type { TurnExtractor } from "@/lib/onboarding/conversation";
 import { createStructuredChain } from "./chain";
 import { wrapUserInput } from "./guard";
@@ -14,7 +15,10 @@ type Runner = Runnable<BaseMessage[], unknown>;
 
 const catSystem = INTAKE_CAT.system
   .replace("{{PERSONALITY_TAGS}}", PERSONALITY_TAGS.join("、"))
-  .replace("{{HEALTH_TAGS}}", HEALTH_TAGS.join("、"));
+  .replace("{{HEALTH_TAGS}}", HEALTH_TAGS.join("、"))
+  .replace("{{HABITS}}", HABITS.join("、"))
+  .replace("{{HANDOVER}}", HANDOVER_ITEMS.join("、"))
+  .replace("{{ADOPTION_TERMS}}", ADOPTION_TERMS.join("、"));
 
 const videoSystem = CAT_VIDEO_ANALYSIS.system.replace("{{PERSONALITY_TAGS}}", PERSONALITY_TAGS.join("、"));
 

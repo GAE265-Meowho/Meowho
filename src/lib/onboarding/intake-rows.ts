@@ -1,7 +1,8 @@
 // 建檔對話草稿 → 資料表欄位（#72），以及檢查瀏覽器送來的草稿。
-// 新建的喵戶預設接受私訊、公開；新建的貓一律是公開的待領養貓。
+// 新建的喵戶預設接受私訊、公開；新建的貓公開，狀態依喵戶身分（一般飼主是自家貓、中途是待領養）。
 import { z } from "zod";
 import { HEALTH_TAGS, PERSONALITY_TAGS } from "../cat-profile/tags";
+import { AdoptionTermsSchema, CompatSchema, HABITS, HANDOVER_ITEMS, MedicalSchema } from "../cat-profile/adoption";
 import { MAX_PHOTOS, MAX_TIMELINE, MAX_VIDEOS, type CatFields, type HouseholdFields } from "./conversation";
 
 export function toHouseholdInsert(h: HouseholdFields) {
@@ -30,13 +31,19 @@ export function toCatInsert(c: CatFields, ids: { id: string; householdId: string
     personality_tags: c.personalityTags,
     health_tags: c.healthTags,
     // 舊欄位 neutered 給「我的喵戶」等既有畫面用
-    neutered: c.healthTags.includes("已結紮") ? true : null,
+    neutered: c.medical.neutered === "unknown" ? (c.healthTags.includes("已結紮") ? true : null) : c.medical.neutered === "done",
     description: c.description,
     timeline: c.timeline,
+    medical: c.medical,
+    compat: c.compat,
+    habits: c.habits,
+    // null＝沿用喵戶的預設送養條件
+    adoption_terms: c.adoptionTerms,
+    handover: c.handover,
     photo_paths: c.photos,
     // 舊欄位 photo_url 放封面網址，給既有畫面相容；新程式讀 photo_paths
     photo_url: ids.coverUrl,
-    status: "adoptable" as const,
+    status: c.status,
     visibility: "public" as const,
   };
 }
@@ -76,10 +83,16 @@ export const IntakeStateSchema = z.object({
     healthTags: z.array(z.enum(HEALTH_TAGS)).max(HEALTH_TAGS.length),
     description: nullableStr(2000),
     timeline: z.array(z.object({ date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), event: str(200) })).max(MAX_TIMELINE),
+    medical: MedicalSchema,
+    compat: CompatSchema,
+    habits: z.array(z.enum(HABITS)).max(HABITS.length),
+    adoptionTerms: AdoptionTermsSchema.nullable(),
+    handover: z.array(z.enum(HANDOVER_ITEMS)).max(HANDOVER_ITEMS.length),
+    status: z.enum(["own", "adoptable"]),
     photos: z.array(str(300)).max(MAX_PHOTOS),
     videos: z.array(str(300)).max(MAX_VIDEOS),
   }),
-  pending: z.array(z.enum(["coat", "breed", "lifeStage", "personalityTags"])),
+  pending: z.array(z.enum(["coat", "breed", "lifeStage", "personalityTags", "sex", "health"])),
   reviewRequested: z.boolean(),
   notice: z.enum(["not_cat", "inappropriate", "maybe_other_cat", "too_many_photos", "too_many_videos"]).nullable(),
 });

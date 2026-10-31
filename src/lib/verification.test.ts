@@ -3,7 +3,7 @@ import { friendlyDbError, validateVerification } from "./verification";
 
 describe("錯誤訊息", () => {
   it("資料庫上限錯誤轉成說明", () => {
-    expect(friendlyDbError('new row violates: household_limit')).toContain("最多建立 2 個貓戶");
+    expect(friendlyDbError('new row violates: household_limit')).toContain("喵戶數量上限");
   });
 });
 

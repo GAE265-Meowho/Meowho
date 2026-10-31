@@ -7,6 +7,9 @@
 import { useRef, useState } from "react";
 import { AI_LIMITS } from "@/lib/ai/guard";
 import { LIFE_STAGE_LABEL, lifeStageOf } from "@/lib/cat-profile/life-stage";
+import type { AdoptionTerms } from "@/lib/cat-profile/adoption";
+import type { CaretakerType } from "@/lib/onboarding/household";
+import { defaultCatStatus } from "@/lib/onboarding/household-rules";
 import {
   MAX_PHOTOS, MAX_VIDEOS, applyMediaAnalysis, beginCat, emptyIntake, nextStep, setCatField,
   type IntakeState, type MediaAnalysis, type Step,
@@ -24,7 +27,8 @@ import { CatCard, MediaTray, type MediaPreview } from "./IntakeCards";
 import { putUpload, shrinkPhoto, videoDuration } from "./media";
 import s from "./intake.module.css";
 
-export interface ExistingHome { id: string; name: string }
+/** 要新增貓的喵戶：身分決定貓的預設狀態，送養條件是貓的預設值 */
+export interface ExistingHome { id: string; name: string; role: CaretakerType; terms: AdoptionTerms | null }
 
 const VIDEO_ERROR: Record<VideoUploadError | "video_disabled" | "forbidden", string> = {
   unsupported_type: "這個影片格式不支援，請用 MP4、MOV 或 WebM。",
@@ -43,7 +47,7 @@ type PhotoAi = { result: { isCat: boolean; inappropriate: boolean; sameCatAsRefe
 const stepKey = (st: Step) => JSON.stringify(st);
 const startState = (home: ExistingHome): IntakeState => {
   const s0 = emptyIntake();
-  return beginCat({ ...s0, household: { ...s0.household, name: home.name } });
+  return beginCat({ ...s0, household: { ...s0.household, name: home.name } }, defaultCatStatus(home.role));
 };
 
 export function IntakeChat({ userId, home }: { userId: string | null; home: ExistingHome }) {
