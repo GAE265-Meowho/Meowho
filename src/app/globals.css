@@ -20,21 +20,160 @@
   --sh-1: 0 4px 16px -2px rgba(90, 70, 56, .08);
   --sh-2: 0 8px 24px -4px rgba(90, 70, 56, .12);
   --sh-3: 0 16px 36px -6px rgba(90, 70, 56, .18);
-  --font: "Quicksand", "Zen Maru Gothic", "Noto Sans TC", ui-rounded, system-ui, sans-serif;
+  --font: var(--font-quicksand), var(--font-zen-maru), var(--font-noto-tc), ui-rounded, system-ui, sans-serif;
   --gutter: 1.25rem;
 }
-* { box-sizing: border-box }
-html { scroll-behavior: smooth }
-body {
-  margin: 0; background: var(--canvas); color: var(--cocoa); font-family: var(--font);
-  font-size: 16px; font-weight: 500; line-height: 1.65; -webkit-font-smoothing: antialiased; padding-bottom: 84px;
+
+/* ---------- Meowho喵戶 v2 設計框架（docs/design/DESIGN.md v2，2026-10-31 起）----------
+ * 新版元件（首頁、頁首頁尾、CatButton）只用下面這組 token；上面的 Cozy Cat Nook token 留給尚未改版的內頁與後台。
+ * 同名的 --card、--gutter 以新版為準。 */
+:root {
+  /* Warm, flat palette after ほごねこクリニック / 保護猫カフェ285 */
+  --cream: #fffaf0;
+  --paper: #fbf5ea;
+  --card: #ffffff;
+  --line: #efe3cf;
+  --ink: #3f2e24;
+  --ink-soft: #7a6252;
+  --orange: #e8913a;
+  /* Text-safe orange: 5.2:1 on white, use for small orange text and links */
+  --orange-deep: #a8562a;
+  --orange-soft: #fde3c6;
+  --yellow: #f6b53b;
+  --yellow-deep: #e9a21f;
+  --yellow-soft: #fdedc4;
+  /* Orange for large headings on paper (4.3:1) */
+  --heading-orange: #b25e16;
+  /* Primary button body: white label passes AA (4.9:1) */
+  --caramel: #a5602a;
+  --caramel-deep: #7d4517;
+  --pink: #f4b2ad;
+  --pink-soft: #fde7e4;
+  --mint-soft: #e3f2e7;
+
+  --radius-sm: 12px;
+  --radius: 20px;
+  --radius-lg: 32px;
+  --shadow: 0 10px 30px -12px rgba(122, 74, 38, 0.25);
+  --shadow-lift: 0 18px 40px -14px rgba(122, 74, 38, 0.35);
+
+  --wrap: 1180px;
+  --gutter: 16px;
+  --header-h: 68px;
+  --tabbar-h: 0px;
+  /* Minimum height of anything you tap; grows to 44px on touch screens */
+  --tap: 36px;
+
+  --font-body: var(--font-quicksand), var(--font-zen-maru), var(--font-noto-tc), ui-rounded,
+    system-ui, sans-serif;
+
+  color-scheme: light;
 }
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: calc(var(--header-h) + 12px);
+}
+
+body {
+  margin: 0;
+  background: var(--paper) url("/textures/paper.svg") repeat;
+  color: var(--ink);
+  font-family: var(--font-body);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  padding-bottom: var(--tabbar-h);
+  /* Button tails and ears may poke past a card edge; never let them cause sideways scroll */
+  overflow-x: clip;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+:focus-visible {
+  outline: 3px solid var(--orange);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+.wrap {
+  width: 100%;
+  max-width: var(--wrap);
+  margin: 0 auto;
+  padding: 0 var(--gutter);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  background: var(--orange-soft);
+  color: var(--orange-deep);
+}
+
+/* Floating name tag above the 3D cat (rendered by drei <Html>, outside CSS modules) */
+.cat-tag {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 4px 12px -4px rgba(122, 74, 38, 0.35);
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--ink);
+  white-space: nowrap;
+  user-select: none;
+}
+
+@media (pointer: coarse) {
+  :root {
+    --tap: 44px;
+  }
+}
+
+@media (max-width: 767px) {
+  :root {
+    --header-h: 56px;
+    --tabbar-h: 68px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
+
 img { max-width: 100%; display: block }
-a { color: inherit }
-button { font: inherit; color: inherit; cursor: pointer }
-:focus-visible { outline: 3px solid var(--peach); outline-offset: 3px; border-radius: 10px }
-.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0) }
-.wrap { max-width: 1180px; margin: 0 auto; padding: 0 var(--gutter) }
+
+/* ---------- 舊版元件樣式（尚未改版的內頁、後台沿用）---------- */.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0) }
 .h2 { font-size: 1.5rem; line-height: 1.35; font-weight: 700; margin: 0 }
 .sub { color: var(--cocoa-2); margin: .2rem 0 0; font-size: .95rem }
 .stroked { text-shadow: 2px 2px 0 #FFF, -2px -2px 0 #FFF, 2px -2px 0 #FFF, -2px 2px 0 #FFF, 0 4px 0 #E5D6C5 }
@@ -255,7 +394,6 @@ dialog h2 { margin: 0; font-size: 1.3rem }
 }
 /* ---------- 桌面 ---------- */
 @media (min-width: 1024px) {
-  :root { --gutter: 3rem }
   body { padding-bottom: 0 }
   .tabbar { display: none }
   .mainnav { display: flex }

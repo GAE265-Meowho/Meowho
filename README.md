@@ -29,7 +29,7 @@ npm run dev        # http://localhost:3000
 |---|---|---|
 | 本機 `npm run dev` | 開發者 | 最快 |
 | **GitHub Codespaces** | 不想裝環境的組員 | Repo 頁面 → Code → Codespaces → Create。自動安裝並開啟 3000 埠預覽。個人帳號每月有免費額度 |
-| **Vercel 正式網址** | 給老師、組外的人看 | https://meowhome.hsiangsolutions.com （`main` 有新 commit 會自動重新部署；部署限制見 [CONTRIBUTING.md](CONTRIBUTING.md#8-部署)） |
+| **Vercel 正式網址** | 給老師、組外的人看 | https://meowho.vercel.app （`main` 有新 commit 會自動重新部署；部署限制見 [CONTRIBUTING.md](CONTRIBUTING.md#8-部署)） |
 
 ## 技術架構
 

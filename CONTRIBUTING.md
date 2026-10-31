@@ -145,11 +145,10 @@ git switch feat/12-xxx && git rebase main   # 或 git merge main
 | 選項 | 費用 | 限制 |
 |---|---|---|
 | **Codespaces 預覽** | 免費額度內 | 只有組員能看，關掉就沒了 |
-| **Vercel（repo 維持 private）** | 免費 Hobby | Hobby 方案不支援多人協作：**非 Vercel 帳號擁有者的 commit 會被擋下無法部署**。變通做法：只部署 `main`，由組長（Vercel 帳號擁有者）合併時選「Create a merge commit」，讓合併 commit 的作者是組長（通常可行，若仍被擋就改用下一列）；組員的 PR 預覽會被擋 |
-| **Vercel（repo 改 public）** | 免費 | 所有人的 PR 都有預覽網址，最順；但程式碼公開（金鑰本來就不在 repo 裡） |
+| **Vercel `zing15s-projects/meowho`（目前使用）** | 免費 Hobby | 正式網址 https://meowho.vercel.app ，連動 `main` 自動部署；每個 PR 會自動產生預覽網址並留言在 PR。Hobby 方案只接受專案擁有者（ZING15）為作者的 commit：**`main` 由 ZING15 以「Create a merge commit」合併**。預覽網址預設開啟 Vercel 部署保護，組外的人要看需在 Settings → Deployment Protection 關閉 |
 | Vercel Pro | 付費 | 加入成員即可 |
 
-建議：開發期 private＋Codespaces；11/18 執行追蹤前決定是否改 public 以取得每個 PR 的預覽網址。
+repo 已改為 public；環境變數與設定步驟見 `docs/setup/SUPABASE_LLM_SETUP.md`，決策見 `docs/decisions/005-dedicated-supabase.md`。
 
 ---
 

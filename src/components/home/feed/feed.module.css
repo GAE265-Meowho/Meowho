@@ -1,0 +1,199 @@
+.headRow {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.perchSpot {
+  position: relative;
+  flex: none;
+  width: 260px;
+  height: 150px;
+}
+
+.perch {
+  position: absolute;
+  left: 50%;
+  bottom: 24px;
+  width: 2px;
+  height: 2px;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 22px;
+}
+
+/* ---------- AI weekly report ---------- */
+.report {
+  grid-row: span 2;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 26px 24px;
+  border-radius: 28px;
+  background: var(--yellow);
+}
+
+.reportTag {
+  display: inline-flex;
+  align-self: flex-start;
+  align-items: center;
+  gap: 4px;
+  margin: 0;
+  padding: 4px 12px 4px 8px;
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--yellow);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.report h3 {
+  margin: 6px 0 0;
+  font-size: 24px;
+}
+
+.reportRange {
+  margin: 0;
+  font-size: 13px;
+  color: #5a3f2c;
+}
+
+.report ul {
+  list-style: none;
+  margin: 8px 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.report li {
+  padding: 10px 14px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.75);
+  font-size: 14.5px;
+}
+
+.report li strong {
+  display: inline-block;
+  min-width: 4.2em;
+  color: var(--orange-deep);
+}
+
+.report > :last-child {
+  margin-top: auto;
+  align-self: flex-start;
+}
+
+/* ---------- Posts ---------- */
+.post {
+  display: flex;
+  flex-direction: column;
+  border-radius: 28px;
+  background: var(--card);
+  overflow: hidden;
+  box-shadow: 0 6px 0 -1px var(--line);
+}
+
+.postPhoto {
+  position: relative;
+  aspect-ratio: 4 / 3;
+  background: var(--yellow-soft);
+}
+
+.postPhoto img {
+  object-fit: cover;
+}
+
+.postBody {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 18px 14px;
+  flex: 1;
+}
+
+.postText {
+  margin: 0;
+  font-weight: 500;
+  line-height: 1.75;
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--ink-soft);
+}
+
+.meta svg {
+  color: var(--orange);
+  flex: none;
+}
+
+.reactions {
+  display: flex;
+  gap: 6px;
+  margin-top: auto;
+  padding-top: 8px;
+  border-top: 2px dashed var(--line);
+}
+
+.reactions button {
+  min-height: var(--tap);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  padding: 4px 10px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink-soft);
+}
+
+.reactions button:hover {
+  background: var(--paper);
+}
+
+.reactions .liked {
+  color: #e2626b;
+}
+
+@media (max-width: 1000px) {
+  .grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .report {
+    grid-row: auto;
+    grid-column: span 2;
+  }
+}
+
+@media (max-width: 767px) {
+  .headRow {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+  }
+
+  .perchSpot {
+    width: 100%;
+    height: 110px;
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .report {
+    grid-column: auto;
+  }
+}
