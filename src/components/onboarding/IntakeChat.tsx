@@ -1,7 +1,9 @@
 "use client";
 /* eslint-disable @next/next/no-img-element */
-// 用自由對話建立喵戶，接著建第一隻待領養貓（#72）。對話規則都在 lib/onboarding/conversation.ts，這裡只管畫面、上傳與寫入。
+// 用自由對話建立喵戶，或在既有喵戶新增待領養貓（#72）。
+// 建好喵戶後回到「我的喵戶」管理介面，再從那裡新增貓（子哲 2026-10-31 決定，取代規格原本的「同一段對話接著建貓」）。對話規則都在 lib/onboarding/conversation.ts，這裡只管畫面、上傳與寫入。
 // 示範模式（沒有 Supabase）可以完整操作，但不會存檔；影片在沒有設定 Azure 時關閉。
+import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import { LIFE_STAGE_LABEL, lifeStageOf } from "@/lib/cat-profile/life-stage";
 import {
@@ -41,9 +43,10 @@ function startState(home: ExistingHome | null): IntakeState {
 
 export function IntakeChat({ userId, home }: { userId: string | null; home: ExistingHome | null }) {
   const sb = getBrowserSupabase();
+  const router = useRouter();
   const [state, setState] = useState<IntakeState>(() => startState(home));
   const ref = useRef(state);
-  const [householdId, setHouseholdId] = useState<string | null>(home?.id ?? null);
+  const householdId = home?.id ?? null;
   const [catId, setCatId] = useState(() => crypto.randomUUID());
   const [messages, setMessages] = useState<ChatMessage[]>(() => [
     botMsg(home ? `來幫「${home.name}」新增一隻待領養的貓吧。` : GREETING),
@@ -56,6 +59,7 @@ export function IntakeChat({ userId, home }: { userId: string | null; home: Exis
   const [previews, setPreviews] = useState<Record<string, MediaPreview>>({});
   const videoMeta = useRef<Record<string, VideoMeta>>({});
   const [done, setDone] = useState<{ name: string; cover: string | null; stage: string } | null>(null);
+  const [demoHome, setDemoHome] = useState<string | null>(null);
   const photoInput = useRef<HTMLInputElement>(null);
   const videoInput = useRef<HTMLInputElement>(null);
 
@@ -178,21 +182,26 @@ export function IntakeChat({ userId, home }: { userId: string | null; home: Exis
   async function createHousehold() {
     setError(null); setSaving(true);
     const cur = ref.current;
-    let id: string | null = null;
     if (sb && userId) {
-      const { data, error: err } = await sb.from("meow_households").insert({ ...toHouseholdInsert(cur.household), owner_id: userId }).select("id").single();
+      const { error: err } = await sb.from("meow_households").insert({ ...toHouseholdInsert(cur.household), owner_id: userId });
       if (err) {
         setSaving(false);
         setError(err.message.includes("household_limit") ? "每個帳號最多建立 2 個喵戶，請到「我的喵戶」管理。" : `儲存失敗：${err.message}`);
         return;
       }
-      id = data.id;
+      router.push("/me");
+      return;
     }
+    // 示範模式沒有「我的喵戶」可以回去，改在這裡顯示建好的喵戶，並從這裡新增貓
     setSaving(false);
-    setHouseholdId(id);
-    const next = beginCat(cur);
+    setDemoHome(cur.household.name);
+  }
+
+  function startDemoCat() {
+    const next = beginCat(ref.current);
     commit(next);
-    say(`「${cur.household.name}」建好了。`, askText(nextStep(next), "cat"));
+    setDemoHome(null);
+    setMessages([botMsg(`來幫「${next.household.name}」新增一隻待領養的貓吧。`), botMsg(askText(nextStep(next), "cat"))]);
   }
 
   async function createCat() {
@@ -222,6 +231,18 @@ export function IntakeChat({ userId, home }: { userId: string | null; home: Exis
     setCatId(crypto.randomUUID());
     setPreviews({}); videoMeta.current = {}; setAiUsed(false); setDone(null); setError(null);
     setMessages([botMsg("再來新增下一隻吧。"), botMsg(askText(nextStep(next), "cat"))]);
+  }
+
+  if (demoHome) {
+    return (
+      <section className={`${s.card} ${s.center}`} aria-labelledby="home-done">
+        <span className={s.avatar} aria-hidden="true"><Icon name="house" /></span>
+        <h2 id="home-done">「{demoHome}」建好了</h2>
+        <div className={s.actions} style={{ justifyContent: "center" }}>
+          <CatButton onClick={startDemoCat}>新增貓咪</CatButton>
+        </div>
+      </section>
+    );
   }
 
   if (done) {

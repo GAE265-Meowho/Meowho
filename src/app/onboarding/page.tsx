@@ -12,7 +12,7 @@ import { getBrowserSupabase } from "@/lib/supabase/client";
 
 interface Home extends ExistingHome { city: string | null; district: string | null }
 
-// 建立喵戶與待領養貓（#72）。沒有喵戶的人一進來就直接開始對話；有喵戶的人先選要加到哪一戶。
+// 建立喵戶、在喵戶新增待領養貓（#72）。沒有喵戶的人一進來就直接開始對話；建好喵戶後回到「我的喵戶」，再從那裡新增貓。
 // 示範模式（沒有 Supabase）不需登入、不存檔。
 export default function OnboardingPage() {
   const { configured, loading, user, needsTerms, login, agreeTerms } = useAuth();
@@ -48,7 +48,7 @@ export default function OnboardingPage() {
     body = (
       <section className={`${s.card} ${s.center}`} aria-labelledby="login-title">
         <h2 id="login-title">先登入，再來建立喵戶</h2>
-        <p className={s.lead}>用 Google 帳號登入後，小幫手會用聊天的方式陪你建立喵戶和第一隻待領養的貓。</p>
+        <p className={s.lead}>用 Google 帳號登入後，小幫手會用聊天的方式陪你建立喵戶。</p>
         <div className={s.actions} style={{ justifyContent: "center" }}>
           <CatButton onClick={() => login(window.location.pathname + window.location.search)}>使用 Google 登入</CatButton>
         </div>
@@ -87,7 +87,7 @@ export default function OnboardingPage() {
     <>
       <SiteHeader />
       <main className={s.page}>
-        <h1 className={s.title}><span>建立喵戶</span><span>和待領養貓</span></h1>
+        <h1 className={s.title}>{phase === "cat" || phase === "choose" ? "新增待領養貓" : "建立喵戶"}</h1>
         {!configured && <p className={s.warn}>示範模式：還沒連接資料庫，可以完整操作，但資料不會儲存。</p>}
         {body}
       </main>
