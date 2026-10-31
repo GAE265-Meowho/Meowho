@@ -5,7 +5,7 @@ export function createMemoryStore(): MediaStore & { put(path: string, bytes: Uin
   const files = new Map<string, Uint8Array>();
   return {
     put: (path, bytes) => { files.set(path, bytes); },
-    uploadUrl: async (path) => `memory://upload/${path}`,
+    uploadUrl: async (path, contentType) => ({ url: `memory://upload/${path}`, headers: { "content-type": contentType } }),
     readUrl: async (path) => `memory://read/${path}`,
     download: async (path) => files.get(path) ?? null,
     remove: async (path) => { files.delete(path); },

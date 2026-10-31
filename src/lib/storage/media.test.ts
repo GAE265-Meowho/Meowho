@@ -26,7 +26,10 @@ describe("準備上傳（記憶體版儲存）", () => {
   it("回傳路徑與有時效的上傳網址", async () => {
     const store = createMemoryStore();
     const r = await prepareCatVideoUpload(store, { catId: "cat-1", existingCount: 0, ...ok }, () => "abc");
-    expect(r).toEqual({ ok: true, path: "cats/cat-1/videos/abc.mp4", uploadUrl: expect.stringContaining("cats/cat-1/videos/abc.mp4") });
+    expect(r).toEqual({
+      ok: true, path: "cats/cat-1/videos/abc.mp4",
+      upload: { url: expect.stringContaining("cats/cat-1/videos/abc.mp4"), headers: { "content-type": "video/mp4" } },
+    });
   });
   it("不合格就不簽發網址", async () => {
     const store = createMemoryStore();

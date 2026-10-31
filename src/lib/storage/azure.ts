@@ -1,7 +1,7 @@
 import "server-only";
 // Azure Blob 版儲存（決策 006：Southeast Asia、Hot、LRS）。唯一可以 import Azure SDK 的檔案。
 // 容器維持私有，讀寫都用短時效 SAS 網址；額度 11/29 到期後改用其他實作，資料庫路徑不用改。
-// 上線時要在 Azure 儲存帳號的 CORS 允許 https://meowho.vercel.app 與預覽網址的 PUT（瀏覽器直傳）。
+// 儲存帳號 meowhomedia（GAE26509RG，2026-10-31 建立）；CORS 只允許正式站與 localhost（Azure 不支援萬用子網域，PR 預覽網址無法直傳）。
 import { BlobSASPermissions, BlobServiceClient, StorageSharedKeyCredential, generateBlobSASQueryParameters } from "@azure/storage-blob";
 import type { StorageConfig } from "./config";
 import type { MediaStore } from "./types";
@@ -24,7 +24,10 @@ export function createAzureStore(cfg: StorageConfig): MediaStore {
   };
 
   return {
-    uploadUrl: async (path, contentType, ttlSec = UPLOAD_TTL_SEC) => sasUrl(path, "cw", ttlSec, contentType),
+    uploadUrl: async (path, contentType, ttlSec = UPLOAD_TTL_SEC) => ({
+      url: sasUrl(path, "cw", ttlSec, contentType),
+      headers: { "x-ms-blob-type": "BlockBlob", "content-type": contentType }, // Azure 規定要帶 blob 類型
+    }),
     readUrl: async (path, ttlSec = READ_TTL_SEC) => sasUrl(path, "r", ttlSec),
     download: async (path) => {
       const blob = container.getBlockBlobClient(path);

@@ -1,5 +1,5 @@
 // 貓影片的上傳規則與路徑（#72）。純邏輯，儲存服務以參數注入（測試用記憶體版）。
-import type { MediaStore } from "./types";
+import type { MediaStore, UploadTarget } from "./types";
 import { UPLOAD_TTL_SEC } from "./types";
 
 export const MAX_VIDEOS_PER_CAT = 3;
@@ -36,11 +36,11 @@ export async function prepareCatVideoUpload(
   store: MediaStore,
   req: VideoUploadRequest & { catId: string; existingCount: number },
   newId: () => string = () => crypto.randomUUID(),
-): Promise<{ ok: true; path: string; uploadUrl: string } | { ok: false; error: VideoUploadError }> {
+): Promise<{ ok: true; path: string; upload: UploadTarget } | { ok: false; error: VideoUploadError }> {
   const error = validateVideoUpload(req, req.existingCount);
   if (error) return { ok: false, error };
   const path = catVideoPath(req.catId, newId(), req.mime);
-  return { ok: true, path, uploadUrl: await store.uploadUrl(path, req.mime, UPLOAD_TTL_SEC) };
+  return { ok: true, path, upload: await store.uploadUrl(path, req.mime, UPLOAD_TTL_SEC) };
 }
 
 /** 刪除貓或影片時一起刪檔（資料庫的連動刪除不會刪雲端檔案） */

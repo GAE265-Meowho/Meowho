@@ -76,7 +76,9 @@ Vercel 專案 **`zing15s-projects/meowho`**（https://meowho.vercel.app，連動
 ## 8. Azure Blob（貓影片等大型檔案，決策 006）
 1. Azure Portal → 建立儲存體帳戶：區域 **Southeast Asia**、效能 Standard、備援 **LRS**、存取層 **Hot**。
 2. 建立容器（例如 `media`），存取層級維持**私人**（讀寫都用程式簽發的短時效網址）。
-3. 儲存體帳戶 → **資源共用 (CORS)** → Blob 服務新增一列：允許的來源 `https://meowho.vercel.app,https://*-zing15s-projects.vercel.app,http://localhost:3000`，方法 `PUT,GET`，允許的標頭 `*`，公開的標頭 `*`。
+3. 儲存體帳戶 → **資源共用 (CORS)** → Blob 服務新增一列：允許的來源 `https://meowho.vercel.app`、`http://localhost:3000`，方法 `PUT,GET,HEAD,OPTIONS`，允許與公開的標頭 `*`。Azure **不支援萬用子網域**，PR 預覽網址無法直接上傳影片。
+
+> 2026-10-31 已由子哲（26509@tibame.com）建立：儲存帳戶 `meowhomedia`（資源群組 `GAE26509RG`、Southeast Asia、Hot、LRS）、私人容器 `media`、上述 CORS；已實測上傳、讀取、刪除與 CORS。
 4. 儲存體帳戶 → 存取金鑰 → 複製帳戶名稱與 key1。
 5. 在 `.env.local` 與 Vercel 環境變數填 `MEDIA_STORAGE=azure`、`AZURE_STORAGE_ACCOUNT`、`AZURE_STORAGE_KEY`、`AZURE_STORAGE_CONTAINER`。金鑰不可 commit。
 6. 額度 2026-11-29 到期；搬家步驟見決策 006。

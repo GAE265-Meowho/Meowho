@@ -2,9 +2,11 @@
 // 業務程式只用這個介面，不直接 import 任何雲端 SDK；換雲端只要新增一個實作並改環境變數。
 // 資料庫只存 path（例如 cats/<cat_id>/videos/<uuid>.mp4），網址一律在讀取時才產生。
 
+export interface UploadTarget { url: string; headers: Record<string, string> }
+
 export interface MediaStore {
-  /** 有時效的上傳網址（瀏覽器直接 PUT 上傳，不經過我們的伺服器） */
-  uploadUrl(path: string, contentType: string, ttlSec?: number): Promise<string>;
+  /** 有時效的上傳網址與上傳時必須帶的標頭（瀏覽器直接 PUT，不經過我們的伺服器；前端照抄標頭，不寫死任何雲端的規則） */
+  uploadUrl(path: string, contentType: string, ttlSec?: number): Promise<UploadTarget>;
   /** 有時效的讀取網址 */
   readUrl(path: string, ttlSec?: number): Promise<string>;
   /** 伺服器端讀取檔案內容（例如送 AI 判讀）；檔案不存在回傳 null */
