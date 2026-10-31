@@ -1,5 +1,5 @@
 // /onboarding 進入點決策（純函式，方便測試）
-import { canCreateHousehold } from "./household";
+import { canAddHousehold } from "./household-rules";
 
 export type StartPhase = "login" | "choose" | "household" | "cat";
 
@@ -9,6 +9,7 @@ export interface StartInput {
   wantCat: boolean;      // 從「新貓入戶」進來（?cat=1）
   wantNew: boolean;      // 指定建立新貓戶（?new=1）
   homesCount: number;
+  householdLimit: number | null; // 喵戶數量上限；null＝不限制（開發期間，#82）
   targetFound: boolean;  // ?household=<id> 指定的貓戶存在
 }
 
@@ -22,6 +23,6 @@ export function decideStart(i: StartInput): StartPhase {
   if (i.targetFound) return "cat";
   if (i.wantCat) return "choose";
   if (i.homesCount === 0) return "household";
-  if (i.wantNew && canCreateHousehold(i.homesCount)) return "household";
+  if (i.wantNew && canAddHousehold(i.homesCount, i.householdLimit)) return "household";
   return "choose";
 }

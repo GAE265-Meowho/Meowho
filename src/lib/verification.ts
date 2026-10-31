@@ -1,5 +1,4 @@
 // 中途之家認證申請（Issue #3）
-import { MAX_HOUSEHOLDS_PER_ACCOUNT } from "./onboarding/household";
 
 export type VerificationStatus = "pending" | "approved" | "rejected";
 export const VERIFICATION_LABEL: Record<VerificationStatus, string> = {
@@ -25,7 +24,7 @@ export function validateVerification(v: VerificationInput): string[] {
 
 /** 資料庫錯誤轉成使用者看得懂的話 */
 export function friendlyDbError(message: string): string {
-  if (/household_limit/.test(message)) return `一個帳號最多建立 ${MAX_HOUSEHOLDS_PER_ACCOUNT} 個貓戶。`;
+  if (/household_limit/.test(message)) return "已經達到喵戶數量上限。";
   if (/shelter_verifications_one_pending|duplicate key/.test(message)) return "這個貓戶已經有一筆審核中的申請。";
   return `發生錯誤：${message}`;
 }

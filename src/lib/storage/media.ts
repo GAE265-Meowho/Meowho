@@ -7,6 +7,9 @@ export const MAX_VIDEO_SEC = 60;
 /** 手機 60 秒 1080p 約 100 MB；超過多半是 4K，請使用者改用較低畫質 */
 export const MAX_VIDEO_BYTES = 150 * 1024 * 1024;
 
+/** AI 判讀影片的大小上限（Gemini 直接夾帶約 20 MB）；超過的影片照樣存，只是不判讀。前後端共用 */
+export const MAX_ANALYZE_VIDEO_BYTES = 20 * 1024 * 1024;
+
 export const VIDEO_EXT: Record<string, string> = { "video/mp4": "mp4", "video/quicktime": "mov", "video/webm": "webm" };
 
 export type VideoUploadError = "unsupported_type" | "too_large" | "too_long" | "invalid_duration" | "too_many_videos";

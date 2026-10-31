@@ -62,6 +62,10 @@ export const INTAKE_CAT = {
 - description：保留使用者描述個性、習慣、健康的內容，整理成通順句子，不增加使用者沒說的事實。
 - timeline：中途常用日期記錄（例如「8/01 在永寧站接麥麥」「8/31 打第一劑預防針」）。每個有寫日期的事件一筆，date 照原文寫法，event 保留原文重點；沒寫日期的不要放。
 - 名字：「我的中途貓：麥麥」這類寫法也是名字。
+- medical：只填明確寫出的醫療資訊。「打了第一劑」是 vaccineDoses=1，不代表疫苗完成；快篩寫「雙陰」是 negative。
+- compat：只有明確寫出能不能和其他貓、狗、小孩相處時才填。
+- habits 只能從這份清單挑：{{HABITS}}。handover 只能從這份清單挑：{{HANDOVER}}。
+- adoptionTerms：送養條件，盡量用這份清單的寫法：{{ADOPTION_TERMS}}；清單以外的寫進 adoptionNote。
 - 嚴禁推論疾病或給醫療建議。
 - 使用者說「先這樣」「就這樣」等，wantsReview 填 true。
 - reply：一句溫暖、簡短的回應（30 字內），繁體中文，不用 emoji，不要問下一題。`,

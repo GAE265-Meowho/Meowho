@@ -30,20 +30,31 @@ export async function shrinkPhoto(file: File): Promise<{ blob: Blob; dataUrl: st
   return { blob, dataUrl, base64: dataUrl.split(",")[1] };
 }
 
-/** 從影片檔讀秒數；讀不到回傳 0（伺服器會擋下） */
+/** 從影片檔讀秒數；讀不到回傳 0（伺服器會擋下）。有些格式瀏覽器兩個事件都不觸發，所以 8 秒後放棄，避免畫面卡住 */
 export function videoDuration(file: File): Promise<number> {
   return new Promise(resolve => {
     const url = URL.createObjectURL(file);
     const v = document.createElement("video");
+    const finish = (sec: number) => { clearTimeout(timer); URL.revokeObjectURL(url); resolve(sec); };
+    const timer = setTimeout(() => finish(0), 8000);
     v.preload = "metadata";
-    v.onloadedmetadata = () => { URL.revokeObjectURL(url); resolve(Number.isFinite(v.duration) ? v.duration : 0); };
-    v.onerror = () => { URL.revokeObjectURL(url); resolve(0); };
+    v.onloadedmetadata = () => finish(Number.isFinite(v.duration) ? v.duration : 0);
+    v.onerror = () => finish(0);
     v.src = url;
   });
 }
 
-/** 照伺服器給的網址與標頭直傳；不寫死任何雲端的規則 */
-export async function putUpload(target: UploadTarget, file: Blob): Promise<void> {
-  const res = await fetch(target.url, { method: "PUT", headers: target.headers, body: file });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+/** 照伺服器給的網址與標頭直傳；不寫死任何雲端的規則。用 XHR 才拿得到上傳進度（fetch 沒有），也能取消 */
+export function putUpload(target: UploadTarget, file: Blob, opts: { onProgress?: (pct: number) => void; signal?: AbortSignal } = {}): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("PUT", target.url);
+    for (const [k, v] of Object.entries(target.headers)) xhr.setRequestHeader(k, v);
+    xhr.upload.onprogress = e => { if (e.lengthComputable) opts.onProgress?.(Math.round((e.loaded / e.total) * 100)); };
+    xhr.onload = () => (xhr.status >= 200 && xhr.status < 300 ? resolve() : reject(new Error(`HTTP ${xhr.status}`)));
+    xhr.onerror = () => reject(new Error("network"));
+    xhr.onabort = () => reject(new DOMException("canceled", "AbortError"));
+    opts.signal?.addEventListener("abort", () => xhr.abort());
+    xhr.send(file);
+  });
 }

@@ -120,6 +120,24 @@ try {
   }
 }
 
+// 0006（依身分建立喵戶、貓咪送養文欄位，#82）：0001→0005 後跑 0006 兩次＋測試
+{
+  const m = new PGlite();
+  const base = read("./stub_supabase.sql") + read("../migrations/0001_meow.sql") + read("../migrations/0002_meow_hq.sql")
+    + read("../migrations/0003_meow_site_assets.sql") + read("../migrations/0004_meow_cat_profile.sql") + read("../migrations/0005_meow_cat_models.sql");
+  try {
+    await m.exec(base);
+    await m.exec(read("../migrations/0006_meow_household_roles.sql"));
+    await m.exec(read("../migrations/0006_meow_household_roles.sql"));
+    const sql6 = read("./0006_meow_household_roles.test.sql").replace(/^\s*begin;/im, "").replace(/rollback;\s*$/i, "");
+    const out6 = await m.exec(sql6);
+    results = results.concat(out6.flatMap((r) => r.rows ?? []).filter((r) => "status" in r));
+  } catch (e) {
+    console.error(`✗ 0006 測試中斷：${e.message}`);
+    process.exit(1);
+  }
+}
+
 let failed = 0;
 for (const r of results) {
   if (r.status === "FAIL") failed++;

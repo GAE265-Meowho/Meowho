@@ -1,14 +1,20 @@
 import { describe, expect, it } from "vitest";
 import {
   applyMediaAnalysis, beginCat, canCreateCat, canCreateHousehold, confirmField, emptyIntake, nextStep, parseTimeline, removeMedia, setCatField, setCover, takeTurn,
-  type CatTurn, type HouseholdTurn, type IntakeState, type MediaAnalysis, type TurnExtractor,
+  type CatTurn, type HouseholdTurn, type PendingField, type IntakeState, type MediaAnalysis, type TurnExtractor,
 } from "./conversation";
 
 const today = new Date("2026-10-31T12:00:00+08:00");
+const noMed: CatTurn["medical"] = {
+  neutered: null, neuterNote: null, vaccineDoses: null, lastVaccineDate: null, dewormInternal: null, dewormExternal: null,
+  fivFelv: null, testDate: null, microchip: null, history: null, medication: null,
+};
+const noCompat: CatTurn["compat"] = { cats: null, dogs: null, kids: null };
 const hh = (o: Partial<HouseholdTurn>): HouseholdTurn => ({ caretakerType: null, name: null, city: null, district: null, intro: null, reply: "", ...o });
 const ct = (o: Partial<CatTurn>): CatTurn => ({
   name: null, sex: null, birthday: null, estAgeMonths: null, lifeStage: null, coat: null, breed: null,
-  personalityTags: [], healthTags: [], description: null, timeline: [], wantsReview: false, reply: "", ...o,
+  personalityTags: [], healthTags: [], description: null, timeline: [], medical: noMed, compat: noCompat, habits: [], adoptionTerms: [], adoptionNote: null, handover: [],
+  wantsReview: false, reply: "", ...o,
 });
 const llm = (out: HouseholdTurn | CatTurn): TurnExtractor => async () => out;
 const broken: TurnExtractor = async () => { throw new Error("AI 掛了"); };
@@ -267,6 +273,11 @@ describe("時間軸：中途貼文裡的日期事件", () => {
     ]);
   });
 
+  it("遇到空行或「送養條件：」這類小標題，就不再併進上一筆", () => {
+    expect(parseTimeline("9/19 換到大籠子\n\n個性很好\n送養條件：不放養", today)).toEqual([{ date: "2026-09-19", event: "換到大籠子" }]);
+    expect(parseTimeline("9/19 換到大籠子\n送養條件：不放養\n要家訪", today)).toEqual([{ date: "2026-09-19", event: "換到大籠子" }]);
+  });
+
   it("沒寫年份時，比今天晚的日期算去年", () => {
     expect(parseTimeline("12/25 來到我家", today)).toEqual([{ date: "2025-12-25", event: "來到我家" }]);
     expect(parseTimeline("2024/3/5 撿到牠", today)).toEqual([{ date: "2024-03-05", event: "撿到牠" }]);
@@ -283,5 +294,55 @@ describe("時間軸：中途貼文裡的日期事件", () => {
   it("AI 給的日期會換成完整日期、依時間排序，不合理的日期丟掉", async () => {
     const r = await takeTurn(catPhase(), "貼文", llm(ct({ timeline: [{ date: "9/19", event: "換大籠子" }, { date: "8/01", event: "接回家" }, { date: "13/40", event: "亂寫" }] })), today);
     expect(r.state.cat.timeline).toEqual([{ date: "2026-08-01", event: "接回家" }, { date: "2026-09-19", event: "換大籠子" }]);
+  });
+});
+
+describe("送養文欄位（#82）", () => {
+  const withPhoto = () => applyMediaAnalysis(catPhase(), { kind: "photo", path: "u/a.jpg", isCat: true, confidence: 0.9, coat: null, breed: null, estAgeMonths: null });
+
+  it("擷取醫療細項、相處、習慣、交接物品", async () => {
+    const r = await takeTurn(withPhoto(), "貼文", llm(ct({
+      medical: { ...noMed, vaccineDoses: 1, fivFelv: "negative", microchip: "yes" },
+      compat: { cats: "yes", dogs: null, kids: "no" },
+      habits: ["護食", "會飛"], handover: ["疫苗卡或病歷", "罐罐"],
+    })), today);
+    expect(r.state.cat.medical).toMatchObject({ vaccineDoses: 1, fivFelv: "negative", microchip: "yes", neutered: "unknown" });
+    expect(r.state.cat.compat).toEqual({ cats: "yes", dogs: "unknown", kids: "no" });
+    expect(r.state.cat.habits).toEqual(["護食"]);
+    expect(r.state.cat.handover).toEqual(["疫苗卡或病歷"]);
+  });
+
+  it("送養條件只對應固定清單，其他放進自訂文字", async () => {
+    const r = await takeTurn(withPhoto(), "貼文", llm(ct({ adoptionTerms: ["不放養", "家訪", "限雙北"], adoptionNote: "需單養" })), today);
+    expect(r.state.cat.adoptionTerms).toEqual({ items: ["不放養", "家訪"], note: "需單養；限雙北" });
+  });
+
+  it("性別與健康欄位一律標「請確認」，即使是從文字擷取的", async () => {
+    const r = await takeTurn(withPhoto(), "她已結紮，打了第一劑", llm(ct({ sex: "female", healthTags: ["已結紮"], medical: { ...noMed, neutered: "done", vaccineDoses: 1 } })), today);
+    expect(r.state.pending).toEqual(expect.arrayContaining(["sex", "health"]));
+    expect(canCreateCat({ ...r.state, cat: { ...r.state.cat, name: "麥麥", lifeStage: "young_adult" } })).toBe(false);
+  });
+
+  it("醫療細項帶出健康標籤；只打第一劑不會變成「疫苗已完成」", async () => {
+    const r = await takeTurn(withPhoto(), "貼文", llm(ct({ healthTags: ["疫苗已完成"], medical: { ...noMed, neutered: "done", vaccineDoses: 1 } })), today);
+    expect(r.state.cat.healthTags).toEqual(["已結紮"]);
+  });
+
+  it("沒有 AI 時，規則式也能抓到常見的醫療與送養條件", async () => {
+    const r = await takeTurn(withPhoto(), "已結紮，打了第二劑疫苗，快篩陰性，有晶片。不放養、需家訪、要簽切結書，會護食", noAI, today);
+    expect(r.state.cat.medical).toMatchObject({ neutered: "done", vaccineDoses: 2, fivFelv: "negative", microchip: "yes" });
+    expect(r.state.cat.adoptionTerms?.items).toEqual(["不放養", "家訪", "簽切結書"]);
+    expect(r.state.cat.habits).toEqual(["護食"]);
+  });
+
+  it("直接在名片上改，就算確認", () => {
+    const s = { ...withPhoto(), pending: ["sex", "health"] as PendingField[] };
+    expect(setCatField(s, "sex", "female").pending).toEqual(["health"]);
+    expect(setCatField(s, "medical", { ...s.cat.medical, neutered: "done" }).pending).toEqual(["sex"]);
+  });
+
+  it("新貓的狀態依喵戶身分：一般飼主是自家貓，中途是待領養", () => {
+    expect(beginCat(emptyIntake(), "own").cat.status).toBe("own");
+    expect(beginCat(emptyIntake()).cat.status).toBe("adoptable");
   });
 });

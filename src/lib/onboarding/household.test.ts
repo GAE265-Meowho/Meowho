@@ -88,16 +88,6 @@ describe("合併 LLM 結果", () => {
   });
 });
 
-import { canCreateHousehold, MAX_HOUSEHOLDS_PER_ACCOUNT } from "./household";
-describe("貓戶數量上限", () => {
-  it("一個帳號最多 2 個貓戶", () => {
-    expect(MAX_HOUSEHOLDS_PER_ACCOUNT).toBe(2);
-    expect(canCreateHousehold(0)).toBe(true);
-    expect(canCreateHousehold(1)).toBe(true);
-    expect(canCreateHousehold(2)).toBe(false);
-  });
-});
-
 describe("提問帶入貓戶名稱（Tina 2026-10-29 回報）", () => {
   const named = { ...emptyHouseholdDraft(), name: "鳥屋" };
   it("問位置時說「請提供「鳥屋」的位置」", () => {
