@@ -123,7 +123,7 @@ git switch feat/12-xxx && git rebase main   # 或 git merge main
 
 - TypeScript strict；新的商業邏輯放 `src/lib/`，並附 `*.test.ts`。
 - 元件放 `src/components/`；一個檔案一組相關元件。
-- 樣式使用 `globals.css` 內的設計 token（`--peach`、`--mint`、`--cocoa`…），不要寫死新顏色；新元件先對照 [`docs/design/DESIGN.md`](docs/design/DESIGN.md)。
+- 樣式使用 `globals.css` 內的設計 token，不要寫死新顏色；畫面一律對照 [`docs/design/DESIGN.md`](docs/design/DESIGN.md)（v2；Cozy Cat Nook 遷移期間的做法見該文件第 1 節）。
 - 文案用繁體中文、口語、句子結尾不用驚嘆號堆疊；按鈕寫清楚動作（「送出申請」而不是「確定」）。
 - 費用數字只能來自資料庫或公式，**不可讓 LLM 產生數字**；醫療相關文字必附「僅供參考，非醫療建議」。
 

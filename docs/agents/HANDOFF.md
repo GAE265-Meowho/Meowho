@@ -23,6 +23,7 @@
 - **LLM 輸入防護（#38，決策 004）**：新增任何 LLM 任務，使用者內容必須經 `wrapUserInput()`、API 必須用 `checkInput()`（`src/lib/ai/guard.ts`）。問答模組上線時要實作「每段 20 輪、每天 50 次」。
 - **`0003_meow_site_assets.sql` 已在 Supabase 執行（2026-10-29，`meow_0003_site_assets`）**：Logo 上傳與網站設定可用，待 Tina 登入實測。
 
+- **設計系統 v2（PLAN 任務 28，PR #54 已合併）**：`docs/design/DESIGN.md` 為 v2（溫暖平面），Cozy Cat Nook 封存在 `docs/design/archive/`。動到任何前台畫面前先讀 DESIGN.md。`globals.css` 已有 v2 token（#65）；既有頁面暫時沿用 `.btn`，只遷移各 Issue 動到的元件。
 - **首頁改用 meowwho-v2 新版 UI**（Issue #64，分支 `feat/64-meowho-v2-ui`，2026-10-31 子哲 × Claude）：新元件在 `src/components/{home,journey,layout,ui}/`，只用 `globals.css` 的 v2 token（`--paper`、`--ink`、`--caramel`…）；舊 token（`--cocoa`、`--peach`…）在 `template.css` 對應到 v2，留給尚未改版的內頁與後台。按鈕用 `CatButton`，不要在新元件用 `.btn`。
 
 - **#57／#72 建檔對話引擎（分支 `feat/57-household-cat-profile`）**：`src/lib/onboarding/conversation.ts`（純邏輯）＋ `src/lib/ai/intake.ts`（LLM 鏈），已有測試，**尚未接畫面**；`/onboarding` 目前仍是舊的一問一答流程。migration 0004 已寫好（**尚未執行，要跟新版 `/onboarding` 一起上線**，舊流程不送年齡層會建貓失敗）。儲存介面 `src/lib/storage/`（Azure 版＋記憶體版）與影片判讀已完成；Azure 儲存帳號尚未建立（設定文件第 8 節）。下一步：畫面。
