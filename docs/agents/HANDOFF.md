@@ -1,7 +1,7 @@
 # HANDOFF — 接手的 agent 需要知道的事
 
 > 寫給「完全沒有上下文的下一個 agent」。只保留**現在仍然成立**的內容。
-> 最後更新：2026-10-31｜子哲 × Claude Code
+> 最後更新：2026-10-31｜子哲 × Claude Code（#57 範圍定案）
 
 ## 目前狀態
 - `main` 上的首頁、頁首頁尾是 **meowwho-v2 新版 UI**（#65）；首頁「帶我回家」等區塊資料仍為示意（`src/lib/cats.ts`、`households.ts`）。尚未改版的內頁沿用舊元件樣式。
@@ -24,6 +24,8 @@
 - **`0003_meow_site_assets.sql` 已在 Supabase 執行（2026-10-29，`meow_0003_site_assets`）**：Logo 上傳與網站設定可用，待 Tina 登入實測。
 
 - **首頁改用 meowwho-v2 新版 UI**（Issue #64，分支 `feat/64-meowho-v2-ui`，2026-10-31 子哲 × Claude）：新元件在 `src/components/{home,journey,layout,ui}/`，只用 `globals.css` 的 v2 token（`--paper`、`--ink`、`--caramel`…）；舊 token（`--cocoa`、`--peach`…）在 `template.css` 對應到 v2，留給尚未改版的內頁與後台。按鈕用 `CatButton`，不要在新元件用 `.btn`。
+
+- **#57 喵戶與貓咪 profile 範圍已定案（2026-10-31）**：完整範圍寫在 Issue #57 內文；名詞見 `GLOSSARY.md`（喵戶、年齡層四級、個性標籤、健康標籤、背景標記）。架構見決策 006（Azure Blob＋GPU、可轉移規則）、居家影像規則見決策 007。私訊另開 #70。難度參數暫緩。
 
 ## 下一步（建議第一個動作）
 0. Issue #33：程式與四項檢查已完成，待建立 PR；正式站 `/onboarding` 停在「載入中…」，未完成登入後實際流程，PR 需保留此限制。
