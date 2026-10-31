@@ -77,6 +77,27 @@ try {
   }
 }
 
+// 0004（貓咪 profile，#57）：另開一個資料庫，0001 → 0002 → 0003 → 0004（連跑兩次）→ 0004 測試
+{
+  const m = new PGlite();
+  const base = read("./stub_supabase.sql") + read("../migrations/0001_meow.sql") + read("../migrations/0002_meow_hq.sql") + read("../migrations/0003_meow_site_assets.sql");
+  if (!existsSync(new URL("../migrations/0004_meow_cat_profile.sql", import.meta.url))) {
+    console.error("✗ 找不到 supabase/migrations/0004_meow_cat_profile.sql");
+    process.exit(1);
+  }
+  try {
+    await m.exec(base);
+    await m.exec(read("../migrations/0004_meow_cat_profile.sql"));
+    await m.exec(read("../migrations/0004_meow_cat_profile.sql"));
+    const sql4 = read("./0004_meow_cat_profile.test.sql").replace(/^\s*begin;/im, "").replace(/rollback;\s*$/i, "");
+    const out4 = await m.exec(sql4);
+    results = results.concat(out4.flatMap((r) => r.rows ?? []).filter((r) => "status" in r));
+  } catch (e) {
+    console.error(`✗ 0004 測試中斷：${e.message}`);
+    process.exit(1);
+  }
+}
+
 let failed = 0;
 for (const r of results) {
   if (r.status === "FAIL") failed++;
