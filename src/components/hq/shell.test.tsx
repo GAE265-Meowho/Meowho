@@ -51,7 +51,9 @@ describe("UT-HQ-43 頂列", () => {
     const logout = vi.fn();
     render(shell({ onLogout: logout }));
     expect(screen.getByRole("button", { name: /通知.*3/ })).toBeInTheDocument();
-    expect(screen.getByText("MeowHQ")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "管理者介面首頁" })).toBeInTheDocument();
+    expect(screen.getByText("管理者介面")).toBeInTheDocument();
+    expect(screen.getByText("Administrator Interface")).toBeInTheDocument();
     const avatar = screen.getByRole("button", { name: "帳號選單" });
     expect(screen.queryByRole("menuitem", { name: "登出" })).toBeNull();
     fireEvent.click(avatar);

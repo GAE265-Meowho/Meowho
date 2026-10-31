@@ -5,7 +5,8 @@ export type Provider = "gemini" | "openai" | "azure" | "anthropic";
 export type Task = "text" | "vision";
 
 export const DEFAULT_MODELS: Record<Provider, Record<Task, string>> = {
-  gemini: { text: "gemini-2.5-flash", vision: "gemini-2.5-flash" },
+  // 2.5 系列已不開放給新申請的金鑰；3.8-flash 單次 12 秒以上，對話用不了，改用 flash-lite（約 2 秒，2026-10-31 實測）
+  gemini: { text: "gemini-3.1-flash-lite", vision: "gemini-3.1-flash-lite" },
   openai: { text: "gpt-4o-mini", vision: "gpt-4o-mini" },
   azure: { text: "", vision: "" },            // Azure 以部署名稱為準（AZURE_OPENAI_DEPLOYMENT）
   anthropic: { text: "claude-haiku-4-5", vision: "claude-haiku-4-5" },

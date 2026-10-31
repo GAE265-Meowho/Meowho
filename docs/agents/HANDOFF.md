@@ -25,6 +25,8 @@
 
 - **首頁改用 meowwho-v2 新版 UI**（Issue #64，分支 `feat/64-meowho-v2-ui`，2026-10-31 子哲 × Claude）：新元件在 `src/components/{home,journey,layout,ui}/`，只用 `globals.css` 的 v2 token（`--paper`、`--ink`、`--caramel`…）；舊 token（`--cocoa`、`--peach`…）在 `template.css` 對應到 v2，留給尚未改版的內頁與後台。按鈕用 `CatButton`，不要在新元件用 `.btn`。
 
+- **#57／#72 建檔對話引擎（分支 `feat/57-household-cat-profile`）**：`src/lib/onboarding/conversation.ts`（純邏輯）＋ `src/lib/ai/intake.ts`（LLM 鏈），已有測試，**尚未接畫面**；`/onboarding` 目前仍是舊的一問一答流程。migration 0004 已寫好（**尚未執行，要跟新版 `/onboarding` 一起上線**，舊流程不送年齡層會建貓失敗）。儲存介面 `src/lib/storage/`（Azure 版＋記憶體版）與影片判讀已完成；Azure 儲存帳號尚未建立（設定文件第 8 節）。下一步：畫面。
+
 ## 下一步（建議第一個動作）
 0. Issue #33：程式與四項檢查已完成，待建立 PR；正式站 `/onboarding` 停在「載入中…」，未完成登入後實際流程，PR 需保留此限制。
 1. #18 合併後，平行開工階段 1：#19（db）、#20（logic）、#21（shell）；階段 2 為 #22（lists-home）、#23（admin-auth）、#24（users），等階段 1 合併後開始。Issue 都已建立，不用再建。

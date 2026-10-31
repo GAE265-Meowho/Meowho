@@ -1,6 +1,6 @@
 "use client";
 /* eslint-disable @next/next/no-img-element */
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 type Props = {
   /** Google 大頭貼網址（meow_profiles.avatar_url 或登入憑證的 avatar_url／picture） */
@@ -15,6 +15,7 @@ type Props = {
  */
 export default function AvatarImage({ src, fallback }: Props) {
   const [broken, setBroken] = useState<string | null>(null);
+  useEffect(() => { setBroken(null); }, [src]); // 網址更新後重新嘗試，不要沿用上一次的失敗狀態
   if (!src || broken === src) return <>{fallback}</>;
   return <img src={src} alt="" referrerPolicy="no-referrer" onError={() => setBroken(src)} />;
 }

@@ -1,8 +1,11 @@
 "use client";
+/* eslint-disable @next/next/no-img-element */
 import { useEffect, useRef, useState } from "react";
 import { AI_LIMITS, charCount } from "@/lib/ai/guard";
 import { MIC_UNSUPPORTED, micErrorMessage } from "@/lib/onboarding/speech";
+import Icon from "../ui/Icon";
 import { useUi } from "../Providers";
+import s from "./intake.module.css";
 
 export interface ChatMessage { id: number; from: "bot" | "me"; text: string; image?: string }
 
@@ -15,19 +18,21 @@ export function ChatLog({ messages, typing }: { messages: ChatMessage[]; typing?
   const end = useRef<HTMLDivElement>(null);
   useEffect(() => { end.current?.scrollIntoView({ behavior: "smooth", block: "end" }); }, [messages.length, typing]);
   return (
-    <div className="chat-log" aria-live="polite">
+    <div className={s.log} aria-live="polite">
       {messages.map(m => (
-        <div key={m.id} className={`chat-row ${m.from}`}>
-          {m.from === "bot" && <span className="chat-avatar" aria-hidden="true">🐱</span>}
-          <div className={`chat-bubble ${m.from}`}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            {m.image && <img src={m.image} alt="上傳的貓咪照片" className="chat-img" />}
+        <div key={m.id} className={`${s.row} ${m.from === "me" ? s.me : ""}`}>
+          {m.from === "bot" && <span className={s.avatar} aria-hidden="true"><Icon name="cat" size={20} /></span>}
+          <div className={s.bubble}>
+            {m.image && <img src={m.image} alt="上傳的貓咪照片" className={s.bubbleImg} />}
             {m.text}
           </div>
         </div>
       ))}
       {typing && (
-        <div className="chat-row bot"><span className="chat-avatar" aria-hidden="true">🐱</span><div className="chat-bubble bot typing"><i /><i /><i /></div></div>
+        <div className={s.row}>
+          <span className={s.avatar} aria-hidden="true"><Icon name="cat" size={20} /></span>
+          <div className={s.bubble}><span className={s.typing} aria-label="小幫手正在回覆"><i /><i /><i /></span></div>
+        </div>
       )}
       <div ref={end} />
     </div>
@@ -36,9 +41,11 @@ export function ChatLog({ messages, typing }: { messages: ChatMessage[]; typing?
 
 type SpeechRec = { lang: string; interimResults: boolean; onresult: (e: { results: { 0: { transcript: string } }[] }) => void; onend: () => void; onerror: (e: { error?: string }) => void; start: () => void; stop: () => void };
 
-/** 輸入列：文字＋語音（瀏覽器內建語音辨識，FR-03-05）＋快速選項 */
-export function ChatInput({ onSend, chips = [], disabled, placeholder = "輸入回答，或按麥克風用說的…", maxChars = AI_LIMITS.onboardingChars }: {
-  onSend: (text: string) => void; chips?: string[]; disabled?: boolean; placeholder?: string; maxChars?: number;
+export interface Chip { label: string; onPick?: () => void }
+
+/** 輸入列：文字＋語音（瀏覽器內建語音辨識）＋快速選項。chip 沒有 onPick 時當作送出那段文字 */
+export function ChatInput({ onSend, chips = [], disabled, placeholder = "想到什麼就說什麼…", maxChars = AI_LIMITS.onboardingChars }: {
+  onSend: (text: string) => void; chips?: Chip[]; disabled?: boolean; placeholder?: string; maxChars?: number;
 }) {
   const { toast } = useUi();
   const [text, setText] = useState("");
@@ -65,22 +72,26 @@ export function ChatInput({ onSend, chips = [], disabled, placeholder = "輸入�
   };
 
   return (
-    <div className="chat-input">
+    <div className={s.composer}>
       {chips.length > 0 && (
-        <div className="chat-chips">
-          {chips.map(c => <button key={c} type="button" className="chip" disabled={disabled} onClick={() => send(c)}>{c}</button>)}
+        <div className={s.chips}>
+          {chips.map(c => <button key={c.label} type="button" className={s.chip} disabled={disabled} onClick={() => (c.onPick ? c.onPick() : send(c.label))}>{c.label}</button>)}
         </div>
       )}
-      <form className="chat-form" onSubmit={e => { e.preventDefault(); send(text); }}>
+      <form className={s.form} onSubmit={e => { e.preventDefault(); send(text); }}>
         <label htmlFor="chat-text" className="sr">你的回答</label>
         <textarea id="chat-text" rows={1} value={text} aria-invalid={over} disabled={disabled} placeholder={placeholder}
           onChange={e => setText(e.target.value)}
           onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); send(text); } }} />
-        <button type="button" className={`icon-btn${listening ? " rec" : ""}`} aria-label={listening ? "停止錄音" : "用說的"} aria-pressed={listening} onClick={toggleMic} disabled={disabled}>🎙️</button>
-        <button type="submit" className="btn sm" disabled={disabled || !text.trim() || over}>送出</button>
+        <button type="button" className={`${s.iconBtn} ${listening ? s.rec : ""}`} aria-label={listening ? "停止錄音" : "用說的"} aria-pressed={listening} onClick={toggleMic} disabled={disabled}>
+          <Icon name="mic" size={20} />
+        </button>
+        <button type="submit" className={`${s.iconBtn} ${s.send}`} aria-label="送出" disabled={disabled || !text.trim() || over}>
+          <Icon name="send" size={20} />
+        </button>
       </form>
       {count > 0 && (
-        <p className={`chat-count${over ? " over" : ""}`} aria-live="polite">
+        <p className={`${s.count} ${over ? s.over : ""}`} aria-live="polite">
           {count}／{maxChars} 字{over ? "，請精簡後再送出" : ""}
         </p>
       )}
@@ -88,8 +99,8 @@ export function ChatInput({ onSend, chips = [], disabled, placeholder = "輸入�
   );
 }
 
-export async function postJson<T>(url: string, body: unknown): Promise<T> {
-  const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+export async function postJson<T>(url: string, body: unknown, init: RequestInit = {}): Promise<T> {
+  const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), ...init });
   if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error ?? `HTTP ${res.status}`);
   return res.json();
 }

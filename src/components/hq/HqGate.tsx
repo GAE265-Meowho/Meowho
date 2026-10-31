@@ -4,6 +4,7 @@
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/components/Auth";
+import { resolveAvatarUrl } from "@/lib/avatar";
 import type { HqActor } from "@/lib/hq/permissions";
 import { ADMIN_MODULES, type AdminModule } from "@/lib/hq/types";
 import { getBrowserSupabase } from "@/lib/supabase/client";
@@ -53,7 +54,7 @@ export function HqGate({ children }: { children: React.ReactNode }) {
       <HqToastProvider>
         <HqShell
           items={visibleSidebar({ role, grants })}
-          user={{ name: profile?.display_name ?? user?.email ?? "預覽", roleLabel: role === "system_admin" ? "系統管理員" : "管理員", avatarUrl: profile?.avatar_url ?? user?.user_metadata?.avatar_url ?? user?.user_metadata?.picture }}
+          user={{ name: profile?.display_name ?? user?.email ?? "預覽", roleLabel: role === "system_admin" ? "系統管理員" : "管理員", avatarUrl: resolveAvatarUrl(profile?.avatar_url, user) }}
           unread={unread}
           userId={preview ? null : user?.id ?? null}
           onNotificationsChanged={reload}
