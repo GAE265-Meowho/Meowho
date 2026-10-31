@@ -9,11 +9,20 @@ import type { TurnExtractor } from "@/lib/onboarding/conversation";
 
 export { aiLabel, isAIConfigured } from "./models";
 
-async function safe<T>(fn: () => Promise<T>): Promise<T | null> {
+class AITimeout extends Error {}
+
+/** 逾時就放棄、改用規則式，畫面不會卡住；逾時不重試，其他錯誤重試一次 */
+async function safe<T>(fn: () => Promise<T>, timeoutMs = 20_000): Promise<T | null> {
   if (!isAIConfigured()) return null;
   let lastError: unknown;
   for (let attempt = 0; attempt < 2; attempt++) {
-    try { return await fn(); } catch (e) { lastError = e; }
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      return await Promise.race([fn(), new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new AITimeout(`逾時 ${timeoutMs}ms`)), timeoutMs); })]);
+    } catch (e) {
+      lastError = e;
+      if (e instanceof AITimeout) break;
+    } finally { clearTimeout(timer); }
   }
   console.warn("[ai]", lastError instanceof Error ? lastError.message : lastError);
   return null;
@@ -33,5 +42,5 @@ export const analyzeCatPhoto = (mime: string, base64: string) => safe(async () =
 export const analyzeCatVideo = (mime: string, bytes: Uint8Array) => {
   if (!canAnalyzeVideo(resolveProvider(process.env), bytes.byteLength)) return Promise.resolve(null);
   return safe(async () => catVideoChain(structured(await getChatModel("vision"), CatVideoSchema, "cat_video"))
-    .invoke(catVideoInput(mime, Buffer.from(bytes).toString("base64"))));
+    .invoke(catVideoInput(mime, Buffer.from(bytes).toString("base64"))), 50_000); // API 路由上限 60 秒
 };
