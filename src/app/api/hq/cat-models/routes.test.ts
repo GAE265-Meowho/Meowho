@@ -32,9 +32,16 @@ afterEach(async () => { vi.unstubAllEnvs(); await fs.rm(root, { recursive: true,
 
 describe("沒有本機路徑（改走 bundled 示範貓）", () => {
   const BUNDLED_ID = "cat_20261030_140731";
-  it("沒設 CAT_STUDIO_ROOT：列表讀示範貓；寫入仍 404", async () => {
+  // 關掉 Supabase，否則 .env.local 會讓 resolve 走 supabase 而非 bundled
+  const stubBundled = () => {
     vi.stubEnv("CAT_STUDIO_ROOT", "");
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "");
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY", "");
+    vi.stubEnv("SUPABASE_SERVICE_ROLE_KEY", "");
     vi.stubEnv("NODE_ENV", "development");
+  };
+  it("沒設 CAT_STUDIO_ROOT：列表讀示範貓；寫入仍 404", async () => {
+    stubBundled();
     const list = await (await getList()).json();
     expect(list.enabled).toBe(true);
     expect(list.cats.some((c: { id: string }) => c.id === BUNDLED_ID)).toBe(true);
@@ -52,6 +59,9 @@ describe("沒有本機路徑（改走 bundled 示範貓）", () => {
   });
   it("production：忽略 CAT_STUDIO_ROOT，仍讀 bundled", async () => {
     vi.stubEnv("CAT_STUDIO_ROOT", root);
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "");
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY", "");
+    vi.stubEnv("SUPABASE_SERVICE_ROLE_KEY", "");
     vi.stubEnv("NODE_ENV", "production");
     const list = await (await getList()).json();
     expect(list.enabled).toBe(true);

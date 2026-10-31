@@ -9,7 +9,7 @@ const PUBLIC_BASE = "/hq-cat-models";
 const BUNDLED: readonly CatModelView[] = [
   {
     id: "cat_20261030_140731",
-    name: "bb",
+    name: "第一隻虎斑貓",
     ownerType: "template",
     status: "ready",
     ageMonths: 5,

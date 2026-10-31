@@ -21,7 +21,11 @@ describe("bundled 示範貓", () => {
   });
 
   it("沒有 CAT_STUDIO_ROOT 時改走 bundled", () => {
-    expect(resolveCatSource({ NODE_ENV: "production", CAT_STUDIO_ROOT: "" })).toBe("bundled");
+    expect(resolveCatSource({
+      NODE_ENV: "production", CAT_STUDIO_ROOT: "",
+      NEXT_PUBLIC_SUPABASE_URL: "", NEXT_PUBLIC_SUPABASE_ANON_KEY: "", SUPABASE_SERVICE_ROLE_KEY: "",
+    })).toBe("bundled");
     expect(resolveCatSource({ NODE_ENV: "development", CAT_STUDIO_ROOT: "C:\\x" })).toBe("local");
   });
 });
+

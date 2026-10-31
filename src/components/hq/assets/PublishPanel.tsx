@@ -11,6 +11,8 @@ const ERRORS: Record<string, string> = {
   reason_required: "請填寫原因",
   invalid_state: "目前的狀態不能做這個操作，請重新整理",
   not_found: "找不到這隻貓",
+  permission_denied: "你沒有這個模組的權限，或尚未登入",
+  disabled: "目前不能上架（資料來源尚未啟用）",
 };
 
 export async function postPublish(id: string, action: PublishAction, reason: string): Promise<void> {

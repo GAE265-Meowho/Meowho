@@ -98,6 +98,28 @@ try {
   }
 }
 
+// 0005（貓咪模型，#75）：0001→0004 後跑 0005 兩次＋測試
+{
+  const m = new PGlite();
+  const base = read("./stub_supabase.sql") + read("../migrations/0001_meow.sql") + read("../migrations/0002_meow_hq.sql")
+    + read("../migrations/0003_meow_site_assets.sql") + read("../migrations/0004_meow_cat_profile.sql");
+  if (!existsSync(new URL("../migrations/0005_meow_cat_models.sql", import.meta.url))) {
+    console.error("✗ 找不到 supabase/migrations/0005_meow_cat_models.sql");
+    process.exit(1);
+  }
+  try {
+    await m.exec(base);
+    await m.exec(read("../migrations/0005_meow_cat_models.sql"));
+    await m.exec(read("../migrations/0005_meow_cat_models.sql"));
+    const sql5 = read("./0005_meow_cat_models.test.sql").replace(/^\s*begin;/im, "").replace(/rollback;\s*$/i, "");
+    const out5 = await m.exec(sql5);
+    results = results.concat(out5.flatMap((r) => r.rows ?? []).filter((r) => "status" in r));
+  } catch (e) {
+    console.error(`✗ 0005 測試中斷：${e.message}`);
+    process.exit(1);
+  }
+}
+
 let failed = 0;
 for (const r of results) {
   if (r.status === "FAIL") failed++;
