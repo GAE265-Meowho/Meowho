@@ -3,6 +3,17 @@
 > 金鑰只能貼在 Supabase、Google Cloud、Vercel 的設定頁與自己的 `.env.local`，**不要貼進聊天、程式或 commit**。
 > 正式環境已於 2026-10-30 設定完成（子哲）。這份文件是重建或接手時照著做的步驟。
 
+## 0. 組員本機開發（每人做一次，約 5 分鐘）
+1. `git pull` 後執行 `npm install`（main 新增過套件，例如 Azure SDK）
+2. `cp .env.example .env.local`，只填兩把金鑰（向子哲私訊索取）：
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`：Supabase 的 anon（Publishable）key
+   - `AZURE_STORAGE_KEY`：Azure 儲存帳戶 `meowhomedia` 的 key1
+   - 其他值（Supabase 網址、`meowhomedia`、`media-dev`）已填好，不要改；值後面不要加註解或空白
+3. 確認自己的 Gmail 已加入 Google 登入的「測試使用者」名單（§3 第 5 步）
+4. `npm run dev`，用 http://localhost:3000 開啟（Azure 只允許這個網址上傳）
+- 本機與正式站共用同一個 Supabase：在本機建的喵戶、貓咪、照片會出現在正式站。影片則寫進 `media-dev`，正式站讀不到。
+- Azure 金鑰也能動正式的 `media`；外流時到 Azure Portal 重新產生 key1，並更新 Vercel 與每個人的 `.env.local`。
+
 ## 1. Supabase 專案（Meowho喵戶 獨立專案 `onebpkbkrnnwamwsoelo`）
 Meowho喵戶 使用**自己的 Supabase 專案**，不與其他 App 共用（決策 `docs/decisions/005-dedicated-supabase.md`）。資料庫物件仍一律 `meow_` 開頭，規範見 `AGENTS.md` §7。
 
