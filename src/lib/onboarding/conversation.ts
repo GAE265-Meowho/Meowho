@@ -235,6 +235,29 @@ export function applyMediaAnalysis(s: IntakeState, m: MediaAnalysis): IntakeStat
   return { ...s, cat: c, pending: [...pending], notice: null };
 }
 
+/** 指定封面：選的照片移到第 1 張 */
+export function setCover(s: IntakeState, path: string): IntakeState {
+  if (!s.cat.photos.includes(path)) return s;
+  return { ...s, cat: { ...s.cat, photos: [path, ...s.cat.photos.filter((p) => p !== path)] } };
+}
+
+/** 從草稿移除照片或影片（檔案本身由畫面另外刪） */
+export const removeMedia = (s: IntakeState, path: string): IntakeState => ({
+  ...s,
+  cat: { ...s.cat, photos: s.cat.photos.filter((p) => p !== path), videos: s.cat.videos.filter((p) => p !== path) },
+});
+
+type EditableCatField = "name" | "sex" | "lifeStage" | "coat" | "breed" | "personalityTags" | "healthTags" | "description";
+
+/** 名片上直接修改或按按鈕選擇：等同喵戶長親口確認 */
+export function setCatField<K extends EditableCatField>(s: IntakeState, field: K, value: CatFields[K] | string[]): IntakeState {
+  const c = { ...s.cat };
+  if (field === "personalityTags") c.personalityTags = pickTags(value as string[], PERSONALITY_TAGS);
+  else if (field === "healthTags") c.healthTags = pickTags(value as string[], HEALTH_TAGS);
+  else Object.assign(c, { [field]: value });
+  return { ...s, cat: c, pending: s.pending.filter((f) => f !== field) };
+}
+
 // ---------- 規則式退回（沒有 AI 或 AI 失敗時） ----------
 
 const WANTS_REVIEW = /先這樣|就這樣|先到這|沒有了/;
@@ -250,11 +273,14 @@ const HEALTH_RULES: [HealthTag, RegExp][] = [
   ["慢性病", /慢性|腎病|糖尿病|甲狀腺/],
 ];
 
+/** 「叫小橘之家」「名字是…」：沒在問名稱時，從整句話裡找 */
+const NAMED = /(?:叫做?|名字是|取名為?)「?([^，。,、「」\s]{2,15})」?/;
+
 function householdByRules(text: string, asking: AskField | null): HouseholdTurn {
   const city = parseCity(text);
   return {
     caretakerType: parseCaretaker(text),
-    name: asking === "name" ? cleanName(text) : null,
+    name: asking === "name" ? cleanName(text) : text.match(NAMED)?.[1] ?? null,
     city,
     district: city ? parseDistrict(text, city) : null,
     intro: null,

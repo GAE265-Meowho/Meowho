@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  applyMediaAnalysis, beginCat, canCreateCat, canCreateHousehold, confirmField, emptyIntake, nextStep, takeTurn,
+  applyMediaAnalysis, beginCat, canCreateCat, canCreateHousehold, confirmField, emptyIntake, nextStep, removeMedia, setCatField, setCover, takeTurn,
   type CatTurn, type HouseholdTurn, type IntakeState, type MediaAnalysis, type TurnExtractor,
 } from "./conversation";
 
@@ -55,6 +55,12 @@ describe("建立喵戶：自由對話", () => {
     expect(r.usedAI).toBe(false);
     const r2 = await takeTurn(r.state, "小橘之家", noAI, today);
     expect(r2.state.household.name).toBe("小橘之家");
+  });
+
+  it("沒有 AI 時，一句話裡的「叫○○」也當作喵戶名稱", async () => {
+    const r = await takeTurn(emptyIntake(), "我是台中市北屯區的個人中途，叫「小橘之家」", noAI, today);
+    expect(r.state.household).toMatchObject({ caretakerType: "personal_foster", name: "小橘之家", district: "北屯區" });
+    expect(nextStep(r.state)).toEqual({ kind: "confirm_household" });
   });
 
   it("喵戶建好後轉到貓咪，第一個問題是上傳照片", () => {
@@ -174,5 +180,45 @@ describe("建立貓咪：先看照片影片，再補問", () => {
   it("AI 的回應會帶回給畫面顯示", async () => {
     const r = await takeTurn(catPhase(), "叫橘子", llm(ct({ name: "橘子", reply: "橘子好可愛" })), today);
     expect(r.reply).toBe("橘子好可愛");
+  });
+});
+
+describe("照片與影片的整理", () => {
+  const withMedia = () => {
+    let s = catPhase();
+    for (const path of ["u/a.jpg", "u/b.jpg", "u/c.jpg"]) {
+      s = applyMediaAnalysis(s, { kind: "photo", path, isCat: true, confidence: 0.9, coat: null, breed: null, estAgeMonths: null });
+    }
+    return applyMediaAnalysis(s, { kind: "video", path: "cats/x/videos/v.mp4", personalityTags: [] });
+  };
+
+  it("指定封面：選的照片移到第 1 張，其他順序不變", () => {
+    expect(setCover(withMedia(), "u/c.jpg").cat.photos).toEqual(["u/c.jpg", "u/a.jpg", "u/b.jpg"]);
+  });
+
+  it("移除照片或影片", () => {
+    const s = removeMedia(removeMedia(withMedia(), "u/a.jpg"), "cats/x/videos/v.mp4");
+    expect(s.cat.photos).toEqual(["u/b.jpg", "u/c.jpg"]);
+    expect(s.cat.videos).toEqual([]);
+  });
+
+  it("照片全部移除後，又要先上傳照片", () => {
+    let s = withMedia();
+    for (const p of [...s.cat.photos]) s = removeMedia(s, p);
+    expect(nextStep(s)).toEqual({ kind: "ask", field: "photos" });
+  });
+});
+
+describe("直接選擇的欄位（按鈕，不經過 AI）", () => {
+  it("選年齡層就算確認，移出「請確認」", () => {
+    const s = applyMediaAnalysis(catPhase(), { kind: "photo", path: "u/a.jpg", isCat: true, confidence: 0.9, coat: null, breed: null, estAgeMonths: 30 });
+    expect(s.pending).toContain("lifeStage");
+    const r = setCatField(s, "lifeStage", "senior");
+    expect(r.cat.lifeStage).toBe("senior");
+    expect(r.pending).not.toContain("lifeStage");
+  });
+
+  it("改個性標籤時只留清單內的", () => {
+    expect(setCatField(catPhase(), "personalityTags", ["親人", "會後空翻", "親人"]).cat.personalityTags).toEqual(["親人"]);
   });
 });

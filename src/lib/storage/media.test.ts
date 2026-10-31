@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { createMemoryStore } from "./memory";
-import { catVideoPath, prepareCatVideoUpload, removeMedia, validateVideoUpload, MAX_VIDEO_BYTES } from "./media";
+import { catIdOfVideoPath, catVideoPath, prepareCatVideoUpload, removeMedia, validateVideoUpload, MAX_VIDEO_BYTES } from "./media";
 
 const ok = { mime: "video/mp4", sizeBytes: 20_000_000, durationSec: 30 };
 
@@ -45,5 +45,16 @@ describe("記憶體版儲存的行為（與 Azure 版同一介面）", () => {
     expect(await store.readUrl("cats/c/videos/1.mp4")).toContain("cats/c/videos/1.mp4");
     await removeMedia(store, ["cats/c/videos/1.mp4", "cats/c/videos/沒這支.mp4"]);
     expect(await store.download("cats/c/videos/1.mp4")).toBeNull();
+  });
+});
+
+describe("從路徑認出是哪隻貓的影片（判讀前檢查權限用）", () => {
+  it("合法路徑回傳貓 id", () => {
+    expect(catIdOfVideoPath("cats/0b6c-12/videos/ab-1.mp4")).toBe("0b6c-12");
+  });
+  it("其他資料夾、奇怪字元、不支援的副檔名都拒絕", () => {
+    expect(catIdOfVideoPath("homes/h1/raw/a.mp4")).toBeNull();
+    expect(catIdOfVideoPath("cats/../videos/a.mp4")).toBeNull();
+    expect(catIdOfVideoPath("cats/c1/videos/a.exe")).toBeNull();
   });
 });

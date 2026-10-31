@@ -31,6 +31,12 @@ export function catVideoPath(catId: string, id: string, mime: string): string {
   return `cats/${catId}/videos/${id}.${ext}`;
 }
 
+/** cats/<貓 id>/videos/<id>.<副檔名> → 貓 id；不是貓影片路徑回傳 null */
+export function catIdOfVideoPath(path: string): string | null {
+  const m = path.match(/^cats\/([A-Za-z0-9-]+)\/videos\/[A-Za-z0-9-]+\.([a-z0-9]+)$/);
+  return m && Object.values(VIDEO_EXT).includes(m[2]) ? m[1] : null;
+}
+
 /** 檢查通過才簽發上傳網址；路徑之後寫進 meow_cat_videos.storage_path */
 export async function prepareCatVideoUpload(
   store: MediaStore,
