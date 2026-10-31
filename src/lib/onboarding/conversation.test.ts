@@ -273,6 +273,11 @@ describe("時間軸：中途貼文裡的日期事件", () => {
     ]);
   });
 
+  it("遇到空行或「送養條件：」這類小標題，就不再併進上一筆", () => {
+    expect(parseTimeline("9/19 換到大籠子\n\n個性很好\n送養條件：不放養", today)).toEqual([{ date: "2026-09-19", event: "換到大籠子" }]);
+    expect(parseTimeline("9/19 換到大籠子\n送養條件：不放養\n要家訪", today)).toEqual([{ date: "2026-09-19", event: "換到大籠子" }]);
+  });
+
   it("沒寫年份時，比今天晚的日期算去年", () => {
     expect(parseTimeline("12/25 來到我家", today)).toEqual([{ date: "2025-12-25", event: "來到我家" }]);
     expect(parseTimeline("2024/3/5 撿到牠", today)).toEqual([{ date: "2024-03-05", event: "撿到牠" }]);

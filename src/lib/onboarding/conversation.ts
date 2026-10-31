@@ -367,14 +367,19 @@ export function fullDate(raw: string, today = new Date()): string | null {
 
 const DATE_LINE = /^\s*((?:\d{4}[/／.年])?\d{1,2}[/／.月]\d{1,2}日?)\s*(.*)$/;
 
-/** 每個日期開頭的段落是一筆事件，後面沒有日期的行併進同一筆；第一個日期之前的文字不算 */
+/** 「送養條件：」「個性：」這類小標題 */
+const SECTION_LINE = /^\s*[^\s：:，,]{2,8}[：:]/;
+
+/** 每個日期開頭的段落是一筆事件，後面沒有日期的行併進同一筆，遇到空行或小標題就停；第一個日期之前的文字不算 */
 export function parseTimeline(text: string, today = new Date()): TimelineEntry[] {
   const out: TimelineEntry[] = [];
+  let open = false;
   for (const line of text.split(/\r?\n/)) {
     const m = line.match(DATE_LINE);
     const date = m ? fullDate(m[1], today) : null;
-    if (m && date) out.push({ date, event: m[2].trim() });
-    else if (out.length && line.trim()) out[out.length - 1].event += `\n${line.trim()}`;
+    if (m && date) { out.push({ date, event: m[2].trim() }); open = true; }
+    else if (!line.trim() || SECTION_LINE.test(line)) open = false;
+    else if (open) out[out.length - 1].event += `\n${line.trim()}`;
   }
   return out.filter((e) => e.event).map((e) => ({ ...e, event: e.event.slice(0, 200) }));
 }
