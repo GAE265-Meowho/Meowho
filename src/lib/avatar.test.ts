@@ -18,7 +18,7 @@ describe("resolveAvatarUrl", () => {
   it("再退回 Google identity_data", () => {
     const u = user({
       user_metadata: {},
-      identities: [{ provider: "google", identity_data: { picture: "https://id/p.jpg" } }] as User["identities"],
+      identities: [{ provider: "google", identity_data: { picture: "https://id/p.jpg" } }] as unknown as User["identities"],
     });
     expect(resolveAvatarUrl(null, u)).toBe("https://id/p.jpg");
   });

@@ -54,3 +54,4 @@ Google 登入（Supabase Auth）與條款同意已完成（Issue #1）。條款�
 | 2026-10-28 | Tina × Claude Code | Supabase Auth、Google 登入、條款同意 | #1 |
 | 2026-10-28 | Tina × Claude Code | 條款頁加站台 LOGO（`PageBrandTitle`）、名稱改為 Meow Home；頁尾精簡移除 LOGO | #9 |
 | 2026-10-31 | 子哲 × Claude Code | 頭像改用 AvatarImage，修正 Google 登入後看不到頭像 | #68 |
+| 2026-11-01 | 子哲 × Claude Code | avatar.test.ts 假資料型別轉換修正，typecheck 恢復通過 | #86 |
