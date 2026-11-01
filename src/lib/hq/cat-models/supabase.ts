@@ -5,9 +5,11 @@
 import "server-only";
 import { getAdminSupabase } from "@/lib/supabase/admin";
 import { getServerSupabase } from "@/lib/supabase/server";
+import { ImageGenError, imageConfig } from "@/lib/ai/image";
+import { azureEdit, failAll, generateViews, type GenerateDeps } from "./ai-views";
 import { SUPABASE_URL } from "@/lib/supabase/config";
 import {
-  baseFileName, bodyFor, EXTRA_VIEWS, isExtraView, isJobActive, normalizeStatus, ownExtraPhotoPath, type ExtraView, newCatId, ownPhotoPath, photoExt, profileNumber,
+  baseFileName, bodyFor, EXTRA_VIEWS, finishGenerated, generatedState, GEN_VIEWS, genPhotoName, isGenView, startGenerated, type GeneratedProfile, type GenView, isExtraView, isJobActive, normalizeStatus, ownExtraPhotoPath, type ExtraView, newCatId, ownPhotoPath, photoExt, profileNumber,
   type BodyType, type CatModelStatus, type CatModelView, type FillPattern, type JobStatus, type PhotoView,
   CAT_ID_RE, MAX_PHOTO_BYTES,
 } from "./types";
@@ -22,7 +24,13 @@ type Row = {
   name: string;
   owner_type: "template" | "member";
   status: CatModelStatus;
-  profile: { age_months?: number | null; weight_kg?: number | null; notes?: string; extra_photos?: Partial<Record<ExtraView, string>> };
+  profile: {
+    age_months?: number | null; weight_kg?: number | null; notes?: string; extra_photos?: Partial<Record<ExtraView, string>>;
+    /** AI 三視角（#110） */
+    generated?: GeneratedProfile;
+    /** 改用 AI 左側面照上色後，原始上傳照片的路徑（photo_path 換成 AI 照片） */
+    original_photo?: string;
+  };
   photo_path: string;
   photo_view: PhotoView | null;
   fill_pattern: FillPattern | null;
@@ -78,6 +86,7 @@ function viewFromRow(row: Row, job: JobRow | null = null): CatModelView {
     // 沒有 created_by 的是直接用 SQL 放進來的示範資料；有但讀不到個人資料時顯示 null（畫面顯示「—」）
     createdBy: row.created_by ? row.creator?.display_name || row.creator?.email || null : "系統",
     extraPhotos: EXTRA_VIEWS.filter(v => row.profile?.extra_photos?.[v]),
+    ...generatedState(row.profile?.generated),
   };
 }
 
@@ -110,7 +119,7 @@ export async function sbGetCat(id: string): Promise<CatModelView | null> {
   if (!sb) return null;
   const { data, error } = await sb.from("meow_cat_models").select("*").eq("id", id).maybeSingle();
   if (error || !data) return null;
-  // 貼圖工作頁每 3 秒輪詢：帶上最新一筆任務的狀態與步驟
+  // 製作glb工作區每 3 秒輪詢：帶上最新一筆任務的狀態與步驟
   const { data: job } = await sb.from("meow_cat_model_jobs")
     .select("status,step,error,queued_at,started_at,finished_at")
     .eq("model_id", id).order("queued_at", { ascending: false }).limit(1).maybeSingle();
@@ -124,8 +133,10 @@ export async function sbFileRedirect(id: string, kind: FileKind): Promise<string
   if (!data) return null;
   const row = data as Pick<Row, "photo_path" | "albedo_path" | "prev_albedo_path" | "profile">;
   // 正面／背部花紋照（#107）也在私有 bucket，用同樣的簽名方式
-  const photoPath = kind === "photo" ? row.photo_path
+  // 「原始照片」：改用 AI 左側面照上色後，photo_path 會換成 AI 照片，原始的記在 profile.original_photo
+  const photoPath = kind === "photo" ? row.profile?.original_photo ?? row.photo_path
     : kind === "photo_front" || kind === "photo_back" ? row.profile?.extra_photos?.[kind === "photo_front" ? "front" : "back"] ?? null
+    : kind === "gen_left" || kind === "gen_front" || kind === "gen_back" ? row.profile?.generated?.views?.[kind.slice(4) as GenView] ?? null
     : null;
   if (photoPath) {
     // 私有 bucket：先用登入者簽、失敗再用 service role
@@ -247,14 +258,85 @@ export async function sbQueuePaint(id: string, view: unknown, fill: unknown): Pr
   const cat = await sbGetCat(id);
   if (!cat) return { ok: false, code: "not_found" };
   if (isJobActive(cat.status)) return { ok: false, code: "busy" };
+  // 有 AI 左側面照（#110）：用它上色、角度固定 left。worker 讀 photo_path 並快取去背圖，
+  // 所以把 photo_path 換成 AI 照片、原始照片另存、清掉舊的去背快取（不用改 paint_worker.py）
+  const useAi = await applyAiLeftPhoto(user.sb, id);
+  const viewUsed = useAi ? "left" : v;
   const { error } = await user.sb.from("meow_cat_model_jobs").insert({
-    model_id: id, status: "queued", step: "排隊中（請確認 paint_worker.py --supabase 有在執行）", view: v, fill: f,
+    model_id: id, status: "queued", step: "排隊中（請確認 paint_worker.py --supabase 有在執行）", view: viewUsed, fill: f,
   });
   // 同一隻貓同時只能有一筆 queued／running（資料庫 unique index）
   if (error) return { ok: false, code: error.code === "23505" ? "busy" : "permission_denied" };
   await user.sb.from("meow_cat_models").update({ status: "queued", updated_at: new Date().toISOString() }).eq("id", id);
-  await audit(user.sb, "generate_model", id, "產生貼圖", { view: v, fill: f, body: cat.body });
+  await audit(user.sb, "generate_model", id, "產生貼圖", { view: viewUsed, fill: f, body: cat.body, ai_photo: useAi });
   return { ok: true };
+}
+
+type Sb = NonNullable<Awaited<ReturnType<typeof getServerSupabase>>>;
+
+/** 有 AI 左側面照時，讓 worker 用它上色；回傳是否改用 */
+async function applyAiLeftPhoto(sb: Sb, id: string): Promise<boolean> {
+  const { data } = await sb.from("meow_cat_models").select("photo_path,profile").eq("id", id).maybeSingle();
+  const row = data as Pick<Row, "photo_path" | "profile"> | null;
+  const left = row?.profile?.generated?.views?.left;
+  if (!row || !left) return false;
+  const profile = { ...row.profile, original_photo: row.profile.original_photo ?? row.photo_path };
+  await sb.from("meow_cat_models").update({ photo_path: left, profile }).eq("id", id);
+  // AI 照片可能重新產生過，去背快取一律重做
+  await sb.storage.from(PHOTO_BUCKET).remove([`${id}/photo_nobg.png`]);
+  return true;
+}
+
+export type StartViewsResult =
+  | { ok: true; run: () => Promise<void> }
+  | { ok: false; code: "ai_disabled" | "invalid_option" | "not_found" | "busy" | "permission_denied" };
+
+/**
+ * AI 三視角（#110）第一步：標記產生中，回傳 run（呼叫端放進 after() 背景執行）。
+ * makeEdit 可注入假的影像生成（測試用）；預設用 Azure（imageConfig）。
+ */
+export async function sbStartViews(
+  id: string, views: unknown = GEN_VIEWS,
+  opts: { makeEdit?: (reference: { bytes: Uint8Array; mime: string }) => GenerateDeps["edit"]; now?: Date } = {},
+): Promise<StartViewsResult> {
+  const list = Array.isArray(views) && views.length ? views : null;
+  if (!list || !list.every(isGenView)) return { ok: false, code: "invalid_option" };
+  const cfg = imageConfig();
+  const makeEdit = opts.makeEdit ?? (cfg ? (ref: { bytes: Uint8Array; mime: string }) => azureEdit(cfg, ref) : null);
+  if (!makeEdit) return { ok: false, code: "ai_disabled" };
+  if (!CAT_ID_RE.test(id)) return { ok: false, code: "not_found" };
+  const user = await userClient();
+  if (!user) return { ok: false, code: "permission_denied" };
+  const { data } = await user.sb.from("meow_cat_models").select("photo_path,profile").eq("id", id).maybeSingle();
+  const row = data as Pick<Row, "photo_path" | "profile"> | null;
+  if (!row) return { ok: false, code: "not_found" };
+  if (generatedState(row.profile?.generated, (opts.now ?? new Date()).getTime()).aiRunning.length) return { ok: false, code: "busy" };
+  const start = startGenerated(row.profile?.generated, list as GenView[], opts.now);
+  const { error } = await user.sb.from("meow_cat_models").update({ profile: { ...row.profile, generated: start } }).eq("id", id);
+  if (error) return { ok: false, code: "permission_denied" };
+
+  const run = async () => {
+    const refPath = row.profile?.original_photo ?? row.photo_path;
+    const { data: blob } = await user.sb.storage.from(PHOTO_BUCKET).download(refPath);
+    const results = blob
+      ? await generateViews(list as GenView[], {
+        edit: makeEdit({ bytes: new Uint8Array(await blob.arrayBuffer()), mime: blob.type || "image/jpeg" }),
+        save: async (view, png) => {
+          const path = `${id}/${genPhotoName(view)}`;
+          const { error: e } = await user.sb.storage.from(PHOTO_BUCKET).upload(path, png, { contentType: "image/png", upsert: true });
+          if (e) throw new ImageGenError("AI 照片存檔失敗");
+          return path;
+        },
+      })
+      : failAll(list as GenView[], "讀不到原始照片");
+    // 重新讀一次 profile，避免蓋掉這段時間其他人的修改（例如補傳正面照）
+    const { data: fresh } = await user.sb.from("meow_cat_models").select("profile").eq("id", id).maybeSingle();
+    const profile = ((fresh as Pick<Row, "profile"> | null)?.profile ?? row.profile) as Row["profile"];
+    await user.sb.from("meow_cat_models").update({
+      profile: { ...profile, generated: finishGenerated(profile.generated, results) }, updated_at: new Date().toISOString(),
+    }).eq("id", id);
+  };
+  return { ok: true, run };
 }
 
 /** 改用上一版：目前版與上一版互換（再按一次就換回來）；原因必填並寫稽核 */

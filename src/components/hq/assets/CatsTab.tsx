@@ -47,7 +47,7 @@ export function CatsTab({ query, update }: { query: ListQuery & { page: number }
     { key: "updated", label: "更新時間", render: c => formatCatTime(c.updatedAt) },
     { key: "notes", label: "備註說明", render: c => c.notes || "—" },
   ];
-  // #102：不顯示狀態與操作欄；整列點擊進貓咪頁，貼圖工作頁從貓咪頁進入
+  // #102：不顯示狀態與操作欄；整列點擊進貓咪頁，製作glb工作區從貓咪頁進入
 
   return (
     <>
@@ -56,7 +56,7 @@ export function CatsTab({ query, update }: { query: ListQuery & { page: number }
         <ol className="hq-steps">
           <li><b>1</b><span><strong>上傳照片</strong><span className="hq-hint">側面全身照，填年齡</span></span></li>
           <li><b>2</b><span><strong>自動套用骨架</strong><span className="hq-hint">{KITTEN_MAX_MONTHS} 個月以下用幼貓骨架</span></span></li>
-          <li><b>3</b><span><strong>產生 3D 貓咪</strong><span className="hq-hint">在貼圖工作頁按「產生動作 glb」</span></span></li>
+          <li><b>3</b><span><strong>產生 3D 貓咪</strong><span className="hq-hint">在製作glb工作區按「產生動作 glb」</span></span></li>
         </ol>
         <Link href={NEW_CAT_HREF} className="hq-btn">新增貓咪模型</Link>
       </section>

@@ -19,7 +19,7 @@ afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 const cat = (over: Partial<CatModelView>): CatModelView => ({
   id: "cat_20261031_100000", name: "小橘", ownerType: "template", status: "ready", ageMonths: null, weightKg: null, notes: "",
   photoView: null, fillPattern: null, hasAlbedo: true, hasPrevAlbedo: false, albedoVersion: null, body: "adult", jobStatus: null, jobQueuedAt: null, jobStartedAt: null, jobSeconds: null, jobStep: null, jobError: null,
-  createdAt: "2026-10-31T10:00:00", updatedAt: "2026-10-31T10:00:00", createdBy: null, extraPhotos: [], ...over,
+  createdAt: "2026-10-31T10:00:00", updatedAt: "2026-10-31T10:00:00", createdBy: null, extraPhotos: [], aiViews: [], aiRunning: [], aiErrors: {}, ...over,
 });
 
 describe("ClipList（UT 動作清單）", () => {
@@ -81,7 +81,7 @@ describe("NewCat", () => {
     vi.stubGlobal("fetch", fetchMock);
     render(<NewCat />);
     fireEvent.change(screen.getByLabelText("名稱（必填）"), { target: { value: "小橘" } });
-    fireEvent.click(screen.getByRole("button", { name: "儲存並前往貼圖工作頁" }));
+    fireEvent.click(screen.getByRole("button", { name: "儲存並前往製作glb工作區" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("請先選一張貓咪照片");
     expect(fetchMock).not.toHaveBeenCalled();
   });
@@ -100,7 +100,7 @@ describe("NewCat", () => {
   });
 });
 
-describe("貼圖工作頁", () => {
+describe("製作glb工作區", () => {
   function mockCat(over: Partial<CatModelView>) {
     const fetchMock = vi.fn().mockImplementation(async (url: string, init?: { method?: string }) => ({
       ok: true, status: 200, json: async () => (init?.method === "POST" ? { ok: true } : { enabled: true, cat: cat(over) }),
@@ -118,6 +118,19 @@ describe("貼圖工作頁", () => {
     fireEvent.click(screen.getByRole("button", { name: "產生動作 glb" }));
     await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/hq/cat-models/cat_20261031_100000/paint",
       expect.objectContaining({ method: "POST", body: JSON.stringify({ view: "left", fill: "tabby" }) })));
+  });
+  it("#110 有 AI 左側面照：不用選照片角度，說明用 AI 照片上色", async () => {
+    mockCat({ status: "draft", hasAlbedo: false, aiViews: ["left", "front", "back"] });
+    renderStudio();
+    expect(await screen.findByText("使用 AI 左側面照（頭朝左）上色；原始照片保留在貼圖結果。")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "左側" })).toBeNull();
+    expect(screen.getByRole("heading", { name: "製作glb工作區" })).toBeInTheDocument();
+  });
+  it("#110 AI 照片產生中：產生 glb 先停用並說明", async () => {
+    mockCat({ status: "draft", hasAlbedo: false, aiRunning: ["left"] });
+    renderStudio();
+    expect(await screen.findByRole("button", { name: "產生動作 glb" })).toBeDisabled();
+    expect(screen.getByText("AI 照片產生中，完成後再送出。")).toBeInTheDocument();
   });
   it("排隊中：按鈕停用並說明原因；排隊超過 2 分鐘提示 worker 可能沒開", async () => {
     mockCat({ status: "queued", jobStatus: "queued", jobQueuedAt: new Date(Date.now() - 5 * 60000).toISOString(), jobStep: "排隊中" });

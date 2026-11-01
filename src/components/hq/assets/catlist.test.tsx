@@ -30,7 +30,7 @@ describe("已建立的貓咪模型列表（#102）", () => {
     expect(within(row).getByText("Tina")).toBeInTheDocument();
     expect(within(row).getByText("2026/11/01 22:44")).toBeInTheDocument();
     expect(within(row).getByText("—")).toBeInTheDocument(); // 沒有備註
-    expect(within(row).queryByRole("link", { name: /預覽動作|貼圖工作頁/ })).toBeNull();
+    expect(within(row).queryByRole("link", { name: /預覽動作|製作glb工作區/ })).toBeNull();
   });
   it("不顯示狀態與狀態篩選", () => {
     rows.data = [member];

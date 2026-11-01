@@ -122,6 +122,7 @@ ole === "admin" 判斷管理員，而現有 admin 會升為 system_admin；舊�
 | 2026-11-01 | Tina × Claude Code | #100 體型骨架成貓／幼貓卡片各佔 1/2、大圓角；移除貓咪上架／下架（`PublishPanel`、`POST /api/hq/cat-models/<id>/publish`、`setPublication`、`sbPublish`、`canPublish`），資料庫與既有上架狀態未動；後台規格書新增 §2.4 版面原則 | （見 PR） |
 | 2026-11-01 | Tina × Claude Code | #102 貓咪模型列表：移除狀態欄與狀態篩選、移除操作欄（整列點擊進貓咪頁），新增建立者、備註說明，更新時間顯示到時分；舊資料的 published／unpublished 一律顯示為已完成（`normalizeStatus`），貓咪頁標題旁的狀態標籤移除；示範貓建立者「系統」、備註「系統預設範例」 | （見 PR） |
 | 2026-11-01 | Tina × Claude Code | #105 新增貓咪頁：1 照片｜2 基本資料各佔一半（§2.4）；正面、背部花紋改為選填上傳（Storage `<id>/photo_front.*`、`photo_back.*`，路徑記在 `profile.extra_photos`，上色仍只用側面照）；移除「將使用哪個骨架」提示（體型改可切換，#104） | （見 PR） |
+| 2026-11-02 | Tina × Claude Code | #110 AI 三視角照片第一階段：新增貓咪後自動以 Azure 影像模型（`AZURE_OPENAI_IMAGE_DEPLOYMENT`＝gpt-6-luna）產生左側面／正面／背部（`src/lib/ai/image.ts`、`src/lib/prompts/cat-views.ts`、`ai-views.ts`、`POST /<id>/views` 以 `after()` 背景執行）；「貼圖工作頁」改名「製作glb工作區」並顯示原始＋三張、可單張重新產生；有 AI 左側面照時產生 glb 改用它（換 `photo_path`、原始另存、清去背快取） | （見 PR） |
 | 2026-11-01 | Tina × Claude Code | #107 貓咪頁「資訊」區可補傳／換一張正面、背部花紋照（`ExtraPhotos`、`POST /api/hq/cat-models/<id>/photos`、`/file/photo_front`、`/file/photo_back`）；Supabase 簽名上傳允許覆蓋；不寫稽核（動作清單需改 SQL） | （見 PR） |
 - 2026-10-29｜#24：前端呼叫 `meow_suspend_user`／`meow_unsuspend_user`／`meow_ban_email`／`meow_unban_email`／`meow_review_verification`／`meow_revoke_badge`；「要求補件」不另設狀態，用退回＋快選原因「退回並要求補件」；黑名單狀態只有系統管理員讀得到（RLS），其他管理員看不到黑名單欄與操作。
 

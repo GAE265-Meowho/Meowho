@@ -50,7 +50,7 @@ function Preview({ cat, onChanged }: { cat: CatModelView; onChanged: (message: s
     <div className="hq-catpage">
       <section className="hq-catstage" aria-label="3D 預覽">
         {!cat.hasAlbedo && (
-          <div className="hq-note" role="status">尚未產生這隻貓的貼圖，目前顯示骨架的示範毛色。<Link href={studioHref(cat.id)}>前往貼圖工作頁</Link></div>
+          <div className="hq-note" role="status">尚未產生這隻貓的貼圖，目前顯示骨架的示範毛色。<Link href={studioHref(cat.id)}>前往製作glb工作區</Link></div>
         )}
         {textureFailed && <div className="hq-note" role="alert">貼圖載入失敗，改顯示骨架的示範毛色。</div>}
         {failed ? (
@@ -96,7 +96,7 @@ function Preview({ cat, onChanged }: { cat: CatModelView; onChanged: (message: s
         </PanelGroup>
         <PanelGroup title="動作">
           <ClipList available={clips} current={clip} onPick={pick} />
-          <Link href={studioHref(cat.id)} className="hq-btn ghost small">貼圖工作頁</Link>
+          <Link href={studioHref(cat.id)} className="hq-btn ghost small">製作glb工作區</Link>
           <p className="hq-hint">灰色的是規劃中的動作，骨架補入後會自動可點。</p>
         </PanelGroup>
         <PanelGroup title="資訊">

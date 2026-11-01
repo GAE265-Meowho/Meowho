@@ -1,11 +1,11 @@
 // 貓咪模型資料來源：本機檔案 ＞ Supabase ＞ 靜態 bundled ＞ 關閉
 import {
-  createCat, getCat, listCats, localRoot, queuePaint, readBaseGlb, readCatFile, restorePrevious, addExtraPhoto, type ExtraPhotoResult,
+  createCat, getCat, listCats, localRoot, queuePaint, readBaseGlb, readCatFile, restorePrevious, addExtraPhoto, startViews, type ExtraPhotoResult,
   type CreateResult, type FileKind, type QueueResult, type RestoreResult, type NewCatInput,
 } from "./local";
 import { bundledBasePublicPath, bundledEnabled, bundledFilePublicPath, getBundledCat, listBundledCats } from "./bundled";
 import {
-  sbBaseRedirect, sbCreateCat, sbFileRedirect, sbGetCat, sbListCats, sbAddExtraPhoto, sbPhotoUpload, sbQueuePaint, sbRestore,
+  sbBaseRedirect, sbCreateCat, sbFileRedirect, sbGetCat, sbListCats, sbAddExtraPhoto, sbStartViews, sbPhotoUpload, sbQueuePaint, sbRestore,
   type UploadTicket,
 } from "./supabase";
 import type { BodyType, CatModelView } from "./types";
@@ -138,6 +138,16 @@ export async function repoAddExtraPhoto(id: string, input: { view: unknown; phot
   const src = resolveCatSource();
   if (src === "local") return addExtraPhoto(localRoot()!, id, input.view, input.photo);
   if (src === "supabase") return sbAddExtraPhoto(id, input.view, input.path);
+  return { ok: false, code: "disabled" };
+}
+
+/** AI 三視角（#110）：標記產生中，回傳 run 讓 API 放進 after() 背景執行 */
+export async function repoStartViews(id: string, views: unknown): Promise<
+  { ok: true; run: () => Promise<void> } | { ok: false; code: "ai_disabled" | "invalid_option" | "not_found" | "busy" | "permission_denied" } | Denied
+> {
+  const src = resolveCatSource();
+  if (src === "local") return startViews(localRoot()!, id, views);
+  if (src === "supabase") return sbStartViews(id, views);
   return { ok: false, code: "disabled" };
 }
 

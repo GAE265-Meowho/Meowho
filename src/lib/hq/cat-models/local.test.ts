@@ -4,7 +4,7 @@ import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { addExtraPhoto, createCat, getCat, listCats, localRoot, queuePaint, readCatFile, restorePrevious } from "./local";
+import { addExtraPhoto, createCat, getCat, listCats, localRoot, queuePaint, readCatFile, restorePrevious, startViews } from "./local";
 
 let root: string;
 const png = Buffer.from([0x89, 0x50, 0x4e, 0x47]);
@@ -117,6 +117,22 @@ describe("createCat（沿用 Cat Studio 的 create_cat）", () => {
     expect(await addExtraPhoto(root, id, "side", dataUrl("image/png", png))).toEqual({ ok: false, code: "invalid_option" });
     expect(await addExtraPhoto(root, id, "front", dataUrl("image/gif", png))).toEqual({ ok: false, code: "photo_invalid" });
     expect(await addExtraPhoto(root, "cat_20261031_999999", "front", dataUrl("image/png", png))).toEqual({ ok: false, code: "not_found" });
+  });
+  it("AI 三視角（#110）：產生後存 gen_<角度>.png 並記狀態；送出產生時改用 AI 左側面照、原始另存、清去背快取", async () => {
+    const { id } = (await createCat(root, { name: "A", photo: dataUrl("image/png", png) }, NOW)) as { id: string };
+    const r = await startViews(root, id, ["left", "front"], { makeEdit: () => async () => new Uint8Array([7]) });
+    expect((await getCat(root, id))?.aiRunning).toEqual(["left", "front"]);
+    await (r as { run: () => Promise<void> }).run();
+    expect(await getCat(root, id)).toMatchObject({ aiViews: ["left", "front"], aiRunning: [] });
+    expect(await readCatFile(root, id, "gen_left")).toMatchObject({ type: "image/png" });
+    await fs.writeFile(catPath(id, "photo_nobg.png"), png);
+    expect(await queuePaint(root, id, "front", "none")).toEqual({ ok: true });
+    const profile = JSON.parse(await read(id, "profile.json"));
+    expect(profile).toMatchObject({ photo: "gen_left.png", original_photo: "photo.png" });
+    expect(JSON.parse(await read(id, "paint_job.json")).view).toBe("left");
+    await expect(fs.access(catPath(id, "photo_nobg.png"))).rejects.toThrow();
+    // 「原始照片」仍是使用者上傳的那張
+    expect((await readCatFile(root, id, "photo"))?.data).toEqual(png);
   });
   it("年齡、體重空白或不合法存成 null", async () => {
     const r = await createCat(root, { name: "A", ageMonths: "", weightKg: "-3", photo: dataUrl("image/jpeg", png) }, NOW);

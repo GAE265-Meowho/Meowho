@@ -1,5 +1,5 @@
 "use client";
-// 新增貓咪（規格書 04 §2.3 ①）：名稱與照片是第一步，儲存後是「草稿」，進到貼圖工作頁再按「產生動作 glb」。
+// 新增貓咪（規格書 04 §2.3 ①）：名稱與照片是第一步，儲存後是「草稿」，進到製作glb工作區再按「產生動作 glb」。
 // 欄位與 Cat Studio 的 profile 相同（名稱、年齡、體重、備註、照片）。
 // 照片：本機模式跟表單一起送；Supabase 模式先拿上傳網址、瀏覽器直傳 Storage，再建立草稿（避開 Vercel 請求大小上限）。
 // 版面（#105）：1 照片｜2 基本資料各佔一半；正面、背部花紋照選填上傳。
@@ -142,6 +142,8 @@ export function NewCat() {
       body = { ...fields, photo: await readAsDataUrl(file), extras };
     }
     const { id } = await postJson<{ id: string }>(CAT_API, body, ERRORS);
+    // #110：自動送出 AI 三視角（背景產生，製作glb工作區看進度）；沒設定或失敗不擋，工作區可再按一次
+    await postJson(`${CAT_API}/${id}/views`, {}, ERRORS).catch(() => undefined);
     router.push(studioHref(id));
   }
 
@@ -194,7 +196,7 @@ export function NewCat() {
 
       <div className="hq-row hq-actions hq-newcat-actions">
         <Link href={ASSETS_CATS_HREF} className="hq-btn ghost">取消</Link>
-        <HqSaveButton onSave={save}>儲存並前往貼圖工作頁</HqSaveButton>
+        <HqSaveButton onSave={save}>儲存並前往製作glb工作區</HqSaveButton>
       </div>
       <p className="hq-hint hq-newcat-actions">儲存後狀態是「草稿」，不會自動開始生成。</p>
     </div>

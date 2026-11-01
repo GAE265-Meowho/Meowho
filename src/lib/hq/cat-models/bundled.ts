@@ -31,6 +31,9 @@ const BUNDLED: readonly CatModelView[] = [
     updatedAt: "2026-10-31T15:39:12",
     createdBy: "系統",
     extraPhotos: [],
+    aiViews: [],
+    aiRunning: [],
+    aiErrors: {},
   },
   {
     id: "cat_20261101_183700",
@@ -56,6 +59,9 @@ const BUNDLED: readonly CatModelView[] = [
     updatedAt: "2026-11-01T21:20:00",
     createdBy: "系統",
     extraPhotos: [],
+    aiViews: [],
+    aiRunning: [],
+    aiErrors: {},
   },
 ];
 

@@ -23,7 +23,7 @@ describe("新增貓咪頁版面（#105）", () => {
     const grid = screen.getByTestId("newcat-grid");
     const steps = within(grid).getAllByRole("region");
     expect(steps.map(s => s.getAttribute("aria-label"))).toEqual(["照片", "基本資料"]);
-    const save = screen.getByRole("button", { name: "儲存並前往貼圖工作頁" });
+    const save = screen.getByRole("button", { name: "儲存並前往製作glb工作區" });
     expect(grid.compareDocumentPosition(save) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
   it("三個角度都能上傳：側面必填，正面、背部花紋選填", () => {
@@ -47,11 +47,13 @@ describe("新增貓咪頁版面（#105）", () => {
     fireEvent.change(screen.getByLabelText("正面照片"), { target: { files: [jpg("front.jpg")] } });
     expect(screen.getByAltText("選好的正面照片預覽")).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText("名稱（必填）"), { target: { value: "小灰" } });
-    fireEvent.click(screen.getByRole("button", { name: "儲存並前往貼圖工作頁" }));
+    fireEvent.click(screen.getByRole("button", { name: "儲存並前往製作glb工作區" }));
     await waitFor(() => expect(push).toHaveBeenCalled());
     const create = fetchMock.mock.calls.find(([u]) => u === "/api/hq/cat-models")!;
     const body = JSON.parse(String(create[1]!.body));
     expect(body.extras.front).toMatch(/^data:image\/jpeg;base64,/);
     expect(body.extras.back).toBeUndefined();
+    // #110：建立後自動送出 AI 三視角
+    expect(fetchMock.mock.calls.some(([u]) => u === "/api/hq/cat-models/cat_20261101_230000/views")).toBe(true);
   });
 });

@@ -1,5 +1,5 @@
 "use client";
-// 貼圖工作頁（規格書 04 §2.3 ②③④）：產生選項、任務進度、貼圖結果與「改用上一版」。
+// 製作glb工作區（規格書 04 §2.3 ②③④；#110 由「貼圖工作頁」改名）：產生選項、任務進度、貼圖結果與「改用上一版」。
 // 3D 動作預覽在貓咪頁（§2.4），這裡完成後引導過去。
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
@@ -12,6 +12,7 @@ import { HqLoadError, HqSaveButton, HqSkeleton } from "../HqStates";
 import { HqNotFound } from "../HqLoginPage";
 import { ReasonField } from "../ReasonField";
 import { useHqToast } from "../HqToast";
+import { AiViews } from "./AiViews";
 import { assetsHref, ASSETS_CATS_HREF } from "./hrefs";
 import { CAT_API, catFileUrl, postJson, useCat } from "./useCatModels";
 
@@ -34,7 +35,8 @@ const POLL_MS = 3000;
 function Options({ cat, onDone }: { cat: CatModelView; onDone: () => void }) {
   const [view, setView] = useState<PhotoView>(cat.photoView ?? "front");
   const [fill, setFill] = useState<FillPattern>(cat.fillPattern ?? "none");
-  const busy = isJobActive(cat.status);
+  const busy = isJobActive(cat.status) || cat.aiRunning.length > 0;
+  const aiLeft = cat.aiViews.includes("left");
   const label = cat.status === "failed" ? "重試" : cat.hasAlbedo ? "重新產生動作 glb" : "產生動作 glb";
 
   async function save() {
@@ -45,13 +47,21 @@ function Options({ cat, onDone }: { cat: CatModelView; onDone: () => void }) {
   return (
     <section className="hq-box" aria-label="產生選項">
       <h3>產生選項</h3>
-      <div className="hq-field">
-        <span className="hq-label" id="opt-view">照片角度</span>
-        <div className="hq-chips" role="group" aria-labelledby="opt-view">
-          {VIEWS.map(v => <button key={v} type="button" className={view === v ? "on" : ""} aria-pressed={view === v} onClick={() => setView(v)}>{PHOTO_VIEW_LABELS[v]}</button>)}
+      {aiLeft ? (
+        // #110：有 AI 左側面照就用它上色，角度固定「左側」（頭朝左），不用再選
+        <div className="hq-field">
+          <span className="hq-label">上色照片</span>
+          <p className="hq-hint">使用 AI 左側面照（頭朝左）上色；原始照片保留在貼圖結果。</p>
         </div>
-        <p className="hq-hint">側面照時，會把骨架轉到同方向再上色。</p>
-      </div>
+      ) : (
+        <div className="hq-field">
+          <span className="hq-label" id="opt-view">照片角度</span>
+          <div className="hq-chips" role="group" aria-labelledby="opt-view">
+            {VIEWS.map(v => <button key={v} type="button" className={view === v ? "on" : ""} aria-pressed={view === v} onClick={() => setView(v)}>{PHOTO_VIEW_LABELS[v]}</button>)}
+          </div>
+          <p className="hq-hint">側面照時，會把骨架轉到同方向再上色。</p>
+        </div>
+      )}
       <div className="hq-field">
         <span className="hq-label" id="opt-fill">補看不到的花紋</span>
         <div className="hq-chips" role="group" aria-labelledby="opt-fill">
@@ -61,7 +71,7 @@ function Options({ cat, onDone }: { cat: CatModelView; onDone: () => void }) {
       </div>
       <div className="hq-row">
         <HqSaveButton onSave={save} disabled={busy}>{label}</HqSaveButton>
-        {busy && <span className="hq-hint">已有排隊中或生成中的任務，完成後才能再送出。</span>}
+        {busy && <span className="hq-hint">{cat.aiRunning.length ? "AI 照片產生中，完成後再送出。" : "已有排隊中或生成中的任務，完成後才能再送出。"}</span>}
       </div>
       {cat.hasAlbedo && !busy && <p className="hq-hint">重新產生成功後，現在的貼圖會變成「上一版」（只保留最近 1 版）；失敗時不會動到現在的貼圖。</p>}
     </section>
@@ -93,7 +103,7 @@ function Progress({ cat, now }: { cat: CatModelView; now: number }) {
   );
 }
 
-function Result({ cat, onDone }: { cat: CatModelView; onDone: (message: string) => void }) {
+function Result({ cat, onDone, onStarted }: { cat: CatModelView; onDone: (message: string) => void; onStarted: () => void }) {
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState({ quick: "", extra: "" });
   const text = composeReason(reason.quick, reason.extra);
@@ -109,12 +119,9 @@ function Result({ cat, onDone }: { cat: CatModelView; onDone: (message: string) 
   return (
     <section className="hq-box" aria-label="貼圖結果">
       <h3>貼圖結果</h3>
-      <div className="hq-imgs">
-        <figure>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={catFileUrl(cat.id, "photo")} alt={`${cat.name} 的原始照片`} />
-          <figcaption>原始照片</figcaption>
-        </figure>
+      {/* #110：原始照片＋AI 三視角 */}
+      <AiViews cat={cat} onStarted={onStarted} />
+      <div className="hq-imgs" role="group" aria-label="貼圖">
         {cat.hasAlbedo ? (
           <figure>
             <a href={catFileUrl(cat.id, "albedo", cat.albedoVersion ?? undefined)} target="_blank" rel="noreferrer" aria-label="放大看目前貼圖">
@@ -164,9 +171,9 @@ function Result({ cat, onDone }: { cat: CatModelView; onDone: (message: string) 
 function Studio({ cat, reload }: { cat: CatModelView; reload: () => void }) {
   const toast = useHqToast();
   const [now, setNow] = useState(() => Date.now());
-  const active = isJobActive(cat.status);
+  const active = isJobActive(cat.status) || cat.aiRunning.length > 0;
 
-  // 排隊中、生成中每 3 秒更新一次；結束就停
+  // 排隊中、生成中、AI 照片產生中每 3 秒更新一次；結束就停
   useEffect(() => {
     if (!active) return;
     const timer = setInterval(() => { setNow(Date.now()); reload(); }, POLL_MS);
@@ -179,13 +186,13 @@ function Studio({ cat, reload }: { cat: CatModelView; reload: () => void }) {
     <>
       <div className="hq-pagehead">
         <Link href={assetsHref(cat.id)} className="hq-back">← {cat.name}</Link>
-        <h1 className="hq-h1">貼圖工作頁</h1>
+        <h1 className="hq-h1">製作glb工作區</h1>
         <span className={`hq-tag${CAT_STATUS_TONE[cat.status] ? ` ${CAT_STATUS_TONE[cat.status]}` : ""}`}>{CAT_STATUS_LABELS[cat.status]}</span>
       </div>
       <div className="hq-form">
         <Options cat={cat} onDone={submitted} />
         <Progress cat={cat} now={now} />
-        <Result cat={cat} onDone={message => { toast.show({ message }); reload(); }} />
+        <Result cat={cat} onDone={message => { toast.show({ message }); reload(); }} onStarted={submitted} />
       </div>
     </>
   );

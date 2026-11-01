@@ -8,7 +8,7 @@ import type { BodyType, CatModelView } from "@/lib/hq/cat-models/types";
 export type Loadable<T> = { state: "loading" } | { state: "disabled" } | { state: "missing" } | { state: "error" } | { state: "ready"; data: T };
 
 export const CAT_API = "/api/hq/cat-models";
-export const catFileUrl = (id: string, kind: "photo" | "albedo" | "albedo_prev" | "photo_front" | "photo_back", bust?: string) =>
+export const catFileUrl = (id: string, kind: "photo" | "albedo" | "albedo_prev" | "photo_front" | "photo_back" | "gen_left" | "gen_front" | "gen_back", bust?: string) =>
   `${CAT_API}/${id}/file/${kind}${bust ? `?t=${encodeURIComponent(bust)}` : ""}`;
 /** 母體 glb：貼圖只能套回畫它的母體，所以依這隻貓的 body 選成貓或幼貓 */
 export const baseGlbUrl = (body: BodyType) => (body === "kitten" ? `${CAT_API}/base?body=kitten` : `${CAT_API}/base`);

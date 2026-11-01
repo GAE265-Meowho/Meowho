@@ -101,6 +101,10 @@ export interface CatModelView {
   createdBy: string | null;
   /** 已上傳的正面／背部花紋照（#105、#107） */
   extraPhotos: ExtraView[];
+  /** AI 三視角照片（#110）：已產生、產生中、失敗原因 */
+  aiViews: GenView[];
+  aiRunning: GenView[];
+  aiErrors: Partial<Record<GenView, string>>;
 }
 
 /** 任務是否在忙（排隊中或生成中）：忙的時候不能再送、不能換版 */
@@ -163,6 +167,58 @@ export const photoExt = (type: unknown): string | null => (typeof type === "stri
 
 /** 照片路徑只能是 `<貓咪ID>/photo.<jpg|png|webp>`（瀏覽器送來的值，不能指到別隻貓或別的資料夾） */
 export const ownPhotoPath = (id: string, path: string) => new RegExp(`^${id}/photo\\.(jpg|png|webp)$`).test(path);
+
+/** AI 三視角照片（#110）：左側面（頭朝左，用來上色）、正面、背部；存成 <id>/gen_<角度>.png */
+export const GEN_VIEWS = ["left", "front", "back"] as const;
+export type GenView = (typeof GEN_VIEWS)[number];
+export const GEN_VIEW_LABELS: Record<GenView, string> = { left: "AI 左側面", front: "AI 正面", back: "AI 背部" };
+export const isGenView = (v: unknown): v is GenView => (GEN_VIEWS as readonly unknown[]).includes(v);
+export const genPhotoName = (view: GenView) => `gen_${view}.png`;
+
+/** 存在 profile.generated 的狀態 */
+export interface GeneratedProfile {
+  views?: Partial<Record<GenView, string>>;
+  running?: GenView[];
+  errors?: Partial<Record<GenView, string>>;
+  started_at?: string;
+}
+
+/** 產生超過這個時間還沒結束，視為失敗（伺服器函式最長 5 分鐘） */
+export const GEN_TIMEOUT_MS = 6 * 60 * 1000;
+
+/** 由 profile.generated 算出畫面要用的狀態；逾時的「產生中」改成失敗 */
+export function generatedState(g: GeneratedProfile | undefined, now = Date.now()): {
+  aiViews: GenView[]; aiRunning: GenView[]; aiErrors: Partial<Record<GenView, string>>;
+} {
+  const aiViews = GEN_VIEWS.filter(v => g?.views?.[v]);
+  const errors: Partial<Record<GenView, string>> = { ...g?.errors };
+  let running = GEN_VIEWS.filter(v => g?.running?.includes(v));
+  const started = g?.started_at ? Date.parse(g.started_at) : NaN;
+  if (running.length && Number.isFinite(started) && now - started > GEN_TIMEOUT_MS) {
+    for (const v of running) errors[v] = "產生逾時，請重新產生";
+    running = [];
+  }
+  return { aiViews, aiRunning: running, aiErrors: errors };
+}
+
+/** 開始產生：標記哪些角度產生中，清掉它們上次的錯誤 */
+export function startGenerated(g: GeneratedProfile | undefined, views: GenView[], now = new Date()): GeneratedProfile {
+  const errors = { ...g?.errors };
+  for (const v of views) delete errors[v];
+  return { ...g, running: views, errors, started_at: now.toISOString() };
+}
+
+/** 產生結束：成功的記路徑、失敗的記原因，產生中清空 */
+export function finishGenerated(g: GeneratedProfile | undefined, results: Partial<Record<GenView, { path: string } | { error: string }>>): GeneratedProfile {
+  const views = { ...g?.views };
+  const errors = { ...g?.errors };
+  for (const v of GEN_VIEWS) {
+    const r = results[v];
+    if (!r) continue;
+    if ("path" in r) { views[v] = r.path; delete errors[v]; } else errors[v] = r.error;
+  }
+  return { ...g, views, errors, running: [] };
+}
 
 /** 正面、背部花紋照片（#105）：先只上傳保存，上色仍只用側面照；存成 <id>/photo_<角度>.<副檔名> */
 export const EXTRA_VIEWS = ["front", "back"] as const;

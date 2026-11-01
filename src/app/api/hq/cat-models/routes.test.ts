@@ -12,6 +12,7 @@ import { asDownload } from "@/lib/hq/cat-models/types";
 import { POST as postPaint } from "./[id]/paint/route";
 import { POST as postRestore } from "./[id]/restore/route";
 import { POST as postUpload } from "./upload/route";
+import { POST as postViews } from "./[id]/views/route";
 
 const ID = "cat_20261031_100000";
 const ctx = <T extends Record<string, string>>(p: T) => ({ params: Promise.resolve(p) });
@@ -131,6 +132,16 @@ describe("新增、產生、換版", () => {
   const photo = `data:image/png;base64,${Buffer.from([1, 2, 3]).toString("base64")}`;
   const enable = () => vi.stubEnv("CAT_STUDIO_ROOT", root);
 
+  it("AI 三視角（#110）：沒設定影像模型回 503 ai_disabled；角度不對回 400", async () => {
+    enable();
+    vi.stubEnv("AZURE_OPENAI_IMAGE_DEPLOYMENT", "");
+    const { id } = await (await postCreate(req({ name: "新貓", photo }))).json();
+    const off = await postViews(req({}), ctx({ id }));
+    expect(off.status).toBe(503);
+    expect(await off.json()).toEqual({ error: "ai_disabled" });
+    vi.stubEnv("AZURE_OPENAI_ENDPOINT", "https://x"); vi.stubEnv("AZURE_OPENAI_API_KEY", "k"); vi.stubEnv("AZURE_OPENAI_IMAGE_DEPLOYMENT", "d");
+    expect((await postViews(req({ views: ["side"] }), ctx({ id }))).status).toBe(400);
+  });
   it("新增貓咪：201 並回傳 ID；缺名稱或照片不合法回 400", async () => {
     enable();
     const ok = await postCreate(req({ name: "新貓", photo }));
