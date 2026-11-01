@@ -119,6 +119,7 @@ ole === "admin" 判斷管理員，而現有 admin 會升為 system_admin；舊�
 | 2026-11-01 | Tina × Claude Code | #91 幼貓骨架脖子錯位修正（Meow `cat_base_kitten/stepB_rig.py`：頭部改用球形範圍、neck0 不分攤轉頭、轉正用 DQS、脖子平滑；網格與 UV 不變）並更新 `public/hq-cat-models/base/base_clips_kitten.glb`；體型骨架加「下載 GLB」（`/api/hq/cat-models/base?body=…&download=1`，Supabase 網址加 `?download=`）；貓咪頁、貼圖工作頁的畫面文字「母體」改「骨架」 | #91 |
 | 2026-11-01 | Tina × Claude Code | #96 3D 編輯器工作區：骨架測試台、貓咪頁改為左側預覽固定（約 70%）、右側參數面板獨立捲動並分組摺疊（`PanelGroup`，原生 `<details>`）；桌機主區塊等於視窗高度，平板／手機上下排列、預覽黏在頂列下方。只用 CSS 切換版面，不做手機「預覽／參數」切換（會讓 Canvas 重建） | （見 PR） |
 | 2026-11-01 | Tina × Claude Code | #98 新增貓咪頁加入拍攝範例照：成貓（LINE_A7_1.jpg）、幼貓（好奇虎斑小貓），縮到 480px 放在 `public/hq-cat-models/examples/` | （見 PR） |
+| 2026-11-01 | Tina × Claude Code | #100 體型骨架成貓／幼貓卡片各佔 1/2、大圓角；移除貓咪上架／下架（`PublishPanel`、`POST /api/hq/cat-models/<id>/publish`、`setPublication`、`sbPublish`、`canPublish`），資料庫與既有上架狀態未動；後台規格書新增 §2.4 版面原則 | （見 PR） |
 - 2026-10-29｜#24：前端呼叫 `meow_suspend_user`／`meow_unsuspend_user`／`meow_ban_email`／`meow_unban_email`／`meow_review_verification`／`meow_revoke_badge`；「要求補件」不另設狀態，用退回＋快選原因「退回並要求補件」；黑名單狀態只有系統管理員讀得到（RLS），其他管理員看不到黑名單欄與操作。
 
 - 2026-10-31｜#75：虛擬體驗元件分四個區塊（貓咪、室內空間、生活用品、其他），R3 已改寫；貓咪模型的貼圖由 cat_studio/paint_worker.py 產生，網頁只建任務與預覽（共用母體 ase_clips.glb 換 cat_fur 貼圖，不需每隻貓各一個 glb）；動作屬母體，補入新動作後所有貓自動擁有；本機模式（可新增／產生）只在非 production 且設了 CAT_STUDIO_ROOT 時啟用；正式站改讀 `public/hq-cat-models/` 示範貓（已完成的 bb）供預覽，寫入仍關閉。 004_meow_cat_models.sql（資料表 meow_cat_models、meow_cat_model_jobs、bucket meow-cat-photos／meow-cat-models）在 PR 3，執行前須經 Tina 確認。
