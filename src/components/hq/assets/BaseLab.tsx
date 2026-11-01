@@ -11,6 +11,7 @@ import { HqSkeleton } from "../HqStates";
 import { autoPupil, EYE_DEFAULTS, EYE_PRESETS, type EyeParams } from "./catEye";
 import type { PreviewInfo } from "./CatPreview";
 import { ClipList } from "./ClipList";
+import { PanelGroup } from "./PanelGroup";
 import { ASSETS_CATS_HREF } from "./hrefs";
 import { baseDownloadUrl, baseGlbUrl } from "./useCatModels";
 
@@ -57,23 +58,7 @@ export function BaseLab({ body }: { body: BodyType }) {
         <span className="hq-tag mute">示範毛色</span>
       </div>
       <div className="hq-catpage">
-        <div className="hq-catstage">
-          <div className="hq-controls">
-            <div className="hq-row">
-              <button type="button" className="hq-btn ghost small" onClick={() => setPaused(p => !p)}>{paused ? "播放" : "暫停"}</button>
-              <div className="hq-chips" role="group" aria-label="播放速度">
-                {[0.5, 1, 1.5].map(s => (
-                  <button key={s} type="button" className={speed === s ? "on" : ""} aria-pressed={speed === s} onClick={() => setSpeed(s)}>{s}×</button>
-                ))}
-              </div>
-              <button type="button" className="hq-btn ghost small" onClick={() => setViewKey(k => k + 1)}>重設視角</button>
-            </div>
-            <label className="hq-slider"><span>眨眼 {blink.toFixed(2)}</span>
-              <input type="range" min={0} max={1} step={0.01} value={blink} onChange={e => setBlink(+e.target.value)} /></label>
-            <label className="hq-slider"><span>環境亮度 {light.toFixed(2)}</span>
-              <input type="range" min={0.2} max={2.5} step={0.01} value={light} onChange={e => setLight(+e.target.value)} /></label>
-            <label className="hq-check"><input type="checkbox" checked={follow} onChange={e => setFollow(e.target.checked)} /> 眼睛看游標</label>
-          </div>
+        <section className="hq-catstage" aria-label="3D 預覽">
           {failed ? (
             <div className="hq-state" role="alert">
               <p>3D 預覽載入失敗</p>
@@ -95,17 +80,31 @@ export function BaseLab({ body }: { body: BodyType }) {
               {info.morphs.length > 0 && `、形狀鍵 ${info.morphs.join(" / ")}`}
             </p>
           )}
-        </div>
+        </section>
 
-        <div className="hq-catside">
-          <section className="hq-box" aria-label="動作">
-            <h3>動作</h3>
+        <section className="hq-catside" aria-label="參數">
+          <PanelGroup title="播放與畫面">
+            <div className="hq-row">
+              <button type="button" className="hq-btn ghost small" onClick={() => setPaused(p => !p)}>{paused ? "播放" : "暫停"}</button>
+              <div className="hq-chips" role="group" aria-label="播放速度">
+                {[0.5, 1, 1.5].map(s => (
+                  <button key={s} type="button" className={speed === s ? "on" : ""} aria-pressed={speed === s} onClick={() => setSpeed(s)}>{s}×</button>
+                ))}
+              </div>
+              <button type="button" className="hq-btn ghost small" onClick={() => setViewKey(k => k + 1)}>重設視角</button>
+            </div>
+            <label className="hq-slider"><span>眨眼 {blink.toFixed(2)}</span>
+              <input type="range" min={0} max={1} step={0.01} value={blink} onChange={e => setBlink(+e.target.value)} /></label>
+            <label className="hq-slider"><span>環境亮度 {light.toFixed(2)}</span>
+              <input type="range" min={0.2} max={2.5} step={0.01} value={light} onChange={e => setLight(+e.target.value)} /></label>
+            <label className="hq-check"><input type="checkbox" checked={follow} onChange={e => setFollow(e.target.checked)} /> 眼睛看游標</label>
+          </PanelGroup>
+          <PanelGroup title="動作">
             <ClipList available={clips} current={clip} onPick={setPicked} />
             <a className="hq-btn small ghost" href={baseDownloadUrl(body)} download={baseFileName(body)}>下載 GLB</a>
             <p className="hq-hint">灰色的是規劃中的動作，骨架補入後會自動可點。</p>
-          </section>
-          <section className="hq-box" aria-label="眼睛">
-            <h3>眼睛</h3>
+          </PanelGroup>
+          <PanelGroup title="眼睛">
             <label className="hq-slider"><span>瞳孔寬窄（細縫 → 全圓） {pupil.toFixed(2)}</span>
               <input type="range" min={0} max={1} step={0.01} value={pupil} disabled={lightPupil} onChange={e => set("pupil", +e.target.value)} /></label>
             <label className="hq-check"><input type="checkbox" checked={lightPupil} onChange={e => setLightPupil(e.target.checked)} /> 瞳孔跟著亮度變化</label>
@@ -132,8 +131,8 @@ export function BaseLab({ body }: { body: BodyType }) {
             <label className="hq-check"><input type="checkbox" checked={hetero} onChange={e => setHetero(e.target.checked)} /> 異色瞳（右眼用藍色）</label>
             <button type="button" className="hq-btn ghost small" onClick={() => { setEye(EYE_DEFAULTS); setPreset(null); setHetero(false); setLightPupil(false); }}>眼睛參數還原</button>
             <p className="hq-hint">這裡調的數值只在這頁預覽，不會存回骨架。</p>
-          </section>
-        </div>
+          </PanelGroup>
+        </section>
       </div>
     </>
   );

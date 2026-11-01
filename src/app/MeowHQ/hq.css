@@ -200,15 +200,23 @@
 /* #75 虛擬體驗元件管理｜貓咪：列表縮圖、貓咪頁（預覽＋動作清單） */
 .hq-thumb { width: 44px; height: 44px; object-fit: cover; border-radius: 8px; border: 1px solid var(--hq-line); background: var(--hq-card); }
 .hq-catpublish { margin: 0 0 1rem; max-width: 420px; }
-.hq-catpage { display: grid; grid-template-columns: minmax(0, 1fr) 260px; gap: 1rem; align-items: start; }
-.hq-catstage { display: flex; flex-direction: column; gap: .6rem; min-width: 0; }
-.hq-catside { display: flex; flex-direction: column; gap: 1rem; min-width: 0; }
+/* 3D 編輯器工作區（#96）：桌機左 70% 預覽固定、右 30% 參數面板獨立捲動；主區塊剛好是視窗高度，標題、上架面板以下全部給工作區，整頁不捲動。
+   版面只用 CSS 切換，預覽在元件樹中的位置不變，所以展開收合、resize 都不會讓 3D 預覽重新初始化。 */
+.hq-main:has(> .hq-catpage) { display: flex; flex-direction: column; height: calc(100dvh - 56px); }
+.hq-main:has(> .hq-catpage) > * { flex: none; }
+.hq-main > .hq-catpage { flex: 1; }
+.hq-catpage { display: grid; grid-template-columns: minmax(0, 7fr) minmax(300px, 3fr); gap: 1rem; min-height: 420px; }
+.hq-catstage { display: flex; flex-direction: column; gap: .6rem; min-width: 0; min-height: 0; }
+.hq-catstage .hq-canvas { flex: 1; height: auto; min-height: 0; }
+.hq-catside { display: flex; flex-direction: column; gap: .75rem; min-width: 0; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding-right: .25rem; }
+.hq-group { flex: none; border: 1px solid var(--hq-line); border-radius: 10px; background: var(--hq-card); }
+.hq-group > summary { cursor: pointer; min-height: 44px; padding: .6rem .85rem; font-weight: 600; font-size: .98rem; }
+.hq-group-body { display: flex; flex-direction: column; gap: .6rem; padding: 0 .85rem .85rem; }
 .hq-canvas { width: 100%; height: 440px; border: 1px solid var(--hq-line); border-radius: 12px; background: var(--hq-card); overflow: hidden; }
 .hq-canvas.small { height: 300px; }
 .hq-bases { margin: .25rem 0 1rem; }
 .hq-bases summary { cursor: pointer; font-weight: 600; margin-bottom: .6rem; }
 .hq-bases .hq-cards { grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); }
-.hq-controls { display: flex; flex-direction: column; gap: .5rem; }
 .hq-slider { display: grid; grid-template-columns: 9em 1fr; gap: .6rem; align-items: center; font-size: .9rem; color: var(--hq-sub); }
 .hq-slider input { width: 100%; accent-color: var(--hq-sage); min-height: 32px; }
 .hq-cliplist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .4rem; }
@@ -216,8 +224,15 @@
 .hq-clip small { color: var(--hq-sub); }
 .hq-clip.on { background: var(--hq-sage-soft); border-color: var(--hq-sage); color: var(--hq-sage-ink); font-weight: 500; }
 .hq-clip:disabled { opacity: .55; cursor: not-allowed; }
+/* 平板、手機：上下排列，預覽黏在頂列下方，參數跟著整頁捲動（不做兩層捲動） */
+@media (max-width: 1023px) {
+  .hq-main:has(> .hq-catpage) { display: block; height: auto; }
+  .hq-catpage { grid-template-columns: 1fr; min-height: 0; }
+  .hq-catstage { position: sticky; top: 56px; z-index: 5; background: var(--hq-bg); padding: .5rem 0; }
+  .hq-catstage .hq-canvas { flex: none; height: max(240px, 42dvh); }
+  .hq-catside { overflow: visible; padding-right: 0; }
+}
 @media (max-width: 767px) {
-  .hq-catpage { grid-template-columns: 1fr; }
   .hq-catpublish { max-width: none; }
   .hq-canvas { height: 320px; }
   .hq-slider { grid-template-columns: 1fr; gap: .2rem; }
