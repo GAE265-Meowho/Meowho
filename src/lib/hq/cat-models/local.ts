@@ -51,10 +51,15 @@ const PENDING_PREV = "paint_albedo_pending_prev.png";
 async function settle(dir: string): Promise<void> {
   const pending = path.join(dir, PENDING_PREV);
   if (!(await exists(pending))) return;
-  const job = await readJson<JobInfo>(path.join(dir, "paint_job.json"));
+  const jobFile = path.join(dir, "paint_job.json");
+  const job = await readJson<JobInfo>(jobFile);
   if (!job || job.status === "queued" || job.status === "running") return;
-  if (job.status === "done") await fs.rename(pending, path.join(dir, "paint_albedo_prev.png"));
-  else await fs.rm(pending, { force: true });
+  if (job.status === "done") {
+    await fs.rename(pending, path.join(dir, "paint_albedo_prev.png"));
+    // 上一版貼圖的母體也跟著升格
+    const { pending_prev_base_version: prevBase, ...rest } = job;
+    await fs.writeFile(jobFile, JSON.stringify({ ...rest, prev_base_version: prevBase }, null, 2), "utf-8");
+  } else await fs.rm(pending, { force: true });
 }
 
 async function mtime(file: string): Promise<string | null> {
@@ -209,7 +214,13 @@ export async function queuePaint(root: string, id: string, view: unknown, fill: 
   if (isJobActive(cat.status)) return { ok: false, code: "busy" };
   const dir = catDir(root, id);
   if (cat.hasAlbedo) await fs.copyFile(path.join(dir, "paint_albedo.png"), path.join(dir, PENDING_PREV));
-  const state = { status: "queued", step: "排隊中（請確認 paint_worker.py 有在執行）", view: v, fill: f, queued_at: now.toISOString() };
+  // 母體版本要帶著走：排隊、生成中、失敗時預覽仍用目前貼圖的母體
+  const old = await readJson<JobInfo>(path.join(dir, "paint_job.json"));
+  const state = {
+    status: "queued", step: "排隊中（請確認 paint_worker.py 有在執行）", view: v, fill: f, queued_at: now.toISOString(),
+    base_version: old?.base_version, prev_base_version: old?.prev_base_version,
+    pending_prev_base_version: cat.hasAlbedo ? old?.base_version : undefined,
+  };
   await fs.writeFile(path.join(dir, "paint_job.json"), JSON.stringify(state, null, 2), "utf-8");
   return { ok: true };
 }
@@ -235,6 +246,10 @@ export async function restorePrevious(root: string, id: string, reason: string, 
   } else {
     await fs.rename(prev, cur);
   }
+  // 母體跟著貼圖換（沒記錄＝成貓舊資料）
+  const jobFile = path.join(dir, "paint_job.json");
+  const job = await readJson<JobInfo>(jobFile);
+  if (job) await fs.writeFile(jobFile, JSON.stringify({ ...job, base_version: job.prev_base_version, prev_base_version: job.base_version }, null, 2), "utf-8");
   await fs.appendFile(path.join(dir, "audit.jsonl"), JSON.stringify({ action: "restore_texture", actor, reason: text, at: now.toISOString() }) + "\n", "utf-8");
   return { ok: true };
 }

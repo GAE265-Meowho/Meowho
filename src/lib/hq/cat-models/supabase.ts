@@ -29,7 +29,7 @@ type Row = {
   albedo_path: string | null;
   prev_albedo_path: string | null;
   base_version: string | null;
-  meta: { seconds?: number } | null;
+  meta: { seconds?: number; prev_base_version?: string | null } | null;
   created_at: string;
   updated_at: string;
 };
@@ -216,13 +216,18 @@ export async function sbRestore(id: string, reason: string): Promise<
   if (!text) return { ok: false, code: "reason_required" };
   const user = await userClient();
   if (!user) return { ok: false, code: "permission_denied" };
-  const { data } = await user.sb.from("meow_cat_models").select("status,albedo_path,prev_albedo_path").eq("id", id).maybeSingle();
+  const { data } = await user.sb.from("meow_cat_models").select("status,albedo_path,prev_albedo_path,base_version,meta").eq("id", id).maybeSingle();
   if (!data) return { ok: false, code: "not_found" };
-  const row = data as Pick<Row, "status" | "albedo_path" | "prev_albedo_path">;
+  const row = data as Pick<Row, "status" | "albedo_path" | "prev_albedo_path" | "base_version" | "meta">;
   if (isJobActive(row.status)) return { ok: false, code: "busy" };
   if (!row.prev_albedo_path) return { ok: false, code: "no_previous" };
-  const { error } = await user.sb.from("meow_cat_models")
-    .update({ albedo_path: row.prev_albedo_path, prev_albedo_path: row.albedo_path, updated_at: new Date().toISOString() }).eq("id", id);
+  // 母體跟著貼圖換：worker 輪替時把上一版的母體記在 meta.prev_base_version（沒記錄＝成貓舊資料）
+  const meta = row.meta ?? {};
+  const { error } = await user.sb.from("meow_cat_models").update({
+    albedo_path: row.prev_albedo_path, prev_albedo_path: row.albedo_path,
+    base_version: meta.prev_base_version ?? null, meta: { ...meta, prev_base_version: row.base_version },
+    updated_at: new Date().toISOString(),
+  }).eq("id", id);
   if (error) return { ok: false, code: "permission_denied" };
   await audit(user.sb, "restore_texture", id, text);
   return { ok: true };

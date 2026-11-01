@@ -34,6 +34,10 @@ export interface JobInfo {
   seconds?: number;
   /** worker 記下貼圖畫在哪個母體上（adult-v1／kitten-v1） */
   base_version?: string;
+  /** 上一版貼圖畫在哪個母體上：換回上一版時母體也要跟著換（兩個母體 UV 不同） */
+  prev_base_version?: string;
+  /** 排隊時目前版的母體；成功後升格成 prev_base_version（同 paint_albedo_pending_prev.png） */
+  pending_prev_base_version?: string;
   queued_at?: string;
   started_at?: string;
   finished_at?: string;

@@ -79,7 +79,7 @@ function Preview({ cat }: { cat: CatModelView }) {
         ) : (
           <div className="hq-canvas" data-testid="cat-canvas">
             <CatPreview
-              key={viewKey} baseUrl={baseGlbUrl(cat.body)} albedoUrl={albedoUrl} clip={clip}
+              key={viewKey} baseUrl={baseGlbUrl(cat.body)} body={cat.body} albedoUrl={albedoUrl} clip={clip}
               speed={speed} paused={paused} blink={blink} pupil={pupil} light={light} follow={follow}
               onInfo={setInfo} onTextureError={() => setTextureFailed(true)} onError={e => setFailed(e.message || "未知錯誤")}
             />

@@ -120,10 +120,17 @@ describe("sbRestore（改用上一版）", () => {
     modelRow = row({ status: "running", albedo_path: "a.png", prev_albedo_path: "b.png" });
     expect(await sbRestore(ID, "顏色不對")).toEqual({ ok: false, code: "busy" });
   });
+  it("母體跟著貼圖換：幼貓貼圖換回成貓舊貼圖時，母體也換回成貓", async () => {
+    modelRow = row({ status: "ready", albedo_path: "k.png", prev_albedo_path: "a.png", base_version: "kitten-v1", meta: { prev_base_version: "v1" } });
+    expect(await sbRestore(ID, "換回來")).toEqual({ ok: true });
+    expect(calls.find(c => c.op === "update")?.args[0]).toMatchObject({
+      albedo_path: "a.png", prev_albedo_path: "k.png", base_version: "v1", meta: { prev_base_version: "kitten-v1" },
+    });
+  });
   it("成功：目前版與上一版互換、寫稽核", async () => {
     modelRow = row({ status: "ready", albedo_path: "a.png", prev_albedo_path: "b.png" });
     expect(await sbRestore(ID, "顏色不對")).toEqual({ ok: true });
-    expect(calls.find(c => c.op === "update")?.args[0]).toMatchObject({ albedo_path: "b.png", prev_albedo_path: "a.png" });
+    expect(calls.find(c => c.op === "update")?.args[0]).toMatchObject({ albedo_path: "b.png", prev_albedo_path: "a.png", base_version: null });
     expect(calls.find(c => c.op === "rpc")?.args[1]).toMatchObject({ p_action: "restore_texture", p_reason: "顏色不對" });
   });
 });
