@@ -25,7 +25,7 @@ const STATUS_LABEL: Record<string, string> = { adoptable: "待領養", adopted: 
 const SEX_LABEL: Record<string, string> = { male: "男生", female: "女生" };
 
 /** 舊資料可能缺欄位（#82 早期格式），一律補預設值再顯示 */
-function homeSummary(raw: Home | null): string {
+function homeSummary(raw: Partial<Home> | null): string {
   if (!raw) return "";
   const h: Home = { dwelling: null, dwellingOther: "", living: null, family: [], familyOther: "", pets: [], petsOther: "", ...raw };
   return [
