@@ -208,6 +208,32 @@ describe("保留最近 1 版（worker 只會覆蓋 paint_albedo.png）", () => {
   });
 });
 
+describe("母體版本跟著貼圖（成貓／幼貓，#88）", () => {
+  // 真正的 worker（write_job）是合併欄位，不是整個覆寫
+  async function workerMerges(fields: Record<string, unknown>) {
+    const job = JSON.parse(await read(ID, "paint_job.json"));
+    await fs.writeFile(catPath(ID, "paint_job.json"), JSON.stringify({ ...job, ...fields }));
+  }
+  it("排隊中仍用目前貼圖的母體；重畫成幼貓後換回上一版，母體也換回成貓", async () => {
+    await addCat(ID, { job: { status: "done", base_version: "adult-v1" }, albedo: true });
+    await queuePaint(root, ID, "front", "none", NOW);
+    expect(await getCat(root, ID)).toMatchObject({ status: "queued", body: "adult" });
+    await fs.writeFile(catPath(ID, "paint_albedo.png"), Buffer.from([9]));
+    await workerMerges({ status: "done", base_version: "kitten-v1" });
+    expect(await getCat(root, ID)).toMatchObject({ status: "ready", body: "kitten", hasPrevAlbedo: true });
+    expect(await restorePrevious(root, ID, "換回來", "local-dev", NOW)).toEqual({ ok: true });
+    expect(await getCat(root, ID)).toMatchObject({ body: "adult" });
+    expect(await restorePrevious(root, ID, "再換", "local-dev", NOW)).toEqual({ ok: true });
+    expect(await getCat(root, ID)).toMatchObject({ body: "kitten" });
+  });
+  it("重畫失敗：母體維持目前貼圖的", async () => {
+    await addCat(ID, { job: { status: "done", base_version: "kitten-v1" }, albedo: true });
+    await queuePaint(root, ID, "front", "none", NOW);
+    await workerMerges({ status: "error" });
+    expect(await getCat(root, ID)).toMatchObject({ status: "failed", body: "kitten" });
+  });
+});
+
 describe("restorePrevious（改用上一版）", () => {
   const prevTex = Buffer.from([5, 5]);
   it("目前版與上一版互換，並寫稽核", async () => {

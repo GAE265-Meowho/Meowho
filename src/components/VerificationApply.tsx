@@ -6,6 +6,7 @@ import { useAuth } from "./Auth";
 import f from "./onboarding/intake.module.css";
 import CatButton from "./ui/CatButton";
 import Icon from "./ui/Icon";
+import Required from "./ui/Required";
 
 export interface VerificationRow { id: string; household_id: string; status: VerificationStatus; review_note: string | null; created_at: string }
 
@@ -61,12 +62,12 @@ export function VerificationApply({ householdId, verified, latest, onSubmitted }
         ))}
       </div>
       {form.orgType === "shelter_org" && (
-        <div className={f.field}><label className={f.label} htmlFor={`v-org-${householdId}`}>協會或單位名稱</label>
+        <div className={f.field}><label className={f.label} htmlFor={`v-org-${householdId}`}>協會或單位名稱<Required /></label>
           <input id={`v-org-${householdId}`} value={form.orgName} maxLength={60} onChange={e => set("orgName", e.target.value)} /></div>
       )}
-      <div className={f.field}><label className={f.label} htmlFor={`v-url-${householdId}`}>證明連結（粉專、官網、送養紀錄，選填）</label>
+      <div className={f.field}><label className={f.label} htmlFor={`v-url-${householdId}`}>證明連結（粉專、官網、送養紀錄）</label>
         <input id={`v-url-${householdId}`} type="url" inputMode="url" placeholder="https://" value={form.proofUrl} onChange={e => set("proofUrl", e.target.value)} /></div>
-      <div className={f.field}><label className={f.label} htmlFor={`v-desc-${householdId}`}>說明你的中途經驗</label>
+      <div className={f.field}><label className={f.label} htmlFor={`v-desc-${householdId}`}>說明你的中途經驗<Required /></label>
         <textarea id={`v-desc-${householdId}`} rows={3} maxLength={1000} placeholder="例如：在台中做個人中途 3 年，已送養 20 隻貓，目前照顧 6 隻" value={form.description} onChange={e => set("description", e.target.value)} /></div>
       {error && <p className={f.error} role="alert">{error}</p>}
       <div className={f.actions}>

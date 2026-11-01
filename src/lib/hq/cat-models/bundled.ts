@@ -1,6 +1,6 @@
 // 正式站／未設 CAT_STUDIO_ROOT 時的「已上架示範貓」：靜態檔在 public/hq-cat-models/。
 // 本機有 CAT_STUDIO_ROOT 時仍優先走 local.ts（可編輯、可產生）；正式站只讀這份目錄。
-import type { CatModelView } from "./types";
+import { baseFileName, type BodyType, type CatModelView } from "./types";
 import { CAT_ID_RE, FILE_KINDS, type FileKind } from "./local";
 
 const PUBLIC_BASE = "/hq-cat-models";
@@ -20,6 +20,7 @@ const BUNDLED: readonly CatModelView[] = [
     hasAlbedo: true,
     hasPrevAlbedo: false,
     albedoVersion: "2026-10-31T15:39:12",
+    body: "adult", // 貼圖畫在成貓母體上（當時只有成貓母體）
     jobStatus: "done",
     jobQueuedAt: "2026-10-31T15:28:20",
     jobStartedAt: "2026-10-31T15:34:45",
@@ -52,6 +53,6 @@ export function bundledFilePublicPath(id: string, kind: FileKind): string | null
   return null; // albedo_prev 示範貓沒有
 }
 
-export function bundledBasePublicPath(): string {
-  return `${PUBLIC_BASE}/base/base_clips.glb`;
+export function bundledBasePublicPath(body: BodyType = "adult"): string {
+  return `${PUBLIC_BASE}/base/${baseFileName(body)}`;
 }

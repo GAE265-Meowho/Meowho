@@ -4,9 +4,14 @@
 // 合併規則：
 // - 使用者講的值覆蓋舊值，也代表已確認（移出「請確認」）。
 // - AI 從照片／影片猜的值只填空欄，並標「請確認」；性別一律不猜。
+// - 性別與健康相關欄位，即使是從文字擷取的也標「請確認」（代名詞、「打第一劑」容易誤判，#82）。
 // - 位置一律再經規則過濾，只存到區；標籤只留固定清單內的。
 import { HEALTH_TAGS, PERSONALITY_TAGS, pickTags, type HealthTag, type PersonalityTag } from "../cat-profile/tags";
 import { lifeStageOf, type LifeStage } from "../cat-profile/life-stage";
+import {
+  HABITS, HANDOVER_ITEMS, emptyCompat, emptyMedical, healthTagsFromMedical, pickTerms,
+  type AdoptionTerms, type Compat, type Medical,
+} from "../cat-profile/adoption";
 import { ageMonths, parseAge, parseSex, type Sex } from "./cat";
 import { cleanName, parseCaretaker, parseCity, parseDistrict, type CaretakerType } from "./household";
 
@@ -39,6 +44,14 @@ export interface CatFields {
   /** 儲存路徑（不是網址，決策 006）；第 1 張為封面 */
   photos: string[];
   videos: string[];
+  medical: Medical;
+  compat: Compat;
+  habits: string[];
+  /** null＝沿用喵戶的預設送養條件 */
+  adoptionTerms: AdoptionTerms | null;
+  handover: string[];
+  /** 一般飼主的喵戶是自家貓，中途的是待領養 */
+  status: "own" | "adoptable";
 }
 
 export interface TimelineEntry { date: string; event: string }
@@ -46,7 +59,7 @@ export interface TimelineEntry { date: string; event: string }
 export const MAX_TIMELINE = 50;
 
 /** AI 猜的、還沒經喵戶長確認的欄位 */
-export type PendingField = "coat" | "breed" | "lifeStage" | "personalityTags";
+export type PendingField = "coat" | "breed" | "lifeStage" | "personalityTags" | "sex" | "health";
 
 export type Notice = "not_cat" | "inappropriate" | "maybe_other_cat" | "too_many_photos" | "too_many_videos" | null;
 
@@ -84,6 +97,13 @@ export interface CatTurn {
   description: string | null;
   /** date 照使用者寫的（例如 "8/01"），由引擎換成完整日期 */
   timeline: TimelineEntry[];
+  /** 每個欄位沒提到就是 null */
+  medical: { [K in keyof Medical]: Medical[K] | null };
+  compat: { [K in keyof Compat]: Compat[K] | null };
+  habits: string[];
+  adoptionTerms: string[];
+  adoptionNote: string | null;
+  handover: string[];
   wantsReview: boolean;
   reply: string;
 }
@@ -115,6 +135,7 @@ export const emptyIntake = (): IntakeState => ({
   cat: {
     name: "", sex: null, birthday: null, estAgeMonths: null, lifeStage: null, coat: null, breed: null,
     personalityTags: [], healthTags: [], description: null, timeline: [], photos: [], videos: [],
+    medical: emptyMedical(), compat: emptyCompat(), habits: [], adoptionTerms: null, handover: [], status: "adoptable",
   },
   pending: [],
   reviewRequested: false,
@@ -125,8 +146,9 @@ export const canCreateHousehold = (s: IntakeState) => householdMissing(s.househo
 
 export const canCreateCat = (s: IntakeState) => catMissing(s.cat) === null && s.pending.length === 0;
 
-/** 喵戶建立後，同一段對話接著建第一隻貓 */
-export const beginCat = (s: IntakeState): IntakeState => ({ ...s, phase: "cat", notice: null });
+/** 開始建一隻貓；status 依喵戶身分（一般飼主是自家貓） */
+export const beginCat = (s: IntakeState, status: CatFields["status"] = "adoptable"): IntakeState =>
+  ({ ...s, phase: "cat", notice: null, cat: { ...s.cat, status } });
 
 export const confirmField = (s: IntakeState, field: PendingField): IntakeState =>
   ({ ...s, pending: s.pending.filter((f) => f !== field) });
@@ -200,8 +222,9 @@ function mergeHousehold(s: IntakeState, t: HouseholdTurn): IntakeState {
 function mergeCat(s: IntakeState, t: CatTurn, today: Date): IntakeState {
   const c = { ...s.cat };
   const confirmed = new Set<PendingField>();
+  const toConfirm = new Set<PendingField>();
   if (t.name?.trim()) c.name = cleanName(t.name);
-  if (t.sex) c.sex = t.sex;
+  if (t.sex) { c.sex = t.sex; toConfirm.add("sex"); }
   if (t.birthday || t.estAgeMonths !== null) {
     c.birthday = t.birthday;
     c.estAgeMonths = t.birthday ? null : t.estAgeMonths;
@@ -216,8 +239,22 @@ function mergeCat(s: IntakeState, t: CatTurn, today: Date): IntakeState {
     c.personalityTags = pickTags([...c.personalityTags, ...personality], PERSONALITY_TAGS);
     confirmed.add("personalityTags");
   }
+  const medical = mergeKnown(c.medical, t.medical);
   const health = pickTags(t.healthTags, HEALTH_TAGS);
-  if (health.length) c.healthTags = pickTags([...c.healthTags, ...health], HEALTH_TAGS);
+  if (health.length || medical !== c.medical) {
+    c.medical = medical;
+    c.healthTags = reconcileHealth(pickTags([...c.healthTags, ...health], HEALTH_TAGS), medical);
+    toConfirm.add("health");
+  }
+  c.compat = mergeKnown(c.compat, t.compat);
+  const habits = pickTags(t.habits, HABITS);
+  if (habits.length) c.habits = pickTags([...c.habits, ...habits], HABITS);
+  const handover = pickTags(t.handover, HANDOVER_ITEMS);
+  if (handover.length) c.handover = pickTags([...c.handover, ...handover], HANDOVER_ITEMS);
+  if (t.adoptionTerms.length || t.adoptionNote?.trim()) {
+    const cur = c.adoptionTerms ?? { items: [], note: "" };
+    c.adoptionTerms = pickTerms([...cur.items, ...t.adoptionTerms], [cur.note, t.adoptionNote ?? ""].filter(Boolean).join("；"));
+  }
   const events = t.timeline.map((e) => ({ date: fullDate(e.date, today), event: e.event.trim().slice(0, 200) }))
     .filter((e): e is TimelineEntry => Boolean(e.date && e.event));
   if (events.length) c.timeline = mergeTimeline(c.timeline, events);
@@ -226,7 +263,7 @@ function mergeCat(s: IntakeState, t: CatTurn, today: Date): IntakeState {
   return {
     ...s,
     cat: c,
-    pending: s.pending.filter((f) => !confirmed.has(f)),
+    pending: [...new Set([...s.pending.filter((f) => !confirmed.has(f)), ...toConfirm])],
     reviewRequested: s.reviewRequested || t.wantsReview,
   };
 }
@@ -271,15 +308,45 @@ export const removeMedia = (s: IntakeState, path: string): IntakeState => ({
   cat: { ...s.cat, photos: s.cat.photos.filter((p) => p !== path), videos: s.cat.videos.filter((p) => p !== path) },
 });
 
-type EditableCatField = "name" | "sex" | "lifeStage" | "coat" | "breed" | "personalityTags" | "healthTags" | "description";
+type EditableCatField = "name" | "sex" | "lifeStage" | "coat" | "breed" | "personalityTags" | "healthTags" | "description"
+  | "medical" | "compat" | "habits" | "adoptionTerms" | "handover" | "status";
+
+/** 名片上改了哪個欄位，就算確認了哪一項「請確認」 */
+const CONFIRMS: Partial<Record<EditableCatField, PendingField>> = {
+  sex: "sex", lifeStage: "lifeStage", coat: "coat", breed: "breed", personalityTags: "personalityTags", healthTags: "health", medical: "health",
+};
 
 /** 名片上直接修改或按按鈕選擇：等同喵戶長親口確認 */
 export function setCatField<K extends EditableCatField>(s: IntakeState, field: K, value: CatFields[K] | string[]): IntakeState {
   const c = { ...s.cat };
   if (field === "personalityTags") c.personalityTags = pickTags(value as string[], PERSONALITY_TAGS);
   else if (field === "healthTags") c.healthTags = pickTags(value as string[], HEALTH_TAGS);
+  else if (field === "habits") c.habits = pickTags(value as string[], HABITS);
+  else if (field === "handover") c.handover = pickTags(value as string[], HANDOVER_ITEMS);
   else Object.assign(c, { [field]: value });
-  return { ...s, cat: c, pending: s.pending.filter((f) => f !== field) };
+  return { ...s, cat: c, pending: s.pending.filter((f) => f !== CONFIRMS[field]) };
+}
+
+// ---------- 醫療細項 ----------
+
+/** 只用有提到（不是 null）的欄位覆蓋；沒有變化時回傳同一個物件 */
+function mergeKnown<T extends object>(cur: T, patch: { [K in keyof T]: T[K] | null }): T {
+  const known = Object.entries(patch).filter(([, v]) => v !== null && v !== undefined);
+  return known.length ? { ...cur, ...Object.fromEntries(known) } : cur;
+}
+
+/** 醫療細項有寫的部分以它為準（例如只打一劑時去掉「疫苗已完成」），其他標籤照留 */
+function reconcileHealth(tags: HealthTag[], m: Medical): HealthTag[] {
+  const derived = healthTagsFromMedical(m);
+  const known: Partial<Record<HealthTag, boolean>> = {
+    "已結紮": m.neutered !== "unknown",
+    "疫苗已完成": m.vaccineDoses !== null,
+    "已驅蟲": m.dewormInternal !== "unknown" && m.dewormExternal !== "unknown",
+    "FIV 陽性": m.fivFelv !== "untested",
+    "FeLV 陽性": m.fivFelv !== "untested",
+  };
+  const kept = tags.filter((t) => !known[t]);
+  return pickTags([...kept, ...derived], HEALTH_TAGS);
 }
 
 // ---------- 時間軸 ----------
@@ -300,14 +367,19 @@ export function fullDate(raw: string, today = new Date()): string | null {
 
 const DATE_LINE = /^\s*((?:\d{4}[/／.年])?\d{1,2}[/／.月]\d{1,2}日?)\s*(.*)$/;
 
-/** 每個日期開頭的段落是一筆事件，後面沒有日期的行併進同一筆；第一個日期之前的文字不算 */
+/** 「送養條件：」「個性：」這類小標題 */
+const SECTION_LINE = /^\s*[^\s：:，,]{2,8}[：:]/;
+
+/** 每個日期開頭的段落是一筆事件，後面沒有日期的行併進同一筆，遇到空行或小標題就停；第一個日期之前的文字不算 */
 export function parseTimeline(text: string, today = new Date()): TimelineEntry[] {
   const out: TimelineEntry[] = [];
+  let open = false;
   for (const line of text.split(/\r?\n/)) {
     const m = line.match(DATE_LINE);
     const date = m ? fullDate(m[1], today) : null;
-    if (m && date) out.push({ date, event: m[2].trim() });
-    else if (out.length && line.trim()) out[out.length - 1].event += `\n${line.trim()}`;
+    if (m && date) { out.push({ date, event: m[2].trim() }); open = true; }
+    else if (!line.trim() || SECTION_LINE.test(line)) open = false;
+    else if (open) out[out.length - 1].event += `\n${line.trim()}`;
   }
   return out.filter((e) => e.event).map((e) => ({ ...e, event: e.event.slice(0, 200) }));
 }
@@ -353,6 +425,35 @@ function householdByRules(text: string, asking: AskField | null): HouseholdTurn 
 /** 「我的中途貓：麥麥」「叫麥麥」：沒在問名字時，從整段話裡找 */
 const CAT_NAMED = /(?:叫做?|名字是|貓[：:])\s*「?([^，。,、「」\s（(]{1,10})」?/;
 
+const DOSE = /第\s*([一二三四五1-5])\s*劑/;
+const DOSE_NUM: Record<string, number> = { 一: 1, 二: 2, 三: 3, 四: 4, 五: 5 };
+const TERM_RULES: [string, RegExp][] = [
+  ["不放養", /不(可|能)?放養/], ["門窗防護", /防護網|紗窗|門窗/], ["家訪", /家訪/], ["簽切結書", /切結|認養契約/],
+  ["定期追蹤回報", /追蹤|回報/], ["不轉送不棄養", /不(可|得)?轉送|棄養/], ["年滿 20 歲或家人同意", /20\s*歲|二十歲/],
+  ["租屋須房東同意", /房東同意/],
+];
+const HABIT_RULES: [string, RegExp][] = [
+  ["會用貓砂", /會用貓砂|會上廁所/], ["護食", /護食/], ["抓家具", /抓(沙發|家具)/], ["夜間活躍", /半夜|夜衝|跑酷/],
+  ["怕吸塵器", /怕吸塵器/], ["愛咬手", /咬手/], ["會開門", /會開門/],
+];
+
+function medicalByRules(text: string): CatTurn["medical"] {
+  const dose = text.match(DOSE)?.[1];
+  return {
+    neutered: /已結紮|結紮過|有結紮/.test(text) ? "done" : /還沒結紮|未結紮/.test(text) ? "not_done" : null,
+    neuterNote: null,
+    vaccineDoses: dose ? DOSE_NUM[dose] ?? Number(dose) : null,
+    lastVaccineDate: null,
+    dewormInternal: /驅蟲/.test(text) ? "done" : null,
+    dewormExternal: /驅蟲/.test(text) ? "done" : null,
+    fivFelv: /快篩.{0,4}陰性|雙陰/.test(text) ? "negative" : null,
+    testDate: null,
+    microchip: /有晶片|已植入晶片|打了晶片/.test(text) ? "yes" : null,
+    history: null,
+    medication: null,
+  };
+}
+
 function catByRules(text: string, asking: AskField | null, today: Date): CatTurn {
   const age = parseAge(text, today);
   const personality = PERSONALITY_TAGS.filter((t) => text.includes(t));
@@ -369,6 +470,12 @@ function catByRules(text: string, asking: AskField | null, today: Date): CatTurn
     healthTags: health,
     description: personality.length || health.length || asking === "description" ? text.trim().slice(0, 2000) : null,
     timeline: [],
+    medical: medicalByRules(text),
+    compat: { cats: /親其他貓|會跟其他貓|和其他貓相處/.test(text) ? "yes" : null, dogs: null, kids: null },
+    habits: HABIT_RULES.filter(([, re]) => re.test(text)).map(([h]) => h),
+    adoptionTerms: TERM_RULES.filter(([, re]) => re.test(text)).map(([t]) => t),
+    adoptionNote: null,
+    handover: [],
     wantsReview: WANTS_REVIEW.test(text),
     reply: "",
   };

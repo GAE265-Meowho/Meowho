@@ -8,7 +8,13 @@ const fake = (out: unknown, seen?: BaseMessage[][]) =>
 
 const catOut = {
   name: "橘子", sex: null, birthday: null, estAgeMonths: 24, lifeStage: null, coat: null, breed: null,
-  personalityTags: ["親人"], healthTags: [], description: "很親人", timeline: [{ date: "8/01", event: "接回家" }], wantsReview: false, reply: "好可愛",
+  personalityTags: ["親人"], healthTags: [], description: "很親人", timeline: [{ date: "8/01", event: "接回家" }],
+  medical: {
+    neutered: null, neuterNote: null, vaccineDoses: 1, lastVaccineDate: null, dewormInternal: null, dewormExternal: null,
+    fivFelv: null, testDate: null, microchip: null, history: null, medication: null,
+  },
+  compat: { cats: null, dogs: null, kids: null }, habits: [], adoptionTerms: ["家訪"], adoptionNote: null, handover: [],
+  wantsReview: false, reply: "好可愛",
 };
 
 describe("建檔對話的 LLM 鏈（假模型，不連網）", () => {
@@ -23,6 +29,8 @@ describe("建檔對話的 LLM 鏈（假模型，不連網）", () => {
     await catTurnChain(fake(catOut, seen)).invoke(intakeTurnInput("name", "叫橘子"));
     expect(String(seen[0][0].content)).toContain("親其他貓");
     expect(String(seen[0][0].content)).toContain("需每日用藥");
+    expect(String(seen[0][0].content)).toContain("簽切結書");
+    expect(String(seen[0][0].content)).toContain("護食");
   });
 
   it("依階段選喵戶或貓咪的鏈", async () => {

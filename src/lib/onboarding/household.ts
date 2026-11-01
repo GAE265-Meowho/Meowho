@@ -4,9 +4,6 @@ import { CITIES } from "../match";
 
 export type CaretakerType = "personal_foster" | "shelter_org" | "cat_owner";
 
-/** 一個帳號最多可以建立的貓戶數（資料庫 trigger 也會檢查） */
-export const MAX_HOUSEHOLDS_PER_ACCOUNT = 2;
-export const canCreateHousehold = (existing: number) => existing < MAX_HOUSEHOLDS_PER_ACCOUNT;
 
 export const CARETAKER_LABEL: Record<CaretakerType, string> = {
   personal_foster: "個人中途",

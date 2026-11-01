@@ -204,7 +204,7 @@
 
 | Bucket | 公開 | 內容 | 單檔上限 | 寫入權限 |
 |---|---|---|---|---|
-| `meow-cat-photos` | 私有 | 原始照片、去背圖 | 10 MB | `virtual_assets` 管理員（範本貓）／會員本人（使用者的貓） |
+| `meow-cat-model-photos`（`meow-cat-photos` 已被貓戶照片使用且為公開，0005 改用新 bucket） | 私有 | 原始照片、去背圖 | 10 MB | `virtual_assets` 管理員（範本貓）／會員本人（使用者的貓） |
 | `meow-cat-models` | 公開讀取 | 母體 glb、已上架貓的貼圖與單檔 glb | 50 MB | worker（service role）；管理員上下架 |
 
 - 公開讀取只針對母體與已上架的檔案；未上架的貼圖放在非公開路徑，預覽改用 signed URL。細節在 migration 設計時定案。
@@ -271,6 +271,21 @@
 | 逾時 | `running` 超過 30 分鐘且無更新視為卡住，可由管理員重試 |
 | 金鑰 | worker 使用的 service role key 只放在 worker 的環境變數，不放網頁、不進 repo |
 
+### Supabase 模式（#88，正式站）
+
+| 步驟 | 誰 | 做什麼 |
+|---|---|---|
+| 新增 | 瀏覽器 → `POST /api/hq/cat-models/upload` | 檢查格式與大小、配貓咪 ID、簽 `meow-cat-model-photos/<ID>/photo.<副檔名>` 上傳網址 |
+| | 瀏覽器 → Storage | 直傳照片（不經 Vercel，避開約 4.5 MB 請求上限） |
+| | 瀏覽器 → `POST /api/hq/cat-models` | 帶 ID 與照片路徑建立草稿（伺服器確認照片真的在、路徑屬於這個 ID） |
+| 產生 | `POST /api/hq/cat-models/<ID>/paint` | 新增一筆 `queued` 任務（unique index 擋重複）、貓改「排隊中」、稽核 `generate_model` |
+| | `paint_worker.py --supabase` | 條件式更新 `queued→running` 領取；下載照片（去背圖存回 `photo_nobg.png` 重用）；依年齡選母體上色（≤6 個月幼貓 `cat_base_kitten`）；貼圖上傳 `meow-cat-models/cats/<ID>/albedo_<時間>.png`（每次新檔名，避開快取）；目前版→上一版、更早的上一版刪除；寫回 `base_version`（`adult-v1`／`kitten-v1`）、`meta.seconds` |
+| 換版 | `POST /api/hq/cat-models/<ID>/restore` | `albedo_path`／`prev_albedo_path` 互換、稽核 `restore_texture` |
+
+- 預覽的母體：有貼圖看 `base_version`（`kitten*` 幼貓，其他含舊資料 `v1` 成貓），沒有貼圖依年齡；`/api/hq/cat-models/base?body=kitten`。
+- worker 金鑰：環境變數 `NEXT_PUBLIC_SUPABASE_URL`、`SUPABASE_SERVICE_ROLE_KEY`，沒設時讀 `--env` 指的檔（預設 MeowHome 的 `.env.local`）。**worker 沒開，任務會一直排隊**（超過 2 分鐘頁面會提示）。
+- 所有寫入都用登入者 session，由 RLS 檢查 `virtual_assets`；service role 只在 worker 與讀取退路使用。
+
 ### 本機模式（先在 Tina 電腦預覽）
 
 - 後台的儲存與任務介面（repository）有兩種實作：**本機檔案**與 **Supabase**，以環境變數切換。
@@ -307,7 +322,7 @@
 | 2a | `/MeowHQ/assets` 四個分頁外殼＋貓咪列表＋共用 `CatPreview` 元件（母體 glb＋換貼圖、動作淡入淡出、眨眼、看游標）＋**貓咪頁** `/cats/<id>`（動作清單、`?clip=`、上下架畫面）＋repository 介面與**本機檔案實作**（先用母體預設貼圖與 Cat Studio 既有的貓示範） | PR 1 |
 | 2b | **貼圖工作頁** `/cats/<id>/studio` 與新增頁 `/cats/new`：新增與上傳照片、產生選項、任務進度、貼圖結果檢視、改用上一版（驅動現有 paint_worker）。**已完成**；工作頁不內嵌 3D 預覽（改以按鈕導向貓咪頁）、「換照片」與「取消任務」尚未做 | PR 2a |
 | 3 | migration `0004_meow_cat_models.sql`（資料表、RLS、bucket、稽核動作）＋ Supabase 實作＋上下架與稽核 | PR 2、Tina 確認 |
-| 4 | worker 增加 Supabase 實作、匯出單檔 GLB、任務狀態顯示 | PR 3 |
+| 4 | worker 增加 Supabase 實作、匯出單檔 GLB、任務狀態顯示。**#88 已做**：網頁端 Supabase 新增／產生／換版、`paint_worker.py --supabase`、成貓／幼貓母體（≤6 個月幼貓，依 `base_version` 預覽）；匯出單檔 GLB 尚未做 | PR 3 |
 | 5 | 動作庫 manifest 與動作清單子頁；之後陸續補入吃飯、上廁所、撒嬌、跳躍、休息、理毛 | PR 2 之後皆可 |
 
 ## 8. 驗收（摘要，細項併入 02 測試計畫）
