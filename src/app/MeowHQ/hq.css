@@ -269,6 +269,11 @@
 .hq-angle.planned { opacity: .6; }
 .hq-angle .hq-photo { align-self: center; max-height: 140px; }
 .hq-angle-pick { cursor: pointer; }
+/* 新增貓咪：拍攝範例（#98） */
+.hq-examples { display: grid; grid-template-columns: repeat(2, minmax(0, 140px)); gap: .75rem; }
+.hq-examples figure { margin: 0; display: flex; flex-direction: column; align-items: center; gap: .25rem; }
+.hq-examples img { width: 100%; aspect-ratio: 1; object-fit: contain; border: 1px solid var(--hq-line); border-radius: 10px; background: var(--hq-card); }
+.hq-examples figcaption { font-size: .85rem; color: var(--hq-sub); }
 .hq-silhouette { width: 96px; height: 64px; fill: var(--hq-sub); color: var(--hq-sub); opacity: .45; }
 .hq-visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 .hq-angle:focus-within { outline: 2px solid var(--hq-sage); outline-offset: 2px; }

@@ -1,6 +1,6 @@
 // 虛擬體驗元件管理｜貓咪（規格書 04 §1、§2.2、§2.4、§5）
 import "@testing-library/jest-dom/vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { CatModelView } from "@/lib/hq/cat-models/types";
 import { BaseSamples } from "./BaseSamples";
@@ -127,6 +127,14 @@ describe("NewCat", () => {
     render(<NewCat />);
     expect(screen.getByText(/側拍、坐姿或站姿/)).toBeInTheDocument();
     expect(screen.getByText("儲存後狀態是「草稿」，不會自動開始生成。")).toBeInTheDocument();
+  });
+  it("拍攝範例：成貓、幼貓各一張範例照（#98）", () => {
+    render(<NewCat />);
+    const examples = screen.getByRole("group", { name: "拍攝範例" });
+    expect(within(examples).getByRole("img", { name: "成貓拍攝範例：側面全身站姿" })).toHaveAttribute("src", "/hq-cat-models/examples/adult.webp");
+    expect(within(examples).getByRole("img", { name: "幼貓拍攝範例：側面全身站姿" })).toHaveAttribute("src", "/hq-cat-models/examples/kitten.webp");
+    expect(within(examples).getByText("成貓")).toBeInTheDocument();
+    expect(within(examples).getByText("幼貓")).toBeInTheDocument();
   });
 });
 
