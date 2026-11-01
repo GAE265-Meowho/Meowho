@@ -7,7 +7,7 @@ import { MyHomes, type CatRow, type Household } from "@/components/me/MyHomes";
 import f from "@/components/onboarding/intake.module.css";
 import CatButton from "@/components/ui/CatButton";
 import Icon from "@/components/ui/Icon";
-import { deleteCat } from "@/components/me/delete-cat";
+import { deleteCat, deleteHousehold } from "@/components/me/delete-cat";
 import { MyApplications } from "@/components/me/MyApplications";
 import { canAddHousehold, parseHouseholdLimit } from "@/lib/onboarding/household-rules";
 import { getBrowserSupabase } from "@/lib/supabase/client";
@@ -76,6 +76,12 @@ export default function MyHomePage() {
           const sb = getBrowserSupabase();
           const err = sb ? await deleteCat(sb, id) : null;
           if (err) setLoadError(`刪除失敗：${err}`); else setCats(list => list.filter(c => c.id !== id));
+        }}
+        onDeleteHome={async id => {
+          const sb = getBrowserSupabase();
+          const err = sb ? await deleteHousehold(sb, id, cats.filter(c => c.household_id === id).map(c => c.id)) : null;
+          if (err) setLoadError(`刪除失敗：${err}`);
+          else { setHomes(list => (list ?? []).filter(h => h.id !== id)); setCats(list => list.filter(c => c.household_id !== id)); }
         }} />
       {user && <MyApplications userId={user.id} />}
       <div className={s.footer}>

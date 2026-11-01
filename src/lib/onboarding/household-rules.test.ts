@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { canAddHousehold, checkHousehold, defaultCatStatus, emptyHouseholdForm, toHouseholdRow, verificationRow, type HouseholdForm } from "./household-rules";
+import { canAddHousehold, checkHousehold, defaultCatStatus, emptyHouseholdForm, fromHouseholdRow, toHouseholdRow, toHouseholdUpdate, verificationRow, type HouseholdForm } from "./household-rules";
 
 const base = (o: Partial<HouseholdForm>): HouseholdForm => ({ ...emptyHouseholdForm(), city: "台中市", district: "北屯區", ...o });
 
@@ -93,5 +93,27 @@ describe("喵戶數量上限", () => {
   it("設定上限後擋下", () => {
     expect(canAddHousehold(2, 2)).toBe(false);
     expect(canAddHousehold(1, 2)).toBe(true);
+  });
+});
+
+describe("修改喵戶", () => {
+  const row = {
+    name: "麥麥之家", caretaker_type: "personal_foster" as const, city: "桃園市", district: "龍潭區", intro: "個人中途三年",
+    home: null, adoption_terms: { items: ["家訪" as const], note: "" }, org_name: null, org_proof_url: null,
+  };
+
+  it("資料庫一筆 → 表單，舊資料缺的居住環境欄位用預設值", () => {
+    const f = fromHouseholdRow(row);
+    expect(f).toMatchObject({ role: "personal_foster", name: "麥麥之家", city: "桃園市", district: "龍潭區", intro: "個人中途三年", terms: { items: ["家訪"], note: "" } });
+    const owner = fromHouseholdRow({ ...row, caretaker_type: "cat_owner", home: { dwelling: "house", renting: true } });
+    expect(owner.home).toMatchObject({ dwelling: "house", living: null, family: [], petsOther: "" });
+  });
+
+  it("更新時不改身分", () => {
+    expect(toHouseholdUpdate(fromHouseholdRow(row))).not.toHaveProperty("caretaker_type");
+  });
+
+  it("改名時不跟自己比重複", () => {
+    expect(checkHousehold(fromHouseholdRow(row), ["麥麥之家", "大橘之家"].filter(n => n !== row.name))).toEqual([]);
   });
 });

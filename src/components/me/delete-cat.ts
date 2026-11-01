@@ -20,3 +20,13 @@ export async function deleteCat(sb: SupabaseClient, catId: string): Promise<stri
   const { error: delErr } = await sb.from("meow_cats").delete().eq("id", catId);
   return delErr?.message ?? null;
 }
+
+/** 刪除喵戶（#82）：先逐隻刪貓（含照片、影片），再刪喵戶；問卷、收藏、認證申請由資料庫連動刪除 */
+export async function deleteHousehold(sb: SupabaseClient, householdId: string, catIds: string[]): Promise<string | null> {
+  for (const id of catIds) {
+    const err = await deleteCat(sb, id);
+    if (err) return `刪除貓咪時失敗：${err}`;
+  }
+  const { error } = await sb.from("meow_households").delete().eq("id", householdId);
+  return error?.message ?? null;
+}
