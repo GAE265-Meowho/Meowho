@@ -7,6 +7,7 @@ import { MyHomes, type CatRow, type Household } from "@/components/me/MyHomes";
 import f from "@/components/onboarding/intake.module.css";
 import CatButton from "@/components/ui/CatButton";
 import { deleteCat } from "@/components/me/delete-cat";
+import { MyApplications } from "@/components/me/MyApplications";
 import { canAddHousehold, parseHouseholdLimit } from "@/lib/onboarding/household-rules";
 import { getBrowserSupabase } from "@/lib/supabase/client";
 import s from "@/components/me/me.module.css";
@@ -54,13 +55,17 @@ export default function MyHomePage() {
       <div className={f.actions} style={{ justifyContent: "center" }}><CatButton onClick={() => login("/me")}>使用 Google 登入</CatButton></div>
     </section>
   );
+  // 還沒有喵戶也可能填過領養問卷
   else if (!homes?.length) body = (
+    <>
     <section className={`${f.card} ${f.center}`} aria-labelledby="me-empty">
       <h2 id="me-empty">你還沒有喵戶</h2>
       <p className={f.lead}>選好身分、填幾個欄位就能建好。</p>
       {loadError && <p className={f.error} role="alert">讀取失敗：{loadError}</p>}
       <div className={f.actions} style={{ justifyContent: "center" }}><CatButton href="/onboarding">建立喵戶</CatButton></div>
     </section>
+    <MyApplications userId={user.id} />
+    </>
   );
   else body = (
     <>
@@ -71,6 +76,7 @@ export default function MyHomePage() {
           const err = sb ? await deleteCat(sb, id) : null;
           if (err) setLoadError(`刪除失敗：${err}`); else setCats(list => list.filter(c => c.id !== id));
         }} />
+      {user && <MyApplications userId={user.id} />}
       <div className={s.footer}>
         {canAddHousehold(homes.length, limit)
           ? <CatButton variant="ghost" href="/onboarding?new=1">建立新的喵戶</CatButton>

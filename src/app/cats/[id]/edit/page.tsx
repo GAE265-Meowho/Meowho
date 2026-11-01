@@ -1,5 +1,5 @@
 "use client";
-// 修改貓咪（#82）：沿用新增時的名片。照片可以調整封面、移除；移除的檔案在按「儲存修改」後才從雲端刪掉。
+// 修改貓咪（#82）：沿用新增時的名片；待領養的貓在這裡建立領養問卷（#89）。照片可以調整封面、移除；移除的檔案在按「儲存修改」後才從雲端刪掉。
 // 只有喵戶擁有者改得動（RLS 會再擋一次）。
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -8,6 +8,7 @@ import { SiteHeader } from "@/components/Chrome";
 import { CatCard, MediaTray, type MediaPreview } from "@/components/onboarding/IntakeCards";
 import s from "@/components/onboarding/intake.module.css";
 import CatButton from "@/components/ui/CatButton";
+import { FormEditor } from "@/components/adoption-form/FormEditor";
 import type { AdoptionTerms } from "@/lib/cat-profile/adoption";
 import { emptyIntake, type IntakeState } from "@/lib/onboarding/conversation";
 import { fromCatRow, toCatUpdate } from "@/lib/onboarding/intake-rows";
@@ -21,6 +22,7 @@ export default function EditCatPage() {
   const [state, setState] = useState<IntakeState | null>(null);
   const [original, setOriginal] = useState<{ photos: string[]; videos: string[] }>({ photos: [], videos: [] });
   const [homeTerms, setHomeTerms] = useState<AdoptionTerms | null>(null);
+  const [householdId, setHouseholdId] = useState<string | null>(null);
   const [previews, setPreviews] = useState<Record<string, MediaPreview>>({});
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -38,6 +40,7 @@ export default function EditCatPage() {
       const videos = (vids ?? []).map(v => v.storage_path as string);
       const cat = fromCatRow({ ...row, videos });
       setHomeTerms(row.household.adoption_terms ?? null);
+      setHouseholdId(row.household_id);
       setOriginal({ photos: cat.photos, videos });
       setPreviews(Object.fromEntries(cat.photos.map(p => [p, { url: sb.storage.from(PHOTO_BUCKET).getPublicUrl(p).data.publicUrl, kind: "photo" as const }])));
       setState({ ...emptyIntake(), phase: "cat", cat, reviewRequested: true });
@@ -78,6 +81,8 @@ export default function EditCatPage() {
           <>
             <MediaTray state={state} previews={previews} onChange={setState} onRemoved={() => {}} />
             <CatCard state={state} onChange={setState} onCreate={save} saving={saving} error={error} aiUsed={false} homeTerms={homeTerms} submitLabel="儲存修改" />
+            {/* 問卷屬於待領養貓（#89）；狀態以已存檔的為準 */}
+            {householdId && state.cat.status === "adoptable" && <FormEditor catId={id} catStatus={state.cat.status} householdId={householdId} />}
           </>
         )}
       </main>
