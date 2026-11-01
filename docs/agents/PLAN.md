@@ -53,7 +53,7 @@
 | 26 | 品牌改名 Meowho喵戶、換新 Logo（三張）、前台新樣板 | matching | — | P1 | #42 | Tina × Claude | 進行中（改名與 Logo 完成；樣板第一批＝色票／按鈕／入口卡／頁尾已上，區塊版型細改待續） |
 | 27 | 喵戶小區（示意資料）＋貓咪走到新家動畫 | matching | 26 | P1 | #44 | Tina × Claude | 進行中（小區完成；動畫等 Tina 用 WhoMeow 3D 流程提供素材，儲存位置見 #15） |
 | 23-3 | MeowHQ 階段 3：虛擬體驗元件管理—貓咪模型（T-HQ-11）、獨立審查（T-HQ-13） | admin-moderation | 23-2 | P2 | #75 | Tina × Cursor | 進行中（儲存位置已定 Supabase Storage；PR 2a 貓咪列表／貓咪頁／預覽、2b 新增與貼圖工作頁已完成審查中（同一個 PR），之後 3 migration、4 worker、5 動作庫） |
-| 23-4 | MeowHQ 貓咪模型：線上上傳照片產生 3D（Supabase 新增／產生／換版、本機 worker `--supabase`、成貓／幼貓母體） | admin-moderation | 23-3 | P2 | #88 | Tina × Claude Code | 進行中（本機 commit，待 Tina 確認後 push／開 PR） |
+| 23-4 | MeowHQ 貓咪模型：線上上傳照片產生 3D（Supabase 新增／產生／換版、本機 worker `--supabase`、成貓／幼貓母體） | admin-moderation | 23-3 | P2 | #88 | Tina × Claude Code | 審查中（PR #90） |
 | 28-1 | 首頁、頁首頁尾改用 meowwho-v2 新版 UI；內頁版型待續 | matching | 26 | P1 | #64 | 子哲 × Claude | 完成（#65 已合併） |
 | 29 | 部署改為 Vercel meowho、Supabase 改為獨立專案（決策 005）的文件 | account | — | P1 | #66 | 子哲 × Claude | 審查中 |
 | 30 | 修正 Google 登入後看不到頭像 | account | — | P1 | #68 | 子哲 × Claude | 審查中 |
