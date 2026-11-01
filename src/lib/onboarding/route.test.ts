@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { decideStart, type StartInput } from "./route";
 
-const base: StartInput = { configured: true, loggedIn: true, wantCat: false, wantNew: false, homesCount: 0, targetFound: false };
+const base: StartInput = { configured: true, loggedIn: true, wantCat: false, wantNew: false, homesCount: 0, householdLimit: 2, targetFound: false };
 
 describe("新貓入戶（Issue #7）", () => {
   it("未登入時先登入", () => expect(decideStart({ ...base, loggedIn: false, wantCat: true })).toBe("login"));
@@ -16,4 +16,5 @@ describe("建立喵戶", () => {
   it("有貓戶 → 選擇", () => expect(decideStart({ ...base, homesCount: 1 })).toBe("choose"));
   it("指定建立新貓戶且未滿 → 建立", () => expect(decideStart({ ...base, homesCount: 1, wantNew: true })).toBe("household"));
   it("已滿 2 戶 → 選擇", () => expect(decideStart({ ...base, homesCount: 2, wantNew: true })).toBe("choose"));
+  it("不限制時，有很多戶也能建立新的", () => expect(decideStart({ ...base, homesCount: 9, wantNew: true, householdLimit: null })).toBe("household"));
 });

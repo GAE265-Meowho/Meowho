@@ -1,0 +1,6 @@
+/* --orange-deep 在白底對比 5.2:1 */
+.star {
+  margin-left: 2px;
+  color: var(--orange-deep);
+  font-weight: 700;
+}

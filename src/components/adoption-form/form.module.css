@@ -1,0 +1,46 @@
+/* 領養問卷：編輯、填寫、看回覆（#89）。沿用 onboarding/intake.module.css 的卡片與欄位 */
+.section { display: flex; flex-direction: column; gap: 10px; }
+.section h3 { margin: 8px 0 0; font-size: 18px; color: var(--ink); letter-spacing: 0.04em; }
+
+.questions { display: flex; flex-direction: column; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.question { display: flex; flex-direction: column; gap: 6px; padding: 12px; border-radius: 20px; background: var(--cream); }
+.question textarea { width: 100%; }
+
+.qMeta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; }
+.type { font-size: 13px; color: var(--ink-soft); margin-right: auto; }
+.options { margin: 0; font-size: 14px; color: var(--ink-soft); }
+
+.iconBtn {
+  display: grid; place-items: center; width: max(36px, var(--tap)); height: max(36px, var(--tap));
+  border: 0; border-radius: 50%; background: var(--card); color: var(--ink); cursor: pointer;
+}
+.up { transform: rotate(-45deg); }
+.down { transform: rotate(135deg); }
+
+.adder { display: flex; flex-direction: column; gap: 8px; padding: 14px; border: 2px dashed var(--line); border-radius: 20px; }
+
+.statusRow { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.badge { padding: 2px 12px; border-radius: 999px; background: var(--orange-soft); color: var(--ink); font-size: 13px; font-weight: 700; }
+.open { background: var(--mint-soft); }
+.link { color: var(--orange-deep); font-weight: 700; overflow-wrap: anywhere; }
+
+.responses { display: flex; flex-direction: column; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.response { border: 2px solid var(--line); border-radius: 20px; overflow: hidden; }
+.responseHead {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; width: 100%; min-height: var(--tap);
+  padding: 12px 16px; border: 0; background: var(--card); color: var(--ink); font: inherit; text-align: left; cursor: pointer;
+}
+.responseHead span { font-size: 14px; color: var(--ink-soft); }
+.responseBody { display: flex; flex-direction: column; gap: 12px; padding: 0 16px 16px; }
+
+.answers { display: flex; flex-direction: column; gap: 10px; margin: 0; }
+.answers dt { font-size: 14px; font-weight: 700; color: var(--ink); }
+.answers dd { margin: 2px 0 0; font-size: 15px; color: var(--ink); line-height: 1.7; white-space: pre-wrap; overflow-wrap: anywhere; }
+
+.photos { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; margin-top: 6px; }
+.photos img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 16px; }
+
+.steps { display: flex; flex-wrap: wrap; gap: 6px; }
+.step { padding: 4px 12px; border-radius: 999px; background: var(--cream); color: var(--ink-soft); font-size: 13px; font-weight: 700; }
+.stepOn { background: var(--ink); color: var(--yellow); }
+.note { margin: 0; padding: 12px 16px; border-radius: 20px; background: var(--yellow-soft); color: var(--ink); font-size: 15px; line-height: 1.7; }

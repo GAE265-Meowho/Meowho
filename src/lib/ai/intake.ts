@@ -4,7 +4,9 @@ import type { BaseMessage } from "@langchain/core/messages";
 import type { Runnable } from "@langchain/core/runnables";
 import { CAT_PHOTO_ANALYSIS, CAT_VIDEO_ANALYSIS, INTAKE_CAT, INTAKE_HOUSEHOLD } from "@/lib/prompts/onboarding";
 import { HEALTH_TAGS, PERSONALITY_TAGS } from "@/lib/cat-profile/tags";
+import { ADOPTION_TERMS, HABITS, HANDOVER_ITEMS } from "@/lib/cat-profile/adoption";
 import type { TurnExtractor } from "@/lib/onboarding/conversation";
+import { MAX_ANALYZE_VIDEO_BYTES } from "@/lib/storage/media";
 import { createStructuredChain } from "./chain";
 import { wrapUserInput } from "./guard";
 import type { Provider } from "./config";
@@ -14,7 +16,10 @@ type Runner = Runnable<BaseMessage[], unknown>;
 
 const catSystem = INTAKE_CAT.system
   .replace("{{PERSONALITY_TAGS}}", PERSONALITY_TAGS.join("、"))
-  .replace("{{HEALTH_TAGS}}", HEALTH_TAGS.join("、"));
+  .replace("{{HEALTH_TAGS}}", HEALTH_TAGS.join("、"))
+  .replace("{{HABITS}}", HABITS.join("、"))
+  .replace("{{HANDOVER}}", HANDOVER_ITEMS.join("、"))
+  .replace("{{ADOPTION_TERMS}}", ADOPTION_TERMS.join("、"));
 
 const videoSystem = CAT_VIDEO_ANALYSIS.system.replace("{{PERSONALITY_TAGS}}", PERSONALITY_TAGS.join("、"));
 
@@ -39,6 +44,6 @@ export const catVideoInput = (mimeType: string, base64: string) =>
   ({ text: "請觀察這段影片中的貓咪個性。", media: { mimeType, data: base64 } });
 
 /** Gemini 直接夾帶檔案的上限約 20 MB；更大的影片先不判讀（可行性報告會記錄比例），之後可改用 Gemini File API */
-export const MAX_INLINE_VIDEO_BYTES = 20 * 1024 * 1024;
+export const MAX_INLINE_VIDEO_BYTES = MAX_ANALYZE_VIDEO_BYTES;
 export const canAnalyzeVideo = (provider: Provider | null, sizeBytes: number) =>
   provider === "gemini" && sizeBytes <= MAX_INLINE_VIDEO_BYTES;
