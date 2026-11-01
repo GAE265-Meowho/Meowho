@@ -1,6 +1,7 @@
 // 依身分建立喵戶（#82）：一般飼主的喵戶是「自己的家」，中途的喵戶是「送養據點」。
 // 純函式，畫面與測試共用。位置只存到縣市＋區（AGENTS.md §6）。
 import { AdoptionTermsSchema, type AdoptionTerms } from "../cat-profile/adoption";
+import { isKnownDistrict } from "../geo/tw-districts";
 import { cleanName, parseDistrict, type CaretakerType } from "./household";
 import { z } from "zod";
 
@@ -12,15 +13,19 @@ export const ROLE_INFO: Record<CaretakerType, { label: string; hint: string }> =
 export const ROLES = Object.keys(ROLE_INFO) as CaretakerType[];
 
 export const DWELLINGS = { apartment: "公寓", building: "電梯大樓", house: "透天", other: "其他" } as const;
-export const FAMILY = ["小孩", "長輩", "室友"] as const;
+export const LIVING = { rent: "租屋", own: "自有", family: "與家人同住" } as const;
+export const FAMILY = ["小孩", "長輩", "伴侶", "室友", "其他"] as const;
 export const PETS = ["貓", "狗", "其他動物"] as const;
 
+// 選「其他」時的補充文字存在 *Other 欄位（#89）
 export const HomeSchema = z.object({
   dwelling: z.enum(Object.keys(DWELLINGS) as [keyof typeof DWELLINGS]).nullable(),
-  renting: z.boolean().nullable(),
-  landlordOk: z.boolean().nullable(),
+  dwellingOther: z.string().max(30),
+  living: z.enum(Object.keys(LIVING) as [keyof typeof LIVING]).nullable(),
   family: z.array(z.enum(FAMILY)),
+  familyOther: z.string().max(30),
   pets: z.array(z.enum(PETS)),
+  petsOther: z.string().max(30),
 });
 export type Home = z.infer<typeof HomeSchema>;
 
@@ -40,7 +45,7 @@ export interface HouseholdForm {
 
 export const emptyHouseholdForm = (): HouseholdForm => ({
   role: null, name: "", city: null, district: "", intro: "",
-  home: { dwelling: null, renting: null, landlordOk: null, family: [], pets: [] },
+  home: { dwelling: null, dwellingOther: "", living: null, family: [], familyOther: "", pets: [], petsOther: "" },
   terms: null, orgName: "", orgProofUrl: "", applyBadge: false,
 });
 
@@ -60,7 +65,8 @@ export function checkHousehold(f: HouseholdForm): MissingField[] {
   if (!f.role) miss.push("role");
   if (f.role && f.role !== "cat_owner" && cleanName(f.name).length < 2) miss.push("name");
   if (!f.city) miss.push("city");
-  if (!normalizeDistrict(f.city, f.district)) miss.push("district");
+  // 區從該縣市的清單選（#89）
+  if (!isKnownDistrict(f.city, f.district)) miss.push("district");
   if (f.role === "cat_owner" && !f.home.dwelling) miss.push("dwelling");
   if (f.role === "shelter_org") {
     if (!f.orgName.trim()) miss.push("orgName");
@@ -73,6 +79,14 @@ export function checkHousehold(f: HouseholdForm): MissingField[] {
 export const defaultHomeName = (displayName: string | null) =>
   displayName?.trim() ? `${Array.from(displayName.trim()).slice(0, 27).join("")}的家` : "我的家";
 
+/** 沒選「其他」時，不留補充文字 */
+const cleanHome = (h: Home): Home => ({
+  ...h,
+  dwellingOther: h.dwelling === "other" ? h.dwellingOther.trim() : "",
+  familyOther: h.family.includes("其他") ? h.familyOther.trim() : "",
+  petsOther: h.pets.includes("其他動物") ? h.petsOther.trim() : "",
+});
+
 export function toHouseholdRow(f: HouseholdForm, displayName: string | null) {
   const owner = f.role === "cat_owner";
   const name = cleanName(f.name);
@@ -80,11 +94,11 @@ export function toHouseholdRow(f: HouseholdForm, displayName: string | null) {
     name: owner && name.length < 2 ? defaultHomeName(displayName) : name,
     caretaker_type: f.role,
     city: f.city,
-    district: normalizeDistrict(f.city, f.district),
+    district: f.district,
     intro: f.intro.trim(),
     allow_stranger_messages: true,
     default_visibility: "public" as const,
-    home: owner ? HomeSchema.parse(f.home) : null,
+    home: owner ? HomeSchema.parse(cleanHome(f.home)) : null,
     adoption_terms: owner || !f.terms ? null : AdoptionTermsSchema.parse(f.terms),
     org_name: f.role === "shelter_org" ? f.orgName.trim() : null,
     org_proof_url: f.role === "shelter_org" ? f.orgProofUrl.trim() : null,

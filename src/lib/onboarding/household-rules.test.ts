@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { canAddHousehold, checkHousehold, defaultCatStatus, emptyHouseholdForm, toHouseholdRow, verificationRow, type HouseholdForm } from "./household-rules";
 
-const base = (o: Partial<HouseholdForm>): HouseholdForm => ({ ...emptyHouseholdForm(), city: "台中市", district: "北屯", ...o });
+const base = (o: Partial<HouseholdForm>): HouseholdForm => ({ ...emptyHouseholdForm(), city: "台中市", district: "北屯區", ...o });
 
 describe("依身分建立喵戶：必填欄位", () => {
   it("沒選身分不能建立", () => {
@@ -24,6 +24,11 @@ describe("依身分建立喵戶：必填欄位", () => {
     expect(checkHousehold(base({ role: "shelter_org", name: "貓之家", orgName: "台中貓協會", orgProofUrl: "https://example.org" }))).toEqual([]);
   });
 
+  it("區要從該縣市的清單選", () => {
+    expect(checkHousehold(base({ role: "personal_foster", name: "小橘之家", district: "信義區" }))).toEqual(["district"]);
+    expect(checkHousehold(base({ role: "personal_foster", name: "小橘之家", city: "新竹市", district: "香山區" }))).toEqual([]);
+  });
+
   it("縣市、區每種身分都必填", () => {
     expect(checkHousehold({ ...base({ role: "personal_foster", name: "小橘之家" }), city: null, district: "" })).toEqual(["city", "district"]);
   });
@@ -31,9 +36,9 @@ describe("依身分建立喵戶：必填欄位", () => {
 
 describe("寫入資料庫的格式", () => {
   it("一般飼主名稱留空時用「〇〇的家」，貓預設自家貓", () => {
-    const row = toHouseholdRow(base({ role: "cat_owner", home: { ...emptyHouseholdForm().home, dwelling: "house", renting: true, landlordOk: true } }), "黃子哲");
+    const row = toHouseholdRow(base({ role: "cat_owner", home: { ...emptyHouseholdForm().home, dwelling: "house", living: "rent" } }), "黃子哲");
     expect(row).toMatchObject({ name: "黃子哲的家", caretaker_type: "cat_owner", city: "台中市", district: "北屯區", adoption_terms: null });
-    expect(row.home).toMatchObject({ dwelling: "house", renting: true, landlordOk: true });
+    expect(row.home).toMatchObject({ dwelling: "house", living: "rent" });
     expect(defaultCatStatus("cat_owner")).toBe("own");
   });
 
@@ -46,6 +51,14 @@ describe("寫入資料庫的格式", () => {
     expect(row).toMatchObject({ name: "小橘之家", home: null, adoption_terms: { items: ["不放養", "家訪"], note: "" }, org_name: null });
     expect(defaultCatStatus("personal_foster")).toBe("adoptable");
     expect(defaultCatStatus("shelter_org")).toBe("adoptable");
+  });
+});
+
+describe("一般飼主的「其他」可以自由填寫", () => {
+  it("選了「其他」才存補充文字", () => {
+    const home = { ...emptyHouseholdForm().home, dwelling: "other" as const, dwellingOther: "貨櫃屋", family: ["其他" as const], familyOther: "阿姨", pets: ["貓" as const], petsOther: "鸚鵡" };
+    const row = toHouseholdRow(base({ role: "cat_owner", home }), null);
+    expect(row.home).toMatchObject({ dwelling: "other", dwellingOther: "貨櫃屋", familyOther: "阿姨", petsOther: "" });
   });
 });
 

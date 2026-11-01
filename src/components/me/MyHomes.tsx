@@ -10,7 +10,7 @@ import { LIFE_STAGE_LABEL, type LifeStage } from "@/lib/cat-profile/life-stage";
 import { ageLabel } from "@/lib/onboarding/cat";
 import { useState } from "react";
 import type { CaretakerType } from "@/lib/onboarding/household";
-import { DWELLINGS, ROLE_INFO, type Home } from "@/lib/onboarding/household-rules";
+import { DWELLINGS, LIVING, ROLE_INFO, type Home } from "@/lib/onboarding/household-rules";
 import s from "./me.module.css";
 
 export interface Household {
@@ -24,13 +24,15 @@ export interface CatRow {
 const STATUS_LABEL: Record<string, string> = { adoptable: "待領養", adopted: "已領養", own: "自家貓" };
 const SEX_LABEL: Record<string, string> = { male: "男生", female: "女生" };
 
-function homeSummary(h: Home | null): string {
-  if (!h) return "";
+/** 舊資料可能缺欄位（#82 早期格式），一律補預設值再顯示 */
+function homeSummary(raw: Home | null): string {
+  if (!raw) return "";
+  const h: Home = { dwelling: null, dwellingOther: "", living: null, family: [], familyOther: "", pets: [], petsOther: "", ...raw };
   return [
-    h.dwelling && DWELLINGS[h.dwelling],
-    h.renting ? (h.landlordOk ? "租屋（房東同意）" : "租屋") : null,
-    h.family.length ? `同住：${h.family.join("、")}` : null,
-    h.pets.length ? `家裡有${h.pets.join("、")}` : null,
+    h.dwelling === "other" ? h.dwellingOther || DWELLINGS.other : h.dwelling && DWELLINGS[h.dwelling],
+    h.living && LIVING[h.living],
+    h.family.length ? `同住：${h.family.map(f => (f === "其他" && h.familyOther ? h.familyOther : f)).join("、")}` : null,
+    h.pets.length ? `家裡有${h.pets.map(p => (p === "其他動物" && h.petsOther ? h.petsOther : p)).join("、")}` : null,
   ].filter(Boolean).join("・");
 }
 

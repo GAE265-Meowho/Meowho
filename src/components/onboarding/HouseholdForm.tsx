@@ -4,9 +4,9 @@
 // 位置只公開到縣市＋區（AGENTS.md §6），所以沒有地址欄。
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { CITIES } from "@/lib/match";
+import { TW_CITIES, TW_DISTRICTS } from "@/lib/geo/tw-districts";
 import {
-  DWELLINGS, FAMILY, PETS, ROLES, ROLE_INFO, checkHousehold, emptyHouseholdForm, toHouseholdRow, verificationRow,
+  DWELLINGS, FAMILY, LIVING, PETS, ROLES, ROLE_INFO, checkHousehold, emptyHouseholdForm, toHouseholdRow, verificationRow,
   type HouseholdForm as Form, type MissingField,
 } from "@/lib/onboarding/household-rules";
 import { getBrowserSupabase } from "@/lib/supabase/client";
@@ -17,8 +17,6 @@ import s from "./intake.module.css";
 const MISSING_LABEL: Record<MissingField, string> = {
   role: "身分", name: "喵戶名稱", city: "縣市", district: "區", dwelling: "住家型態", orgName: "單位名稱", orgProofUrl: "立案證明連結（網址）",
 };
-const YES_NO = { yes: "是", no: "否" } as const;
-const yn = (v: boolean | null) => (v === null ? null : v ? "yes" : "no");
 
 export function HouseholdForm({ userId, displayName, onDemoCreated }: {
   userId: string | null; displayName: string | null; onDemoCreated: (name: string, role: Form["role"]) => void;
@@ -78,14 +76,18 @@ export function HouseholdForm({ userId, displayName, onDemoCreated }: {
           <div className={s.pair}>
             <div className={s.field}>
               <label className={s.label} htmlFor="h-city">縣市</label>
-              <select id="h-city" value={f.city ?? ""} onChange={e => set({ city: e.target.value })}>
+              {/* 換縣市時清空已選的區，避免縣市和區對不上 */}
+              <select id="h-city" value={f.city ?? ""} onChange={e => set({ city: e.target.value, district: "" })}>
                 <option value="" disabled>請選擇</option>
-                {CITIES.map(c => <option key={c}>{c}</option>)}
+                {TW_CITIES.map(c => <option key={c}>{c}</option>)}
               </select>
             </div>
             <div className={s.field}>
               <label className={s.label} htmlFor="h-dist">區</label>
-              <input id="h-dist" value={f.district} maxLength={6} placeholder="例如：北屯區" onChange={e => set({ district: e.target.value })} />
+              <select id="h-dist" value={f.district} disabled={!f.city} onChange={e => set({ district: e.target.value })}>
+                <option value="" disabled>{f.city ? "請選擇" : "先選縣市"}</option>
+                {(f.city ? TW_DISTRICTS[f.city] ?? [] : []).map(d => <option key={d}>{d}</option>)}
+              </select>
             </div>
           </div>
         </>
@@ -96,24 +98,27 @@ export function HouseholdForm({ userId, displayName, onDemoCreated }: {
           <div className={s.field}>
             <span className={s.label}>住家型態</span>
             <OnePick label="住家型態" options={DWELLINGS} value={f.home.dwelling} onChange={v => setHome({ dwelling: v })} />
+            {f.home.dwelling === "other" && (
+              <input aria-label="其他住家型態" value={f.home.dwellingOther} maxLength={30} placeholder="請說明，例如：套房、鐵皮屋" onChange={e => setHome({ dwellingOther: e.target.value })} />
+            )}
           </div>
           <div className={s.field}>
-            <span className={s.label}>是租屋嗎</span>
-            <OnePick label="是租屋嗎" options={YES_NO} value={yn(f.home.renting)} onChange={v => setHome({ renting: v === "yes", landlordOk: v === "yes" ? f.home.landlordOk : null })} />
+            <span className={s.label}>住家狀況</span>
+            <OnePick label="住家狀況" options={LIVING} value={f.home.living} onChange={v => setHome({ living: v })} />
           </div>
-          {f.home.renting && (
-            <div className={s.field}>
-              <span className={s.label}>房東同意養貓嗎</span>
-              <OnePick label="房東同意養貓嗎" options={YES_NO} value={yn(f.home.landlordOk)} onChange={v => setHome({ landlordOk: v === "yes" })} />
-            </div>
-          )}
           <div className={s.field}>
-            <span className={s.label}>同住的家人</span>
-            <MultiPick label="同住的家人" options={FAMILY} value={f.home.family} onChange={v => setHome({ family: v })} />
+            <span className={s.label}>同住的人</span>
+            <MultiPick label="同住的人" options={FAMILY} value={f.home.family} onChange={v => setHome({ family: v })} />
+            {f.home.family.includes("其他") && (
+              <input aria-label="其他同住的人" value={f.home.familyOther} maxLength={30} placeholder="請說明" onChange={e => setHome({ familyOther: e.target.value })} />
+            )}
           </div>
           <div className={s.field}>
             <span className={s.label}>家裡現有的寵物</span>
             <MultiPick label="家裡現有的寵物" options={PETS} value={f.home.pets} onChange={v => setHome({ pets: v })} />
+            {f.home.pets.includes("其他動物") && (
+              <input aria-label="其他動物" value={f.home.petsOther} maxLength={30} placeholder="例如：兔子、鸚鵡" onChange={e => setHome({ petsOther: e.target.value })} />
+            )}
           </div>
         </>
       )}
