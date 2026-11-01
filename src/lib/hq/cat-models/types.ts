@@ -56,9 +56,20 @@ export function deriveStatus(input: { hasAlbedo: boolean; job: JobInfo | null; p
   if (job?.status === "running") return "running";
   if (job?.status === "error") return "failed";
   if (!hasAlbedo) return "draft";
-  if (publication === "published") return "published";
-  if (publication === "unpublished") return "unpublished";
+  void publication; // 上架／下架已移除（#100、#102）：舊記錄一律視為已完成
   return "ready";
+}
+
+/** 資料庫還留著的 published／unpublished（上架功能移除前的資料）一律顯示成已完成（#102） */
+export function normalizeStatus(status: CatModelStatus): CatModelStatus {
+  return status === "published" || status === "unpublished" ? "ready" : status;
+}
+
+/** 列表的更新時間：YYYY/MM/DD HH:mm。帶時區的轉台北時間；本機、示範貓的時間沒有時區，本來就是台北時間，照原樣顯示 */
+export function formatCatTime(iso: string): string {
+  const hasZone = /(Z|[+-]\d{2}:?\d{2})$/.test(iso);
+  const t = hasZone ? new Date(new Date(iso).getTime() + 8 * 3600 * 1000).toISOString() : iso;
+  return `${t.slice(0, 4)}/${t.slice(5, 7)}/${t.slice(8, 10)} ${t.slice(11, 16)}`;
 }
 
 
@@ -86,6 +97,8 @@ export interface CatModelView {
   jobError: string | null;
   createdAt: string;
   updatedAt: string;
+  /** 建立者顯示名稱；示範貓為「系統」，查不到時為 null（#102） */
+  createdBy: string | null;
 }
 
 /** 任務是否在忙（排隊中或生成中）：忙的時候不能再送、不能換版 */

@@ -1,6 +1,6 @@
 // 貓咪模型狀態推導與上下架條件（規格書 04 §2.5）
 import { describe, expect, it } from "vitest";
-import { bodyFor, CAT_ID_RE, newCatId, ownPhotoPath, photoExt, profileNumber, deriveStatus, elapsedMinutes, isJobActive, queueStalled } from "./types";
+import { bodyFor, CAT_ID_RE, formatCatTime, newCatId, normalizeStatus, ownPhotoPath, photoExt, profileNumber, deriveStatus, elapsedMinutes, isJobActive, queueStalled } from "./types";
 
 describe("deriveStatus", () => {
   it("沒有貼圖也沒有任務＝草稿", () => expect(deriveStatus({ hasAlbedo: false, job: null, publication: null })).toBe("draft"));
@@ -13,9 +13,9 @@ describe("deriveStatus", () => {
     expect(deriveStatus({ hasAlbedo: true, job: { status: "error" }, publication: null })).toBe("failed");
   });
   it("有貼圖、任務完成＝已完成", () => expect(deriveStatus({ hasAlbedo: true, job: { status: "done" }, publication: null })).toBe("ready"));
-  it("上架、下架記錄決定狀態", () => {
-    expect(deriveStatus({ hasAlbedo: true, job: { status: "done" }, publication: "published" })).toBe("published");
-    expect(deriveStatus({ hasAlbedo: true, job: { status: "done" }, publication: "unpublished" })).toBe("unpublished");
+  it("上架／下架已移除（#102）：舊的上架、下架記錄一律視為已完成", () => {
+    expect(deriveStatus({ hasAlbedo: true, job: { status: "done" }, publication: "published" })).toBe("ready");
+    expect(deriveStatus({ hasAlbedo: true, job: { status: "done" }, publication: "unpublished" })).toBe("ready");
   });
   it("沒有貼圖的貓就算有上架記錄也是草稿（不能上架沒有貼圖的貓）", () => {
     expect(deriveStatus({ hasAlbedo: false, job: null, publication: "published" })).toBe("draft");
@@ -93,4 +93,17 @@ describe("新增貓咪的共用檢查（本機與 Supabase 共用）", () => {
     expect(profileNumber("abc")).toBeNull();
     expect(profileNumber(undefined)).toBeNull();
   });
+});
+
+describe("normalizeStatus（#102）", () => {
+  it("資料庫的 published／unpublished 顯示成已完成，其他不變", () => {
+    expect(normalizeStatus("published")).toBe("ready");
+    expect(normalizeStatus("unpublished")).toBe("ready");
+    for (const s of ["draft", "queued", "running", "ready", "failed"] as const) expect(normalizeStatus(s)).toBe(s);
+  });
+});
+
+describe("formatCatTime（#102）", () => {
+  it("帶時區的時間轉台北時間，顯示到時、分", () => expect(formatCatTime("2026-11-01T14:44:54Z")).toBe("2026/11/01 22:44"));
+  it("沒有時區的本機時間照原樣顯示", () => expect(formatCatTime("2026-10-31T15:39:12")).toBe("2026/10/31 15:39"));
 });

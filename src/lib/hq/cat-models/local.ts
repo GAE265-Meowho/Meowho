@@ -99,6 +99,7 @@ async function toView(root: string, id: string): Promise<CatModelView | null> {
     jobError: job?.error ?? null,
     createdAt: created,
     updatedAt: job?.finished_at ?? job?.queued_at ?? publication?.at ?? created,
+    createdBy: null, // 本機 Cat Studio 沒有記錄建立者
   };
 }
 
