@@ -8,7 +8,7 @@ import { useCallback, useState } from "react";
 import { formatTaipeiDate } from "@/lib/hq/actions";
 import { resolveClip } from "@/lib/hq/cat-models/clips";
 import {
-  BODY_LABELS, CAT_STATUS_LABELS, CAT_STATUS_TONE, FILL_LABELS, PHOTO_VIEW_LABELS, type CatModelView,
+  BODY_LABELS, FILL_LABELS, PHOTO_VIEW_LABELS, type CatModelView,
 } from "@/lib/hq/cat-models/types";
 import { HqLoadError, HqSkeleton } from "../HqStates";
 import { HqNotFound } from "../HqLoginPage";
@@ -129,7 +129,6 @@ export function CatPage({ id }: { id: string }) {
       <div className="hq-pagehead">
         <Link href={ASSETS_CATS_HREF} className="hq-back">← 虛擬體驗元件管理</Link>
         <h1 className="hq-h1">{cat.name}</h1>
-        <span className={`hq-tag${CAT_STATUS_TONE[cat.status] ? ` ${CAT_STATUS_TONE[cat.status]}` : ""}`}>{CAT_STATUS_LABELS[cat.status]}</span>
       </div>
       <Preview cat={cat} />
     </>

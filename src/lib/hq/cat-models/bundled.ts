@@ -14,7 +14,7 @@ const BUNDLED: readonly CatModelView[] = [
     status: "ready",
     ageMonths: 5,
     weightKg: 4,
-    notes: "",
+    notes: "系統預設範例",
     photoView: "front",
     fillPattern: "tabby",
     hasAlbedo: true,
@@ -29,6 +29,7 @@ const BUNDLED: readonly CatModelView[] = [
     jobError: null,
     createdAt: "2026-10-30T14:07:31",
     updatedAt: "2026-10-31T15:39:12",
+    createdBy: "系統",
   },
   {
     id: "cat_20261101_183700",
@@ -37,7 +38,7 @@ const BUNDLED: readonly CatModelView[] = [
     status: "ready",
     ageMonths: 3,
     weightKg: 1.2,
-    notes: "",
+    notes: "系統預設範例",
     photoView: "front",
     fillPattern: "tabby",
     hasAlbedo: true,
@@ -52,6 +53,7 @@ const BUNDLED: readonly CatModelView[] = [
     jobError: null,
     createdAt: "2026-11-01T18:37:00",
     updatedAt: "2026-11-01T21:20:00",
+    createdBy: "系統",
   },
 ];
 

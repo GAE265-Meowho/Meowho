@@ -1,15 +1,14 @@
 "use client";
-// 貓咪區塊｜列表（規格書 04 §2.2）：搜尋、狀態篩選、分頁；點名稱進入該貓的貓咪頁
+// 貓咪區塊｜列表（規格書 04 §2.2）：搜尋、分頁；點整列或名稱進入該貓的貓咪頁（#102 移除狀態與操作欄）
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo } from "react";
-import { formatTaipeiDate } from "@/lib/hq/actions";
 import { CLIP_LIBRARY } from "@/lib/hq/cat-models/clips";
-import { CAT_MODEL_STATUSES, CAT_STATUS_LABELS, CAT_STATUS_TONE, KITTEN_MAX_MONTHS, type CatModelView } from "@/lib/hq/cat-models/types";
+import { formatCatTime, KITTEN_MAX_MONTHS, type CatModelView } from "@/lib/hq/cat-models/types";
 import { paginate, type ListQuery } from "@/lib/hq/listing";
 import { HqListBody, HqPager, HqTable, HqToolbar, type Column } from "../list/HqList";
 import { BaseSamples } from "./BaseSamples";
-import { assetsHref, NEW_CAT_HREF, studioHref } from "./hrefs";
+import { assetsHref, NEW_CAT_HREF } from "./hrefs";
 import { catFileUrl, useCatList } from "./useCatModels";
 
 const READY_CLIPS = CLIP_LIBRARY.filter(c => c.status === "ready").length;
@@ -43,19 +42,12 @@ export function CatsTab({ query, update }: { query: ListQuery & { page: number }
       ),
     },
     { key: "name", label: "名稱", render: c => <Link href={assetsHref(c.id)} onClick={e => e.stopPropagation()}>{c.name}</Link> },
-    { key: "status", label: "狀態", render: c => <span className={`hq-tag${CAT_STATUS_TONE[c.status] ? ` ${CAT_STATUS_TONE[c.status]}` : ""}`}>{CAT_STATUS_LABELS[c.status]}</span> },
     { key: "clips", label: "動作數", render: () => `${READY_CLIPS} / ${CLIP_LIBRARY.length}` },
-    { key: "updated", label: "更新時間", render: c => formatTaipeiDate(new Date(c.updatedAt)) },
-    {
-      key: "ops", label: "操作",
-      render: c => (
-        <span className="hq-row">
-          <Link href={assetsHref(c.id)} onClick={e => e.stopPropagation()}>預覽動作</Link>
-          <Link href={studioHref(c.id)} onClick={e => e.stopPropagation()}>貼圖工作頁</Link>
-        </span>
-      ),
-    },
+    { key: "creator", label: "建立者", render: c => c.createdBy ?? "—" },
+    { key: "updated", label: "更新時間", render: c => formatCatTime(c.updatedAt) },
+    { key: "notes", label: "備註說明", render: c => c.notes || "—" },
   ];
+  // #102：不顯示狀態與操作欄；整列點擊進貓咪頁，貼圖工作頁從貓咪頁進入
 
   return (
     <>
@@ -72,8 +64,6 @@ export function CatsTab({ query, update }: { query: ListQuery & { page: number }
       <h2 className="hq-listtitle">已建立的貓咪模型</h2>
       <HqToolbar
         q={query.q} onSearch={q => update({ q })} placeholder="搜尋貓咪名稱"
-        statuses={CAT_MODEL_STATUSES.map(s => ({ value: s, label: CAT_STATUS_LABELS[s] }))}
-        status={query.status} onStatus={status => update({ status })}
       />
       <HqListBody
         loading={value.state === "loading"} error={value.state === "error"} onRetry={reload}

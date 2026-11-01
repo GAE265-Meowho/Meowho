@@ -7,7 +7,7 @@ import { getAdminSupabase } from "@/lib/supabase/admin";
 import { getServerSupabase } from "@/lib/supabase/server";
 import { SUPABASE_URL } from "@/lib/supabase/config";
 import {
-  baseFileName, bodyFor, isJobActive, newCatId, ownPhotoPath, photoExt, profileNumber,
+  baseFileName, bodyFor, isJobActive, normalizeStatus, newCatId, ownPhotoPath, photoExt, profileNumber,
   type BodyType, type CatModelStatus, type CatModelView, type FillPattern, type JobStatus, type PhotoView,
   CAT_ID_RE, MAX_PHOTO_BYTES,
 } from "./types";
@@ -32,6 +32,9 @@ type Row = {
   meta: { seconds?: number; prev_base_version?: string | null } | null;
   created_at: string;
   updated_at: string;
+  /** 建立者（#102）：meow_profiles 只有本人或有「用戶權限管理」的管理員讀得到，讀不到時為 null */
+  creator?: { display_name: string | null; email: string | null } | null;
+  created_by?: string | null;
 };
 
 type JobRow = {
@@ -54,7 +57,7 @@ function viewFromRow(row: Row, job: JobRow | null = null): CatModelView {
     id: row.id,
     name: row.name,
     ownerType: row.owner_type,
-    status: row.status,
+    status: normalizeStatus(row.status),
     ageMonths,
     weightKg: typeof row.profile?.weight_kg === "number" ? row.profile.weight_kg : null,
     notes: row.profile?.notes ?? "",
@@ -72,6 +75,8 @@ function viewFromRow(row: Row, job: JobRow | null = null): CatModelView {
     jobError: job?.error ?? null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    // 沒有 created_by 的是直接用 SQL 放進來的示範資料；有但讀不到個人資料時顯示 null（畫面顯示「—」）
+    createdBy: row.created_by ? row.creator?.display_name || row.creator?.email || null : "系統",
   };
 }
 
@@ -87,10 +92,14 @@ async function userClient() {
   return data.user ? { sb, userId: data.user.id } : null;
 }
 
+const WITH_CREATOR = "*, creator:meow_profiles!created_by(display_name,email)";
+
 export async function sbListCats(): Promise<CatModelView[]> {
   const sb = await client();
   if (!sb) return [];
-  const { data, error } = await sb.from("meow_cat_models").select("*").order("updated_at", { ascending: false });
+  // 帶出建立者；萬一關聯查詢失敗（例如 schema cache 還沒更新），退回不帶建立者，列表不能因此變空
+  let { data, error } = await sb.from("meow_cat_models").select(WITH_CREATOR).order("updated_at", { ascending: false });
+  if (error) ({ data, error } = await sb.from("meow_cat_models").select("*").order("updated_at", { ascending: false }));
   if (error || !data) return [];
   return (data as Row[]).map(r => viewFromRow(r));
 }

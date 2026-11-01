@@ -57,7 +57,8 @@
 | 23-5 | MeowHQ 體型骨架：幼貓脖子錯位修正、下載 GLB | admin-moderation | 23-4 | P2 | #91 | Tina × Claude Code | 審查中 |
 | 23-6 | MeowHQ 3D 編輯器版面：預覽固定、參數面板獨立捲動 | admin-moderation | 23-5 | P2 | #96 | Tina × Claude Code | 完成（#97 已合併） |
 | 23-7 | MeowHQ 新增貓咪頁：成貓／幼貓拍攝範例照 | admin-moderation | 23-4 | P2 | #98 | Tina × Claude Code | 完成（#99 已合併） |
-| 23-8 | MeowHQ 體型骨架卡片各半、移除貓咪上架／下架、後台版面原則 | admin-moderation | 23-7 | P2 | #100 | Tina × Claude Code | 審查中 |
+| 23-8 | MeowHQ 體型骨架卡片各半、移除貓咪上架／下架、後台版面原則 | admin-moderation | 23-7 | P2 | #100 | Tina × Claude Code | 完成（#101 已合併） |
+| 23-9 | MeowHQ 貓咪模型列表欄位調整、移除殘留的上架狀態 | admin-moderation | 23-8 | P2 | #102 | Tina × Claude Code | 審查中 |
 | 28-1 | 首頁、頁首頁尾改用 meowwho-v2 新版 UI；內頁版型待續 | matching | 26 | P1 | #64 | 子哲 × Claude | 完成（#65 已合併） |
 | 29 | 部署改為 Vercel meowho、Supabase 改為獨立專案（決策 005）的文件 | account | — | P1 | #66 | 子哲 × Claude | 審查中 |
 | 30 | 修正 Google 登入後看不到頭像 | account | — | P1 | #68 | 子哲 × Claude | 審查中 |
