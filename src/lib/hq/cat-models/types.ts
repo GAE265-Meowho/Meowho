@@ -162,6 +162,12 @@ export const photoExt = (type: unknown): string | null => (typeof type === "stri
 /** 照片路徑只能是 `<貓咪ID>/photo.<jpg|png|webp>`（瀏覽器送來的值，不能指到別隻貓或別的資料夾） */
 export const ownPhotoPath = (id: string, path: string) => new RegExp(`^${id}/photo\\.(jpg|png|webp)$`).test(path);
 
+/** 正面、背部花紋照片（#105）：先只上傳保存，上色仍只用側面照；存成 <id>/photo_<角度>.<副檔名> */
+export const EXTRA_VIEWS = ["front", "back"] as const;
+export type ExtraView = (typeof EXTRA_VIEWS)[number];
+export const isExtraView = (v: unknown): v is ExtraView => (EXTRA_VIEWS as readonly unknown[]).includes(v);
+export const ownExtraPhotoPath = (id: string, view: ExtraView, path: string) => new RegExp(`^${id}/photo_${view}\\.(jpg|png|webp)$`).test(path);
+
 /** 年齡、體重：空白、負數、非數字都當沒填 */
 export function profileNumber(v: unknown): number | null {
   const x = typeof v === "string" && v.trim() === "" ? NaN : Number(v);

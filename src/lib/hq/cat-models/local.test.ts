@@ -99,6 +99,13 @@ describe("createCat（沿用 Cat Studio 的 create_cat）", () => {
     expect(await fs.readFile(catPath("cat_20261031_140509", "photo.png"))).toEqual(png);
     expect((await getCat(root, "cat_20261031_140509"))?.status).toBe("draft");
   });
+  it("正面、背部照片（#105）：存成 photo_front／photo_back，記在 profile.extra_photos；格式不對的略過", async () => {
+    const r = await createCat(root, { name: "A", photo: dataUrl("image/png", png), extras: { front: dataUrl("image/jpeg", png), back: dataUrl("image/gif", png) } }, NOW);
+    expect(r).toEqual({ ok: true, id: "cat_20261031_140509" });
+    expect(await fs.readFile(catPath("cat_20261031_140509", "photo_front.jpg"))).toEqual(png);
+    const profile = JSON.parse(await read("cat_20261031_140509", "profile.json"));
+    expect(profile.extra_photos).toEqual({ front: "photo_front.jpg" });
+  });
   it("年齡、體重空白或不合法存成 null", async () => {
     const r = await createCat(root, { name: "A", ageMonths: "", weightKg: "-3", photo: dataUrl("image/jpeg", png) }, NOW);
     expect(r.ok).toBe(true);

@@ -140,9 +140,9 @@ describe("新增、產生、換版", () => {
     expect((await postCreate(req({ name: "", photo }))).status).toBe(400);
     expect(await (await postCreate(req({ name: "A", photo: "x" }))).json()).toEqual({ error: "photo_invalid" });
   });
-  it("新增貓咪：請求標頭顯示過大直接回 413", async () => {
+  it("新增貓咪：請求標頭顯示過大直接回 413（上限可容納側面＋正面＋背部三張照片，#105）", async () => {
     enable();
-    const big = new Request("http://x/api", { method: "POST", headers: { "content-length": String(20 * 1024 * 1024) }, body: "{}" });
+    const big = new Request("http://x/api", { method: "POST", headers: { "content-length": String(50 * 1024 * 1024) }, body: "{}" });
     expect((await postCreate(big)).status).toBe(413);
   });
   it("產生：選項不合法 400、成功 200、已排隊 409", async () => {

@@ -63,6 +63,13 @@ describe("sbPhotoUpload（新增第一步）", () => {
     const r = await sbPhotoUpload("image/webp", 10, new Date(2026, 10, 1, 9, 5, 7));
     expect(r).toEqual({ ok: true, id: ID, bucket: "meow-cat-model-photos", path: `${ID}/photo.webp`, token: "tok" });
   });
+  it("正面、背部照片（#105）：同一隻貓的 ID，簽 <ID>/photo_<角度>.<副檔名>；角度或 ID 不對就擋", async () => {
+    expect(await sbPhotoUpload("image/jpeg", 10, new Date(), { id: ID, view: "front" }))
+      .toEqual({ ok: true, id: ID, bucket: "meow-cat-model-photos", path: `${ID}/photo_front.jpg`, token: "tok" });
+    expect(await sbPhotoUpload("image/png", 10, new Date(), { id: ID, view: "back" })).toMatchObject({ path: `${ID}/photo_back.png` });
+    expect(await sbPhotoUpload("image/png", 10, new Date(), { id: ID, view: "side" })).toEqual({ ok: false, code: "photo_invalid" });
+    expect(await sbPhotoUpload("image/png", 10, new Date(), { id: "../x", view: "front" })).toEqual({ ok: false, code: "photo_invalid" });
+  });
 });
 
 describe("sbCreateCat（新增第二步）", () => {
@@ -83,6 +90,16 @@ describe("sbCreateCat（新增第二步）", () => {
       id: ID, name: "小虎", owner_type: "template", status: "draft", photo_path: `${ID}/photo.png`, created_by: "u-1",
       profile: { age_months: 3, weight_kg: null, notes: "x" },
     });
+  });
+  it("正面、背部照片（#105）：已上傳的記進 profile.extra_photos；路徑不對或沒上傳就略過，不擋建立", async () => {
+    files = [{ name: "photo.png" }, { name: "photo_front.jpg" }];
+    expect(await sbCreateCat({
+      id: ID, photoPath: `${ID}/photo.png`, name: "小虎",
+      extraPaths: { front: `${ID}/photo_front.jpg`, back: `${ID}/photo_back.jpg` },
+    })).toEqual({ ok: true, id: ID });
+    const insert = calls.find(c => c.op === "insert")!;
+    expect((insert.args[0] as { profile: unknown }).profile).toMatchObject({ extra_photos: { front: `${ID}/photo_front.jpg` } });
+    expect((insert.args[0] as { profile: { extra_photos: object } }).profile.extra_photos).not.toHaveProperty("back");
   });
   it("同一秒有人建了同 ID：busy", async () => {
     files = [{ name: "photo.png" }];

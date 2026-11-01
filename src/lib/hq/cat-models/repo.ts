@@ -102,20 +102,20 @@ type Denied = { ok: false; code: "disabled" | "permission_denied" };
  * 新增第一步：本機模式照片跟著表單一起送（inline）；Supabase 模式先簽上傳網址，瀏覽器直傳 Storage，
  * 避開 Vercel 約 4.5 MB 的請求大小上限（照片上限 10 MB）。
  */
-export async function repoPhotoUpload(type: unknown, size: unknown): Promise<
+export async function repoPhotoUpload(type: unknown, size: unknown, extra?: { id?: unknown; view?: unknown }): Promise<
   { ok: true; mode: "inline" } | (UploadTicket & { mode: "signed" }) | { ok: false; code: "photo_invalid" | "photo_too_large" } | Denied
 > {
   const src = resolveCatSource();
   if (src === "local") return { ok: true, mode: "inline" };
   if (src === "supabase") {
-    const r = await sbPhotoUpload(type, size);
+    const r = await sbPhotoUpload(type, size, new Date(), extra);
     return r.ok ? { ...r, mode: "signed" } : r;
   }
   return { ok: false, code: "disabled" };
 }
 
 /** 新增：本機 input.photo 是 data URL；Supabase 是第一步拿到的 id 與 photoPath */
-export async function repoCreateCat(input: NewCatInput & { id?: unknown; photoPath?: unknown }): Promise<
+export async function repoCreateCat(input: NewCatInput & { id?: unknown; photoPath?: unknown; extraPaths?: Partial<Record<string, unknown>> }): Promise<
   CreateResult | { ok: false; code: "busy" } | Denied
 > {
   const src = resolveCatSource();

@@ -14,12 +14,13 @@ const STATUS: Record<string, number> = { name_required: 400, photo_invalid: 400,
 /** 新增貓咪：本機帶 data URL 照片；Supabase 帶 /upload 拿到的 id、photoPath（照片已直傳 Storage）。示範目錄唯讀 */
 export async function POST(req: Request) {
   if (!isCatModelsEnabled()) return Response.json({ error: "disabled" }, { status: 404 });
-  if (Number(req.headers.get("content-length") ?? 0) > MAX_PHOTO_BYTES * 1.5) return Response.json({ error: "photo_too_large" }, { status: 413 });
+  if (Number(req.headers.get("content-length") ?? 0) > MAX_PHOTO_BYTES * 3 * 1.5) return Response.json({ error: "photo_too_large" }, { status: 413 });
   const body = (await req.json().catch(() => null)) as Record<string, unknown> | null;
   if (!body) return Response.json({ error: "invalid_body" }, { status: 400 });
   const result = await repoCreateCat({
     name: String(body.name ?? ""), ageMonths: body.ageMonths, weightKg: body.weightKg, notes: body.notes,
     photo: body.photo, id: body.id, photoPath: body.photoPath,
+    extras: body.extras as Partial<Record<string, unknown>> | undefined, extraPaths: body.extraPaths as Partial<Record<string, unknown>> | undefined,
   });
   return result.ok ? Response.json({ ok: true, id: result.id }, { status: 201 }) : Response.json({ error: result.code }, { status: STATUS[result.code] ?? 400 });
 }
