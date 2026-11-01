@@ -50,7 +50,7 @@ function Options({ cat, onDone }: { cat: CatModelView; onDone: () => void }) {
         <div className="hq-chips" role="group" aria-labelledby="opt-view">
           {VIEWS.map(v => <button key={v} type="button" className={view === v ? "on" : ""} aria-pressed={view === v} onClick={() => setView(v)}>{PHOTO_VIEW_LABELS[v]}</button>)}
         </div>
-        <p className="hq-hint">側面照時，會把母體轉到同方向再上色。</p>
+        <p className="hq-hint">側面照時，會把骨架轉到同方向再上色。</p>
       </div>
       <div className="hq-field">
         <span className="hq-label" id="opt-fill">補看不到的花紋</span>

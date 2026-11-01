@@ -8,6 +8,7 @@ import { GET as getList, POST as postCreate } from "./route";
 import { GET as getOne } from "./[id]/route";
 import { GET as getFile } from "./[id]/file/[kind]/route";
 import { GET as getBase } from "./base/route";
+import { asDownload } from "@/lib/hq/cat-models/types";
 import { POST as postPublish } from "./[id]/publish/route";
 import { POST as postPaint } from "./[id]/paint/route";
 import { POST as postRestore } from "./[id]/restore/route";
@@ -65,6 +66,11 @@ describe("沒有本機路徑（改走 bundled 示範貓）", () => {
     expect(res.status).toBe(302);
     expect(res.headers.get("location")).toContain("/hq-cat-models/base/base_clips_kitten.glb");
   });
+  it("下載：Supabase 公開網址加 ?download=（跨網域不吃 <a download>）；同網域 public 不變", () => {
+    expect(asDownload("https://x.supabase.co/storage/v1/object/public/meow-cat-models/base/v1/base_clips.glb", "base_clips.glb"))
+      .toBe("https://x.supabase.co/storage/v1/object/public/meow-cat-models/base/v1/base_clips.glb?download=base_clips.glb");
+    expect(asDownload("/hq-cat-models/base/base_clips_kitten.glb", "base_clips_kitten.glb")).toBe("/hq-cat-models/base/base_clips_kitten.glb");
+  });
   it("production：忽略 CAT_STUDIO_ROOT，仍讀 bundled", async () => {
     vi.stubEnv("CAT_STUDIO_ROOT", root);
     vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "");
@@ -108,6 +114,15 @@ describe("啟用（開發模式）", () => {
     expect(Buffer.from(await kitten.arrayBuffer()).toString()).toBe("kitten");
     const other = await getBase(new Request("http://x/api/hq/cat-models/base?body=../x"));
     expect(Buffer.from(await other.arrayBuffer()).toString()).toBe("glTF");
+  });
+  it("下載母體：?download=1 回附件，檔名依體型", async () => {
+    await fs.mkdir(path.join(root, "cat_base_kitten", "work"), { recursive: true });
+    await fs.writeFile(path.join(root, "cat_base_kitten", "work", "base_clips.glb"), Buffer.from("kitten"));
+    const adult = await getBase(new Request("http://x/api/hq/cat-models/base?body=adult&download=1"));
+    expect(adult.headers.get("Content-Disposition")).toBe('attachment; filename="base_clips.glb"');
+    const kitten = await getBase(new Request("http://x/api/hq/cat-models/base?body=kitten&download=1"));
+    expect(kitten.headers.get("Content-Disposition")).toBe('attachment; filename="base_clips_kitten.glb"');
+    expect((await getBase(new Request("http://x/api/hq/cat-models/base"))).headers.get("Content-Disposition")).toBeNull();
   });
   it("上傳第一步：本機模式照片跟表單一起送（inline）", async () => {
     expect(await (await postUpload(req({ type: "image/png", size: 10 }))).json()).toEqual({ ok: true, mode: "inline" });

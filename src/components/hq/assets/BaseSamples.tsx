@@ -5,9 +5,9 @@
 import dynamic from "next/dynamic";
 import { useState } from "react";
 import { CLIP_LIBRARY, FALLBACK_CLIP } from "@/lib/hq/cat-models/clips";
-import { BODY_LABELS, KITTEN_MAX_MONTHS, type BodyType } from "@/lib/hq/cat-models/types";
+import { baseFileName, BODY_LABELS, KITTEN_MAX_MONTHS, type BodyType } from "@/lib/hq/cat-models/types";
 import { HqSkeleton } from "../HqStates";
-import { baseGlbUrl } from "./useCatModels";
+import { baseDownloadUrl, baseGlbUrl } from "./useCatModels";
 
 const CatPreview = dynamic(() => import("./CatPreview"), { ssr: false, loading: () => <HqSkeleton rows={4} /> });
 const READY_CLIPS = CLIP_LIBRARY.filter(c => c.status === "ready");
@@ -40,6 +40,8 @@ function BaseSample({ body, tags, desc }: { body: BodyType; tags: string[]; desc
           <button key={c.code} type="button" className={`hq-btn small${c.code === clip ? "" : " ghost"}`}
             aria-pressed={c.code === clip} onClick={() => setClip(c.code)}>{c.label}</button>
         ))}
+        {/* 骨架＋全部動作＋母體預設貼圖，單一 glb（約 5 MB），給組員拿去其他工具測試 */}
+        <a className="hq-btn small ghost" href={baseDownloadUrl(body)} download={baseFileName(body)}>下載 GLB</a>
       </div>
     </section>
   );

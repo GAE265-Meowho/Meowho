@@ -12,6 +12,8 @@ export const catFileUrl = (id: string, kind: "photo" | "albedo" | "albedo_prev",
   `${CAT_API}/${id}/file/${kind}${bust ? `?t=${encodeURIComponent(bust)}` : ""}`;
 /** 母體 glb：貼圖只能套回畫它的母體，所以依這隻貓的 body 選成貓或幼貓 */
 export const baseGlbUrl = (body: BodyType) => (body === "kitten" ? `${CAT_API}/base?body=kitten` : `${CAT_API}/base`);
+/** 「下載 GLB」：同一個母體檔，回應改成附件 */
+export const baseDownloadUrl = (body: BodyType) => `${CAT_API}/base?body=${body}&download=1`;
 
 /** 帶白話訊息的錯誤：HqSaveButton 只會顯示 hint（見 errors.ts），所以訊息要放在 hint */
 export const hintError = (message: string) => Object.assign(new Error(message), { hint: message });
