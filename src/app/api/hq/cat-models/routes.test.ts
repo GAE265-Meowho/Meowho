@@ -11,6 +11,7 @@ import { GET as getBase } from "./base/route";
 import { POST as postPublish } from "./[id]/publish/route";
 import { POST as postPaint } from "./[id]/paint/route";
 import { POST as postRestore } from "./[id]/restore/route";
+import { POST as postUpload } from "./upload/route";
 
 const ID = "cat_20261031_100000";
 const ctx = <T extends Record<string, string>>(p: T) => ({ params: Promise.resolve(p) });
@@ -47,7 +48,7 @@ describe("沒有本機路徑（改走 bundled 示範貓）", () => {
     expect(list.cats.some((c: { id: string }) => c.id === BUNDLED_ID)).toBe(true);
     expect((await getOne(new Request("http://x"), ctx({ id: BUNDLED_ID }))).status).toBe(200);
     expect((await getOne(new Request("http://x"), ctx({ id: ID }))).status).toBe(404); // 本機測試貓不在 bundled
-    const base = await getBase();
+    const base = await getBase(new Request("http://localhost/api/hq/cat-models/base"));
     expect(base.status).toBe(302);
     expect(base.headers.get("location")).toContain("/hq-cat-models/base/base_clips.glb");
     const alb = await getFile(new Request("http://localhost/api"), ctx({ id: BUNDLED_ID, kind: "albedo" }));
@@ -56,6 +57,13 @@ describe("沒有本機路徑（改走 bundled 示範貓）", () => {
     expect((await postCreate(req({ name: "A", photo: "data:image/jpeg;base64,QQ==" }))).status).toBe(404);
     expect((await postPaint(req({ view: "front", fill: "none" }), ctx({ id: BUNDLED_ID }))).status).toBe(404);
     expect((await postRestore(req({ reason: "x" }), ctx({ id: BUNDLED_ID }))).status).toBe(404);
+    expect((await postUpload(req({ type: "image/png", size: 10 }))).status).toBe(404);
+  });
+  it("bundled 幼貓母體：?body=kitten 導向 base_clips_kitten.glb", async () => {
+    stubBundled();
+    const res = await getBase(new Request("http://localhost/api/hq/cat-models/base?body=kitten"));
+    expect(res.status).toBe(302);
+    expect(res.headers.get("location")).toContain("/hq-cat-models/base/base_clips_kitten.glb");
   });
   it("production：忽略 CAT_STUDIO_ROOT，仍讀 bundled", async () => {
     vi.stubEnv("CAT_STUDIO_ROOT", root);
@@ -89,9 +97,20 @@ describe("啟用（開發模式）", () => {
     expect((await getFile(new Request("http://x"), ctx({ id: "..", kind: "albedo" }))).status).toBe(404);
   });
   it("母體 glb", async () => {
-    const res = await getBase();
+    const res = await getBase(new Request("http://localhost/api/hq/cat-models/base"));
     expect(res.headers.get("Content-Type")).toBe("model/gltf-binary");
     expect(Buffer.from(await res.arrayBuffer()).toString()).toBe("glTF");
+  });
+  it("幼貓母體 glb：?body=kitten 讀 cat_base_kitten；其他值一律成貓", async () => {
+    await fs.mkdir(path.join(root, "cat_base_kitten", "work"), { recursive: true });
+    await fs.writeFile(path.join(root, "cat_base_kitten", "work", "base_clips.glb"), Buffer.from("kitten"));
+    const kitten = await getBase(new Request("http://x/api/hq/cat-models/base?body=kitten"));
+    expect(Buffer.from(await kitten.arrayBuffer()).toString()).toBe("kitten");
+    const other = await getBase(new Request("http://x/api/hq/cat-models/base?body=../x"));
+    expect(Buffer.from(await other.arrayBuffer()).toString()).toBe("glTF");
+  });
+  it("上傳第一步：本機模式照片跟表單一起送（inline）", async () => {
+    expect(await (await postUpload(req({ type: "image/png", size: 10 }))).json()).toEqual({ ok: true, mode: "inline" });
   });
   it("上架：動作錯 400、沒原因 400、成功 200、重複上架 409", async () => {
     expect((await postPublish(req({ action: "delete", reason: "x" }), ctx({ id: ID }))).status).toBe(400);

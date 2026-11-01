@@ -8,7 +8,7 @@ import { useCallback, useState } from "react";
 import { formatTaipeiDate } from "@/lib/hq/actions";
 import { resolveClip } from "@/lib/hq/cat-models/clips";
 import {
-  CAT_STATUS_LABELS, CAT_STATUS_TONE, FILL_LABELS, PHOTO_VIEW_LABELS, type CatModelView,
+  BODY_LABELS, CAT_STATUS_LABELS, CAT_STATUS_TONE, FILL_LABELS, PHOTO_VIEW_LABELS, type CatModelView,
 } from "@/lib/hq/cat-models/types";
 import { HqLoadError, HqSkeleton } from "../HqStates";
 import { HqNotFound } from "../HqLoginPage";
@@ -17,7 +17,7 @@ import type { PreviewInfo } from "./CatPreview";
 import { ClipList } from "./ClipList";
 import { PublishPanel } from "./PublishPanel";
 import { ASSETS_CATS_HREF, studioHref } from "./hrefs";
-import { BASE_GLB_URL, catFileUrl, useCat } from "./useCatModels";
+import { baseGlbUrl, catFileUrl, useCat } from "./useCatModels";
 
 const CatPreview = dynamic(() => import("./CatPreview"), { ssr: false, loading: () => <HqSkeleton rows={4} /> });
 
@@ -74,12 +74,12 @@ function Preview({ cat }: { cat: CatModelView }) {
         {failed ? (
           <div className="hq-state" role="alert">
             <p>3D 預覽載入失敗</p>
-            <p className="hq-hint">{failed}。請確認 CAT_STUDIO_ROOT 底下有 cat_base/work/base_clips.glb。</p>
+            <p className="hq-hint">{failed}。請確認母體 {BODY_LABELS[cat.body]} glb 已上傳（本機：CAT_STUDIO_ROOT 底下的 {cat.body === "kitten" ? "cat_base_kitten" : "cat_base"}/work/base_clips.glb）。</p>
           </div>
         ) : (
           <div className="hq-canvas" data-testid="cat-canvas">
             <CatPreview
-              key={viewKey} baseUrl={BASE_GLB_URL} albedoUrl={albedoUrl} clip={clip}
+              key={viewKey} baseUrl={baseGlbUrl(cat.body)} albedoUrl={albedoUrl} clip={clip}
               speed={speed} paused={paused} blink={blink} pupil={pupil} light={light} follow={follow}
               onInfo={setInfo} onTextureError={() => setTextureFailed(true)} onError={e => setFailed(e.message || "未知錯誤")}
             />
@@ -100,6 +100,7 @@ function Preview({ cat }: { cat: CatModelView }) {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img className="hq-thumb" src={catFileUrl(cat.id, "photo")} alt={`${cat.name} 的原始照片`} width={96} height={96} />
             <dl className="hq-dl">
+              <dt>母體</dt><dd>{BODY_LABELS[cat.body]}</dd>
               <dt>照片角度</dt><dd>{cat.photoView ? PHOTO_VIEW_LABELS[cat.photoView] : "—"}</dd>
               <dt>補花紋</dt><dd>{cat.fillPattern ? FILL_LABELS[cat.fillPattern] : "—"}</dd>
               <dt>建立時間</dt><dd>{formatTaipeiDate(new Date(cat.createdAt))}</dd>
