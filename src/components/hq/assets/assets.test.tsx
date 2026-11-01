@@ -1,8 +1,9 @@
 // 虛擬體驗元件管理｜貓咪（規格書 04 §1、§2.2、§2.4、§5）
 import "@testing-library/jest-dom/vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { CatModelView } from "@/lib/hq/cat-models/types";
+import { BaseSamples } from "./BaseSamples";
 import { ClipList } from "./ClipList";
 import { filterCats } from "./CatsTab";
 import { PlannedTab } from "./PlannedTab";
@@ -18,7 +19,7 @@ afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 
 const cat = (over: Partial<CatModelView>): CatModelView => ({
   id: "cat_20261031_100000", name: "小橘", ownerType: "template", status: "ready", ageMonths: null, weightKg: null, notes: "",
-  photoView: null, fillPattern: null, hasAlbedo: true, hasPrevAlbedo: false, albedoVersion: null, jobStatus: null, jobQueuedAt: null, jobStartedAt: null, jobSeconds: null, jobStep: null, jobError: null,
+  photoView: null, fillPattern: null, hasAlbedo: true, hasPrevAlbedo: false, albedoVersion: null, body: "adult", jobStatus: null, jobQueuedAt: null, jobStartedAt: null, jobSeconds: null, jobStep: null, jobError: null,
   createdAt: "2026-10-31T10:00:00", updatedAt: "2026-10-31T10:00:00", ...over,
 });
 
@@ -105,6 +106,14 @@ describe("checkPhoto", () => {
 });
 
 describe("NewCat", () => {
+  it("年齡即時顯示會套用哪個骨架；正面、背部角度標示規劃中", () => {
+    render(<NewCat />);
+    expect(screen.getByText("成貓骨架")).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("年齡（月，選填）"), { target: { value: "4" } });
+    expect(screen.getByText("幼貓骨架")).toBeInTheDocument();
+    expect(screen.getByText("必填・用來上色")).toBeInTheDocument();
+    expect(screen.getAllByText("規劃中")).toHaveLength(2);
+  });
   it("沒選照片就送出：顯示提示，不呼叫 API", async () => {
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
@@ -118,6 +127,14 @@ describe("NewCat", () => {
     render(<NewCat />);
     expect(screen.getByText(/側拍、坐姿或站姿/)).toBeInTheDocument();
     expect(screen.getByText("儲存後狀態是「草稿」，不會自動開始生成。")).toBeInTheDocument();
+  });
+  it("拍攝範例：成貓、幼貓各一張範例照（#98）", () => {
+    render(<NewCat />);
+    const examples = screen.getByRole("group", { name: "拍攝範例" });
+    expect(within(examples).getByRole("img", { name: "成貓拍攝範例：側面全身站姿" })).toHaveAttribute("src", "/hq-cat-models/examples/adult.webp");
+    expect(within(examples).getByRole("img", { name: "幼貓拍攝範例：側面全身站姿" })).toHaveAttribute("src", "/hq-cat-models/examples/kitten.webp");
+    expect(within(examples).getByText("成貓")).toBeInTheDocument();
+    expect(within(examples).getByText("幼貓")).toBeInTheDocument();
   });
 });
 
@@ -172,5 +189,13 @@ describe("貼圖工作頁", () => {
     mockCat({ status: "ready" });
     renderStudio();
     expect(await screen.findByRole("link", { name: "回到貓咪頁看動作" })).toHaveAttribute("href", "/MeowHQ/assets/cats/cat_20261031_100000");
+  });
+});
+
+describe("BaseSamples", () => {
+  it("成貓、幼貓骨架各有「測試動作與參數」按鈕，連到骨架測試台", () => {
+    render(<BaseSamples />);
+    const links = screen.getAllByRole("link", { name: "測試動作與參數" });
+    expect(links.map(l => l.getAttribute("href"))).toEqual(["/MeowHQ/assets/bases/adult", "/MeowHQ/assets/bases/kitten"]);
   });
 });

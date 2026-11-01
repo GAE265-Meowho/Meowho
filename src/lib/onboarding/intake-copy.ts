@@ -7,7 +7,7 @@ export const GREETING = "嗨，我是喵喵小幫手。用聊天的方式，一�
 
 export function askText(step: Step, phase: IntakeState["phase"]): string {
   if (step.kind === "confirm_household") return "整理好了，看一下喵戶資料，沒問題就按「建立喵戶」。";
-  if (step.kind === "confirm_fields") return "有幾個欄位是我從照片或影片猜的，請在名片上確認或修改。";
+  if (step.kind === "confirm_fields") return "整理好了。有幾個欄位要請你確認（我猜的，或性別、健康這類容易弄錯的），請在名片上看一下。";
   if (step.kind === "confirm_cat") return "名片整理好了，確認沒問題就按「建立貓咪」。";
   switch (step.field) {
     case "caretakerType": return "先介紹一下你自己：你是個人中途、立案協會或收容單位，還是一般飼主呢？也可以一次說完，例如「我是台中北屯的個人中途，叫小橘之家」。";

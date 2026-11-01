@@ -1,8 +1,8 @@
 "use client";
-// 貓咪模型資料（規格書 04 §3、§4）：本機 CAT_STUDIO_ROOT，或正式站 public/hq-cat-models 示範貓。
-// PR 3 會再加 Supabase；元件只依賴這個 hook。
+// 貓咪模型資料（規格書 04 §3、§4）：本機 CAT_STUDIO_ROOT、正式站 Supabase，或 public/hq-cat-models 示範貓。
+// 元件只依賴這個 hook。
 import { useCallback, useEffect, useState } from "react";
-import type { CatModelView } from "@/lib/hq/cat-models/types";
+import type { BodyType, CatModelView } from "@/lib/hq/cat-models/types";
 
 /** loading＝讀取中；disabled＝資料來源沒啟用（沒設 CAT_STUDIO_ROOT 或在正式環境）；missing＝找不到這隻貓；error＝讀取失敗 */
 export type Loadable<T> = { state: "loading" } | { state: "disabled" } | { state: "missing" } | { state: "error" } | { state: "ready"; data: T };
@@ -10,7 +10,10 @@ export type Loadable<T> = { state: "loading" } | { state: "disabled" } | { state
 export const CAT_API = "/api/hq/cat-models";
 export const catFileUrl = (id: string, kind: "photo" | "albedo" | "albedo_prev", bust?: string) =>
   `${CAT_API}/${id}/file/${kind}${bust ? `?t=${encodeURIComponent(bust)}` : ""}`;
-export const BASE_GLB_URL = `${CAT_API}/base`;
+/** 母體 glb：貼圖只能套回畫它的母體，所以依這隻貓的 body 選成貓或幼貓 */
+export const baseGlbUrl = (body: BodyType) => (body === "kitten" ? `${CAT_API}/base?body=kitten` : `${CAT_API}/base`);
+/** 「下載 GLB」：同一個母體檔，回應改成附件 */
+export const baseDownloadUrl = (body: BodyType) => `${CAT_API}/base?body=${body}&download=1`;
 
 /** 帶白話訊息的錯誤：HqSaveButton 只會顯示 hint（見 errors.ts），所以訊息要放在 hint */
 export const hintError = (message: string) => Object.assign(new Error(message), { hint: message });

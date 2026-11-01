@@ -5,9 +5,10 @@ import { useRouter } from "next/navigation";
 import { useMemo } from "react";
 import { formatTaipeiDate } from "@/lib/hq/actions";
 import { CLIP_LIBRARY } from "@/lib/hq/cat-models/clips";
-import { CAT_MODEL_STATUSES, CAT_STATUS_LABELS, CAT_STATUS_TONE, type CatModelView } from "@/lib/hq/cat-models/types";
+import { CAT_MODEL_STATUSES, CAT_STATUS_LABELS, CAT_STATUS_TONE, KITTEN_MAX_MONTHS, type CatModelView } from "@/lib/hq/cat-models/types";
 import { paginate, type ListQuery } from "@/lib/hq/listing";
 import { HqListBody, HqPager, HqTable, HqToolbar, type Column } from "../list/HqList";
+import { BaseSamples } from "./BaseSamples";
 import { assetsHref, NEW_CAT_HREF, studioHref } from "./hrefs";
 import { catFileUrl, useCatList } from "./useCatModels";
 
@@ -58,9 +59,17 @@ export function CatsTab({ query, update }: { query: ListQuery & { page: number }
 
   return (
     <>
-      <div className="hq-row hq-actions">
-        <Link href={NEW_CAT_HREF} className="hq-btn small">新增貓咪模型</Link>
-      </div>
+      {/* 先講清楚流程：骨架（系統自動）→ 照片（使用者上傳）→ 產生 3D，避免以為兩隻母體是要挑的貓 */}
+      <section className="hq-flow" aria-label="製作流程">
+        <ol className="hq-steps">
+          <li><b>1</b><span><strong>上傳照片</strong><span className="hq-hint">側面全身照，填年齡</span></span></li>
+          <li><b>2</b><span><strong>自動套用骨架</strong><span className="hq-hint">{KITTEN_MAX_MONTHS} 個月以下用幼貓骨架</span></span></li>
+          <li><b>3</b><span><strong>產生 3D 貓咪</strong><span className="hq-hint">在貼圖工作頁按「產生動作 glb」</span></span></li>
+        </ol>
+        <Link href={NEW_CAT_HREF} className="hq-btn">新增貓咪模型</Link>
+      </section>
+      <BaseSamples />
+      <h2 className="hq-listtitle">已建立的貓咪模型</h2>
       <HqToolbar
         q={query.q} onSearch={q => update({ q })} placeholder="搜尋貓咪名稱"
         statuses={CAT_MODEL_STATUSES.map(s => ({ value: s, label: CAT_STATUS_LABELS[s] }))}

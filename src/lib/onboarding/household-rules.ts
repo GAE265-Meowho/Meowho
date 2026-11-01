@@ -1,0 +1,132 @@
+// 依身分建立喵戶（#82）：一般飼主的喵戶是「自己的家」，中途的喵戶是「送養據點」。
+// 純函式，畫面與測試共用。位置只存到縣市＋區（AGENTS.md §6）。
+import { AdoptionTermsSchema, type AdoptionTerms } from "../cat-profile/adoption";
+import { isKnownDistrict } from "../geo/tw-districts";
+import { cleanName, parseDistrict, type CaretakerType } from "./household";
+import { z } from "zod";
+
+export const ROLE_INFO: Record<CaretakerType, { label: string; hint: string }> = {
+  cat_owner: { label: "一般飼主", hint: "準備領養，或家裡已經有貓" },
+  personal_foster: { label: "個人中途", hint: "自己照顧、送養浪貓" },
+  shelter_org: { label: "立案協會／收容單位", hint: "有立案的協會或收容單位" },
+};
+export const ROLES = Object.keys(ROLE_INFO) as CaretakerType[];
+
+export const DWELLINGS = { apartment: "公寓", building: "電梯大樓", house: "透天", other: "其他" } as const;
+export const LIVING = { rent: "租屋", own: "自有", family: "與家人同住" } as const;
+export const FAMILY = ["小孩", "長輩", "伴侶", "室友", "其他"] as const;
+export const PETS = ["貓", "狗", "其他動物"] as const;
+
+// 選「其他」時的補充文字存在 *Other 欄位（#89）
+export const HomeSchema = z.object({
+  dwelling: z.enum(Object.keys(DWELLINGS) as [keyof typeof DWELLINGS]).nullable(),
+  dwellingOther: z.string().max(30),
+  living: z.enum(Object.keys(LIVING) as [keyof typeof LIVING]).nullable(),
+  family: z.array(z.enum(FAMILY)),
+  familyOther: z.string().max(30),
+  pets: z.array(z.enum(PETS)),
+  petsOther: z.string().max(30),
+});
+export type Home = z.infer<typeof HomeSchema>;
+
+export interface HouseholdForm {
+  role: CaretakerType | null;
+  name: string;
+  city: string | null;
+  district: string;
+  intro: string;
+  home: Home;
+  terms: AdoptionTerms | null;
+  orgName: string;
+  orgProofUrl: string;
+  /** 個人中途可以順便申請中途徽章；立案中途一定會送 */
+  applyBadge: boolean;
+}
+
+export const emptyHouseholdForm = (): HouseholdForm => ({
+  role: null, name: "", city: null, district: "", intro: "",
+  home: { dwelling: null, dwellingOther: "", living: null, family: [], familyOther: "", pets: [], petsOther: "" },
+  terms: null, orgName: "", orgProofUrl: "", applyBadge: false,
+});
+
+export type MissingField = "role" | "name" | "nameTaken" | "city" | "district" | "dwelling" | "orgName" | "orgProofUrl";
+
+/** 比對喵戶名稱用：忽略前後空白、全形空白與大小寫 */
+export const sameName = (a: string) => cleanName(a).replace(/\s+/g, " ").toLowerCase();
+
+/** 寫「北屯區」或只寫「北屯」都可以 */
+export function normalizeDistrict(city: string | null, typed: string): string | null {
+  const t = typed.trim();
+  if (!city || !t) return null;
+  return parseDistrict(`${city}${t}`, city) ?? (t.length >= 2 ? `${t}區` : null);
+}
+
+const isUrl = (s: string) => /^https?:\/\/\S+\.\S+/.test(s.trim());
+
+/** existingNames：這個帳號已有的喵戶名稱（名稱在同一個帳號裡不能重複，資料庫 trigger 也會擋） */
+export function checkHousehold(f: HouseholdForm, existingNames: string[] = []): MissingField[] {
+  const miss: MissingField[] = [];
+  if (!f.role) miss.push("role");
+  if (f.role && cleanName(f.name).length < 2) miss.push("name");
+  else if (f.role && existingNames.some(n => sameName(n) === sameName(f.name))) miss.push("nameTaken");
+  if (!f.city) miss.push("city");
+  // 區從該縣市的清單選（#89）
+  if (!isKnownDistrict(f.city, f.district)) miss.push("district");
+  if (f.role === "cat_owner" && !f.home.dwelling) miss.push("dwelling");
+  if (f.role === "shelter_org") {
+    if (!f.orgName.trim()) miss.push("orgName");
+    if (!isUrl(f.orgProofUrl)) miss.push("orgProofUrl");
+  }
+  return miss;
+}
+
+/** 沒選「其他」時，不留補充文字 */
+const cleanHome = (h: Home): Home => ({
+  ...h,
+  dwellingOther: h.dwelling === "other" ? h.dwellingOther.trim() : "",
+  familyOther: h.family.includes("其他") ? h.familyOther.trim() : "",
+  petsOther: h.pets.includes("其他動物") ? h.petsOther.trim() : "",
+});
+
+export function toHouseholdRow(f: HouseholdForm) {
+  const owner = f.role === "cat_owner";
+  return {
+    name: cleanName(f.name),
+    caretaker_type: f.role,
+    city: f.city,
+    district: f.district,
+    intro: f.intro.trim(),
+    allow_stranger_messages: true,
+    default_visibility: "public" as const,
+    home: owner ? HomeSchema.parse(cleanHome(f.home)) : null,
+    adoption_terms: owner || !f.terms ? null : AdoptionTermsSchema.parse(f.terms),
+    org_name: f.role === "shelter_org" ? f.orgName.trim() : null,
+    org_proof_url: f.role === "shelter_org" ? f.orgProofUrl.trim() : null,
+  };
+}
+
+/** 一般飼主新增的是自家貓；中途新增的是待領養貓 */
+export const defaultCatStatus = (role: CaretakerType) => (role === "cat_owner" ? "own" : "adoptable") as "own" | "adoptable";
+
+/** 中途徽章申請（沿用既有的認證審核表）；不需要申請時回傳 null */
+export function verificationRow(f: HouseholdForm, ids: { householdId: string; userId: string }) {
+  if (f.role === "shelter_org" || (f.role === "personal_foster" && f.applyBadge)) {
+    const org = f.role === "shelter_org";
+    return {
+      household_id: ids.householdId,
+      applicant_id: ids.userId,
+      org_type: f.role,
+      org_name: org ? f.orgName.trim() : null,
+      proof_url: org ? f.orgProofUrl.trim() : null,
+      description: org ? `立案單位「${f.orgName.trim()}」建立喵戶時一併申請中途徽章。` : "個人中途建立喵戶時一併申請中途徽章。",
+    };
+  }
+  return null;
+}
+
+/** 喵戶數量上限：null 表示不限制（開發期間，#82）；之後要限制改 meow_site_settings 的 household_limit */
+export const canAddHousehold = (existing: number, limit: number | null) => limit === null || existing < limit;
+
+/** meow_site_settings.household_limit 的值 → 上限；不是正整數就當作不限制 */
+export const parseHouseholdLimit = (value: unknown): number | null =>
+  typeof value === "number" && Number.isInteger(value) && value > 0 ? value : null;

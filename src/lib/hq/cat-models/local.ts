@@ -1,17 +1,17 @@
 // 貓咪模型｜本機檔案實作（規格書 04 §4「本機模式」）
 // 直接讀寫 Cat Studio 的資料夾格式，paint_worker.py 不用改：
 //   <CAT_STUDIO_ROOT>/adoption_cats/<貓咪ID>/{photo.*, profile.json, paint_job.json, paint_albedo.png}
-//   <CAT_STUDIO_ROOT>/cat_base/work/base_clips.glb（共用母體）
+//   <CAT_STUDIO_ROOT>/cat_base/work/base_clips.glb（成貓母體）、cat_base_kitten/work/base_clips.glb（幼貓母體）
 // 只在開發模式（非 production）且設了 CAT_STUDIO_ROOT 時啟用；Vercel 上一律關閉。
 // 本檔只能在伺服器端（API route）使用。
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import {
-  deriveStatus, type CatModelView, type FillPattern, type JobInfo, type PhotoView, type PublicationState, type PublishAction, canPublish,
+  bodyFor, CAT_ID_RE, deriveStatus, newCatId, photoExt, profileNumber, type BodyType, type CatModelView, type FillPattern, type JobInfo, type PhotoView, type PublicationState, type PublishAction, canPublish,
   isJobActive, MAX_PHOTO_BYTES,
 } from "./types";
 
-export const CAT_ID_RE = /^cat_\d{8}_\d{6}(_\d+)?$/;
+export { CAT_ID_RE };
 export const FILE_KINDS = ["photo", "albedo", "albedo_prev"] as const;
 export type FileKind = (typeof FILE_KINDS)[number];
 
@@ -25,7 +25,8 @@ export function localRoot(env: Record<string, string | undefined> = process.env)
 
 const catsDir = (root: string) => path.join(root, "adoption_cats");
 const catDir = (root: string, id: string) => path.join(catsDir(root), id);
-export const baseGlbPath = (root: string) => path.join(root, "cat_base", "work", "base_clips.glb");
+export const baseGlbPath = (root: string, body: BodyType = "adult") =>
+  path.join(root, body === "kitten" ? "cat_base_kitten" : "cat_base", "work", "base_clips.glb");
 
 async function readJson<T>(file: string): Promise<T | null> {
   // 去掉開頭的 BOM：Windows 的編輯器、PowerShell 存檔常會帶上，JSON.parse 會當成壞掉
@@ -50,10 +51,15 @@ const PENDING_PREV = "paint_albedo_pending_prev.png";
 async function settle(dir: string): Promise<void> {
   const pending = path.join(dir, PENDING_PREV);
   if (!(await exists(pending))) return;
-  const job = await readJson<JobInfo>(path.join(dir, "paint_job.json"));
+  const jobFile = path.join(dir, "paint_job.json");
+  const job = await readJson<JobInfo>(jobFile);
   if (!job || job.status === "queued" || job.status === "running") return;
-  if (job.status === "done") await fs.rename(pending, path.join(dir, "paint_albedo_prev.png"));
-  else await fs.rm(pending, { force: true });
+  if (job.status === "done") {
+    await fs.rename(pending, path.join(dir, "paint_albedo_prev.png"));
+    // 上一版貼圖的母體也跟著升格
+    const { pending_prev_base_version: prevBase, ...rest } = job;
+    await fs.writeFile(jobFile, JSON.stringify({ ...rest, prev_base_version: prevBase }, null, 2), "utf-8");
+  } else await fs.rm(pending, { force: true });
 }
 
 async function mtime(file: string): Promise<string | null> {
@@ -84,6 +90,7 @@ async function toView(root: string, id: string): Promise<CatModelView | null> {
     hasAlbedo,
     hasPrevAlbedo,
     albedoVersion,
+    body: bodyFor({ baseVersion: job?.base_version ?? null, hasAlbedo, ageMonths: num(profile.age_months) }),
     jobStatus: job?.status ?? null,
     jobQueuedAt: job?.queued_at ?? null,
     jobStartedAt: job?.started_at ?? null,
@@ -128,8 +135,8 @@ export async function readCatFile(root: string, id: string, kind: FileKind): Pro
   } catch { return null; }
 }
 
-export async function readBaseGlb(root: string): Promise<Buffer | null> {
-  try { return await fs.readFile(baseGlbPath(root)); } catch { return null; }
+export async function readBaseGlb(root: string, body: BodyType = "adult"): Promise<Buffer | null> {
+  try { return await fs.readFile(baseGlbPath(root, body)); } catch { return null; }
 }
 
 export type PublishResult = { ok: true; status: "published" | "unpublished" } | { ok: false; code: "not_found" | "reason_required" | "invalid_state" };
@@ -152,7 +159,6 @@ export async function setPublication(root: string, id: string, action: PublishAc
 // ───────── 新增貓咪／產生貼圖／換回上一版（規格書 04 §2.3） ─────────
 // 寫入的檔案格式與 cat_studio/server.py 的 create_cat、paint 完全相同，paint_worker.py 直接撿得到。
 
-const PHOTO_TYPES: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
 
 export interface NewCatInput {
   name: string;
@@ -164,21 +170,20 @@ export interface NewCatInput {
 }
 export type CreateResult = { ok: true; id: string } | { ok: false; code: "name_required" | "photo_invalid" | "photo_too_large" };
 
-const pad = (n: number) => String(n).padStart(2, "0");
 
 /** 建立貓咪：寫 photo.* 與 profile.json，不會自動開始生成（狀態為草稿） */
 export async function createCat(root: string, input: NewCatInput, now = new Date()): Promise<CreateResult> {
   const name = String(input.name ?? "").trim().slice(0, 40);
   if (!name) return { ok: false, code: "name_required" };
   const m = /^data:(image\/[\w+.-]+);base64,([\s\S]+)$/.exec(typeof input.photo === "string" ? input.photo : "");
-  const ext = m ? PHOTO_TYPES[m[1]] : undefined;
+  const ext = m ? photoExt(m[1]) : null;
   if (!m || !ext) return { ok: false, code: "photo_invalid" };
   const photo = Buffer.from(m[2], "base64");
   if (photo.length === 0) return { ok: false, code: "photo_invalid" };
   if (photo.length > MAX_PHOTO_BYTES) return { ok: false, code: "photo_too_large" };
 
   await fs.mkdir(catsDir(root), { recursive: true });
-  const base = `cat_${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+  const base = newCatId(now);
   let id = base;
   for (let n = 1; ; n++) {
     try { await fs.mkdir(catDir(root, id)); break; } catch (e) {
@@ -189,9 +194,8 @@ export async function createCat(root: string, input: NewCatInput, now = new Date
   const dir = catDir(root, id);
   const photoName = `photo.${ext}`;
   await fs.writeFile(path.join(dir, photoName), photo);
-  const toNum = (v: unknown) => { const x = typeof v === "string" && v.trim() === "" ? NaN : Number(v); return Number.isFinite(x) && x >= 0 ? x : null; };
   const profile = {
-    id, name, age_months: toNum(input.ageMonths), weight_kg: toNum(input.weightKg),
+    id, name, age_months: profileNumber(input.ageMonths), weight_kg: profileNumber(input.weightKg),
     notes: String(input.notes ?? "").trim().slice(0, 500), photo: photoName, created_at: now.toISOString(),
   };
   await fs.writeFile(path.join(dir, "profile.json"), JSON.stringify(profile, null, 2), "utf-8");
@@ -210,7 +214,13 @@ export async function queuePaint(root: string, id: string, view: unknown, fill: 
   if (isJobActive(cat.status)) return { ok: false, code: "busy" };
   const dir = catDir(root, id);
   if (cat.hasAlbedo) await fs.copyFile(path.join(dir, "paint_albedo.png"), path.join(dir, PENDING_PREV));
-  const state = { status: "queued", step: "排隊中（請確認 paint_worker.py 有在執行）", view: v, fill: f, queued_at: now.toISOString() };
+  // 母體版本要帶著走：排隊、生成中、失敗時預覽仍用目前貼圖的母體
+  const old = await readJson<JobInfo>(path.join(dir, "paint_job.json"));
+  const state = {
+    status: "queued", step: "排隊中（請確認 paint_worker.py 有在執行）", view: v, fill: f, queued_at: now.toISOString(),
+    base_version: old?.base_version, prev_base_version: old?.prev_base_version,
+    pending_prev_base_version: cat.hasAlbedo ? old?.base_version : undefined,
+  };
   await fs.writeFile(path.join(dir, "paint_job.json"), JSON.stringify(state, null, 2), "utf-8");
   return { ok: true };
 }
@@ -236,6 +246,10 @@ export async function restorePrevious(root: string, id: string, reason: string, 
   } else {
     await fs.rename(prev, cur);
   }
+  // 母體跟著貼圖換（沒記錄＝成貓舊資料）
+  const jobFile = path.join(dir, "paint_job.json");
+  const job = await readJson<JobInfo>(jobFile);
+  if (job) await fs.writeFile(jobFile, JSON.stringify({ ...job, base_version: job.prev_base_version, prev_base_version: job.base_version }, null, 2), "utf-8");
   await fs.appendFile(path.join(dir, "audit.jsonl"), JSON.stringify({ action: "restore_texture", actor, reason: text, at: now.toISOString() }) + "\n", "utf-8");
   return { ok: true };
 }

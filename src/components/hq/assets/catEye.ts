@@ -37,6 +37,18 @@ export const EYE_DEFAULTS: EyeParams = {
   scleraColor: "#e6dccd",
 };
 
+/** 虹膜顏色預設（和 cat_studio/cat_eye.js 的 EYE_PRESETS 相同） */
+export const EYE_PRESETS = {
+  amber: { label: "琥珀", irisInner: "#c9a227", irisOuter: "#d9821a" },
+  green: { label: "綠", irisInner: "#8fb03a", irisOuter: "#5f8f2e" },
+  hazel: { label: "黃綠", irisInner: "#a8b83a", irisOuter: "#d99a1e" },
+  blue: { label: "藍", irisInner: "#9cc3e0", irisOuter: "#3f78b5" },
+  copper: { label: "銅", irisInner: "#d2701f", irisOuter: "#9a4a14" },
+} as const;
+
+/** 「瞳孔跟著亮度變化」：亮處縮成細縫、暗處放大成圓 */
+export const autoPupil = (light: number) => THREE.MathUtils.clamp(1.15 - light * 0.5, 0, 1);
+
 const COLOR_KEYS = { irisInner: "uIrisInner", irisOuter: "uIrisOuter", pupilColor: "uPupilColor", scleraColor: "uScleraColor" } as const;
 const FLOAT_KEYS = { pupil: "uPupil", irisSize: "uIrisSize", corneaBulge: "uCorneaBulge", ior: "uIOR" } as const;
 

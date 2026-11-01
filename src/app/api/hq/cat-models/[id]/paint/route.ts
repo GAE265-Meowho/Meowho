@@ -1,14 +1,12 @@
-// 送出生成任務（本機模式）：寫 paint_job.json 為 queued，由 paint_worker.py 撿起（規格書 04 §2.3、§4）
-import { localRoot, queuePaint } from "@/lib/hq/cat-models/local";
+// 送出生成任務：本機寫 paint_job.json、Supabase 新增 meow_cat_model_jobs，由 paint_worker.py 撿起（規格書 04 §2.3、§4）
+import { repoQueuePaint } from "@/lib/hq/cat-models/repo";
 
 export const dynamic = "force-dynamic";
 
-const STATUS: Record<string, number> = { not_found: 404, invalid_option: 400, busy: 409 };
+const STATUS: Record<string, number> = { not_found: 404, invalid_option: 400, busy: 409, permission_denied: 403, disabled: 404 };
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const root = localRoot();
-  if (!root) return Response.json({ error: "disabled" }, { status: 404 });
   const body = (await req.json().catch(() => ({}))) as { view?: unknown; fill?: unknown };
-  const result = await queuePaint(root, (await params).id, body.view, body.fill);
+  const result = await repoQueuePaint((await params).id, body.view, body.fill);
   return result.ok ? Response.json({ ok: true }) : Response.json({ error: result.code }, { status: STATUS[result.code] ?? 400 });
 }

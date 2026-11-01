@@ -32,6 +32,12 @@ export interface JobInfo {
   view?: PhotoView;
   fill?: FillPattern;
   seconds?: number;
+  /** worker 記下貼圖畫在哪個母體上（adult-v1／kitten-v1） */
+  base_version?: string;
+  /** 上一版貼圖畫在哪個母體上：換回上一版時母體也要跟著換（兩個母體 UV 不同） */
+  prev_base_version?: string;
+  /** 排隊時目前版的母體；成功後升格成 prev_base_version（同 paint_albedo_pending_prev.png） */
+  pending_prev_base_version?: string;
   queued_at?: string;
   started_at?: string;
   finished_at?: string;
@@ -76,6 +82,8 @@ export interface CatModelView {
   hasPrevAlbedo: boolean;
   /** 貼圖檔的修改時間（毫秒），畫面用來避開瀏覽器快取 */
   albedoVersion: string | null;
+  /** 預覽要載入的母體（bodyFor） */
+  body: BodyType;
   jobStatus: JobStatus | null;
   jobQueuedAt: string | null;
   jobStartedAt: string | null;
@@ -104,5 +112,52 @@ export function elapsedMinutes(since: string | null, nowMs: number): number | nu
   return Number.isFinite(at) ? Math.max(0, Math.floor((nowMs - at) / 60000)) : null;
 }
 
+/** 母體體型（規格書 04 TBD-C）：≤ 6 個月幼貓 cat_base_kitten、其他成貓 cat_base */
+export type BodyType = "adult" | "kitten";
+export const BODY_LABELS: Record<BodyType, string> = { adult: "成貓", kitten: "幼貓" };
+export const KITTEN_MAX_MONTHS = 6;
+
+/**
+ * 這隻貓要用哪個母體預覽。貼圖只能套回畫它的母體（兩個母體 UV 不同），所以有貼圖時看 worker 記的 base_version；
+ * 以前只有成貓母體，舊資料（"v1" 或沒記錄）一律成貓。還沒有貼圖時依年齡（worker 也用同一條規則選母體）。
+ */
+export function bodyFor(input: { baseVersion: string | null; hasAlbedo: boolean; ageMonths: number | null }): BodyType {
+  if (input.baseVersion?.startsWith("kitten")) return "kitten";
+  if (input.hasAlbedo) return "adult";
+  return input.ageMonths !== null && input.ageMonths <= KITTEN_MAX_MONTHS ? "kitten" : "adult";
+}
+
+/** 母體 glb 的檔名（Storage 的 base/v1/、public/hq-cat-models/base/ 都用同一個名字） */
+export const baseFileName = (body: BodyType) => (body === "kitten" ? "base_clips_kitten.glb" : "base_clips.glb");
+
+/** 跨網域的公開網址（Supabase Storage）瀏覽器不理 <a download>，改用 Storage 的 ?download= 讓它回附件 */
+export function asDownload(url: string, name: string): string {
+  if (!/^https?:\/\//.test(url)) return url; // 同網域（public/）靠 <a download> 就夠
+  return `${url}${url.includes("?") ? "&" : "?"}download=${encodeURIComponent(name)}`;
+}
+
 export const MAX_PHOTO_BYTES = 10 * 1024 * 1024;
+
+// ───────── 新增貓咪的共用檢查（本機 local.ts 與 Supabase supabase.ts 共用） ─────────
+
+/** 貓咪 ID（Cat Studio 格式，也是資料表 meow_cat_models.id 的格式） */
+export const CAT_ID_RE = /^cat_\d{8}_\d{6}(_\d+)?$/;
+
+const pad2 = (n: number) => String(n).padStart(2, "0");
+export function newCatId(now: Date): string {
+  return `cat_${now.getFullYear()}${pad2(now.getMonth() + 1)}${pad2(now.getDate())}_${pad2(now.getHours())}${pad2(now.getMinutes())}${pad2(now.getSeconds())}`;
+}
+
+const PHOTO_EXT_BY_TYPE: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp" };
+/** 照片 MIME → 副檔名；不支援的格式回 null */
+export const photoExt = (type: unknown): string | null => (typeof type === "string" ? PHOTO_EXT_BY_TYPE[type] ?? null : null);
+
+/** 照片路徑只能是 `<貓咪ID>/photo.<jpg|png|webp>`（瀏覽器送來的值，不能指到別隻貓或別的資料夾） */
+export const ownPhotoPath = (id: string, path: string) => new RegExp(`^${id}/photo\\.(jpg|png|webp)$`).test(path);
+
+/** 年齡、體重：空白、負數、非數字都當沒填 */
+export function profileNumber(v: unknown): number | null {
+  const x = typeof v === "string" && v.trim() === "" ? NaN : Number(v);
+  return Number.isFinite(x) && x >= 0 ? x : null;
+}
 export const PHOTO_MIME = ["image/jpeg", "image/png", "image/webp"] as const;
