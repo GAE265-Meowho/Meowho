@@ -12,6 +12,7 @@ import * as THREE from "three";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import { clone as cloneSkinned } from "three/examples/jsm/utils/SkeletonUtils.js";
 import { createCatEyeMaterial, setCatEyeParams } from "./catEye";
+import type { BodyType } from "@/lib/hq/cat-models/types";
 
 export const CROSSFADE_SECONDS = 0.4;
 export const MAX_GAZE = THREE.MathUtils.degToRad(28);
@@ -19,10 +20,20 @@ export const MAX_GAZE = THREE.MathUtils.degToRad(28);
 export const DEFAULT_CAMERA: [number, number, number] = [0.95, 0.45, 0.95];
 export const DEFAULT_TARGET: [number, number, number] = [0, 0.23, 0];
 
+/** 幼貓母體體長約 0.22 m（成貓約 0.45 m）：相機、目標照比例縮小，不然幼貓縮在畫面下方 */
+const KITTEN_SCALE = 0.5;
+export function framing(body: BodyType) {
+  const s = body === "kitten" ? KITTEN_SCALE : 1;
+  const scale = (v: [number, number, number]) => v.map(x => x * s) as [number, number, number];
+  return { camera: scale(DEFAULT_CAMERA), target: scale(DEFAULT_TARGET), minDistance: 0.3 * s, maxDistance: 3 * s };
+}
+
 export interface PreviewInfo { clips: string[]; eyes: number; bones: number; morphs: string[] }
 
 export interface CatPreviewProps {
   baseUrl: string;
+  /** 母體體型：決定預設取景 */
+  body?: BodyType;
   /** 這隻貓的貼圖；null＝顯示母體預設貼圖 */
   albedoUrl: string | null;
   clip: string | null;
@@ -179,12 +190,13 @@ function Exposure({ light }: { light: number }) {
 }
 
 export default function CatPreview(props: CatPreviewProps & { onError?: (e: Error) => void }) {
-  const { light = 1, onError, ...rest } = props;
+  const { light = 1, onError, body = "adult", ...rest } = props;
+  const view = framing(body);
   return (
     <Canvas
-      camera={{ position: DEFAULT_CAMERA, fov: 30, near: 0.01, far: 50 }}
+      camera={{ position: view.camera, fov: 30, near: 0.01, far: 50 }}
       gl={{ antialias: true, toneMapping: THREE.ACESFilmicToneMapping }}
-      onCreated={({ camera }) => camera.lookAt(...DEFAULT_TARGET)}
+      onCreated={({ camera }) => camera.lookAt(...view.target)}
       dpr={[1, 2]}
       style={{ width: "100%", height: "100%", touchAction: "none" }}
     >
@@ -196,7 +208,7 @@ export default function CatPreview(props: CatPreviewProps & { onError?: (e: Erro
           <CatModel {...rest} />
         </Suspense>
       </PreviewBoundary>
-      <OrbitControls target={DEFAULT_TARGET} enableDamping minDistance={0.3} maxDistance={3} />
+      <OrbitControls target={view.target} enableDamping minDistance={view.minDistance} maxDistance={view.maxDistance} />
     </Canvas>
   );
 }

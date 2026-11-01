@@ -8,6 +8,7 @@ import { CLIP_LIBRARY } from "@/lib/hq/cat-models/clips";
 import { CAT_MODEL_STATUSES, CAT_STATUS_LABELS, CAT_STATUS_TONE, type CatModelView } from "@/lib/hq/cat-models/types";
 import { paginate, type ListQuery } from "@/lib/hq/listing";
 import { HqListBody, HqPager, HqTable, HqToolbar, type Column } from "../list/HqList";
+import { BaseSamples } from "./BaseSamples";
 import { assetsHref, NEW_CAT_HREF, studioHref } from "./hrefs";
 import { catFileUrl, useCatList } from "./useCatModels";
 
@@ -60,7 +61,9 @@ export function CatsTab({ query, update }: { query: ListQuery & { page: number }
     <>
       <div className="hq-row hq-actions">
         <Link href={NEW_CAT_HREF} className="hq-btn small">新增貓咪模型</Link>
+        <span className="hq-hint">上傳照片 → 貼圖工作頁按「產生動作 glb」；6 個月以下自動用幼貓母體</span>
       </div>
+      <BaseSamples />
       <HqToolbar
         q={query.q} onSearch={q => update({ q })} placeholder="搜尋貓咪名稱"
         statuses={CAT_MODEL_STATUSES.map(s => ({ value: s, label: CAT_STATUS_LABELS[s] }))}

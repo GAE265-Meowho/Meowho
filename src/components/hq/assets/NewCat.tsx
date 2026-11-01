@@ -1,10 +1,12 @@
 "use client";
 // 新增貓咪（規格書 04 §2.3 ①）：名稱與照片是第一步，儲存後是「草稿」，進到貼圖工作頁再按「產生動作 glb」。
 // 欄位與 Cat Studio 的 profile 相同（名稱、年齡、體重、備註、照片）。
+// 照片：本機模式跟表單一起送；Supabase 模式先拿上傳網址、瀏覽器直傳 Storage，再建立草稿（避開 Vercel 請求大小上限）。
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { MAX_PHOTO_BYTES, PHOTO_MIME } from "@/lib/hq/cat-models/types";
+import { BODY_LABELS, bodyFor, MAX_PHOTO_BYTES, PHOTO_MIME, profileNumber } from "@/lib/hq/cat-models/types";
+import { getBrowserSupabase } from "@/lib/supabase/client";
 import { HqSaveButton } from "../HqStates";
 import { CAT_API, hintError, postJson } from "./useCatModels";
 import { ASSETS_CATS_HREF, studioHref } from "./hrefs";
@@ -13,8 +15,12 @@ const ERRORS: Record<string, string> = {
   name_required: "請填寫貓咪名字",
   photo_invalid: "請上傳 JPG、PNG 或 WebP 照片",
   photo_too_large: "照片太大（上限 10 MB）",
-  disabled: "資料來源還沒有啟用（需設定 CAT_STUDIO_ROOT）",
+  disabled: "資料來源還沒有啟用（需設定 CAT_STUDIO_ROOT 或 Supabase）",
+  permission_denied: "你沒有虛擬體驗元件管理的權限，或登入已過期",
+  busy: "剛好有另一隻貓同時建立，請再按一次儲存",
 };
+
+type UploadTicket = { mode: "inline" } | { mode: "signed"; id: string; bucket: string; path: string; token: string };
 
 /** 檢查照片格式與大小；回傳白話原因，沒問題回 null（只檢查格式與大小，不做 AI 辨識） */
 export function checkPhoto(file: { type: string; size: number }): string | null {
@@ -59,8 +65,19 @@ export function NewCat() {
   async function save() {
     if (!name.trim()) throw hintError(ERRORS.name_required);
     if (!file) throw hintError(fileError ?? "請先選一張貓咪照片");
-    const photo = await readAsDataUrl(file);
-    const { id } = await postJson<{ id: string }>(CAT_API, { name, ageMonths: age, weightKg: weight, notes, photo }, ERRORS);
+    const ticket = await postJson<UploadTicket>(`${CAT_API}/upload`, { type: file.type, size: file.size }, ERRORS);
+    const fields = { name, ageMonths: age, weightKg: weight, notes };
+    let body: Record<string, unknown>;
+    if (ticket.mode === "signed") {
+      const sb = getBrowserSupabase();
+      if (!sb) throw hintError("無法連線到儲存空間，請重新整理後再試");
+      const { error } = await sb.storage.from(ticket.bucket).uploadToSignedUrl(ticket.path, ticket.token, file, { contentType: file.type });
+      if (error) throw hintError("照片上傳失敗，請檢查網路後再試一次");
+      body = { ...fields, id: ticket.id, photoPath: ticket.path };
+    } else {
+      body = { ...fields, photo: await readAsDataUrl(file) };
+    }
+    const { id } = await postJson<{ id: string }>(CAT_API, body, ERRORS);
     router.push(studioHref(id));
   }
 
@@ -85,6 +102,7 @@ export function NewCat() {
           <div>
             <label className="hq-label" htmlFor="cat-age">年齡（月，選填）</label>
             <input id="cat-age" className="hq-input" inputMode="decimal" value={age} onChange={e => setAge(e.target.value)} />
+            <p className="hq-hint">母體：{BODY_LABELS[bodyFor({ baseVersion: null, hasAlbedo: false, ageMonths: profileNumber(age) })]}（6 個月以下用幼貓）</p>
           </div>
           <div>
             <label className="hq-label" htmlFor="cat-weight">體重（公斤，選填）</label>

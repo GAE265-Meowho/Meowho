@@ -18,7 +18,7 @@ afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 
 const cat = (over: Partial<CatModelView>): CatModelView => ({
   id: "cat_20261031_100000", name: "小橘", ownerType: "template", status: "ready", ageMonths: null, weightKg: null, notes: "",
-  photoView: null, fillPattern: null, hasAlbedo: true, hasPrevAlbedo: false, albedoVersion: null, jobStatus: null, jobQueuedAt: null, jobStartedAt: null, jobSeconds: null, jobStep: null, jobError: null,
+  photoView: null, fillPattern: null, hasAlbedo: true, hasPrevAlbedo: false, albedoVersion: null, body: "adult", jobStatus: null, jobQueuedAt: null, jobStartedAt: null, jobSeconds: null, jobStep: null, jobError: null,
   createdAt: "2026-10-31T10:00:00", updatedAt: "2026-10-31T10:00:00", ...over,
 });
 
