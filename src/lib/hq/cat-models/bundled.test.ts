@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { bundledBasePublicPath, bundledEnabled, bundledFilePublicPath, getBundledCat, listBundledCats } from "./bundled";
 import { resolveCatSource } from "./repo";
+import { KITTEN_MAX_MONTHS } from "./types";
 
 describe("bundled 示範貓", () => {
   it("有至少一隻已完成的貓可預覽", () => {
@@ -18,6 +19,14 @@ describe("bundled 示範貓", () => {
     expect(bundledFilePublicPath(id, "albedo_prev")).toBeNull();
     expect(bundledBasePublicPath()).toBe("/hq-cat-models/base/base_clips.glb");
     expect(getBundledCat("cat_99999999_999999")).toBeNull();
+  });
+
+  it("幼貓骨架的示範小貓：體型 kitten、年齡在幼貓範圍內", () => {
+    const kitten = getBundledCat("cat_20261101_183700");
+    expect(kitten?.body).toBe("kitten");
+    expect(kitten?.ageMonths).toBeLessThanOrEqual(KITTEN_MAX_MONTHS);
+    expect(bundledFilePublicPath("cat_20261101_183700", "albedo")).toBe("/hq-cat-models/cats/cat_20261101_183700/paint_albedo.png");
+    expect(bundledBasePublicPath("kitten")).toBe("/hq-cat-models/base/base_clips_kitten.glb");
   });
 
   it("沒有 CAT_STUDIO_ROOT 時改走 bundled", () => {

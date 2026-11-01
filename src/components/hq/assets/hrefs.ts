@@ -3,3 +3,4 @@ export const ASSETS_CATS_HREF = "/MeowHQ/assets";
 export const NEW_CAT_HREF = "/MeowHQ/assets/cats/new";
 export const assetsHref = (id: string) => `/MeowHQ/assets/cats/${id}`;
 export const studioHref = (id: string) => `/MeowHQ/assets/cats/${id}/studio`;
+export const baseLabHref = (body: "adult" | "kitten") => `/MeowHQ/assets/bases/${body}`;

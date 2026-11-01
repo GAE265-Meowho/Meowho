@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { resolveCatSource } from "./repo";
+import { listBundledCats } from "./bundled";
+import { resolveCatSource, withTemplates } from "./repo";
 
 afterEach(() => vi.unstubAllEnvs());
 
@@ -25,5 +26,19 @@ describe("resolveCatSource", () => {
     vi.stubEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY", "");
     vi.stubEnv("SUPABASE_SERVICE_ROLE_KEY", "");
     expect(resolveCatSource()).toBe("bundled");
+  });
+});
+
+describe("withTemplates", () => {
+  const [adult] = listBundledCats();
+  it("Supabase 表空時只有範本貓", () => {
+    expect(withTemplates([], listBundledCats()).map(c => c.id)).toEqual(listBundledCats().map(c => c.id));
+  });
+  it("Supabase 的貓在前，範本貓接在後面；同 ID 以 Supabase 為準", () => {
+    const sb = [{ ...adult, name: "Supabase 版" }, { ...adult, id: "cat_20261102_000000" }];
+    const out = withTemplates(sb, listBundledCats());
+    expect(out.slice(0, 2)).toEqual(sb);
+    expect(out.filter(c => c.id === adult.id)).toHaveLength(1);
+    expect(out.map(c => c.id)).toContain("cat_20261101_183700");
   });
 });
