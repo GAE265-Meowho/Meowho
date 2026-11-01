@@ -38,6 +38,10 @@ function readAsDataUrl(file: File): Promise<string> {
   });
 }
 
+const PHOTO_EXAMPLES = [
+  { label: "成貓", src: "/hq-cat-models/examples/adult.webp" },
+  { label: "幼貓", src: "/hq-cat-models/examples/kitten.webp" },
+] as const;
 const PLANNED_ANGLES = [
   { view: "front", label: "正面" },
   { view: "back", label: "背部花紋" },
@@ -110,6 +114,16 @@ export function NewCat() {
       <section className="hq-box" aria-label="照片">
         <h3><span className="hq-stepno">1</span>貓咪照片</h3>
         <p className="hq-hint">拍攝提示：<strong>側拍、坐姿或站姿、拍到全身、背景越單純越好</strong>。支援 JPG、PNG、WebP，10 MB 以內。</p>
+        {/* 拍攝範例（#98）：成貓＝LINE_A7_1.jpg、幼貓＝好奇虎斑小貓（幼貓骨架的原始照片），縮到 480px 放在 public/hq-cat-models/examples/ */}
+        <div className="hq-examples" role="group" aria-label="拍攝範例">
+          {PHOTO_EXAMPLES.map(e => (
+            <figure key={e.src}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={e.src} alt={`${e.label}拍攝範例：側面全身站姿`} loading="lazy" />
+              <figcaption>{e.label}</figcaption>
+            </figure>
+          ))}
+        </div>
         {/* 角度指引：目前上色只用一張側面照；正面、背部是之後多角度上色要用的位置，先標規劃中 */}
         <div className="hq-angles">
           <div className={`hq-angle${preview ? " filled" : ""}`}>
