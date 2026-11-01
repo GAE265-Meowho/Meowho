@@ -99,7 +99,7 @@ export function MyHomes({ homes, cats, verifs, onVerification, onDeleteCat }: {
                     <div className={s.photo}>
                       {c.photo_url ? <img src={c.photo_url} alt={`${c.name}的照片`} /> : <Icon name="cat" size={64} />}
                     </div>
-                    <h4 className={s.catName}>{c.name}</h4>
+                    <h4 className={s.catName}><a className={s.catLink} href={`/cats/${c.id}`}>{c.name}</a></h4>
                     <p className={s.meta}>
                       {[SEX_LABEL[c.sex], c.life_stage ? LIFE_STAGE_LABEL[c.life_stage] : ageLabel({ birthday: c.birthday, estAgeMonths: c.est_age_months }), c.coat, c.breed].filter(Boolean).join("・")}
                     </p>

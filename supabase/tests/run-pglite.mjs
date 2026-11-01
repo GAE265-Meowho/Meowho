@@ -156,6 +156,24 @@ try {
   }
 }
 
+// 0008（收藏貓咪，#70）：0001→0007 後跑 0008 兩次＋測試
+{
+  const m = new PGlite();
+  const base = read("./stub_supabase.sql") + ["0001_meow", "0002_meow_hq", "0003_meow_site_assets", "0004_meow_cat_profile", "0005_meow_cat_models", "0006_meow_household_roles", "0007_meow_adoption_forms"]
+    .map((f) => read(`../migrations/${f}.sql`)).join("");
+  try {
+    await m.exec(base);
+    await m.exec(read("../migrations/0008_meow_cat_favorites.sql"));
+    await m.exec(read("../migrations/0008_meow_cat_favorites.sql"));
+    const sql8 = read("./0008_meow_cat_favorites.test.sql").replace(/^\s*begin;/im, "").replace(/rollback;\s*$/i, "");
+    const out8 = await m.exec(sql8);
+    results = results.concat(out8.flatMap((r) => r.rows ?? []).filter((r) => "status" in r));
+  } catch (e) {
+    console.error(`✗ 0008 測試中斷：${e.message}`);
+    process.exit(1);
+  }
+}
+
 let failed = 0;
 for (const r of results) {
   if (r.status === "FAIL") failed++;
