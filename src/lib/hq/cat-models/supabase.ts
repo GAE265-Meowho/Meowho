@@ -7,7 +7,7 @@ import { getAdminSupabase } from "@/lib/supabase/admin";
 import { getServerSupabase } from "@/lib/supabase/server";
 import { SUPABASE_URL } from "@/lib/supabase/config";
 import {
-  baseFileName, bodyFor, isJobActive, normalizeStatus, newCatId, ownPhotoPath, photoExt, profileNumber,
+  baseFileName, bodyFor, EXTRA_VIEWS, isExtraView, isJobActive, normalizeStatus, ownExtraPhotoPath, type ExtraView, newCatId, ownPhotoPath, photoExt, profileNumber,
   type BodyType, type CatModelStatus, type CatModelView, type FillPattern, type JobStatus, type PhotoView,
   CAT_ID_RE, MAX_PHOTO_BYTES,
 } from "./types";
@@ -148,7 +148,8 @@ export async function sbBaseRedirect(body: BodyType = "adult"): Promise<string |
 export type UploadTicket = { ok: true; id: string; bucket: string; path: string; token: string };
 
 /** 新增第一步：檢查格式與大小、配一個貓咪 ID、簽一個上傳網址（瀏覽器拿去直傳照片） */
-export async function sbPhotoUpload(type: unknown, size: unknown, now = new Date()): Promise<
+/** 新增第一步：簽上傳網址。帶 extra（#105）時是同一隻貓的正面／背部花紋照，簽 <id>/photo_<角度>.<副檔名> */
+export async function sbPhotoUpload(type: unknown, size: unknown, now = new Date(), extra?: { id?: unknown; view?: unknown }): Promise<
   UploadTicket | { ok: false; code: "photo_invalid" | "photo_too_large" | "permission_denied" }
 > {
   const ext = photoExt(type);
@@ -156,14 +157,19 @@ export async function sbPhotoUpload(type: unknown, size: unknown, now = new Date
   if (size > MAX_PHOTO_BYTES) return { ok: false, code: "photo_too_large" };
   const user = await userClient();
   if (!user) return { ok: false, code: "permission_denied" };
-  const id = newCatId(now);
-  const path = `${id}/photo.${ext}`;
+  if (extra && (!isExtraView(extra.view) || typeof extra.id !== "string" || !CAT_ID_RE.test(extra.id))) return { ok: false, code: "photo_invalid" };
+  const id = extra ? String(extra.id) : newCatId(now);
+  const path = extra ? `${id}/photo_${extra.view}.${ext}` : `${id}/photo.${ext}`;
   const { data, error } = await user.sb.storage.from(PHOTO_BUCKET).createSignedUploadUrl(path);
   if (error || !data) return { ok: false, code: "permission_denied" };
   return { ok: true, id, bucket: PHOTO_BUCKET, path, token: data.token };
 }
 
-export type SbCreateInput = { id?: unknown; photoPath?: unknown; name: unknown; ageMonths?: unknown; weightKg?: unknown; notes?: unknown };
+export type SbCreateInput = {
+  id?: unknown; photoPath?: unknown; name: unknown; ageMonths?: unknown; weightKg?: unknown; notes?: unknown;
+  /** 正面、背部花紋照片已上傳的路徑（#105，選填） */
+  extraPaths?: Partial<Record<string, unknown>>;
+};
 
 /** 新增第二步：照片已傳好，建立草稿（不會自動開始生成） */
 export async function sbCreateCat(input: SbCreateInput): Promise<
@@ -178,11 +184,18 @@ export async function sbCreateCat(input: SbCreateInput): Promise<
   if (!user) return { ok: false, code: "permission_denied" };
   const { data: files } = await user.sb.storage.from(PHOTO_BUCKET).list(id, { limit: 10 });
   if (!files?.some(f => `${id}/${f.name}` === photoPath)) return { ok: false, code: "photo_invalid" };
+  // 正面、背部花紋照：路徑正確且真的已上傳才記錄；其他略過，不擋建立
+  const extraPhotos: Partial<Record<ExtraView, string>> = {};
+  for (const view of EXTRA_VIEWS) {
+    const p = input.extraPaths?.[view];
+    if (typeof p === "string" && ownExtraPhotoPath(id, view, p) && files.some(f => `${id}/${f.name}` === p)) extraPhotos[view] = p;
+  }
   const { error } = await user.sb.from("meow_cat_models").insert({
     id, name, owner_type: "template", status: "draft", photo_path: photoPath, created_by: user.userId,
     profile: {
       age_months: profileNumber(input.ageMonths), weight_kg: profileNumber(input.weightKg),
       notes: String(input.notes ?? "").trim().slice(0, 500),
+      ...(Object.keys(extraPhotos).length ? { extra_photos: extraPhotos } : {}),
     },
   });
   if (error) return { ok: false, code: error.code === "23505" ? "busy" : "permission_denied" };

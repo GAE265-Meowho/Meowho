@@ -69,13 +69,12 @@ describe("checkPhoto", () => {
 });
 
 describe("NewCat", () => {
-  it("年齡即時顯示會套用哪個骨架；正面、背部角度標示規劃中", () => {
+  it("不預告會套用哪個骨架（#104 體型可切換）；正面、背部角度可選填上傳", () => {
     render(<NewCat />);
-    expect(screen.getByText("成貓骨架")).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText("年齡（月，選填）"), { target: { value: "4" } });
-    expect(screen.getByText("幼貓骨架")).toBeInTheDocument();
+    expect(screen.queryByText(/將使用|成貓骨架|幼貓骨架/)).toBeNull();
     expect(screen.getByText("必填・用來上色")).toBeInTheDocument();
-    expect(screen.getAllByText("規劃中")).toHaveLength(2);
+    expect(screen.getAllByText("選填", { exact: true })).toHaveLength(2); // #105：正面、背部花紋改為選填上傳
   });
   it("沒選照片就送出：顯示提示，不呼叫 API", async () => {
     const fetchMock = vi.fn();

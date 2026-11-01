@@ -8,7 +8,7 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import {
   bodyFor, CAT_ID_RE, deriveStatus, newCatId, photoExt, profileNumber, type BodyType, type CatModelView, type FillPattern, type JobInfo, type PhotoView, type PublicationState,
-  isJobActive, MAX_PHOTO_BYTES,
+  isJobActive, MAX_PHOTO_BYTES, EXTRA_VIEWS, type ExtraView,
 } from "./types";
 
 export { CAT_ID_RE };
@@ -152,6 +152,8 @@ export interface NewCatInput {
   notes?: unknown;
   /** data:image/...;base64,... （與 Cat Studio 相同的傳法） */
   photo: unknown;
+  /** 正面、背部花紋照片（#105，選填，同樣是 data URL）；格式不對的略過，不擋建立 */
+  extras?: Partial<Record<string, unknown>>;
 }
 export type CreateResult = { ok: true; id: string } | { ok: false; code: "name_required" | "photo_invalid" | "photo_too_large" };
 
@@ -179,9 +181,22 @@ export async function createCat(root: string, input: NewCatInput, now = new Date
   const dir = catDir(root, id);
   const photoName = `photo.${ext}`;
   await fs.writeFile(path.join(dir, photoName), photo);
+  const extraPhotos: Partial<Record<ExtraView, string>> = {};
+  for (const view of EXTRA_VIEWS) {
+    const raw = input.extras?.[view];
+    const em = /^data:(image\/[\w+.-]+);base64,([\s\S]+)$/.exec(typeof raw === "string" ? raw : "");
+    const eext = em ? photoExt(em[1]) : null;
+    if (!em || !eext) continue;
+    const bytes = Buffer.from(em[2], "base64");
+    if (bytes.length === 0 || bytes.length > MAX_PHOTO_BYTES) continue;
+    const fileName = `photo_${view}.${eext}`;
+    await fs.writeFile(path.join(dir, fileName), bytes);
+    extraPhotos[view] = fileName;
+  }
   const profile = {
     id, name, age_months: profileNumber(input.ageMonths), weight_kg: profileNumber(input.weightKg),
     notes: String(input.notes ?? "").trim().slice(0, 500), photo: photoName, created_at: now.toISOString(),
+    ...(Object.keys(extraPhotos).length ? { extra_photos: extraPhotos } : {}),
   };
   await fs.writeFile(path.join(dir, "profile.json"), JSON.stringify(profile, null, 2), "utf-8");
   return { ok: true, id };
