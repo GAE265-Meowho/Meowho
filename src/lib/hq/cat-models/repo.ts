@@ -29,13 +29,15 @@ export function isCatModelsEnabled(env?: Record<string, string | undefined>): bo
 export async function repoListCats(): Promise<CatModelView[]> {
   const src = resolveCatSource();
   if (src === "local") return listCats(localRoot()!);
-  if (src === "supabase") {
-    const cats = await sbListCats();
-    // 表還空時退回 bundled，避免正式站空白
-    return cats.length > 0 ? cats : (bundledEnabled() ? listBundledCats() : []);
-  }
+  if (src === "supabase") return withTemplates(await sbListCats(), listBundledCats());
   if (src === "bundled") return listBundledCats();
   return [];
+}
+
+/** Supabase 的貓後面接上 bundled 範本貓（同 ID 以 Supabase 為準）：表還空時正式站不空白，範本貓（如幼貓骨架的示範小貓）也一定看得到 */
+export function withTemplates(cats: CatModelView[], templates: CatModelView[]): CatModelView[] {
+  const have = new Set(cats.map(c => c.id));
+  return [...cats, ...templates.filter(t => !have.has(t.id))];
 }
 
 export async function repoGetCat(id: string): Promise<CatModelView | null> {

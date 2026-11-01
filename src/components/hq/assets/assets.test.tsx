@@ -3,6 +3,7 @@ import "@testing-library/jest-dom/vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { CatModelView } from "@/lib/hq/cat-models/types";
+import { BaseSamples } from "./BaseSamples";
 import { ClipList } from "./ClipList";
 import { filterCats } from "./CatsTab";
 import { PlannedTab } from "./PlannedTab";
@@ -180,5 +181,13 @@ describe("貼圖工作頁", () => {
     mockCat({ status: "ready" });
     renderStudio();
     expect(await screen.findByRole("link", { name: "回到貓咪頁看動作" })).toHaveAttribute("href", "/MeowHQ/assets/cats/cat_20261031_100000");
+  });
+});
+
+describe("BaseSamples", () => {
+  it("成貓、幼貓骨架各有「測試動作與參數」按鈕，連到骨架測試台", () => {
+    render(<BaseSamples />);
+    const links = screen.getAllByRole("link", { name: "測試動作與參數" });
+    expect(links.map(l => l.getAttribute("href"))).toEqual(["/MeowHQ/assets/bases/adult", "/MeowHQ/assets/bases/kitten"]);
   });
 });

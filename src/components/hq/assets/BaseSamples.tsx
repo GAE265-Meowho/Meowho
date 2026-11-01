@@ -3,10 +3,12 @@
 // 上傳的貓依年齡自動套其中一個（≤6 個月幼貓），只換貼圖，動作、骨架都跟這裡一樣。
 // 畫面上改叫「體型骨架」：後台使用者不懂「母體」，而且容易誤以為要從這兩隻裡挑一隻（其實是系統自動套用）。
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import { useState } from "react";
 import { CLIP_LIBRARY, FALLBACK_CLIP } from "@/lib/hq/cat-models/clips";
 import { baseFileName, BODY_LABELS, KITTEN_MAX_MONTHS, type BodyType } from "@/lib/hq/cat-models/types";
 import { HqSkeleton } from "../HqStates";
+import { baseLabHref } from "./hrefs";
 import { baseDownloadUrl, baseGlbUrl } from "./useCatModels";
 
 const CatPreview = dynamic(() => import("./CatPreview"), { ssr: false, loading: () => <HqSkeleton rows={4} /> });
@@ -42,6 +44,7 @@ function BaseSample({ body, tags, desc }: { body: BodyType; tags: string[]; desc
         ))}
         {/* 骨架＋全部動作＋母體預設貼圖，單一 glb（約 5 MB），給組員拿去其他工具測試 */}
         <a className="hq-btn small ghost" href={baseDownloadUrl(body)} download={baseFileName(body)}>下載 GLB</a>
+        <Link className="hq-btn small" href={baseLabHref(body)}>測試動作與參數</Link>
       </div>
     </section>
   );

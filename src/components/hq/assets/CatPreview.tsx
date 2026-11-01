@@ -11,7 +11,7 @@ import { Component, Suspense, useEffect, useMemo, useRef, type ReactNode } from 
 import * as THREE from "three";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import { clone as cloneSkinned } from "three/examples/jsm/utils/SkeletonUtils.js";
-import { createCatEyeMaterial, setCatEyeParams } from "./catEye";
+import { createCatEyeMaterial, setCatEyeParams, type EyeParams } from "./catEye";
 import type { BodyType } from "@/lib/hq/cat-models/types";
 
 export const CROSSFADE_SECONDS = 0.4;
@@ -43,6 +43,10 @@ export interface CatPreviewProps {
   blink?: number;
   /** 瞳孔寬窄 0（細縫）–1（全圓） */
   pupil?: number;
+  /** 其他眼球參數（虹膜大小、角膜、顏色…），兩眼共用；骨架測試台用 */
+  eye?: Partial<EyeParams>;
+  /** 右眼另外覆蓋的參數（異色瞳） */
+  eyeRight?: Partial<EyeParams>;
   /** 環境亮度（曝光） */
   light?: number;
   follow?: boolean;
@@ -64,7 +68,7 @@ function Environment() {
   return null;
 }
 
-function CatModel({ baseUrl, albedoUrl, clip, speed = 1, paused = false, blink = 0, pupil = 0.25, follow = true, onInfo, onTextureError }: CatPreviewProps) {
+function CatModel({ baseUrl, albedoUrl, clip, speed = 1, paused = false, blink = 0, pupil = 0.25, eye, eyeRight, follow = true, onInfo, onTextureError }: CatPreviewProps) {
   const gltf = useGLTF(baseUrl);
   const matL = useMemo(() => createCatEyeMaterial(), []);
   const matR = useMemo(() => createCatEyeMaterial(), []);
@@ -142,7 +146,13 @@ function CatModel({ baseUrl, albedoUrl, clip, speed = 1, paused = false, blink =
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [albedoUrl, rig]);
 
-  useEffect(() => { setCatEyeParams(matL, { pupil }); setCatEyeParams(matR, { pupil }); }, [matL, matR, pupil]);
+  // eye／eyeRight 每次 render 可能是新物件，用內容當依賴
+  const eyeKey = JSON.stringify([eye ?? null, eyeRight ?? null]);
+  useEffect(() => {
+    setCatEyeParams(matL, { ...eye, pupil });
+    setCatEyeParams(matR, { ...eye, ...eyeRight, pupil });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [matL, matR, pupil, eyeKey]);
   useEffect(() => () => { mixer.stopAllAction(); }, [mixer]);
 
   useFrame((state, delta) => {
