@@ -68,13 +68,13 @@ function Preview({ cat }: { cat: CatModelView }) {
         </div>
 
         {!cat.hasAlbedo && (
-          <div className="hq-note" role="status">尚未產生這隻貓的貼圖，目前顯示母體預設貼圖。<Link href={studioHref(cat.id)}>前往貼圖工作頁</Link></div>
+          <div className="hq-note" role="status">尚未產生這隻貓的貼圖，目前顯示骨架的示範毛色。<Link href={studioHref(cat.id)}>前往貼圖工作頁</Link></div>
         )}
-        {textureFailed && <div className="hq-note" role="alert">貼圖載入失敗，改顯示母體預設貼圖。</div>}
+        {textureFailed && <div className="hq-note" role="alert">貼圖載入失敗，改顯示骨架的示範毛色。</div>}
         {failed ? (
           <div className="hq-state" role="alert">
             <p>3D 預覽載入失敗</p>
-            <p className="hq-hint">{failed}。請確認母體 {BODY_LABELS[cat.body]} glb 已上傳（本機：CAT_STUDIO_ROOT 底下的 {cat.body === "kitten" ? "cat_base_kitten" : "cat_base"}/work/base_clips.glb）。</p>
+            <p className="hq-hint">{failed}。請確認{BODY_LABELS[cat.body]}骨架 glb 已上傳（本機：CAT_STUDIO_ROOT 底下的 {cat.body === "kitten" ? "cat_base_kitten" : "cat_base"}/work/base_clips.glb）。</p>
           </div>
         ) : (
           <div className="hq-canvas" data-testid="cat-canvas">
@@ -100,7 +100,7 @@ function Preview({ cat }: { cat: CatModelView }) {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img className="hq-thumb" src={catFileUrl(cat.id, "photo")} alt={`${cat.name} 的原始照片`} width={96} height={96} />
             <dl className="hq-dl">
-              <dt>母體</dt><dd>{BODY_LABELS[cat.body]}</dd>
+              <dt>體型骨架</dt><dd>{BODY_LABELS[cat.body]}骨架</dd>
               <dt>照片角度</dt><dd>{cat.photoView ? PHOTO_VIEW_LABELS[cat.photoView] : "—"}</dd>
               <dt>補花紋</dt><dd>{cat.fillPattern ? FILL_LABELS[cat.fillPattern] : "—"}</dd>
               <dt>建立時間</dt><dd>{formatTaipeiDate(new Date(cat.createdAt))}</dd>
@@ -111,7 +111,7 @@ function Preview({ cat }: { cat: CatModelView }) {
           <h3>動作</h3>
           <ClipList available={clips} current={clip} onPick={pick} />
           <Link href={studioHref(cat.id)} className="hq-btn ghost small">貼圖工作頁</Link>
-          <p className="hq-hint">灰色的是規劃中的動作，母體補入後會自動可點。</p>
+          <p className="hq-hint">灰色的是規劃中的動作，骨架補入後會自動可點。</p>
         </section>
       </div>
     </div>

@@ -130,6 +130,12 @@ export function bodyFor(input: { baseVersion: string | null; hasAlbedo: boolean;
 /** 母體 glb 的檔名（Storage 的 base/v1/、public/hq-cat-models/base/ 都用同一個名字） */
 export const baseFileName = (body: BodyType) => (body === "kitten" ? "base_clips_kitten.glb" : "base_clips.glb");
 
+/** 跨網域的公開網址（Supabase Storage）瀏覽器不理 <a download>，改用 Storage 的 ?download= 讓它回附件 */
+export function asDownload(url: string, name: string): string {
+  if (!/^https?:\/\//.test(url)) return url; // 同網域（public/）靠 <a download> 就夠
+  return `${url}${url.includes("?") ? "&" : "?"}download=${encodeURIComponent(name)}`;
+}
+
 export const MAX_PHOTO_BYTES = 10 * 1024 * 1024;
 
 // ───────── 新增貓咪的共用檢查（本機 local.ts 與 Supabase supabase.ts 共用） ─────────
