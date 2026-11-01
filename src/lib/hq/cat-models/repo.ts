@@ -1,14 +1,14 @@
 // 貓咪模型資料來源：本機檔案 ＞ Supabase ＞ 靜態 bundled ＞ 關閉
 import {
-  createCat, getCat, listCats, localRoot, queuePaint, readBaseGlb, readCatFile, restorePrevious, setPublication,
-  type CreateResult, type FileKind, type PublishResult, type QueueResult, type RestoreResult, type NewCatInput,
+  createCat, getCat, listCats, localRoot, queuePaint, readBaseGlb, readCatFile, restorePrevious,
+  type CreateResult, type FileKind, type QueueResult, type RestoreResult, type NewCatInput,
 } from "./local";
 import { bundledBasePublicPath, bundledEnabled, bundledFilePublicPath, getBundledCat, listBundledCats } from "./bundled";
 import {
-  sbBaseRedirect, sbCreateCat, sbFileRedirect, sbGetCat, sbListCats, sbPhotoUpload, sbPublish, sbQueuePaint, sbRestore,
+  sbBaseRedirect, sbCreateCat, sbFileRedirect, sbGetCat, sbListCats, sbPhotoUpload, sbQueuePaint, sbRestore,
   type UploadTicket,
 } from "./supabase";
-import type { BodyType, CatModelView, PublishAction } from "./types";
+import type { BodyType, CatModelView } from "./types";
 
 export type CatSource = "local" | "supabase" | "bundled" | "none";
 
@@ -138,14 +138,3 @@ export async function repoRestore(id: string, reason: string, actor: string): Pr
   return { ok: false, code: "disabled" };
 }
 
-export async function repoPublish(
-  id: string,
-  action: PublishAction,
-  reason: string,
-  actor: string,
-): Promise<PublishResult | { ok: false; code: "disabled" | "permission_denied" }> {
-  const src = resolveCatSource();
-  if (src === "local") return setPublication(localRoot()!, id, action, reason, actor);
-  if (src === "supabase") return sbPublish(id, action, reason);
-  return { ok: false, code: "disabled" };
-}

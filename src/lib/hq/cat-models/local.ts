@@ -7,7 +7,7 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import {
-  bodyFor, CAT_ID_RE, deriveStatus, newCatId, photoExt, profileNumber, type BodyType, type CatModelView, type FillPattern, type JobInfo, type PhotoView, type PublicationState, type PublishAction, canPublish,
+  bodyFor, CAT_ID_RE, deriveStatus, newCatId, photoExt, profileNumber, type BodyType, type CatModelView, type FillPattern, type JobInfo, type PhotoView, type PublicationState,
   isJobActive, MAX_PHOTO_BYTES,
 } from "./types";
 
@@ -139,22 +139,6 @@ export async function readBaseGlb(root: string, body: BodyType = "adult"): Promi
   try { return await fs.readFile(baseGlbPath(root, body)); } catch { return null; }
 }
 
-export type PublishResult = { ok: true; status: "published" | "unpublished" } | { ok: false; code: "not_found" | "reason_required" | "invalid_state" };
-
-/** 上架／下架：必填原因；記在 publication.json，並追加一行到 audit.jsonl（本機模式的稽核日誌） */
-export async function setPublication(root: string, id: string, action: PublishAction, reason: string, actor: string, now = new Date()): Promise<PublishResult> {
-  const cat = await getCat(root, id);
-  if (!cat) return { ok: false, code: "not_found" };
-  const text = reason.trim();
-  if (!text) return { ok: false, code: "reason_required" };
-  if (!canPublish(cat.status, action)) return { ok: false, code: "invalid_state" };
-  const status = action === "publish" ? "published" : "unpublished";
-  const dir = catDir(root, id);
-  const at = now.toISOString();
-  await fs.writeFile(path.join(dir, "publication.json"), JSON.stringify({ status, reason: text, at }, null, 2), "utf-8");
-  await fs.appendFile(path.join(dir, "audit.jsonl"), JSON.stringify({ action: action === "publish" ? "publish_model" : "unpublish_model", actor, reason: text, at }) + "\n", "utf-8");
-  return { ok: true, status };
-}
 
 // ───────── 新增貓咪／產生貼圖／換回上一版（規格書 04 §2.3） ─────────
 // 寫入的檔案格式與 cat_studio/server.py 的 create_cat、paint 完全相同，paint_worker.py 直接撿得到。

@@ -9,7 +9,6 @@ import { GET as getOne } from "./[id]/route";
 import { GET as getFile } from "./[id]/file/[kind]/route";
 import { GET as getBase } from "./base/route";
 import { asDownload } from "@/lib/hq/cat-models/types";
-import { POST as postPublish } from "./[id]/publish/route";
 import { POST as postPaint } from "./[id]/paint/route";
 import { POST as postRestore } from "./[id]/restore/route";
 import { POST as postUpload } from "./upload/route";
@@ -54,7 +53,6 @@ describe("沒有本機路徑（改走 bundled 示範貓）", () => {
     expect(base.headers.get("location")).toContain("/hq-cat-models/base/base_clips.glb");
     const alb = await getFile(new Request("http://localhost/api"), ctx({ id: BUNDLED_ID, kind: "albedo" }));
     expect(alb.status).toBe(302);
-    expect((await postPublish(req({ action: "publish", reason: "x" }), ctx({ id: BUNDLED_ID }))).status).toBe(404);
     expect((await postCreate(req({ name: "A", photo: "data:image/jpeg;base64,QQ==" }))).status).toBe(404);
     expect((await postPaint(req({ view: "front", fill: "none" }), ctx({ id: BUNDLED_ID }))).status).toBe(404);
     expect((await postRestore(req({ reason: "x" }), ctx({ id: BUNDLED_ID }))).status).toBe(404);
@@ -126,14 +124,6 @@ describe("啟用（開發模式）", () => {
   });
   it("上傳第一步：本機模式照片跟表單一起送（inline）", async () => {
     expect(await (await postUpload(req({ type: "image/png", size: 10 }))).json()).toEqual({ ok: true, mode: "inline" });
-  });
-  it("上架：動作錯 400、沒原因 400、成功 200、重複上架 409", async () => {
-    expect((await postPublish(req({ action: "delete", reason: "x" }), ctx({ id: ID }))).status).toBe(400);
-    const noReason = await postPublish(req({ action: "publish", reason: " " }), ctx({ id: ID }));
-    expect(noReason.status).toBe(400);
-    expect(await noReason.json()).toEqual({ error: "reason_required" });
-    expect(await (await postPublish(req({ action: "publish", reason: "OK" }), ctx({ id: ID }))).json()).toEqual({ ok: true, status: "published" });
-    expect((await postPublish(req({ action: "publish", reason: "again" }), ctx({ id: ID }))).status).toBe(409);
   });
 });
 

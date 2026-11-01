@@ -7,7 +7,6 @@ import { BaseSamples } from "./BaseSamples";
 import { ClipList } from "./ClipList";
 import { filterCats } from "./CatsTab";
 import { PlannedTab } from "./PlannedTab";
-import { PublishPanel } from "./PublishPanel";
 import { checkPhoto, NewCat } from "./NewCat";
 import { StudioPageBody } from "./StudioPage";
 import { HqToastProvider } from "../HqToast";
@@ -57,42 +56,6 @@ describe("filterCats", () => {
   it("依名稱搜尋（不分大小寫）", () => expect(filterCats(cats, { q: "虎斑" }).map(c => c.id)).toEqual(["a"]));
   it("依狀態篩選", () => expect(filterCats(cats, { status: "draft" }).map(c => c.id)).toEqual(["b"]));
   it("沒有條件時全部顯示", () => expect(filterCats(cats, {})).toHaveLength(2));
-});
-
-describe("PublishPanel", () => {
-  it("草稿不能上架，並說明要先產生貼圖", () => {
-    render(<PublishPanel id="x" status="draft" onDone={() => {}} />);
-    expect(screen.getByRole("button", { name: "上架" })).toBeDisabled();
-    expect(screen.getByText("要先產生貼圖才能上架")).toBeInTheDocument();
-  });
-  it("已完成的貓：原因必填，送出後呼叫 API 並通知", async () => {
-    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ ok: true }) });
-    vi.stubGlobal("fetch", fetchMock);
-    const done = vi.fn();
-    render(<PublishPanel id="cat_1" status="ready" onDone={done} />);
-    fireEvent.click(screen.getByRole("button", { name: "上架" }));
-    const confirm = screen.getByRole("button", { name: "確認上架" });
-    expect(confirm).toBeDisabled();
-    fireEvent.change(screen.getByLabelText("原因"), { target: { value: "預覽確認沒問題" } });
-    fireEvent.click(confirm);
-    await waitFor(() => expect(done).toHaveBeenCalledWith("已上架"));
-    expect(fetchMock).toHaveBeenCalledWith("/api/hq/cat-models/cat_1/publish", expect.objectContaining({ method: "POST", body: JSON.stringify({ action: "publish", reason: "預覽確認沒問題" }) }));
-  });
-  it("已上架的貓顯示「下架」；已下架的貓顯示「重新上架」", () => {
-    const { rerender } = render(<PublishPanel id="x" status="published" onDone={() => {}} />);
-    expect(screen.getByRole("button", { name: "下架" })).toBeEnabled();
-    rerender(<PublishPanel id="x" status="unpublished" onDone={() => {}} />);
-    expect(screen.getByRole("button", { name: "重新上架" })).toBeEnabled();
-  });
-  it("API 回報狀態不符時，在按鈕旁顯示白話原因並保留表單", async () => {
-    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: false, json: async () => ({ error: "invalid_state" }) }));
-    render(<PublishPanel id="cat_1" status="ready" onDone={() => {}} />);
-    fireEvent.click(screen.getByRole("button", { name: "上架" }));
-    fireEvent.change(screen.getByLabelText("原因"), { target: { value: "x" } });
-    fireEvent.click(screen.getByRole("button", { name: "確認上架" }));
-    expect(await screen.findByRole("alert")).toBeInTheDocument();
-    expect(screen.getByLabelText("原因")).toHaveValue("x");
-  });
 });
 
 describe("checkPhoto", () => {

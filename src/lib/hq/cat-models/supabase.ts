@@ -7,8 +7,8 @@ import { getAdminSupabase } from "@/lib/supabase/admin";
 import { getServerSupabase } from "@/lib/supabase/server";
 import { SUPABASE_URL } from "@/lib/supabase/config";
 import {
-  baseFileName, bodyFor, canPublish, isJobActive, newCatId, ownPhotoPath, photoExt, profileNumber,
-  type BodyType, type CatModelStatus, type CatModelView, type FillPattern, type JobStatus, type PhotoView, type PublishAction,
+  baseFileName, bodyFor, isJobActive, newCatId, ownPhotoPath, photoExt, profileNumber,
+  type BodyType, type CatModelStatus, type CatModelView, type FillPattern, type JobStatus, type PhotoView,
   CAT_ID_RE, MAX_PHOTO_BYTES,
 } from "./types";
 import type { FileKind } from "./local";
@@ -233,28 +233,3 @@ export async function sbRestore(id: string, reason: string): Promise<
   return { ok: true };
 }
 
-export async function sbPublish(
-  id: string,
-  action: PublishAction,
-  reason: string,
-): Promise<{ ok: true; status: "published" | "unpublished" } | { ok: false; code: "not_found" | "reason_required" | "invalid_state" | "permission_denied" | "disabled" }> {
-  const sb = await getServerSupabase();
-  if (!sb) return { ok: false, code: "disabled" };
-  const { data: auth } = await sb.auth.getUser();
-  if (!auth.user) return { ok: false, code: "permission_denied" };
-  const text = reason.trim();
-  if (!text) return { ok: false, code: "reason_required" };
-  const cat = await sbGetCat(id);
-  if (!cat) return { ok: false, code: "not_found" };
-  if (!canPublish(cat.status, action)) return { ok: false, code: "invalid_state" };
-  const { data, error } = await sb.rpc("meow_publish_cat_model", { p_id: id, p_action: action, p_reason: text });
-  if (error) {
-    const msg = error.message || "";
-    if (msg.includes("permission_denied")) return { ok: false, code: "permission_denied" };
-    if (msg.includes("not_found")) return { ok: false, code: "not_found" };
-    if (msg.includes("invalid_state")) return { ok: false, code: "invalid_state" };
-    if (msg.includes("reason_required")) return { ok: false, code: "reason_required" };
-    return { ok: false, code: "invalid_state" };
-  }
-  return { ok: true, status: data as "published" | "unpublished" };
-}

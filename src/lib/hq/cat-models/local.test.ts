@@ -4,7 +4,7 @@ import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { createCat, getCat, listCats, localRoot, queuePaint, readCatFile, restorePrevious, setPublication } from "./local";
+import { createCat, getCat, listCats, localRoot, queuePaint, readCatFile, restorePrevious } from "./local";
 
 let root: string;
 const png = Buffer.from([0x89, 0x50, 0x4e, 0x47]);
@@ -73,28 +73,6 @@ describe("readCatFile", () => {
     expect(await readCatFile(root, "cat_20261031_100000", "photo")).toBeNull();
   });
   it("ID 格式不對回傳 null", async () => expect(await readCatFile(root, "../x", "photo")).toBeNull());
-});
-
-describe("setPublication", () => {
-  const id = "cat_20261031_100000";
-  it("已完成的貓可上架，寫入 publication.json 與稽核記錄；之後可下架", async () => {
-    await addCat(id, { job: { status: "done" }, albedo: true });
-    expect(await setPublication(root, id, "publish", "  預覽確認沒問題  ", "tina@example.com", new Date("2026-10-31T12:00:00Z"))).toEqual({ ok: true, status: "published" });
-    expect((await getCat(root, id))?.status).toBe("published");
-    const audit = (await fs.readFile(path.join(root, "adoption_cats", id, "audit.jsonl"), "utf-8")).trim().split("\n").map(l => JSON.parse(l));
-    expect(audit).toEqual([{ action: "publish_model", actor: "tina@example.com", reason: "預覽確認沒問題", at: "2026-10-31T12:00:00.000Z" }]);
-    expect(await setPublication(root, id, "unpublish", "動作需要修正", "tina@example.com")).toEqual({ ok: true, status: "unpublished" });
-    expect((await getCat(root, id))?.status).toBe("unpublished");
-  });
-  it("原因必填", async () => {
-    await addCat(id, { job: { status: "done" }, albedo: true });
-    expect(await setPublication(root, id, "publish", "   ", "a")).toEqual({ ok: false, code: "reason_required" });
-  });
-  it("草稿、已上架的貓不能再上架；找不到的貓回 not_found", async () => {
-    await addCat(id);
-    expect(await setPublication(root, id, "publish", "x", "a")).toEqual({ ok: false, code: "invalid_state" });
-    expect(await setPublication(root, "cat_20261031_999999", "publish", "x", "a")).toEqual({ ok: false, code: "not_found" });
-  });
 });
 
 const dataUrl = (mime: string, bytes: Buffer) => `data:${mime};base64,${bytes.toString("base64")}`;
