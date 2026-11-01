@@ -113,6 +113,15 @@ select pg_temp.expect_err('FORM-08 不是待領養就不能重新開放', 'form_
 select pg_temp.expect_eq('PHOTO-01 領養人居家照片的 bucket 是私人的', 'false',
   (select public::text from storage.buckets where id = 'meow-adoption-photos'));
 
+-- ---------------------------------------------------------------- 喵戶名稱不重複
+select pg_temp.expect_err('NAME-01 同一個帳號不能有同名的喵戶', 'household_name_taken',
+  pg_temp.run_as('O', format($q$insert into public.meow_households (owner_id, name, caretaker_type, city, district) values ('%s', ' 麥麥之家 ', 'cat_owner', '桃園市', '龍潭區') returning id::text$q$, pg_temp.u('O'))));
+select pg_temp.expect_ok('NAME-02 不同帳號可以同名',
+  pg_temp.run_as('X', format($q$insert into public.meow_households (owner_id, name, caretaker_type, city, district) values ('%s', '麥麥之家', 'cat_owner', '桃園市', '龍潭區') returning id::text$q$, pg_temp.u('X'))));
+select pg_temp.run_as('O', format($q$insert into public.meow_households (owner_id, name, caretaker_type, city, district) values ('%s', '第二戶', 'cat_owner', '桃園市', '龍潭區') returning id::text$q$, pg_temp.u('O')));
+select pg_temp.expect_err('NAME-03 改名也不能撞到自己的另一戶', 'household_name_taken',
+  pg_temp.run_as('O', $q$update public.meow_households set name = '麥麥之家' where name = '第二戶' returning id::text$q$));
+
 -- ---------------------------------------------------------------- 命名
 select pg_temp.expect_eq('FORM-30 public 的資料表全部 meow_ 開頭', '0',
   (select count(*)::text from pg_tables where schemaname = 'public' and tablename not like 'meow\_%'));

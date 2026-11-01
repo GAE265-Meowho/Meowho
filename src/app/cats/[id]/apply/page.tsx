@@ -12,6 +12,7 @@ import s from "@/components/adoption-form/form.module.css";
 import { shrinkPhoto } from "@/components/onboarding/media";
 import f from "@/components/onboarding/intake.module.css";
 import CatButton from "@/components/ui/CatButton";
+import Required from "@/components/ui/Required";
 import { SECTIONS, missingAnswers, prefillAnswers, type Answer, type Answers, type Question, type Section } from "@/lib/adoption-form/questionnaire";
 import { getBrowserSupabase } from "@/lib/supabase/client";
 
@@ -163,7 +164,7 @@ export default function ApplyPage() {
         {!cur && (
           <dl className={s.answers}>
             {form.questions.filter(q => q.type !== "note").map(q => (
-              <div key={q.id}><dt>{q.text}{q.required ? "" : "（選填）"}</dt><dd>{answerText(q, answers[q.id])}</dd></div>
+              <div key={q.id}><dt>{q.text}{q.required && <Required />}</dt><dd>{answerText(q, answers[q.id])}</dd></div>
             ))}
           </dl>
         )}
@@ -195,7 +196,7 @@ function QuestionInput({ q, value, onChange, previews, onPhotos, busy }: {
 }) {
   const id = `q-${q.id}`;
   if (q.type === "note") return <p className={s.note}>{q.text}</p>;
-  const label = <span className={f.label} id={id}>{q.text}{q.required ? "" : "（選填）"}</span>;
+  const label = <span className={f.label} id={id}>{q.text}{q.required && <Required />}</span>;
   if (q.type === "text") return (
     <div className={f.field}>{label}<textarea aria-labelledby={id} rows={3} maxLength={1000} value={typeof value === "string" ? value : ""} onChange={e => onChange(e.target.value)} /></div>
   );

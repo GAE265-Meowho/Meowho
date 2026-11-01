@@ -1,4 +1,4 @@
--- 0007 領養問卷（#89）：中途在待領養貓的 profile 建立問卷，領養人申請時填寫。
+-- 0007 領養問卷（#89）：中途在待領養貓的 profile 建立問卷，領養人申請時填寫；喵戶名稱在同一個帳號裡不能重複。
 -- 可重複執行；只動 meow_ 開頭的物件（AGENTS.md §7）。題目與答案格式由程式（zod）檢查，資料庫只檢查型別與大小。
 -- 隱私：回覆只有填寫人與這隻貓的喵戶長看得到；領養人上傳的居家照片放私人 bucket。
 
@@ -160,3 +160,21 @@ create policy "meow: adoption photos read" on storage.objects for select to auth
 drop policy if exists "meow: adoption photos delete own" on storage.objects;
 create policy "meow: adoption photos delete own" on storage.objects for delete to authenticated
   using (bucket_id = 'meow-adoption-photos' and (storage.foldername(name))[1] = auth.uid()::text);
+
+-- =========================================================
+-- 喵戶名稱在同一個帳號裡不能重複（忽略前後空白與大小寫；子哲 2026-11-01）
+-- 用 trigger 而不是 unique index：已存在的重複資料不會讓 migration 失敗，只擋之後的新增與改名
+-- =========================================================
+create or replace function public.meow_household_name_unique()
+returns trigger language plpgsql set search_path = public as $$
+begin
+  if exists (select 1 from public.meow_households
+             where owner_id = new.owner_id and id <> new.id
+               and lower(btrim(regexp_replace(name, '\s+', ' ', 'g'))) = lower(btrim(regexp_replace(new.name, '\s+', ' ', 'g')))) then
+    raise exception 'household_name_taken' using errcode = 'P0001', hint = '你已經有同名的喵戶';
+  end if;
+  return new;
+end $$;
+drop trigger if exists meow_households_name_unique on public.meow_households;
+create trigger meow_households_name_unique before insert or update of name on public.meow_households
+  for each row execute function public.meow_household_name_unique();

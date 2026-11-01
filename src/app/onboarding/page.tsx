@@ -18,7 +18,7 @@ const toHome = (r: HomeRow): Home => ({ id: r.id, name: r.name, city: r.city, di
 // 建立喵戶（表單）、在喵戶新增待領養貓（對話）（#72）。建好喵戶後回到「我的喵戶」，再從那裡新增貓。
 // 示範模式（沒有 Supabase）不需登入、不存檔。
 export default function OnboardingPage() {
-  const { configured, loading, user, profile, needsTerms, login, agreeTerms } = useAuth();
+  const { configured, loading, user, needsTerms, login, agreeTerms } = useAuth();
   const [phase, setPhase] = useState<StartPhase | "checking">("checking");
   const [homes, setHomes] = useState<Home[]>([]);
   const [home, setHome] = useState<Home | null>(null);
@@ -92,7 +92,7 @@ export default function OnboardingPage() {
     body = <IntakeChat key={home.id} userId={user?.id ?? null} home={home} />;
   } else {
     // 示範模式沒有「我的喵戶」可以回去，建好後直接在這裡新增貓
-    body = <HouseholdForm userId={user?.id ?? null} displayName={profile?.display_name ?? null}
+    body = <HouseholdForm userId={user?.id ?? null} existingNames={homes.map(h => h.name)}
       onDemoCreated={(name, role) => { setHome({ id: "demo", name, city: null, district: null, role: role ?? "personal_foster", terms: null }); setPhase("cat"); }} />;
   }
 

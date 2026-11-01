@@ -11,6 +11,7 @@ import {
   type IntakeState, type PendingField,
 } from "@/lib/onboarding/conversation";
 import CatButton from "../ui/CatButton";
+import Required from "../ui/Required";
 import Icon from "../ui/Icon";
 import s from "./intake.module.css";
 
@@ -89,7 +90,7 @@ export function CatCard({ state, onChange, onCreate, saving, error, aiUsed, home
 
       <div className={s.pair}>
         <div className={s.field}>
-          <label className={s.label} htmlFor="c-name">名字</label>
+          <label className={s.label} htmlFor="c-name">名字<Required /></label>
           <input id="c-name" value={c.name} maxLength={30} onChange={e => onChange(setCatField(state, "name", e.target.value))} />
         </div>
         <div className={s.field}>
@@ -103,7 +104,7 @@ export function CatCard({ state, onChange, onCreate, saving, error, aiUsed, home
       </div>
 
       <div className={s.field}>
-        <span className={s.label} id="c-stage">年齡層 <Confirm state={state} field="lifeStage" onChange={onChange} /></span>
+        <span className={s.label} id="c-stage">年齡層<Required /> <Confirm state={state} field="lifeStage" onChange={onChange} /></span>
         <div className={s.chips} role="group" aria-labelledby="c-stage">
           {LIFE_STAGES.map(st => (
             <button key={st.id} type="button" className={s.chip} aria-pressed={c.lifeStage === st.id} onClick={() => onChange(setCatField(state, "lifeStage", st.id))}>{st.label}</button>

@@ -9,6 +9,7 @@ import {
 import { getBrowserSupabase } from "@/lib/supabase/client";
 import f from "../onboarding/intake.module.css";
 import CatButton from "../ui/CatButton";
+import Required from "../ui/Required";
 import Icon from "../ui/Icon";
 import { Responses } from "./Responses";
 import s from "./form.module.css";
@@ -148,7 +149,7 @@ export function FormEditor({ catId, catStatus, householdId }: { catId: string; c
                   </select>
                 </div>
               </div>
-              <label className={f.label} htmlFor="add-text">題目</label>
+              <label className={f.label} htmlFor="add-text">題目<Required /></label>
               <textarea id="add-text" rows={2} maxLength={300} value={adding.text} onChange={e => setAdding({ ...adding, text: e.target.value })} />
               {(adding.type === "single" || adding.type === "multi") && (
                 <>

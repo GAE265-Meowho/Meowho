@@ -49,7 +49,10 @@ export const emptyHouseholdForm = (): HouseholdForm => ({
   terms: null, orgName: "", orgProofUrl: "", applyBadge: false,
 });
 
-export type MissingField = "role" | "name" | "city" | "district" | "dwelling" | "orgName" | "orgProofUrl";
+export type MissingField = "role" | "name" | "nameTaken" | "city" | "district" | "dwelling" | "orgName" | "orgProofUrl";
+
+/** 比對喵戶名稱用：忽略前後空白、全形空白與大小寫 */
+export const sameName = (a: string) => cleanName(a).replace(/\s+/g, " ").toLowerCase();
 
 /** 寫「北屯區」或只寫「北屯」都可以 */
 export function normalizeDistrict(city: string | null, typed: string): string | null {
@@ -60,10 +63,12 @@ export function normalizeDistrict(city: string | null, typed: string): string | 
 
 const isUrl = (s: string) => /^https?:\/\/\S+\.\S+/.test(s.trim());
 
-export function checkHousehold(f: HouseholdForm): MissingField[] {
+/** existingNames：這個帳號已有的喵戶名稱（名稱在同一個帳號裡不能重複，資料庫 trigger 也會擋） */
+export function checkHousehold(f: HouseholdForm, existingNames: string[] = []): MissingField[] {
   const miss: MissingField[] = [];
   if (!f.role) miss.push("role");
-  if (f.role && f.role !== "cat_owner" && cleanName(f.name).length < 2) miss.push("name");
+  if (f.role && cleanName(f.name).length < 2) miss.push("name");
+  else if (f.role && existingNames.some(n => sameName(n) === sameName(f.name))) miss.push("nameTaken");
   if (!f.city) miss.push("city");
   // 區從該縣市的清單選（#89）
   if (!isKnownDistrict(f.city, f.district)) miss.push("district");
@@ -75,10 +80,6 @@ export function checkHousehold(f: HouseholdForm): MissingField[] {
   return miss;
 }
 
-/** 一般飼主名稱留空時的預設名稱 */
-export const defaultHomeName = (displayName: string | null) =>
-  displayName?.trim() ? `${Array.from(displayName.trim()).slice(0, 27).join("")}的家` : "我的家";
-
 /** 沒選「其他」時，不留補充文字 */
 const cleanHome = (h: Home): Home => ({
   ...h,
@@ -87,11 +88,10 @@ const cleanHome = (h: Home): Home => ({
   petsOther: h.pets.includes("其他動物") ? h.petsOther.trim() : "",
 });
 
-export function toHouseholdRow(f: HouseholdForm, displayName: string | null) {
+export function toHouseholdRow(f: HouseholdForm) {
   const owner = f.role === "cat_owner";
-  const name = cleanName(f.name);
   return {
-    name: owner && name.length < 2 ? defaultHomeName(displayName) : name,
+    name: cleanName(f.name),
     caretaker_type: f.role,
     city: f.city,
     district: f.district,

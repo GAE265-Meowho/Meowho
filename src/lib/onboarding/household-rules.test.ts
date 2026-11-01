@@ -8,9 +8,16 @@ describe("依身分建立喵戶：必填欄位", () => {
     expect(checkHousehold(base({}))).toContain("role");
   });
 
-  it("一般飼主：要填住家型態，名稱可以留空", () => {
-    expect(checkHousehold(base({ role: "cat_owner" }))).toEqual(["dwelling"]);
-    expect(checkHousehold(base({ role: "cat_owner", home: { ...emptyHouseholdForm().home, dwelling: "apartment" } }))).toEqual([]);
+  it("一般飼主：名稱與住家型態必填", () => {
+    expect(checkHousehold(base({ role: "cat_owner" }))).toEqual(["name", "dwelling"]);
+    expect(checkHousehold(base({ role: "cat_owner", name: "子哲的家", home: { ...emptyHouseholdForm().home, dwelling: "apartment" } }))).toEqual([]);
+  });
+
+  it("同一個帳號裡喵戶名稱不能重複（忽略前後空白與大小寫）", () => {
+    const f = base({ role: "personal_foster", name: " 小橘之家 " });
+    expect(checkHousehold(f, ["小橘之家"])).toEqual(["nameTaken"]);
+    expect(checkHousehold(base({ role: "personal_foster", name: "Cat Home" }), ["cat home"])).toEqual(["nameTaken"]);
+    expect(checkHousehold(f, ["大橘之家"])).toEqual([]);
   });
 
   it("個人中途：要填名稱", () => {
@@ -35,19 +42,15 @@ describe("依身分建立喵戶：必填欄位", () => {
 });
 
 describe("寫入資料庫的格式", () => {
-  it("一般飼主名稱留空時用「〇〇的家」，貓預設自家貓", () => {
-    const row = toHouseholdRow(base({ role: "cat_owner", home: { ...emptyHouseholdForm().home, dwelling: "house", living: "rent" } }), "黃子哲");
-    expect(row).toMatchObject({ name: "黃子哲的家", caretaker_type: "cat_owner", city: "台中市", district: "北屯區", adoption_terms: null });
+  it("一般飼主：存居住環境，貓預設自家貓", () => {
+    const row = toHouseholdRow(base({ role: "cat_owner", name: "子哲的家", home: { ...emptyHouseholdForm().home, dwelling: "house", living: "rent" } }));
+    expect(row).toMatchObject({ name: "子哲的家", caretaker_type: "cat_owner", city: "台中市", district: "北屯區", adoption_terms: null });
     expect(row.home).toMatchObject({ dwelling: "house", living: "rent" });
     expect(defaultCatStatus("cat_owner")).toBe("own");
   });
 
-  it("沒有顯示名稱時叫「我的家」", () => {
-    expect(toHouseholdRow(base({ role: "cat_owner", home: { ...emptyHouseholdForm().home, dwelling: "house" } }), null).name).toBe("我的家");
-  });
-
   it("中途：存預設送養條件、不存居住環境，貓預設待領養", () => {
-    const row = toHouseholdRow(base({ role: "personal_foster", name: "小橘之家", terms: { items: ["不放養", "家訪"], note: "" } }), "子哲");
+    const row = toHouseholdRow(base({ role: "personal_foster", name: "小橘之家", terms: { items: ["不放養", "家訪"], note: "" } }));
     expect(row).toMatchObject({ name: "小橘之家", home: null, adoption_terms: { items: ["不放養", "家訪"], note: "" }, org_name: null });
     expect(defaultCatStatus("personal_foster")).toBe("adoptable");
     expect(defaultCatStatus("shelter_org")).toBe("adoptable");
@@ -57,7 +60,7 @@ describe("寫入資料庫的格式", () => {
 describe("一般飼主的「其他」可以自由填寫", () => {
   it("選了「其他」才存補充文字", () => {
     const home = { ...emptyHouseholdForm().home, dwelling: "other" as const, dwellingOther: "貨櫃屋", family: ["其他" as const], familyOther: "阿姨", pets: ["貓" as const], petsOther: "鸚鵡" };
-    const row = toHouseholdRow(base({ role: "cat_owner", home }), null);
+    const row = toHouseholdRow(base({ role: "cat_owner", name: "子哲的家", home }));
     expect(row.home).toMatchObject({ dwelling: "other", dwellingOther: "貨櫃屋", familyOther: "阿姨", petsOther: "" });
   });
 });
