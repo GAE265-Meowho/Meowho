@@ -138,6 +138,24 @@ try {
   }
 }
 
+// 0007（領養問卷，#89）：0001→0006 後跑 0007 兩次＋測試
+{
+  const m = new PGlite();
+  const base = read("./stub_supabase.sql") + ["0001_meow", "0002_meow_hq", "0003_meow_site_assets", "0004_meow_cat_profile", "0005_meow_cat_models", "0006_meow_household_roles"]
+    .map((f) => read(`../migrations/${f}.sql`)).join("");
+  try {
+    await m.exec(base);
+    await m.exec(read("../migrations/0007_meow_adoption_forms.sql"));
+    await m.exec(read("../migrations/0007_meow_adoption_forms.sql"));
+    const sql7 = read("./0007_meow_adoption_forms.test.sql").replace(/^\s*begin;/im, "").replace(/rollback;\s*$/i, "");
+    const out7 = await m.exec(sql7);
+    results = results.concat(out7.flatMap((r) => r.rows ?? []).filter((r) => "status" in r));
+  } catch (e) {
+    console.error(`✗ 0007 測試中斷：${e.message}`);
+    process.exit(1);
+  }
+}
+
 let failed = 0;
 for (const r of results) {
   if (r.status === "FAIL") failed++;
