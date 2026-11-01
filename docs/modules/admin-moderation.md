@@ -115,7 +115,9 @@ ole === "admin" 判斷管理員，而現有 admin 會升為 system_admin；舊�
 | 2026-10-31 | Tina × Cursor | #75 虛擬體驗元件管理 PR 2a：`/MeowHQ/assets` 四分頁、貓咪列表、貓咪頁（3D 預覽、動作清單、上下架）、本機檔案實作與 `/api/hq/cat-models`；`src/lib/hq/cat-models/`、`src/components/hq/assets/` | #75 |
 | 2026-10-31 | Tina × Cursor | #75 虛擬體驗元件管理 PR 2b：新增貓咪 `/cats/new`、貼圖工作頁 `/cats/<id>/studio`（選項、進度、貼圖結果、改用上一版）；`local.ts` 的 `createCat`／`queuePaint`／`restorePrevious`，API `POST /api/hq/cat-models`、`[id]/paint`、`[id]/restore` | #75 |
 | 2026-11-01 | Tina × Claude Code | #88 線上新增貓咪與產生 3D：Supabase 版 `sbPhotoUpload`（簽上傳網址、瀏覽器直傳）／`sbCreateCat`／`sbQueuePaint`／`sbRestore`、`POST /api/hq/cat-models/upload`；依年齡選母體（`bodyFor`、`?body=kitten`、`public/hq-cat-models/base/base_clips_kitten.glb`）；`supabase.test.ts` | #88 |
+| 2026-11-01 | Tina × Claude Code | #88 貓咪分頁版面整理：上方加三步驟製作流程與「新增貓咪模型」主按鈕；「母體範本」畫面改稱「體型骨架（系統自動套用）」，卡片用標籤顯示年齡規則、預覽框標「示範毛色」；列表加「已建立的貓咪模型」標題；新增貓咪頁照片改成角度指引（側面必填，正面／背部規劃中）、年齡欄即時顯示將使用的骨架 |
 - 2026-10-29｜#24：前端呼叫 `meow_suspend_user`／`meow_unsuspend_user`／`meow_ban_email`／`meow_unban_email`／`meow_review_verification`／`meow_revoke_badge`；「要求補件」不另設狀態，用退回＋快選原因「退回並要求補件」；黑名單狀態只有系統管理員讀得到（RLS），其他管理員看不到黑名單欄與操作。
 
 - 2026-10-31｜#75：虛擬體驗元件分四個區塊（貓咪、室內空間、生活用品、其他），R3 已改寫；貓咪模型的貼圖由 cat_studio/paint_worker.py 產生，網頁只建任務與預覽（共用母體 ase_clips.glb 換 cat_fur 貼圖，不需每隻貓各一個 glb）；動作屬母體，補入新動作後所有貓自動擁有；本機模式（可新增／產生）只在非 production 且設了 CAT_STUDIO_ROOT 時啟用；正式站改讀 `public/hq-cat-models/` 示範貓（已完成的 bb）供預覽，寫入仍關閉。 004_meow_cat_models.sql（資料表 meow_cat_models、meow_cat_model_jobs、bucket meow-cat-photos／meow-cat-models）在 PR 3，執行前須經 Tina 確認。
 - 2026-11-01｜#88：照片不經 API 轉送，改由瀏覽器拿簽好的網址直傳 `meow-cat-model-photos`（Vercel 請求上限約 4.5 MB，照片上限 10 MB）。寫入一律用登入者 session（RLS 檢查 `virtual_assets`），不用 service role。預覽用哪個母體看 `base_version`（貼圖只能套回畫它的母體，兩個母體 UV 不同）：`kitten*`＝幼貓、其他有貼圖＝成貓（含舊資料 `v1`）、沒有貼圖才依年齡（≤6 個月幼貓）。重新產生成功後狀態回到「已完成」，已上架的貓要重新上架。
+- 2026-11-01｜#88：後台畫面不用「母體」一詞，改說「體型骨架」（程式、資料、文件仍叫母體）；骨架由年齡自動決定，畫面不做成「選一個」的樣子，避免誤會。

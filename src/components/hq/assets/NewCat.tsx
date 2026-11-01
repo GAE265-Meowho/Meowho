@@ -5,7 +5,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { BODY_LABELS, bodyFor, MAX_PHOTO_BYTES, PHOTO_MIME, profileNumber } from "@/lib/hq/cat-models/types";
+import { BODY_LABELS, bodyFor, KITTEN_MAX_MONTHS, MAX_PHOTO_BYTES, PHOTO_MIME, profileNumber } from "@/lib/hq/cat-models/types";
 import { getBrowserSupabase } from "@/lib/supabase/client";
 import { HqSaveButton } from "../HqStates";
 import { CAT_API, hintError, postJson } from "./useCatModels";
@@ -36,6 +36,30 @@ function readAsDataUrl(file: File): Promise<string> {
     reader.onerror = () => reject(hintError("讀不到這張照片，請換一張再試"));
     reader.readAsDataURL(file);
   });
+}
+
+const PLANNED_ANGLES = [
+  { view: "front", label: "正面" },
+  { view: "back", label: "背部花紋" },
+] as const;
+
+/** 拍攝角度示意剪影（SVG，非真實照片） */
+function CatSilhouette({ view }: { view: "side" | "front" | "back" }) {
+  return (
+    <svg className="hq-silhouette" viewBox="0 0 120 80" aria-hidden="true">
+      {view === "side" && (
+        <g>
+          <rect x="30" y="34" width="52" height="20" rx="10" />
+          <path d="M76 38l2-20 6 7h6l6-7 1 20c0 8-6 12-11 12s-10-4-10-12z" />
+          <rect x="34" y="48" width="7" height="22" rx="3" /><rect x="46" y="48" width="7" height="22" rx="3" />
+          <rect x="66" y="48" width="7" height="22" rx="3" /><rect x="76" y="48" width="7" height="22" rx="3" />
+          <path d="M32 42c-10-2-16-10-14-22" fill="none" stroke="currentColor" strokeWidth="5" strokeLinecap="round" />
+        </g>
+      )}
+      {view === "front" && <path d="M44 14l8 10h16l8-10 3 16c4 5 6 10 6 16 0 6-2 10-5 13 2 4 3 9 3 14H37c0-5 1-10 3-14-3-3-5-7-5-13 0-6 2-11 6-16z" />}
+      {view === "back" && <path d="M30 70c0-20 12-36 30-36s30 16 30 36zM46 34l3-16 8 9h6l8-9 3 16c-4-2-9-3-14-3s-10 1-14 3z" />}
+    </svg>
+  );
 }
 
 export function NewCat() {
@@ -84,17 +108,31 @@ export function NewCat() {
   return (
     <div className="hq-form">
       <section className="hq-box" aria-label="照片">
-        <h3>貓咪照片</h3>
+        <h3><span className="hq-stepno">1</span>貓咪照片</h3>
         <p className="hq-hint">拍攝提示：<strong>側拍、坐姿或站姿、拍到全身、背景越單純越好</strong>。支援 JPG、PNG、WebP，10 MB 以內。</p>
-        <label className="hq-label" htmlFor="cat-photo">選擇照片</label>
-        <input id="cat-photo" type="file" accept={PHOTO_MIME.join(",")} onChange={e => pick(e.target.files?.[0])} />
+        {/* 角度指引：目前上色只用一張側面照；正面、背部是之後多角度上色要用的位置，先標規劃中 */}
+        <div className="hq-angles">
+          <div className={`hq-angle${preview ? " filled" : ""}`}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            {preview ? <img className="hq-photo" src={preview} alt="選好的貓咪照片預覽" /> : <CatSilhouette view="side" />}
+            <strong>側面全身</strong>
+            <span className="hq-tag warn">必填・用來上色</span>
+            <label className="hq-btn small ghost hq-angle-pick" htmlFor="cat-photo">{preview ? "換一張" : "選擇照片"}</label>
+            <input id="cat-photo" className="hq-visually-hidden" type="file" accept={PHOTO_MIME.join(",")} onChange={e => pick(e.target.files?.[0])} />
+          </div>
+          {PLANNED_ANGLES.map(a => (
+            <div key={a.view} className="hq-angle planned" aria-disabled="true">
+              <CatSilhouette view={a.view} />
+              <strong>{a.label}</strong>
+              <span className="hq-tag mute">規劃中</span>
+            </div>
+          ))}
+        </div>
         {fileError && <p className="hq-error" role="alert">{fileError}</p>}
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        {preview && <img className="hq-photo" src={preview} alt="選好的貓咪照片預覽" />}
       </section>
 
       <section className="hq-box" aria-label="基本資料">
-        <h3>基本資料</h3>
+        <h3><span className="hq-stepno">2</span>基本資料</h3>
         <label className="hq-label" htmlFor="cat-name">名稱（必填）</label>
         <input id="cat-name" className="hq-input" maxLength={40} value={name} onChange={e => setName(e.target.value)} />
         <p className="hq-hint">類型：範本貓（目前只能建立範本貓）</p>
@@ -102,7 +140,7 @@ export function NewCat() {
           <div>
             <label className="hq-label" htmlFor="cat-age">年齡（月，選填）</label>
             <input id="cat-age" className="hq-input" inputMode="decimal" value={age} onChange={e => setAge(e.target.value)} />
-            <p className="hq-hint">母體：{BODY_LABELS[bodyFor({ baseVersion: null, hasAlbedo: false, ageMonths: profileNumber(age) })]}（6 個月以下用幼貓）</p>
+            <p className="hq-hint">將使用：<span className="hq-tag">{BODY_LABELS[bodyFor({ baseVersion: null, hasAlbedo: false, ageMonths: profileNumber(age) })]}骨架</span>（{KITTEN_MAX_MONTHS} 個月以下用幼貓）</p>
           </div>
           <div>
             <label className="hq-label" htmlFor="cat-weight">體重（公斤，選填）</label>
