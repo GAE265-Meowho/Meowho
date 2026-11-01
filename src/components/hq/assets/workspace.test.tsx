@@ -73,7 +73,7 @@ describe("骨架測試台工作區（#96）", () => {
 });
 
 describe("貓咪頁工作區（#96）", () => {
-  it("上架留在頂部；預覽在左欄；右側面板分為播放與畫面、動作、資訊", async () => {
+  it("預覽在左欄；右側面板分為播放與畫面、動作、資訊", async () => {
     render(<HqToastProvider><CatPage id={cat.id} /></HqToastProvider>);
     await screen.findByTestId("fake-preview");
     const stage = screen.getByRole("region", { name: "3D 預覽" });
@@ -84,7 +84,9 @@ describe("貓咪頁工作區（#96）", () => {
       expect(within(panel).getByRole("slider", { name })).toBeInTheDocument();
     }
     expect(within(stage).queryByRole("slider")).toBeNull();
-    expect(within(panel).queryByRole("button", { name: "上架" })).toBeNull();
+    // #100：不提供上架／下架
+    expect(screen.queryByRole("region", { name: "上架管理" })).toBeNull();
+    expect(screen.queryByRole("button", { name: /上架|下架/ })).toBeNull();
     await waitFor(() => expect(preview.mounts).toBe(1));
   });
 });

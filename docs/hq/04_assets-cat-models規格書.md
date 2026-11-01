@@ -112,6 +112,8 @@
 
 網址 `/MeowHQ/assets/cats/<id>`。這個頁面專門用來看這隻貓會做什麼動作，也是上架前的最後確認。
 
+> **2026-11-01 變更（#100，Tina）**：不提供上架／下架。貓咪頁的「上架管理」、`POST /api/hq/cat-models/<id>/publish` 及其寫入函式已移除；本規格書其餘提到上架、下架的段落一併作廢。資料庫的 `meow_publish_cat_model` 與既有上架紀錄未動，舊資料仍會顯示「已上架／已下架」狀態。
+
 **預覽做法（沿用 cat_studio 的 `/eye?mode=clips&cat=<id>`）**
 
 | 項目 | 說明 |

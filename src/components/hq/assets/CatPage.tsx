@@ -1,6 +1,6 @@
 "use client";
-// 貓咪頁（規格書 04 §2.4）：每隻貓獨立一頁，看這隻貓的動作；上架前的最後確認。
-// 版面（#96）：上架靠近頂部；左側預覽固定，右側參數面板分為播放與畫面、動作、資訊，可獨立捲動。
+// 貓咪頁（規格書 04 §2.4）：每隻貓獨立一頁，看這隻貓的動作。上架／下架已移除（#100）。
+// 版面（#96）：左側預覽固定，右側參數面板分為播放與畫面、動作、資訊，可獨立捲動。
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -12,11 +12,9 @@ import {
 } from "@/lib/hq/cat-models/types";
 import { HqLoadError, HqSkeleton } from "../HqStates";
 import { HqNotFound } from "../HqLoginPage";
-import { useHqToast } from "../HqToast";
 import type { PreviewInfo } from "./CatPreview";
 import { ClipList } from "./ClipList";
 import { PanelGroup } from "./PanelGroup";
-import { PublishPanel } from "./PublishPanel";
 import { ASSETS_CATS_HREF, studioHref } from "./hrefs";
 import { baseGlbUrl, catFileUrl, useCat } from "./useCatModels";
 
@@ -118,7 +116,6 @@ function Preview({ cat }: { cat: CatModelView }) {
 
 export function CatPage({ id }: { id: string }) {
   const { value, reload } = useCat(id);
-  const toast = useHqToast();
 
   if (value.state === "loading") return <HqSkeleton rows={4} />;
   if (value.state === "missing") return <HqNotFound />;
@@ -133,9 +130,6 @@ export function CatPage({ id }: { id: string }) {
         <Link href={ASSETS_CATS_HREF} className="hq-back">← 虛擬體驗元件管理</Link>
         <h1 className="hq-h1">{cat.name}</h1>
         <span className={`hq-tag${CAT_STATUS_TONE[cat.status] ? ` ${CAT_STATUS_TONE[cat.status]}` : ""}`}>{CAT_STATUS_LABELS[cat.status]}</span>
-      </div>
-      <div className="hq-catpublish">
-        <PublishPanel id={cat.id} status={cat.status} onDone={message => { toast.show({ message }); reload(); }} />
       </div>
       <Preview cat={cat} />
     </>

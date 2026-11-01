@@ -19,7 +19,7 @@ export const TODO_DEFS: Record<AdminModule, TodoDef[]> = {
     { key: "prices_stale", label: "參考價超過 3 個月未更新", href: "/MeowHQ/products?status=stale" },
   ],
   knowledge: [{ key: "articles_draft", label: "草稿中的文章", href: "/MeowHQ/knowledge?status=draft" }],
-  virtual_assets: [{ key: "assets_draft", label: "尚未上架的元件", href: "/MeowHQ/assets?status=draft" }],
+  virtual_assets: [{ key: "assets_draft", label: "草稿中的元件", href: "/MeowHQ/assets?status=draft" }],
   admin_authorization: [],
 };
 

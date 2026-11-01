@@ -61,12 +61,6 @@ export function deriveStatus(input: { hasAlbedo: boolean; job: JobInfo | null; p
   return "ready";
 }
 
-export type PublishAction = "publish" | "unpublish";
-
-/** 上架：已完成或已下架才可；下架：只有已上架才可 */
-export function canPublish(status: CatModelStatus, action: PublishAction): boolean {
-  return action === "publish" ? status === "ready" || status === "unpublished" : status === "published";
-}
 
 export interface CatModelView {
   id: string;
