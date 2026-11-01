@@ -12,15 +12,17 @@ import {
 } from "@/lib/hq/cat-models/types";
 import { HqLoadError, HqSkeleton } from "../HqStates";
 import { HqNotFound } from "../HqLoginPage";
+import { useHqToast } from "../HqToast";
 import type { PreviewInfo } from "./CatPreview";
 import { ClipList } from "./ClipList";
+import { ExtraPhotos } from "./ExtraPhotos";
 import { PanelGroup } from "./PanelGroup";
 import { ASSETS_CATS_HREF, studioHref } from "./hrefs";
 import { baseGlbUrl, catFileUrl, useCat } from "./useCatModels";
 
 const CatPreview = dynamic(() => import("./CatPreview"), { ssr: false, loading: () => <HqSkeleton rows={4} /> });
 
-function Preview({ cat }: { cat: CatModelView }) {
+function Preview({ cat, onChanged }: { cat: CatModelView; onChanged: (message: string) => void }) {
   const router = useRouter();
   const params = useSearchParams();
   const [info, setInfo] = useState<PreviewInfo | null>(null);
@@ -108,6 +110,7 @@ function Preview({ cat }: { cat: CatModelView }) {
               <dt>建立時間</dt><dd>{formatTaipeiDate(new Date(cat.createdAt))}</dd>
             </dl>
           </div>
+          <ExtraPhotos id={cat.id} have={cat.extraPhotos} version={cat.updatedAt} onDone={onChanged} />
         </PanelGroup>
       </section>
     </div>
@@ -116,6 +119,7 @@ function Preview({ cat }: { cat: CatModelView }) {
 
 export function CatPage({ id }: { id: string }) {
   const { value, reload } = useCat(id);
+  const toast = useHqToast();
 
   if (value.state === "loading") return <HqSkeleton rows={4} />;
   if (value.state === "missing") return <HqNotFound />;
@@ -130,7 +134,7 @@ export function CatPage({ id }: { id: string }) {
         <Link href={ASSETS_CATS_HREF} className="hq-back">← 虛擬體驗元件管理</Link>
         <h1 className="hq-h1">{cat.name}</h1>
       </div>
-      <Preview cat={cat} />
+      <Preview cat={cat} onChanged={message => { toast.show({ message }); reload(); }} />
     </>
   );
 }

@@ -288,6 +288,13 @@ p.hq-newcat-actions { text-align: right; margin-top: .4rem; }
   .hq-newcat .hq-angles { grid-template-columns: repeat(auto-fill, minmax(min(100%, 140px), 1fr)); }
   .hq-newcat-actions { justify-content: stretch; }
 }
+/* 貓咪頁補傳正面／背部花紋照（#107） */
+.hq-extras { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .6rem; }
+.hq-extra { margin: 0; display: flex; flex-direction: column; align-items: center; gap: .35rem; padding: .6rem; border: 1px dashed var(--hq-line); border-radius: 12px; }
+.hq-extra.filled { border-style: solid; }
+.hq-extra img, .hq-extra-empty { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 8px; background: var(--hq-bg); }
+.hq-extra-empty { display: flex; align-items: center; justify-content: center; font-size: .8rem; color: var(--hq-sub); }
+.hq-extra figcaption { font-size: .85rem; font-weight: 500; }
 /* 新增貓咪：拍攝範例（#98） */
 .hq-examples { display: grid; grid-template-columns: repeat(2, minmax(0, 140px)); gap: .75rem; }
 .hq-examples figure { margin: 0; display: flex; flex-direction: column; align-items: center; gap: .25rem; }

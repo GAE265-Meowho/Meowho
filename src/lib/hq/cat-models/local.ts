@@ -8,11 +8,11 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import {
   bodyFor, CAT_ID_RE, deriveStatus, newCatId, photoExt, profileNumber, type BodyType, type CatModelView, type FillPattern, type JobInfo, type PhotoView, type PublicationState,
-  isJobActive, MAX_PHOTO_BYTES, EXTRA_VIEWS, type ExtraView,
+  isExtraView, isJobActive, MAX_PHOTO_BYTES, EXTRA_VIEWS, type ExtraView,
 } from "./types";
 
 export { CAT_ID_RE };
-export const FILE_KINDS = ["photo", "albedo", "albedo_prev"] as const;
+export const FILE_KINDS = ["photo", "albedo", "albedo_prev", "photo_front", "photo_back"] as const;
 export type FileKind = (typeof FILE_KINDS)[number];
 
 const PHOTO_EXT: Record<string, string> = { jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png", webp: "image/webp" };
@@ -38,7 +38,7 @@ async function exists(file: string) {
 const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) && v >= 0 ? v : null);
 const oneOf = <T extends string>(v: unknown, list: readonly T[]): T | null => (list.includes(v as T) ? (v as T) : null);
 
-interface Profile { id: string; name?: string; age_months?: number | null; weight_kg?: number | null; notes?: string; photo?: string; created_at?: string }
+interface Profile { id: string; name?: string; age_months?: number | null; weight_kg?: number | null; notes?: string; photo?: string; created_at?: string; extra_photos?: Partial<Record<ExtraView, string>> }
 interface Publication { status: Exclude<PublicationState, null>; reason?: string; at?: string }
 
 const PENDING_PREV = "paint_albedo_pending_prev.png";
@@ -100,6 +100,7 @@ async function toView(root: string, id: string): Promise<CatModelView | null> {
     createdAt: created,
     updatedAt: job?.finished_at ?? job?.queued_at ?? publication?.at ?? created,
     createdBy: null, // 本機 Cat Studio 沒有記錄建立者
+    extraPhotos: EXTRA_VIEWS.filter(v => profile.extra_photos?.[v]),
   };
 }
 
@@ -124,7 +125,7 @@ export async function readCatFile(root: string, id: string, kind: FileKind): Pro
   else if (kind === "albedo_prev") file = path.join(dir, "paint_albedo_prev.png");
   else {
     const profile = await readJson<Profile>(path.join(dir, "profile.json"));
-    const name = profile?.photo ?? "";
+    const name = (kind === "photo" ? profile?.photo : profile?.extra_photos?.[kind === "photo_front" ? "front" : "back"]) ?? "";
     // photo 欄位來自檔案，仍要確認只是單純的檔名（不含路徑）
     if (name && name === path.basename(name)) file = path.join(dir, name);
   }
@@ -132,7 +133,7 @@ export async function readCatFile(root: string, id: string, kind: FileKind): Pro
   try {
     const data = await fs.readFile(file);
     const ext = path.extname(file).slice(1).toLowerCase();
-    return { data, type: kind === "photo" ? PHOTO_EXT[ext] ?? "application/octet-stream" : "image/png" };
+    return { data, type: kind.startsWith("photo") ? PHOTO_EXT[ext] ?? "application/octet-stream" : "image/png" };
   } catch { return null; }
 }
 
@@ -200,6 +201,28 @@ export async function createCat(root: string, input: NewCatInput, now = new Date
   };
   await fs.writeFile(path.join(dir, "profile.json"), JSON.stringify(profile, null, 2), "utf-8");
   return { ok: true, id };
+}
+
+export type ExtraPhotoResult = { ok: true } | { ok: false; code: "not_found" | "invalid_option" | "photo_invalid" | "photo_too_large" };
+
+/** 補傳正面／背部花紋照（#107）：存成 photo_<角度>.<副檔名>，換一張會覆蓋，記到 profile.extra_photos */
+export async function addExtraPhoto(root: string, id: string, view: unknown, photo: unknown): Promise<ExtraPhotoResult> {
+  if (!isExtraView(view)) return { ok: false, code: "invalid_option" };
+  if (!CAT_ID_RE.test(id)) return { ok: false, code: "not_found" };
+  const dir = catDir(root, id);
+  const profile = await readJson<Profile>(path.join(dir, "profile.json"));
+  if (!profile) return { ok: false, code: "not_found" };
+  const m = /^data:(image\/[\w+.-]+);base64,([\s\S]+)$/.exec(typeof photo === "string" ? photo : "");
+  const ext = m ? photoExt(m[1]) : null;
+  if (!m || !ext) return { ok: false, code: "photo_invalid" };
+  const bytes = Buffer.from(m[2], "base64");
+  if (bytes.length === 0) return { ok: false, code: "photo_invalid" };
+  if (bytes.length > MAX_PHOTO_BYTES) return { ok: false, code: "photo_too_large" };
+  const fileName = `photo_${view}.${ext}`;
+  await fs.writeFile(path.join(dir, fileName), bytes);
+  const next = { ...profile, extra_photos: { ...profile.extra_photos, [view]: fileName } };
+  await fs.writeFile(path.join(dir, "profile.json"), JSON.stringify(next, null, 2), "utf-8");
+  return { ok: true };
 }
 
 export type QueueResult = { ok: true } | { ok: false; code: "not_found" | "invalid_option" | "busy" };

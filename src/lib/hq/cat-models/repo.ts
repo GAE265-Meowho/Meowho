@@ -1,11 +1,11 @@
 // 貓咪模型資料來源：本機檔案 ＞ Supabase ＞ 靜態 bundled ＞ 關閉
 import {
-  createCat, getCat, listCats, localRoot, queuePaint, readBaseGlb, readCatFile, restorePrevious,
+  createCat, getCat, listCats, localRoot, queuePaint, readBaseGlb, readCatFile, restorePrevious, addExtraPhoto, type ExtraPhotoResult,
   type CreateResult, type FileKind, type QueueResult, type RestoreResult, type NewCatInput,
 } from "./local";
 import { bundledBasePublicPath, bundledEnabled, bundledFilePublicPath, getBundledCat, listBundledCats } from "./bundled";
 import {
-  sbBaseRedirect, sbCreateCat, sbFileRedirect, sbGetCat, sbListCats, sbPhotoUpload, sbQueuePaint, sbRestore,
+  sbBaseRedirect, sbCreateCat, sbFileRedirect, sbGetCat, sbListCats, sbAddExtraPhoto, sbPhotoUpload, sbQueuePaint, sbRestore,
   type UploadTicket,
 } from "./supabase";
 import type { BodyType, CatModelView } from "./types";
@@ -128,6 +128,16 @@ export async function repoQueuePaint(id: string, view: unknown, fill: unknown): 
   const src = resolveCatSource();
   if (src === "local") return queuePaint(localRoot()!, id, view, fill);
   if (src === "supabase") return sbQueuePaint(id, view, fill);
+  return { ok: false, code: "disabled" };
+}
+
+/** 補傳正面／背部花紋照（#107）：本機帶 data URL，Supabase 帶 /upload 拿到的 path（照片已直傳） */
+export async function repoAddExtraPhoto(id: string, input: { view: unknown; photo?: unknown; path?: unknown }): Promise<
+  ExtraPhotoResult | { ok: false; code: "permission_denied" } | Denied
+> {
+  const src = resolveCatSource();
+  if (src === "local") return addExtraPhoto(localRoot()!, id, input.view, input.photo);
+  if (src === "supabase") return sbAddExtraPhoto(id, input.view, input.path);
   return { ok: false, code: "disabled" };
 }
 

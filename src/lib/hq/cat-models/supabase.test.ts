@@ -37,7 +37,7 @@ function fakeClient() {
 vi.mock("@/lib/supabase/server", () => ({ getServerSupabase: async () => fakeClient() }));
 vi.mock("@/lib/supabase/admin", () => ({ getAdminSupabase: () => null }));
 
-const { sbCreateCat, sbPhotoUpload, sbQueuePaint, sbRestore } = await import("./supabase");
+const { sbAddExtraPhoto, sbCreateCat, sbPhotoUpload, sbQueuePaint, sbRestore } = await import("./supabase");
 
 const ID = "cat_20261101_090507";
 const row = (over: Record<string, unknown> = {}) => ({
@@ -105,6 +105,23 @@ describe("sbCreateCat（新增第二步）", () => {
     files = [{ name: "photo.png" }];
     insertError = { code: "23505" };
     expect(await sbCreateCat({ id: ID, photoPath: `${ID}/photo.png`, name: "小虎" })).toEqual({ ok: false, code: "busy" });
+  });
+});
+
+describe("sbAddExtraPhoto（補傳正面／背部花紋，#107）", () => {
+  it("路徑對且已上傳：合併進 profile.extra_photos", async () => {
+    files = [{ name: "photo.png" }, { name: "photo_back.webp" }];
+    modelRow = row({ profile: { age_months: 3, extra_photos: { front: `${ID}/photo_front.jpg` } } });
+    expect(await sbAddExtraPhoto(ID, "back", `${ID}/photo_back.webp`)).toEqual({ ok: true });
+    const update = calls.find(c => c.op === "update")!;
+    expect(update.args[0]).toEqual({ profile: { age_months: 3, extra_photos: { front: `${ID}/photo_front.jpg`, back: `${ID}/photo_back.webp` } } });
+  });
+  it("角度不對、路徑不是自己的、還沒上傳：拒絕且不更新", async () => {
+    files = [{ name: "photo.png" }];
+    expect(await sbAddExtraPhoto(ID, "side", `${ID}/photo_side.png`)).toEqual({ ok: false, code: "invalid_option" });
+    expect(await sbAddExtraPhoto(ID, "front", `cat_20261101_000000/photo_front.png`)).toEqual({ ok: false, code: "photo_invalid" });
+    expect(await sbAddExtraPhoto(ID, "front", `${ID}/photo_front.png`)).toEqual({ ok: false, code: "photo_invalid" });
+    expect(calls.some(c => c.op === "update")).toBe(false);
   });
 });
 

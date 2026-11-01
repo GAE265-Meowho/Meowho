@@ -22,7 +22,7 @@ type Row = {
   name: string;
   owner_type: "template" | "member";
   status: CatModelStatus;
-  profile: { age_months?: number | null; weight_kg?: number | null; notes?: string };
+  profile: { age_months?: number | null; weight_kg?: number | null; notes?: string; extra_photos?: Partial<Record<ExtraView, string>> };
   photo_path: string;
   photo_view: PhotoView | null;
   fill_pattern: FillPattern | null;
@@ -77,6 +77,7 @@ function viewFromRow(row: Row, job: JobRow | null = null): CatModelView {
     updatedAt: row.updated_at,
     // 沒有 created_by 的是直接用 SQL 放進來的示範資料；有但讀不到個人資料時顯示 null（畫面顯示「—」）
     createdBy: row.created_by ? row.creator?.display_name || row.creator?.email || null : "系統",
+    extraPhotos: EXTRA_VIEWS.filter(v => row.profile?.extra_photos?.[v]),
   };
 }
 
@@ -119,13 +120,17 @@ export async function sbGetCat(id: string): Promise<CatModelView | null> {
 export async function sbFileRedirect(id: string, kind: FileKind): Promise<string | null> {
   const sb = await client();
   if (!sb) return null;
-  const { data } = await sb.from("meow_cat_models").select("photo_path,albedo_path,prev_albedo_path").eq("id", id).maybeSingle();
+  const { data } = await sb.from("meow_cat_models").select("photo_path,albedo_path,prev_albedo_path,profile").eq("id", id).maybeSingle();
   if (!data) return null;
-  const row = data as Pick<Row, "photo_path" | "albedo_path" | "prev_albedo_path">;
-  if (kind === "photo") {
+  const row = data as Pick<Row, "photo_path" | "albedo_path" | "prev_albedo_path" | "profile">;
+  // 正面／背部花紋照（#107）也在私有 bucket，用同樣的簽名方式
+  const photoPath = kind === "photo" ? row.photo_path
+    : kind === "photo_front" || kind === "photo_back" ? row.profile?.extra_photos?.[kind === "photo_front" ? "front" : "back"] ?? null
+    : null;
+  if (photoPath) {
     // 私有 bucket：先用登入者簽、失敗再用 service role
     const trySign = async (c: NonNullable<Awaited<ReturnType<typeof client>>>) => {
-      const { data: signed } = await c.storage.from(PHOTO_BUCKET).createSignedUrl(row.photo_path, 3600);
+      const { data: signed } = await c.storage.from(PHOTO_BUCKET).createSignedUrl(photoPath, 3600);
       return signed?.signedUrl ?? null;
     };
     return (await trySign(sb)) ?? (getAdminSupabase() ? await trySign(getAdminSupabase()!) : null);
@@ -160,7 +165,8 @@ export async function sbPhotoUpload(type: unknown, size: unknown, now = new Date
   if (extra && (!isExtraView(extra.view) || typeof extra.id !== "string" || !CAT_ID_RE.test(extra.id))) return { ok: false, code: "photo_invalid" };
   const id = extra ? String(extra.id) : newCatId(now);
   const path = extra ? `${id}/photo_${extra.view}.${ext}` : `${id}/photo.${ext}`;
-  const { data, error } = await user.sb.storage.from(PHOTO_BUCKET).createSignedUploadUrl(path);
+  // 補傳或換一張（#107）時檔案可能已存在，允許覆蓋
+  const { data, error } = await user.sb.storage.from(PHOTO_BUCKET).createSignedUploadUrl(path, extra ? { upsert: true } : undefined);
   if (error || !data) return { ok: false, code: "permission_denied" };
   return { ok: true, id, bucket: PHOTO_BUCKET, path, token: data.token };
 }
@@ -200,6 +206,27 @@ export async function sbCreateCat(input: SbCreateInput): Promise<
   });
   if (error) return { ok: false, code: error.code === "23505" ? "busy" : "permission_denied" };
   return { ok: true, id };
+}
+
+/** 補傳正面／背部花紋照（#107）：照片已用 /upload 直傳，這裡確認路徑與檔案後記到 profile.extra_photos */
+export async function sbAddExtraPhoto(id: string, view: unknown, path: unknown): Promise<
+  { ok: true } | { ok: false; code: "not_found" | "invalid_option" | "photo_invalid" | "permission_denied" | "disabled" }
+> {
+  if (!isExtraView(view)) return { ok: false, code: "invalid_option" };
+  if (!CAT_ID_RE.test(id)) return { ok: false, code: "not_found" };
+  if (typeof path !== "string" || !ownExtraPhotoPath(id, view, path)) return { ok: false, code: "photo_invalid" };
+  const user = await userClient();
+  if (!user) return { ok: false, code: "permission_denied" };
+  const { data: files } = await user.sb.storage.from(PHOTO_BUCKET).list(id, { limit: 20 });
+  if (!files?.some(f => `${id}/${f.name}` === path)) return { ok: false, code: "photo_invalid" };
+  const { data } = await user.sb.from("meow_cat_models").select("profile").eq("id", id).maybeSingle();
+  if (!data) return { ok: false, code: "not_found" };
+  const profile = ((data as Pick<Row, "profile">).profile ?? {}) as Row["profile"];
+  const next = { ...profile, extra_photos: { ...profile.extra_photos, [view]: path } };
+  const { error } = await user.sb.from("meow_cat_models").update({ profile: next }).eq("id", id);
+  if (error) return { ok: false, code: "permission_denied" };
+  // 不寫稽核：補傳照片不是處置操作，且 meow_audit_logs 的動作清單沒有這一項（要加需改 SQL）
+  return { ok: true };
 }
 
 /** 稽核日誌（meow_hq_log）；寫不進去不擋主要操作，但留下伺服器紀錄 */

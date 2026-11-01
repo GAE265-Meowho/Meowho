@@ -4,7 +4,7 @@ import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { createCat, getCat, listCats, localRoot, queuePaint, readCatFile, restorePrevious } from "./local";
+import { addExtraPhoto, createCat, getCat, listCats, localRoot, queuePaint, readCatFile, restorePrevious } from "./local";
 
 let root: string;
 const png = Buffer.from([0x89, 0x50, 0x4e, 0x47]);
@@ -105,6 +105,18 @@ describe("createCat（沿用 Cat Studio 的 create_cat）", () => {
     expect(await fs.readFile(catPath("cat_20261031_140509", "photo_front.jpg"))).toEqual(png);
     const profile = JSON.parse(await read("cat_20261031_140509", "profile.json"));
     expect(profile.extra_photos).toEqual({ front: "photo_front.jpg" });
+  });
+  it("補傳正面／背部花紋照（#107）：存檔、記到 profile、可讀回；換一張會覆蓋；角度或格式不對拒絕", async () => {
+    const { id } = (await createCat(root, { name: "A", photo: dataUrl("image/png", png) }, NOW)) as { id: string };
+    expect((await getCat(root, id))?.extraPhotos).toEqual([]);
+    expect(await addExtraPhoto(root, id, "back", dataUrl("image/png", png))).toEqual({ ok: true });
+    expect((await getCat(root, id))?.extraPhotos).toEqual(["back"]);
+    expect(await readCatFile(root, id, "photo_back")).toMatchObject({ type: "image/png" });
+    expect(await addExtraPhoto(root, id, "back", dataUrl("image/jpeg", png))).toEqual({ ok: true });
+    expect(JSON.parse(await read(id, "profile.json")).extra_photos).toEqual({ back: "photo_back.jpg" });
+    expect(await addExtraPhoto(root, id, "side", dataUrl("image/png", png))).toEqual({ ok: false, code: "invalid_option" });
+    expect(await addExtraPhoto(root, id, "front", dataUrl("image/gif", png))).toEqual({ ok: false, code: "photo_invalid" });
+    expect(await addExtraPhoto(root, "cat_20261031_999999", "front", dataUrl("image/png", png))).toEqual({ ok: false, code: "not_found" });
   });
   it("年齡、體重空白或不合法存成 null", async () => {
     const r = await createCat(root, { name: "A", ageMonths: "", weightKg: "-3", photo: dataUrl("image/jpeg", png) }, NOW);

@@ -99,6 +99,8 @@ export interface CatModelView {
   updatedAt: string;
   /** 建立者顯示名稱；示範貓為「系統」，查不到時為 null（#102） */
   createdBy: string | null;
+  /** 已上傳的正面／背部花紋照（#105、#107） */
+  extraPhotos: ExtraView[];
 }
 
 /** 任務是否在忙（排隊中或生成中）：忙的時候不能再送、不能換版 */
