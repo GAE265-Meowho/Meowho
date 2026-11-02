@@ -58,8 +58,11 @@ Meowho喵戶 使用**自己的 Supabase 專案**，不與其他 App 共用（決
 - **Gemini（目前使用）**：https://aistudio.google.com/apikey → Create API key → `GEMINI_API_KEY`
 - 其他供應商：設 `AI_PROVIDER=openai`／`azure`／`anthropic` 並填對應金鑰，變數名稱見 `.env.example`
 - **AI 三視角照片（#110，Azure 影像生成）**：與文字模型分開設定，`AI_PROVIDER` 維持原值也能用。需要
-  `AZURE_OPENAI_ENDPOINT`、`AZURE_OPENAI_API_KEY`、`AZURE_OPENAI_IMAGE_DEPLOYMENT`（部署名稱，目前 `gpt-6-luna`），
-  選填 `AZURE_OPENAI_IMAGE_API_VERSION`（預設 `2025-04-01-preview`）。沒設時，製作glb工作區會顯示「尚未設定 AI 影像模型」。
+  `AZURE_OPENAI_ENDPOINT`（v1 網址 `https://<資源>.openai.azure.com/openai/v1`）、`AZURE_OPENAI_API_KEY`、
+  `AZURE_OPENAI_IMAGE_DEPLOYMENT=gpt-image-2`（影像部署；`gpt-6-luna` 只能聊天、不能產生圖片），
+  選填 `AZURE_OPENAI_IMAGE_QUALITY`（`low`／`medium`／`high`，預設 `low`）。沒設時，新增貓咪頁會顯示「尚未設定 AI 影像模型」。
+- **Azure 聊天模型**：`AZURE_OPENAI_CHAT_DEPLOYMENT_NAME=gpt-6-luna`（聊天部署名稱；舊名 `AZURE_OPENAI_DEPLOYMENT` 仍相容，不要兩個都設）。
+  只有 `AI_PROVIDER=azure` 時聊天與「看照片判斷年齡」才用它；`AI_PROVIDER=gemini` 時改用 Gemini，三視角照片仍用 Azure 影像模型。
 
 ## 5. 填到 Vercel
 Vercel 專案 **`zing15s-projects/meowho`**（https://meowho.vercel.app，連動 `GAE265-Meowho/Meowho` 的 `main`）→ **Settings → Environment Variables**，Production＋Preview 都勾：
@@ -73,7 +76,8 @@ Vercel 專案 **`zing15s-projects/meowho`**（https://meowho.vercel.app，連動
 | `NEXT_PUBLIC_LOCAL_PHOTOS` | `0` | Config |
 | `AZURE_OPENAI_ENDPOINT` | Azure OpenAI 資源端點（#110） | Secret |
 | `AZURE_OPENAI_API_KEY` | Azure OpenAI 金鑰（#110） | Secret |
-| `AZURE_OPENAI_IMAGE_DEPLOYMENT` | `gpt-6-luna`（#110） | Config |
+| `AZURE_OPENAI_IMAGE_DEPLOYMENT` | `gpt-image-2`（#110） | Config |
+| `AZURE_OPENAI_CHAT_DEPLOYMENT_NAME` | `gpt-6-luna`（`AI_PROVIDER=azure` 時才用到） | Config |
 
 儲存後到 **Deployments → 最新一筆 → Redeploy**，環境變數才會生效。
 - **Framework Preset 必須是 Next.js**（Settings → Build and Deployment）。設成 Other 時建置會成功，但每一頁都是 404。

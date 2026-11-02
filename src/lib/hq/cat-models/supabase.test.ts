@@ -41,7 +41,7 @@ function fakeClient() {
 vi.mock("@/lib/supabase/server", () => ({ getServerSupabase: async () => fakeClient() }));
 vi.mock("@/lib/supabase/admin", () => ({ getAdminSupabase: () => null }));
 
-const { sbAddExtraPhoto, sbStartViews, sbCreateCat, sbPhotoUpload, sbQueuePaint, sbRestore } = await import("./supabase");
+const { sbStartViews, sbCreateCat, sbPhotoUpload, sbQueuePaint, sbRestore } = await import("./supabase");
 
 const ID = "cat_20261101_090507";
 const row = (over: Record<string, unknown> = {}) => ({
@@ -112,32 +112,15 @@ describe("sbCreateCat（新增第二步）", () => {
   });
 });
 
-describe("sbAddExtraPhoto（補傳正面／背部花紋，#107）", () => {
-  it("路徑對且已上傳：合併進 profile.extra_photos", async () => {
-    files = [{ name: "photo.png" }, { name: "photo_back.webp" }];
-    modelRow = row({ profile: { age_months: 3, extra_photos: { front: `${ID}/photo_front.jpg` } } });
-    expect(await sbAddExtraPhoto(ID, "back", `${ID}/photo_back.webp`)).toEqual({ ok: true });
-    const update = calls.find(c => c.op === "update")!;
-    expect(update.args[0]).toEqual({ profile: { age_months: 3, extra_photos: { front: `${ID}/photo_front.jpg`, back: `${ID}/photo_back.webp` } } });
-  });
-  it("角度不對、路徑不是自己的、還沒上傳：拒絕且不更新", async () => {
-    files = [{ name: "photo.png" }];
-    expect(await sbAddExtraPhoto(ID, "side", `${ID}/photo_side.png`)).toEqual({ ok: false, code: "invalid_option" });
-    expect(await sbAddExtraPhoto(ID, "front", `cat_20261101_000000/photo_front.png`)).toEqual({ ok: false, code: "photo_invalid" });
-    expect(await sbAddExtraPhoto(ID, "front", `${ID}/photo_front.png`)).toEqual({ ok: false, code: "photo_invalid" });
-    expect(calls.some(c => c.op === "update")).toBe(false);
-  });
-});
-
 describe("sbStartViews（AI 三視角，#110）", () => {
-  const fake = () => async () => new Uint8Array([9]);
+  const fake = () => async () => ({ png: new Uint8Array([9]), usage: null });
   const NOW = new Date("2026-11-02T00:00:00Z");
   it("沒設定影像模型：ai_disabled；角度不對：invalid_option", async () => {
     expect(await sbStartViews(ID)).toEqual({ ok: false, code: "ai_disabled" });
-    expect(await sbStartViews(ID, ["side"], { makeEdit: fake })).toEqual({ ok: false, code: "invalid_option" });
+    expect(await sbStartViews(ID, ["side"], { makeEdit: fake, analyze: async () => null })).toEqual({ ok: false, code: "invalid_option" });
   });
   it("先標記產生中，run 讀原始照片、平行產生、存 gen_<角度>.png、寫回結果", async () => {
-    const r = await sbStartViews(ID, ["left", "back"], { makeEdit: fake, now: NOW });
+    const r = await sbStartViews(ID, ["left", "back"], { makeEdit: fake, analyze: async () => null, now: NOW });
     expect(r.ok).toBe(true);
     const start = calls.find(c => c.op === "update")!.args[0] as { profile: { generated: unknown } };
     expect(start.profile.generated).toEqual({ running: ["left", "back"], errors: {}, started_at: NOW.toISOString() });
@@ -148,16 +131,37 @@ describe("sbStartViews（AI 三視角，#110）", () => {
     const done = calls.filter(c => c.op === "update").at(-1)!.args[0] as { profile: { generated: unknown } };
     expect(done.profile.generated).toMatchObject({ views: { left: `${ID}/gen_left.png`, back: `${ID}/gen_back.png` }, running: [] });
   });
+  it("帶入補傳的正面照當第二張參考、存年齡判斷與中英指示、記畫質（#110 Stitch 版）", async () => {
+    modelRow = row({ profile: { age_months: 3, extra_photos: { front: `${ID}/photo_front.jpg` } } });
+    let refCount = 0;
+    const r = await sbStartViews(ID, ["left"], {
+      makeEdit: () => async refs => { refCount = refs.length; return { png: new Uint8Array([9]), usage: { input: 10, output: 196, textIn: null, imageIn: null } }; },
+      analyze: async () => ({ months: 2, isCat: true, coat: "灰白", breed: null, confidence: 0.9 }), now: NOW, quality: "medium", size: "bogus",
+    });
+    const start = calls.find(c => c.op === "update")!.args[0] as { profile: { generated: Record<string, unknown> } };
+    expect(start.profile.generated).toMatchObject({ quality: "medium" });
+    expect(start.profile.generated).not.toHaveProperty("size");
+    calls.length = 0;
+    await (r as { run: () => Promise<void> }).run();
+    expect(calls.filter(c => c.op === "download").map(c => c.args[0])).toEqual([`${ID}/photo.png`, `${ID}/photo_front.jpg`]);
+    expect(refCount).toBe(2);
+    const done = calls.filter(c => c.op === "update").at(-1)!.args[0] as { profile: { generated: Record<string, unknown> } };
+    expect(done.profile.generated).toMatchObject({
+      age: { months: 2, source: "ai", coat: "灰白" },
+      usage: { left: { output: 196 } },
+    });
+    expect((done.profile.generated.prompts as { left: { zh: string } }).left.zh).toContain("這是幼貓");
+  });
   it("讀不到原始照片：全部記失敗", async () => {
     download = null;
-    const r = await sbStartViews(ID, ["front"], { makeEdit: fake, now: NOW });
+    const r = await sbStartViews(ID, ["front"], { makeEdit: fake, analyze: async () => null, now: NOW });
     await (r as { run: () => Promise<void> }).run();
     const done = calls.filter(c => c.op === "update").at(-1)!.args[0] as { profile: { generated: { errors: unknown } } };
     expect(done.profile.generated.errors).toEqual({ front: "讀不到原始照片" });
   });
   it("產生中再按：busy", async () => {
     modelRow = row({ profile: { generated: { running: ["left"], started_at: NOW.toISOString() } } });
-    expect(await sbStartViews(ID, ["left"], { makeEdit: fake, now: NOW })).toEqual({ ok: false, code: "busy" });
+    expect(await sbStartViews(ID, ["left"], { makeEdit: fake, analyze: async () => null, now: NOW })).toEqual({ ok: false, code: "busy" });
   });
 });
 

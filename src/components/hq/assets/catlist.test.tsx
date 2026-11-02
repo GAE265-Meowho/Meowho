@@ -7,7 +7,6 @@ import type { CatModelView } from "@/lib/hq/cat-models/types";
 import { CatsTab } from "./CatsTab";
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), replace: vi.fn() }) }));
-vi.mock("./BaseSamples", () => ({ BaseSamples: () => null }));
 
 const rows = vi.hoisted(() => ({ data: [] as CatModelView[] }));
 vi.mock("./useCatModels", async orig => ({
@@ -31,6 +30,13 @@ describe("已建立的貓咪模型列表（#102）", () => {
     expect(within(row).getByText("2026/11/01 22:44")).toBeInTheDocument();
     expect(within(row).getByText("—")).toBeInTheDocument(); // 沒有備註
     expect(within(row).queryByRole("link", { name: /預覽動作|製作glb工作區/ })).toBeNull();
+  });
+  it("#110：流程改成上傳照片 → AI 三視角 → 產生 3D；兩隻骨架改用「體型骨架預覽」按鈕進入", () => {
+    rows.data = [];
+    render(<CatsTab query={{ page: 1 }} update={() => {}} />);
+    expect(screen.getByText("AI 三視角")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "體型骨架預覽" })).toHaveAttribute("href", "/MeowHQ/assets/bases");
+    expect(screen.queryByRole("link", { name: "測試動作與參數" })).toBeNull();
   });
   it("不顯示狀態與狀態篩選", () => {
     rows.data = [member];

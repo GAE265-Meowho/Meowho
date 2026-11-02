@@ -12,7 +12,7 @@ import { autoPupil, EYE_DEFAULTS, EYE_PRESETS, type EyeParams } from "./catEye";
 import type { PreviewInfo } from "./CatPreview";
 import { ClipList } from "./ClipList";
 import { PanelGroup } from "./PanelGroup";
-import { ASSETS_CATS_HREF } from "./hrefs";
+import { BASES_HREF } from "./hrefs";
 import { baseDownloadUrl, baseGlbUrl } from "./useCatModels";
 
 const CatPreview = dynamic(() => import("./CatPreview"), { ssr: false, loading: () => <HqSkeleton rows={4} /> });
@@ -53,7 +53,7 @@ export function BaseLab({ body }: { body: BodyType }) {
   return (
     <>
       <div className="hq-pagehead">
-        <Link href={ASSETS_CATS_HREF} className="hq-back">← 虛擬體驗元件管理</Link>
+        <Link href={BASES_HREF} className="hq-back">← 體型骨架預覽</Link>
         <h1 className="hq-h1">{label}測試台</h1>
         <span className="hq-tag mute">示範毛色</span>
       </div>

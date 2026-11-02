@@ -4,11 +4,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo } from "react";
 import { CLIP_LIBRARY } from "@/lib/hq/cat-models/clips";
-import { formatCatTime, KITTEN_MAX_MONTHS, type CatModelView } from "@/lib/hq/cat-models/types";
+import { formatCatTime, type CatModelView } from "@/lib/hq/cat-models/types";
 import { paginate, type ListQuery } from "@/lib/hq/listing";
 import { HqListBody, HqPager, HqTable, HqToolbar, type Column } from "../list/HqList";
-import { BaseSamples } from "./BaseSamples";
-import { assetsHref, NEW_CAT_HREF } from "./hrefs";
+import { assetsHref, BASES_HREF, NEW_CAT_HREF } from "./hrefs";
 import { catFileUrl, useCatList } from "./useCatModels";
 
 const READY_CLIPS = CLIP_LIBRARY.filter(c => c.status === "ready").length;
@@ -51,16 +50,18 @@ export function CatsTab({ query, update }: { query: ListQuery & { page: number }
 
   return (
     <>
-      {/* 先講清楚流程：骨架（系統自動）→ 照片（使用者上傳）→ 產生 3D，避免以為兩隻母體是要挑的貓 */}
+      {/* 流程（#110 Stitch）：上傳照片 → AI 三視角 → 產生 3D；兩隻體型骨架移到另一頁，用按鈕進入 */}
       <section className="hq-flow" aria-label="製作流程">
         <ol className="hq-steps">
-          <li><b>1</b><span><strong>上傳照片</strong><span className="hq-hint">側面全身照，填年齡</span></span></li>
-          <li><b>2</b><span><strong>自動套用骨架</strong><span className="hq-hint">{KITTEN_MAX_MONTHS} 個月以下用幼貓骨架</span></span></li>
+          <li><b>1</b><span><strong>上傳照片</strong><span className="hq-hint">原始照片與基本資料</span></span></li>
+          <li><b>2</b><span><strong>AI 三視角</strong><span className="hq-hint">AI 產生左側面、正面、背部照片</span></span></li>
           <li><b>3</b><span><strong>產生 3D 貓咪</strong><span className="hq-hint">在製作glb工作區按「產生動作 glb」</span></span></li>
         </ol>
-        <Link href={NEW_CAT_HREF} className="hq-btn">新增貓咪模型</Link>
+        <div className="hq-row">
+          <Link href={BASES_HREF} className="hq-btn ghost">體型骨架預覽</Link>
+          <Link href={NEW_CAT_HREF} className="hq-btn">新增貓咪模型</Link>
+        </div>
       </section>
-      <BaseSamples />
       <h2 className="hq-listtitle">已建立的貓咪模型</h2>
       <HqToolbar
         q={query.q} onSearch={q => update({ q })} placeholder="搜尋貓咪名稱"

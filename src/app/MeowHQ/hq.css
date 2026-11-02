@@ -277,33 +277,59 @@
 /* 新增貓咪（#105，§2.4）：1 照片｜2 基本資料各佔一半、等高、大圓角；主要按鈕在最後；手機一欄 */
 .hq-newcat-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; align-items: stretch; }
 .hq-newcat .hq-step { border-radius: 24px; padding: 1.1rem 1.25rem 1.25rem; background: var(--hq-card); }
-.hq-newcat .hq-angles { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .hq-newcat .hq-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
 .hq-newcat .hq-row-2 .hq-input { width: 100%; }
 .hq-newcat .hq-grow { flex: 1; min-height: 120px; }
-.hq-newcat-actions { justify-content: flex-end; margin-top: 1rem; }
-p.hq-newcat-actions { text-align: right; margin-top: .4rem; }
 @media (max-width: 767px) {
   .hq-newcat-grid { grid-template-columns: 1fr; }
   .hq-newcat .hq-angles { grid-template-columns: repeat(auto-fill, minmax(min(100%, 140px), 1fr)); }
-  .hq-newcat-actions { justify-content: stretch; }
 }
-/* 製作glb工作區：原始照片＋AI 三視角（#110） */
-.hq-aiviews { display: flex; flex-direction: column; gap: .6rem; margin-bottom: .75rem; }
-.hq-aiviews .hq-imgs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .75rem; }
-.hq-aiviews .hq-imgs img, .hq-aiview-state { width: 100%; height: auto; aspect-ratio: 1; }
-.hq-aiview { align-items: center; }
-.hq-aiview a { width: 100%; }
-.hq-aiview-state { display: flex; align-items: center; justify-content: center; border: 1px dashed var(--hq-line); border-radius: 10px; color: var(--hq-sub); font-size: .9rem; background: var(--hq-bg); }
-.hq-aiview-error { margin: 0; font-size: .8rem; text-align: center; }
-@media (max-width: 767px) { .hq-aiviews .hq-imgs { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-/* 貓咪頁補傳正面／背部花紋照（#107） */
-.hq-extras { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .6rem; }
-.hq-extra { margin: 0; display: flex; flex-direction: column; align-items: center; gap: .35rem; padding: .6rem; border: 1px dashed var(--hq-line); border-radius: 12px; }
-.hq-extra.filled { border-style: solid; }
-.hq-extra img, .hq-extra-empty { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 8px; background: var(--hq-bg); }
-.hq-extra-empty { display: flex; align-items: center; justify-content: center; font-size: .8rem; color: var(--hq-sub); }
-.hq-extra figcaption { font-size: .85rem; font-weight: 500; }
+/* AI 三視角（#110，Stitch「MeowHQ Cat Model Builder」）：新增貓咪步驟 02、製作glb工作區共用 */
+.hq-aiviews { display: flex; flex-direction: column; gap: .75rem; margin-bottom: .75rem; }
+.hq-ai-analysis { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; padding: .7rem 1rem; border-radius: 16px; background: var(--hq-sage-soft); color: var(--hq-sage-ink); font-size: .9rem; }
+.hq-ai-warn { display: flex; flex-direction: column; gap: .2rem; padding: .7rem 1rem; border-radius: 16px; background: var(--hq-caramel-soft); color: var(--hq-caramel-ink); font-size: .9rem; }
+.hq-ai-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .9rem; }
+.hq-ai-card { margin: 0; display: flex; flex-direction: column; gap: .55rem; padding: .85rem; border: 1px solid var(--hq-line); border-radius: 24px; background: var(--hq-card); min-width: 0; }
+.hq-ai-card-head { display: flex; justify-content: space-between; align-items: center; gap: .4rem; font-weight: 600; font-size: .95rem; flex-wrap: wrap; }
+.hq-row-tight { display: inline-flex; gap: .3rem; flex-wrap: wrap; }
+.hq-ai-frame { position: relative; aspect-ratio: 1; border-radius: 20px; overflow: hidden; background: var(--hq-bg); }
+.hq-ai-frame a { display: block; width: 100%; height: 100%; }
+.hq-ai-frame img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.hq-ai-state { height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .35rem; padding: .75rem; text-align: center; color: var(--hq-sub); font-size: .9rem; border: 1px dashed var(--hq-line); border-radius: 20px; }
+.hq-ai-state small { font-size: .8rem; }
+.hq-ai-state.danger { color: var(--hq-danger); border-color: var(--hq-danger); }
+.hq-ai-regen { position: absolute; right: .5rem; bottom: .5rem; background: var(--hq-card); }
+.hq-spinner { width: 28px; height: 28px; border-radius: 50%; border: 3px solid var(--hq-line); border-top-color: var(--hq-caramel); animation: hq-spin 1s linear infinite; }
+@keyframes hq-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .hq-spinner { animation: none; } }
+.hq-ai-prompt { display: flex; flex-direction: column; gap: .35rem; padding: .6rem .7rem; border-radius: 14px; background: var(--hq-bg); font-size: .82rem; }
+.hq-ai-prompt-head { display: flex; justify-content: space-between; align-items: center; gap: .4rem; color: var(--hq-sub); font-weight: 600; }
+.hq-ai-prompt p { margin: 0; white-space: pre-line; line-height: 1.5; color: var(--hq-text); }
+.hq-clamp3 { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.hq-seg { display: inline-flex; border: 1px solid var(--hq-line); border-radius: 999px; overflow: hidden; }
+.hq-seg button { border: 0; background: transparent; padding: .1rem .55rem; font: inherit; font-size: .78rem; color: var(--hq-sub); cursor: pointer; }
+.hq-seg button[aria-pressed="true"] { background: var(--hq-sage); color: #fff; }
+.hq-link { align-self: flex-start; border: 0; background: none; padding: 0; color: var(--hq-sage-ink); font: inherit; font-size: .8rem; text-decoration: underline; cursor: pointer; }
+.hq-ai-fold { border: 1px solid var(--hq-line); border-radius: 16px; background: var(--hq-card); }
+.hq-ai-fold > summary { cursor: pointer; padding: .7rem 1rem; font-weight: 600; }
+.hq-ai-fold-body { padding: 0 1rem .9rem; }
+.hq-ai-fold-body.hq-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
+.hq-ai-usage td, .hq-ai-usage th { font-size: .85rem; }
+@media (max-width: 1023px) { .hq-ai-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 520px) { .hq-ai-grid, .hq-ai-fold-body.hq-row-2 { grid-template-columns: 1fr; } }
+/* 新增貓咪（Stitch）：步驟標題、主照片、其他角度、底部列 */
+.hq-flowstep { display: flex; align-items: baseline; gap: .6rem; margin: 1.25rem 0 .75rem; }
+.hq-flowstep:first-child { margin-top: 0; }
+.hq-flowstep .hq-stepno { font-size: .85rem; }
+.hq-flowstep h2 { margin: 0; font-size: 1.15rem; }
+.hq-main-photo { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .5rem; min-height: 220px; padding: 1rem; border: 2px dashed var(--hq-line); border-radius: 20px; background: var(--hq-bg); text-align: center; cursor: pointer; }
+.hq-main-photo.filled { border-style: solid; border-color: var(--hq-sage); background: var(--hq-card); }
+.hq-main-photo img { max-height: 260px; max-width: 100%; border-radius: 16px; object-fit: contain; }
+.hq-main-photo:focus-within { outline: 2px solid var(--hq-sage); outline-offset: 2px; }
+.hq-newcat .hq-angles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.hq-newcat-bar { position: sticky; bottom: 0; z-index: 2; display: flex; align-items: center; justify-content: space-between; gap: .75rem; flex-wrap: wrap; margin-top: 1.25rem; padding: .8rem 1rem; border: 1px solid var(--hq-line); border-radius: 20px; background: var(--hq-card); }
+.hq-newcat-bar .hq-row { gap: .5rem; }
+@media (max-width: 767px) { .hq-newcat-bar { flex-direction: column; align-items: stretch; } }
 /* 新增貓咪：拍攝範例（#98） */
 .hq-examples { display: grid; grid-template-columns: repeat(2, minmax(0, 140px)); gap: .75rem; }
 .hq-examples figure { margin: 0; display: flex; flex-direction: column; align-items: center; gap: .25rem; }

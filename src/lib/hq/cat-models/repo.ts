@@ -1,11 +1,11 @@
 // 貓咪模型資料來源：本機檔案 ＞ Supabase ＞ 靜態 bundled ＞ 關閉
 import {
-  createCat, getCat, listCats, localRoot, queuePaint, readBaseGlb, readCatFile, restorePrevious, addExtraPhoto, startViews, type ExtraPhotoResult,
+  createCat, getCat, listCats, localRoot, queuePaint, readBaseGlb, readCatFile, restorePrevious, startViews,
   type CreateResult, type FileKind, type QueueResult, type RestoreResult, type NewCatInput,
 } from "./local";
 import { bundledBasePublicPath, bundledEnabled, bundledFilePublicPath, getBundledCat, listBundledCats } from "./bundled";
 import {
-  sbBaseRedirect, sbCreateCat, sbFileRedirect, sbGetCat, sbListCats, sbAddExtraPhoto, sbStartViews, sbPhotoUpload, sbQueuePaint, sbRestore,
+  sbBaseRedirect, sbCreateCat, sbFileRedirect, sbGetCat, sbListCats, sbStartViews, sbPhotoUpload, sbQueuePaint, sbRestore,
   type UploadTicket,
 } from "./supabase";
 import type { BodyType, CatModelView } from "./types";
@@ -131,23 +131,13 @@ export async function repoQueuePaint(id: string, view: unknown, fill: unknown): 
   return { ok: false, code: "disabled" };
 }
 
-/** 補傳正面／背部花紋照（#107）：本機帶 data URL，Supabase 帶 /upload 拿到的 path（照片已直傳） */
-export async function repoAddExtraPhoto(id: string, input: { view: unknown; photo?: unknown; path?: unknown }): Promise<
-  ExtraPhotoResult | { ok: false; code: "permission_denied" } | Denied
-> {
-  const src = resolveCatSource();
-  if (src === "local") return addExtraPhoto(localRoot()!, id, input.view, input.photo);
-  if (src === "supabase") return sbAddExtraPhoto(id, input.view, input.path);
-  return { ok: false, code: "disabled" };
-}
-
 /** AI 三視角（#110）：標記產生中，回傳 run 讓 API 放進 after() 背景執行 */
-export async function repoStartViews(id: string, views: unknown): Promise<
+export async function repoStartViews(id: string, views: unknown, settings: { quality?: unknown; size?: unknown } = {}): Promise<
   { ok: true; run: () => Promise<void> } | { ok: false; code: "ai_disabled" | "invalid_option" | "not_found" | "busy" | "permission_denied" } | Denied
 > {
   const src = resolveCatSource();
-  if (src === "local") return startViews(localRoot()!, id, views);
-  if (src === "supabase") return sbStartViews(id, views);
+  if (src === "local") return startViews(localRoot()!, id, views, settings);
+  if (src === "supabase") return sbStartViews(id, views, settings);
   return { ok: false, code: "disabled" };
 }
 

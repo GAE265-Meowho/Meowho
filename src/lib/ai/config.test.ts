@@ -1,5 +1,5 @@
 import { describe as d, it, expect } from "vitest";
-import { describe, isConfigured, resolveModel, resolveProvider } from "./config";
+import { describe, isAzureV1, isConfigured, resolveModel, resolveProvider } from "./config";
 
 d("AI 供應商設定", () => {
   it("沒有任何金鑰 → 未設定", () => {
@@ -31,6 +31,19 @@ d("AI 供應商設定", () => {
     const env = { AI_PROVIDER: "azure", AZURE_OPENAI_API_KEY: "x", AZURE_OPENAI_ENDPOINT: "https://a.openai.azure.com", AZURE_OPENAI_DEPLOYMENT: "gpt4o-mini" };
     expect(isConfigured(env)).toBe(true);
     expect(resolveModel(env, "azure", "vision")).toBe("gpt4o-mini");
+  });
+  it("Azure 部署名稱：AZURE_OPENAI_CHAT_DEPLOYMENT_NAME 優先，相容舊的 AZURE_OPENAI_DEPLOYMENT", () => {
+    const base = { AI_PROVIDER: "azure", AZURE_OPENAI_API_KEY: "x", AZURE_OPENAI_ENDPOINT: "https://a.openai.azure.com/openai/v1" };
+    expect(isConfigured(base)).toBe(false);
+    expect(resolveModel({ ...base, AZURE_OPENAI_CHAT_DEPLOYMENT_NAME: "gpt-6-luna" }, "azure", "text")).toBe("gpt-6-luna");
+    expect(isConfigured({ ...base, AZURE_OPENAI_CHAT_DEPLOYMENT_NAME: "gpt-6-luna" })).toBe(true);
+    expect(resolveModel({ ...base, AZURE_OPENAI_DEPLOYMENT: "old", AZURE_OPENAI_CHAT_DEPLOYMENT_NAME: "new" }, "azure", "vision")).toBe("new");
+  });
+  it("Azure v1 端點判斷（結尾 /openai/v1）", () => {
+    expect(isAzureV1("https://r.openai.azure.com/openai/v1")).toBe(true);
+    expect(isAzureV1("https://r.openai.azure.com/openai/v1/")).toBe(true);
+    expect(isAzureV1("https://r.openai.azure.com")).toBe(false);
+    expect(isAzureV1(undefined)).toBe(false);
   });
   it("不認得的供應商 → 未設定", () => expect(isConfigured({ AI_PROVIDER: "foo", GEMINI_API_KEY: "x" })).toBe(false));
 });

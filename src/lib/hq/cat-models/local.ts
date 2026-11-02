@@ -8,11 +8,14 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import {
   bodyFor, CAT_ID_RE, deriveStatus, newCatId, photoExt, profileNumber, type BodyType, type CatModelView, type FillPattern, type JobInfo, type PhotoView, type PublicationState,
-  isExtraView, isJobActive, MAX_PHOTO_BYTES, EXTRA_VIEWS, type ExtraView,
+  isJobActive, MAX_PHOTO_BYTES, EXTRA_VIEWS, type ExtraView,
   finishGenerated, generatedState, GEN_VIEWS, genPhotoName, isGenView, startGenerated, type GeneratedProfile, type GenView,
 } from "./types";
 import { imageConfig } from "@/lib/ai/image";
-import { azureEdit, failAll, generateViews, type GenerateDeps } from "./ai-views";
+import type { Reference } from "@/lib/ai/image";
+import { azureEdit, failAll, generateViews } from "./ai-views";
+import { analyzeAge } from "./ai-analyze";
+import { viewSettings, type StartViewsOptions } from "./view-settings";
 
 export { CAT_ID_RE };
 export const FILE_KINDS = ["photo", "albedo", "albedo_prev", "photo_front", "photo_back", "gen_left", "gen_front", "gen_back"] as const;
@@ -211,28 +214,6 @@ export async function createCat(root: string, input: NewCatInput, now = new Date
   return { ok: true, id };
 }
 
-export type ExtraPhotoResult = { ok: true } | { ok: false; code: "not_found" | "invalid_option" | "photo_invalid" | "photo_too_large" };
-
-/** 補傳正面／背部花紋照（#107）：存成 photo_<角度>.<副檔名>，換一張會覆蓋，記到 profile.extra_photos */
-export async function addExtraPhoto(root: string, id: string, view: unknown, photo: unknown): Promise<ExtraPhotoResult> {
-  if (!isExtraView(view)) return { ok: false, code: "invalid_option" };
-  if (!CAT_ID_RE.test(id)) return { ok: false, code: "not_found" };
-  const dir = catDir(root, id);
-  const profile = await readJson<Profile>(path.join(dir, "profile.json"));
-  if (!profile) return { ok: false, code: "not_found" };
-  const m = /^data:(image\/[\w+.-]+);base64,([\s\S]+)$/.exec(typeof photo === "string" ? photo : "");
-  const ext = m ? photoExt(m[1]) : null;
-  if (!m || !ext) return { ok: false, code: "photo_invalid" };
-  const bytes = Buffer.from(m[2], "base64");
-  if (bytes.length === 0) return { ok: false, code: "photo_invalid" };
-  if (bytes.length > MAX_PHOTO_BYTES) return { ok: false, code: "photo_too_large" };
-  const fileName = `photo_${view}.${ext}`;
-  await fs.writeFile(path.join(dir, fileName), bytes);
-  const next = { ...profile, extra_photos: { ...profile.extra_photos, [view]: fileName } };
-  await fs.writeFile(path.join(dir, "profile.json"), JSON.stringify(next, null, 2), "utf-8");
-  return { ok: true };
-}
-
 export type QueueResult = { ok: true } | { ok: false; code: "not_found" | "invalid_option" | "busy" };
 
 /** 送出生成任務（paint_job.json 設為 queued）。已有排隊中或生成中的任務時拒絕；有目前貼圖時先留一份備份供「保留上一版」 */
@@ -267,16 +248,16 @@ export async function queuePaint(root: string, id: string, view: unknown, fill: 
 
 /**
  * AI 三視角（#110），本機模式：標記產生中，回傳 run（背景執行）。照片存成 gen_<角度>.png，路徑記檔名。
- * makeEdit 可注入假的影像生成（測試用）；預設用 Azure。
+ * 選項同 Supabase 版（makeEdit／analyze 可注入假的；quality、size 來自畫面「進階」）。
  */
 export async function startViews(
-  root: string, id: string, views: unknown = GEN_VIEWS,
-  opts: { makeEdit?: (reference: { bytes: Uint8Array; mime: string }) => GenerateDeps["edit"]; now?: Date } = {},
+  root: string, id: string, views: unknown = GEN_VIEWS, opts: StartViewsOptions = {},
 ): Promise<{ ok: true; run: () => Promise<void> } | { ok: false; code: "ai_disabled" | "invalid_option" | "not_found" | "busy" }> {
   const list = Array.isArray(views) && views.length ? views : null;
   if (!list || !list.every(isGenView)) return { ok: false, code: "invalid_option" };
+  const settings = viewSettings(opts);
   const cfg = imageConfig();
-  const makeEdit = opts.makeEdit ?? (cfg ? (ref: { bytes: Uint8Array; mime: string }) => azureEdit(cfg, ref) : null);
+  const makeEdit = opts.makeEdit ?? (cfg ? () => azureEdit({ ...cfg, ...(settings.quality ? { quality: settings.quality } : {}) }, settings.size) : null);
   if (!makeEdit) return { ok: false, code: "ai_disabled" };
   if (!CAT_ID_RE.test(id)) return { ok: false, code: "not_found" };
   const dir = catDir(root, id);
@@ -284,21 +265,30 @@ export async function startViews(
   const profile = await readJson<Profile>(file);
   if (!profile) return { ok: false, code: "not_found" };
   if (generatedState(profile.generated, (opts.now ?? new Date()).getTime()).aiRunning.length) return { ok: false, code: "busy" };
-  await fs.writeFile(file, JSON.stringify({ ...profile, generated: startGenerated(profile.generated, list as GenView[], opts.now) }, null, 2), "utf-8");
+  await fs.writeFile(file, JSON.stringify({ ...profile, generated: startGenerated(profile.generated, list as GenView[], opts.now, settings) }, null, 2), "utf-8");
 
   const run = async () => {
-    const refName = profile.original_photo ?? profile.photo ?? "";
-    const ext = path.extname(refName).slice(1).toLowerCase();
-    let bytes: Buffer | null = null;
-    if (refName && refName === path.basename(refName)) bytes = await fs.readFile(path.join(dir, refName)).catch(() => null);
-    const results = bytes
+    // 參考照片：原始照片＋已上傳的正面／背部花紋照
+    const names = [profile.original_photo ?? profile.photo ?? "", ...EXTRA_VIEWS.map(v => profile.extra_photos?.[v] ?? "")].filter(Boolean);
+    const refs: Reference[] = [];
+    for (const name of names) {
+      if (name !== path.basename(name)) continue;
+      const bytes = await fs.readFile(path.join(dir, name)).catch(() => null);
+      if (bytes) refs.push({ bytes: new Uint8Array(bytes), mime: PHOTO_EXT[path.extname(name).slice(1).toLowerCase()] ?? "image/jpeg" });
+      else if (name === names[0]) break;
+    }
+    const first = names[0] ?? "";
+    const hasOriginal = refs.length > 0 && Boolean(first) && first === path.basename(first);
+    const outcome = hasOriginal
       ? await generateViews(list as GenView[], {
-        edit: makeEdit({ bytes: new Uint8Array(bytes), mime: PHOTO_EXT[ext] ?? "image/jpeg" }),
+        refs, edit: makeEdit(), analyze: opts.analyze ?? analyzeAge, formAgeMonths: num(profile.age_months),
         save: async (view, png) => { const name = genPhotoName(view); await fs.writeFile(path.join(dir, name), png); return name; },
       })
-      : failAll(list as GenView[], "讀不到原始照片");
+      : { results: failAll(list as GenView[], "讀不到原始照片"), age: undefined, prompts: {} };
     const fresh = (await readJson<Profile>(file)) ?? profile;
-    await fs.writeFile(file, JSON.stringify({ ...fresh, generated: finishGenerated(fresh.generated, results) }, null, 2), "utf-8");
+    await fs.writeFile(file, JSON.stringify({
+      ...fresh, generated: finishGenerated(fresh.generated, outcome.results, { age: outcome.age, prompts: outcome.prompts }),
+    }, null, 2), "utf-8");
   };
   return { ok: true, run };
 }

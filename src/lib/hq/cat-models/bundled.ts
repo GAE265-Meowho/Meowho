@@ -34,6 +34,10 @@ const BUNDLED: readonly CatModelView[] = [
     aiViews: [],
     aiRunning: [],
     aiErrors: {},
+    aiAge: null,
+    aiPrompts: {},
+    aiUsage: {},
+    aiQuality: null,
   },
   {
     id: "cat_20261101_183700",
@@ -62,6 +66,10 @@ const BUNDLED: readonly CatModelView[] = [
     aiViews: [],
     aiRunning: [],
     aiErrors: {},
+    aiAge: null,
+    aiPrompts: {},
+    aiUsage: {},
+    aiQuality: null,
   },
 ];
 

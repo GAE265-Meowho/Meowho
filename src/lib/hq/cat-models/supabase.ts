@@ -6,7 +6,9 @@ import "server-only";
 import { getAdminSupabase } from "@/lib/supabase/admin";
 import { getServerSupabase } from "@/lib/supabase/server";
 import { ImageGenError, imageConfig } from "@/lib/ai/image";
-import { azureEdit, failAll, generateViews, type GenerateDeps } from "./ai-views";
+import { azureEdit, failAll, generateViews } from "./ai-views";
+import { analyzeAge } from "./ai-analyze";
+import { viewSettings, type StartViewsOptions } from "./view-settings";
 import { SUPABASE_URL } from "@/lib/supabase/config";
 import {
   baseFileName, bodyFor, EXTRA_VIEWS, finishGenerated, generatedState, GEN_VIEWS, genPhotoName, isGenView, startGenerated, type GeneratedProfile, type GenView, isExtraView, isJobActive, normalizeStatus, ownExtraPhotoPath, type ExtraView, newCatId, ownPhotoPath, photoExt, profileNumber,
@@ -219,27 +221,6 @@ export async function sbCreateCat(input: SbCreateInput): Promise<
   return { ok: true, id };
 }
 
-/** 補傳正面／背部花紋照（#107）：照片已用 /upload 直傳，這裡確認路徑與檔案後記到 profile.extra_photos */
-export async function sbAddExtraPhoto(id: string, view: unknown, path: unknown): Promise<
-  { ok: true } | { ok: false; code: "not_found" | "invalid_option" | "photo_invalid" | "permission_denied" | "disabled" }
-> {
-  if (!isExtraView(view)) return { ok: false, code: "invalid_option" };
-  if (!CAT_ID_RE.test(id)) return { ok: false, code: "not_found" };
-  if (typeof path !== "string" || !ownExtraPhotoPath(id, view, path)) return { ok: false, code: "photo_invalid" };
-  const user = await userClient();
-  if (!user) return { ok: false, code: "permission_denied" };
-  const { data: files } = await user.sb.storage.from(PHOTO_BUCKET).list(id, { limit: 20 });
-  if (!files?.some(f => `${id}/${f.name}` === path)) return { ok: false, code: "photo_invalid" };
-  const { data } = await user.sb.from("meow_cat_models").select("profile").eq("id", id).maybeSingle();
-  if (!data) return { ok: false, code: "not_found" };
-  const profile = ((data as Pick<Row, "profile">).profile ?? {}) as Row["profile"];
-  const next = { ...profile, extra_photos: { ...profile.extra_photos, [view]: path } };
-  const { error } = await user.sb.from("meow_cat_models").update({ profile: next }).eq("id", id);
-  if (error) return { ok: false, code: "permission_denied" };
-  // 不寫稽核：補傳照片不是處置操作，且 meow_audit_logs 的動作清單沒有這一項（要加需改 SQL）
-  return { ok: true };
-}
-
 /** 稽核日誌（meow_hq_log）；寫不進去不擋主要操作，但留下伺服器紀錄 */
 async function audit(sb: NonNullable<Awaited<ReturnType<typeof getServerSupabase>>>, action: string, id: string, reason: string, detail?: object) {
   const { error } = await sb.rpc("meow_hq_log", { p_action: action, p_target_type: "cat_model", p_target_id: id, p_reason: reason, p_detail: detail ?? null });
@@ -295,14 +276,12 @@ export type StartViewsResult =
  * AI 三視角（#110）第一步：標記產生中，回傳 run（呼叫端放進 after() 背景執行）。
  * makeEdit 可注入假的影像生成（測試用）；預設用 Azure（imageConfig）。
  */
-export async function sbStartViews(
-  id: string, views: unknown = GEN_VIEWS,
-  opts: { makeEdit?: (reference: { bytes: Uint8Array; mime: string }) => GenerateDeps["edit"]; now?: Date } = {},
-): Promise<StartViewsResult> {
+export async function sbStartViews(id: string, views: unknown = GEN_VIEWS, opts: StartViewsOptions = {}): Promise<StartViewsResult> {
   const list = Array.isArray(views) && views.length ? views : null;
   if (!list || !list.every(isGenView)) return { ok: false, code: "invalid_option" };
+  const settings = viewSettings(opts);
   const cfg = imageConfig();
-  const makeEdit = opts.makeEdit ?? (cfg ? (ref: { bytes: Uint8Array; mime: string }) => azureEdit(cfg, ref) : null);
+  const makeEdit = opts.makeEdit ?? (cfg ? () => azureEdit({ ...cfg, ...(settings.quality ? { quality: settings.quality } : {}) }, settings.size) : null);
   if (!makeEdit) return { ok: false, code: "ai_disabled" };
   if (!CAT_ID_RE.test(id)) return { ok: false, code: "not_found" };
   const user = await userClient();
@@ -311,16 +290,22 @@ export async function sbStartViews(
   const row = data as Pick<Row, "photo_path" | "profile"> | null;
   if (!row) return { ok: false, code: "not_found" };
   if (generatedState(row.profile?.generated, (opts.now ?? new Date()).getTime()).aiRunning.length) return { ok: false, code: "busy" };
-  const start = startGenerated(row.profile?.generated, list as GenView[], opts.now);
+  const start = startGenerated(row.profile?.generated, list as GenView[], opts.now, settings);
   const { error } = await user.sb.from("meow_cat_models").update({ profile: { ...row.profile, generated: start } }).eq("id", id);
   if (error) return { ok: false, code: "permission_denied" };
 
   const run = async () => {
-    const refPath = row.profile?.original_photo ?? row.photo_path;
-    const { data: blob } = await user.sb.storage.from(PHOTO_BUCKET).download(refPath);
-    const results = blob
+    // 參考照片：原始照片＋已上傳的正面／背部花紋照（#105、#107）
+    const paths = [row.profile?.original_photo ?? row.photo_path, ...EXTRA_VIEWS.map(v => row.profile?.extra_photos?.[v]).filter((p): p is string => Boolean(p))];
+    const refs = [];
+    for (const p of paths) {
+      const { data: blob } = await user.sb.storage.from(PHOTO_BUCKET).download(p);
+      if (blob) refs.push({ bytes: new Uint8Array(await blob.arrayBuffer()), mime: blob.type || "image/jpeg" });
+      else if (p === paths[0]) break; // 原始照片讀不到就不產生
+    }
+    const outcome = refs.length && paths[0]
       ? await generateViews(list as GenView[], {
-        edit: makeEdit({ bytes: new Uint8Array(await blob.arrayBuffer()), mime: blob.type || "image/jpeg" }),
+        refs, edit: makeEdit(), analyze: opts.analyze ?? analyzeAge, formAgeMonths: row.profile?.age_months ?? null,
         save: async (view, png) => {
           const path = `${id}/${genPhotoName(view)}`;
           const { error: e } = await user.sb.storage.from(PHOTO_BUCKET).upload(path, png, { contentType: "image/png", upsert: true });
@@ -328,12 +313,13 @@ export async function sbStartViews(
           return path;
         },
       })
-      : failAll(list as GenView[], "讀不到原始照片");
+      : { results: failAll(list as GenView[], "讀不到原始照片"), age: undefined, prompts: {} };
     // 重新讀一次 profile，避免蓋掉這段時間其他人的修改（例如補傳正面照）
     const { data: fresh } = await user.sb.from("meow_cat_models").select("profile").eq("id", id).maybeSingle();
     const profile = ((fresh as Pick<Row, "profile"> | null)?.profile ?? row.profile) as Row["profile"];
     await user.sb.from("meow_cat_models").update({
-      profile: { ...profile, generated: finishGenerated(profile.generated, results) }, updated_at: new Date().toISOString(),
+      profile: { ...profile, generated: finishGenerated(profile.generated, outcome.results, { age: outcome.age, prompts: outcome.prompts }) },
+      updated_at: new Date().toISOString(),
     }).eq("id", id);
   };
   return { ok: true, run };
