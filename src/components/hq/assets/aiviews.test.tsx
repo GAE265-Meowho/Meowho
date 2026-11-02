@@ -15,8 +15,8 @@ const bodyOf = (f: ReturnType<typeof vi.fn>) => JSON.parse(String((f.mock.calls[
 describe("AiViews（#110）", () => {
   it("原始＋三張 AI 照片；完成的顯示圖片、狀態與「重新產生」；左側面標「用來上色」", () => {
     render(<AiViews cat={cat({ aiViews: ["left", "front", "back"] })} onStarted={() => {}} />);
-    const group = screen.getByRole("group", { name: "照片" });
-    expect(within(group).getByText("原始")).toBeInTheDocument();
+    const group = screen.getByRole("group", { name: "AI 三視角" });
+    expect(screen.getByRole("group", { name: "上傳的照片" })).toHaveTextContent("原始");
     expect(within(group).getByAltText("AI 左側面照片")).toHaveAttribute("src", "/api/hq/cat-models/cat_20261102_010000/file/gen_left?t=v1");
     expect(within(group).getByText("用來上色")).toBeInTheDocument();
     expect(within(group).getAllByText("完成")).toHaveLength(3);
@@ -66,5 +66,15 @@ describe("AiViews（#110）", () => {
     render(<AiViews cat={cat({})} onStarted={() => {}} />);
     fireEvent.click(screen.getByRole("button", { name: "產生 AI 三視角" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("尚未設定 AI 影像模型");
+  });
+  it("#118 分「上傳的照片」與「AI 三視角」；顯示其他角度照片 2、3，沒上傳時寫明", () => {
+    const { unmount } = render(<AiViews cat={cat({ extraPhotos: ["front", "back"] })} onStarted={() => {}} />);
+    const up = screen.getByRole("group", { name: "上傳的照片" });
+    expect(within(up).getByAltText("其他角度照片 2")).toHaveAttribute("src", "/api/hq/cat-models/cat_20261102_010000/file/photo_front");
+    expect(within(up).getByAltText("其他角度照片 3")).toHaveAttribute("src", "/api/hq/cat-models/cat_20261102_010000/file/photo_back");
+    expect(screen.getByRole("group", { name: "AI 三視角" })).toBeInTheDocument();
+    unmount();
+    render(<AiViews cat={cat({ extraPhotos: [] })} onStarted={() => {}} />);
+    expect(screen.getByText("沒有上傳其他角度照片。")).toBeInTheDocument();
   });
 });

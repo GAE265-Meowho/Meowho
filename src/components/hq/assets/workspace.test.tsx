@@ -23,6 +23,7 @@ vi.mock("next/navigation", () => ({
 }));
 vi.mock("../HqStates", async orig => ({ ...(await orig<typeof import("../HqStates")>()), useOnline: () => true }));
 
+const current = vi.hoisted(() => ({ over: {} as Record<string, unknown> }));
 const cat: CatModelView = {
   id: "cat_20261031_100000", name: "小橘", ownerType: "template", status: "ready", ageMonths: null, weightKg: null, notes: "",
   photoView: "front", fillPattern: "none", hasAlbedo: true, hasPrevAlbedo: false, albedoVersion: null, body: "adult", jobStatus: null, jobQueuedAt: null, jobStartedAt: null, jobSeconds: null, jobStep: null, jobError: null,
@@ -30,10 +31,10 @@ const cat: CatModelView = {
 };
 vi.mock("./useCatModels", async orig => ({
   ...(await orig<typeof import("./useCatModels")>()),
-  useCat: () => ({ value: { state: "ready", data: cat }, reload: vi.fn() }),
+  useCat: () => ({ value: { state: "ready", data: { ...cat, ...current.over } }, reload: vi.fn() }),
 }));
 
-beforeEach(() => { preview.mounts = 0; preview.last = {}; });
+beforeEach(() => { preview.mounts = 0; preview.last = {}; current.over = {}; });
 afterEach(() => cleanup());
 
 const groupTitles = (panel: HTMLElement) =>
@@ -88,5 +89,17 @@ describe("貓咪頁工作區（#96）", () => {
     expect(screen.queryByRole("region", { name: "上架管理" })).toBeNull();
     expect(screen.queryByRole("button", { name: /上架|下架/ })).toBeNull();
     await waitFor(() => expect(preview.mounts).toBe(1));
+  });
+  it("#118 還沒製作 glb：不載入示範貓，顯示「進入glb製作區」；只留資訊面板，並顯示其他角度照片", async () => {
+    current.over = { hasAlbedo: false, status: "draft", extraPhotos: ["front", "back"] };
+    render(<HqToastProvider><CatPage id={cat.id} /></HqToastProvider>);
+    const stage = screen.getByRole("region", { name: "3D 預覽" });
+    expect(within(stage).getByRole("link", { name: "進入glb製作區" })).toHaveAttribute("href", `/MeowHQ/assets/cats/${cat.id}/studio`);
+    expect(screen.queryByTestId("fake-preview")).toBeNull();
+    expect(screen.queryByText(/示範毛色/)).toBeNull();
+    const panel = screen.getByRole("region", { name: "參數" });
+    expect(groupTitles(panel)).toEqual(["資訊"]);
+    expect(within(panel).getByAltText("其他角度照片 2")).toHaveAttribute("src", `/api/hq/cat-models/${cat.id}/file/photo_front`);
+    expect(within(panel).getByAltText("其他角度照片 3")).toHaveAttribute("src", `/api/hq/cat-models/${cat.id}/file/photo_back`);
   });
 });

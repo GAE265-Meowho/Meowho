@@ -13,6 +13,7 @@ import {
 import { HqLoadError, HqSkeleton } from "../HqStates";
 import { HqNotFound } from "../HqLoginPage";
 import type { PreviewInfo } from "./CatPreview";
+import { EXTRA_SLOTS } from "./AiViews";
 import { ClipList } from "./ClipList";
 import { PanelGroup } from "./PanelGroup";
 import { ASSETS_CATS_HREF, studioHref } from "./hrefs";
@@ -47,56 +48,68 @@ function Preview({ cat }: { cat: CatModelView }) {
   return (
     <div className="hq-catpage">
       <section className="hq-catstage" aria-label="3D 預覽">
-        {!cat.hasAlbedo && (
-          <div className="hq-note" role="status">尚未產生這隻貓的貼圖，目前顯示骨架的示範毛色。<Link href={studioHref(cat.id)}>前往製作glb工作區</Link></div>
-        )}
-        {textureFailed && <div className="hq-note" role="alert">貼圖載入失敗，改顯示骨架的示範毛色。</div>}
-        {failed ? (
-          <div className="hq-state" role="alert">
-            <p>3D 預覽載入失敗</p>
-            <p className="hq-hint">{failed}。請確認{BODY_LABELS[cat.body]}骨架 glb 已上傳（本機：CAT_STUDIO_ROOT 底下的 {cat.body === "kitten" ? "cat_base_kitten" : "cat_base"}/work/base_clips.glb）。</p>
+        {/* #118：還沒製作 glb 時不載入骨架示範貓（容易誤會成這隻貓），改成前往製作glb工作區 */}
+        {!cat.hasAlbedo ? (
+          <div className="hq-state hq-noglb">
+            <p><strong>這隻貓還沒有 3D 模型</strong></p>
+            <p className="hq-hint">到製作glb工作區確認 AI 三視角照片，再按「產生動作 glb」。</p>
+            <Link href={studioHref(cat.id)} className="hq-btn">進入glb製作區</Link>
           </div>
         ) : (
-          <div className="hq-canvas" data-testid="cat-canvas">
-            <CatPreview
-              key={viewKey} baseUrl={baseGlbUrl(cat.body)} body={cat.body} albedoUrl={albedoUrl} clip={clip}
-              speed={speed} paused={paused} blink={blink} pupil={pupil} light={light} follow={follow}
-              onInfo={setInfo} onTextureError={() => setTextureFailed(true)} onError={e => setFailed(e.message || "未知錯誤")}
-            />
-          </div>
-        )}
-        {info && (
-          <p className="hq-hint" role="status">
-            {info.eyes} 顆眼球、{info.bones} 根骨頭
-            {info.morphs.length > 0 && `、形狀鍵 ${info.morphs.join(" / ")}`}
-          </p>
+          <>
+            {textureFailed && <div className="hq-note" role="alert">貼圖載入失敗，改顯示骨架的示範毛色。</div>}
+            {failed ? (
+              <div className="hq-state" role="alert">
+                <p>3D 預覽載入失敗</p>
+                <p className="hq-hint">{failed}。請確認{BODY_LABELS[cat.body]}骨架 glb 已上傳（本機：CAT_STUDIO_ROOT 底下的 {cat.body === "kitten" ? "cat_base_kitten" : "cat_base"}/work/base_clips.glb）。</p>
+              </div>
+            ) : (
+              <div className="hq-canvas" data-testid="cat-canvas">
+                <CatPreview
+                  key={viewKey} baseUrl={baseGlbUrl(cat.body)} body={cat.body} albedoUrl={albedoUrl} clip={clip}
+                  speed={speed} paused={paused} blink={blink} pupil={pupil} light={light} follow={follow}
+                  onInfo={setInfo} onTextureError={() => setTextureFailed(true)} onError={e => setFailed(e.message || "未知錯誤")}
+                />
+              </div>
+            )}
+            {info && (
+              <p className="hq-hint" role="status">
+                {info.eyes} 顆眼球、{info.bones} 根骨頭
+                {info.morphs.length > 0 && `、形狀鍵 ${info.morphs.join(" / ")}`}
+              </p>
+            )}
+          </>
         )}
       </section>
 
       <section className="hq-catside" aria-label="參數">
-        <PanelGroup title="播放與畫面">
-          <div className="hq-row">
-            <button type="button" className="hq-btn ghost small" onClick={() => setPaused(p => !p)}>{paused ? "播放" : "暫停"}</button>
-            <div className="hq-chips" role="group" aria-label="播放速度">
-              {[0.5, 1, 1.5].map(s => (
-                <button key={s} type="button" className={speed === s ? "on" : ""} aria-pressed={speed === s} onClick={() => setSpeed(s)}>{s}×</button>
-              ))}
-            </div>
-            <button type="button" className="hq-btn ghost small" onClick={() => setViewKey(k => k + 1)}>重設視角</button>
-          </div>
-          <label className="hq-slider"><span>眨眼 {blink.toFixed(2)}</span>
-            <input type="range" min={0} max={1} step={0.01} value={blink} onChange={e => setBlink(+e.target.value)} /></label>
-          <label className="hq-slider"><span>瞳孔寬窄 {pupil.toFixed(2)}</span>
-            <input type="range" min={0} max={1} step={0.01} value={pupil} onChange={e => setPupil(+e.target.value)} /></label>
-          <label className="hq-slider"><span>環境亮度 {light.toFixed(2)}</span>
-            <input type="range" min={0.2} max={2.5} step={0.01} value={light} onChange={e => setLight(+e.target.value)} /></label>
-          <label className="hq-check"><input type="checkbox" checked={follow} onChange={e => setFollow(e.target.checked)} /> 眼睛看游標</label>
-        </PanelGroup>
-        <PanelGroup title="動作">
-          <ClipList available={clips} current={clip} onPick={pick} />
-          <Link href={studioHref(cat.id)} className="hq-btn ghost small">製作glb工作區</Link>
-          <p className="hq-hint">灰色的是規劃中的動作，骨架補入後會自動可點。</p>
-        </PanelGroup>
+        {cat.hasAlbedo && (
+          <>
+            <PanelGroup title="播放與畫面">
+              <div className="hq-row">
+                <button type="button" className="hq-btn ghost small" onClick={() => setPaused(p => !p)}>{paused ? "播放" : "暫停"}</button>
+                <div className="hq-chips" role="group" aria-label="播放速度">
+                  {[0.5, 1, 1.5].map(s => (
+                    <button key={s} type="button" className={speed === s ? "on" : ""} aria-pressed={speed === s} onClick={() => setSpeed(s)}>{s}×</button>
+                  ))}
+                </div>
+                <button type="button" className="hq-btn ghost small" onClick={() => setViewKey(k => k + 1)}>重設視角</button>
+              </div>
+              <label className="hq-slider"><span>眨眼 {blink.toFixed(2)}</span>
+                <input type="range" min={0} max={1} step={0.01} value={blink} onChange={e => setBlink(+e.target.value)} /></label>
+              <label className="hq-slider"><span>瞳孔寬窄 {pupil.toFixed(2)}</span>
+                <input type="range" min={0} max={1} step={0.01} value={pupil} onChange={e => setPupil(+e.target.value)} /></label>
+              <label className="hq-slider"><span>環境亮度 {light.toFixed(2)}</span>
+                <input type="range" min={0.2} max={2.5} step={0.01} value={light} onChange={e => setLight(+e.target.value)} /></label>
+              <label className="hq-check"><input type="checkbox" checked={follow} onChange={e => setFollow(e.target.checked)} /> 眼睛看游標</label>
+            </PanelGroup>
+            <PanelGroup title="動作">
+              <ClipList available={clips} current={clip} onPick={pick} />
+              <Link href={studioHref(cat.id)} className="hq-btn ghost small">製作glb工作區</Link>
+              <p className="hq-hint">灰色的是規劃中的動作，骨架補入後會自動可點。</p>
+            </PanelGroup>
+          </>
+        )}
         <PanelGroup title="資訊">
           <div className="hq-row">
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -108,6 +121,14 @@ function Preview({ cat }: { cat: CatModelView }) {
               <dt>建立時間</dt><dd>{formatTaipeiDate(new Date(cat.createdAt))}</dd>
             </dl>
           </div>
+          {EXTRA_SLOTS.some(x => cat.extraPhotos.includes(x.view)) && (
+            <div className="hq-row" aria-label="其他角度照片">
+              {EXTRA_SLOTS.filter(x => cat.extraPhotos.includes(x.view)).map(x => (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img key={x.view} className="hq-thumb" src={catFileUrl(cat.id, x.kind)} alt={x.label} width={72} height={72} />
+              ))}
+            </div>
+          )}
         </PanelGroup>
       </section>
     </div>
