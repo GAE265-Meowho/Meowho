@@ -6,6 +6,7 @@ import { CatsTab } from "@/components/hq/assets/CatsTab";
 import Link from "next/link";
 import { ASSET_SECTIONS, assetSectionHref, isAssetSection } from "@/components/hq/assets/hrefs";
 import { RoomsTab } from "@/components/hq/assets/RoomsTab";
+import { RoomVideoTab } from "@/components/hq/assets/RoomVideoTab";
 import { PlannedTab } from "@/components/hq/assets/PlannedTab";
 import { HqModuleGuard } from "@/components/hq/HqActor";
 import { HqPageHeader } from "@/components/hq/HqPageHeader";
@@ -31,6 +32,7 @@ function AssetsPage() {
       {parent && <Link href={assetSectionHref(parent.value)} className="hq-back">← {parent.label}</Link>}
       {tab === "cats" ? <CatsTab query={query} update={update} />
         : tab === "rooms" ? <RoomsTab />
+        : tab === "rooms-video" ? <RoomVideoTab />
         : <PlannedTab label={section.label} examples={PLANNED[tab]} />}
     </>
   );

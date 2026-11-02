@@ -11,6 +11,7 @@ export const baseLabHref = (body: "adult" | "kitten") => `/MeowHQ/assets/bases/$
 export const ASSET_SECTIONS = [
   { value: "cats", label: "貓咪製作" },
   { value: "rooms", label: "室內空間" },
+  { value: "rooms-video", label: "影片轉換", parent: "rooms" },
   { value: "rooms-polaroid", label: "寶麗來轉換", parent: "rooms" },
   { value: "rooms-floorplan", label: "平面圖轉換", parent: "rooms" },
   { value: "food", label: "飼料" },
