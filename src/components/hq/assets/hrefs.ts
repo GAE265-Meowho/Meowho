@@ -7,16 +7,21 @@ export const studioHref = (id: string) => `/MeowHQ/assets/cats/${id}/studio`;
 export const BASES_HREF = "/MeowHQ/assets/bases";
 export const baseLabHref = (body: "adult" | "kitten") => `/MeowHQ/assets/bases/${body}`;
 
-/** 虛擬體驗元件管理的區塊（#113 移到左側子選單；?tab= 切換）。depth 2＝室內空間底下的子項目 */
+/** 虛擬體驗元件管理的區塊（#113：左側選單第一層；?tab= 切換）。有 parent 的是該區塊頁裡的大卡片，不放選單 */
 export const ASSET_SECTIONS = [
-  { value: "cats", label: "貓咪製作", depth: 1 },
-  { value: "rooms", label: "室內空間", depth: 1 },
-  { value: "rooms-polaroid", label: "寶麗來轉換", depth: 2 },
-  { value: "rooms-floorplan", label: "平面圖轉換", depth: 2 },
-  { value: "food", label: "飼料", depth: 1 },
-  { value: "items", label: "生活用品", depth: 1 },
-  { value: "others", label: "其他", depth: 1 },
-] as const;
+  { value: "cats", label: "貓咪製作" },
+  { value: "rooms", label: "室內空間" },
+  { value: "rooms-polaroid", label: "寶麗來轉換", parent: "rooms" },
+  { value: "rooms-floorplan", label: "平面圖轉換", parent: "rooms" },
+  { value: "food", label: "飼料" },
+  { value: "items", label: "生活用品" },
+  { value: "others", label: "其他" },
+] as const satisfies readonly { value: string; label: string; parent?: string }[];
 export type AssetSection = (typeof ASSET_SECTIONS)[number]["value"];
 export const isAssetSection = (v: unknown): v is AssetSection => ASSET_SECTIONS.some(s => s.value === v);
 export const assetSectionHref = (v: AssetSection) => (v === "cats" ? ASSETS_CATS_HREF : `${ASSETS_CATS_HREF}?tab=${v}`);
+/** 選單用：目前區塊對應的第一層（子區塊算父區塊） */
+export const topSection = (v: AssetSection): AssetSection => {
+  const s = ASSET_SECTIONS.find(x => x.value === v);
+  return s && "parent" in s ? (s.parent as AssetSection) : v;
+};

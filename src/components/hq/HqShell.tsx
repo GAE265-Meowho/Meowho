@@ -2,11 +2,11 @@
 // MeowHQ 外殼：頂列（Logo、鈴鐺、頭像選單）＋側欄（手機「☰」）＋內容區（規格書 §4.0、§4.9）。
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Suspense, useState } from "react";
+import { Fragment, Suspense, useState } from "react";
 import { ADMIN_MODULE_LABELS, type SidebarItem } from "@/lib/hq/types";
 import { LOGOS } from "@/lib/mock-data";
 import { HQ_HOME, HQ_MODULE_PATH, isModule } from "./access";
-import { ASSET_SECTIONS, ASSETS_CATS_HREF, assetSectionHref, isAssetSection } from "./assets/hrefs";
+import { ASSET_SECTIONS, ASSETS_CATS_HREF, assetSectionHref, isAssetSection, topSection, type AssetSection } from "./assets/hrefs";
 import { HqOfflineBanner } from "./HqStates";
 import { NotificationBell } from "./NotificationBell";
 import AvatarImage from "@/components/ui/AvatarImage";
@@ -28,8 +28,7 @@ const NAV_GROUPS: { label: string | null; items: SidebarItem[] }[] = [
   { label: null, items: ["home"] },
   { label: "營運與社群", items: ["report_moderation", "user_management"] },
   { label: "商品與知識", items: ["products", "knowledge"] },
-  // 虛擬體驗元件管理自己就有子選單，不再加「虛擬與科技體驗」分組標題（Tina：看起來重複）
-  { label: null, items: ["virtual_assets"] },
+  // virtual_assets 不是單一連結：以「虛擬體驗元件管理」為分組標題、各區塊為第一層（見 AssetsGroup；Tina 2026-11-02）
   { label: "系統", items: ["admin_authorization"] },
 ];
 
@@ -44,24 +43,38 @@ const NAV_ICONS: Record<SidebarItem, React.ReactNode> = {
   admin_authorization: <><path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z" /><path d="M9 12l2 2 4-4" /></>,
 };
 
-/** 虛擬體驗元件管理子選單（#113）：區塊從頁面分頁移到左側；?tab= 決定目前區塊，貓咪子頁（/assets/cats/…、/assets/bases）算貓咪製作 */
-function AssetsSubnav({ activePath, onPick, tab }: { activePath: string; onPick: () => void; tab: string | null }) {
+/** 虛擬體驗元件管理各區塊的線條圖示（不用 emoji，Tina 2026-11-02） */
+const SECTION_ICONS: Partial<Record<AssetSection, React.ReactNode>> = {
+  cats: <><path d="M5 10l1-5 4 3h4l4-3 1 5c.9 1.2 1.3 2.6 1.3 4 0 4-3.6 6-8.3 6s-8.3-2-8.3-6c0-1.4.4-2.8 1.3-4z" /><path d="M9.5 13.5h.01M14.5 13.5h.01" /></>,
+  rooms: <><path d="M3 11l9-7 9 7" /><path d="M5 10v10h14V10" /><path d="M10 20v-5h4v5" /></>,
+  food: <><path d="M3 12h18a9 6 0 0 1-18 0z" /><path d="M8 9c.5-1.5 1.5-2 3-2M13 8c1-1 2.5-1.2 3.5-.5" /></>,
+  items: <><path d="M4 9h16v11H4z" /><path d="M4 9l2-5h12l2 5M10 13h4" /></>,
+  others: <><circle cx="6" cy="12" r="1.3" /><circle cx="12" cy="12" r="1.3" /><circle cx="18" cy="12" r="1.3" /></>,
+};
+const MENU_SECTIONS = ASSET_SECTIONS.filter(s => !("parent" in s));
+
+/** 虛擬體驗元件管理分組（#113）：?tab= 決定目前區塊；子區塊算父區塊，貓咪子頁（/assets/cats/…、/assets/bases）算貓咪製作 */
+function AssetsGroup({ activePath, onPick, tab }: { activePath: string; onPick: () => void; tab: string | null }) {
   const inAssets = activePath === ASSETS_CATS_HREF || activePath.startsWith(ASSETS_CATS_HREF + "/");
-  const current = !inAssets ? null : activePath === ASSETS_CATS_HREF && isAssetSection(tab) ? tab : "cats";
+  const current = !inAssets ? null : activePath === ASSETS_CATS_HREF && isAssetSection(tab) ? topSection(tab) : "cats";
   return (
-    <ul className="hq-subnav" aria-label="虛擬體驗元件管理子選單">
-      {ASSET_SECTIONS.map(sct => (
+    <ul aria-label={ADMIN_MODULE_LABELS.virtual_assets}>
+      <li className="hq-navgroup" aria-hidden="true">{ADMIN_MODULE_LABELS.virtual_assets}</li>
+      {MENU_SECTIONS.map(sct => (
         <li key={sct.value}>
-          <Link href={assetSectionHref(sct.value)} className={`depth-${sct.depth}${current === sct.value ? " on" : ""}`}
-            aria-current={current === sct.value ? "page" : undefined} onClick={onPick}>{sct.label}</Link>
+          <Link href={assetSectionHref(sct.value)} className={current === sct.value ? "on" : ""}
+            aria-current={current === sct.value ? "page" : undefined} onClick={onPick}>
+            <svg {...icon}>{SECTION_ICONS[sct.value]}</svg>
+            <span>{sct.label}</span>
+          </Link>
         </li>
       ))}
     </ul>
   );
 }
-function AssetsSubnavWithQuery(props: { activePath: string; onPick: () => void }) {
+function AssetsGroupWithQuery(props: { activePath: string; onPick: () => void }) {
   const tab = useSearchParams()?.get("tab") ?? null;
-  return <AssetsSubnav {...props} tab={tab} />;
+  return <AssetsGroup {...props} tab={tab} />;
 }
 
 export function HqLogo() {
@@ -87,7 +100,15 @@ export function HqShell({ items, user, unread, onLogout, activePath, children, u
   };
   // 依分組排；傳入但沒列在分組裡的項目放最後，避免漏掉
   const grouped = NAV_GROUPS.map(g => ({ label: g.label, rows: g.items.filter(i => items.includes(i)).map(row) })).filter(g => g.rows.length);
-  const rest = items.filter(i => !NAV_GROUPS.some(g => g.items.includes(i)));
+  const rest = items.filter(i => i !== "virtual_assets" && !NAV_GROUPS.some(g => g.items.includes(i)));
+  const assetsAt = grouped.findIndex(g => g.label === "系統"); // 虛擬體驗元件管理分組放在「系統」之前
+  const pick = () => setNavOpen(false);
+  const assetsGroup = items.includes("virtual_assets") ? (
+    // useSearchParams 需要 Suspense；載入前先顯示不帶目前標示的清單
+    <Suspense fallback={<AssetsGroup activePath={activePath} onPick={pick} tab={null} />}>
+      <AssetsGroupWithQuery activePath={activePath} onPick={pick} />
+    </Suspense>
+  ) : null;
   if (rest.length) grouped.push({ label: null, rows: rest.map(row) });
   return (
     <div className="hq-app">
@@ -114,24 +135,22 @@ export function HqShell({ items, user, unread, onLogout, activePath, children, u
       <div className="hq-body">
         <nav id="hq-sidebar" className={`hq-side${navOpen ? " open" : ""}`} aria-label="後台導覽">
           {grouped.map((g, gi) => (
-            <ul key={g.label ?? `g${gi}`} aria-label={g.label ?? undefined}>
-              {g.label && <li className="hq-navgroup" aria-hidden="true">{g.label}</li>}
-              {g.rows.map(r => (
-                <li key={r.item}>
-                  <Link href={r.href} aria-current={r.active ? "page" : undefined} className={r.active ? "on" : ""} onClick={() => setNavOpen(false)}>
-                    <svg {...icon}>{NAV_ICONS[r.item]}</svg>
-                    <span>{r.label}</span>
-                  </Link>
-                  {r.item === "virtual_assets" && (
-                    // useSearchParams 需要 Suspense；載入前先顯示不帶目前標示的清單
-                    <Suspense fallback={<AssetsSubnav activePath={activePath} onPick={() => setNavOpen(false)} tab={null} />}>
-                      <AssetsSubnavWithQuery activePath={activePath} onPick={() => setNavOpen(false)} />
-                    </Suspense>
-                  )}
-                </li>
-              ))}
-            </ul>
+            <Fragment key={g.label ?? `g${gi}`}>
+              {gi === (assetsAt < 0 ? grouped.length : assetsAt) && assetsGroup}
+              <ul aria-label={g.label ?? undefined}>
+                {g.label && <li className="hq-navgroup" aria-hidden="true">{g.label}</li>}
+                {g.rows.map(r => (
+                  <li key={r.item}>
+                    <Link href={r.href} aria-current={r.active ? "page" : undefined} className={r.active ? "on" : ""} onClick={() => setNavOpen(false)}>
+                      <svg {...icon}>{NAV_ICONS[r.item]}</svg>
+                      <span>{r.label}</span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </Fragment>
           ))}
+          {assetsAt < 0 && assetsGroup}
         </nav>
         {navOpen && <div className="hq-scrim" onClick={() => setNavOpen(false)} aria-hidden="true" />}
         <main className="hq-main">{children}</main>

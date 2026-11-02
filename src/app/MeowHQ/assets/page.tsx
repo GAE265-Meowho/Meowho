@@ -3,7 +3,9 @@
 // 貓咪製作完整實作；其他區塊先顯示「規劃中」的空白狀態。
 import { Suspense } from "react";
 import { CatsTab } from "@/components/hq/assets/CatsTab";
-import { ASSET_SECTIONS, isAssetSection } from "@/components/hq/assets/hrefs";
+import Link from "next/link";
+import { ASSET_SECTIONS, assetSectionHref, isAssetSection } from "@/components/hq/assets/hrefs";
+import { RoomsTab } from "@/components/hq/assets/RoomsTab";
 import { PlannedTab } from "@/components/hq/assets/PlannedTab";
 import { HqModuleGuard } from "@/components/hq/HqActor";
 import { HqPageHeader } from "@/components/hq/HqPageHeader";
@@ -11,7 +13,6 @@ import { HqSkeleton } from "@/components/hq/HqStates";
 import { useListQuery } from "@/components/hq/list/HqList";
 
 const PLANNED: Record<string, string> = {
-  rooms: "房間、場景",
   "rooms-polaroid": "把寶麗來（拍立得）照片轉成室內場景",
   "rooms-floorplan": "把平面圖轉成 3D 室內空間",
   food: "飼料、零食等 3D 模型",
@@ -22,11 +23,15 @@ const PLANNED: Record<string, string> = {
 function AssetsPage() {
   const [query, update] = useListQuery();
   const tab = isAssetSection(query.tab) ? query.tab : "cats";
-  const label = ASSET_SECTIONS.find(s => s.value === tab)!.label;
+  const section = ASSET_SECTIONS.find(s => s.value === tab)!;
+  const parent = "parent" in section ? ASSET_SECTIONS.find(s => s.value === section.parent)! : null;
   return (
     <>
-      <HqPageHeader title={`虛擬體驗元件管理｜${label}`} sub="虛擬貓咪新手照顧體驗會用到的 3D 元件。" />
-      {tab === "cats" ? <CatsTab query={query} update={update} /> : <PlannedTab label={label} examples={PLANNED[tab]} />}
+      <HqPageHeader title={`虛擬體驗元件管理｜${section.label}`} sub="虛擬貓咪新手照顧體驗會用到的 3D 元件。" />
+      {parent && <Link href={assetSectionHref(parent.value)} className="hq-back">← {parent.label}</Link>}
+      {tab === "cats" ? <CatsTab query={query} update={update} />
+        : tab === "rooms" ? <RoomsTab />
+        : <PlannedTab label={section.label} examples={PLANNED[tab]} />}
     </>
   );
 }

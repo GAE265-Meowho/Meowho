@@ -53,12 +53,15 @@
 .hq-offline { background: var(--hq-caramel-soft); color: var(--hq-caramel-ink); padding: .5rem 1rem; text-align: center; border-bottom: 1px solid var(--hq-line); }
 
 /* 登入頁、找不到頁面 */
-/* 虛擬體驗元件管理子選單（#113） */
-.hq-side .hq-subnav { margin: 2px 0 .2rem; gap: 1px; }
-.hq-side .hq-subnav a { min-height: 38px; padding: .4rem .75rem .4rem 2.65rem; font-size: .92rem; border-radius: 10px; }
-.hq-side .hq-subnav a.depth-2 { padding-left: 3.6rem; font-size: .86rem; position: relative; }
-.hq-side .hq-subnav a.depth-2::before { content: ""; position: absolute; left: 2.85rem; top: 50%; width: .5rem; height: 1px; background: var(--hq-line); }
-.hq-side .hq-subnav a.on { box-shadow: none; background: var(--hq-card); outline: 1px solid var(--hq-line); }
+/* 室內空間：大卡片進入寶麗來轉換、平面圖轉換（#113） */
+.hq-roomcards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.hq-roomcard { display: flex; flex-direction: column; align-items: flex-start; gap: .9rem; min-height: 220px; padding: 1.5rem; border: 1px solid var(--hq-line); border-radius: 24px; background: var(--hq-card); color: var(--hq-text); text-decoration: none; transition: border-color .15s, box-shadow .15s; }
+.hq-roomcard:hover, .hq-roomcard:focus-visible { border-color: var(--hq-sage); box-shadow: 0 8px 24px rgba(47,43,39,.06); }
+.hq-roomcard-art { width: 64px; height: 64px; display: inline-flex; align-items: center; justify-content: center; border-radius: 18px; background: var(--hq-sage-soft); color: var(--hq-sage-ink); }
+.hq-roomcard-body { display: flex; flex-direction: column; gap: .35rem; flex: 1; }
+.hq-roomcard-body strong { font-size: 1.2rem; }
+.hq-roomcard-body span { color: var(--hq-sub); line-height: 1.6; }
+@media (max-width: 640px) { .hq-roomcards { grid-template-columns: 1fr; } .hq-roomcard { min-height: 0; } }
 .hq-center { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 1rem; }
 .hq-card { width: 100%; max-width: 380px; background: var(--hq-card); border: 1px solid var(--hq-line); border-radius: 12px; padding: 2rem 1.5rem; text-align: center; display: flex; flex-direction: column; align-items: center; gap: .75rem; }
 .hq-card h1 { margin: 0; font-size: 1.3rem; }

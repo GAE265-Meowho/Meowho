@@ -51,41 +51,41 @@ describe("UT-HQ-42 手機選單", () => {
   });
 });
 
-describe("#113 虛擬體驗元件管理子選單", () => {
+describe("#113 虛擬體驗元件管理分組", () => {
   const assets = (activePath: string) => (
     <HqShell items={["home", "virtual_assets"]} user={{ name: "Tina", roleLabel: "系統管理員" }} unread={0} onLogout={() => {}} activePath={activePath}>
       <p>內容</p>
     </HqShell>
   );
   afterEach(() => { search = ""; });
-  it("在左側列出子項目（室內空間下有寶麗來、平面圖轉換），連到各區塊；不重複「虛擬與科技體驗」分組標題", () => {
+  it("「虛擬體驗元件管理」當分組標題，五個區塊是第一層、各有線條圖示；寶麗來、平面圖轉換不在選單（在室內空間頁）", () => {
     render(assets("/MeowHQ"));
-    expect(screen.queryByText("虛擬與科技體驗")).toBeNull();
-    const sub = screen.getByRole("list", { name: "虛擬體驗元件管理子選單" });
-    const links = Array.from(sub.querySelectorAll("a")).map(a => [a.textContent, a.getAttribute("href")]);
+    const group = screen.getByRole("list", { name: "虛擬體驗元件管理" });
+    const links = Array.from(group.querySelectorAll("a")).map(a => [a.textContent, a.getAttribute("href")]);
     expect(links).toEqual([
       ["貓咪製作", "/MeowHQ/assets"],
       ["室內空間", "/MeowHQ/assets?tab=rooms"],
-      ["寶麗來轉換", "/MeowHQ/assets?tab=rooms-polaroid"],
-      ["平面圖轉換", "/MeowHQ/assets?tab=rooms-floorplan"],
       ["飼料", "/MeowHQ/assets?tab=food"],
       ["生活用品", "/MeowHQ/assets?tab=items"],
       ["其他", "/MeowHQ/assets?tab=others"],
     ]);
+    for (const a of group.querySelectorAll("a")) expect(a.querySelector("svg")).not.toBeNull();
+    expect(screen.queryByText("虛擬與科技體驗")).toBeNull();
+    expect(screen.queryByText("寶麗來轉換")).toBeNull();
   });
-  it("目前區塊標示 aria-current；貓咪子頁也算貓咪製作", () => {
-    search = "tab=food";
+  it("目前區塊標示 aria-current；室內空間的子頁算室內空間，貓咪子頁算貓咪製作", () => {
+    search = "tab=rooms-polaroid";
     const { unmount } = render(assets("/MeowHQ/assets"));
-    expect(screen.getByRole("link", { name: "飼料" })).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("link", { name: "室內空間" })).toHaveAttribute("aria-current", "page");
     expect(screen.getByRole("link", { name: "貓咪製作" })).not.toHaveAttribute("aria-current");
     unmount();
     search = "";
     render(assets("/MeowHQ/assets/cats/new"));
     expect(screen.getByRole("link", { name: "貓咪製作" })).toHaveAttribute("aria-current", "page");
   });
-  it("沒有虛擬體驗元件管理權限就不顯示子選單", () => {
+  it("沒有虛擬體驗元件管理權限就不顯示這個分組", () => {
     render(shell());
-    expect(screen.queryByRole("list", { name: "虛擬體驗元件管理子選單" })).toBeNull();
+    expect(screen.queryByRole("list", { name: "虛擬體驗元件管理" })).toBeNull();
   });
 });
 
