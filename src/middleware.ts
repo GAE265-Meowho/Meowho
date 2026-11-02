@@ -25,5 +25,6 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|logos/|photos/).*)"],
+  // api/hq/rooms/local 是本機上傳影片：經過 middleware 的請求內容會被截斷在 10 MB
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|logos/|photos/|api/hq/rooms/local).*)"],
 };

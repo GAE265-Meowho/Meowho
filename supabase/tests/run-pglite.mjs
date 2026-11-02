@@ -214,6 +214,24 @@ try {
   }
 }
 
+// 0011（影片轉 3D 房間，#93）：0001→0010 後跑 0011 兩次＋測試
+{
+  const m = new PGlite();
+  const base = read("./stub_supabase.sql") + ["0001_meow", "0002_meow_hq", "0003_meow_site_assets", "0004_meow_cat_profile", "0005_meow_cat_models", "0006_meow_household_roles", "0007_meow_adoption_forms", "0008_meow_cat_favorites", "0009_meow_cat_returns", "0010_meow_adoption_notify"]
+    .map((f) => read(`../migrations/${f}.sql`)).join("");
+  try {
+    await m.exec(base);
+    await m.exec(read("../migrations/0011_meow_room_models.sql"));
+    await m.exec(read("../migrations/0011_meow_room_models.sql"));
+    const sql11 = read("./0011_meow_room_models.test.sql").replace(/^\s*begin;/im, "").replace(/rollback;\s*$/i, "");
+    const out11 = await m.exec(sql11);
+    results = results.concat(out11.flatMap((r) => r.rows ?? []).filter((r) => "status" in r));
+  } catch (e) {
+    console.error(`✗ 0011 測試中斷：${e.message}`);
+    process.exit(1);
+  }
+}
+
 let failed = 0;
 for (const r of results) {
   if (r.status === "FAIL") failed++;

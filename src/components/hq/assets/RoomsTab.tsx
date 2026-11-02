@@ -1,11 +1,15 @@
 "use client";
-// 室內空間（#113，Tina 2026-11-02）：用大卡片進入「寶麗來轉換」「平面圖轉換」，左側選單不做子選單。兩者目前都是規劃中。
+// 室內空間（#113，Tina 2026-11-02）：用大卡片進入各轉換區塊，左側選單不做子選單。影片轉換已可看展示房間（#93），其他是規劃中。
 import Link from "next/link";
 import { assetSectionHref } from "./hrefs";
 
 const icon = { fill: "none", stroke: "currentColor", strokeWidth: 1.5, strokeLinecap: "round", strokeLinejoin: "round", "aria-hidden": true, width: 36, height: 36, viewBox: "0 0 24 24" } as const;
 
 const CARDS = [
+  {
+    value: "rooms-video", title: "影片轉換", desc: "把手機拍的房間影片轉成 3D 室內場景。", ready: true,
+    art: <><rect x="3" y="6" width="13" height="12" rx="2" /><path d="M16 10l5-3v10l-5-3" /></>,
+  },
   {
     value: "rooms-polaroid", title: "寶麗來轉換", desc: "把房間的寶麗來（拍立得）照片轉成 3D 室內場景。",
     art: <><rect x="4" y="3" width="16" height="18" rx="2" /><rect x="6.5" y="5.5" width="11" height="10" rx="1" /><path d="M6.5 13l3-3 3 3 2-2 3 3" /></>,
@@ -26,7 +30,7 @@ export function RoomsTab() {
             <strong>{c.title}</strong>
             <span>{c.desc}</span>
           </span>
-          <span className="hq-tag warn">規劃中</span>
+          {!("ready" in c) && <span className="hq-tag warn">規劃中</span>}
         </Link>
       ))}
     </div>
