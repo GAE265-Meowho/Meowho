@@ -7,6 +7,9 @@ import { HqEmptyState, HqNoResults, HqOfflineBanner, HqSaveButton } from "./HqSt
 import { HqToastProvider, useHqToast } from "./HqToast";
 import { HqLoginPage } from "./HqLoginPage";
 
+let search = "";
+vi.mock("next/navigation", () => ({ useSearchParams: () => new URLSearchParams(search) }));
+
 afterEach(() => { cleanup(); vi.useRealTimers(); });
 
 const shell = (extra = {}) => (
@@ -47,14 +50,54 @@ describe("UT-HQ-42 手機選單", () => {
     fireEvent.click(btn);
     expect(btn).toHaveAttribute("aria-expanded", "false");
   });
-  it("只顯示傳入的項目，Admin 授權前有分隔線", () => {
+  it("只顯示傳入的項目，依 Stitch 分組並附圖示（#113）；沒有項目的分組不顯示", () => {
     render(shell());
     const nav = screen.getByRole("navigation", { name: "後台導覽" });
-    expect(nav).toHaveTextContent("首頁");
-    expect(nav).toHaveTextContent("用戶權限管理");
     expect(nav).not.toHaveTextContent("商品");
-    const items = Array.from(nav.querySelectorAll("li")).map(li => li.getAttribute("role") ?? li.textContent);
-    expect(items).toEqual(["首頁", "用戶權限管理", "separator", "Admin 授權"]);
+    const groups = Array.from(nav.querySelectorAll(".hq-navgroup")).map(g => g.textContent);
+    expect(groups).toEqual(["營運與社群", "系統"]);
+    const links = Array.from(nav.querySelectorAll("a")).map(a => a.textContent);
+    expect(links).toEqual(["首頁", "用戶權限管理", "Admin 授權"]);
+    for (const a of nav.querySelectorAll("a")) expect(a.querySelector("svg")).not.toBeNull();
+    expect(screen.getByRole("link", { name: "首頁" })).toHaveAttribute("aria-current", "page");
+  });
+});
+
+describe("#113 虛擬體驗元件管理分組", () => {
+  const assets = (activePath: string) => (
+    <HqShell items={["home", "virtual_assets"]} user={{ name: "Tina", roleLabel: "系統管理員" }} unread={0} onLogout={() => {}} activePath={activePath}>
+      <p>內容</p>
+    </HqShell>
+  );
+  afterEach(() => { search = ""; });
+  it("「虛擬體驗元件管理」當分組標題，五個區塊是第一層、各有線條圖示；寶麗來、平面圖轉換不在選單（在室內空間頁）", () => {
+    render(assets("/MeowHQ"));
+    const group = screen.getByRole("list", { name: "虛擬體驗元件管理" });
+    const links = Array.from(group.querySelectorAll("a")).map(a => [a.textContent, a.getAttribute("href")]);
+    expect(links).toEqual([
+      ["貓咪製作", "/MeowHQ/assets"],
+      ["室內空間", "/MeowHQ/assets?tab=rooms"],
+      ["飼料", "/MeowHQ/assets?tab=food"],
+      ["生活用品", "/MeowHQ/assets?tab=items"],
+      ["其他", "/MeowHQ/assets?tab=others"],
+    ]);
+    for (const a of group.querySelectorAll("a")) expect(a.querySelector("svg")).not.toBeNull();
+    expect(screen.queryByText("虛擬與科技體驗")).toBeNull();
+    expect(screen.queryByText("寶麗來轉換")).toBeNull();
+  });
+  it("目前區塊標示 aria-current；室內空間的子頁算室內空間，貓咪子頁算貓咪製作", () => {
+    search = "tab=rooms-polaroid";
+    const { unmount } = render(assets("/MeowHQ/assets"));
+    expect(screen.getByRole("link", { name: "室內空間" })).toHaveAttribute("aria-current", "page");
+    expect(screen.getByRole("link", { name: "貓咪製作" })).not.toHaveAttribute("aria-current");
+    unmount();
+    search = "";
+    render(assets("/MeowHQ/assets/cats/new"));
+    expect(screen.getByRole("link", { name: "貓咪製作" })).toHaveAttribute("aria-current", "page");
+  });
+  it("沒有虛擬體驗元件管理權限就不顯示這個分組", () => {
+    render(shell());
+    expect(screen.queryByRole("list", { name: "虛擬體驗元件管理" })).toBeNull();
   });
 });
 

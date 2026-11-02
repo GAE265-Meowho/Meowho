@@ -7,6 +7,7 @@ import { BaseSamples } from "./BaseSamples";
 import { ClipList } from "./ClipList";
 import { filterCats } from "./CatsTab";
 import { PlannedTab } from "./PlannedTab";
+import { RoomsTab } from "./RoomsTab";
 import { checkPhoto } from "./NewCat";
 import { StudioPageBody } from "./StudioPage";
 import { HqToastProvider } from "../HqToast";
@@ -48,6 +49,15 @@ describe("PlannedTab", () => {
     expect(screen.getAllByText("規劃中").length).toBeGreaterThan(0);
     expect(screen.getByText("這個分類還在規劃，之後會在這裡管理。")).toBeInTheDocument();
     expect(screen.queryByRole("button")).toBeNull();
+  });
+});
+
+describe("RoomsTab（#113）", () => {
+  it("兩張大卡片連到寶麗來轉換、平面圖轉換，標示規劃中", () => {
+    render(<RoomsTab />);
+    expect(screen.getByRole("link", { name: /寶麗來轉換/ })).toHaveAttribute("href", "/MeowHQ/assets?tab=rooms-polaroid");
+    expect(screen.getByRole("link", { name: /平面圖轉換/ })).toHaveAttribute("href", "/MeowHQ/assets?tab=rooms-floorplan");
+    expect(screen.getAllByText("規劃中")).toHaveLength(2);
   });
 });
 
