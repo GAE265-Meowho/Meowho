@@ -9,7 +9,7 @@ import { useCallback, useEffect, useState } from "react";
 import { formatTaipeiDate } from "@/lib/hq/actions";
 import { resolveClip } from "@/lib/hq/cat-models/clips";
 import {
-  BODY_LABELS, FILL_LABELS, PHOTO_VIEW_LABELS, textureOf, type CatModelView,
+  BODY_LABELS, FILL_LABELS, PHOTO_VIEW_LABELS, textureOf, type BodyType, type CatModelView,
 } from "@/lib/hq/cat-models/types";
 import { HqLoadError, HqSkeleton } from "../HqStates";
 import { HqNotFound } from "../HqLoginPage";
@@ -35,6 +35,10 @@ function Preview({ cat }: { cat: CatModelView }) {
   const [light, setLight] = useState(1);
   const [follow, setFollow] = useState(true);
   const [viewKey, setViewKey] = useState(0);
+  const [selectedBody, setSelectedBody] = useState<BodyType>(() => {
+    if (!cat.variantStorage || cat.bodyVariants?.[cat.body]?.texture.preview) return cat.body;
+    return (["adult", "kitten"] as const).find(body => cat.bodyVariants?.[body]?.texture.preview) ?? cat.body;
+  });
 
   const clips = info?.clips ?? [];
   const clip = info ? resolveClip(params.get("clip"), clips) : null;
@@ -44,10 +48,22 @@ function Preview({ cat }: { cat: CatModelView }) {
     router.replace(`?${next.toString()}`, { scroll: false });
   }, [params, router]);
 
-  const texture = textureOf(cat);
-  const ready = texture.preview !== null;
-  const body = texture.previewBody;
-  const albedoUrl = texture.preview && !textureFailed ? catFileUrl(cat.id, texture.preview, cat.albedoVersion ?? undefined) : null;
+  const variant = cat.variantStorage ? cat.bodyVariants?.[selectedBody] : undefined;
+  const texture = cat.variantStorage ? variant?.texture ?? null : textureOf(cat);
+  const ready = texture?.preview !== null && texture?.preview !== undefined;
+  const body = cat.variantStorage ? selectedBody : texture?.previewBody ?? cat.body;
+  const albedoUrl = !textureFailed && texture?.preview
+    ? variant ? (texture.preview === "albedo" ? variant.albedoUrl : variant.prevUrl)
+      : catFileUrl(cat.id, texture.preview, cat.albedoVersion ?? undefined)
+    : null;
+
+  function selectBody(next: BodyType) {
+    setSelectedBody(next);
+    setInfo(null);
+    setFailed(null);
+    setTextureFailed(false);
+    setViewKey(value => value + 1);
+  }
 
   return (
     <div className="hq-catpage">
@@ -75,16 +91,21 @@ function Preview({ cat }: { cat: CatModelView }) {
       </section>
 
       <section className="hq-catstage" aria-label="3D 預覽">
+        {cat.variantStorage && <div className="hq-chips" role="group" aria-label="預覽體型">
+          {(["adult", "kitten"] as const).map(choice => <button key={choice} type="button" aria-pressed={body === choice}
+            className={body === choice ? "on" : ""} onClick={() => selectBody(choice)}>{BODY_LABELS[choice]}</button>)}
+        </div>}
         {/* #118：還沒製作 glb 時不載入骨架示範貓；CatPage 會直接轉到製作glb工作區，這裡只是轉頁前的過渡 */}
         {!ready ? (
           <div className="hq-state hq-noglb" role="status">
-            <p>這隻貓還沒有 3D 模型，前往製作glb工作區…</p>
-            <Link href={studioHref(cat.id)} className="hq-btn">進入glb製作區</Link>
+            <p>還沒有{BODY_LABELS[body]}的紋理貼圖。</p>
+            <Link href={`${studioHref(cat.id)}?body=${body}`} className="hq-btn">前往製作{BODY_LABELS[body]}貼圖</Link>
           </div>
         ) : (
           <>
-            {textureFailed && <div className="hq-note" role="alert">貼圖載入失敗，改顯示骨架的示範毛色。</div>}
-            {failed ? (
+            {textureFailed ? (
+              <div className="hq-state" role="alert">貼圖載入失敗，請重新整理後再試。</div>
+            ) : failed ? (
               <div className="hq-state" role="alert">
                 <p>3D 預覽載入失敗</p>
                 <p className="hq-hint">{failed}。請確認{BODY_LABELS[body]}骨架 glb 已上傳（本機：CAT_STUDIO_ROOT 底下的 {body === "kitten" ? "cat_base_kitten" : "cat_base"}/work/base_clips.glb）。</p>
@@ -144,7 +165,9 @@ function Preview({ cat }: { cat: CatModelView }) {
 /** #118：還沒有 3D（#129：還沒有確認過的紋理貼圖）的貓直接進製作glb工作區（從列表點進來或直接開網址都一樣） */
 function GoStudio({ cat }: { cat: CatModelView }) {
   const router = useRouter();
-  const ready = textureOf(cat).preview !== null;
+  const ready = cat.variantStorage
+    ? (["adult", "kitten"] as const).some(body => Boolean(cat.bodyVariants?.[body]?.texture.preview))
+    : textureOf(cat).preview !== null;
   useEffect(() => { if (!ready) router.replace(studioHref(cat.id)); }, [ready, cat.id, router]);
   return null;
 }

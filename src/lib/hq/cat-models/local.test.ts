@@ -35,6 +35,24 @@ describe("localRoot", () => {
 });
 
 describe("listCats / getCat", () => {
+  it("#104 舊成貓貼圖與新幼貓貼圖可分別預覽", async () => {
+    const id = "cat_20261031_100000";
+    await addCat(id, { job: { status: "done", base_version: "adult-v1" }, albedo: true });
+    const dir = path.join(root, "adoption_cats", id);
+    await fs.writeFile(path.join(dir, "paint_albedo_kitten.png"), png);
+    const cat = await getCat(root, id);
+    expect(cat?.bodyVariants?.adult?.texture.preview).toBe("albedo");
+    expect(cat?.bodyVariants?.kitten?.texture.preview).toBe("albedo");
+  });
+  it("#104 選成貓時任務記錄體型，不改幼貓檔", async () => {
+    const id = "cat_20261031_100000";
+    await addCat(id, { views: true });
+    const dir = path.join(root, "adoption_cats", id);
+    await fs.writeFile(path.join(dir, "paint_albedo_kitten.png"), png);
+    expect(await queuePaint(root, id, "left", "none", new Date(), "adult")).toEqual({ ok: true });
+    expect(JSON.parse(await fs.readFile(path.join(dir, "paint_job.json"), "utf-8")).body_type).toBe("adult");
+    expect(await fs.readFile(path.join(dir, "paint_albedo_kitten.png"))).toEqual(png);
+  });
   it("資料夾不存在回傳空清單", async () => expect(await listCats(root)).toEqual([]));
   it("讀出名稱、狀態、年齡體重與任務選項，並忽略不是貓咪 ID 的資料夾", async () => {
     await addCat("cat_20261031_100000", { job: { status: "done", view: "left", fill: "tabby", finished_at: "2026-10-31T11:00:00" }, albedo: true });

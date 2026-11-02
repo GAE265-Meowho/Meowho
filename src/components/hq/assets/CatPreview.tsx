@@ -7,7 +7,7 @@
 // 貓咪頁與（PR 2b）製作glb工作區共用。這個元件要用 next/dynamic（ssr: false）載入。
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls, useGLTF } from "@react-three/drei";
-import { Component, Suspense, useEffect, useMemo, useRef, type ReactNode } from "react";
+import { Component, Suspense, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import * as THREE from "three";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import { clone as cloneSkinned } from "three/examples/jsm/utils/SkeletonUtils.js";
@@ -69,6 +69,7 @@ function Environment() {
 }
 
 function CatModel({ baseUrl, albedoUrl, clip, speed = 1, paused = false, blink = 0, pupil = 0.25, eye, eyeRight, follow = true, onInfo, onTextureError }: CatPreviewProps) {
+  const [textureReady, setTextureReady] = useState(false);
   const gltf = useGLTF(baseUrl);
   const matL = useMemo(() => createCatEyeMaterial(), []);
   const matR = useMemo(() => createCatEyeMaterial(), []);
@@ -131,17 +132,19 @@ function CatModel({ baseUrl, albedoUrl, clip, speed = 1, paused = false, blink =
   useEffect(() => {
     let alive = true;
     let tex: THREE.Texture | null = null;
+    setTextureReady(false);
     const apply = (map: THREE.Texture | null, isDefault: boolean) => {
       rig.fur.forEach((m, i) => { m.map = isDefault ? rig.defaults[i] : map; m.needsUpdate = true; });
     };
-    if (!albedoUrl) { apply(null, true); return; }
+    if (!albedoUrl) { apply(null, true); setTextureReady(true); return; }
     new THREE.TextureLoader().loadAsync(albedoUrl).then(t => {
       if (!alive) { t.dispose(); return; }
       t.flipY = false;
       t.colorSpace = THREE.SRGBColorSpace;
       tex = t;
       apply(t, false);
-    }).catch(() => { if (alive) { apply(null, true); onTextureError?.(); } });
+      setTextureReady(true);
+    }).catch(() => { if (alive) { apply(null, true); setTextureReady(true); onTextureError?.(); } });
     return () => { alive = false; tex?.dispose(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [albedoUrl, rig]);
@@ -182,7 +185,7 @@ function CatModel({ baseUrl, albedoUrl, clip, speed = 1, paused = false, blink =
     }
   });
 
-  return <primitive object={rig.root} />;
+  return <primitive object={rig.root} visible={textureReady} />;
 }
 
 /** 載入失敗（找不到母體 glb 等）時顯示說明，不讓整頁壞掉 */

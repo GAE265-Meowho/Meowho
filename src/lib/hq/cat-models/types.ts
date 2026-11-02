@@ -29,6 +29,7 @@ export const FILL_LABELS: Record<FillPattern, string> = { none: "不補", tabby:
 export type JobStatus = "queued" | "running" | "done" | "error";
 export interface JobInfo {
   status: JobStatus;
+  body_type?: BodyType;
   step?: string;
   error?: string;
   view?: PhotoView;
@@ -92,6 +93,15 @@ export interface CatModelView {
   albedoVersion: string | null;
   /** 預覽要載入的母體（bodyFor） */
   body: BodyType;
+  /** 0015 schema 已可讀時才開放雙體型操作。 */
+  variantStorage?: boolean;
+  /** #104：各體型獨立的已確認貼圖與上一版；未有記錄的體型不可預覽示範毛色。 */
+  bodyVariants?: Partial<Record<BodyType, {
+    albedoUrl: string | null;
+    prevUrl: string | null;
+    texture: TextureInfo;
+    baseVersion: string | null;
+  }>>;
   jobStatus: JobStatus | null;
   jobQueuedAt: string | null;
   jobStartedAt: string | null;
