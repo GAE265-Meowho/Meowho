@@ -12,6 +12,7 @@ import Icon from "@/components/ui/Icon";
 import { STATUS_LABEL, replyStatus, roleOf, type DeskThread } from "@/lib/adoption-desk";
 import type { Answers, Question } from "@/lib/adoption-form/questionnaire";
 import { getBrowserSupabase } from "@/lib/supabase/client";
+import { DeclinePanel, TransferBanner, TransferPanel, type PendingTransfer } from "./ThreadActions";
 import s from "./desk.module.css";
 
 interface Msg { id: string; sender_id: string | null; kind: "text" | "system"; body: string; created_at: string }
@@ -28,6 +29,14 @@ const ERRORS: Record<string, string> = {
   thread_not_keeper: "只有喵戶長可以這樣做。",
   thread_cat_gone: "這隻貓已經不在你的喵戶等家了，不能恢復。",
   thread_homed: "這隻貓已經找到家了。",
+  decline_reason_required: "請填寫婉拒理由。",
+  decline_reason_too_long: "婉拒理由最多 500 字。",
+  transfer_not_ready: "這隻貓目前不能移轉給這位申請人。",
+  transfer_confirm_mismatch: "輸入的貓名不一樣，請再確認一次。",
+  transfer_pending: "這隻貓已經有一筆等待確認的移轉。",
+  transfer_not_pending: "這筆移轉已經處理過了，請重新整理。",
+  transfer_bad_household: "請選擇你自己的一般飼主喵戶。",
+  household_limit: "你的喵戶數量已經到上限，請選擇現有的喵戶。",
 };
 const errText = (m: string) => Object.entries(ERRORS).find(([k]) => m.includes(k))?.[1] ?? `操作失敗：${m}`;
 const when = (iso: string) => new Date(iso).toLocaleString("zh-TW", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: false });
@@ -44,7 +53,8 @@ export function ThreadPane({ thread, userId, onChanged, onBack }: {
   const [block, setBlock] = useState<Block>("none");
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
-  const [asking, setAsking] = useState<"decline" | "block" | null>(null);
+  const [asking, setAsking] = useState<"decline" | "block" | "transfer" | null>(null);
+  const [transfer, setTransfer] = useState<PendingTransfer | null>(null);
   const [error, setError] = useState<string | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
   const id = thread.id;
@@ -89,6 +99,13 @@ export function ThreadPane({ thread, userId, onChanged, onBack }: {
 
   useEffect(() => { endRef.current?.scrollIntoView({ block: "end" }); }, [msgs?.length]);
 
+  // 等待確認的移轉：每次有新訊息（提出、取消、接收都會留系統事件）就重讀
+  useEffect(() => {
+    if (!sb) return;
+    sb.from("meow_cat_transfers").select("id, to_member_id").eq("thread_id", id).eq("status", "pending").maybeSingle()
+      .then(({ data }) => setTransfer(data as PendingTransfer | null));
+  }, [sb, id, msgs?.length]);
+
   async function call(fn: string, args: Record<string, unknown>) {
     if (!sb) return null;
     setBusy(true); setError(null);
@@ -105,9 +122,15 @@ export function ThreadPane({ thread, userId, onChanged, onBack }: {
     if (await call("meow_send_message", { p_body: body })) { setText(""); await loadMsgs(); onChanged(); }
   }
 
-  async function decline(on: boolean) {
-    setAsking(null);
-    if (await call(on ? "meow_decline_thread" : "meow_restore_thread", {})) { await loadMsgs(); onChanged(); }
+  async function restore() {
+    if (await call("meow_restore_thread", {})) { await loadMsgs(); onChanged(); }
+  }
+
+  // 婉拒與移轉的面板用：成功就收起面板並重讀
+  async function act(fn: string, args: Record<string, unknown>) {
+    const ok = Boolean(await call(fn, args));
+    if (ok) { setAsking(null); await loadMsgs(); onChanged(); }
+    return ok;
   }
 
   async function setBlocked(on: boolean) {
@@ -129,8 +152,11 @@ export function ThreadPane({ thread, userId, onChanged, onBack }: {
           <span className={s.status}>{label}</span>
         </div>
         <div className={s.headActions}>
+          {role === "keeper" && !thread.homed_at && !thread.declined_at && !transfer && (
+            <CatButton size="sm" ears={false} tail={false} disabled={busy} onClick={() => setAsking("transfer")}>移轉</CatButton>
+          )}
           {role === "keeper" && !thread.homed_at && (thread.declined_at
-            ? <CatButton variant="ghost" size="sm" ears={false} tail={false} disabled={busy} onClick={() => decline(false)}>恢復</CatButton>
+            ? <CatButton variant="ghost" size="sm" ears={false} tail={false} disabled={busy} onClick={restore}>恢復</CatButton>
             : <CatButton variant="ghost" size="sm" ears={false} tail={false} disabled={busy} onClick={() => setAsking("decline")}>婉拒</CatButton>)}
           {block === "i_blocked"
             ? <button type="button" className={f.linkBtn} disabled={busy} onClick={() => setBlocked(false)}>解除封鎖</button>
@@ -138,18 +164,20 @@ export function ThreadPane({ thread, userId, onChanged, onBack }: {
         </div>
       </header>
 
-      {asking && (
-        <div className={s.confirm} role="alertdialog" aria-label={asking === "decline" ? "確認婉拒" : "確認封鎖"}>
-          <p>{asking === "decline"
-            ? `婉拒後，${thread.member_name}會收到通知，這份申請會移到「婉拒」。之後還可以恢復。`
-            : `封鎖後，你們都不能再傳訊息給對方。之後可以解除封鎖。`}</p>
+      {asking === "decline" && <DeclinePanel threadId={id} memberName={thread.member_name} rpc={act} onCancel={() => setAsking(null)} />}
+      {asking === "transfer" && <TransferPanel catName={thread.cat_name} memberName={thread.member_name} rpc={act} onCancel={() => setAsking(null)} />}
+      {asking === "block" && (
+        <div className={s.confirm} role="alertdialog" aria-label="確認封鎖">
+          <p>封鎖後，你們都不能再傳訊息給對方。之後可以解除封鎖。</p>
           <div className={f.actions}>
-            <CatButton size="sm" disabled={busy} onClick={() => (asking === "decline" ? decline(true) : setBlocked(true))}>
-              {asking === "decline" ? "確認婉拒" : "確認封鎖"}
-            </CatButton>
+            <CatButton size="sm" disabled={busy} onClick={() => setBlocked(true)}>確認封鎖</CatButton>
             <button type="button" className={f.linkBtn} onClick={() => setAsking(null)}>取消</button>
           </div>
         </div>
+      )}
+      {transfer && !asking && (
+        <TransferBanner transfer={transfer} isMember={role === "member"} catName={thread.cat_name} memberName={thread.member_name} userId={userId}
+          onDone={async () => { await loadMsgs(); onChanged(); }} onError={m => setError(errText(m))} />
       )}
 
       <div className={s.scroll}>
