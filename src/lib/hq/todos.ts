@@ -19,7 +19,11 @@ export const TODO_DEFS: Record<AdminModule, TodoDef[]> = {
     { key: "prices_stale", label: "參考價超過 3 個月未更新", href: "/MeowHQ/products?status=stale" },
   ],
   knowledge: [{ key: "articles_draft", label: "草稿中的文章", href: "/MeowHQ/knowledge?status=draft" }],
-  virtual_assets: [{ key: "assets_draft", label: "草稿中的元件", href: "/MeowHQ/assets?status=draft" }],
+  virtual_assets: [
+    { key: "assets_draft", label: "草稿中的元件", href: "/MeowHQ/assets?status=draft" },
+    // #129：紋理貼圖產生後要人工確認，才能進第 4 步
+    { key: "textures_pending", label: "紋理貼圖待確認", href: "/MeowHQ/assets" },
+  ],
   admin_authorization: [],
 };
 

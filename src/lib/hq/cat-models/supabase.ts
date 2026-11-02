@@ -13,7 +13,7 @@ import { SUPABASE_URL } from "@/lib/supabase/config";
 import {
   baseFileName, bodyFor, EXTRA_VIEWS, finishGenerated, generatedState, GEN_VIEWS, genPhotoName, isGenView, startGenerated, type GeneratedProfile, type GenView, isExtraView, isJobActive, normalizeStatus, ownExtraPhotoPath, type ExtraView, newCatId, ownPhotoPath, photoExt, profileNumber,
   type BodyType, type CatGender, type CatModelStatus, type CatModelView, type FillPattern, type JobStatus, type PhotoView,
-  CAT_ID_RE, MAX_PHOTO_BYTES,
+  CAT_ID_RE, MAX_PHOTO_BYTES, discardPending, textureInfo,
 } from "./types";
 import type { FileKind } from "./local";
 
@@ -32,6 +32,8 @@ type Row = {
     generated?: GeneratedProfile;
     /** 改用 AI 左側面照上色後，原始上傳照片的路徑（photo_path 換成 AI 照片） */
     original_photo?: string;
+    /** 已確認的貼圖路徑（#129）；沒有這個欄位＝舊資料，目前版視為已確認；null＝從未確認 */
+    confirmed_albedo?: string | null;
   };
   photo_path: string;
   photo_view: PhotoView | null;
@@ -90,6 +92,10 @@ function viewFromRow(row: Row, job: JobRow | null = null): CatModelView {
     createdBy: row.created_by ? row.creator?.display_name || row.creator?.email || null : "系統",
     extraPhotos: EXTRA_VIEWS.filter(v => row.profile?.extra_photos?.[v]),
     ...generatedState(row.profile?.generated),
+    texture: textureInfo({
+      albedo: row.albedo_path, prev: row.prev_albedo_path, confirmed: row.profile?.confirmed_albedo,
+      baseVersion: row.base_version, prevBaseVersion: row.meta?.prev_base_version, ageMonths,
+    }),
   };
 }
 
@@ -243,6 +249,7 @@ export async function sbQueuePaint(id: string, view: unknown, fill: unknown): Pr
   if (isJobActive(cat.status)) return { ok: false, code: "busy" };
   // 有 AI 左側面照（#110）：用它上色、角度固定 left。worker 讀 photo_path 並快取去背圖，
   // 所以把 photo_path 換成 AI 照片、原始照片另存、清掉舊的去背快取（不用改 paint_worker.py）
+  await keepConfirmedTexture(user.sb, id);
   const useAi = await applyAiLeftPhoto(user.sb, id);
   const viewUsed = useAi ? "left" : v;
   const { error } = await user.sb.from("meow_cat_model_jobs").insert({
@@ -251,11 +258,53 @@ export async function sbQueuePaint(id: string, view: unknown, fill: unknown): Pr
   // 同一隻貓同時只能有一筆 queued／running（資料庫 unique index）
   if (error) return { ok: false, code: error.code === "23505" ? "busy" : "permission_denied" };
   await user.sb.from("meow_cat_models").update({ status: "queued", updated_at: new Date().toISOString() }).eq("id", id);
-  await audit(user.sb, "generate_model", id, "產生貼圖", { view: viewUsed, fill: f, body: cat.body, ai_photo: useAi });
+  await audit(user.sb, "generate_model", id, "產生紋理貼圖", { view: viewUsed, fill: f, body: cat.body, ai_photo: useAi });
   return { ok: true };
 }
 
 type Sb = NonNullable<Awaited<ReturnType<typeof getServerSupabase>>>;
+
+/**
+ * 送出重新產生前（#129）：記下目前已確認的貼圖（舊資料第一次記），
+ * 目前版還沒確認時先丟掉，讓 worker 輪替後已確認的版本留在「上一版」，貓咪頁不會失去貼圖。
+ */
+async function keepConfirmedTexture(sb: Sb, id: string): Promise<void> {
+  const { data } = await sb.from("meow_cat_models").select("albedo_path,prev_albedo_path,base_version,meta,profile").eq("id", id).maybeSingle();
+  const row = data as Pick<Row, "albedo_path" | "prev_albedo_path" | "base_version" | "meta" | "profile"> | null;
+  if (!row) return;
+  const profile = row.profile ?? {};
+  if (!("confirmed_albedo" in profile)) {
+    await sb.from("meow_cat_models").update({ profile: { ...profile, confirmed_albedo: row.albedo_path } }).eq("id", id);
+    return;
+  }
+  const plan = discardPending({
+    albedo: row.albedo_path, prev: row.prev_albedo_path, confirmed: profile.confirmed_albedo,
+    baseVersion: row.base_version, prevBaseVersion: row.meta?.prev_base_version,
+  });
+  if (!plan) return;
+  const meta = { ...(row.meta ?? {}), prev_base_version: null };
+  const { error } = await sb.from("meow_cat_models").update({ albedo_path: plan.albedo, prev_albedo_path: null, base_version: plan.baseVersion, meta }).eq("id", id);
+  if (!error) await sb.storage.from(MODEL_BUCKET).remove([plan.remove]);
+}
+
+/** 確認使用目前的貼圖（#129）：確認後才能進第 4 步，貓咪頁改用這張 */
+export async function sbConfirmTexture(id: string): Promise<
+  { ok: true } | { ok: false; code: "not_found" | "busy" | "no_texture" | "permission_denied" }
+> {
+  const user = await userClient();
+  if (!user) return { ok: false, code: "permission_denied" };
+  const { data } = await user.sb.from("meow_cat_models").select("status,albedo_path,profile").eq("id", id).maybeSingle();
+  if (!data) return { ok: false, code: "not_found" };
+  const row = data as Pick<Row, "status" | "albedo_path" | "profile">;
+  if (isJobActive(row.status)) return { ok: false, code: "busy" };
+  if (!row.albedo_path) return { ok: false, code: "no_texture" };
+  const { error } = await user.sb.from("meow_cat_models").update({
+    profile: { ...row.profile, confirmed_albedo: row.albedo_path }, updated_at: new Date().toISOString(),
+  }).eq("id", id);
+  if (error) return { ok: false, code: "permission_denied" };
+  await audit(user.sb, "confirm_texture", id, "確認使用紋理貼圖");
+  return { ok: true };
+}
 
 /** 有 AI 左側面照時，讓 worker 用它上色；回傳是否改用 */
 async function applyAiLeftPhoto(sb: Sb, id: string): Promise<boolean> {
@@ -335,9 +384,9 @@ export async function sbRestore(id: string, reason: string): Promise<
   if (!text) return { ok: false, code: "reason_required" };
   const user = await userClient();
   if (!user) return { ok: false, code: "permission_denied" };
-  const { data } = await user.sb.from("meow_cat_models").select("status,albedo_path,prev_albedo_path,base_version,meta").eq("id", id).maybeSingle();
+  const { data } = await user.sb.from("meow_cat_models").select("status,albedo_path,prev_albedo_path,base_version,meta,profile").eq("id", id).maybeSingle();
   if (!data) return { ok: false, code: "not_found" };
-  const row = data as Pick<Row, "status" | "albedo_path" | "prev_albedo_path" | "base_version" | "meta">;
+  const row = data as Pick<Row, "status" | "albedo_path" | "prev_albedo_path" | "base_version" | "meta" | "profile">;
   if (isJobActive(row.status)) return { ok: false, code: "busy" };
   if (!row.prev_albedo_path) return { ok: false, code: "no_previous" };
   // 母體跟著貼圖換：worker 輪替時把上一版的母體記在 meta.prev_base_version（沒記錄＝成貓舊資料）
@@ -345,6 +394,8 @@ export async function sbRestore(id: string, reason: string): Promise<
   const { error } = await user.sb.from("meow_cat_models").update({
     albedo_path: row.prev_albedo_path, prev_albedo_path: row.albedo_path,
     base_version: meta.prev_base_version ?? null, meta: { ...meta, prev_base_version: row.base_version },
+    // #129：改用上一版等於選了這個版本，也算確認
+    profile: { ...(row.profile ?? {}), confirmed_albedo: row.prev_albedo_path },
     updated_at: new Date().toISOString(),
   }).eq("id", id);
   if (error) return { ok: false, code: "permission_denied" };

@@ -44,7 +44,7 @@ describe("已建立的貓咪模型列表（#102）", () => {
       { ...member, id: "cat_20261102_020000", name: "有3D", hasAlbedo: true, status: "ready" },
     ];
     render(<CatsTab query={{ page: 1 }} update={() => {}} />);
-    expect(within(screen.getByRole("row", { name: /沒3D/ })).getByText("2/3 AI 三視角・完成")).toBeInTheDocument();
+    expect(within(screen.getByRole("row", { name: /沒3D/ })).getByText("2/4 AI 三視角・完成")).toBeInTheDocument();
     expect(within(screen.getByRole("row", { name: /有3D/ })).getByText("完成")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "沒3D" })).toHaveAttribute("href", "/MeowHQ/assets/cats/cat_20261102_010000/studio");
     expect(screen.getByRole("link", { name: "有3D" })).toHaveAttribute("href", "/MeowHQ/assets/cats/cat_20261102_020000");

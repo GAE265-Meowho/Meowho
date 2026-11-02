@@ -75,13 +75,18 @@ describe("骨架測試台工作區（#96）", () => {
 });
 
 describe("貓咪頁工作區（#96）", () => {
-  it("預覽在左欄；右側面板分為播放與畫面、動作、資訊", async () => {
+  it("#129 三欄：原貓咪資訊｜3D 預覽｜播放與畫面、動作", async () => {
     render(<HqToastProvider><CatPage id={cat.id} /></HqToastProvider>);
     await screen.findByTestId("fake-preview");
     const stage = screen.getByRole("region", { name: "3D 預覽" });
     const panel = screen.getByRole("region", { name: "參數" });
     expect(within(stage).getByTestId("cat-canvas")).toBeInTheDocument();
-    expect(groupTitles(panel)).toEqual(["播放與畫面", "動作", "資訊"]);
+    expect(groupTitles(panel)).toEqual(["播放與畫面", "動作"]);
+    const info = screen.getByRole("region", { name: "原貓咪資訊" });
+    expect(groupTitles(info)).toEqual(["原貓咪資訊"]);
+    // DOM 順序＝桌面欄位順序：資訊、預覽、參數
+    const order = [info, stage, panel];
+    expect(order.every((el, i) => i === 0 || (order[i - 1].compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING))).toBe(true);
     for (const name of [/眨眼/, /瞳孔寬窄/, /環境亮度/]) {
       expect(within(panel).getByRole("slider", { name })).toBeInTheDocument();
     }
@@ -97,10 +102,22 @@ describe("貓咪頁工作區（#96）", () => {
     await waitFor(() => expect(nav.replace).toHaveBeenCalledWith(`/MeowHQ/assets/cats/${cat.id}/studio`));
     expect(screen.queryByTestId("fake-preview")).toBeNull();
   });
+  it("#129 新紋理貼圖待確認：預覽繼續用已確認的上一版與它的母體", async () => {
+    current.over = { hasPrevAlbedo: true, texture: { state: "pending", preview: "albedo_prev", previewBody: "kitten" } };
+    render(<HqToastProvider><CatPage id={cat.id} /></HqToastProvider>);
+    await screen.findByTestId("fake-preview");
+    expect(preview.last.albedoUrl).toBe(`/api/hq/cat-models/${cat.id}/file/albedo_prev`);
+    expect(preview.last.body).toBe("kitten");
+  });
+  it("#129 第一次產生、還沒確認：轉到製作glb工作區", async () => {
+    current.over = { texture: { state: "pending", preview: null, previewBody: "adult" } };
+    render(<HqToastProvider><CatPage id={cat.id} /></HqToastProvider>);
+    await waitFor(() => expect(nav.replace).toHaveBeenCalledWith(`/MeowHQ/assets/cats/${cat.id}/studio`));
+  });
   it("#118 資訊區顯示其他角度照片", async () => {
     current.over = { extraPhotos: ["front", "back"] };
     render(<HqToastProvider><CatPage id={cat.id} /></HqToastProvider>);
-    const panel = screen.getByRole("region", { name: "參數" });
+    const panel = screen.getByRole("region", { name: "原貓咪資訊" });
     expect(within(panel).getByAltText("其他角度照片 2")).toHaveAttribute("src", `/api/hq/cat-models/${cat.id}/file/photo_front`);
     expect(within(panel).getByAltText("其他角度照片 3")).toHaveAttribute("src", `/api/hq/cat-models/${cat.id}/file/photo_back`);
   });
