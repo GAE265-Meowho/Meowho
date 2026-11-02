@@ -303,6 +303,41 @@ try {
   }
 }
 
+// 0014（退養接到領養管理，#128 追加）：0001→0013 後先放一筆處理中的退養請求（還沒接對話串），跑 0014 兩次，檢查補資料＋測試
+{
+  const m = new PGlite();
+  const base = read("./stub_supabase.sql") + ["0001_meow", "0002_meow_hq", "0003_meow_site_assets", "0004_meow_cat_profile", "0005_meow_cat_models", "0006_meow_household_roles", "0007_meow_adoption_forms", "0008_meow_cat_favorites", "0009_meow_cat_returns", "0010_meow_adoption_notify", "0011_meow_threads", "0012_meow_thread_homed", "0013_meow_decline_reason_transfer"]
+    .map((f) => read(`../migrations/${f}.sql`)).join("");
+  const id = (n) => `00000000-0000-0000-0000-0000000014${n}`;
+  try {
+    await m.exec(base);
+    await m.exec(`insert into auth.users (id, email) values ('${id("a0")}', 'f@old14.example'), ('${id("a1")}', 'adopter@old14.example');
+      insert into public.meow_profiles (id, email, display_name) select id, email, split_part(email, '@', 1) from auth.users where email like '%@old14.example';
+      insert into public.meow_households (id, owner_id, name, caretaker_type, city, district) values
+        ('${id("d0")}', '${id("a0")}', '舊中途', 'personal_foster', '桃園市', '龍潭區'),
+        ('${id("d1")}', '${id("a1")}', '領養人的家', 'cat_owner', '桃園市', '中壢區');
+      insert into public.meow_cats (id, household_id, name, sex, life_stage, status) values ('${id("c0")}', '${id("d1")}', '舊貓', 'male', 'adult', 'own');
+      update public.meow_cats set origin_household_id = '${id("d0")}' where id = '${id("c0")}';
+      insert into public.meow_cat_returns (cat_id, cat_name, requester_id, from_household_id, from_household_name, origin_household_id, reason)
+        values ('${id("c0")}', '舊貓', '${id("a1")}', '${id("d1")}', '領養人的家', '${id("d0")}', '舊的退養原因');`);
+    await m.exec(read("../migrations/0014_meow_returns_in_threads.sql"));
+    await m.exec(read("../migrations/0014_meow_returns_in_threads.sql"));
+    const one = async (sql) => Object.values((await m.query(sql)).rows[0] ?? {})[0];
+    const eq = (name, expected, actual) =>
+      results.push({ name, status: String(actual) === String(expected) ? "PASS" : "FAIL", detail: String(actual) === String(expected) ? null : `預期 ${expected}，實際 ${actual}` });
+    eq("RTN-L1 舊的退養請求接上領養人和原中途的對話串（送養追蹤、領養人）", "舊中途|true|true",
+      await one("select t.household_name || '|' || (t.homed_at is not null) || '|' || t.is_adopter from public.meow_cat_returns r join public.meow_threads t on t.id = r.thread_id"));
+    eq("RTN-L2 處理中的請求補上系統事件和原因（重跑不重複）", "system:提出了「舊貓」的退養請求。|text:舊的退養原因",
+      await one("select string_agg(kind || ':' || body, '|' order by created_at) from public.meow_messages"));
+    const sql14 = read("./0014_meow_returns_in_threads.test.sql").replace(/^\s*begin;/im, "").replace(/rollback;\s*$/i, "");
+    const out14 = await m.exec(sql14);
+    results = results.concat(out14.flatMap((r) => r.rows ?? []).filter((r) => "status" in r));
+  } catch (e) {
+    console.error(`✗ 0014 測試中斷：${e.message}`);
+    process.exit(1);
+  }
+}
+
 let failed = 0;
 for (const r of results) {
   if (r.status === "FAIL") failed++;

@@ -143,3 +143,6 @@
   border-radius: 20px; background: var(--mint-soft); color: var(--ink);
 }
 .pendingBar p { margin: 0; font-size: 15px; line-height: 1.7; }
+.muted { background: var(--cream); color: var(--ink-soft); }
+.alert { background: var(--pink-soft); }
+.returnBar { background: var(--pink-soft); }

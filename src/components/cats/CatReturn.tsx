@@ -1,6 +1,7 @@
 "use client";
-// 退養請求（#109）：一般飼主在貓咪頁向原中途提出、可以撤回；原中途在「我的喵戶」確認收回或婉拒。
-// 寫入一律走 0009 的資料庫函式（狀態、所屬喵戶只能由流程改變）。私訊（#70）做好後在這裡加「傳訊息給飼主」。
+// 退養請求（#109）：提出、撤回、收回都改在「領養管理」和原中途的對話串進行（#128，0014）。
+// 貓咪頁只放入口；只有沒有對話串的情況（原中途就是自己，測試資料）才在這裡直接提出、在「我的喵戶」處理。
+// 寫入一律走資料庫函式（狀態、所屬喵戶只能由流程改變）。
 import { useCallback, useEffect, useState } from "react";
 import f from "@/components/onboarding/intake.module.css";
 import CatButton from "@/components/ui/CatButton";
@@ -35,11 +36,19 @@ export function ReturnRequest({ catId, catName }: { catId: string; catName: stri
   const [tried, setTried] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [threadId, setThreadId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!sb) return;
-    const { data } = await sb.from("meow_cat_returns").select(COLS).eq("cat_id", catId).order("created_at", { ascending: false });
+    const [{ data }, { data: auth }] = await Promise.all([
+      sb.from("meow_cat_returns").select(COLS).eq("cat_id", catId).order("created_at", { ascending: false }),
+      sb.auth.getUser(),
+    ]);
     setRows((data ?? []) as ReturnRow[]);
+    if (auth.user) {
+      const { data: t } = await sb.from("meow_threads").select("id").eq("cat_id", catId).eq("member_id", auth.user.id).maybeSingle();
+      setThreadId(t?.id ?? null);
+    }
   }, [sb, catId]);
   useEffect(() => { load(); }, [load]);
 
@@ -60,6 +69,15 @@ export function ReturnRequest({ catId, catName }: { catId: string; catName: stri
   }
 
   if (!sb || rows === null) return null;
+  if (threadId) return (
+    <section className={f.card} aria-labelledby="sec-return">
+      <h2 id="sec-return">退養</h2>
+      <p className={f.lead}>退養請求和中途的聯絡都在領養管理的對話裡。</p>
+      <div className={f.actions}>
+        <CatButton variant="ghost" size="sm" ears={false} href={`/me/adoptions?t=${threadId}`}>到領養管理</CatButton>
+      </div>
+    </section>
+  );
   const pending = rows.find(r => r.status === "pending");
   const past = rows.filter(r => r.status !== "pending");
 
@@ -116,7 +134,8 @@ export function ReturnInbox({ homeIds, onReturned }: { homeIds: string[]; onRetu
 
   const load = useCallback(async () => {
     if (!sb || !key) return;
-    const { data } = await sb.from("meow_cat_returns").select(COLS).in("origin_household_id", key.split(",")).eq("status", "pending").order("created_at");
+    // 有對話串的請求在領養管理處理，這裡只列沒有對話串的（原中途就是自己）
+    const { data } = await sb.from("meow_cat_returns").select(COLS).in("origin_household_id", key.split(",")).eq("status", "pending").is("thread_id", null).order("created_at");
     setRows((data ?? []) as ReturnRow[]);
   }, [sb, key]);
   useEffect(() => { load(); }, [load]);

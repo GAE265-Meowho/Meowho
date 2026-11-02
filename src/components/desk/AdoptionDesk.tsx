@@ -4,7 +4,7 @@
 // 讀得到哪些對話串交給 RLS（我是會員的串＋我喵戶的串）；角色、狀態、分類由 lib/adoption-desk 依每一串計算。
 // 網址 ?t=<對話串> 指到某一串（通知連到這裡）；舊通知的 #cat-<id> 與修改頁的 ?cat=<id> 會先篩選那隻貓。
 // 手機（≤767px）兩層：沒選串時只看列表，選了只看對話，對話上方有返回。
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import CatButton from "@/components/ui/CatButton";
 import Icon from "@/components/ui/Icon";
 import f from "@/components/onboarding/intake.module.css";
@@ -17,6 +17,9 @@ import s from "./desk.module.css";
 const SELECT = "id, cat_id, member_id, cat_name, member_name, household_name, declined_at, homed_at, is_adopter, last_message_at, member_text_at, keeper_text_at, member_read_at, keeper_read_at, cat:meow_cats(photo_url)";
 
 type Row = Omit<DeskThread, "cat_photo"> & { cat: { photo_url: string | null } | null };
+
+// 標籤顏色只是輔助，文字本身就說明狀態
+const TAG_CLASS: Record<string, string> = { 領養人: "adopter", 送養追蹤: "adopter", 婉拒: "muted", 退養請求: "alert", 移轉中: "alert" };
 
 const day = (iso: string) => {
   const d = new Date(iso);
@@ -34,8 +37,17 @@ export function AdoptionDesk({ userId }: { userId: string }) {
 
   const load = useCallback(async () => {
     if (!sb) return;
-    const { data } = await sb.from("meow_threads").select(SELECT).order("last_message_at", { ascending: false }).limit(300);
-    setRows(((data ?? []) as unknown as Row[]).map(({ cat: c, ...r }) => ({ ...r, cat_photo: c?.photo_url ? photoSrc(sb, c.photo_url) : null })));
+    const [{ data }, { data: rets }, { data: trs }] = await Promise.all([
+      sb.from("meow_threads").select(SELECT).order("last_message_at", { ascending: false }).limit(300),
+      // 卡片上的「退養請求」「移轉中」標籤（讀得到哪些交給 RLS）
+      sb.from("meow_cat_returns").select("thread_id").eq("status", "pending"),
+      sb.from("meow_cat_transfers").select("thread_id").eq("status", "pending"),
+    ]);
+    const returning = new Set((rets ?? []).map(r => r.thread_id as string));
+    const moving = new Set((trs ?? []).map(r => r.thread_id as string));
+    setRows(((data ?? []) as unknown as Row[]).map(({ cat: c, ...r }) => ({
+      ...r, cat_photo: c?.photo_url ? photoSrc(sb, c.photo_url) : null, pending_return: returning.has(r.id), pending_transfer: moving.has(r.id),
+    })));
   }, [sb]);
 
   // 讀網址：?t= 選串；#cat- 或 ?cat= 先篩選那隻貓
@@ -67,13 +79,15 @@ export function AdoptionDesk({ userId }: { userId: string }) {
   const desk = useMemo(() => buildDesk(threads, userId, { category, cat }), [threads, userId, category, cat]);
   const current = threads.find(x => x.id === sel) ?? null;
   const currentId = current?.id;
-  const currentHome = current ? (current.homed_at ? "homed" : current.declined_at ? "declined" : "all") : null;
+  const currentShown = !current || desk.cards.some(c => c.id === current.id);
+  const shownFor = useRef<string | null>(null);
 
-  // 從通知或網址打開某一串時，切到那一串所在的分類
+  // 從通知或網址打開的串不在目前的篩選裡，就回到「全部」（只在換串時檢查，之後使用者可以自由切換篩選）
   useEffect(() => {
-    if (!currentHome) return;
-    setCategory(c => (currentHome !== "all" ? currentHome : c === "declined" || c === "homed" ? "all" : c));
-  }, [currentId, currentHome]);
+    if (!currentId || shownFor.current === currentId) return;
+    shownFor.current = currentId;
+    if (!currentShown) { setCategory("all"); setCat("all"); }
+  }, [currentId, currentShown]);
 
   function open(id: string | null) {
     setSel(id);
@@ -132,7 +146,7 @@ export function AdoptionDesk({ userId }: { userId: string }) {
                 <span className={s.cardText}>
                   <b>{c.catName}<span className={s.x} aria-hidden> × </span><span className={s.sr}>，</span>{c.who}</b>
                   <span className={s.cardMeta}>
-                    {c.adopter ? <span className={`${s.status} ${s.adopter}`}>領養人</span> : <span className={s.status}>{c.label}</span>}
+                    {c.tags.map(tag => <span key={tag} className={`${s.status} ${TAG_CLASS[tag] ? s[TAG_CLASS[tag]] : ""}`}>{tag}</span>)}
                     <time dateTime={c.lastAt}>{day(c.lastAt)}</time>
                   </span>
                 </span>

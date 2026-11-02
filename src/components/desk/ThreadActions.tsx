@@ -158,3 +158,82 @@ export function TransferBanner({ transfer, isMember, catName, memberName, userId
     </div>
   );
 }
+
+export interface PendingReturn { id: string; reason: string }
+
+/** 退養（領養人）：寫原因後送出；原因會以訊息留在對話裡，中途收到通知 */
+export function ReturnPanel({ catId, catName, onSubmit, onCancel }: {
+  catId: string; catName: string; onSubmit: (fn: string, args: Record<string, unknown>) => Promise<boolean>; onCancel: () => void;
+}) {
+  const [reason, setReason] = useState("");
+  const [tried, setTried] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  async function submit() {
+    setTried(true);
+    if (!reason.trim()) return;
+    setBusy(true);
+    await onSubmit("meow_request_cat_return", { p_cat_id: catId, p_reason: reason.trim() });
+    setBusy(false);
+  }
+
+  return (
+    <div className={s.confirm} role="dialog" aria-label={`提出${catName}的退養請求`}>
+      <p>真的無法繼續照顧{catName}時，可以向中途提出退養請求。中途和你聊過、確認後，{catName}會回到中途身邊。</p>
+      <div className={f.field}>
+        <label className={f.label} htmlFor="return-reason">退養原因<Required /></label>
+        <textarea id="return-reason" rows={4} maxLength={1000} value={reason} onChange={e => setReason(e.target.value)}
+          placeholder={`例如：要出國工作，沒辦法帶${catName}一起去`} />
+      </div>
+      {tried && !reason.trim() && <p className={f.error} role="alert">還缺：退養原因</p>}
+      <div className={f.actions}>
+        <CatButton size="sm" disabled={busy} onClick={submit}>{busy ? "送出中…" : "送出退養請求"}</CatButton>
+        <button type="button" className={f.linkBtn} onClick={onCancel}>取消</button>
+      </div>
+    </div>
+  );
+}
+
+/** 處理中的退養請求：領養人可以撤回；中途確認收回（要再確認一次）或不用退養 */
+export function ReturnBanner({ pending, isMember, catName, memberName, onSubmit }: {
+  pending: PendingReturn; isMember: boolean; catName: string; memberName: string;
+  onSubmit: (fn: string, args: Record<string, unknown>) => Promise<boolean>;
+}) {
+  const [sure, setSure] = useState(false);
+  const [busy, setBusy] = useState(false);
+  async function run(fn: string, args: Record<string, unknown>) {
+    setBusy(true);
+    await onSubmit(fn, args);
+    setBusy(false);
+  }
+
+  if (isMember) return (
+    <div className={s.pendingBar} role="status">
+      <p>已經提出「{catName}」的退養請求，等中途和你聯絡。</p>
+      <button type="button" className={f.linkBtn} disabled={busy} onClick={() => run("meow_withdraw_cat_return", { p_return_id: pending.id })}>撤回請求</button>
+    </div>
+  );
+
+  return (
+    <div className={`${s.pendingBar} ${s.returnBar}`} role="dialog" aria-label={`${memberName}想退養${catName}`}>
+      <p>{memberName} 想把「{catName}」退回給你。先和對方聊聊，確認後再決定。</p>
+      {sure ? (
+        <>
+          <p>確認收回後，{catName}會回到你的喵戶、改回待領養，原本的領養問卷維持暫停。</p>
+          <div className={f.actions}>
+            <CatButton size="sm" disabled={busy} onClick={() => run("meow_resolve_cat_return", { p_return_id: pending.id, p_accept: true })}>
+              {busy ? "處理中…" : "確認收回"}
+            </CatButton>
+            <button type="button" className={f.linkBtn} disabled={busy} onClick={() => setSure(false)}>再想想</button>
+          </div>
+        </>
+      ) : (
+        <div className={f.actions}>
+          <CatButton size="sm" disabled={busy} onClick={() => setSure(true)}>收回{catName}</CatButton>
+          <CatButton variant="ghost" size="sm" ears={false} disabled={busy}
+            onClick={() => run("meow_resolve_cat_return", { p_return_id: pending.id, p_accept: false })}>不用退養</CatButton>
+        </div>
+      )}
+    </div>
+  );
+}
