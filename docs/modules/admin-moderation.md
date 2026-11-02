@@ -133,3 +133,4 @@ ole === "admin" 判斷管理員，而現有 admin 會升為 system_admin；舊�
 - 2026-10-31｜#75：虛擬體驗元件分四個區塊（貓咪、室內空間、生活用品、其他），R3 已改寫；貓咪模型的貼圖由 cat_studio/paint_worker.py 產生，網頁只建任務與預覽（共用母體 ase_clips.glb 換 cat_fur 貼圖，不需每隻貓各一個 glb）；動作屬母體，補入新動作後所有貓自動擁有；本機模式（可新增／產生）只在非 production 且設了 CAT_STUDIO_ROOT 時啟用；正式站改讀 `public/hq-cat-models/` 示範貓（已完成的 bb）供預覽，寫入仍關閉。 004_meow_cat_models.sql（資料表 meow_cat_models、meow_cat_model_jobs、bucket meow-cat-photos／meow-cat-models）在 PR 3，執行前須經 Tina 確認。
 - 2026-11-01｜#88：照片不經 API 轉送，改由瀏覽器拿簽好的網址直傳 `meow-cat-model-photos`（Vercel 請求上限約 4.5 MB，照片上限 10 MB）。寫入一律用登入者 session（RLS 檢查 `virtual_assets`），不用 service role。預覽用哪個母體看 `base_version`（貼圖只能套回畫它的母體，兩個母體 UV 不同）：`kitten*`＝幼貓、其他有貼圖＝成貓（含舊資料 `v1`）、沒有貼圖才依年齡（≤6 個月幼貓）。重新產生成功後狀態回到「已完成」，已上架的貓要重新上架。
 - 2026-11-01｜#88：後台畫面不用「母體」一詞，改說「體型骨架」（程式、資料、文件仍叫母體）；骨架由年齡自動決定，畫面不做成「選一個」的樣子，避免誤會。
+- 2026-11-02｜#120：新增貓咪頁移除成貓／幼貓樣品照；主照片、其他角度 2、3 桌面三欄／手機響應式；新增性別公／母並持久化到本機與 Supabase profile。

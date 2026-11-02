@@ -19,6 +19,8 @@ export const CAT_STATUS_TONE: Record<CatModelStatus, "" | "warn" | "danger"> = {
 };
 
 export type PhotoView = "front" | "left" | "right";
+export type CatGender = "male" | "female";
+export const CAT_GENDER_LABELS: Record<CatGender, string> = { male: "公", female: "母" };
 export type FillPattern = "none" | "tabby";
 export const PHOTO_VIEW_LABELS: Record<PhotoView, string> = { front: "正面", left: "左側", right: "右側" };
 export const FILL_LABELS: Record<FillPattern, string> = { none: "不補", tabby: "虎斑" };
@@ -79,6 +81,7 @@ export interface CatModelView {
   ownerType: "template" | "member";
   status: CatModelStatus;
   ageMonths: number | null;
+  gender?: CatGender | null;
   weightKg: number | null;
   notes: string;
   photoView: PhotoView | null;

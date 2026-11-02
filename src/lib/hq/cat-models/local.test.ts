@@ -92,10 +92,10 @@ describe("JSON 檔帶 BOM", () => {
 
 describe("createCat（沿用 Cat Studio 的 create_cat）", () => {
   it("寫入照片與 profile.json，ID 格式與 Cat Studio 相同，狀態是草稿", async () => {
-    const r = await createCat(root, { name: " 小橘 ", ageMonths: "12", weightKg: "4.2", notes: "愛睡", photo: dataUrl("image/png", png) }, NOW);
+    const r = await createCat(root, { name: " 小橘 ", gender: "male", ageMonths: "12", weightKg: "4.2", notes: "愛睡", photo: dataUrl("image/png", png) }, NOW);
     expect(r).toEqual({ ok: true, id: "cat_20261031_140509" });
     const profile = JSON.parse(await read("cat_20261031_140509", "profile.json"));
-    expect(profile).toMatchObject({ id: "cat_20261031_140509", name: "小橘", age_months: 12, weight_kg: 4.2, notes: "愛睡", photo: "photo.png" });
+    expect(profile).toMatchObject({ id: "cat_20261031_140509", name: "小橘", gender: "male", age_months: 12, weight_kg: 4.2, notes: "愛睡", photo: "photo.png" });
     expect(await fs.readFile(catPath("cat_20261031_140509", "photo.png"))).toEqual(png);
     expect((await getCat(root, "cat_20261031_140509"))?.status).toBe("draft");
   });

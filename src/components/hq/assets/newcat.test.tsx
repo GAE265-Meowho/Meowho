@@ -27,10 +27,12 @@ describe("新增貓咪頁（#110）", () => {
     const grid = screen.getByTestId("newcat-grid");
     expect(within(grid).getAllByRole("region").map(s => s.getAttribute("aria-label"))).toEqual(["貓咪照片", "基本資料"]);
     expect(screen.getByText("原始照片會保留")).toBeInTheDocument();
-    const extras = screen.getByRole("group", { name: "其他角度照片" });
+    const extras = screen.getByRole("group", { name: "照片上傳" });
     expect(within(extras).getAllByText("選填")).toHaveLength(2);
     expect(screen.getByRole("button", { name: "確認並前往製作glb工作區 →" })).toBeDisabled();
     expect(screen.getByText("進階生成參數與畫質設定")).toBeInTheDocument();
+    expect(screen.queryByRole("group", { name: "拍攝範例" })).not.toBeInTheDocument();
+    expect(screen.getByLabelText("性別")).toBeInTheDocument();
   });
   it("沒選照片就按「產生 AI 三視角」：提示，不呼叫 API", async () => {
     const f = vi.fn();
@@ -53,10 +55,12 @@ describe("新增貓咪頁（#110）", () => {
     fireEvent.change(screen.getByLabelText("原始照片"), { target: { files: [jpg("side.jpg")] } });
     fireEvent.change(screen.getByLabelText("其他角度照片 2"), { target: { files: [jpg("front.jpg")] } });
     fireEvent.change(screen.getByLabelText("名稱（必填）"), { target: { value: "小灰" } });
+    fireEvent.change(screen.getByLabelText("性別"), { target: { value: "female" } });
     fireEvent.click(screen.getByRole("button", { name: "產生 AI 三視角" }));
     await waitFor(() => expect(replace).toHaveBeenCalledWith(`/MeowHQ/assets/cats/new?id=${ID}`));
     const create = fetchMock.mock.calls.find(([u]) => u === "/api/hq/cat-models")! as unknown as [string, { body: string }];
     expect(JSON.parse(create[1].body).extras.front).toMatch(/^data:image\/jpeg;base64,/);
+    expect(JSON.parse(create[1].body).gender).toBe("female");
     const views = fetchMock.mock.calls.find(([u]) => u.endsWith("/views"))! as unknown as [string, { body: string }];
     expect(JSON.parse(views[1].body)).toEqual({ views: ["left", "front", "back"], quality: "low", size: "1024x1024" });
     expect(await screen.findByText(/AI 照片產生中/)).toBeInTheDocument();

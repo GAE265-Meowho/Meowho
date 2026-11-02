@@ -86,13 +86,13 @@ describe("sbCreateCat（新增第二步）", () => {
   });
   it("成功：草稿、範本貓、記建立者與 profile", async () => {
     files = [{ name: "photo.png" }];
-    expect(await sbCreateCat({ id: ID, photoPath: `${ID}/photo.png`, name: " 小虎 ", ageMonths: "3", weightKg: "", notes: "x" }))
+    expect(await sbCreateCat({ id: ID, photoPath: `${ID}/photo.png`, name: " 小虎 ", gender: "female", ageMonths: "3", weightKg: "", notes: "x" }))
       .toEqual({ ok: true, id: ID });
     const insert = calls.find(c => c.op === "insert")!;
     expect(insert.table).toBe("meow_cat_models");
     expect(insert.args[0]).toMatchObject({
       id: ID, name: "小虎", owner_type: "template", status: "draft", photo_path: `${ID}/photo.png`, created_by: "u-1",
-      profile: { age_months: 3, weight_kg: null, notes: "x" },
+      profile: { gender: "female", age_months: 3, weight_kg: null, notes: "x" },
     });
   });
   it("正面、背部照片（#105）：已上傳的記進 profile.extra_photos；路徑不對或沒上傳就略過，不擋建立", async () => {
