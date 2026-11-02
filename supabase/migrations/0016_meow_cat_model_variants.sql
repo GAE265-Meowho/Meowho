@@ -1,4 +1,4 @@
--- #104：同一隻貓保存成貓與幼貓各自的貼圖。執行前須經 Tina 確認。
+-- #104：同一隻貓保存成貓與幼貓各自的貼圖。0016；執行前須經 Tina 確認。
 create table if not exists public.meow_cat_model_variants (
   model_id text not null references public.meow_cat_models(id) on delete cascade,
   body_type text not null check (body_type in ('adult', 'kitten')),

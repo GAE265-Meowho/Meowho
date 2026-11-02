@@ -120,7 +120,7 @@ try {
   }
 }
 
-// 0015（#104）：在記憶體資料庫驗證舊貼圖分流與重跑不覆寫，不連正式 Supabase。
+// 0016（#104）：在記憶體資料庫驗證舊貼圖分流與重跑不覆寫，不連正式 Supabase。
 {
   const m = new PGlite();
   const base = read("./stub_supabase.sql") + ["0001_meow", "0002_meow_hq", "0003_meow_site_assets", "0004_meow_cat_profile", "0005_meow_cat_models"]
@@ -132,17 +132,17 @@ try {
       values ('cat_20261102_040323','橘寶','template','ready',
       '{"age_months":3,"confirmed_albedo":"adult.png"}','photo.png','kitten.png','adult.png','kitten-v1',
       '{"prev_base_version":"v1"}');`);
-    await m.exec(read("../migrations/0015_meow_cat_model_variants.sql"));
-    await m.exec(read("../migrations/0015_meow_cat_model_variants.sql"));
+    await m.exec(read("../migrations/0016_meow_cat_model_variants.sql"));
+    await m.exec(read("../migrations/0016_meow_cat_model_variants.sql"));
     const { rows } = await m.query(`select body_type,albedo_path,confirmed_albedo from public.meow_cat_model_variants
       where model_id='cat_20261102_040323' order by body_type`);
     const ok = rows.length === 2 && rows[0].body_type === "adult" && rows[0].albedo_path === "adult.png"
       && rows[0].confirmed_albedo === "adult.png" && rows[1].body_type === "kitten"
       && rows[1].albedo_path === "kitten.png" && rows[1].confirmed_albedo === null;
-    console.log(`${ok ? "PASS" : "FAIL"}  0015：舊成貓與幼貓分流且可重跑`);
+    console.log(`${ok ? "PASS" : "FAIL"}  0016：舊成貓與幼貓分流且可重跑`);
     if (!ok) process.exit(1);
   } catch (e) {
-    console.error(`✗ 0015 測試中斷：${e.message}`);
+    console.error(`✗ 0016 測試中斷：${e.message}`);
     process.exit(1);
   }
 }

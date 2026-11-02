@@ -465,3 +465,14 @@
 @media (min-width: 1280px) { .hq-studio-file .hq-ai-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 .hq-catinfo .hq-row:has(> .hq-dl) > .hq-thumb { width: 100%; height: auto; aspect-ratio: 1; object-fit: cover; }
 @media (max-width: 1023px) { .hq-catinfo .hq-row:has(> .hq-dl) > .hq-thumb { width: 120px; } }
+
+/* 平面圖轉換（#138）：一戶清單、工作頁兩欄等分（房間｜原圖預覽），手機上下排 */
+.hq-floorplans { display: flex; flex-direction: column; gap: 1rem; }
+.hq-floorplan { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1rem; align-items: start; margin-bottom: 1rem; }
+@media (max-width: 1023px) { .hq-floorplan { grid-template-columns: minmax(0, 1fr); } }
+.hq-fp-rooms { list-style: none; margin: 0 0 1rem; padding: 0; display: flex; flex-direction: column; gap: .4rem; }
+.hq-fp-rooms li { display: flex; align-items: center; justify-content: space-between; gap: .5rem; padding: .35rem .5rem; border-radius: 10px; }
+.hq-fp-rooms li.on { background: var(--hq-sage-soft); }
+.hq-fp-room { display: flex; align-items: center; gap: .6rem; background: none; border: 0; padding: 0; font: inherit; color: inherit; cursor: pointer; text-align: left; min-width: 0; }
+.hq-fp-add { border-top: 1px solid var(--hq-line); padding-top: .75rem; }
+.hq-fp-add h4 { margin: 0 0 .5rem; font-size: .95rem; font-weight: 500; }
