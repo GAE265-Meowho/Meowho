@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 const STATUS: Record<string, number> = { not_found: 404, reason_required: 400, busy: 409, no_previous: 409, permission_denied: 403, disabled: 404 };
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const body = (await req.json().catch(() => ({}))) as { reason?: unknown };
-  const result = await repoRestore((await params).id, String(body.reason ?? ""), "local-dev");
+  const body = (await req.json().catch(() => ({}))) as { reason?: unknown; body?: unknown };
+  const result = await repoRestore((await params).id, String(body.reason ?? ""), "local-dev", body.body);
   return result.ok ? Response.json({ ok: true }) : Response.json({ error: result.code }, { status: STATUS[result.code] ?? 400 });
 }

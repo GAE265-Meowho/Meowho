@@ -9,6 +9,7 @@ let files: { name: string }[] = [];
 let insertError: { code: string } | null = null;
 let modelRow: Record<string, unknown> | null = null;
 let download: Blob | null = null;
+let variantRows: Record<string, unknown>[] | null = null;
 
 /** 夠用的假 client：記下每次呼叫，回傳測試設定的結果 */
 function fakeClient() {
@@ -16,9 +17,11 @@ function fakeClient() {
     const q = {
       select: (...a: unknown[]) => { calls.push({ table, op: "select", args: a }); return q; },
       eq: () => q, order: () => q, limit: () => q,
-      maybeSingle: async () => ({ data: table === "meow_cat_models" ? modelRow : null, error: null }),
+      maybeSingle: async () => ({ data: table === "meow_cat_models" ? modelRow : table === "meow_cat_model_variants" ? variantRows?.[0] ?? null : null, error: null }),
+      then: (resolve: (value: unknown) => void) => resolve({ data: table === "meow_cat_model_variants" ? variantRows : null,
+        error: table === "meow_cat_model_variants" && variantRows === null ? { message: "missing table" } : null }),
       insert: async (row: unknown) => { calls.push({ table, op: "insert", args: [row] }); return { error: insertError }; },
-      update: (row: unknown) => { calls.push({ table, op: "update", args: [row] }); return { eq: async () => ({ error: null }) }; },
+      update: (row: unknown) => { calls.push({ table, op: "update", args: [row] }); return q; },
     };
     return q;
   };
@@ -56,7 +59,26 @@ const row = (over: Record<string, unknown> = {}) => ({
 const views = { left: `${ID}/gen_left.png`, front: `${ID}/gen_front.png`, back: `${ID}/gen_back.png` };
 const READY = { generated: { views } };
 
-beforeEach(() => { calls.length = 0; user = { id: "u-1" }; files = []; insertError = null; modelRow = row(); download = new Blob(["jpg"], { type: "image/jpeg" }); });
+describe("#104 依體型獨立操作", () => {
+  it("生成任務明確記錄選擇的體型", async () => {
+    process.env.CAT_MODEL_VARIANTS_WORKER_READY = "1";
+    modelRow = row({ profile: { age_months: 3, ...READY } });
+    variantRows = [];
+    expect(await sbQueuePaint(ID, "left", "none", "adult")).toEqual({ ok: true });
+    expect(calls.find(c => c.table === "meow_cat_model_jobs" && c.op === "insert")?.args[0]).toMatchObject({ body_type: "adult" });
+  });
+  it("確認幼貓不更新成貓的舊欄位", async () => {
+    process.env.CAT_MODEL_VARIANTS_WORKER_READY = "1";
+    modelRow = row({ status: "ready", albedo_path: "adult.png" });
+    variantRows = [{ body_type: "kitten", albedo_path: "kitten.png", prev_albedo_path: null,
+      base_version: "kitten-v1", prev_base_version: null, confirmed_albedo: null }];
+    expect(await sbConfirmTexture(ID, "kitten")).toEqual({ ok: true });
+    expect(calls.find(c => c.table === "meow_cat_model_variants" && c.op === "update")?.args[0]).toMatchObject({ confirmed_albedo: "kitten.png" });
+    expect(calls.find(c => c.table === "meow_cat_models" && c.op === "update")).toBeUndefined();
+  });
+});
+
+beforeEach(() => { delete process.env.CAT_MODEL_VARIANTS_WORKER_READY; calls.length = 0; user = { id: "u-1" }; files = []; insertError = null; modelRow = row(); variantRows = null; download = new Blob(["jpg"], { type: "image/jpeg" }); });
 
 describe("sbPhotoUpload（新增第一步）", () => {
   it("格式、大小不合法直接擋，不簽網址", async () => {

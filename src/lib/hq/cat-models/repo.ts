@@ -124,10 +124,10 @@ export async function repoCreateCat(input: NewCatInput & { id?: unknown; photoPa
   return { ok: false, code: "disabled" };
 }
 
-export async function repoQueuePaint(id: string, view: unknown, fill: unknown): Promise<QueueResult | Denied> {
+export async function repoQueuePaint(id: string, view: unknown, fill: unknown, body?: unknown): Promise<QueueResult | Denied> {
   const src = resolveCatSource();
-  if (src === "local") return queuePaint(localRoot()!, id, view, fill);
-  if (src === "supabase") return sbQueuePaint(id, view, fill);
+  if (src === "local") return queuePaint(localRoot()!, id, view, fill, new Date(), body);
+  if (src === "supabase") return sbQueuePaint(id, view, fill, body);
   return { ok: false, code: "disabled" };
 }
 
@@ -141,10 +141,10 @@ export async function repoStartViews(id: string, views: unknown, settings: { qua
   return { ok: false, code: "disabled" };
 }
 
-export async function repoRestore(id: string, reason: string, actor: string): Promise<RestoreResult | Denied> {
+export async function repoRestore(id: string, reason: string, actor: string, body?: unknown): Promise<RestoreResult | Denied> {
   const src = resolveCatSource();
-  if (src === "local") return restorePrevious(localRoot()!, id, reason, actor);
-  if (src === "supabase") return sbRestore(id, reason);
+  if (src === "local") return restorePrevious(localRoot()!, id, reason, actor, new Date(), body);
+  if (src === "supabase") return sbRestore(id, reason, body);
   return { ok: false, code: "disabled" };
 }
 
@@ -152,11 +152,11 @@ export async function repoRestore(id: string, reason: string, actor: string): Pr
 /**
  * 確認使用目前的貼圖（#129）。本機 Cat Studio 沒有確認欄位，貼圖一律視為已確認，所以直接回 ok。
  */
-export async function repoConfirmTexture(id: string): Promise<
+export async function repoConfirmTexture(id: string, body?: unknown): Promise<
   { ok: true } | { ok: false; code: "not_found" | "busy" | "no_texture" | "permission_denied" } | Denied
 > {
   const src = resolveCatSource();
   if (src === "local") return (await getCat(localRoot()!, id)) ? { ok: true } : { ok: false, code: "not_found" };
-  if (src === "supabase") return sbConfirmTexture(id);
+  if (src === "supabase") return sbConfirmTexture(id, body);
   return { ok: false, code: "disabled" };
 }

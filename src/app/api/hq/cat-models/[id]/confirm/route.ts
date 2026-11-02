@@ -5,7 +5,8 @@ export const dynamic = "force-dynamic";
 
 const STATUS: Record<string, number> = { not_found: 404, busy: 409, no_texture: 409, permission_denied: 403, disabled: 404 };
 
-export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const result = await repoConfirmTexture((await params).id);
+export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const body = (await req.json().catch(() => ({}))) as { body?: unknown };
+  const result = await repoConfirmTexture((await params).id, body.body);
   return result.ok ? Response.json({ ok: true }) : Response.json({ error: result.code }, { status: STATUS[result.code] ?? 400 });
 }

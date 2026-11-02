@@ -21,6 +21,7 @@
 - **#20（logic）已實作待審**（分支 `feat/20-hq-logic`）：`src/lib/hq/permissions.ts`、`actions.ts` 純函式；#21 shell、#22～#24 直接 import 使用，不要重複寫判斷。時間相關函式由呼叫端傳入 `now`。
 
 - **MeowHQ 紋理貼圖確認（#129，分支 `feat/129-studio-detail-layout`）**：貓咪製作改 4 步，第 3 步紋理貼圖要「確認使用」才能進第 4 步。已確認路徑存 `meow_cat_models.profile.confirmed_albedo`；判斷一律用 `textureOf()`／`textureInfo()`（`src/lib/hq/cat-models/types.ts`），**貓咪頁不要再用 `hasAlbedo` 判斷能不能預覽**。產生紋理貼圖仍由 Tina 電腦上的 `paint_worker.py --supabase` 執行。
+- **#104 成貓／幼貓變體（分支 `feat/104-adult-kitten-variants`）**：`0015_meow_cat_model_variants.sql` 及 `docs/hq/paint-worker-104.patch` 要與新版網站配套。Tina 電腦的 `Meow/cat_studio/paint_worker.py` 已套用補丁；搬到 Azure VM 時也要套同版。SQL **尚未執行**，須經 Tina 明確確認；worker 重啟且 SQL 套用後，才在 Vercel 設 `CAT_MODEL_VARIANTS_WORKER_READY=1`。預設為 0，網站維持單體型舊流程。補丁在 Meowho repo，可在 worker 目錄用 `git apply` 套用。`body_type` 決定生成母體，年齡只作舊任務預設；兩體型貼圖與上一版各自保存。
 - **產生紋理貼圖前置條件（#135，分支 `fix/135-texture-needs-views`）**：三視角都成功才能產生，判斷一律用 `viewsReady()`（`src/lib/hq/cat-models/types.ts`）；`queuePaint`／`sbQueuePaint` 回 `views_required`（409）。舊貓沒有三視角的要先補產生。
 - **LLM 輸入防護（#38，決策 004）**：新增任何 LLM 任務，使用者內容必須經 `wrapUserInput()`、API 必須用 `checkInput()`（`src/lib/ai/guard.ts`）。問答模組上線時要實作「每段 20 輪、每天 50 次」。
 - **`0003_meow_site_assets.sql` 已在 Supabase 執行（2026-10-29，`meow_0003_site_assets`）**：Logo 上傳與網站設定可用，待 Tina 登入實測。

@@ -3,6 +3,7 @@
 // 左：虛擬貓咪檔案（2 份寬，捲動時固定，可收合）；右：製作 GLB 工作區（1 份寬）＝製作流程、任務進度、產生選項、紋理貼圖與確認、第 4 步。
 // #129：第 3 步產生的紋理貼圖要人工確認，才能進第 4 步；確認前與重新產生期間，貓咪頁繼續用已確認的貼圖。
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { composeReason } from "@/lib/hq/actions";
 import {
@@ -92,7 +93,7 @@ function Progress({ cat, now }: { cat: CatModelView; now: number }) {
   );
 }
 
-function Options({ cat, onDone }: { cat: CatModelView; onDone: () => void }) {
+function Options({ cat, onDone, onSelectBody }: { cat: CatModelView; onDone: () => void; onSelectBody: (body: "adult" | "kitten") => void }) {
   const [view, setView] = useState<PhotoView>(cat.photoView ?? "front");
   const [fill, setFill] = useState<FillPattern>(cat.fillPattern ?? "none");
   const busy = isJobActive(cat.status) || cat.aiRunning.length > 0;
@@ -101,13 +102,20 @@ function Options({ cat, onDone }: { cat: CatModelView; onDone: () => void }) {
   const label = cat.status === "failed" ? "重試" : cat.hasAlbedo ? "重新產生紋理貼圖" : "產生紋理貼圖";
 
   async function save() {
-    await postJson(`${CAT_API}/${cat.id}/paint`, { view, fill }, PAINT_ERRORS);
+    await postJson(`${CAT_API}/${cat.id}/paint`, { view, fill, ...(cat.variantStorage ? { body: cat.body } : {}) }, PAINT_ERRORS);
     onDone();
   }
 
   return (
     <section className="hq-box" aria-label="產生選項">
       <h3>產生選項</h3>
+      {cat.variantStorage && <div className="hq-field">
+        <span className="hq-label" id="opt-body">體型</span>
+        <div className="hq-chips" role="group" aria-labelledby="opt-body">
+          {(["adult", "kitten"] as const).map(body => <button key={body} type="button" className={cat.body === body ? "on" : ""}
+            aria-pressed={cat.body === body} onClick={() => onSelectBody(body)}>{body === "adult" ? "成貓" : "幼貓"}</button>)}
+        </div>
+      </div>}
       {aiLeft ? (
         // #110：有 AI 左側面照就用它上色，角度固定「左側」（頭朝左），不用再選
         <div className="hq-field">
@@ -145,16 +153,18 @@ function Texture({ cat, onDone }: { cat: CatModelView; onDone: (message: string)
   const text = composeReason(reason.quick, reason.extra);
   const busy = isJobActive(cat.status);
   const t = textureOf(cat);
-  const url = (kind: "albedo" | "albedo_prev") => catFileUrl(cat.id, kind, cat.albedoVersion ?? undefined);
+  const variant = cat.bodyVariants?.[cat.body];
+  const url = (kind: "albedo" | "albedo_prev") =>
+    (kind === "albedo" ? variant?.albedoUrl : variant?.prevUrl) ?? catFileUrl(cat.id, kind, cat.albedoVersion ?? undefined);
 
   function close() { setOpen(false); setReason({ quick: "", extra: "" }); }
   async function restore() {
-    await postJson(`${CAT_API}/${cat.id}/restore`, { reason: text }, RESTORE_ERRORS);
+    await postJson(`${CAT_API}/${cat.id}/restore`, { reason: text, ...(cat.variantStorage ? { body: cat.body } : {}) }, RESTORE_ERRORS);
     close();
     onDone("已改用上一版紋理貼圖");
   }
   async function confirm() {
-    await postJson(`${CAT_API}/${cat.id}/confirm`, {}, CONFIRM_ERRORS);
+    await postJson(`${CAT_API}/${cat.id}/confirm`, cat.variantStorage ? { body: cat.body } : {}, CONFIRM_ERRORS);
     onDone("已確認紋理貼圖");
   }
 
@@ -278,7 +288,15 @@ function CatFile({ cat, onStarted }: { cat: CatModelView; onStarted: () => void 
 
 function Studio({ cat, reload }: { cat: CatModelView; reload: () => void }) {
   const toast = useHqToast();
+  const params = useSearchParams();
   const [now, setNow] = useState(() => Date.now());
+  const [selectedBody, setSelectedBody] = useState<"adult" | "kitten">(
+    params.get("body") === "adult" || params.get("body") === "kitten" ? params.get("body") as "adult" | "kitten" : cat.body);
+  const variant = cat.bodyVariants?.[selectedBody];
+  const displayCat: CatModelView = cat.variantStorage ? {
+    ...cat, body: selectedBody, hasAlbedo: Boolean(variant?.albedoUrl), hasPrevAlbedo: Boolean(variant?.prevUrl),
+    texture: variant?.texture ?? { state: "none", preview: null, previewBody: selectedBody },
+  } : cat;
   const active = isJobActive(cat.status) || cat.aiRunning.length > 0;
 
   // 排隊中、生成中、AI 照片產生中每 3 秒更新一次；結束就停
@@ -295,7 +313,7 @@ function Studio({ cat, reload }: { cat: CatModelView; reload: () => void }) {
     <>
       <div className="hq-pagehead">
         {/* #118：還沒有 3D 時貓咪頁會轉回這裡，所以返回列表 */}
-        {textureOf(cat).preview
+        {textureOf(displayCat).preview
           ? <Link href={assetsHref(cat.id)} className="hq-back">← 貓咪頁</Link>
           : <Link href={ASSETS_CATS_HREF} className="hq-back">← 虛擬體驗元件管理</Link>}
         <h1 className="hq-h1">{cat.name}</h1>
@@ -305,11 +323,11 @@ function Studio({ cat, reload }: { cat: CatModelView; reload: () => void }) {
         <CatFile cat={cat} onStarted={submitted} />
         <section className="hq-studio-workspace" aria-label="製作 GLB 工作區">
           <h2>製作 GLB 工作區</h2>
-          <Flow cat={cat} />
+          <Flow cat={displayCat} />
           <Progress cat={cat} now={now} />
-          <Options cat={cat} onDone={submitted} />
-          <Texture cat={cat} onDone={done} />
-          <MakeGlb cat={cat} />
+          <Options cat={displayCat} onDone={submitted} onSelectBody={setSelectedBody} />
+          <Texture cat={displayCat} onDone={done} />
+          <MakeGlb cat={displayCat} />
         </section>
       </div>
     </>
