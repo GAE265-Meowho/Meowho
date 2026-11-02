@@ -1,10 +1,12 @@
 "use client";
 // MeowHQ 外殼：頂列（Logo、鈴鐺、頭像選單）＋側欄（手機「☰」）＋內容區（規格書 §4.0、§4.9）。
 import Link from "next/link";
-import { useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useState } from "react";
 import { ADMIN_MODULE_LABELS, type SidebarItem } from "@/lib/hq/types";
 import { LOGOS } from "@/lib/mock-data";
 import { HQ_HOME, HQ_MODULE_PATH, isModule } from "./access";
+import { ASSET_SECTIONS, ASSETS_CATS_HREF, assetSectionHref, isAssetSection } from "./assets/hrefs";
 import { HqOfflineBanner } from "./HqStates";
 import { NotificationBell } from "./NotificationBell";
 import AvatarImage from "@/components/ui/AvatarImage";
@@ -40,6 +42,26 @@ const NAV_ICONS: Record<SidebarItem, React.ReactNode> = {
   virtual_assets: <><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z" /><path d="M4 7.5l8 4.5 8-4.5M12 12v9" /></>,
   admin_authorization: <><path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z" /><path d="M9 12l2 2 4-4" /></>,
 };
+
+/** 虛擬體驗元件管理子選單（#113）：區塊從頁面分頁移到左側；?tab= 決定目前區塊，貓咪子頁（/assets/cats/…、/assets/bases）算貓咪製作 */
+function AssetsSubnav({ activePath, onPick, tab }: { activePath: string; onPick: () => void; tab: string | null }) {
+  const inAssets = activePath === ASSETS_CATS_HREF || activePath.startsWith(ASSETS_CATS_HREF + "/");
+  const current = !inAssets ? null : activePath === ASSETS_CATS_HREF && isAssetSection(tab) ? tab : "cats";
+  return (
+    <ul className="hq-subnav" aria-label="虛擬體驗元件管理子選單">
+      {ASSET_SECTIONS.map(sct => (
+        <li key={sct.value}>
+          <Link href={assetSectionHref(sct.value)} className={`depth-${sct.depth}${current === sct.value ? " on" : ""}`}
+            aria-current={current === sct.value ? "page" : undefined} onClick={onPick}>{sct.label}</Link>
+        </li>
+      ))}
+    </ul>
+  );
+}
+function AssetsSubnavWithQuery(props: { activePath: string; onPick: () => void }) {
+  const tab = useSearchParams()?.get("tab") ?? null;
+  return <AssetsSubnav {...props} tab={tab} />;
+}
 
 export function HqLogo() {
   return (
@@ -99,6 +121,12 @@ export function HqShell({ items, user, unread, onLogout, activePath, children, u
                     <svg {...icon}>{NAV_ICONS[r.item]}</svg>
                     <span>{r.label}</span>
                   </Link>
+                  {r.item === "virtual_assets" && (
+                    // useSearchParams 需要 Suspense；載入前先顯示不帶目前標示的清單
+                    <Suspense fallback={<AssetsSubnav activePath={activePath} onPick={() => setNavOpen(false)} tab={null} />}>
+                      <AssetsSubnavWithQuery activePath={activePath} onPick={() => setNavOpen(false)} />
+                    </Suspense>
+                  )}
                 </li>
               ))}
             </ul>

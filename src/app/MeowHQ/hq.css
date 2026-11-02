@@ -53,6 +53,12 @@
 .hq-offline { background: var(--hq-caramel-soft); color: var(--hq-caramel-ink); padding: .5rem 1rem; text-align: center; border-bottom: 1px solid var(--hq-line); }
 
 /* 登入頁、找不到頁面 */
+/* 虛擬體驗元件管理子選單（#113） */
+.hq-side .hq-subnav { margin: 2px 0 .2rem; gap: 1px; }
+.hq-side .hq-subnav a { min-height: 38px; padding: .4rem .75rem .4rem 2.65rem; font-size: .92rem; border-radius: 10px; }
+.hq-side .hq-subnav a.depth-2 { padding-left: 3.6rem; font-size: .86rem; position: relative; }
+.hq-side .hq-subnav a.depth-2::before { content: ""; position: absolute; left: 2.85rem; top: 50%; width: .5rem; height: 1px; background: var(--hq-line); }
+.hq-side .hq-subnav a.on { box-shadow: none; background: var(--hq-card); outline: 1px solid var(--hq-line); }
 .hq-center { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 1rem; }
 .hq-card { width: 100%; max-width: 380px; background: var(--hq-card); border: 1px solid var(--hq-line); border-radius: 12px; padding: 2rem 1.5rem; text-align: center; display: flex; flex-direction: column; align-items: center; gap: .75rem; }
 .hq-card h1 { margin: 0; font-size: 1.3rem; }
