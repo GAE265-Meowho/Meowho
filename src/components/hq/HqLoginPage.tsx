@@ -37,9 +37,8 @@ export function HqLoginPage({ onLogin, next, configured = true }: { onLogin: (ne
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img className="hq-login-wordmark" src={WORDMARK.src} alt="Meowho喵戶" width={180} height={60} />
           <h1>進入總部</h1>
-          {/* 不必先是喵戶會員：第一次用 Google 登入會自動建立帳號（meow_profiles 由 Auth 建立）；要由系統管理員授權後才看得到後台 */}
-          <p className="hq-login-lead">不需要先加入喵戶，直接用 Google 帳號登入或註冊。</p>
-          <button className="hq-btn hq-login-google" onClick={() => onLogin(next)}><GoogleG />使用 Google 登入／註冊</button>
+          {/* 後台只能登入、不能註冊（Tina 2026-11-02）：要先由系統管理員在「Admin 授權」加入，才進得了後台 */}
+          <button className="hq-btn hq-login-google" onClick={() => onLogin(next)}><GoogleG />使用 Google 登入</button>
           {!configured && <p className="hq-hint">尚未連接資料庫（示範模式），無法登入。</p>}
         </section>
       </main>
