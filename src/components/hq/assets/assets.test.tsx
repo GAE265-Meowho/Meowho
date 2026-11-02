@@ -89,14 +89,26 @@ describe("製作glb工作區", () => {
   }
   const renderStudio = () => render(<HqToastProvider><StudioPageBody id="cat_20261031_100000" /></HqToastProvider>);
 
-  it("草稿：預設正面、不補花紋；按「產生紋理貼圖」送出選項（#129 改名）", async () => {
-    const fetchMock = mockCat({ status: "draft", hasAlbedo: false });
+  it("三視角完成：按「產生紋理貼圖」送出選項（#129 改名）", async () => {
+    const fetchMock = mockCat({ status: "draft", hasAlbedo: false, aiViews: ["left", "front", "back"] });
     renderStudio();
-    fireEvent.click(await screen.findByRole("button", { name: "左側" }));
-    fireEvent.click(screen.getByRole("button", { name: "虎斑" }));
+    fireEvent.click(await screen.findByRole("button", { name: "虎斑" }));
     fireEvent.click(screen.getByRole("button", { name: "產生紋理貼圖" }));
     await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/hq/cat-models/cat_20261031_100000/paint",
-      expect.objectContaining({ method: "POST", body: JSON.stringify({ view: "left", fill: "tabby" }) })));
+      expect.objectContaining({ method: "POST", body: JSON.stringify({ view: "front", fill: "tabby" }) })));
+  });
+  it("#135 還沒產生 AI 三視角：產生紋理貼圖停用，提示先完成第 2 步", async () => {
+    mockCat({ status: "draft", hasAlbedo: false });
+    renderStudio();
+    expect(await screen.findByRole("button", { name: "產生紋理貼圖" })).toBeDisabled();
+    expect(screen.getByText(/請先完成第 2 步「AI 三視角」/)).toBeInTheDocument();
+    expect(screen.getByText("先完成 AI 三視角，再產生紋理貼圖。")).toBeInTheDocument();
+  });
+  it("#135 三視角只成功一部分或有失敗：仍停用", async () => {
+    mockCat({ status: "draft", hasAlbedo: false, aiViews: ["left", "front"], aiErrors: { back: "產生逾時，請重新產生" } });
+    renderStudio();
+    expect(await screen.findByRole("button", { name: "產生紋理貼圖" })).toBeDisabled();
+    expect(screen.getByText(/請先完成第 2 步「AI 三視角」/)).toBeInTheDocument();
   });
   it("#110 有 AI 左側面照：不用選照片角度，說明用 AI 照片上色", async () => {
     mockCat({ status: "draft", hasAlbedo: false, aiViews: ["left", "front", "back"] });
@@ -111,7 +123,7 @@ describe("製作glb工作區", () => {
     mockCat({ status: "draft", hasAlbedo: false, aiRunning: ["left"] });
     renderStudio();
     expect(await screen.findByRole("button", { name: "產生紋理貼圖" })).toBeDisabled();
-    expect(screen.getByText("AI 照片產生中，完成後再送出。")).toBeInTheDocument();
+    expect(screen.getByText("AI 三視角產生中，完成後才能產生紋理貼圖。")).toBeInTheDocument();
   });
   it("排隊中：按鈕停用並說明原因；排隊超過 2 分鐘提示 worker 可能沒開", async () => {
     mockCat({ status: "queued", jobStatus: "queued", jobQueuedAt: new Date(Date.now() - 5 * 60000).toISOString(), jobStep: "排隊中" });
@@ -125,7 +137,7 @@ describe("製作glb工作區", () => {
     expect(screen.queryByText(/%/)).toBeNull();
   });
   it("失敗：顯示原因與「重試」，並說明沒動到現在的貼圖", async () => {
-    mockCat({ status: "failed", jobStatus: "error", jobError: "CUDA out of memory" });
+    mockCat({ status: "failed", jobStatus: "error", jobError: "CUDA out of memory", aiViews: ["left", "front", "back"] });
     renderStudio();
     expect(await screen.findByRole("button", { name: "重試" })).toBeEnabled();
     expect(screen.getByRole("alert")).toHaveTextContent("CUDA out of memory");
