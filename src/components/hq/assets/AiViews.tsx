@@ -167,8 +167,8 @@ function UsagePanel({ cat }: { cat: CatModelView }) {
   );
 }
 
-export function AiViews({ cat, onStarted, settings, onSettings }: {
-  cat: CatModelView; onStarted: () => void; settings?: AiSettings; onSettings?: (v: AiSettings) => void;
+export function AiViews({ cat, onStarted, settings, onSettings, uploadedTitle = "上傳的照片" }: {
+  cat: CatModelView; onStarted: () => void; settings?: AiSettings; onSettings?: (v: AiSettings) => void; uploadedTitle?: string;
 }) {
   const [own, setOwn] = useState<AiSettings>(DEFAULT_AI_SETTINGS);
   const value = settings ?? own;
@@ -194,8 +194,8 @@ export function AiViews({ cat, onStarted, settings, onSettings }: {
     <div className="hq-aiviews">
       <Analysis cat={cat} />
       {/* #118：上傳的照片（原始＋其他角度 2、3）與 AI 三視角分兩區 */}
-      <h4 className="hq-ai-sub">上傳的照片</h4>
-      <div className="hq-ai-grid" role="group" aria-label="上傳的照片">
+      <h4 className="hq-ai-sub">{uploadedTitle}</h4>
+      <div className="hq-ai-grid" role="group" aria-label={uploadedTitle}>
         <figure className="hq-ai-card" aria-label="原始照片">
           <div className="hq-ai-card-head"><span>原始照片</span><span className="hq-tag mute">原始</span></div>
           <div className="hq-ai-frame">

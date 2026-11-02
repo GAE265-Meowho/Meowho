@@ -34,6 +34,12 @@ describe("新增貓咪頁（#110）", () => {
     expect(screen.queryByRole("group", { name: "拍攝範例" })).not.toBeInTheDocument();
     expect(screen.getByLabelText("性別")).toBeInTheDocument();
   });
+  it("#123 名稱與性別在同一個基本資料欄位列中", () => {
+    render(<NewCat />);
+    const row = screen.getByRole("group", { name: "名稱與性別" });
+    expect(within(row).getByLabelText("名稱（必填）")).toBeInTheDocument();
+    expect(within(row).getByLabelText("性別")).toBeInTheDocument();
+  });
   it("沒選照片就按「產生 AI 三視角」：提示，不呼叫 API", async () => {
     const f = vi.fn();
     vi.stubGlobal("fetch", f);
