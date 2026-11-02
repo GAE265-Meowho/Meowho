@@ -112,7 +112,68 @@ export interface CatModelView {
   aiPrompts: Partial<Record<GenView, { en: string; zh: string }>>;
   aiUsage: Partial<Record<GenView, { input: number; output: number; textIn: number | null; imageIn: number | null }>>;
   aiQuality: AiQuality | null;
+  /** 貼圖確認（#129）：沒有時視為「有貼圖就已確認」（本機、示範貓） */
+  texture?: TextureInfo;
 }
+
+/**
+ * 貼圖確認（#129，2026/11/02 Tina 決定）：
+ * 第 3 步產生的貼圖要人工確認，才能進第 4 步；重新產生期間與確認前，貓咪頁繼續用已確認的舊貼圖。
+ * 已確認的貼圖一定是目前版或上一版（送出重新產生時會先丟掉未確認的貼圖，見 discardPending），
+ * 所以畫面只要知道「預覽用哪一張、畫在哪個母體上」。
+ */
+export type TextureState = "none" | "pending" | "confirmed";
+export interface TextureInfo {
+  state: TextureState;
+  /** 貓咪頁 3D 預覽用的貼圖；null＝還沒有確認過的貼圖 */
+  preview: "albedo" | "albedo_prev" | null;
+  /** 預覽貼圖畫在哪個母體上（兩個母體 UV 不同） */
+  previewBody: BodyType;
+}
+
+export function textureOf(c: Pick<CatModelView, "texture" | "hasAlbedo" | "body">): TextureInfo {
+  return c.texture ?? (c.hasAlbedo ? { state: "confirmed", preview: "albedo", previewBody: c.body } : { state: "none", preview: null, previewBody: c.body });
+}
+
+/**
+ * 由路徑推導確認狀態。confirmed＝undefined 表示舊資料（還沒有確認欄位）：目前版視為已確認。
+ * confirmed＝null 表示從來沒有確認過。
+ */
+export function textureInfo(input: {
+  albedo: string | null; prev: string | null; confirmed: string | null | undefined;
+  baseVersion: string | null; prevBaseVersion: string | null | undefined; ageMonths: number | null;
+}): TextureInfo {
+  const { albedo, prev, ageMonths } = input;
+  const confirmed = input.confirmed === undefined ? albedo : input.confirmed;
+  const currentBody = bodyFor({ baseVersion: input.baseVersion, hasAlbedo: Boolean(albedo), ageMonths });
+  if (!albedo) return { state: "none", preview: null, previewBody: currentBody };
+  if (confirmed === albedo) return { state: "confirmed", preview: "albedo", previewBody: currentBody };
+  const prevOk = Boolean(confirmed && prev && confirmed === prev);
+  return {
+    state: "pending",
+    preview: prevOk ? "albedo_prev" : null,
+    previewBody: prevOk ? bodyFor({ baseVersion: input.prevBaseVersion ?? null, hasAlbedo: true, ageMonths }) : currentBody,
+  };
+}
+
+/**
+ * 送出重新產生前（#129）：worker 成功後會把「目前版」變成上一版、刪掉更早的上一版。
+ * 目前版還沒確認、上一版是已確認的版本時，先把已確認的換回目前版，未確認的丟掉，
+ * worker 輪替後已確認的版本才會留在「上一版」，貓咪頁不會失去貼圖。
+ * 回傳 null＝不用調整；否則回傳要寫回的欄位與要刪的檔案。
+ */
+export function discardPending(input: {
+  albedo: string | null; prev: string | null; confirmed: string | null | undefined;
+  baseVersion: string | null; prevBaseVersion: string | null | undefined;
+}): { albedo: string; prev: null; baseVersion: string | null; remove: string } | null {
+  const { albedo, prev, confirmed } = input;
+  if (confirmed === undefined || !albedo || confirmed === albedo || !prev || confirmed !== prev) return null;
+  return { albedo: prev, prev: null, baseVersion: input.prevBaseVersion ?? null, remove: albedo };
+}
+
+/** 待辦總覽：貼圖待確認的貓有幾隻 */
+export const countTexturePending = (cats: readonly Pick<CatModelView, "texture" | "hasAlbedo" | "body">[]) =>
+  cats.filter(c => textureOf(c).state === "pending").length;
 
 /** 任務是否在忙（排隊中或生成中）：忙的時候不能再送、不能換版 */
 export const isJobActive = (status: CatModelStatus) => status === "queued" || status === "running";
@@ -293,13 +354,48 @@ export function profileNumber(v: unknown): number | null {
 }
 export const PHOTO_MIME = ["image/jpeg", "image/png", "image/webp"] as const;
 
-/** 列表「進度」欄（#118）：1 上傳照片 → 2 AI 三視角 → 3 產生 3D。tone 對應 .hq-tag 的樣式 */
-export interface CatProgress { step: 1 | 2 | 3; text: string; tone: "" | "mute" | "warn" | "danger" }
-export function catProgress(c: { hasAlbedo: boolean; status: CatModelStatus; aiViews: readonly string[]; aiRunning: readonly string[] }): CatProgress {
-  if (c.status === "queued" || c.status === "running") return { step: 3, text: "3/3 產生 3D・產生中", tone: "warn" };
-  if (c.status === "failed") return { step: 3, text: "3/3 產生 3D・失敗", tone: "danger" };
-  if (c.hasAlbedo) return { step: 3, text: "完成", tone: "" };
-  if (c.aiRunning.length) return { step: 2, text: "2/3 AI 三視角・產生中", tone: "warn" };
-  if (c.aiViews.length) return { step: 2, text: "2/3 AI 三視角・完成", tone: "mute" };
-  return { step: 1, text: "1/3 上傳照片", tone: "mute" };
+/** 貓咪製作流程（#129 改為 4 步）：列表上方的流程圖、製作GLB工作區共用 */
+export const CAT_STEPS = [
+  { title: "上傳照片", desc: "原始照片與基本資料" },
+  { title: "AI 三視角", desc: "AI 產生左側面、正面、背部照片" },
+  { title: "產生紋理貼圖", desc: "AI 上色，確認後再進行下一步" },
+  { title: "製作動作 glb", desc: "確認貼圖，套用到 3D 動作貓" },
+] as const;
+
+/** 列表「進度」欄（#118；#129 改 4 步）。tone 對應 .hq-tag 的樣式 */
+export interface CatProgress { step: 1 | 2 | 3 | 4; text: string; tone: "" | "mute" | "warn" | "danger" }
+export function catProgress(c: { hasAlbedo: boolean; body?: BodyType; texture?: TextureInfo; status: CatModelStatus; aiViews: readonly string[]; aiRunning: readonly string[] }): CatProgress {
+  if (c.status === "queued" || c.status === "running") return { step: 3, text: "3/4 紋理貼圖・產生中", tone: "warn" };
+  if (c.status === "failed") return { step: 3, text: "3/4 紋理貼圖・失敗", tone: "danger" };
+  const t = textureOf({ texture: c.texture, hasAlbedo: c.hasAlbedo, body: c.body ?? "adult" });
+  if (t.state === "pending") return { step: 3, text: "3/4 紋理貼圖・待確認", tone: "warn" };
+  if (t.state === "confirmed") return { step: 4, text: "完成", tone: "" };
+  if (c.aiRunning.length) return { step: 2, text: "2/4 AI 三視角・產生中", tone: "warn" };
+  if (c.aiViews.length) return { step: 2, text: "2/4 AI 三視角・完成", tone: "mute" };
+  return { step: 1, text: "1/4 上傳照片", tone: "mute" };
+}
+
+/** 製作流程每一步的狀態（給步驟圖用） */
+export type StepState = "done" | "active" | "todo" | "failed";
+export function catStepStates(c: Parameters<typeof catProgress>[0]): StepState[] {
+  const p = catProgress(c);
+  if (p.text === "完成") return ["done", "done", "done", "done"];
+  return [1, 2, 3, 4].map(n => n < p.step ? "done" : n > p.step ? "todo" : p.tone === "danger" ? "failed" : "active");
+}
+
+/**
+ * worker 任務的階段（#129）：依 paint_worker.py 回報的 step 文字對應，不顯示虛構百分比。
+ * 對不上的 step 文字停在目前已知階段，原文仍另外顯示。
+ */
+export const JOB_STAGES = ["排隊", "照片去背", "載入模型", "AI 上色", "補花紋／眼皮邊", "上傳貼圖", "完成"] as const;
+const STAGE_KEYWORDS: [number, RegExp][] = [
+  [5, /上傳|寫回|儲存/], [4, /花紋|眼皮|補/], [3, /上色|paint|texture/i], [2, /載入|模型|母體|骨架/], [1, /去背|rembg|背景/i],
+];
+export interface JobStageView { index: number; failed: boolean; stalled: boolean }
+export function jobStage(c: { status: CatModelStatus; jobStatus: JobStatus | null; jobStep: string | null }, stalled = false): JobStageView | null {
+  if (!c.jobStatus) return null;
+  if (c.jobStatus === "done") return { index: 6, failed: false, stalled: false };
+  const hit = STAGE_KEYWORDS.find(([, re]) => re.test(c.jobStep ?? ""));
+  const index = c.jobStatus === "queued" ? 0 : hit ? hit[0] : 1;
+  return { index, failed: c.jobStatus === "error", stalled: c.jobStatus === "queued" && stalled };
 }

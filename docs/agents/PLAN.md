@@ -66,6 +66,7 @@
 | 23-16 | MeowHQ 還沒有 3D 的貓直接進製作glb工作區；列表動作數改進度欄；工作區顯示其他角度照片 2、3 | admin-moderation | 23-13 | P2 | #118 | Tina × Claude Code | 審查中 |
 | 23-17 | MeowHQ 新增貓咪頁移除樣品照、三張照片同列、加入性別並保留照片與資料 | admin-moderation | 23-13 | P2 | #120 | Tina × Codex | 完成（#121 已合併） |
 | 23-18 | MeowHQ 工作室左右分區、手機可收合虛擬貓咪檔案；新增貓咪名稱與性別同列 | admin-moderation | 23-17 | P2 | #123 | Tina × Codex | 審查中（待 PR） |
+| 23-19 | MeowHQ 貓咪工作室與貓咪頁版面整理；流程改 4 步、紋理貼圖人工確認 | admin-moderation | 23-18 | P2 | #129 | Tina × Claude Code | 審查中（PR #131） |
 | 23-15 | MeowHQ 登入頁依 Stitch 改版、瀏覽器標題改 MeoWho｜喵戶總部 | admin-moderation | — | P2 | #116 | Tina × Claude Code | 完成（#117 已合併） |
 | 23-14 | MeowHQ AI 三視角第二階段：worker 同時用三張照片上色；製作glb工作區選擇要產生的動作 | admin-moderation | 23-13 | P2 | 待建立 | — | 待辦 |
 | 23-11 | MeowHQ 貓咪模型：同一隻貓可切換成貓／幼貓體型 | admin-moderation | 23-10 | P2 | #104 | — | 待辦 |
