@@ -1,6 +1,6 @@
 // 虛擬體驗元件管理｜貓咪（規格書 04 §1、§2.2、§2.4、§5）
 import "@testing-library/jest-dom/vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { CatModelView } from "@/lib/hq/cat-models/types";
 import { BaseSamples } from "./BaseSamples";
@@ -147,6 +147,24 @@ describe("製作glb工作區", () => {
     mockCat({ status: "ready" });
     renderStudio();
     expect(await screen.findByRole("link", { name: "回到貓咪頁看動作" })).toHaveAttribute("href", "/MeowHQ/assets/cats/cat_20261031_100000");
+  });
+  it("#123 將虛擬貓咪檔案和 GLB 工作區分成兩區，檔案區可收合", async () => {
+    mockCat({ status: "ready", gender: "female", ageMonths: 18, weightKg: 4.2, notes: "愛曬太陽" });
+    renderStudio();
+
+    const file = await screen.findByRole("region", { name: "虛擬貓咪檔案" });
+    expect(within(file).getByText("小橘")).toBeInTheDocument();
+    expect(within(file).getByText("母")).toBeInTheDocument();
+    expect(within(file).getByText("18 個月")).toBeInTheDocument();
+    expect(within(file).getByText("4.2 公斤")).toBeInTheDocument();
+    expect(within(file).getByRole("group", { name: "上傳照片" })).toBeInTheDocument();
+    expect(within(file).getByRole("group", { name: "AI 三視角" })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "製作 GLB 工作區" })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "產生選項" })).toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "任務進度" })).toBeNull();
+    expect(screen.getByRole("button", { name: "收合虛擬貓咪檔案" })).toHaveAttribute("aria-expanded", "true");
+    fireEvent.click(screen.getByRole("button", { name: "收合虛擬貓咪檔案" }));
+    expect(screen.getByRole("button", { name: "展開虛擬貓咪檔案" })).toHaveAttribute("aria-expanded", "false");
   });
 });
 

@@ -103,11 +103,37 @@ function Progress({ cat, now }: { cat: CatModelView; now: number }) {
   );
 }
 
-function Result({ cat, onDone, onStarted }: { cat: CatModelView; onDone: (message: string) => void; onStarted: () => void }) {
+function CatProfile({ cat }: { cat: CatModelView }) {
+  const gender = cat.gender === "male" ? "公" : cat.gender === "female" ? "母" : "未設定";
+  return (
+    <section className="hq-studio-profile" aria-label="貓咪目前資訊">
+      <h3>目前資訊</h3>
+      <dl className="hq-dl">
+        <dt>名稱</dt><dd>{cat.name}</dd>
+        <dt>性別</dt><dd>{gender}</dd>
+        <dt>年齡</dt><dd>{cat.ageMonths === null ? "未填寫" : `${cat.ageMonths} 個月`}</dd>
+        <dt>體重</dt><dd>{cat.weightKg === null ? "未填寫" : `${cat.weightKg} 公斤`}</dd>
+        {cat.notes && <><dt>備註</dt><dd>{cat.notes}</dd></>}
+      </dl>
+    </section>
+  );
+}
+
+function CatFile({ cat, onDone, onStarted }: { cat: CatModelView; onDone: (message: string) => void; onStarted: () => void }) {
   const [open, setOpen] = useState(false);
+  const [expanded, setExpanded] = useState(true);
   const [reason, setReason] = useState({ quick: "", extra: "" });
   const text = composeReason(reason.quick, reason.extra);
   const busy = isJobActive(cat.status);
+
+  useEffect(() => {
+    if (typeof window.matchMedia !== "function") return;
+    const mobile = window.matchMedia("(max-width: 767px)");
+    if (mobile.matches) setExpanded(false);
+    const onBreakpointChange = (event: MediaQueryListEvent) => setExpanded(!event.matches);
+    mobile.addEventListener?.("change", onBreakpointChange);
+    return () => mobile.removeEventListener?.("change", onBreakpointChange);
+  }, []);
 
   function close() { setOpen(false); setReason({ quick: "", extra: "" }); }
   async function restore() {
@@ -117,10 +143,17 @@ function Result({ cat, onDone, onStarted }: { cat: CatModelView; onDone: (messag
   }
 
   return (
-    <section className="hq-box" aria-label="貼圖結果">
-      <h3>貼圖結果</h3>
+    <section className="hq-box hq-studio-file" aria-label="虛擬貓咪檔案">
+      <div className="hq-studio-file-head">
+        <h2>虛擬貓咪檔案</h2>
+        <button type="button" className="hq-btn ghost hq-studio-file-toggle" aria-controls="studio-cat-file-content" aria-expanded={expanded}
+          onClick={() => setExpanded(value => !value)}>{expanded ? "收合虛擬貓咪檔案" : "展開虛擬貓咪檔案"}</button>
+      </div>
+      <div id="studio-cat-file-content" className="hq-studio-file-content" hidden={!expanded}>
+      <CatProfile cat={cat} />
       {/* #110：原始照片＋AI 三視角 */}
-      <AiViews cat={cat} onStarted={onStarted} />
+      <AiViews cat={cat} onStarted={onStarted} uploadedTitle="上傳照片" />
+      <h3>目前貼圖</h3>
       <div className="hq-imgs" role="group" aria-label="貼圖">
         {cat.hasAlbedo ? (
           <figure>
@@ -164,6 +197,7 @@ function Result({ cat, onDone, onStarted }: { cat: CatModelView; onDone: (messag
           <Link href={assetsHref(cat.id)} className="hq-btn">回到貓咪頁看動作</Link>
         </div>
       )}
+      </div>
     </section>
   );
 }
@@ -192,10 +226,13 @@ function Studio({ cat, reload }: { cat: CatModelView; reload: () => void }) {
         <h1 className="hq-h1">製作glb工作區</h1>
         <span className={`hq-tag${CAT_STATUS_TONE[cat.status] ? ` ${CAT_STATUS_TONE[cat.status]}` : ""}`}>{CAT_STATUS_LABELS[cat.status]}</span>
       </div>
-      <div className="hq-form">
-        <Options cat={cat} onDone={submitted} />
-        <Progress cat={cat} now={now} />
-        <Result cat={cat} onDone={message => { toast.show({ message }); reload(); }} onStarted={submitted} />
+      <div className="hq-studio-grid">
+        <CatFile cat={cat} onDone={message => { toast.show({ message }); reload(); }} onStarted={submitted} />
+        <section className="hq-studio-workspace" aria-label="製作 GLB 工作區">
+          <h2>製作 GLB 工作區</h2>
+          <Options cat={cat} onDone={submitted} />
+          <Progress cat={cat} now={now} />
+        </section>
       </div>
     </>
   );

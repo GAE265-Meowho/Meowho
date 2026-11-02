@@ -168,14 +168,20 @@ function StepUpload({ settings, onSettings, onCreated }: { settings: AiSettings;
 
       <section className="hq-box hq-step" aria-label="基本資料">
         <h3><span className="hq-stepno">2</span>基本資料</h3>
-        <label className="hq-label" htmlFor="cat-name">名稱（必填）</label>
-        <input id="cat-name" className="hq-input" maxLength={40} value={name} onChange={e => setName(e.target.value)} />
-        <label className="hq-label" htmlFor="cat-gender">性別</label>
-        <select id="cat-gender" aria-label="性別" className="hq-input" value={gender} onChange={e => setGender(e.target.value)}>
-          <option value="">請選擇</option>
-          <option value="male">公</option>
-          <option value="female">母</option>
-        </select>
+        <div className="hq-cat-identity-row" role="group" aria-label="名稱與性別">
+          <div className="hq-field">
+            <label className="hq-label" htmlFor="cat-name">名稱（必填）</label>
+            <input id="cat-name" className="hq-input" maxLength={40} value={name} onChange={e => setName(e.target.value)} />
+          </div>
+          <div className="hq-field">
+            <label className="hq-label" htmlFor="cat-gender">性別</label>
+            <select id="cat-gender" aria-label="性別" className="hq-input" value={gender} onChange={e => setGender(e.target.value)}>
+              <option value="">請選擇</option>
+              <option value="male">公</option>
+              <option value="female">母</option>
+            </select>
+          </div>
+        </div>
         <div className="hq-row hq-row-2">
           <div>
             <label className="hq-label" htmlFor="cat-age">年齡（月，選填）</label>
