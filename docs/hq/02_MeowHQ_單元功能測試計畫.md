@@ -53,7 +53,7 @@
 | UT-HQ-13 | T-HQ-05 | 未登入存取 `/MeowHQ/users` | 顯示 MeowHQ 登入頁；登入後回到 `/MeowHQ/users` |
 | UT-HQ-14 | T-HQ-05 | X 登入後存取 `/MeowHQ` | 找不到頁面（不透露後台存在） |
 | UT-HQ-15 | T-HQ-05 | 存取舊路徑 `/mh-console-8k2p` | 找不到頁面 |
-| UT-HQ-16 | T-HQ-05 | MeowHQ 頁面 metadata | 標題「MeowHQ｜喵星總部」；robots＝noindex, nofollow |
+| UT-HQ-16 | T-HQ-05 | MeowHQ 頁面 metadata | 標題「MeoWho｜喵戶總部」（#116）；robots＝noindex, nofollow |
 
 ### 4.3 處置操作（停權、撤銷、下架、黑名單）
 | ID | 任務 | 輸入／條件 | 預期 |

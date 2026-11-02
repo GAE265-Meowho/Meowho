@@ -38,7 +38,7 @@ it("UT-HQ-15 舊路徑 /mh-console-8k2p 已移除（找不到頁面）", () => {
 });
 
 it("UT-HQ-16 metadata：標題與 noindex", () => {
-  expect(metadata.title).toBe("MeowHQ｜喵星總部");
+  expect(metadata.title).toBe("MeoWho｜喵戶總部"); // #116 Tina 改名
   expect(metadata.robots).toMatchObject({ index: false, follow: false });
 });
 
