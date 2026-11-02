@@ -110,7 +110,7 @@ export default function OnboardingPage() {
     <>
       <SiteHeader />
       <main className={s.page}>
-        <h1 className={s.title}>{phase === "cat" || phase === "choose" ? "新增貓咪" : "建立喵戶"}</h1>
+        <h1 className={s.title}>{(phase === "cat" && home?.role !== "cat_owner") || phase === "choose" ? "新增貓咪" : "建立喵戶"}</h1>
         {!configured && <p className={s.warn}>示範模式：還沒連接資料庫，可以完整操作，但資料不會儲存。</p>}
         {body}
       </main>
