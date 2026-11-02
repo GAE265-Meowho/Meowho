@@ -17,7 +17,12 @@ export type Db = { from(table: string): any };
 /* eslint-enable @typescript-eslint/no-explicit-any */
 export interface Deps { sb: Db; userId: string; store: MediaStore | null; now?: Date }
 
-interface Row { id: string; name: string; meta: unknown; updated_at: string }
+interface Row {
+  id: string; name: string; meta: unknown; updated_at: string;
+  created_by?: string | null;
+  /** meow_profiles 只有本人或有「用戶權限管理」的管理員讀得到（同 #102 貓咪列表） */
+  creator?: { display_name: string | null; email: string | null } | null;
+}
 
 export type Fail<C extends string> = { ok: false; code: C };
 type Common = "permission_denied" | "not_found" | "busy" | "db_not_ready";
@@ -33,14 +38,19 @@ export function dbFail(error: { code?: string; message?: string }, where: string
 }
 
 export async function listHouses({ sb }: Deps): Promise<{ ok: true; houses: FloorplanSummary[] } | Fail<"db_not_ready" | "permission_denied">> {
-  const { data, error } = await sb.from(TABLE).select("id,name,meta,updated_at").eq("source", "floorplan").order("updated_at", { ascending: false }).limit(50);
+  const { data, error } = await sb.from(TABLE).select("id,name,meta,updated_at,created_by,creator:meow_profiles!created_by(display_name,email)").eq("source", "floorplan").order("updated_at", { ascending: false }).limit(50);
   if (error) return { ok: false, code: dbFail(error, "list") };
-  return { ok: true, houses: (data as Row[]).map(r => ({ id: r.id, name: r.name, roomCount: readMeta(r.meta).rooms.length, updatedAt: r.updated_at })) };
+  return { ok: true, houses: (data as Row[]).map(r => ({ id: r.id, name: r.name, roomCount: readMeta(r.meta).rooms.length, updatedAt: r.updated_at,
+    createdBy: r.created_by ? r.creator?.display_name || r.creator?.email || null : "系統",
+  })) };
 }
 
-export async function createHouse(deps: Deps, name: unknown): Promise<{ ok: true; id: string } | Fail<"name_required" | "permission_denied" | "db_not_ready">> {
+export async function createHouse(deps: Deps, name: unknown): Promise<{ ok: true; id: string } | Fail<"name_required" | "name_taken" | "permission_denied" | "db_not_ready">> {
   const clean = cleanName(name);
   if (!clean) return { ok: false, code: "name_required" };
+  // 戶名不重複：也擋住網路慢時連按好幾次建立出同名的戶
+  const { data: same } = await deps.sb.from(TABLE).select("id").eq("source", "floorplan").eq("name", clean).limit(1);
+  if ((same as unknown[] | null)?.length) return { ok: false, code: "name_taken" };
   const now = deps.now ?? new Date();
   const base = newRoomId(now);
   const meta: FloorplanMeta = { version: 1, next: 1, rooms: [] };

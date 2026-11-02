@@ -69,6 +69,9 @@ describe("一戶（Q11：一筆＝一戶）", () => {
     expect(await createHouse(deps(), " ")).toEqual({ ok: false, code: "name_required" });
     expect(await createHouse(deps(), "小美家")).toEqual({ ok: true, id: H });
     expect(await createHouse(deps(), "阿明家")).toEqual({ ok: true, id: `${H}_2` });
+    // 連按建立：同名擋下，不會多出一戶
+    expect(await createHouse(deps(), " 小美家 ")).toEqual({ ok: false, code: "name_taken" });
+    expect(rows).toHaveLength(2);
     expect(rows[0]).toMatchObject({ source: "floorplan", status: "ready", created_by: "u-1", meta: { version: 1, next: 1, rooms: [] } });
   });
   it("沒有權限（RLS 擋下）：permission_denied", async () => {
@@ -80,7 +83,8 @@ describe("一戶（Q11：一筆＝一戶）", () => {
     rows.push({ id: "room_20261101_100000", name: "影片房", source: "video", meta: {}, updated_at: "x" });
     await createHouse(deps(), "小美家");
     await upload();
-    expect(await listHouses(deps())).toEqual({ ok: true, houses: [{ id: H, name: "小美家", roomCount: 1, updatedAt: NOW.toISOString() }] });
+    rows[1].creator = { display_name: "Tina", email: "t@x" };
+    expect(await listHouses(deps())).toEqual({ ok: true, houses: [{ id: H, name: "小美家", roomCount: 1, updatedAt: NOW.toISOString(), createdBy: "Tina" }] });
     expect(await getHouse(deps(), "room_20261101_100000")).toBeNull();
   });
 });

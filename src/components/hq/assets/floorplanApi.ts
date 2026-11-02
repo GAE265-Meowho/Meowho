@@ -7,6 +7,7 @@ export const FLOORPLAN_API = "/api/hq/floorplans";
 
 export const FLOORPLAN_ERRORS: Record<string, string> = {
   name_required: "請填名稱（40 字以內）",
+  name_taken: "已經有同名的一戶，請換個名稱",
   plan_invalid: "請選 JPG 或 PNG 平面圖",
   plan_too_large: `平面圖不能超過 ${MAX_PLAN_BYTES / 1024 / 1024} MB`,
   too_many_rooms: `一戶最多 ${MAX_ROOMS} 間`,
