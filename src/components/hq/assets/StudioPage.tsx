@@ -185,7 +185,10 @@ function Studio({ cat, reload }: { cat: CatModelView; reload: () => void }) {
   return (
     <>
       <div className="hq-pagehead">
-        <Link href={assetsHref(cat.id)} className="hq-back">← {cat.name}</Link>
+        {/* #118：還沒有 3D 時貓咪頁會轉回這裡，所以返回列表 */}
+        {cat.hasAlbedo
+          ? <Link href={assetsHref(cat.id)} className="hq-back">← {cat.name}</Link>
+          : <Link href={ASSETS_CATS_HREF} className="hq-back">← 虛擬體驗元件管理</Link>}
         <h1 className="hq-h1">製作glb工作區</h1>
         <span className={`hq-tag${CAT_STATUS_TONE[cat.status] ? ` ${CAT_STATUS_TONE[cat.status]}` : ""}`}>{CAT_STATUS_LABELS[cat.status]}</span>
       </div>

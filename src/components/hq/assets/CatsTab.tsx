@@ -3,14 +3,14 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo } from "react";
-import { CLIP_LIBRARY } from "@/lib/hq/cat-models/clips";
-import { formatCatTime, type CatModelView } from "@/lib/hq/cat-models/types";
+import { catProgress, formatCatTime, type CatModelView } from "@/lib/hq/cat-models/types";
 import { paginate, type ListQuery } from "@/lib/hq/listing";
 import { HqListBody, HqPager, HqTable, HqToolbar, type Column } from "../list/HqList";
-import { assetsHref, BASES_HREF, NEW_CAT_HREF } from "./hrefs";
+import { assetsHref, BASES_HREF, NEW_CAT_HREF, studioHref } from "./hrefs";
 import { catFileUrl, useCatList } from "./useCatModels";
 
-const READY_CLIPS = CLIP_LIBRARY.filter(c => c.status === "ready").length;
+/** #118：還沒有 3D 的貓直接進製作glb工作區，有 3D 的進貓咪頁 */
+export const catHref = (c: CatModelView) => (c.hasAlbedo ? assetsHref(c.id) : studioHref(c.id));
 
 export function filterCats(cats: readonly CatModelView[], q: { q?: string; status?: string }): CatModelView[] {
   const text = q.q?.trim().toLowerCase();
@@ -40,8 +40,9 @@ export function CatsTab({ query, update }: { query: ListQuery & { page: number }
         <img className="hq-thumb" src={catFileUrl(c.id, "photo")} alt="" width={44} height={44} loading="lazy" />
       ),
     },
-    { key: "name", label: "名稱", render: c => <Link href={assetsHref(c.id)} onClick={e => e.stopPropagation()}>{c.name}</Link> },
-    { key: "clips", label: "動作數", render: () => `${READY_CLIPS} / ${CLIP_LIBRARY.length}` },
+    { key: "name", label: "名稱", render: c => <Link href={catHref(c)} onClick={e => e.stopPropagation()}>{c.name}</Link> },
+    // #118：原「動作數 3/9」是骨架共用的動作數、每隻都一樣，改成這隻貓的三步驟進度
+    { key: "progress", label: "進度", render: c => { const p = catProgress(c); return <span className={`hq-tag ${p.tone}`}>{p.text}</span>; } },
     { key: "creator", label: "建立者", render: c => c.createdBy ?? "—" },
     { key: "updated", label: "更新時間", render: c => formatCatTime(c.updatedAt) },
     { key: "notes", label: "備註說明", render: c => c.notes || "—" },
@@ -72,7 +73,7 @@ export function CatsTab({ query, update }: { query: ListQuery & { page: number }
         empty={{ message: "還沒有貓咪模型。按上方「新增貓咪模型」上傳照片開始。", actionLabel: "重新整理", onAction: reload }}
         onClear={() => update({ q: undefined, status: undefined })}
       >
-        <HqTable rows={page.rows} columns={columns} rowKey={c => c.id} onSelect={c => router.push(assetsHref(c.id))} />
+        <HqTable rows={page.rows} columns={columns} rowKey={c => c.id} onSelect={c => router.push(catHref(c))} />
         <HqPager page={page.page} pageCount={page.pageCount} total={page.total} onPage={p => update({ page: p })} />
       </HqListBody>
     </>

@@ -20,6 +20,11 @@ const ERRORS: Record<string, string> = {
 };
 
 const KIND = { left: "gen_left", front: "gen_front", back: "gen_back" } as const;
+/** 新增貓咪時選填的其他角度照片（存成 extra_photos 的 front／back） */
+export const EXTRA_SLOTS = [
+  { view: "front", kind: "photo_front", label: "其他角度照片 2" },
+  { view: "back", kind: "photo_back", label: "其他角度照片 3" },
+] as const;
 const QUALITY_LABELS: Record<AiQuality, string> = { low: "低", medium: "中", high: "高" };
 /** 估價用：每張參考照片＋指示約 1,300 輸入 token（2026-11-02 實測 1,225～1,288） */
 const EST_INPUT_TOKENS = 1300;
@@ -188,15 +193,31 @@ export function AiViews({ cat, onStarted, settings, onSettings }: {
   return (
     <div className="hq-aiviews">
       <Analysis cat={cat} />
-      <div className="hq-ai-grid" role="group" aria-label="照片">
+      {/* #118：上傳的照片（原始＋其他角度 2、3）與 AI 三視角分兩區 */}
+      <h4 className="hq-ai-sub">上傳的照片</h4>
+      <div className="hq-ai-grid" role="group" aria-label="上傳的照片">
         <figure className="hq-ai-card" aria-label="原始照片">
           <div className="hq-ai-card-head"><span>原始照片</span><span className="hq-tag mute">原始</span></div>
           <div className="hq-ai-frame">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={catFileUrl(cat.id, "photo")} alt={`${cat.name} 的原始照片`} />
           </div>
-          <p className="hq-hint">使用者上傳的照片，原樣保留，不送 AI 修改。</p>
+          <p className="hq-hint">原樣保留，不送 AI 修改。</p>
         </figure>
+        {EXTRA_SLOTS.filter(x => cat.extraPhotos.includes(x.view)).map(x => (
+          <figure key={x.view} className="hq-ai-card" aria-label={x.label}>
+            <div className="hq-ai-card-head"><span>{x.label}</span><span className="hq-tag mute">參考</span></div>
+            <div className="hq-ai-frame">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={catFileUrl(cat.id, x.kind)} alt={x.label} />
+            </div>
+            <p className="hq-hint">產生 AI 三視角時當參考圖。</p>
+          </figure>
+        ))}
+      </div>
+      {!cat.extraPhotos.length && <p className="hq-hint">沒有上傳其他角度照片。</p>}
+      <h4 className="hq-ai-sub">AI 三視角</h4>
+      <div className="hq-ai-grid" role="group" aria-label="AI 三視角">
         {GEN_VIEWS.map(v => <Card key={v} cat={cat} view={v} busy={running || sending} onRegenerate={view => start([view])} />)}
       </div>
       {nothingYet && (

@@ -289,3 +289,14 @@ export function profileNumber(v: unknown): number | null {
   return Number.isFinite(x) && x >= 0 ? x : null;
 }
 export const PHOTO_MIME = ["image/jpeg", "image/png", "image/webp"] as const;
+
+/** 列表「進度」欄（#118）：1 上傳照片 → 2 AI 三視角 → 3 產生 3D。tone 對應 .hq-tag 的樣式 */
+export interface CatProgress { step: 1 | 2 | 3; text: string; tone: "" | "mute" | "warn" | "danger" }
+export function catProgress(c: { hasAlbedo: boolean; status: CatModelStatus; aiViews: readonly string[]; aiRunning: readonly string[] }): CatProgress {
+  if (c.status === "queued" || c.status === "running") return { step: 3, text: "3/3 產生 3D・產生中", tone: "warn" };
+  if (c.status === "failed") return { step: 3, text: "3/3 產生 3D・失敗", tone: "danger" };
+  if (c.hasAlbedo) return { step: 3, text: "完成", tone: "" };
+  if (c.aiRunning.length) return { step: 2, text: "2/3 AI 三視角・產生中", tone: "warn" };
+  if (c.aiViews.length) return { step: 2, text: "2/3 AI 三視角・完成", tone: "mute" };
+  return { step: 1, text: "1/3 上傳照片", tone: "mute" };
+}

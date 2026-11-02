@@ -17,12 +17,14 @@ vi.mock("./CatPreview", () => ({
     return <div data-testid="fake-preview" />;
   },
 }));
+const nav = vi.hoisted(() => ({ replace: vi.fn() }));
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
+  useRouter: () => ({ push: vi.fn(), replace: nav.replace }),
   useSearchParams: () => new URLSearchParams(),
 }));
 vi.mock("../HqStates", async orig => ({ ...(await orig<typeof import("../HqStates")>()), useOnline: () => true }));
 
+const current = vi.hoisted(() => ({ over: {} as Record<string, unknown> }));
 const cat: CatModelView = {
   id: "cat_20261031_100000", name: "小橘", ownerType: "template", status: "ready", ageMonths: null, weightKg: null, notes: "",
   photoView: "front", fillPattern: "none", hasAlbedo: true, hasPrevAlbedo: false, albedoVersion: null, body: "adult", jobStatus: null, jobQueuedAt: null, jobStartedAt: null, jobSeconds: null, jobStep: null, jobError: null,
@@ -30,10 +32,10 @@ const cat: CatModelView = {
 };
 vi.mock("./useCatModels", async orig => ({
   ...(await orig<typeof import("./useCatModels")>()),
-  useCat: () => ({ value: { state: "ready", data: cat }, reload: vi.fn() }),
+  useCat: () => ({ value: { state: "ready", data: { ...cat, ...current.over } }, reload: vi.fn() }),
 }));
 
-beforeEach(() => { preview.mounts = 0; preview.last = {}; });
+beforeEach(() => { preview.mounts = 0; preview.last = {}; current.over = {}; nav.replace.mockReset(); });
 afterEach(() => cleanup());
 
 const groupTitles = (panel: HTMLElement) =>
@@ -88,5 +90,18 @@ describe("貓咪頁工作區（#96）", () => {
     expect(screen.queryByRole("region", { name: "上架管理" })).toBeNull();
     expect(screen.queryByRole("button", { name: /上架|下架/ })).toBeNull();
     await waitFor(() => expect(preview.mounts).toBe(1));
+  });
+  it("#118 還沒製作 glb：直接轉到製作glb工作區，不載入示範貓", async () => {
+    current.over = { hasAlbedo: false, status: "draft" };
+    render(<HqToastProvider><CatPage id={cat.id} /></HqToastProvider>);
+    await waitFor(() => expect(nav.replace).toHaveBeenCalledWith(`/MeowHQ/assets/cats/${cat.id}/studio`));
+    expect(screen.queryByTestId("fake-preview")).toBeNull();
+  });
+  it("#118 資訊區顯示其他角度照片", async () => {
+    current.over = { extraPhotos: ["front", "back"] };
+    render(<HqToastProvider><CatPage id={cat.id} /></HqToastProvider>);
+    const panel = screen.getByRole("region", { name: "參數" });
+    expect(within(panel).getByAltText("其他角度照片 2")).toHaveAttribute("src", `/api/hq/cat-models/${cat.id}/file/photo_front`);
+    expect(within(panel).getByAltText("其他角度照片 3")).toHaveAttribute("src", `/api/hq/cat-models/${cat.id}/file/photo_back`);
   });
 });

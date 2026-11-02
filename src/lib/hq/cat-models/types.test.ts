@@ -107,3 +107,21 @@ describe("formatCatTime（#102）", () => {
   it("帶時區的時間轉台北時間，顯示到時、分", () => expect(formatCatTime("2026-11-01T14:44:54Z")).toBe("2026/11/01 22:44"));
   it("沒有時區的本機時間照原樣顯示", () => expect(formatCatTime("2026-10-31T15:39:12")).toBe("2026/10/31 15:39"));
 });
+
+describe("catProgress（#118 列表進度欄）", () => {
+  const base = { hasAlbedo: false, status: "draft" as const, aiViews: [] as string[], aiRunning: [] as string[] };
+  it("依三步驟回傳第幾步與狀態", async () => {
+    const { catProgress } = await import("./types");
+    expect(catProgress({ ...base })).toEqual({ step: 1, text: "1/3 上傳照片", tone: "mute" });
+    expect(catProgress({ ...base, aiRunning: ["left"] })).toEqual({ step: 2, text: "2/3 AI 三視角・產生中", tone: "warn" });
+    expect(catProgress({ ...base, aiViews: ["left", "front", "back"] })).toEqual({ step: 2, text: "2/3 AI 三視角・完成", tone: "mute" });
+    expect(catProgress({ ...base, status: "queued" })).toEqual({ step: 3, text: "3/3 產生 3D・產生中", tone: "warn" });
+    expect(catProgress({ ...base, status: "running" })).toEqual({ step: 3, text: "3/3 產生 3D・產生中", tone: "warn" });
+    expect(catProgress({ ...base, status: "failed" })).toEqual({ step: 3, text: "3/3 產生 3D・失敗", tone: "danger" });
+    expect(catProgress({ ...base, hasAlbedo: true, status: "ready" })).toEqual({ step: 3, text: "完成", tone: "" });
+  });
+  it("有貼圖但又在重新產生：顯示產生中", async () => {
+    const { catProgress } = await import("./types");
+    expect(catProgress({ ...base, hasAlbedo: true, status: "running" }).text).toBe("3/3 產生 3D・產生中");
+  });
+});
