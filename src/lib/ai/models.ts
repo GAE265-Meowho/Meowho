@@ -2,13 +2,14 @@ import "server-only";
 // 模型工廠：所有 LLM 都從這裡取得，換供應商只改環境變數，不改業務程式。
 // 各供應商套件用動態 import，只載入實際用到的那一家。
 import type { BaseChatModel } from "@langchain/core/language_models/chat_models";
-import { describe, isAzureV1, isConfigured, resolveModel, resolveProvider, type Task } from "./config";
+import { describe, isAzureV1, isConfigured, resolveModel, resolveProvider, withProvider, type Provider, type Task } from "./config";
 
-export const isAIConfigured = () => isConfigured(process.env);
+/** provider：指定這次固定用哪家（不指定＝全站 AI_PROVIDER） */
+export const isAIConfigured = (provider?: Provider) => isConfigured(withProvider(process.env, provider));
 export const aiLabel = () => describe(process.env);
 
-export async function getChatModel(task: Task, opts: { temperature?: number } = {}): Promise<BaseChatModel> {
-  const env = process.env;
+export async function getChatModel(task: Task, opts: { temperature?: number; provider?: Provider } = {}): Promise<BaseChatModel> {
+  const env = withProvider(process.env, opts.provider);
   const provider = resolveProvider(env);
   if (!provider || !isConfigured(env)) throw new Error("AI 尚未設定");
   const model = resolveModel(env, provider, task);

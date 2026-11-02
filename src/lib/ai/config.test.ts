@@ -1,5 +1,5 @@
 import { describe as d, it, expect } from "vitest";
-import { describe, isAzureV1, isConfigured, resolveModel, resolveProvider } from "./config";
+import { describe, isAzureV1, withProvider, isConfigured, resolveModel, resolveProvider } from "./config";
 
 d("AI 供應商設定", () => {
   it("沒有任何金鑰 → 未設定", () => {
@@ -46,4 +46,12 @@ d("AI 供應商設定", () => {
     expect(isAzureV1(undefined)).toBe(false);
   });
   it("不認得的供應商 → 未設定", () => expect(isConfigured({ AI_PROVIDER: "foo", GEMINI_API_KEY: "x" })).toBe(false));
+  it("withProvider：模組可固定用 Azure，不受全站 AI_PROVIDER 影響", () => {
+    const env = { AI_PROVIDER: "gemini", GEMINI_API_KEY: "g", AZURE_OPENAI_API_KEY: "k", AZURE_OPENAI_ENDPOINT: "https://r.openai.azure.com/openai/v1", AZURE_OPENAI_CHAT_DEPLOYMENT_NAME: "gpt-6-luna" };
+    const az = withProvider(env, "azure");
+    expect(resolveProvider(az)).toBe("azure");
+    expect(resolveModel(az, "azure", "vision")).toBe("gpt-6-luna");
+    expect(isConfigured(withProvider({ ...env, AZURE_OPENAI_CHAT_DEPLOYMENT_NAME: "" }, "azure"))).toBe(false);
+    expect(withProvider(env)).toBe(env);
+  });
 });

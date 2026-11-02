@@ -37,6 +37,11 @@ export function azureDeployment(env: Env): string {
   return (env.AZURE_OPENAI_CHAT_DEPLOYMENT_NAME ?? env.AZURE_OPENAI_DEPLOYMENT ?? "").trim();
 }
 
+/** 指定某個模組固定用哪家（例如 MeowHQ 貓咪模型固定用 Azure），不受全站 AI_PROVIDER 影響 */
+export function withProvider(env: Env, provider?: Provider): Env {
+  return provider ? { ...env, AI_PROVIDER: provider } : env;
+}
+
 /** 供應商需要的環境變數都齊全才算可用 */
 export function isConfigured(env: Env): boolean {
   const p = resolveProvider(env);
