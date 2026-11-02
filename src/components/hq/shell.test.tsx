@@ -22,14 +22,15 @@ describe("UT-HQ-13 登入頁", () => {
     fireEvent.click(screen.getByRole("button", { name: /Google/ }));
     expect(login).toHaveBeenCalledWith("/MeowHQ/users");
   });
-  it("#116 依 Stitch：品牌區 MeoWho｜喵戶總部與標語、卡片標題「進入總部」，沒有不存在的政策連結", () => {
+  it("#116 依 Stitch：左上角喵戶 logo＋「總部」與標語、卡片標題「進入總部」，沒有不存在的政策連結", () => {
     render(<HqLoginPage onLogin={() => {}} next="/MeowHQ" />);
-    expect(screen.getByText("MeoWho｜喵戶總部")).toBeInTheDocument();
+    expect(screen.getByText("總部")).toBeInTheDocument();
+    expect(screen.getAllByRole("img", { name: "Meowho喵戶" })).toHaveLength(2); // 左上角圓形 logo＋卡片字標
     expect(screen.getByText("次世代貓星生態系")).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 2, name: /讓每隻貓都找到.*好的人類/ })).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 1, name: "進入總部" })).toBeInTheDocument();
-    expect(screen.getByRole("img", { name: "Meowho喵戶" })).toBeInTheDocument();
     expect(screen.queryByText(/隱私權政策|安全規範/)).toBeNull();
+    expect(document.querySelector(".hq-login-mark")).toHaveAttribute("src", "/logos/logo-round.jpg"); // 左上角用喵戶圓形 logo
   });
 });
 

@@ -5,17 +5,8 @@ import { LOGOS } from "@/lib/mock-data";
 /** 登入頁卡片用網站設定的「橫式字標款」（代號 line） */
 const WORDMARK = LOGOS.find(l => l.id === "line")!;
 
-/** 品牌圖示：圓角方塊裡的貓臉（線條，非真實照片） */
-function BrandMark() {
-  return (
-    <span className="hq-login-mark" aria-hidden="true">
-      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M5 9l1-5 4 3h4l4-3 1 5c1 1.3 1.5 2.8 1.5 4.3C20.5 17.6 16.7 20 12 20s-8.5-2.4-8.5-6.7C3.5 11.8 4 10.3 5 9z" />
-        <path d="M9.5 13.5h.01M14.5 13.5h.01M10.5 16c.9.7 2.1.7 3 0" />
-      </svg>
-    </span>
-  );
-}
+/** 左上角品牌標誌：網站內建的「圓形花貓款」（代號 round；#116 Tina 指定用喵戶 logo） */
+const ROUND = LOGOS.find(l => l.id === "round")!;
 
 const GoogleG = () => (
   <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
@@ -28,7 +19,12 @@ export function HqLoginPage({ onLogin, next, configured = true }: { onLogin: (ne
   return (
     <div className="hq-login">
       <aside className="hq-login-brand">
-        <div className="hq-login-name"><BrandMark /><span>MeoWho｜喵戶總部</span></div>
+        <div className="hq-login-name">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img className="hq-login-mark" src={ROUND.src} alt="Meowho喵戶" width={56} height={56} />
+          {/* Tina 2026-11-02：喵戶 logo 後面只留「總部」 */}
+          <span>總部</span>
+        </div>
         <div className="hq-login-hero">
           <span className="hq-login-chip">次世代貓星生態系</span>
           <h2>讓每隻貓都找到<br /><strong>好的人類</strong></h2>
