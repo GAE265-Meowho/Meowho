@@ -307,6 +307,11 @@ export function generatedState(g: GeneratedProfile | undefined, now = Date.now()
   };
 }
 
+/** #135：三張 AI 照片都產生成功（沒有產生中、沒有失敗）才能產生紋理貼圖；前端停用按鈕、API 也擋 */
+export function viewsReady(c: Pick<CatModelView, "aiViews" | "aiRunning" | "aiErrors">): boolean {
+  return c.aiRunning.length === 0 && GEN_VIEWS.every(v => c.aiViews.includes(v) && !c.aiErrors[v]);
+}
+
 /** 開始產生：標記哪些角度產生中，清掉它們上次的錯誤，記下這次的畫質與尺寸 */
 export function startGenerated(
   g: GeneratedProfile | undefined, views: GenView[], now = new Date(), settings: { quality?: AiQuality; size?: AiSize } = {},

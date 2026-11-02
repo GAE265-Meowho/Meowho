@@ -11,7 +11,7 @@ import { analyzeAge } from "./ai-analyze";
 import { viewSettings, type StartViewsOptions } from "./view-settings";
 import { SUPABASE_URL } from "@/lib/supabase/config";
 import {
-  baseFileName, bodyFor, EXTRA_VIEWS, finishGenerated, generatedState, GEN_VIEWS, genPhotoName, isGenView, startGenerated, type GeneratedProfile, type GenView, isExtraView, isJobActive, normalizeStatus, ownExtraPhotoPath, type ExtraView, newCatId, ownPhotoPath, photoExt, profileNumber,
+  baseFileName, bodyFor, EXTRA_VIEWS, finishGenerated, generatedState, GEN_VIEWS, genPhotoName, isGenView, startGenerated, type GeneratedProfile, type GenView, isExtraView, isJobActive, normalizeStatus, viewsReady, ownExtraPhotoPath, type ExtraView, newCatId, ownPhotoPath, photoExt, profileNumber,
   type BodyType, type CatGender, type CatModelStatus, type CatModelView, type FillPattern, type JobStatus, type PhotoView,
   CAT_ID_RE, MAX_PHOTO_BYTES, discardPending, textureInfo,
 } from "./types";
@@ -237,7 +237,7 @@ async function audit(sb: NonNullable<Awaited<ReturnType<typeof getServerSupabase
 
 /** 送出生成任務：新增一筆 queued 的任務，等本機 paint_worker.py --supabase 領取 */
 export async function sbQueuePaint(id: string, view: unknown, fill: unknown): Promise<
-  { ok: true } | { ok: false; code: "not_found" | "invalid_option" | "busy" | "permission_denied" }
+  { ok: true } | { ok: false; code: "not_found" | "invalid_option" | "busy" | "permission_denied" | "views_required" }
 > {
   const v = (["front", "left", "right"] as const).find(x => x === view);
   const f = (["none", "tabby"] as const).find(x => x === fill);
@@ -247,6 +247,7 @@ export async function sbQueuePaint(id: string, view: unknown, fill: unknown): Pr
   const cat = await sbGetCat(id);
   if (!cat) return { ok: false, code: "not_found" };
   if (isJobActive(cat.status)) return { ok: false, code: "busy" };
+  if (!viewsReady(cat)) return { ok: false, code: "views_required" };
   // 有 AI 左側面照（#110）：用它上色、角度固定 left。worker 讀 photo_path 並快取去背圖，
   // 所以把 photo_path 換成 AI 照片、原始照片另存、清掉舊的去背快取（不用改 paint_worker.py）
   await keepConfirmedTexture(user.sb, id);

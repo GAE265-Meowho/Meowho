@@ -156,9 +156,15 @@ describe("新增、產生、換版", () => {
     const big = new Request("http://x/api", { method: "POST", headers: { "content-length": String(50 * 1024 * 1024) }, body: "{}" });
     expect((await postCreate(big)).status).toBe(413);
   });
-  it("產生：選項不合法 400、成功 200、已排隊 409", async () => {
+  it("產生：選項不合法 400、沒有 AI 三視角 409（#135）、成功 200、已排隊 409", async () => {
     enable();
     expect((await postPaint(req({ view: "top", fill: "none" }), ctx({ id: ID }))).status).toBe(400);
+    const noViews = await postPaint(req({ view: "right", fill: "tabby" }), ctx({ id: ID }));
+    expect(noViews.status).toBe(409);
+    expect(await noViews.json()).toEqual({ error: "views_required" });
+    const views = { left: "gen_left.png", front: "gen_front.png", back: "gen_back.png" };
+    await fs.writeFile(path.join(root, "adoption_cats", ID, "profile.json"),
+      JSON.stringify({ id: ID, name: "小橘", photo: "photo.jpg", created_at: "2026-10-31T10:00:00", generated: { views } }));
     expect((await postPaint(req({ view: "right", fill: "tabby" }), ctx({ id: ID }))).status).toBe(200);
     expect((await postPaint(req({ view: "right", fill: "tabby" }), ctx({ id: ID }))).status).toBe(409);
     expect((await postPaint(req({ view: "front", fill: "none" }), ctx({ id: "cat_20261031_999999" }))).status).toBe(404);

@@ -9,11 +9,13 @@ import { createCat, getCat, listCats, localRoot, queuePaint, readCatFile, restor
 let root: string;
 const png = Buffer.from([0x89, 0x50, 0x4e, 0x47]);
 
-async function addCat(id: string, opts: { name?: string; job?: object; albedo?: boolean; prev?: boolean; photo?: string } = {}) {
+/** views：三張 AI 照片都已產生（#135 產生紋理貼圖的前置條件） */
+async function addCat(id: string, opts: { name?: string; job?: object; albedo?: boolean; prev?: boolean; photo?: string; views?: boolean } = {}) {
   const dir = path.join(root, "adoption_cats", id);
   await fs.mkdir(dir, { recursive: true });
   const photo = opts.photo ?? "photo.jpg";
-  await fs.writeFile(path.join(dir, "profile.json"), JSON.stringify({ id, name: opts.name ?? "小橘", photo, created_at: "2026-10-31T10:00:00", age_months: 12, weight_kg: 4.2 }));
+  const generated = opts.views ? { generated: { views: { left: "gen_left.png", front: "gen_front.png", back: "gen_back.png" } } } : {};
+  await fs.writeFile(path.join(dir, "profile.json"), JSON.stringify({ id, name: opts.name ?? "小橘", photo, created_at: "2026-10-31T10:00:00", age_months: 12, weight_kg: 4.2, ...generated }));
   await fs.writeFile(path.join(dir, "photo.jpg"), png);
   if (opts.job) await fs.writeFile(path.join(dir, "paint_job.json"), JSON.stringify(opts.job));
   if (opts.albedo) await fs.writeFile(path.join(dir, "paint_albedo.png"), png);
@@ -113,10 +115,12 @@ describe("createCat（沿用 Cat Studio 的 create_cat）", () => {
   });
   it("AI 三視角（#110）：產生後存 gen_<角度>.png 並記狀態；送出產生時改用 AI 左側面照、原始另存、清去背快取", async () => {
     const { id } = (await createCat(root, { name: "A", photo: dataUrl("image/png", png) }, NOW)) as { id: string };
-    const r = await startViews(root, id, ["left", "front"], { makeEdit: () => async () => ({ png: new Uint8Array([7]), usage: null }), analyze: async () => null });
-    expect((await getCat(root, id))?.aiRunning).toEqual(["left", "front"]);
+    const r = await startViews(root, id, ["left", "front", "back"], { makeEdit: () => async () => ({ png: new Uint8Array([7]), usage: null }), analyze: async () => null });
+    expect((await getCat(root, id))?.aiRunning).toEqual(["left", "front", "back"]);
+    // #135：三視角還沒完成不能送出產生
+    expect(await queuePaint(root, id, "front", "none")).toEqual({ ok: false, code: "views_required" });
     await (r as { run: () => Promise<void> }).run();
-    expect(await getCat(root, id)).toMatchObject({ aiViews: ["left", "front"], aiRunning: [] });
+    expect(await getCat(root, id)).toMatchObject({ aiViews: ["left", "front", "back"], aiRunning: [] });
     expect(await readCatFile(root, id, "gen_left")).toMatchObject({ type: "image/png" });
     await fs.writeFile(catPath(id, "photo_nobg.png"), png);
     expect(await queuePaint(root, id, "front", "none")).toEqual({ ok: true });
@@ -149,21 +153,26 @@ describe("createCat（沿用 Cat Studio 的 create_cat）", () => {
 
 describe("queuePaint（沿用 Cat Studio 的 paint）", () => {
   it("寫入 queued 任務，paint_worker 會讀 view 與 fill", async () => {
-    await addCat(ID);
+    await addCat(ID, { views: true });
     expect(await queuePaint(root, ID, "left", "tabby", NOW)).toEqual({ ok: true });
     expect(JSON.parse(await read(ID, "paint_job.json"))).toMatchObject({ status: "queued", view: "left", fill: "tabby", queued_at: NOW.toISOString() });
     expect(await getCat(root, ID)).toMatchObject({ status: "queued", photoView: "left", fillPattern: "tabby" });
   });
   it("選項不合法、找不到、已在排隊中都拒絕", async () => {
-    await addCat(ID);
+    await addCat(ID, { views: true });
     expect(await queuePaint(root, ID, "top", "none")).toEqual({ ok: false, code: "invalid_option" });
     expect(await queuePaint(root, ID, "front", "dots")).toEqual({ ok: false, code: "invalid_option" });
     expect(await queuePaint(root, "cat_20261031_999999", "front", "none")).toEqual({ ok: false, code: "not_found" });
     expect(await queuePaint(root, ID, "front", "none")).toEqual({ ok: true });
     expect(await queuePaint(root, ID, "front", "none")).toEqual({ ok: false, code: "busy" });
   });
+  it("#135 沒有 AI 三視角：views_required，不寫任務", async () => {
+    await addCat(ID);
+    expect(await queuePaint(root, ID, "front", "none")).toEqual({ ok: false, code: "views_required" });
+    await expect(fs.access(catPath(ID, "paint_job.json"))).rejects.toThrow();
+  });
   it("生成中不能再送", async () => {
-    await addCat(ID, { job: { status: "running" } });
+    await addCat(ID, { views: true, job: { status: "running" } });
     expect(await queuePaint(root, ID, "front", "none")).toEqual({ ok: false, code: "busy" });
   });
 });
@@ -175,13 +184,13 @@ describe("保留最近 1 版（worker 只會覆蓋 paint_albedo.png）", () => {
     await fs.writeFile(catPath(ID, "paint_job.json"), JSON.stringify({ status, view: "front", fill: "none", finished_at: "2026-10-31T12:00:00" }));
   }
   it("排隊中：目前貼圖不動，也還沒有上一版", async () => {
-    await addCat(ID, { job: { status: "done" }, albedo: true });
+    await addCat(ID, { views: true, job: { status: "done" }, albedo: true });
     await queuePaint(root, ID, "front", "none", NOW);
     const cat = await getCat(root, ID);
     expect(cat).toMatchObject({ status: "queued", hasAlbedo: true, hasPrevAlbedo: false });
   });
   it("成功：舊貼圖升格為上一版，新貼圖成為目前版", async () => {
-    await addCat(ID, { job: { status: "done" }, albedo: true });
+    await addCat(ID, { views: true, job: { status: "done" }, albedo: true });
     await queuePaint(root, ID, "front", "none", NOW);
     await workerFinishes("done");
     expect(await getCat(root, ID)).toMatchObject({ status: "ready", hasPrevAlbedo: true });
@@ -190,7 +199,7 @@ describe("保留最近 1 版（worker 只會覆蓋 paint_albedo.png）", () => {
     await expect(fs.access(catPath(ID, "paint_albedo_pending_prev.png"))).rejects.toThrow();
   });
   it("失敗：不動目前貼圖，也不會把更早的上一版弄丟", async () => {
-    await addCat(ID, { job: { status: "done" }, albedo: true, prev: true });
+    await addCat(ID, { views: true, job: { status: "done" }, albedo: true, prev: true });
     await fs.writeFile(catPath(ID, "paint_albedo_prev.png"), Buffer.from([7, 7]));
     await queuePaint(root, ID, "front", "none", NOW);
     await workerFinishes("error");
@@ -199,7 +208,7 @@ describe("保留最近 1 版（worker 只會覆蓋 paint_albedo.png）", () => {
     expect(await fs.readFile(catPath(ID, "paint_albedo.png"))).toEqual(png);
   });
   it("成功第二次：更早的上一版被丟掉（只保留最近 1 版）", async () => {
-    await addCat(ID, { job: { status: "done" }, albedo: true });
+    await addCat(ID, { views: true, job: { status: "done" }, albedo: true });
     await fs.writeFile(catPath(ID, "paint_albedo_prev.png"), Buffer.from([7, 7]));
     await queuePaint(root, ID, "front", "none", NOW);
     await workerFinishes("done");
@@ -207,7 +216,7 @@ describe("保留最近 1 版（worker 只會覆蓋 paint_albedo.png）", () => {
     expect(await fs.readFile(catPath(ID, "paint_albedo_prev.png"))).toEqual(png);
   });
   it("第一次產生（沒有舊貼圖）成功後沒有上一版", async () => {
-    await addCat(ID);
+    await addCat(ID, { views: true });
     await queuePaint(root, ID, "front", "none", NOW);
     await workerFinishes("done");
     expect(await getCat(root, ID)).toMatchObject({ status: "ready", hasAlbedo: true, hasPrevAlbedo: false });
@@ -221,7 +230,7 @@ describe("母體版本跟著貼圖（成貓／幼貓，#88）", () => {
     await fs.writeFile(catPath(ID, "paint_job.json"), JSON.stringify({ ...job, ...fields }));
   }
   it("排隊中仍用目前貼圖的母體；重畫成幼貓後換回上一版，母體也換回成貓", async () => {
-    await addCat(ID, { job: { status: "done", base_version: "adult-v1" }, albedo: true });
+    await addCat(ID, { views: true, job: { status: "done", base_version: "adult-v1" }, albedo: true });
     await queuePaint(root, ID, "front", "none", NOW);
     expect(await getCat(root, ID)).toMatchObject({ status: "queued", body: "adult" });
     await fs.writeFile(catPath(ID, "paint_albedo.png"), Buffer.from([9]));
@@ -233,7 +242,7 @@ describe("母體版本跟著貼圖（成貓／幼貓，#88）", () => {
     expect(await getCat(root, ID)).toMatchObject({ body: "kitten" });
   });
   it("重畫失敗：母體維持目前貼圖的", async () => {
-    await addCat(ID, { job: { status: "done", base_version: "kitten-v1" }, albedo: true });
+    await addCat(ID, { views: true, job: { status: "done", base_version: "kitten-v1" }, albedo: true });
     await queuePaint(root, ID, "front", "none", NOW);
     await workerMerges({ status: "error" });
     expect(await getCat(root, ID)).toMatchObject({ status: "failed", body: "kitten" });
@@ -243,7 +252,7 @@ describe("母體版本跟著貼圖（成貓／幼貓，#88）", () => {
 describe("restorePrevious（改用上一版）", () => {
   const prevTex = Buffer.from([5, 5]);
   it("目前版與上一版互換，並寫稽核", async () => {
-    await addCat(ID, { job: { status: "done" }, albedo: true, prev: true });
+    await addCat(ID, { views: true, job: { status: "done" }, albedo: true, prev: true });
     await fs.writeFile(catPath(ID, "paint_albedo_prev.png"), prevTex);
     expect(await restorePrevious(root, ID, " 新貼圖顏色不對 ", "local-dev", NOW)).toEqual({ ok: true });
     expect(await fs.readFile(catPath(ID, "paint_albedo.png"))).toEqual(prevTex);
@@ -251,7 +260,7 @@ describe("restorePrevious（改用上一版）", () => {
     expect(JSON.parse((await read(ID, "audit.jsonl")).trim())).toEqual({ action: "restore_texture", actor: "local-dev", reason: "新貼圖顏色不對", at: NOW.toISOString() });
   });
   it("沒有原因、沒有上一版、生成中、找不到都拒絕，且不動檔案", async () => {
-    await addCat(ID, { job: { status: "done" }, albedo: true });
+    await addCat(ID, { views: true, job: { status: "done" }, albedo: true });
     expect(await restorePrevious(root, ID, "", "a")).toEqual({ ok: false, code: "reason_required" });
     expect(await restorePrevious(root, ID, "x", "a")).toEqual({ ok: false, code: "no_previous" });
     expect(await restorePrevious(root, "cat_20261031_999999", "x", "a")).toEqual({ ok: false, code: "not_found" });

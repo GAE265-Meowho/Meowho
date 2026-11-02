@@ -8,7 +8,7 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import {
   bodyFor, CAT_ID_RE, deriveStatus, newCatId, photoExt, profileNumber, type BodyType, type CatGender, type CatModelView, type FillPattern, type JobInfo, type PhotoView, type PublicationState,
-  isJobActive, MAX_PHOTO_BYTES, EXTRA_VIEWS, type ExtraView,
+  isJobActive, MAX_PHOTO_BYTES, EXTRA_VIEWS, type ExtraView, viewsReady,
   finishGenerated, generatedState, GEN_VIEWS, genPhotoName, isGenView, startGenerated, type GeneratedProfile, type GenView,
 } from "./types";
 import { imageConfig } from "@/lib/ai/image";
@@ -217,7 +217,7 @@ export async function createCat(root: string, input: NewCatInput, now = new Date
   return { ok: true, id };
 }
 
-export type QueueResult = { ok: true } | { ok: false; code: "not_found" | "invalid_option" | "busy" };
+export type QueueResult = { ok: true } | { ok: false; code: "not_found" | "invalid_option" | "busy" | "views_required" };
 
 /** 送出生成任務（paint_job.json 設為 queued）。已有排隊中或生成中的任務時拒絕；有目前貼圖時先留一份備份供「保留上一版」 */
 export async function queuePaint(root: string, id: string, view: unknown, fill: unknown, now = new Date()): Promise<QueueResult> {
@@ -227,6 +227,7 @@ export async function queuePaint(root: string, id: string, view: unknown, fill: 
   const f = oneOf<FillPattern>(fill, ["none", "tabby"]);
   if (!v || !f) return { ok: false, code: "invalid_option" };
   if (isJobActive(cat.status)) return { ok: false, code: "busy" };
+  if (!viewsReady(cat)) return { ok: false, code: "views_required" };
   const dir = catDir(root, id);
   // 有 AI 左側面照（#110）：worker 讀 profile.photo 並快取 photo_nobg.png，所以換成 AI 照片、原始另存、清掉去背快取
   const profile = await readJson<Profile>(path.join(dir, "profile.json"));

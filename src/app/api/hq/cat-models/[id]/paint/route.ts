@@ -3,7 +3,7 @@ import { repoQueuePaint } from "@/lib/hq/cat-models/repo";
 
 export const dynamic = "force-dynamic";
 
-const STATUS: Record<string, number> = { not_found: 404, invalid_option: 400, busy: 409, permission_denied: 403, disabled: 404 };
+const STATUS: Record<string, number> = { not_found: 404, invalid_option: 400, busy: 409, views_required: 409, permission_denied: 403, disabled: 404 };
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const body = (await req.json().catch(() => ({}))) as { view?: unknown; fill?: unknown };

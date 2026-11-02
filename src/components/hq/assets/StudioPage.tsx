@@ -7,7 +7,7 @@ import { useCallback, useEffect, useState } from "react";
 import { composeReason } from "@/lib/hq/actions";
 import {
   CAT_STATUS_LABELS, CAT_STATUS_TONE, CAT_STEPS, catStepStates, elapsedMinutes, FILL_LABELS, isJobActive, JOB_STAGES, jobStage,
-  PHOTO_VIEW_LABELS, queueStalled, textureOf,
+  PHOTO_VIEW_LABELS, queueStalled, textureOf, viewsReady,
   type CatModelView, type FillPattern, type PhotoView,
 } from "@/lib/hq/cat-models/types";
 import { HqLoadError, HqSaveButton, HqSkeleton } from "../HqStates";
@@ -21,6 +21,7 @@ import { CAT_API, catFileUrl, postJson, useCat } from "./useCatModels";
 
 const PAINT_ERRORS: Record<string, string> = {
   busy: "這隻貓已經在排隊或生成中",
+  views_required: "請先完成 AI 三視角，再產生紋理貼圖",
   invalid_option: "照片角度或補花紋方式不正確",
   not_found: "找不到這隻貓",
 };
@@ -95,6 +96,7 @@ function Options({ cat, onDone }: { cat: CatModelView; onDone: () => void }) {
   const [view, setView] = useState<PhotoView>(cat.photoView ?? "front");
   const [fill, setFill] = useState<FillPattern>(cat.fillPattern ?? "none");
   const busy = isJobActive(cat.status) || cat.aiRunning.length > 0;
+  const ready = viewsReady(cat);  // #135：三視角都成功才能產生
   const aiLeft = cat.aiViews.includes("left");
   const label = cat.status === "failed" ? "重試" : cat.hasAlbedo ? "重新產生紋理貼圖" : "產生紋理貼圖";
 
@@ -127,8 +129,9 @@ function Options({ cat, onDone }: { cat: CatModelView; onDone: () => void }) {
         </div>
       </div>
       <div className="hq-row">
-        <HqSaveButton onSave={save} disabled={busy}>{label}</HqSaveButton>
-        {busy && <span className="hq-hint">{cat.aiRunning.length ? "AI 照片產生中，完成後再送出。" : "已有排隊中或生成中的任務。"}</span>}
+        <HqSaveButton onSave={save} disabled={busy || !ready}>{label}</HqSaveButton>
+        {busy ? <span className="hq-hint">{cat.aiRunning.length ? "AI 三視角產生中，完成後才能產生紋理貼圖。" : "已有排隊中或生成中的任務。"}</span>
+          : !ready && <span className="hq-hint" role="status">請先完成第 2 步「AI 三視角」（左側、正面、背部都成功），才能產生紋理貼圖。</span>}
       </div>
       {textureOf(cat).state === "pending" && !busy && <p className="hq-hint">重新產生會放棄這張還沒確認的紋理貼圖。</p>}
     </section>
@@ -170,7 +173,7 @@ function Texture({ cat, onDone }: { cat: CatModelView; onDone: (message: string)
       ) : (
         <div className="hq-texture-empty" role="status">
           <strong>{busy ? "第一張紋理貼圖生成中" : "還沒有紋理貼圖"}</strong>
-          {!busy && <span>按上方「產生紋理貼圖」開始。</span>}
+          {!busy && <span>{viewsReady(cat) ? "按上方「產生紋理貼圖」開始。" : "先完成 AI 三視角，再產生紋理貼圖。"}</span>}
         </div>
       )}
       {cat.hasPrevAlbedo && (

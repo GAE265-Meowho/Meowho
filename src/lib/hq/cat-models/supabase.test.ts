@@ -52,6 +52,10 @@ const row = (over: Record<string, unknown> = {}) => ({
   created_at: "2026-11-01T01:00:00Z", updated_at: "2026-11-01T01:00:00Z", ...over,
 });
 
+/** #135：三視角都完成的 profile.generated（產生紋理貼圖的前置條件） */
+const views = { left: `${ID}/gen_left.png`, front: `${ID}/gen_front.png`, back: `${ID}/gen_back.png` };
+const READY = { generated: { views } };
+
 beforeEach(() => { calls.length = 0; user = { id: "u-1" }; files = []; insertError = null; modelRow = row(); download = new Blob(["jpg"], { type: "image/jpeg" }); });
 
 describe("sbPhotoUpload（新增第一步）", () => {
@@ -169,17 +173,25 @@ describe("sbStartViews（AI 三視角，#110）", () => {
 
 describe("sbQueuePaint 改用 AI 左側面照（#110）", () => {
   it("有 AI 左側面照：photo_path 換成 AI 照片、原始另存、清去背快取、角度固定 left", async () => {
-    modelRow = row({ profile: { generated: { views: { left: `${ID}/gen_left.png` } } } });
+    modelRow = row({ profile: READY });
     expect(await sbQueuePaint(ID, "front", "none")).toEqual({ ok: true });
     const swap = updateWith("photo_path");
-    expect(swap).toEqual({ photo_path: `${ID}/gen_left.png`, profile: { generated: { views: { left: `${ID}/gen_left.png` } }, original_photo: `${ID}/photo.png` } });
+    expect(swap).toEqual({ photo_path: `${ID}/gen_left.png`, profile: { ...READY, original_photo: `${ID}/photo.png` } });
     expect(calls.find(c => c.op === "remove")!.args[0]).toEqual([`${ID}/photo_nobg.png`]);
     expect((calls.find(c => c.op === "insert")!.args[0] as { view: string }).view).toBe("left");
   });
-  it("沒有 AI 照片：照原本選的角度，不換照片", async () => {
-    expect(await sbQueuePaint(ID, "right", "tabby")).toEqual({ ok: true });
-    expect(calls.some(c => c.op === "remove")).toBe(false);
-    expect((calls.find(c => c.op === "insert")!.args[0] as { view: string }).view).toBe("right");
+  it("#135 沒有 AI 三視角、只完成一部分、產生中或有失敗：views_required，不新增任務", async () => {
+    const cases = [
+      {},
+      { generated: { views: { left: views.left } } },
+      { generated: { views, running: ["back"], started_at: new Date().toISOString() } },
+      { generated: { views, errors: { back: "AI 影像服務忙碌中" } } },
+    ];
+    for (const profile of cases) {
+      modelRow = row({ profile });
+      expect(await sbQueuePaint(ID, "right", "tabby")).toEqual({ ok: false, code: "views_required" });
+    }
+    expect(calls.some(c => c.op === "insert")).toBe(false);
   });
 });
 
@@ -193,10 +205,12 @@ describe("sbQueuePaint（產生）", () => {
     expect(calls.some(c => c.op === "insert")).toBe(false);
   });
   it("資料庫 unique index 擋下（同時兩個人按）：busy", async () => {
+    modelRow = row({ profile: READY });
     insertError = { code: "23505" };
     expect(await sbQueuePaint(ID, "front", "tabby")).toEqual({ ok: false, code: "busy" });
   });
   it("成功：新增 queued 任務、貓改排隊中、寫稽核", async () => {
+    modelRow = row({ profile: { age_months: 3, ...READY } });
     expect(await sbQueuePaint(ID, "left", "tabby")).toEqual({ ok: true });
     expect(calls.find(c => c.op === "insert")).toMatchObject({ table: "meow_cat_model_jobs", args: [{ model_id: ID, status: "queued", view: "left", fill: "tabby" }] });
     expect(updateWith("status")).toMatchObject({ status: "queued" });
@@ -206,25 +220,26 @@ describe("sbQueuePaint（產生）", () => {
 
 describe("貼圖確認（#129）", () => {
   it("舊資料第一次重新產生：先記下目前版為已確認，不動貼圖", async () => {
-    modelRow = row({ status: "ready", albedo_path: "a1.png", prev_albedo_path: null });
+    modelRow = row({ status: "ready", albedo_path: "a1.png", prev_albedo_path: null, profile: { age_months: 3, ...READY } });
     expect(await sbQueuePaint(ID, "left", "none")).toEqual({ ok: true });
-    expect(updateWith("profile")).toEqual({ profile: { age_months: 3, confirmed_albedo: "a1.png" } });
+    expect(updateWith("profile")).toEqual({ profile: { age_months: 3, ...READY, confirmed_albedo: "a1.png" } });
     expect(updateWith("albedo_path")).toBeUndefined();
   });
   it("新貼圖待確認又重新產生：丟掉未確認的，已確認的換回目前版", async () => {
     modelRow = row({
       status: "ready", albedo_path: "a2.png", prev_albedo_path: "a1.png", base_version: "kitten-v1", meta: { prev_base_version: "adult-v1" },
-      profile: { age_months: 3, confirmed_albedo: "a1.png" },
+      profile: { age_months: 3, confirmed_albedo: "a1.png", ...READY },
     });
     expect(await sbQueuePaint(ID, "left", "none")).toEqual({ ok: true });
     expect(updateWith("albedo_path")).toEqual({ albedo_path: "a1.png", prev_albedo_path: null, base_version: "adult-v1", meta: { prev_base_version: null } });
     expect(calls.find(c => c.op === "remove")?.args[0]).toEqual(["a2.png"]);
   });
   it("已確認的貼圖重新產生：不調整", async () => {
-    modelRow = row({ status: "ready", albedo_path: "a2.png", prev_albedo_path: "a1.png", profile: { confirmed_albedo: "a2.png" } });
+    modelRow = row({ status: "ready", albedo_path: "a2.png", prev_albedo_path: "a1.png", profile: { confirmed_albedo: "a2.png", ...READY } });
     expect(await sbQueuePaint(ID, "left", "none")).toEqual({ ok: true });
     expect(updateWith("albedo_path")).toBeUndefined();
-    expect(calls.some(c => c.op === "remove")).toBe(false);
+    // 只會清 AI 照片的去背快取，不刪任何貼圖
+    expect(calls.filter(c => c.op === "remove").map(c => c.args[0])).toEqual([[`${ID}/photo_nobg.png`]]);
   });
   it("確認使用：記下目前版、寫稽核；忙碌中或沒有貼圖擋下", async () => {
     modelRow = row({ status: "running", albedo_path: "a2.png" });
