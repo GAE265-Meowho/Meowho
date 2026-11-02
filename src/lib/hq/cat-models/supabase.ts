@@ -12,7 +12,7 @@ import { viewSettings, type StartViewsOptions } from "./view-settings";
 import { SUPABASE_URL } from "@/lib/supabase/config";
 import {
   baseFileName, bodyFor, EXTRA_VIEWS, finishGenerated, generatedState, GEN_VIEWS, genPhotoName, isGenView, startGenerated, type GeneratedProfile, type GenView, isExtraView, isJobActive, normalizeStatus, ownExtraPhotoPath, type ExtraView, newCatId, ownPhotoPath, photoExt, profileNumber,
-  type BodyType, type CatModelStatus, type CatModelView, type FillPattern, type JobStatus, type PhotoView,
+  type BodyType, type CatGender, type CatModelStatus, type CatModelView, type FillPattern, type JobStatus, type PhotoView,
   CAT_ID_RE, MAX_PHOTO_BYTES,
 } from "./types";
 import type { FileKind } from "./local";
@@ -27,7 +27,7 @@ type Row = {
   owner_type: "template" | "member";
   status: CatModelStatus;
   profile: {
-    age_months?: number | null; weight_kg?: number | null; notes?: string; extra_photos?: Partial<Record<ExtraView, string>>;
+    age_months?: number | null; gender?: CatGender | null; weight_kg?: number | null; notes?: string; extra_photos?: Partial<Record<ExtraView, string>>;
     /** AI 三視角（#110） */
     generated?: GeneratedProfile;
     /** 改用 AI 左側面照上色後，原始上傳照片的路徑（photo_path 換成 AI 照片） */
@@ -69,6 +69,7 @@ function viewFromRow(row: Row, job: JobRow | null = null): CatModelView {
     ownerType: row.owner_type,
     status: normalizeStatus(row.status),
     ageMonths,
+    gender: row.profile?.gender ?? null,
     weightKg: typeof row.profile?.weight_kg === "number" ? row.profile.weight_kg : null,
     notes: row.profile?.notes ?? "",
     photoView: row.photo_view,
@@ -185,7 +186,7 @@ export async function sbPhotoUpload(type: unknown, size: unknown, now = new Date
 }
 
 export type SbCreateInput = {
-  id?: unknown; photoPath?: unknown; name: unknown; ageMonths?: unknown; weightKg?: unknown; notes?: unknown;
+  id?: unknown; photoPath?: unknown; name: unknown; gender?: unknown; ageMonths?: unknown; weightKg?: unknown; notes?: unknown;
   /** 正面、背部花紋照片已上傳的路徑（#105，選填） */
   extraPaths?: Partial<Record<string, unknown>>;
 };
@@ -212,6 +213,7 @@ export async function sbCreateCat(input: SbCreateInput): Promise<
   const { error } = await user.sb.from("meow_cat_models").insert({
     id, name, owner_type: "template", status: "draft", photo_path: photoPath, created_by: user.userId,
     profile: {
+      gender: input.gender === "male" || input.gender === "female" ? input.gender : null,
       age_months: profileNumber(input.ageMonths), weight_kg: profileNumber(input.weightKg),
       notes: String(input.notes ?? "").trim().slice(0, 500),
       ...(Object.keys(extraPhotos).length ? { extra_photos: extraPhotos } : {}),

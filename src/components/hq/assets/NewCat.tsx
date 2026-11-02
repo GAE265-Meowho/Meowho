@@ -54,10 +54,6 @@ function usePreview(file: File | null) {
   return url;
 }
 
-const PHOTO_EXAMPLES = [
-  { label: "成貓", src: "/hq-cat-models/examples/adult.webp" },
-  { label: "幼貓", src: "/hq-cat-models/examples/kitten.webp" },
-] as const;
 /** 其他角度照片（選填）：存成 extra_photos 的 front／back，產生 AI 三視角時當第 2、3 張參考圖 */
 const EXTRAS = [
   { view: "front", label: "其他角度照片 2" },
@@ -102,6 +98,7 @@ function ExtraPhoto({ view, label, file, onPick }: { view: ExtraSlot; label: str
 function StepUpload({ settings, onSettings, onCreated }: { settings: AiSettings; onSettings: (v: AiSettings) => void; onCreated: (id: string, warning: string | null) => void }) {
   const [name, setName] = useState("");
   const [age, setAge] = useState("");
+  const [gender, setGender] = useState("");
   const [weight, setWeight] = useState("");
   const [notes, setNotes] = useState("");
   const [main, setMain] = useState<File | null>(null);
@@ -119,7 +116,7 @@ function StepUpload({ settings, onSettings, onCreated }: { settings: AiSettings;
     if (!main) throw hintError(fileError ?? "請先選一張貓咪照片");
     const extraViews = EXTRAS.map(e => e.view).filter(v => extras[v]);
     const ticket = await postJson<UploadTicket>(`${CAT_API}/upload`, { type: main.type, size: main.size }, ERRORS);
-    const fields = { name, ageMonths: age, weightKg: weight, notes };
+    const fields = { name, gender, ageMonths: age, weightKg: weight, notes };
     let body: Record<string, unknown>;
     if (ticket.mode === "signed") {
       const sb = getBrowserSupabase();
@@ -159,30 +156,26 @@ function StepUpload({ settings, onSettings, onCreated }: { settings: AiSettings;
       <section className="hq-box hq-step" aria-label="貓咪照片">
         <h3><span className="hq-stepno">1</span>貓咪照片</h3>
         <p className="hq-hint">拍攝提示：<strong>側拍、坐姿或站姿、拍到全身、背景越單純越好</strong>。支援 JPG、PNG、WebP，10 MB 以內。</p>
-        <MainPhoto file={main} onPick={f => setMain(check(f))} />
-        <div className="hq-angles" role="group" aria-label="其他角度照片">
+        <div className="hq-upload-cards" role="group" aria-label="照片上傳">
+          <MainPhoto file={main} onPick={f => setMain(check(f))} />
           {EXTRAS.map(e => (
             <ExtraPhoto key={e.view} view={e.view} label={e.label} file={extras[e.view]}
               onPick={f => { const ok = check(f); setExtras(prev => ({ ...prev, [e.view]: ok })); }} />
           ))}
         </div>
         {fileError && <p className="hq-error" role="alert">{fileError}</p>}
-        {/* 拍攝範例（#98）：成貓＝LINE_A7_1.jpg、幼貓＝好奇虎斑小貓，縮到 480px 放在 public/hq-cat-models/examples/ */}
-        <div className="hq-examples" role="group" aria-label="拍攝範例">
-          {PHOTO_EXAMPLES.map(e => (
-            <figure key={e.src}>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={e.src} alt={`${e.label}拍攝範例：側面全身站姿`} loading="lazy" />
-              <figcaption>{e.label}</figcaption>
-            </figure>
-          ))}
-        </div>
       </section>
 
       <section className="hq-box hq-step" aria-label="基本資料">
         <h3><span className="hq-stepno">2</span>基本資料</h3>
         <label className="hq-label" htmlFor="cat-name">名稱（必填）</label>
         <input id="cat-name" className="hq-input" maxLength={40} value={name} onChange={e => setName(e.target.value)} />
+        <label className="hq-label" htmlFor="cat-gender">性別</label>
+        <select id="cat-gender" aria-label="性別" className="hq-input" value={gender} onChange={e => setGender(e.target.value)}>
+          <option value="">請選擇</option>
+          <option value="male">公</option>
+          <option value="female">母</option>
+        </select>
         <div className="hq-row hq-row-2">
           <div>
             <label className="hq-label" htmlFor="cat-age">年齡（月，選填）</label>
@@ -244,7 +237,7 @@ export function NewCat() {
       <div className="hq-flowstep"><span className="hq-stepno">01</span><h2>上傳照片與基本資料</h2></div>
       {id ? (
         <section className="hq-box hq-step" aria-label="已建立">
-          <p>已建立「{cat?.name ?? "…"}」（草稿）。原始照片已保留，可在步驟 02 看 AI 照片。</p>
+          <p>已建立「{cat?.name ?? "…"}」{cat?.gender && `（${cat.gender === "male" ? "公" : "母"}）`}（草稿）。原始照片與其他角度照片已保留，可在步驟 02 看 AI 照片。</p>
         </section>
       ) : (
         <StepUpload settings={settings} onSettings={setSettings} onCreated={created} />

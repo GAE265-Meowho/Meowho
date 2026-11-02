@@ -314,9 +314,11 @@
 .hq-newcat .hq-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
 .hq-newcat .hq-row-2 .hq-input { width: 100%; }
 .hq-newcat .hq-grow { flex: 1; min-height: 120px; }
+.hq-upload-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .75rem; }
+.hq-upload-cards .hq-main-photo, .hq-upload-cards .hq-angle { min-width: 0; min-height: 190px; }
 @media (max-width: 767px) {
   .hq-newcat-grid { grid-template-columns: 1fr; }
-  .hq-newcat .hq-angles { grid-template-columns: repeat(auto-fill, minmax(min(100%, 140px), 1fr)); }
+  .hq-upload-cards { grid-template-columns: 1fr; }
 }
 /* AI 三視角（#110，Stitch「MeowHQ Cat Model Builder」）：新增貓咪步驟 02、製作glb工作區共用 */
 .hq-aiviews { display: flex; flex-direction: column; gap: .75rem; margin-bottom: .75rem; }
@@ -362,15 +364,9 @@
 .hq-main-photo.filled { border-style: solid; border-color: var(--hq-sage); background: var(--hq-card); }
 .hq-main-photo img { max-height: 260px; max-width: 100%; border-radius: 16px; object-fit: contain; }
 .hq-main-photo:focus-within { outline: 2px solid var(--hq-sage); outline-offset: 2px; }
-.hq-newcat .hq-angles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .hq-newcat-bar { position: sticky; bottom: 0; z-index: 2; display: flex; align-items: center; justify-content: space-between; gap: .75rem; flex-wrap: wrap; margin-top: 1.25rem; padding: .8rem 1rem; border: 1px solid var(--hq-line); border-radius: 20px; background: var(--hq-card); }
 .hq-newcat-bar .hq-row { gap: .5rem; }
 @media (max-width: 767px) { .hq-newcat-bar { flex-direction: column; align-items: stretch; } }
-/* 新增貓咪：拍攝範例（#98） */
-.hq-examples { display: grid; grid-template-columns: repeat(2, minmax(0, 140px)); gap: .75rem; }
-.hq-examples figure { margin: 0; display: flex; flex-direction: column; align-items: center; gap: .25rem; }
-.hq-examples img { width: 100%; aspect-ratio: 1; object-fit: contain; border: 1px solid var(--hq-line); border-radius: 10px; background: var(--hq-card); }
-.hq-examples figcaption { font-size: .85rem; color: var(--hq-sub); }
 .hq-silhouette { width: 96px; height: 64px; fill: var(--hq-sub); color: var(--hq-sub); opacity: .45; }
 .hq-visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 .hq-angle:focus-within { outline: 2px solid var(--hq-sage); outline-offset: 2px; }

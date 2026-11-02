@@ -7,7 +7,7 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import {
-  bodyFor, CAT_ID_RE, deriveStatus, newCatId, photoExt, profileNumber, type BodyType, type CatModelView, type FillPattern, type JobInfo, type PhotoView, type PublicationState,
+  bodyFor, CAT_ID_RE, deriveStatus, newCatId, photoExt, profileNumber, type BodyType, type CatGender, type CatModelView, type FillPattern, type JobInfo, type PhotoView, type PublicationState,
   isJobActive, MAX_PHOTO_BYTES, EXTRA_VIEWS, type ExtraView,
   finishGenerated, generatedState, GEN_VIEWS, genPhotoName, isGenView, startGenerated, type GeneratedProfile, type GenView,
 } from "./types";
@@ -44,7 +44,7 @@ async function exists(file: string) {
 const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) && v >= 0 ? v : null);
 const oneOf = <T extends string>(v: unknown, list: readonly T[]): T | null => (list.includes(v as T) ? (v as T) : null);
 
-interface Profile { id: string; name?: string; age_months?: number | null; weight_kg?: number | null; notes?: string; photo?: string; created_at?: string; extra_photos?: Partial<Record<ExtraView, string>>;
+interface Profile { id: string; name?: string; gender?: CatGender | null; age_months?: number | null; weight_kg?: number | null; notes?: string; photo?: string; created_at?: string; extra_photos?: Partial<Record<ExtraView, string>>;
   /** AI 三視角（#110）與改用 AI 照片上色後的原始照片檔名 */
   generated?: GeneratedProfile; original_photo?: string }
 interface Publication { status: Exclude<PublicationState, null>; reason?: string; at?: string }
@@ -91,6 +91,7 @@ async function toView(root: string, id: string): Promise<CatModelView | null> {
     ownerType: "template",
     status: deriveStatus({ hasAlbedo, job, publication: publication?.status ?? null }),
     ageMonths: num(profile.age_months),
+    gender: profile.gender ?? null,
     weightKg: num(profile.weight_kg),
     notes: profile.notes ?? "",
     photoView: oneOf<PhotoView>(job?.view, ["front", "left", "right"]),
@@ -159,6 +160,7 @@ export async function readBaseGlb(root: string, body: BodyType = "adult"): Promi
 
 export interface NewCatInput {
   name: string;
+  gender?: unknown;
   ageMonths?: unknown;
   weightKg?: unknown;
   notes?: unknown;
@@ -206,7 +208,8 @@ export async function createCat(root: string, input: NewCatInput, now = new Date
     extraPhotos[view] = fileName;
   }
   const profile = {
-    id, name, age_months: profileNumber(input.ageMonths), weight_kg: profileNumber(input.weightKg),
+    id, name, gender: input.gender === "male" || input.gender === "female" ? input.gender : null,
+    age_months: profileNumber(input.ageMonths), weight_kg: profileNumber(input.weightKg),
     notes: String(input.notes ?? "").trim().slice(0, 500), photo: photoName, created_at: now.toISOString(),
     ...(Object.keys(extraPhotos).length ? { extra_photos: extraPhotos } : {}),
   };
