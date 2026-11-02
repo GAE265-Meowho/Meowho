@@ -74,6 +74,7 @@
 | 28-1 | 首頁、頁首頁尾改用 meowwho-v2 新版 UI；內頁版型待續 | matching | 26 | P1 | #64 | 子哲 × Claude | 完成（#65 已合併） |
 | 29 | 部署改為 Vercel meowho、Supabase 改為獨立專案（決策 005）的文件 | account | — | P1 | #66 | 子哲 × Claude | 審查中 |
 | 30 | 修正 Google 登入後看不到頭像 | account | — | P1 | #68 | 子哲 × Claude | 審查中 |
+| 31 | MeowHQ 室內空間移除寶麗來轉換卡片 | admin-moderation | — | P2 | — | Tina × Codex | 進行中 |
 
 ## 高風險 PoC（11/05 前）
 
