@@ -196,6 +196,24 @@ try {
   }
 }
 
+// 0010（領養申請通知）：0001→0009 後跑 0010 兩次＋測試
+{
+  const m = new PGlite();
+  const base = read("./stub_supabase.sql") + ["0001_meow", "0002_meow_hq", "0003_meow_site_assets", "0004_meow_cat_profile", "0005_meow_cat_models", "0006_meow_household_roles", "0007_meow_adoption_forms", "0008_meow_cat_favorites", "0009_meow_cat_returns"]
+    .map((f) => read(`../migrations/${f}.sql`)).join("");
+  try {
+    await m.exec(base);
+    await m.exec(read("../migrations/0010_meow_adoption_notify.sql"));
+    await m.exec(read("../migrations/0010_meow_adoption_notify.sql"));
+    const sql10 = read("./0010_meow_adoption_notify.test.sql").replace(/^\s*begin;/im, "").replace(/rollback;\s*$/i, "");
+    const out10 = await m.exec(sql10);
+    results = results.concat(out10.flatMap((r) => r.rows ?? []).filter((r) => "status" in r));
+  } catch (e) {
+    console.error(`✗ 0010 測試中斷：${e.message}`);
+    process.exit(1);
+  }
+}
+
 let failed = 0;
 for (const r of results) {
   if (r.status === "FAIL") failed++;

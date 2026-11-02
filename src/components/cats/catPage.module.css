@@ -66,3 +66,14 @@
   min-height: var(--tap); display: inline-flex; align-items: center; padding: 0 4px; border: 0; background: none;
   color: var(--orange-deep); font: inherit; font-size: 14px; font-weight: 700; text-decoration: none; cursor: pointer;
 }
+
+/* 領養申請頁（/me/adoptions）：每隻貓的標頭 */
+.applyHead { display: flex; align-items: center; gap: 14px; }
+.applyHead h2 { margin: 0; }
+.applyHead h2 a { color: inherit; }
+.applyHead p { margin: 2px 0 0; }
+.applyPhoto {
+  flex: none; display: grid; place-items: center; width: 56px; height: 56px; overflow: hidden;
+  border-radius: 50%; background: var(--yellow-soft); color: var(--orange-deep);
+}
+.applyPhoto img { display: block; width: 100%; height: 100%; object-fit: cover; }
