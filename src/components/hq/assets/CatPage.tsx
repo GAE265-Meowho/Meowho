@@ -1,6 +1,7 @@
 "use client";
 // 貓咪頁（規格書 04 §2.4）：每隻貓獨立一頁，看這隻貓的動作。上架／下架已移除（#100）。
-// 版面（#96）：左側預覽固定，右側參數面板分為播放與畫面、動作、資訊，可獨立捲動。
+// 版面（#129）：原貓咪資訊 : 3D 動作預覽 : 播放與畫面 ＝ 1:2:1。
+// #129：預覽用「已確認」的紋理貼圖；新貼圖確認前、重新產生期間都繼續用舊的，前台不會突然沒有貓。
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -8,7 +9,7 @@ import { useCallback, useEffect, useState } from "react";
 import { formatTaipeiDate } from "@/lib/hq/actions";
 import { resolveClip } from "@/lib/hq/cat-models/clips";
 import {
-  BODY_LABELS, FILL_LABELS, PHOTO_VIEW_LABELS, type CatModelView,
+  BODY_LABELS, FILL_LABELS, PHOTO_VIEW_LABELS, textureOf, type CatModelView,
 } from "@/lib/hq/cat-models/types";
 import { HqLoadError, HqSkeleton } from "../HqStates";
 import { HqNotFound } from "../HqLoginPage";
@@ -43,13 +44,39 @@ function Preview({ cat }: { cat: CatModelView }) {
     router.replace(`?${next.toString()}`, { scroll: false });
   }, [params, router]);
 
-  const albedoUrl = cat.hasAlbedo && !textureFailed ? catFileUrl(cat.id, "albedo", cat.albedoVersion ?? undefined) : null;
+  const texture = textureOf(cat);
+  const ready = texture.preview !== null;
+  const body = texture.previewBody;
+  const albedoUrl = texture.preview && !textureFailed ? catFileUrl(cat.id, texture.preview, cat.albedoVersion ?? undefined) : null;
 
   return (
     <div className="hq-catpage">
+      <section className="hq-catinfo" aria-label="原貓咪資訊">
+        <PanelGroup title="原貓咪資訊">
+          <div className="hq-row">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img className="hq-thumb" src={catFileUrl(cat.id, "photo")} alt={`${cat.name} 的原始照片`} width={96} height={96} />
+            <dl className="hq-dl">
+              <dt>體型骨架</dt><dd>{BODY_LABELS[body]}骨架</dd>
+              <dt>照片角度</dt><dd>{cat.photoView ? PHOTO_VIEW_LABELS[cat.photoView] : "—"}</dd>
+              <dt>補花紋</dt><dd>{cat.fillPattern ? FILL_LABELS[cat.fillPattern] : "—"}</dd>
+              <dt>建立時間</dt><dd>{formatTaipeiDate(new Date(cat.createdAt))}</dd>
+            </dl>
+          </div>
+          {EXTRA_SLOTS.some(x => cat.extraPhotos.includes(x.view)) && (
+            <div className="hq-row" aria-label="其他角度照片">
+              {EXTRA_SLOTS.filter(x => cat.extraPhotos.includes(x.view)).map(x => (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img key={x.view} className="hq-thumb" src={catFileUrl(cat.id, x.kind)} alt={x.label} width={72} height={72} />
+              ))}
+            </div>
+          )}
+        </PanelGroup>
+      </section>
+
       <section className="hq-catstage" aria-label="3D 預覽">
         {/* #118：還沒製作 glb 時不載入骨架示範貓；CatPage 會直接轉到製作glb工作區，這裡只是轉頁前的過渡 */}
-        {!cat.hasAlbedo ? (
+        {!ready ? (
           <div className="hq-state hq-noglb" role="status">
             <p>這隻貓還沒有 3D 模型，前往製作glb工作區…</p>
             <Link href={studioHref(cat.id)} className="hq-btn">進入glb製作區</Link>
@@ -60,12 +87,12 @@ function Preview({ cat }: { cat: CatModelView }) {
             {failed ? (
               <div className="hq-state" role="alert">
                 <p>3D 預覽載入失敗</p>
-                <p className="hq-hint">{failed}。請確認{BODY_LABELS[cat.body]}骨架 glb 已上傳（本機：CAT_STUDIO_ROOT 底下的 {cat.body === "kitten" ? "cat_base_kitten" : "cat_base"}/work/base_clips.glb）。</p>
+                <p className="hq-hint">{failed}。請確認{BODY_LABELS[body]}骨架 glb 已上傳（本機：CAT_STUDIO_ROOT 底下的 {body === "kitten" ? "cat_base_kitten" : "cat_base"}/work/base_clips.glb）。</p>
               </div>
             ) : (
               <div className="hq-canvas" data-testid="cat-canvas">
                 <CatPreview
-                  key={viewKey} baseUrl={baseGlbUrl(cat.body)} body={cat.body} albedoUrl={albedoUrl} clip={clip}
+                  key={viewKey} baseUrl={baseGlbUrl(body)} body={body} albedoUrl={albedoUrl} clip={clip}
                   speed={speed} paused={paused} blink={blink} pupil={pupil} light={light} follow={follow}
                   onInfo={setInfo} onTextureError={() => setTextureFailed(true)} onError={e => setFailed(e.message || "未知錯誤")}
                 />
@@ -82,7 +109,7 @@ function Preview({ cat }: { cat: CatModelView }) {
       </section>
 
       <section className="hq-catside" aria-label="參數">
-        {cat.hasAlbedo && (
+        {ready && (
           <>
             <PanelGroup title="播放與畫面">
               <div className="hq-row">
@@ -109,35 +136,16 @@ function Preview({ cat }: { cat: CatModelView }) {
             </PanelGroup>
           </>
         )}
-        <PanelGroup title="資訊">
-          <div className="hq-row">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img className="hq-thumb" src={catFileUrl(cat.id, "photo")} alt={`${cat.name} 的原始照片`} width={96} height={96} />
-            <dl className="hq-dl">
-              <dt>體型骨架</dt><dd>{BODY_LABELS[cat.body]}骨架</dd>
-              <dt>照片角度</dt><dd>{cat.photoView ? PHOTO_VIEW_LABELS[cat.photoView] : "—"}</dd>
-              <dt>補花紋</dt><dd>{cat.fillPattern ? FILL_LABELS[cat.fillPattern] : "—"}</dd>
-              <dt>建立時間</dt><dd>{formatTaipeiDate(new Date(cat.createdAt))}</dd>
-            </dl>
-          </div>
-          {EXTRA_SLOTS.some(x => cat.extraPhotos.includes(x.view)) && (
-            <div className="hq-row" aria-label="其他角度照片">
-              {EXTRA_SLOTS.filter(x => cat.extraPhotos.includes(x.view)).map(x => (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img key={x.view} className="hq-thumb" src={catFileUrl(cat.id, x.kind)} alt={x.label} width={72} height={72} />
-              ))}
-            </div>
-          )}
-        </PanelGroup>
       </section>
     </div>
   );
 }
 
-/** #118：還沒有 3D 的貓直接進製作glb工作區（從列表點進來或直接開網址都一樣） */
+/** #118：還沒有 3D（#129：還沒有確認過的紋理貼圖）的貓直接進製作glb工作區（從列表點進來或直接開網址都一樣） */
 function GoStudio({ cat }: { cat: CatModelView }) {
   const router = useRouter();
-  useEffect(() => { if (!cat.hasAlbedo) router.replace(studioHref(cat.id)); }, [cat.hasAlbedo, cat.id, router]);
+  const ready = textureOf(cat).preview !== null;
+  useEffect(() => { if (!ready) router.replace(studioHref(cat.id)); }, [ready, cat.id, router]);
   return null;
 }
 

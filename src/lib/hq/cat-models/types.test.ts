@@ -108,20 +108,82 @@ describe("formatCatTime（#102）", () => {
   it("沒有時區的本機時間照原樣顯示", () => expect(formatCatTime("2026-10-31T15:39:12")).toBe("2026/10/31 15:39"));
 });
 
-describe("catProgress（#118 列表進度欄）", () => {
+describe("catProgress（#118；#129 改 4 步）", () => {
   const base = { hasAlbedo: false, status: "draft" as const, aiViews: [] as string[], aiRunning: [] as string[] };
-  it("依三步驟回傳第幾步與狀態", async () => {
+  it("依四步驟回傳第幾步與狀態", async () => {
     const { catProgress } = await import("./types");
-    expect(catProgress({ ...base })).toEqual({ step: 1, text: "1/3 上傳照片", tone: "mute" });
-    expect(catProgress({ ...base, aiRunning: ["left"] })).toEqual({ step: 2, text: "2/3 AI 三視角・產生中", tone: "warn" });
-    expect(catProgress({ ...base, aiViews: ["left", "front", "back"] })).toEqual({ step: 2, text: "2/3 AI 三視角・完成", tone: "mute" });
-    expect(catProgress({ ...base, status: "queued" })).toEqual({ step: 3, text: "3/3 產生 3D・產生中", tone: "warn" });
-    expect(catProgress({ ...base, status: "running" })).toEqual({ step: 3, text: "3/3 產生 3D・產生中", tone: "warn" });
-    expect(catProgress({ ...base, status: "failed" })).toEqual({ step: 3, text: "3/3 產生 3D・失敗", tone: "danger" });
-    expect(catProgress({ ...base, hasAlbedo: true, status: "ready" })).toEqual({ step: 3, text: "完成", tone: "" });
+    expect(catProgress({ ...base })).toEqual({ step: 1, text: "1/4 上傳照片", tone: "mute" });
+    expect(catProgress({ ...base, aiRunning: ["left"] })).toEqual({ step: 2, text: "2/4 AI 三視角・產生中", tone: "warn" });
+    expect(catProgress({ ...base, aiViews: ["left", "front", "back"] })).toEqual({ step: 2, text: "2/4 AI 三視角・完成", tone: "mute" });
+    expect(catProgress({ ...base, status: "queued" })).toEqual({ step: 3, text: "3/4 紋理貼圖・產生中", tone: "warn" });
+    expect(catProgress({ ...base, status: "running" })).toEqual({ step: 3, text: "3/4 紋理貼圖・產生中", tone: "warn" });
+    expect(catProgress({ ...base, status: "failed" })).toEqual({ step: 3, text: "3/4 紋理貼圖・失敗", tone: "danger" });
+    expect(catProgress({ ...base, hasAlbedo: true, status: "ready" })).toEqual({ step: 4, text: "完成", tone: "" });
+  });
+  it("貼圖待確認：停在第 3 步", async () => {
+    const { catProgress, catStepStates } = await import("./types");
+    const pending = { ...base, hasAlbedo: true, status: "ready" as const, texture: { state: "pending" as const, preview: null, previewBody: "adult" as const } };
+    expect(catProgress(pending)).toEqual({ step: 3, text: "3/4 紋理貼圖・待確認", tone: "warn" });
+    expect(catStepStates(pending)).toEqual(["done", "done", "active", "todo"]);
+    expect(catStepStates({ ...base, status: "failed" })).toEqual(["done", "done", "failed", "todo"]);
+    expect(catStepStates({ ...base, hasAlbedo: true, status: "ready" })).toEqual(["done", "done", "done", "done"]);
   });
   it("有貼圖但又在重新產生：顯示產生中", async () => {
     const { catProgress } = await import("./types");
-    expect(catProgress({ ...base, hasAlbedo: true, status: "running" }).text).toBe("3/3 產生 3D・產生中");
+    expect(catProgress({ ...base, hasAlbedo: true, status: "running" }).text).toBe("3/4 紋理貼圖・產生中");
+  });
+});
+
+describe("貼圖確認（#129）", () => {
+  const rows = { baseVersion: "adult-v1", prevBaseVersion: "kitten-v1", ageMonths: 12 };
+  it("舊資料沒有確認欄位：目前版視為已確認", async () => {
+    const { textureInfo } = await import("./types");
+    expect(textureInfo({ ...rows, albedo: "a2", prev: "a1", confirmed: undefined })).toEqual({ state: "confirmed", preview: "albedo", previewBody: "adult" });
+  });
+  it("沒有貼圖：none", async () => {
+    const { textureInfo } = await import("./types");
+    expect(textureInfo({ ...rows, albedo: null, prev: null, confirmed: null }).state).toBe("none");
+  });
+  it("新貼圖待確認：預覽用已確認的上一版，母體跟著上一版", async () => {
+    const { textureInfo } = await import("./types");
+    expect(textureInfo({ ...rows, albedo: "a2", prev: "a1", confirmed: "a1" })).toEqual({ state: "pending", preview: "albedo_prev", previewBody: "kitten" });
+  });
+  it("第一次產生、從未確認：待確認且沒有可預覽的貼圖", async () => {
+    const { textureInfo } = await import("./types");
+    expect(textureInfo({ ...rows, albedo: "a1", prev: null, confirmed: null })).toEqual({ state: "pending", preview: null, previewBody: "adult" });
+  });
+  it("確認後：目前版", async () => {
+    const { textureInfo } = await import("./types");
+    expect(textureInfo({ ...rows, albedo: "a2", prev: "a1", confirmed: "a2" }).preview).toBe("albedo");
+  });
+  it("重新產生前丟掉未確認的貼圖，已確認的換回目前版", async () => {
+    const { discardPending } = await import("./types");
+    expect(discardPending({ albedo: "a2", prev: "a1", confirmed: "a1", baseVersion: "adult-v1", prevBaseVersion: "kitten-v1" }))
+      .toEqual({ albedo: "a1", prev: null, baseVersion: "kitten-v1", remove: "a2" });
+    expect(discardPending({ albedo: "a2", prev: "a1", confirmed: "a2", baseVersion: null, prevBaseVersion: null })).toBeNull();
+    expect(discardPending({ albedo: "a1", prev: null, confirmed: null, baseVersion: null, prevBaseVersion: null })).toBeNull();
+    expect(discardPending({ albedo: "a2", prev: "a1", confirmed: undefined, baseVersion: null, prevBaseVersion: null })).toBeNull();
+  });
+  it("待辦：計算待確認的貓", async () => {
+    const { countTexturePending } = await import("./types");
+    const t = (state: "none" | "pending" | "confirmed") => ({ hasAlbedo: true, body: "adult" as const, texture: { state, preview: null, previewBody: "adult" as const } });
+    expect(countTexturePending([t("pending"), t("confirmed"), t("pending"), { hasAlbedo: true, body: "adult" as const }])).toBe(2);
+  });
+});
+
+describe("jobStage（#129 任務階段）", () => {
+  const c = (jobStatus: "queued" | "running" | "done" | "error" | null, jobStep: string | null = null) => ({ status: "running" as const, jobStatus, jobStep });
+  it("依 worker 回報的步驟文字對應階段", async () => {
+    const { jobStage } = await import("./types");
+    expect(jobStage(c(null))).toBeNull();
+    expect(jobStage(c("queued", "排隊中"))).toEqual({ index: 0, failed: false, stalled: false });
+    expect(jobStage(c("queued"), true)?.stalled).toBe(true);
+    expect(jobStage(c("running", "照片去背"))?.index).toBe(1);
+    expect(jobStage(c("running", "載入模型"))?.index).toBe(2);
+    expect(jobStage(c("running", "AI 上色（約 3~6 分鐘）"))?.index).toBe(3);
+    expect(jobStage(c("running", "補花紋與眼皮邊"))?.index).toBe(4);
+    expect(jobStage(c("running", "上傳貼圖"))?.index).toBe(5);
+    expect(jobStage(c("done"))).toEqual({ index: 6, failed: false, stalled: false });
+    expect(jobStage(c("error", "AI 上色"))).toEqual({ index: 3, failed: true, stalled: false });
   });
 });
