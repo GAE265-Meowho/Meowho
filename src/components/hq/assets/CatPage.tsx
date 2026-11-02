@@ -4,7 +4,7 @@
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { formatTaipeiDate } from "@/lib/hq/actions";
 import { resolveClip } from "@/lib/hq/cat-models/clips";
 import {
@@ -48,11 +48,10 @@ function Preview({ cat }: { cat: CatModelView }) {
   return (
     <div className="hq-catpage">
       <section className="hq-catstage" aria-label="3D 預覽">
-        {/* #118：還沒製作 glb 時不載入骨架示範貓（容易誤會成這隻貓），改成前往製作glb工作區 */}
+        {/* #118：還沒製作 glb 時不載入骨架示範貓；CatPage 會直接轉到製作glb工作區，這裡只是轉頁前的過渡 */}
         {!cat.hasAlbedo ? (
-          <div className="hq-state hq-noglb">
-            <p><strong>這隻貓還沒有 3D 模型</strong></p>
-            <p className="hq-hint">到製作glb工作區確認 AI 三視角照片，再按「產生動作 glb」。</p>
+          <div className="hq-state hq-noglb" role="status">
+            <p>這隻貓還沒有 3D 模型，前往製作glb工作區…</p>
             <Link href={studioHref(cat.id)} className="hq-btn">進入glb製作區</Link>
           </div>
         ) : (
@@ -135,6 +134,13 @@ function Preview({ cat }: { cat: CatModelView }) {
   );
 }
 
+/** #118：還沒有 3D 的貓直接進製作glb工作區（從列表點進來或直接開網址都一樣） */
+function GoStudio({ cat }: { cat: CatModelView }) {
+  const router = useRouter();
+  useEffect(() => { if (!cat.hasAlbedo) router.replace(studioHref(cat.id)); }, [cat.hasAlbedo, cat.id, router]);
+  return null;
+}
+
 export function CatPage({ id }: { id: string }) {
   const { value, reload } = useCat(id);
 
@@ -147,6 +153,7 @@ export function CatPage({ id }: { id: string }) {
   const cat = value.data;
   return (
     <>
+      <GoStudio cat={cat} />
       <div className="hq-pagehead">
         <Link href={ASSETS_CATS_HREF} className="hq-back">← 虛擬體驗元件管理</Link>
         <h1 className="hq-h1">{cat.name}</h1>

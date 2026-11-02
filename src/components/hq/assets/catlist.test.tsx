@@ -24,7 +24,7 @@ describe("已建立的貓咪模型列表（#102）", () => {
     rows.data = [member];
     render(<CatsTab query={{ page: 1 }} update={() => {}} />);
     const headers = screen.getAllByRole("columnheader").map(h => h.textContent);
-    expect(headers).toEqual(["縮圖", "名稱", "動作數", "建立者", "更新時間", "備註說明"]);
+    expect(headers).toEqual(["縮圖", "名稱", "進度", "建立者", "更新時間", "備註說明"]); // #118 動作數換成進度
     const row = screen.getByRole("row", { name: /小橘/ });
     expect(within(row).getByText("Tina")).toBeInTheDocument();
     expect(within(row).getByText("2026/11/01 22:44")).toBeInTheDocument();
@@ -37,6 +37,17 @@ describe("已建立的貓咪模型列表（#102）", () => {
     expect(screen.getByText("AI 三視角")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "體型骨架預覽" })).toHaveAttribute("href", "/MeowHQ/assets/bases");
     expect(screen.queryByRole("link", { name: "測試動作與參數" })).toBeNull();
+  });
+  it("#118 進度欄；還沒有 3D 的貓連到製作glb工作區，有 3D 的連到貓咪頁", () => {
+    rows.data = [
+      { ...member, id: "cat_20261102_010000", name: "沒3D", hasAlbedo: false, status: "draft", aiViews: ["left", "front", "back"], aiRunning: [] },
+      { ...member, id: "cat_20261102_020000", name: "有3D", hasAlbedo: true, status: "ready" },
+    ];
+    render(<CatsTab query={{ page: 1 }} update={() => {}} />);
+    expect(within(screen.getByRole("row", { name: /沒3D/ })).getByText("2/3 AI 三視角・完成")).toBeInTheDocument();
+    expect(within(screen.getByRole("row", { name: /有3D/ })).getByText("完成")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "沒3D" })).toHaveAttribute("href", "/MeowHQ/assets/cats/cat_20261102_010000/studio");
+    expect(screen.getByRole("link", { name: "有3D" })).toHaveAttribute("href", "/MeowHQ/assets/cats/cat_20261102_020000");
   });
   it("不顯示狀態與狀態篩選", () => {
     rows.data = [member];

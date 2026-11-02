@@ -138,6 +138,11 @@ describe("製作glb工作區", () => {
     await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/hq/cat-models/cat_20261031_100000/restore",
       expect.objectContaining({ method: "POST", body: JSON.stringify({ reason: "顏色不對" }) })));
   });
+  it("#118 還沒有 3D：返回連結回列表（貓咪頁會轉回工作區，避免繞圈）", async () => {
+    mockCat({ status: "draft", hasAlbedo: false });
+    renderStudio();
+    expect(await screen.findByRole("link", { name: "← 虛擬體驗元件管理" })).toHaveAttribute("href", "/MeowHQ/assets");
+  });
   it("有貼圖時提供「回到貓咪頁看動作」", async () => {
     mockCat({ status: "ready" });
     renderStudio();
