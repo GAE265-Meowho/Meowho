@@ -61,8 +61,8 @@
 | 23-9 | MeowHQ 貓咪模型列表欄位調整、移除殘留的上架狀態 | admin-moderation | 23-8 | P2 | #102 | Tina × Claude Code | 完成（#103 已合併） |
 | 23-10 | MeowHQ 新增貓咪頁兩欄版面、正面／背部花紋照片上傳 | admin-moderation | 23-9 | P2 | #105 | Tina × Claude Code | 完成（#106 已合併） |
 | 23-12 | ~~MeowHQ 貓咪頁補傳正面／背部花紋照片~~（2026-11-02 Tina 決定不做：其他角度照片改在新增貓咪一起上傳；讀取部分併入 #110） | admin-moderation | 23-10 | P2 | #107 | Tina × Claude Code | 完成 |
-| 23-13 | MeowHQ AI 三視角照片（第一階段）、貼圖工作頁改名製作glb工作區；新增貓咪頁依 Stitch 改兩步驟、體型骨架預覽獨立一頁 | admin-moderation | 23-10 | P2 | #110 | Tina × Claude Code | 審查中 |
-| 23-14 | MeowHQ 左側選單改成 Stitch 分組＋圖示樣式；虛擬體驗元件管理區塊移到左側子選單 | admin-moderation | — | P2 | #113 | Tina × Claude Code | 審查中 |
+| 23-13 | MeowHQ AI 三視角照片（第一階段）、貼圖工作頁改名製作glb工作區；新增貓咪頁依 Stitch 改兩步驟、體型骨架預覽獨立一頁 | admin-moderation | 23-10 | P2 | #110 | Tina × Claude Code | 完成（#111 已合併） |
+| 23-14 | MeowHQ 左側選單改成 Stitch 分組＋圖示樣式；虛擬體驗元件管理區塊移到左側子選單 | admin-moderation | — | P2 | #113 | Tina × Claude Code | 完成（#114 已合併） |
 | 23-16 | MeowHQ 貓咪頁未製作 glb 不顯示示範貓；製作glb工作區顯示其他角度照片 2、3 | admin-moderation | 23-13 | P2 | #118 | Tina × Claude Code | 審查中 |
 | 23-14 | MeowHQ AI 三視角第二階段：worker 同時用三張照片上色；製作glb工作區選擇要產生的動作 | admin-moderation | 23-13 | P2 | 待建立 | — | 待辦 |
 | 23-11 | MeowHQ 貓咪模型：同一隻貓可切換成貓／幼貓體型 | admin-moderation | 23-10 | P2 | #104 | — | 待辦 |
