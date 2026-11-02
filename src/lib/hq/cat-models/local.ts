@@ -16,9 +16,10 @@ import type { Reference } from "@/lib/ai/image";
 import { azureEdit, failAll, generateViews } from "./ai-views";
 import { analyzeAge } from "./ai-analyze";
 import { viewSettings, type StartViewsOptions } from "./view-settings";
+import { legacyVariants, variantTexture, type Variants } from "./variants";
 
 export { CAT_ID_RE };
-export const FILE_KINDS = ["photo", "albedo", "albedo_prev", "photo_front", "photo_back", "gen_left", "gen_front", "gen_back"] as const;
+export const FILE_KINDS = ["photo", "albedo", "albedo_prev", "albedo_adult", "albedo_kitten", "albedo_prev_adult", "albedo_prev_kitten", "photo_front", "photo_back", "gen_left", "gen_front", "gen_back"] as const;
 export type FileKind = (typeof FILE_KINDS)[number];
 
 const PHOTO_EXT: Record<string, string> = { jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png", webp: "image/webp" };
@@ -57,13 +58,14 @@ const PENDING_PREV = "paint_albedo_pending_prev.png";
  * 這個整理動作在每次讀取時順便做，不需要改 paint_worker.py。
  */
 async function settle(dir: string): Promise<void> {
-  const pending = path.join(dir, PENDING_PREV);
-  if (!(await exists(pending))) return;
   const jobFile = path.join(dir, "paint_job.json");
   const job = await readJson<JobInfo>(jobFile);
+  const body = job?.body_type;
+  const pending = path.join(dir, body ? `paint_albedo_pending_prev_${body}.png` : PENDING_PREV);
+  if (!(await exists(pending))) return;
   if (!job || job.status === "queued" || job.status === "running") return;
   if (job.status === "done") {
-    await fs.rename(pending, path.join(dir, "paint_albedo_prev.png"));
+    await fs.rename(pending, path.join(dir, body ? `paint_albedo_prev_${body}.png` : "paint_albedo_prev.png"));
     // 上一版貼圖的母體也跟著升格
     const { pending_prev_base_version: prevBase, ...rest } = job;
     await fs.writeFile(jobFile, JSON.stringify({ ...rest, prev_base_version: prevBase }, null, 2), "utf-8");
@@ -84,6 +86,25 @@ async function toView(root: string, id: string): Promise<CatModelView | null> {
   const albedoVersion = await mtime(path.join(dir, "paint_albedo.png"));
   const hasAlbedo = albedoVersion !== null;
   const hasPrevAlbedo = await exists(path.join(dir, "paint_albedo_prev.png"));
+  const legacy = legacyVariants({ albedo: hasAlbedo ? "albedo" : null, prev: hasPrevAlbedo ? "albedo_prev" : null,
+    baseVersion: job?.base_version ?? null, prevBaseVersion: job?.prev_base_version ?? null,
+    confirmed: undefined, ageMonths: num(profile.age_months) });
+  const variants: Variants = { ...legacy };
+  for (const body of ["adult", "kitten"] as const) {
+    if (await exists(path.join(dir, `paint_albedo_${body}.png`))) {
+      variants[body] = { albedo: `albedo_${body}`,
+        prev: await exists(path.join(dir, `paint_albedo_prev_${body}.png`)) ? `albedo_prev_${body}` : null,
+        baseVersion: `${body}-v1`, prevBaseVersion: `${body}-v1`, confirmed: `albedo_${body}` };
+    }
+  }
+  const bodyVariants: NonNullable<CatModelView["bodyVariants"]> = {};
+  for (const body of ["adult", "kitten"] as const) {
+    const v = variants[body];
+    if (!v) continue;
+    bodyVariants[body] = { albedoUrl: v.albedo ? `/api/hq/cat-models/${id}/file/${v.albedo}` : null,
+      prevUrl: v.prev ? `/api/hq/cat-models/${id}/file/${v.prev}` : null,
+      texture: variantTexture(variants, body), baseVersion: v.baseVersion };
+  }
   const created = profile.created_at ?? new Date(0).toISOString();
   return {
     id,
@@ -100,6 +121,7 @@ async function toView(root: string, id: string): Promise<CatModelView | null> {
     hasPrevAlbedo,
     albedoVersion,
     body: bodyFor({ baseVersion: job?.base_version ?? null, hasAlbedo, ageMonths: num(profile.age_months) }),
+    variantStorage: true, bodyVariants,
     jobStatus: job?.status ?? null,
     jobQueuedAt: job?.queued_at ?? null,
     jobStartedAt: job?.started_at ?? null,
@@ -133,6 +155,7 @@ export async function readCatFile(root: string, id: string, kind: FileKind): Pro
   let file: string | null = null;
   if (kind === "albedo") file = path.join(dir, "paint_albedo.png");
   else if (kind === "albedo_prev") file = path.join(dir, "paint_albedo_prev.png");
+  else if (kind.startsWith("albedo_") || kind.startsWith("albedo_prev_")) file = path.join(dir, `paint_${kind}.png`);
   else {
     const profile = await readJson<Profile>(path.join(dir, "profile.json"));
     const name = (kind === "photo" ? profile?.original_photo ?? profile?.photo
@@ -217,15 +240,16 @@ export async function createCat(root: string, input: NewCatInput, now = new Date
   return { ok: true, id };
 }
 
-export type QueueResult = { ok: true } | { ok: false; code: "not_found" | "invalid_option" | "busy" | "views_required" };
+export type QueueResult = { ok: true } | { ok: false; code: "not_found" | "invalid_option" | "busy" | "views_required" | "migration_required" };
 
 /** 送出生成任務（paint_job.json 設為 queued）。已有排隊中或生成中的任務時拒絕；有目前貼圖時先留一份備份供「保留上一版」 */
-export async function queuePaint(root: string, id: string, view: unknown, fill: unknown, now = new Date()): Promise<QueueResult> {
+export async function queuePaint(root: string, id: string, view: unknown, fill: unknown, now = new Date(), body?: unknown): Promise<QueueResult> {
   const cat = await getCat(root, id);
   if (!cat) return { ok: false, code: "not_found" };
   const v = oneOf<PhotoView>(view, ["front", "left", "right"]);
   const f = oneOf<FillPattern>(fill, ["none", "tabby"]);
   if (!v || !f) return { ok: false, code: "invalid_option" };
+  if (body !== undefined && body !== "adult" && body !== "kitten") return { ok: false, code: "invalid_option" };
   if (isJobActive(cat.status)) return { ok: false, code: "busy" };
   if (!viewsReady(cat)) return { ok: false, code: "views_required" };
   const dir = catDir(root, id);
@@ -238,13 +262,18 @@ export async function queuePaint(root: string, id: string, view: unknown, fill: 
     await fs.rm(path.join(dir, "photo_nobg.png"), { force: true });
   }
   const viewUsed = aiLeft ? "left" : v;
-  if (cat.hasAlbedo) await fs.copyFile(path.join(dir, "paint_albedo.png"), path.join(dir, PENDING_PREV));
+  const current = body ? path.join(dir, `paint_albedo_${body}.png`) : path.join(dir, "paint_albedo.png");
+  if (body && !(await exists(current)) && cat.body === body && cat.hasAlbedo)
+    await fs.copyFile(path.join(dir, "paint_albedo.png"), current);
+  const hasCurrent = await exists(current);
+  if (hasCurrent) await fs.copyFile(current, path.join(dir, body ? `paint_albedo_pending_prev_${body}.png` : PENDING_PREV));
   // 母體版本要帶著走：排隊、生成中、失敗時預覽仍用目前貼圖的母體
   const old = await readJson<JobInfo>(path.join(dir, "paint_job.json"));
   const state = {
     status: "queued", step: "排隊中（請確認 paint_worker.py 有在執行）", view: viewUsed, fill: f, queued_at: now.toISOString(),
     base_version: old?.base_version, prev_base_version: old?.prev_base_version,
-    pending_prev_base_version: cat.hasAlbedo ? old?.base_version : undefined,
+    pending_prev_base_version: hasCurrent ? old?.base_version : undefined,
+    ...(body ? { body_type: body } : {}),
   };
   await fs.writeFile(path.join(dir, "paint_job.json"), JSON.stringify(state, null, 2), "utf-8");
   return { ok: true };
@@ -300,18 +329,19 @@ export async function startViews(
 export type RestoreResult = { ok: true } | { ok: false; code: "not_found" | "reason_required" | "busy" | "no_previous" };
 
 /** 改用上一版：目前版與上一版互換（再按一次就換回來）；要填原因並寫稽核 */
-export async function restorePrevious(root: string, id: string, reason: string, actor: string, now = new Date()): Promise<RestoreResult> {
+export async function restorePrevious(root: string, id: string, reason: string, actor: string, now = new Date(), body?: unknown): Promise<RestoreResult> {
   const cat = await getCat(root, id);
   if (!cat) return { ok: false, code: "not_found" };
   const text = reason.trim();
   if (!text) return { ok: false, code: "reason_required" };
   if (isJobActive(cat.status)) return { ok: false, code: "busy" };
-  if (!cat.hasPrevAlbedo) return { ok: false, code: "no_previous" };
+  if (body !== undefined && body !== "adult" && body !== "kitten") return { ok: false, code: "not_found" };
+  if (body ? !cat.bodyVariants?.[body]?.prevUrl : !cat.hasPrevAlbedo) return { ok: false, code: "no_previous" };
   const dir = catDir(root, id);
-  const cur = path.join(dir, "paint_albedo.png");
-  const prev = path.join(dir, "paint_albedo_prev.png");
-  const tmp = path.join(dir, "paint_albedo_swap.tmp");
-  if (cat.hasAlbedo) {
+  const cur = path.join(dir, body ? `paint_albedo_${body}.png` : "paint_albedo.png");
+  const prev = path.join(dir, body ? `paint_albedo_prev_${body}.png` : "paint_albedo_prev.png");
+  const tmp = path.join(dir, body ? `paint_albedo_swap_${body}.tmp` : "paint_albedo_swap.tmp");
+  if (await exists(cur)) {
     await fs.rename(cur, tmp);
     await fs.rename(prev, cur);
     await fs.rename(tmp, prev);
@@ -321,7 +351,7 @@ export async function restorePrevious(root: string, id: string, reason: string, 
   // 母體跟著貼圖換（沒記錄＝成貓舊資料）
   const jobFile = path.join(dir, "paint_job.json");
   const job = await readJson<JobInfo>(jobFile);
-  if (job) await fs.writeFile(jobFile, JSON.stringify({ ...job, base_version: job.prev_base_version, prev_base_version: job.base_version }, null, 2), "utf-8");
+  if (job && !body) await fs.writeFile(jobFile, JSON.stringify({ ...job, base_version: job.prev_base_version, prev_base_version: job.base_version }, null, 2), "utf-8");
   await fs.appendFile(path.join(dir, "audit.jsonl"), JSON.stringify({ action: "restore_texture", actor, reason: text, at: now.toISOString() }) + "\n", "utf-8");
   return { ok: true };
 }

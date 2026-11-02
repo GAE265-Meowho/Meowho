@@ -12,7 +12,7 @@ import { checkPhoto } from "./NewCat";
 import { StudioPageBody } from "./StudioPage";
 import { HqToastProvider } from "../HqToast";
 
-vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), replace: vi.fn() }) }));
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), replace: vi.fn() }), useSearchParams: () => new URLSearchParams() }));
 vi.mock("../HqStates", async orig => ({ ...(await orig<typeof import("../HqStates")>()), useOnline: () => true }));
 
 afterEach(() => { cleanup(); vi.restoreAllMocks(); });

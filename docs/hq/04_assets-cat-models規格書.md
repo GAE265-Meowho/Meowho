@@ -284,6 +284,14 @@
 
 ## 4. 生成引擎（任務佇列＋獨立 worker）
 
+### #104 成貓與幼貓雙體型契約（延續 #81）
+
+- 同一 `model_id` 可有 `adult` 與 `kitten` 兩筆 `meow_cat_model_variants`。每筆獨立保存目前、上一版、母體版本與確認路徑；跨體型的舊上一版在 migration 時移為另一體型的目前版。
+- 貓咪頁只預覽該體型已確認的貼圖；沒貼圖時顯示製作入口，不露出母體示範毛色。共用動作仍來自各體型的 `base_clips.glb`。
+- 網站建立任務時寫 `meow_cat_model_jobs.body_type`；worker 必須按這欄選母體，年齡只用於沒有此欄的舊任務。worker 按體型輪替貼圖，不可把另一體型當上一版。參考 `docs/hq/paint-worker-104.patch`。
+- 本機模式把新貼圖寫到 `paint_albedo_adult.png`／`paint_albedo_kitten.png`，保留舊 `paint_albedo.png` 供 Cat Studio 使用。
+- 啟用順序：先更新並重啟 worker，再由 Tina 核准執行 `0016`，最後在 Vercel 設 `CAT_MODEL_VARIANTS_WORKER_READY=1`。未完成前保持預設值 0，畫面沿用原本單體型流程。不可只開啟開關而未更新 worker。
+
 網頁不執行生成，只負責建立任務與顯示結果。**worker 直接沿用 `cat_studio/paint_worker.py`，不改寫生成邏輯。**
 
 ```

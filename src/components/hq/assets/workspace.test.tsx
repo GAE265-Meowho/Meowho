@@ -75,6 +75,18 @@ describe("骨架測試台工作區（#96）", () => {
 });
 
 describe("貓咪頁工作區（#96）", () => {
+  it("#104 切換到未製作的幼貓時顯示製作入口，不載入示範貓", async () => {
+    current.over = { variantStorage: true, bodyVariants: { adult: {
+      albedoUrl: "https://example.test/adult.png", prevUrl: null,
+      texture: { state: "confirmed", preview: "albedo", previewBody: "adult" }, baseVersion: "adult-v1",
+    } } };
+    render(<HqToastProvider><CatPage id={cat.id} /></HqToastProvider>);
+    await screen.findByTestId("fake-preview");
+    expect(preview.last.albedoUrl).toBe("https://example.test/adult.png");
+    fireEvent.click(screen.getByRole("button", { name: "幼貓" }));
+    expect(screen.queryByTestId("fake-preview")).toBeNull();
+    expect(screen.getByRole("link", { name: "前往製作幼貓貼圖" })).toHaveAttribute("href", `/MeowHQ/assets/cats/${cat.id}/studio?body=kitten`);
+  });
   it("#129 三欄：原貓咪資訊｜3D 預覽｜播放與畫面、動作", async () => {
     render(<HqToastProvider><CatPage id={cat.id} /></HqToastProvider>);
     await screen.findByTestId("fake-preview");

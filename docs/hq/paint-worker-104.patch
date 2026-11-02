@@ -1,0 +1,86 @@
+diff --git a/cat_studio/paint_worker.py b/cat_studio/paint_worker.py
+index 471695c..b0af871 100644
+--- a/cat_studio/paint_worker.py
++++ b/cat_studio/paint_worker.py
+@@ -95,6 +95,12 @@ def body_for_age(age_months):
+ 
+ def mother_for(age_months):
+     body = body_for_age(age_months)
++    return mother_for_body(body)
++
++
++def mother_for_body(body):
++    if body not in ("adult", "kitten"):
++        raise ValueError("不支援的體型")
+     if body not in MOTHERS:
+         folder, version = (ROOT / "cat_base_kitten", "kitten-v1") if body == "kitten" else (ROOT / "cat_base", "adult-v1")
+         MOTHERS[body] = Mother(body, folder, version)
+@@ -160,9 +166,12 @@ def run_local(worker, folder):
+         else:
+             nobg = remove_background(Image.open(folder / profile["photo"]), worker.rembg)
+             nobg.save(nobg_path)
+-        mother = mother_for(profile.get("age_months"))
++        body = job.get("body_type") or body_for_age(profile.get("age_months"))
++        mother = mother_for_body(body)
+         tex = worker.make_albedo(nobg, mother, view, fill, lambda s: write_job(folder, step=s))
+         tex.save(folder / "paint_albedo.png")
++        if job.get("body_type"):
++            tex.save(folder / f"paint_albedo_{body}.png")
+         secs = round(time.time() - start)
+         write_job(folder, status="done", step="完成", seconds=secs, mother=mother.folder.name, base_version=mother.version,
+                   finished_at=datetime.now().isoformat(timespec="seconds"))
+@@ -235,6 +244,11 @@ class Supabase:
+                          headers={"Prefer": "return=representation"}, timeout=30)
+         return self._ok(r).json()
+ 
++    def upsert(self, table, fields):
++        r = self.s.post(f"{self.url}/rest/v1/{table}", params={"on_conflict": "model_id,body_type"}, json=fields,
++                        headers={"Prefer": "resolution=merge-duplicates,return=representation"}, timeout=30)
++        return self._ok(r).json()
++
+     def download(self, bucket, path):
+         r = self.s.get(f"{self.url}/storage/v1/object/{bucket}/{path}", timeout=120)
+         return None if r.status_code in (400, 404) else self._ok(r).content
+@@ -286,23 +300,35 @@ def run_supabase(worker, sb, job, worker_id):
+             nobg = remove_background(Image.open(io.BytesIO(photo)), worker.rembg)
+             sb.upload(PHOTO_BUCKET, nobg_path, png_bytes(nobg), "image/png")
+ 
+-        mother = mother_for((model.get("profile") or {}).get("age_months"))
++        body = job.get("body_type") or body_for_age((model.get("profile") or {}).get("age_months"))
++        mother = mother_for_body(body)
+         tex = worker.make_albedo(nobg, mother, view, fill, step)
+ 
+         step("上傳貼圖")
+         # 每次用新檔名：公開網址不會被瀏覽器／CDN 快取住舊圖
+-        new_path = f"cats/{model_id}/albedo_{datetime.now():%Y%m%d_%H%M%S}.png"
++        new_path = f"cats/{model_id}/albedo_{body}_{datetime.now():%Y%m%d_%H%M%S}.png"
+         sb.upload(MODEL_BUCKET, new_path, png_bytes(tex), "image/png")
+-        # 保留最近 1 版：目前版變上一版，更早的上一版刪掉
+-        old_prev = model.get("prev_albedo_path")
++        # 新任務按體型輪替；舊任務仍沿用既有欄位，避免影響尚未遷移的站台。
++        variants = sb.select("meow_cat_model_variants", model_id=f"eq.{model_id}", body_type=f"eq.{body}", select="*") if job.get("body_type") else []
++        variant = variants[0] if variants else None
++        old_prev = variant.get("prev_albedo_path") if variant else (None if job.get("body_type") else model.get("prev_albedo_path"))
++        old_current = variant.get("albedo_path") if variant else (None if job.get("body_type") else model.get("albedo_path"))
++        old_base = variant.get("base_version") if variant else (None if job.get("body_type") else model.get("base_version"))
+         secs = round(time.time() - start)
+         # 上一版貼圖畫在哪個母體：MeowHQ「改用上一版」時母體要跟著換（兩個母體 UV 不同）
+         meta = {**(model.get("meta") or {}), "seconds": secs, "albedo_size": list(tex.size), "mother": mother.folder.name,
+-                "prev_base_version": model.get("base_version")}
++                "prev_base_version": old_base}
++        if job.get("body_type"):
++            sb.upsert("meow_cat_model_variants", {
++                "model_id": model_id, "body_type": body, "albedo_path": new_path,
++                "prev_albedo_path": old_current, "base_version": mother.version,
++                "prev_base_version": old_base,
++                "confirmed_albedo": variant.get("confirmed_albedo") if variant else None,
++                "updated_at": now_iso()})
+         sb.patch("meow_cat_models", {"id": f"eq.{model_id}"}, {
+-            "status": "ready", "albedo_path": new_path, "prev_albedo_path": model.get("albedo_path"),
++            "status": "ready", "albedo_path": new_path, "prev_albedo_path": old_current,
+             "base_version": mother.version, "photo_view": view, "fill_pattern": fill, "meta": meta, "updated_at": now_iso()})
+-        if old_prev and old_prev != model.get("albedo_path"):
++        if old_prev and old_prev != old_current:
+             sb.remove(MODEL_BUCKET, old_prev)
+         sb.patch("meow_cat_model_jobs", {"id": f"eq.{job['id']}"}, {"status": "done", "step": "完成", "finished_at": now_iso()})
+         print(f"    完成（{mother.version}），{secs // 60} 分 {secs % 60} 秒 → {new_path}")
