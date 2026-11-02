@@ -23,7 +23,7 @@ MeowHQ（`/MeowHQ`，取代舊隱藏後台）開發中：階段 0（#18）、db�
 2026-11-02（#93）：虛擬體驗元件管理「室內空間」新增**影片轉換**：管理員上傳影片建立工作，本機 worker 轉換後在後台查看 3D 房間，貓咪可走路、跳上床、推倒杯子。檢視器 `src/components/hq/assets/RoomViewer.tsx`，互動 `src/lib/hq/rooms/world.ts`（`cat.js`、`physics.js`、`audio.js` 來自影片轉 3D 專案）。
 
 ## 資料表（Supabase）
-- `0011_meow_room_models.sql`（**尚未執行，須 Tina 確認**）：`meow_room_models`、`meow_room_jobs`；只有 `virtual_assets` 能讀寫，worker 用 service role。Bucket：`meow-room-videos`（私有）、`meow-room-models`（公開），見決策 008。
+- `0014_meow_room_models.sql`（**尚未執行，須 Tina 確認**）：`meow_room_models`、`meow_room_jobs`；只有 `virtual_assets` 能讀寫，worker 用 service role。Bucket：`meow-room-videos`（私有）、`meow-room-models`（公開），見決策 008。
 - 已建立（`0001_meow.sql`）：`meow_shelter_verifications`（同一貓戶同時只能一筆審核中）、`meow_notifications`、`meow_site_settings`（key/value，公開讀、管理員寫）
 - `meow_profiles.role`（0001：member/admin；0002 起：member/admin/system_admin）、`meow_profiles.email`
 - 0002（尚未執行）新增：`meow_admin_module_grants`、`meow_audit_logs`、`meow_user_suspensions`、`meow_banlist`（見下）\n- 待建立：`reports`

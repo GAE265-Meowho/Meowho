@@ -1,5 +1,5 @@
 "use client";
-// 我填過的領養問卷（#89）：草稿可以接著填，送出的看得到中途標記的狀態
+// 我填過的領養問卷（#89）：草稿可以接著填；送出後的進度與對話在「領養管理」（#128）
 import { useEffect, useState } from "react";
 import { RESPONSE_STATUS, type ResponseStatus } from "@/components/adoption-form/answer-text";
 import f from "@/components/onboarding/intake.module.css";
@@ -27,6 +27,7 @@ export function MyApplications({ userId }: { userId: string }) {
             <b>{r.form?.cat?.name ?? "貓咪"}</b>
             <span className={s.tag}>{r.status === "draft" ? "草稿" : RESPONSE_STATUS[r.status]}</span>
             {r.status === "draft" && r.form && <a className={s.textBtn} href={`/cats/${r.form.cat_id}/apply`}>接著填</a>}
+            {r.status !== "draft" && <a className={s.textBtn} href="/me/adoptions">看對話</a>}
           </li>
         ))}
       </ul>
