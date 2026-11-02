@@ -37,6 +37,10 @@
 
 .list { margin: 0; padding-left: 1.2em; color: var(--ink); font-size: 15px; line-height: 1.9; }
 .story { margin: 0; color: var(--ink); font-size: 15px; line-height: 1.9; white-space: pre-wrap; overflow-wrap: anywhere; }
+.returns { margin: 0; padding: 0; list-style: none; display: grid; gap: 16px; }
+.returns li { display: grid; gap: 8px; padding-top: 16px; border-top: 2px dashed var(--line, #ead9c6); }
+.returns li:first-child { padding-top: 0; border-top: 0; }
+.returns p { margin: 0; display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; }
 .videos { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
 .videos video { width: 100%; border-radius: 20px; background: var(--ink); }
 

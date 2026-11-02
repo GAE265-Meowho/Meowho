@@ -49,9 +49,9 @@ export const HouseholdTurnSchema = z.object({
 export const CatTurnSchema = z.object({
   name: z.string().nullable().describe("貓咪名字，沒提到填 null"),
   sex: z.enum(["male", "female", "unknown"]).nullable().describe("使用者明說的性別；說不確定填 unknown；沒提到填 null"),
-  birthday: z.string().nullable().describe("YYYY-MM-DD，使用者明說生日才填"),
-  estAgeMonths: z.number().int().nullable().describe("使用者說的大約月齡（例如 2 歲 → 24）"),
-  lifeStage: z.enum(["kitten", "young_adult", "mature_adult", "senior"]).nullable().describe("使用者直接說年齡層時才填"),
+  birthday: z.string().nullable().describe("YYYY-MM-DD，使用者明說生日才填（只用來判斷年齡層，不會存）"),
+  estAgeMonths: z.number().int().nullable().describe("使用者說的大約月齡（例如 2 歲 → 24、剛滿月 → 1；只用來判斷年齡層，不會存）"),
+  lifeStage: z.enum(["kitten", "adult", "senior"]).nullable().describe("使用者直接說幼貓／小貓、成貓／壯貓、老貓時才填"),
   coat: z.string().nullable().describe("毛色花紋"),
   breed: z.string().nullable().describe("品種"),
   personalityTags: z.array(z.string()).describe("只能從個性標籤清單挑選"),

@@ -6,7 +6,7 @@
 // 示範模式（沒有 Supabase）可以完整操作，但不會存檔；影片在沒有設定 Azure 時關閉。
 import { useEffect, useRef, useState } from "react";
 import { AI_LIMITS } from "@/lib/ai/guard";
-import { LIFE_STAGE_LABEL, lifeStageOf } from "@/lib/cat-profile/life-stage";
+import { LIFE_STAGE_LABEL } from "@/lib/cat-profile/life-stage";
 import type { AdoptionTerms } from "@/lib/cat-profile/adoption";
 import type { CaretakerType } from "@/lib/onboarding/household";
 import { defaultCatStatus } from "@/lib/onboarding/household-rules";
@@ -14,9 +14,9 @@ import {
   MAX_PHOTOS, MAX_VIDEOS, applyMediaAnalysis, beginCat, emptyIntake, nextStep, setCatField,
   type IntakeState, type MediaAnalysis, type Step,
 } from "@/lib/onboarding/conversation";
-import { LIFE_STAGE_CHIPS, REVIEW_CHIP, askText, noticeText } from "@/lib/onboarding/intake-copy";
+import { LIFE_STAGE_CHIPS, REVIEW_CHIP, VIDEO_ERROR, askText, noticeText } from "@/lib/onboarding/intake-copy";
 import { toCatInsert, toCatVideoInserts, type VideoMeta } from "@/lib/onboarding/intake-rows";
-import { MAX_ANALYZE_VIDEO_BYTES, MAX_VIDEO_SEC, validateVideoUpload, type VideoUploadError } from "@/lib/storage/media";
+import { MAX_ANALYZE_VIDEO_BYTES, validateVideoUpload } from "@/lib/storage/media";
 import type { UploadTarget } from "@/lib/storage/types";
 import { getBrowserSupabase } from "@/lib/supabase/client";
 import { PHOTO_BUCKET } from "@/lib/supabase/config";
@@ -30,15 +30,6 @@ import s from "./intake.module.css";
 /** 要新增貓的喵戶：身分決定貓的預設狀態，送養條件是貓的預設值 */
 export interface ExistingHome { id: string; name: string; role: CaretakerType; terms: AdoptionTerms | null }
 
-const VIDEO_ERROR: Record<VideoUploadError | "video_disabled" | "forbidden", string> = {
-  unsupported_type: "這個影片格式不支援，請用 MP4、MOV 或 WebM。",
-  too_large: "影片太大了，請改用較低的畫質再拍一次。",
-  too_long: `影片要在 ${MAX_VIDEO_SEC} 秒內，可以先剪短一點。`,
-  invalid_duration: "讀不到這支影片的長度，換一支試試？",
-  too_many_videos: `影片最多 ${MAX_VIDEOS} 支喔。`,
-  video_disabled: "影片上傳目前還沒開放，先用照片和文字就好。",
-  forbidden: "沒有權限幫這隻貓上傳影片。",
-};
 
 type Shrunk = Awaited<ReturnType<typeof shrinkPhoto>>;
 type PhotoGuess = Omit<Extract<MediaAnalysis, { kind: "photo" }>, "kind" | "path">;
@@ -140,7 +131,7 @@ export function IntakeChat({ userId, home }: { userId: string | null; home: Exis
     const guessed = [
       next.cat.coat !== prev.cat.coat && `毛色是「${next.cat.coat}」`,
       next.cat.breed !== prev.cat.breed && `品種像是「${next.cat.breed}」`,
-      next.cat.lifeStage !== prev.cat.lifeStage && next.cat.lifeStage && `年紀看起來是${LIFE_STAGE_LABEL[lifeStageOf(next.cat.estAgeMonths) ?? next.cat.lifeStage]}`,
+      next.cat.lifeStage !== prev.cat.lifeStage && next.cat.lifeStage && `看起來是${LIFE_STAGE_LABEL[next.cat.lifeStage]}`,
     ].filter(Boolean);
     if (guessed.length) setAiUsed(true);
     advance(prev, next, guessed.length ? `我猜${guessed.join("、")}，最後會請你確認。` : fromAI ? "照片收到了。" : "照片收到了，外觀的部分最後可以自己填。");
@@ -292,8 +283,10 @@ export function IntakeChat({ userId, home }: { userId: string | null; home: Exis
         <h2 id="done-title">{done.name}的名片建立好了</h2>
         <p className={s.lead}>{done.stage ? `${done.stage}・` : ""}{own ? "自家貓" : "待領養"}{sb ? "" : "（示範模式：資料沒有儲存）"}</p>
         <div className={s.actions} style={{ justifyContent: "center" }}>
+          {/* 建好就能直接建問卷（#109），連到修改頁的問卷區塊 */}
+          {!own && sb && <CatButton href={`/cats/${catId}/edit#form-editor`}>建立領養問卷</CatButton>}
           <CatButton variant="ghost" onClick={anotherCat}>再新增一隻</CatButton>
-          <CatButton href="/me">去我的喵戶</CatButton>
+          <CatButton variant={!own && sb ? "ghost" : "primary"} href="/me">去我的喵戶</CatButton>
         </div>
       </section>
     );

@@ -7,8 +7,9 @@ import { MyHomes, type CatRow, type Household } from "@/components/me/MyHomes";
 import f from "@/components/onboarding/intake.module.css";
 import CatButton from "@/components/ui/CatButton";
 import Icon from "@/components/ui/Icon";
-import { deleteCat, deleteHousehold } from "@/components/me/delete-cat";
+import { ADOPTED_CAT, deleteCat, deleteHousehold } from "@/components/me/delete-cat";
 import { MyApplications } from "@/components/me/MyApplications";
+import { ReturnInbox } from "@/components/cats/CatReturn";
 import { canAddHousehold, parseHouseholdLimit } from "@/lib/onboarding/household-rules";
 import { getBrowserSupabase } from "@/lib/supabase/client";
 import s from "@/components/me/me.module.css";
@@ -38,7 +39,7 @@ export default function MyHomePage() {
       if (!list.length) return;
       const ids = list.map(x => x.id);
       const [{ data: c, error: cErr }, { data: v }] = await Promise.all([
-        sb.from("meow_cats").select("id, household_id, name, sex, birthday, est_age_months, life_stage, coat, breed, personality_tags, photo_url, status").in("household_id", ids).order("created_at"),
+        sb.from("meow_cats").select("id, household_id, origin_household_id, name, sex, life_stage, coat, breed, personality_tags, photo_url, status").in("household_id", ids).order("created_at"),
         sb.from("meow_shelter_verifications").select("id, household_id, status, review_note, created_at").in("household_id", ids).order("created_at", { ascending: false }),
       ]);
       if (cErr) setLoadError(cErr.message);
@@ -71,11 +72,13 @@ export default function MyHomePage() {
   else body = (
     <>
       {loadError && <p className={f.error} role="alert">讀取失敗：{loadError}</p>}
+      {/* 退養請求（#109）：收回後貓回到這裡，重新整理清單 */}
+      <ReturnInbox homeIds={homes.filter(h => h.caretaker_type !== "cat_owner").map(h => h.id)} onReturned={() => window.location.reload()} />
       <MyHomes homes={homes} cats={cats} verifs={verifs} onVerification={row => setVerifs(v => [row, ...v])}
         onDeleteCat={async id => {
           const sb = getBrowserSupabase();
           const err = sb ? await deleteCat(sb, id) : null;
-          if (err) setLoadError(`刪除失敗：${err}`); else setCats(list => list.filter(c => c.id !== id));
+          if (err) setLoadError(err === ADOPTED_CAT ? err : `刪除失敗：${err}`); else setCats(list => list.filter(c => c.id !== id));
         }}
         onDeleteHome={async id => {
           const sb = getBrowserSupabase();

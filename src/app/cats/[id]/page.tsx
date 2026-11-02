@@ -1,11 +1,13 @@
 "use client";
 /* eslint-disable @next/next/no-img-element */
 // 貓咪頁（#70）：給想領養的人看的公開名片，可以收藏、填寫領養問卷。看不看得到交給 meow_cats 的 RLS。
-// 年齡只顯示幼貓／壯貓／老貓（#109），不顯示年齡數字。私訊（#70）做好後在這裡加「傳訊息給喵戶長」。
+// 年齡只顯示幼貓／壯貓／老貓（#109），不顯示年齡數字。從中途領養來的貓，飼主在這裡提出退養請求（#109）。
+// 私訊（#70）做好後在這裡加「傳訊息給喵戶長」。
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/components/Auth";
 import { SiteHeader, TabBar } from "@/components/Chrome";
+import { ReturnRequest } from "@/components/cats/CatReturn";
 import { FavoriteButton } from "@/components/cats/FavoriteButton";
 import s from "@/components/cats/catPage.module.css";
 import f from "@/components/onboarding/intake.module.css";
@@ -28,7 +30,7 @@ export default function CatPage() {
   const { id } = useParams<{ id: string }>();
   const { loading, user } = useAuth();
   const sb = getBrowserSupabase();
-  const [cat, setCat] = useState<(CatFields & { rawStatus: string }) | null | undefined>(undefined);
+  const [cat, setCat] = useState<(CatFields & { rawStatus: string; fromFoster: boolean }) | null | undefined>(undefined);
   const [home, setHome] = useState<Home | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [videos, setVideos] = useState<{ path: string; url: string }[]>([]);
@@ -43,7 +45,7 @@ export default function CatPage() {
         sb.from("meow_adoption_forms").select("is_open").eq("cat_id", id).maybeSingle(),
       ]);
       if (!row) { setCat(null); return; }
-      setCat({ ...fromCatRow(row), rawStatus: row.status });
+      setCat({ ...fromCatRow(row), rawStatus: row.status, fromFoster: Boolean(row.origin_household_id) });
       setHome(row.household as Home);
       setFormOpen(Boolean(fm?.is_open));
       fetch(`/api/cats/${id}/videos`).then(r => r.json()).then(d => setVideos(d.videos ?? [])).catch(() => {});
@@ -150,6 +152,8 @@ export default function CatPage() {
             {cat.description && <p className={s.story}>{cat.description}</p>}
           </section>
         )}
+
+        {isOwner && cat.fromFoster && <ReturnRequest catId={id} catName={cat.name} />}
 
         {adoptable && (terms.items.length > 0 || terms.note || cat.handover.length > 0) && (
           <section className={f.card} aria-labelledby="sec-terms">

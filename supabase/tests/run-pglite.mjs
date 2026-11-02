@@ -174,6 +174,28 @@ try {
   }
 }
 
+// 0009（建立貓咪重新盤點，#109）：0001→0008 後先放一隻舊年齡層的貓，再跑 0009 兩次＋測試
+{
+  const m = new PGlite();
+  const base = read("./stub_supabase.sql") + ["0001_meow", "0002_meow_hq", "0003_meow_site_assets", "0004_meow_cat_profile", "0005_meow_cat_models", "0006_meow_household_roles", "0007_meow_adoption_forms", "0008_meow_cat_favorites"]
+    .map((f) => read(`../migrations/${f}.sql`)).join("");
+  try {
+    await m.exec(base);
+    await m.exec(`insert into auth.users (id, email) values ('00000000-0000-0000-0000-0000000009a1', 'f9@test.example');
+      insert into public.meow_profiles (id, email) values ('00000000-0000-0000-0000-0000000009a1', 'f9@test.example');
+      insert into public.meow_households (id, owner_id, name, caretaker_type, city, district) values ('00000000-0000-0000-0000-0000000009d0', '00000000-0000-0000-0000-0000000009a1', '舊資料', 'personal_foster', '桃園市', '龍潭區');
+      insert into public.meow_cats (id, household_id, name, sex, life_stage, status) values ('00000000-0000-0000-0000-0000000009f0', '00000000-0000-0000-0000-0000000009d0', '老資料', 'male', 'mature_adult', 'adoptable');`);
+    await m.exec(read("../migrations/0009_meow_cat_returns.sql"));
+    await m.exec(read("../migrations/0009_meow_cat_returns.sql"));
+    const sql9 = read("./0009_meow_cat_returns.test.sql").replace(/^\s*begin;/im, "").replace(/rollback;\s*$/i, "");
+    const out9 = await m.exec(sql9);
+    results = results.concat(out9.flatMap((r) => r.rows ?? []).filter((r) => "status" in r));
+  } catch (e) {
+    console.error(`✗ 0009 測試中斷：${e.message}`);
+    process.exit(1);
+  }
+}
+
 let failed = 0;
 for (const r of results) {
   if (r.status === "FAIL") failed++;

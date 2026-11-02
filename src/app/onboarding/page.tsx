@@ -29,7 +29,8 @@ export default function OnboardingPage() {
     const sb = getBrowserSupabase();
     const params = new URLSearchParams(window.location.search);
     const decide = (list: Home[], householdLimit: number | null = null) => {
-      const target = list.find(h => h.id === params.get("household")) ?? null;
+      // 只有中途的喵戶能新增貓（#109）；一般飼主的貓只會從中途移轉過來
+      const target = list.find(h => h.id === params.get("household") && h.role !== "cat_owner") ?? null;
       setHome(target);
       // 未登入也要設定 phase，否則會一直停在載入中（正式站 #72 的問題）
       setPhase(decideStart({
@@ -67,11 +68,13 @@ export default function OnboardingPage() {
     body = <TermsGate onAgree={agreeTerms} />;
   } else if (phase === "choose") {
     const canNew = canAddHousehold(homes.length, limit);
+    const fosters = homes.filter(h => h.role !== "cat_owner");
     body = (
       <section className={s.card} aria-labelledby="choose-title">
         <h2 id="choose-title">要把貓加到哪一個喵戶？</h2>
+        {!fosters.length && <p className={s.lead}>新增貓咪要用中途的喵戶。一般飼主領養的貓，會在領養完成後由中途移轉到你的喵戶。</p>}
         <ul className={s.homeList}>
-          {homes.map(h => (
+          {fosters.map(h => (
             <li className={s.homeItem} key={h.id}>
               <div><b>{h.name}</b><span>{h.city}{h.district}</span></div>
               <CatButton size="sm" variant="ghost" onClick={() => { setHome(h); setPhase("cat"); }}>加到這裡</CatButton>
@@ -86,6 +89,13 @@ export default function OnboardingPage() {
             <li className={s.homeItem}><div><b>喵戶已達上限</b><span>每個帳號最多 {limit} 個喵戶，每個喵戶都可以新增很多隻貓。</span></div></li>
           )}
         </ul>
+      </section>
+    );
+  } else if (phase === "cat" && home?.role === "cat_owner") {
+    body = (
+      <section className={`${s.card} ${s.center}`} aria-labelledby="owner-title">
+        <h2 id="owner-title">「{home.name}」建好了</h2>
+        <p className={s.lead}>一般飼主領養的貓，會在領養完成後由中途移轉到你的喵戶。</p>
       </section>
     );
   } else if (phase === "cat" && home) {

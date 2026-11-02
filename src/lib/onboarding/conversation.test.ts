@@ -82,7 +82,7 @@ describe("建立貓咪：先看照片影片，再補問", () => {
   it("照片判讀只填空欄，並標為「請確認」", () => {
     const s = applyMediaAnalysis(catPhase(), photo);
     expect(s.cat.photos).toEqual(["u1/a.jpg"]);
-    expect(s.cat).toMatchObject({ coat: "橘白", breed: "米克斯", lifeStage: "young_adult" });
+    expect(s.cat).toMatchObject({ coat: "橘白", breed: "米克斯", lifeStage: "adult", estAgeMonths: null });
     expect(s.pending).toEqual(expect.arrayContaining(["coat", "breed", "lifeStage"]));
   });
 
@@ -132,8 +132,18 @@ describe("建立貓咪：先看照片影片，再補問", () => {
 
   it("講年齡就自動算出年齡層；使用者講的不需確認", async () => {
     const r = await takeTurn(catPhase(), "大約 8 歲", llm(ct({ estAgeMonths: 96 })), today);
-    expect(r.state.cat.lifeStage).toBe("mature_adult");
+    expect(r.state.cat.lifeStage).toBe("adult");
     expect(r.state.pending).not.toContain("lifeStage");
+  });
+
+  it("年紀只用來決定三級，不留生日或月齡", async () => {
+    const r = await takeTurn(catPhase(), "生日 2026/8/1", llm(ct({ birthday: "2026-08-01" })), today);
+    expect(r.state.cat).toMatchObject({ lifeStage: "kitten", birthday: null, estAgeMonths: null });
+  });
+
+  it("說「剛滿月」也能對應到幼貓", async () => {
+    const r = await takeTurn(catPhase(), "剛滿月", noAI, today);
+    expect(r.state.cat.lifeStage).toBe("kitten");
   });
 
   it("描述存喵戶長的原文，不用 AI 改寫過的摘要", async () => {
@@ -320,7 +330,7 @@ describe("送養文欄位（#82）", () => {
   it("性別與健康欄位一律標「請確認」，即使是從文字擷取的", async () => {
     const r = await takeTurn(withPhoto(), "她已結紮，打了第一劑", llm(ct({ sex: "female", healthTags: ["已結紮"], medical: { ...noMed, neutered: "done", vaccineDoses: 1 } })), today);
     expect(r.state.pending).toEqual(expect.arrayContaining(["sex", "health"]));
-    expect(canCreateCat({ ...r.state, cat: { ...r.state.cat, name: "麥麥", lifeStage: "young_adult" } })).toBe(false);
+    expect(canCreateCat({ ...r.state, cat: { ...r.state.cat, name: "麥麥", lifeStage: "adult" } })).toBe(false);
   });
 
   it("醫療細項帶出健康標籤；只打第一劑不會變成「疫苗已完成」", async () => {
