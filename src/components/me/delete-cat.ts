@@ -17,7 +17,9 @@ export async function deleteCat(sb: SupabaseClient, catId: string): Promise<stri
   // 資料庫也會擋（0009），但要在刪檔案之前先擋，不然照片會先不見
   if (cat.origin_household_id) return ADOPTED_CAT;
   const photos: string[] = cat.photo_paths?.length ? cat.photo_paths : [pathFromPublicUrl(cat.photo_url)].filter((p): p is string => Boolean(p));
-  if (photos.length) await sb.storage.from(PHOTO_BUCKET).remove(photos);
+  // 示範資料的照片是外部網址，不在 bucket 裡
+  const stored = photos.filter(p => !/^https?:/.test(p));
+  if (stored.length) await sb.storage.from(PHOTO_BUCKET).remove(stored);
   await Promise.all((videos ?? []).map(v => fetch("/api/onboarding/cat-video", {
     method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ path: v.storage_path }),
   }).catch(() => null)));

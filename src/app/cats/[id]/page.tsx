@@ -19,7 +19,7 @@ import { BODY_TYPE_LABEL, bodyTypeOf } from "@/lib/cat-profile/life-stage";
 import { fromCatRow } from "@/lib/onboarding/intake-rows";
 import type { CatFields } from "@/lib/onboarding/conversation";
 import { getBrowserSupabase } from "@/lib/supabase/client";
-import { PHOTO_BUCKET } from "@/lib/supabase/config";
+import { photoSrc } from "@/lib/supabase/config";
 
 interface Home { id: string; name: string; city: string; district: string; owner_id: string; adoption_terms: AdoptionTerms | null }
 
@@ -56,7 +56,7 @@ export default function CatPage() {
     })();
   }, [sb, loading, user, id]);
 
-  const photoUrl = (p: string) => sb?.storage.from(PHOTO_BUCKET).getPublicUrl(p).data.publicUrl ?? "";
+  const photoUrl = (p: string) => (sb ? photoSrc(sb, p) : "");
   const isOwner = Boolean(user && home && home.owner_id === user.id);
 
   let body: React.ReactNode;

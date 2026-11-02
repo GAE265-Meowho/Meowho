@@ -21,7 +21,7 @@ import { fromCatRow, toCatUpdate, toCatVideoInserts, type VideoMeta } from "@/li
 import { MAX_ANALYZE_VIDEO_BYTES, validateVideoUpload } from "@/lib/storage/media";
 import type { UploadTarget } from "@/lib/storage/types";
 import { getBrowserSupabase } from "@/lib/supabase/client";
-import { PHOTO_BUCKET } from "@/lib/supabase/config";
+import { PHOTO_BUCKET, photoSrc } from "@/lib/supabase/config";
 
 type PhotoAi = { result: { isCat: boolean; inappropriate: boolean; sameCatAsReference: boolean | null; coat: string | null; breed: string | null; estAgeMonths: number | null; confidence: number } | null };
 type VideoAi = { result: { isCat: boolean; personalityTags: string[]; reason: string } | null };
@@ -78,7 +78,7 @@ export default function EditCatPage() {
       setHomeTerms(row.household.adoption_terms ?? null);
       setHouseholdId(row.household_id);
       setOriginal({ photos: cat.photos, videos });
-      setPreviews(Object.fromEntries(cat.photos.map(p => [p, { url: sb.storage.from(PHOTO_BUCKET).getPublicUrl(p).data.publicUrl, kind: "photo" as const }])));
+      setPreviews(Object.fromEntries(cat.photos.map(p => [p, { url: photoSrc(sb, p), kind: "photo" as const }])));
       commit({ ...emptyIntake(), phase: "cat", cat, reviewRequested: true });
       // 影片在私人容器，預覽用伺服器簽發的短時效網址
       if (videos.length) {
@@ -180,7 +180,7 @@ export default function EditCatPage() {
   async function save() {
     if (!sb || !state) return;
     setSaving(true); setError(null);
-    const cover = state.cat.photos[0] ? sb.storage.from(PHOTO_BUCKET).getPublicUrl(state.cat.photos[0]).data.publicUrl : null;
+    const cover = state.cat.photos[0] ? photoSrc(sb, state.cat.photos[0]) : null;
     const { error: err } = await sb.from("meow_cats").update(toCatUpdate(state.cat, cover)).eq("id", id);
     if (err) { setSaving(false); setError(`儲存失敗：${err.message}`); return; }
     const added = state.cat.videos.filter(p => !original.videos.includes(p));
@@ -190,7 +190,7 @@ export default function EditCatPage() {
     }
     unsaved.current = { photos: new Set(), videos: new Set() };
     // 名片上移除的照片與影片，存檔成功後才從雲端刪掉
-    const removedPhotos = original.photos.filter(p => !state.cat.photos.includes(p));
+    const removedPhotos = original.photos.filter(p => !state.cat.photos.includes(p) && !/^https?:/.test(p));
     const removedVideos = original.videos.filter(p => !state.cat.videos.includes(p));
     if (removedPhotos.length) await sb.storage.from(PHOTO_BUCKET).remove(removedPhotos);
     for (const path of removedVideos) {

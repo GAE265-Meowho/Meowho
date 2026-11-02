@@ -1,11 +1,11 @@
 "use client";
 
-import Image from "next/image";
+/* eslint-disable @next/next/no-img-element */
 import { useEffect, useMemo, useRef, useState } from "react";
 import CatButton from "@/components/ui/CatButton";
 import Icon from "@/components/ui/Icon";
-import { cats } from "@/lib/cats";
-import { households, isoProject, labelWidth, paintOrder, ROOF_LEGEND, type Household, type RoofKind } from "@/lib/households";
+import type { FeedCat } from "@/lib/adopt-feed";
+import { isoProject, labelWidth, paintOrder, ROOF_LEGEND, type Household, type RoofKind } from "@/lib/households";
 import styles from "./adoptMap.module.css";
 
 const ROOF: Record<RoofKind, { top: string; edge: string }> = {
@@ -108,15 +108,17 @@ function House({ h, selected, dim, onSelect }: { h: Household; selected: boolean
 }
 
 type Props = {
-  /** Whether a waiting cat passes the current personality filter. */
-  matches: (catName: string) => boolean;
-  onShowCard: (catName: string) => void;
+  households: Household[];
+  cats: FeedCat[];
+  /** Whether a waiting cat (by id) passes the current personality filter. */
+  matches: (catId: string) => boolean;
+  onShowCard: (catId: string) => void;
 };
 
 /** 貓緣小鎮-style isometric map: every house is a 喵戶; tags only where cats are waiting. */
-export default function AdoptMap({ matches, onShowCard }: Props) {
-  const [selectedId, setSelectedId] = useState("xiaoqing");
-  const ordered = useMemo(() => paintOrder(households), []);
+export default function AdoptMap({ households, cats, matches, onShowCard }: Props) {
+  const [selectedId, setSelectedId] = useState(households[0]?.id ?? "");
+  const ordered = useMemo(() => paintOrder(households), [households]);
   const mapRef = useRef<HTMLDivElement>(null);
 
   // On phones the map is wider than the screen: start with the town centred.
@@ -125,7 +127,7 @@ export default function AdoptMap({ matches, onShowCard }: Props) {
     if (m) m.scrollLeft = (m.scrollWidth - m.clientWidth) / 2;
   }, []);
   const sel = households.find((h) => h.id === selectedId) ?? null;
-  const selCats = sel ? cats.filter((c) => sel.waiting.includes(c.name)) : [];
+  const selCats = sel ? cats.filter((c) => sel.waiting.includes(c.id)) : [];
 
   const c = isoProject;
   const A = c(-0.5, -0.5);
@@ -140,7 +142,7 @@ export default function AdoptMap({ matches, onShowCard }: Props) {
     <div className={styles.wrap}>
       <div className={styles.mapCard}>
         <div className={styles.map} ref={mapRef}>
-          <svg viewBox="30 96 740 418" role="group" aria-label="帶我回家地圖：台中市的喵戶">
+          <svg viewBox="30 96 740 418" role="group" aria-label="帶我回家地圖：有貓在等家的喵戶">
             {/* platform */}
             <polygon points={pts(D, C, { x: C.x, y: C.y + T }, { x: D.x, y: D.y + T })} fill="#efd9b4" />
             <polygon points={pts(C, B, { x: B.x, y: B.y + T }, { x: C.x, y: C.y + T })} fill="#e5c995" />
@@ -172,7 +174,7 @@ export default function AdoptMap({ matches, onShowCard }: Props) {
         </div>
 
         <ul className={styles.legend} aria-label="圖例">
-          {ROOF_LEGEND.map((l) => (
+          {ROOF_LEGEND.filter((l) => households.some((h) => h.kind === l.kind)).map((l) => (
             <li key={l.kind}>
               <i style={{ background: ROOF[l.kind].top, borderColor: ROOF[l.kind].edge }} />
               {l.label}
@@ -190,7 +192,7 @@ export default function AdoptMap({ matches, onShowCard }: Props) {
             <h3>{sel.name}</h3>
             <p className={styles.meta}>
               <Icon name="pin" size={14} />
-              {sel.district}・喵戶長 {sel.owner}
+              {[sel.district, sel.owner].filter(Boolean).join("・")}
             </p>
             <p className={styles.intro}>{sel.intro}</p>
 
@@ -199,18 +201,18 @@ export default function AdoptMap({ matches, onShowCard }: Props) {
                 <p className={styles.sub}>在這裡等家的貓</p>
                 <ul className={styles.cats}>
                   {selCats.map((cat) => (
-                    <li key={cat.name} className={matches(cat.name) ? undefined : styles.catDim}>
+                    <li key={cat.id} className={matches(cat.id) ? undefined : styles.catDim}>
                       <span className={styles.thumb}>
-                        <Image src={cat.photo.src} alt={cat.photo.alt} fill sizes="56px" />
+                        {cat.photo ? <img src={cat.photo} alt={`${cat.name}的照片`} /> : <Icon name="cat" size={28} />}
                       </span>
                       <span className={styles.catText}>
                         <strong>{cat.name}</strong>
                         <small>
-                          {cat.sex}｜{cat.age}・等家 {cat.waitDays} 天
+                          {[cat.sex, cat.stage].filter(Boolean).join("｜")}・等家 {cat.waitDays} 天
                         </small>
                         <small>{cat.tags.slice(0, 2).join("・")}</small>
                       </span>
-                      <button type="button" className={styles.showCard} onClick={() => onShowCard(cat.name)}>
+                      <button type="button" className={styles.showCard} onClick={() => onShowCard(cat.id)}>
                         看名片
                       </button>
                     </li>
@@ -224,10 +226,12 @@ export default function AdoptMap({ matches, onShowCard }: Props) {
               <p className={styles.none}>這個喵戶目前沒有等家的貓。</p>
             )}
 
-            <blockquote className={styles.latest}>
-              <small>最新日記</small>「{sel.latest}」
-            </blockquote>
-            {/* 示意資料。公開位置只能到「縣市＋區」（FR-02-07），不要顯示更細的地址。 */}
+            {sel.latest && (
+              <blockquote className={styles.latest}>
+                <small>最新日記</small>「{sel.latest}」
+              </blockquote>
+            )}
+            {/* 公開位置只能到「縣市＋區」（FR-02-07），不要顯示更細的地址。 */}
           </>
         ) : (
           <p className={styles.none}>點地圖上的房子，看看裡面住了誰。</p>
