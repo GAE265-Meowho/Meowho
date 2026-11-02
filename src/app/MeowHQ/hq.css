@@ -63,6 +63,29 @@
 .hq-roomcard-body span { color: var(--hq-sub); line-height: 1.6; }
 @media (max-width: 640px) { .hq-roomcards { grid-template-columns: 1fr; } .hq-roomcard { min-height: 0; } }
 .hq-center { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 1rem; }
+/* 登入頁（#116，依 Stitch「meowho」）：左品牌區｜右登入卡片；手機只留卡片與品牌列 */
+.hq-login { min-height: 100vh; display: grid; grid-template-columns: 1fr 1fr; background: var(--hq-bg); }
+.hq-login-brand { display: flex; flex-direction: column; justify-content: space-between; gap: 2rem; padding: clamp(2rem, 5vw, 5rem) clamp(1.5rem, 5vw, 5rem) 2.5rem; background: linear-gradient(160deg, #E8EFE8 0%, var(--hq-sage-soft) 55%, #C9D6CB 100%); color: var(--hq-sage-ink); }
+.hq-login-name { display: flex; align-items: center; gap: .75rem; font-size: 1.4rem; font-weight: 700; letter-spacing: .02em; }
+.hq-login-mark { width: 56px; height: 56px; flex: none; border-radius: 50%; object-fit: cover; box-shadow: 0 2px 8px rgba(47,43,39,.08); }
+.hq-login-hero { max-width: 34rem; }
+.hq-login-chip { display: inline-block; padding: .3rem .9rem; border-radius: 999px; background: rgba(79,110,87,.14); font-size: .82rem; font-weight: 700; letter-spacing: .08em; }
+.hq-login-hero h2 { margin: 1.2rem 0 1rem; font-size: clamp(2rem, 3.6vw, 3.2rem); font-weight: 300; line-height: 1.2; color: var(--hq-text); }
+.hq-login-hero h2 strong { font-weight: 700; color: var(--hq-sage); }
+.hq-login-hero p { margin: 0; font-size: 1.05rem; line-height: 1.8; color: var(--hq-sub); }
+.hq-login-brand small { color: var(--hq-sub); font-size: .82rem; }
+.hq-login-side { display: flex; align-items: center; justify-content: center; padding: 2rem 1.5rem; background: #fff; }
+.hq-login-card { width: 100%; max-width: 440px; display: flex; flex-direction: column; align-items: center; gap: 1.6rem; padding: 2.5rem 2.25rem; background: var(--hq-card); border: 1px solid var(--hq-line); border-radius: 24px; box-shadow: 0 12px 40px rgba(47,43,39,.06); text-align: center; }
+.hq-login-wordmark { width: 180px; height: auto; border-radius: 8px; }
+.hq-login-card h1 { margin: 0; font-size: 1.5rem; }
+.hq-root .hq-login-google { width: 100%; gap: .6rem; min-height: 52px; border-radius: 12px; font-size: 1.02rem; font-weight: 700; box-shadow: 0 4px 12px rgba(79,110,87,.2); }
+@media (max-width: 860px) {
+  .hq-login { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
+  .hq-login-brand { padding: 1rem 1.25rem; background: var(--hq-sage-soft); }
+  .hq-login-hero, .hq-login-brand small { display: none; }
+  .hq-login-mark { width: 40px; height: 40px; }
+  .hq-login-name { font-size: 1.05rem; }
+}
 .hq-card { width: 100%; max-width: 380px; background: var(--hq-card); border: 1px solid var(--hq-line); border-radius: 12px; padding: 2rem 1.5rem; text-align: center; display: flex; flex-direction: column; align-items: center; gap: .75rem; }
 .hq-card h1 { margin: 0; font-size: 1.3rem; }
 .hq-card p { margin: 0; color: var(--hq-sub); }
