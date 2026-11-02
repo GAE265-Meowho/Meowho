@@ -7,6 +7,7 @@ import Link from "next/link";
 import { ASSET_SECTIONS, assetSectionHref, isAssetSection } from "@/components/hq/assets/hrefs";
 import { RoomsTab } from "@/components/hq/assets/RoomsTab";
 import { RoomVideoTab } from "@/components/hq/assets/RoomVideoTab";
+import { FloorplanTab } from "@/components/hq/assets/FloorplanTab";
 import { PlannedTab } from "@/components/hq/assets/PlannedTab";
 import { HqModuleGuard } from "@/components/hq/HqActor";
 import { HqPageHeader } from "@/components/hq/HqPageHeader";
@@ -15,7 +16,6 @@ import { useListQuery } from "@/components/hq/list/HqList";
 
 const PLANNED: Record<string, string> = {
   "rooms-polaroid": "把寶麗來（拍立得）照片轉成室內場景",
-  "rooms-floorplan": "把平面圖轉成 3D 室內空間",
   food: "飼料、零食等 3D 模型",
   items: "碗、貓砂盆、玩具、貓抓板",
   others: "風險點示範動畫等不屬於前幾類的元件",
@@ -33,6 +33,7 @@ function AssetsPage() {
       {tab === "cats" ? <CatsTab query={query} update={update} />
         : tab === "rooms" ? <RoomsTab />
         : tab === "rooms-video" ? <RoomVideoTab />
+        : tab === "rooms-floorplan" ? <FloorplanTab />
         : <PlannedTab label={section.label} examples={PLANNED[tab]} />}
     </>
   );

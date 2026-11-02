@@ -1,5 +1,5 @@
 "use client";
-// 室內空間（#113，Tina 2026-11-02）：用大卡片進入各轉換區塊，左側選單不做子選單。影片轉換已可看展示房間（#93），其他是規劃中。
+// 室內空間（#113，Tina 2026-11-02）：用大卡片進入各轉換區塊，左側選單不做子選單。影片轉換（#93）、平面圖轉換（#138）。
 import Link from "next/link";
 import { assetSectionHref } from "./hrefs";
 
@@ -11,7 +11,7 @@ const CARDS = [
     art: <><rect x="3" y="6" width="13" height="12" rx="2" /><path d="M16 10l5-3v10l-5-3" /></>,
   },
   {
-    value: "rooms-floorplan", title: "平面圖轉換", desc: "把房屋平面圖轉成可以走動的 3D 室內空間。",
+    value: "rooms-floorplan", title: "平面圖轉換", desc: "把房屋平面圖轉成可以走動的 3D 室內空間。", ready: true,
     art: <><rect x="3" y="3" width="18" height="18" rx="1.5" /><path d="M3 12h7M10 3v5M10 12v9M14 12h7M14 12V8" /></>,
   },
 ] as const;

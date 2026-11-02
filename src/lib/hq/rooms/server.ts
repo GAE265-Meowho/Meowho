@@ -67,6 +67,7 @@ export async function listRooms(): Promise<RoomView[] | null> {
   if (!user) return null;
   const { data, error } = await user.sb.from("meow_room_models")
     .select("id,name,status,result_path,created_at,meow_room_jobs(step,error,queued_at)")
+    .eq("source", "video")  // 平面圖的戶（#138，0015）不列在影片轉換
     .order("created_at", { ascending: false })
     .limit(20);
   if (error) return null;
