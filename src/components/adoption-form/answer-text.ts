@@ -1,7 +1,8 @@
 // 把回答轉成給人看的文字（中途看回覆、領養人送出前總覽共用）
 import type { Answer, Question } from "@/lib/adoption-form/questionnaire";
 
-export const RESPONSE_STATUS = { draft: "草稿", submitted: "新收到", contact: "待聯絡", follow_up: "進一步了解", declined: "婉拒" } as const;
+// 申請進度改由領養管理的對話判斷（#128）；這裡只剩填寫人自己看的「草稿／已送出」。contact、follow_up 已由 0011 轉回 submitted。
+export const RESPONSE_STATUS = { draft: "草稿", submitted: "已送出", contact: "已送出", follow_up: "已送出", declined: "未媒合" } as const;
 export type ResponseStatus = keyof typeof RESPONSE_STATUS;
 
 export function answerText(q: Question, a: Answer | undefined): string {
