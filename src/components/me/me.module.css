@@ -186,3 +186,8 @@
 
 .apps { display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 0; list-style: none; }
 .apps li { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; color: var(--ink); font-size: 15px; }
+
+.catLink { color: inherit; text-decoration: none; }
+.catLink:hover { color: var(--orange-deep); text-decoration: underline; }
+
+.quick { display: flex; flex-wrap: wrap; gap: 12px; margin-top: -12px; }

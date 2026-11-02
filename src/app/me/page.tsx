@@ -6,7 +6,8 @@ import type { VerificationRow } from "@/components/VerificationApply";
 import { MyHomes, type CatRow, type Household } from "@/components/me/MyHomes";
 import f from "@/components/onboarding/intake.module.css";
 import CatButton from "@/components/ui/CatButton";
-import { deleteCat } from "@/components/me/delete-cat";
+import Icon from "@/components/ui/Icon";
+import { deleteCat, deleteHousehold } from "@/components/me/delete-cat";
 import { MyApplications } from "@/components/me/MyApplications";
 import { canAddHousehold, parseHouseholdLimit } from "@/lib/onboarding/household-rules";
 import { getBrowserSupabase } from "@/lib/supabase/client";
@@ -75,6 +76,12 @@ export default function MyHomePage() {
           const sb = getBrowserSupabase();
           const err = sb ? await deleteCat(sb, id) : null;
           if (err) setLoadError(`刪除失敗：${err}`); else setCats(list => list.filter(c => c.id !== id));
+        }}
+        onDeleteHome={async id => {
+          const sb = getBrowserSupabase();
+          const err = sb ? await deleteHousehold(sb, id, cats.filter(c => c.household_id === id).map(c => c.id)) : null;
+          if (err) setLoadError(`刪除失敗：${err}`);
+          else { setHomes(list => (list ?? []).filter(h => h.id !== id)); setCats(list => list.filter(c => c.household_id !== id)); }
         }} />
       {user && <MyApplications userId={user.id} />}
       <div className={s.footer}>
@@ -91,6 +98,8 @@ export default function MyHomePage() {
       <SiteHeader />
       <main className={s.page}>
         <h1 className={f.title}>我的喵戶</h1>
+        {/* 收藏（#70）：還沒有喵戶的會員也能收藏、也看得到 */}
+        {user && <div className={s.quick}><CatButton variant="ghost" size="sm" ears={false} href="/me/favorites"><Icon name="heart" size={18} />我的收藏</CatButton></div>}
         {body}
       </main>
       <TabBar />

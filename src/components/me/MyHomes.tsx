@@ -56,8 +56,34 @@ function CatActions({ cat, onDelete }: { cat: CatRow; onDelete: (id: string) => 
   );
 }
 
-export function MyHomes({ homes, cats, verifs, onVerification, onDeleteCat }: {
-  homes: Household[]; cats: CatRow[]; verifs: VerificationRow[]; onVerification: (row: VerificationRow) => void; onDeleteCat: (id: string) => Promise<void>;
+/** 修改、刪除喵戶；刪除前再問一次，並說清楚裡面的貓會一起刪除 */
+function HomeActions({ home, catCount, onDelete }: { home: Household; catCount: number; onDelete: (id: string) => Promise<void> }) {
+  const [asking, setAsking] = useState(false);
+  const [busy, setBusy] = useState(false);
+  if (asking) {
+    return (
+      <div className={s.catActions}>
+        <span className={s.confirmText}>
+          確定刪除「{home.name}」？{catCount ? `裡面的 ${catCount} 隻貓、照片、影片和領養問卷都會一起刪除，` : ""}刪除後無法復原。
+        </span>
+        <button type="button" className={s.textBtn} disabled={busy} onClick={async () => { setBusy(true); await onDelete(home.id); setBusy(false); setAsking(false); }}>
+          {busy ? "刪除中…" : "確定刪除"}
+        </button>
+        <button type="button" className={s.textBtn} disabled={busy} onClick={() => setAsking(false)}>取消</button>
+      </div>
+    );
+  }
+  return (
+    <div className={s.catActions}>
+      <a className={s.textBtn} href={`/homes/${home.id}/edit`}>修改喵戶</a>
+      <button type="button" className={s.textBtn} onClick={() => setAsking(true)}>刪除喵戶</button>
+    </div>
+  );
+}
+
+export function MyHomes({ homes, cats, verifs, onVerification, onDeleteCat, onDeleteHome }: {
+  homes: Household[]; cats: CatRow[]; verifs: VerificationRow[]; onVerification: (row: VerificationRow) => void;
+  onDeleteCat: (id: string) => Promise<void>; onDeleteHome: (id: string) => Promise<void>;
 }) {
   return (
     <>
@@ -86,6 +112,7 @@ export function MyHomes({ homes, cats, verifs, onVerification, onDeleteCat }: {
                   <CatButton variant="ghost" size="sm" ears={false} href={`/homes/${home.id}/safety`}><Icon name="check" size={18} />居家安全檢測</CatButton>
                 </div>
               )}
+              <HomeActions home={home} catCount={list.length} onDelete={onDeleteHome} />
             </section>
 
             <div className={s.secHead}>
@@ -99,7 +126,7 @@ export function MyHomes({ homes, cats, verifs, onVerification, onDeleteCat }: {
                     <div className={s.photo}>
                       {c.photo_url ? <img src={c.photo_url} alt={`${c.name}的照片`} /> : <Icon name="cat" size={64} />}
                     </div>
-                    <h4 className={s.catName}>{c.name}</h4>
+                    <h4 className={s.catName}><a className={s.catLink} href={`/cats/${c.id}`}>{c.name}</a></h4>
                     <p className={s.meta}>
                       {[SEX_LABEL[c.sex], c.life_stage ? LIFE_STAGE_LABEL[c.life_stage] : ageLabel({ birthday: c.birthday, estAgeMonths: c.est_age_months }), c.coat, c.breed].filter(Boolean).join("・")}
                     </p>

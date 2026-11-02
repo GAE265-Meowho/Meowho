@@ -130,3 +130,32 @@ export const canAddHousehold = (existing: number, limit: number | null) => limit
 /** meow_site_settings.household_limit 的值 → 上限；不是正整數就當作不限制 */
 export const parseHouseholdLimit = (value: unknown): number | null =>
   typeof value === "number" && Number.isInteger(value) && value > 0 ? value : null;
+
+/** 修改喵戶：資料庫一筆 → 表單；舊資料缺的欄位用預設值 */
+export function fromHouseholdRow(r: {
+  name: string; caretaker_type: CaretakerType; city: string | null; district: string | null; intro: string | null;
+  home: Partial<Home> | Record<string, unknown> | null; adoption_terms: AdoptionTerms | null; org_name: string | null; org_proof_url: string | null;
+}): HouseholdForm {
+  const empty = emptyHouseholdForm();
+  const home = HomeSchema.safeParse({ ...empty.home, ...(r.home ?? {}) });
+  const terms = AdoptionTermsSchema.safeParse(r.adoption_terms);
+  return {
+    ...empty,
+    role: r.caretaker_type,
+    name: r.name,
+    city: r.city,
+    district: r.district ?? "",
+    intro: r.intro ?? "",
+    home: home.success ? home.data : empty.home,
+    terms: r.adoption_terms && terms.success ? terms.data : null,
+    orgName: r.org_name ?? "",
+    orgProofUrl: r.org_proof_url ?? "",
+  };
+}
+
+/** 修改喵戶：身分建立後不能改（資料庫 trigger 也會擋），所以不送 caretaker_type */
+export function toHouseholdUpdate(f: HouseholdForm) {
+  const row: Partial<ReturnType<typeof toHouseholdRow>> = toHouseholdRow(f);
+  delete row.caretaker_type;
+  return row;
+}

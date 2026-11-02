@@ -1,12 +1,13 @@
 "use client";
-// 建立喵戶：先選身分，表單依身分顯示不同欄位（#82）。規則在 lib/onboarding/household-rules.ts。
+// 建立或修改喵戶：先選身分，表單依身分顯示不同欄位（#82）。規則在 lib/onboarding/household-rules.ts。
+// 修改時身分固定（建立後不能切換，資料庫也會擋），中途徽章申請改在「我的喵戶」。
 // 一般飼主的喵戶是「自己的家」；中途的喵戶是「送養據點」。建好後回到「我的喵戶」。
 // 位置只公開到縣市＋區（AGENTS.md §6），所以沒有地址欄。
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { TW_CITIES, TW_DISTRICTS } from "@/lib/geo/tw-districts";
 import {
-  DWELLINGS, FAMILY, LIVING, PETS, ROLES, ROLE_INFO, checkHousehold, emptyHouseholdForm, toHouseholdRow, verificationRow,
+  DWELLINGS, FAMILY, LIVING, PETS, ROLES, ROLE_INFO, checkHousehold, emptyHouseholdForm, toHouseholdRow, toHouseholdUpdate, verificationRow,
   type HouseholdForm as Form, type MissingField,
 } from "@/lib/onboarding/household-rules";
 import { getBrowserSupabase } from "@/lib/supabase/client";
@@ -19,14 +20,16 @@ const MISSING_LABEL: Record<MissingField, string> = {
   role: "身分", name: "喵戶名稱", nameTaken: "不重複的喵戶名稱（你已經有同名的喵戶）", city: "縣市", district: "區", dwelling: "住家型態", orgName: "單位名稱", orgProofUrl: "立案證明連結（網址）",
 };
 
-export function HouseholdForm({ userId, existingNames, onDemoCreated }: {
+export function HouseholdForm({ userId, existingNames, onDemoCreated, editing }: {
   userId: string | null;
-  /** 這個帳號已有的喵戶名稱；名稱不能重複 */
+  /** 這個帳號其他喵戶的名稱；名稱不能重複 */
   existingNames: string[];
-  onDemoCreated: (name: string, role: Form["role"]) => void;
+  onDemoCreated?: (name: string, role: Form["role"]) => void;
+  /** 修改既有的喵戶 */
+  editing?: { id: string; form: Form };
 }) {
   const router = useRouter();
-  const [f, setF] = useState<Form>(emptyHouseholdForm);
+  const [f, setF] = useState<Form>(() => editing?.form ?? emptyHouseholdForm());
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [tried, setTried] = useState(false);
@@ -43,7 +46,17 @@ export function HouseholdForm({ userId, existingNames, onDemoCreated }: {
     setError(null); setSaving(true);
     const row = toHouseholdRow(f);
     const sb = getBrowserSupabase();
-    if (!sb || !userId) { setSaving(false); onDemoCreated(row.name, f.role); return; }
+    if (!sb || !userId) { setSaving(false); onDemoCreated?.(row.name, f.role); return; }
+    if (editing) {
+      const { error: err } = await sb.from("meow_households").update(toHouseholdUpdate(f)).eq("id", editing.id);
+      if (err) {
+        setSaving(false);
+        setError(err.message.includes("household_name_taken") ? "你已經有同名的喵戶，換個名字吧。" : `儲存失敗：${err.message}`);
+        return;
+      }
+      router.push("/me");
+      return;
+    }
     const { data, error: err } = await sb.from("meow_households").insert({ ...row, owner_id: userId }).select("id").single();
     if (err) {
       setSaving(false);
@@ -64,8 +77,8 @@ export function HouseholdForm({ userId, existingNames, onDemoCreated }: {
       <div className={s.field}>
         <span className={s.label} id="h-role">你的身分<Required /></span>
         <div className={s.roles} role="radiogroup" aria-labelledby="h-role">
-          {ROLES.map(r => (
-            <button key={r} type="button" role="radio" aria-checked={f.role === r} className={s.role} onClick={() => set({ role: r })}>
+          {(editing ? ROLES.filter(r => r === f.role) : ROLES).map(r => (
+            <button key={r} type="button" role="radio" aria-checked={f.role === r} className={s.role} disabled={Boolean(editing)} onClick={() => set({ role: r })}>
               <b>{ROLE_INFO[r].label}</b><span>{ROLE_INFO[r].hint}</span>
             </button>
           ))}
@@ -151,7 +164,7 @@ export function HouseholdForm({ userId, existingNames, onDemoCreated }: {
             <span className={s.label}>預設送養條件</span>
             <TermsFields id="h-terms" value={f.terms ?? { items: [], note: "" }} onChange={terms => set({ terms })} />
           </div>
-          {f.role === "personal_foster" && (
+          {f.role === "personal_foster" && !editing && (
             <label className={s.check}>
               <input type="checkbox" checked={f.applyBadge} onChange={e => set({ applyBadge: e.target.checked })} />
               同時申請中途徽章
@@ -163,7 +176,7 @@ export function HouseholdForm({ userId, existingNames, onDemoCreated }: {
       {tried && missing.length > 0 && <p className={s.error} role="alert">還缺：{missing.map(m => MISSING_LABEL[m]).join("、")}</p>}
       {error && <p className={s.error} role="alert">{error}</p>}
       <div className={s.actions}>
-        <CatButton type="submit" disabled={saving}>{saving ? "建立中…" : "建立喵戶"}</CatButton>
+        <CatButton type="submit" disabled={saving}>{saving ? "儲存中…" : editing ? "儲存修改" : "建立喵戶"}</CatButton>
       </div>
     </form>
   );
