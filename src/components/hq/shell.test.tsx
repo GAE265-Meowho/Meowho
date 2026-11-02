@@ -26,7 +26,9 @@ describe("UT-HQ-13 登入頁", () => {
     render(<HqLoginPage onLogin={() => {}} next="/MeowHQ" />);
     expect(screen.getByText("總部")).toBeInTheDocument();
     expect(screen.getAllByRole("img", { name: "Meowho喵戶" })).toHaveLength(2); // 左上角圓形 logo＋卡片字標
-    expect(screen.getByText("次世代貓星生態系")).toBeInTheDocument();
+    expect(screen.getByText("AI喵寶生態系")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /使用 Google 登入／註冊/ })).toBeInTheDocument();
+    expect(screen.getByText("不需要先加入喵戶，直接用 Google 帳號登入或註冊。")).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 2, name: /讓每隻貓都找到.*好的人類/ })).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 1, name: "進入總部" })).toBeInTheDocument();
     expect(screen.queryByText(/隱私權政策|安全規範/)).toBeNull();
