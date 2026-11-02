@@ -39,6 +39,12 @@ export function FormEditor({ catId, catStatus, householdId }: { catId: string; c
     })();
   }, [sb, catId, householdId]);
 
+  // 從「名片建立好了」的「建立領養問卷」進來時，捲到問卷區塊（#109）
+  const loaded = form !== undefined;
+  useEffect(() => {
+    if (loaded && window.location.hash === "#form-editor") document.getElementById("form-editor")?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [loaded]);
+
   async function save(questions: Question[], isOpen = form?.is_open ?? true) {
     if (!sb) return;
     const errs = validateQuestions(questions);

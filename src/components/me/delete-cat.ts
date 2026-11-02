@@ -4,14 +4,18 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { PHOTO_BUCKET } from "@/lib/supabase/config";
 
+export const ADOPTED_CAT = "從中途領養來的貓不能刪除，真的無法繼續照顧時，請在貓咪頁向原中途提出退養請求。";
+
 const pathFromPublicUrl = (url: string | null) => url?.split(`/${PHOTO_BUCKET}/`)[1] ?? null;
 
 export async function deleteCat(sb: SupabaseClient, catId: string): Promise<string | null> {
   const [{ data: cat, error }, { data: videos }] = await Promise.all([
-    sb.from("meow_cats").select("photo_paths, photo_url").eq("id", catId).single(),
+    sb.from("meow_cats").select("photo_paths, photo_url, origin_household_id").eq("id", catId).single(),
     sb.from("meow_cat_videos").select("storage_path").eq("cat_id", catId),
   ]);
   if (error || !cat) return error?.message ?? "找不到這隻貓";
+  // 資料庫也會擋（0009），但要在刪檔案之前先擋，不然照片會先不見
+  if (cat.origin_household_id) return ADOPTED_CAT;
   const photos: string[] = cat.photo_paths?.length ? cat.photo_paths : [pathFromPublicUrl(cat.photo_url)].filter((p): p is string => Boolean(p));
   if (photos.length) await sb.storage.from(PHOTO_BUCKET).remove(photos);
   await Promise.all((videos ?? []).map(v => fetch("/api/onboarding/cat-video", {

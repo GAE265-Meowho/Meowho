@@ -7,7 +7,7 @@ const ready = (): IntakeState => {
   return {
     ...s,
     cat: {
-      ...s.cat, name: "橘子", estAgeMonths: 30, lifeStage: "young_adult", coat: "橘白", personalityTags: ["親人"],
+      ...s.cat, name: "橘子", estAgeMonths: 30, lifeStage: "adult", coat: "橘白", personalityTags: ["親人"],
       healthTags: ["已結紮"], description: "很黏人", photos: ["u/a.jpg", "u/b.jpg"], videos: ["cats/c1/videos/v.mp4"],
     },
   };
@@ -21,10 +21,10 @@ describe("寫入資料庫的格式", () => {
     });
   });
 
-  it("貓咪：待領養、公開、存照片路徑；性別沒說就是不確定", () => {
+  it("貓咪：待領養、公開、存照片路徑；性別沒說就是不確定；不存月齡與生日", () => {
     const row = toCatInsert(ready().cat, { id: "c1", householdId: "h1", coverUrl: "https://x/a.jpg" });
     expect(row).toMatchObject({
-      id: "c1", household_id: "h1", name: "橘子", sex: "unknown", est_age_months: 30, life_stage: "young_adult",
+      id: "c1", household_id: "h1", name: "橘子", sex: "unknown", birthday: null, est_age_months: null, life_stage: "adult",
       coat: "橘白", breed: null, personality_tags: ["親人"], health_tags: ["已結紮"], neutered: true,
       description: "很黏人", photo_paths: ["u/a.jpg", "u/b.jpg"], photo_url: "https://x/a.jpg",
       status: "adoptable", visibility: "public",
@@ -50,12 +50,15 @@ describe("瀏覽器送來的對話草稿要先檢查", () => {
 describe("修改貓咪：資料庫一筆 → 名片欄位 → 更新欄位", () => {
   it("來回轉換不會掉資料；舊資料缺的新欄位用預設值", () => {
     const row = toCatInsert(ready().cat, { id: "c1", householdId: "h1", coverUrl: null });
-    const back = fromCatRow({ ...row, est_age_months: 30, birthday: null, videos: ["cats/c1/videos/v.mp4"] });
-    expect(back).toMatchObject({ name: "橘子", lifeStage: "young_adult", personalityTags: ["親人"], photos: ["u/a.jpg", "u/b.jpg"], videos: ["cats/c1/videos/v.mp4"] });
+    const back = fromCatRow({ ...row, videos: ["cats/c1/videos/v.mp4"] });
+    expect(back).toMatchObject({ name: "橘子", lifeStage: "adult", personalityTags: ["親人"], photos: ["u/a.jpg", "u/b.jpg"], videos: ["cats/c1/videos/v.mp4"] });
     const old = fromCatRow({ name: "老資料", sex: "male", life_stage: null, est_age_months: null, birthday: null, coat: null, breed: null } as never);
     expect(old.medical.neutered).toBe("unknown");
     expect(old.habits).toEqual([]);
     expect(old.status).toBe("adoptable");
+  });
+  it("修改不會動到狀態（狀態只能走移轉與退養，#109）", () => {
+    expect(toCatUpdate(ready().cat, null)).not.toHaveProperty("status");
   });
 
   it("更新時不改 id、喵戶、狀態以外的系統欄位", () => {

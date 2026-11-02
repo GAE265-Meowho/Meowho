@@ -2,6 +2,7 @@
 import { LIFE_STAGES } from "../cat-profile/life-stage";
 import { CARETAKER_LABEL } from "./household";
 import { MAX_PHOTOS, MAX_VIDEOS, type IntakeState, type Notice, type Step } from "./conversation";
+import { MAX_VIDEO_SEC, type VideoUploadError } from "../storage/media";
 
 export const GREETING = "嗨，我是喵喵小幫手。用聊天的方式，一起建立你的喵戶吧。";
 
@@ -31,3 +32,14 @@ export function noticeText(n: Notice): string | null {
   if (n === "too_many_videos") return `影片最多 ${MAX_VIDEOS} 支，可以先移除一支再加。`;
   return null;
 }
+
+/** 影片上傳失敗的說明（新增貓咪、修改貓咪共用） */
+export const VIDEO_ERROR: Record<VideoUploadError | "video_disabled" | "forbidden", string> = {
+  unsupported_type: "這個影片格式不支援，請用 MP4、MOV 或 WebM。",
+  too_large: "影片太大了，請改用較低的畫質再拍一次。",
+  too_long: `影片要在 ${MAX_VIDEO_SEC} 秒內，可以先剪短一點。`,
+  invalid_duration: "讀不到這支影片的長度，換一支試試？",
+  too_many_videos: `影片最多 ${MAX_VIDEOS} 支喔。`,
+  video_disabled: "影片上傳目前還沒開放，先用照片和文字就好。",
+  forbidden: "沒有權限幫這隻貓上傳影片。",
+};

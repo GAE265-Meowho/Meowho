@@ -23,8 +23,9 @@ export function toCatInsert(c: CatFields, ids: { id: string; householdId: string
     household_id: ids.householdId,
     name: c.name.trim(),
     sex: c.sex ?? "unknown",
-    birthday: c.birthday,
-    est_age_months: c.birthday ? null : c.estAgeMonths,
+    // 不記生日與月齡，只記年齡層（#109）
+    birthday: null,
+    est_age_months: null,
     life_stage: c.lifeStage,
     coat: c.coat,
     breed: c.breed,
@@ -53,6 +54,7 @@ export function toCatUpdate(c: CatFields, coverUrl: string | null) {
   const row: Partial<ReturnType<typeof toCatInsert>> = toCatInsert(c, { id: "", householdId: "", coverUrl });
   delete row.id;
   delete row.household_id;
+  delete row.status;
   return row;
 }
 
@@ -66,8 +68,8 @@ export function fromCatRow(r: CatRowIn): CatFields {
   return {
     name: r.name,
     sex: (r.sex as CatFields["sex"]) ?? null,
-    birthday: r.birthday ?? null,
-    estAgeMonths: r.est_age_months ?? null,
+    birthday: null,
+    estAgeMonths: null,
     lifeStage: r.life_stage ?? null,
     coat: r.coat ?? null,
     breed: r.breed ?? null,
@@ -114,7 +116,7 @@ export const IntakeStateSchema = z.object({
     sex: z.enum(["male", "female", "unknown"]).nullable(),
     birthday: nullableStr(10),
     estAgeMonths: z.number().int().min(0).max(400).nullable(),
-    lifeStage: z.enum(["kitten", "young_adult", "mature_adult", "senior"]).nullable(),
+    lifeStage: z.enum(["kitten", "adult", "senior"]).nullable(),
     coat: nullableStr(40),
     breed: nullableStr(40),
     personalityTags: z.array(z.enum(PERSONALITY_TAGS)).max(PERSONALITY_TAGS.length),

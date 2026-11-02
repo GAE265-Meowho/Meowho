@@ -7,7 +7,7 @@
 // - 性別與健康相關欄位，即使是從文字擷取的也標「請確認」（代名詞、「打第一劑」容易誤判，#82）。
 // - 位置一律再經規則過濾，只存到區；標籤只留固定清單內的。
 import { HEALTH_TAGS, PERSONALITY_TAGS, pickTags, type HealthTag, type PersonalityTag } from "../cat-profile/tags";
-import { lifeStageOf, type LifeStage } from "../cat-profile/life-stage";
+import { lifeStageFromWords, lifeStageOf, type LifeStage } from "../cat-profile/life-stage";
 import {
   HABITS, HANDOVER_ITEMS, emptyCompat, emptyMedical, healthTagsFromMedical, pickTerms,
   type AdoptionTerms, type Compat, type Medical,
@@ -225,12 +225,9 @@ function mergeCat(s: IntakeState, t: CatTurn, today: Date): IntakeState {
   const toConfirm = new Set<PendingField>();
   if (t.name?.trim()) c.name = cleanName(t.name);
   if (t.sex) { c.sex = t.sex; toConfirm.add("sex"); }
-  if (t.birthday || t.estAgeMonths !== null) {
-    c.birthday = t.birthday;
-    c.estAgeMonths = t.birthday ? null : t.estAgeMonths;
-    c.lifeStage = lifeStageOf(ageMonths(c, today));
-    confirmed.add("lifeStage");
-  }
+  // 年紀只用來決定三級，生日、月齡不留（#109）
+  const told = t.birthday || t.estAgeMonths !== null ? lifeStageOf(ageMonths({ birthday: t.birthday, estAgeMonths: t.estAgeMonths }, today)) : null;
+  if (told) { c.lifeStage = told; confirmed.add("lifeStage"); }
   if (t.lifeStage) { c.lifeStage = t.lifeStage; confirmed.add("lifeStage"); }
   if (t.coat?.trim()) { c.coat = t.coat.trim(); confirmed.add("coat"); }
   if (t.breed?.trim()) { c.breed = t.breed.trim(); confirmed.add("breed"); }
@@ -282,7 +279,6 @@ export function applyMediaAnalysis(s: IntakeState, m: MediaAnalysis): IntakeStat
       if (!c.coat && m.coat) { c.coat = m.coat; pending.add("coat"); }
       if (!c.breed && m.breed) { c.breed = m.breed; pending.add("breed"); }
       if (!c.lifeStage && m.estAgeMonths !== null) {
-        c.estAgeMonths = m.estAgeMonths;
         c.lifeStage = lifeStageOf(m.estAgeMonths);
         pending.add("lifeStage");
       }
@@ -463,7 +459,7 @@ function catByRules(text: string, asking: AskField | null, today: Date): CatTurn
     sex: /性別|男|女|公|母|不確定/.test(text) ? parseSex(text) : null,
     birthday: age.birthday,
     estAgeMonths: age.estAgeMonths,
-    lifeStage: null,
+    lifeStage: lifeStageFromWords(text),
     coat: null,
     breed: null,
     personalityTags: personality,

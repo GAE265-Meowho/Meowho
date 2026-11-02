@@ -56,7 +56,7 @@ export const INTAKE_CAT = {
 - 只根據使用者說的話填寫，沒提到的欄位填 null 或空陣列，不要猜。
 - 「目前在問」只是參考：使用者回答的若是別的欄位，照實填那個欄位。
 - 性別只在使用者明說時填；說不確定填 "unknown"。
-- 年齡：說「大約 2 歲」填 estAgeMonths=24；說確切生日填 birthday。
+- 年齡：只分幼貓、壯貓、老貓。說「大約 2 歲」填 estAgeMonths=24、「剛滿月」填 1；說確切生日填 birthday；直接說「小貓」「成貓」「老貓」填 lifeStage（kitten／adult／senior）。
 - personalityTags 只能從這份清單挑：{{PERSONALITY_TAGS}}。
 - healthTags 只能從這份清單挑：{{HEALTH_TAGS}}。只有使用者明確說了才標；例如只打了第一劑預防針不算「疫苗已完成」，「要帶去結紮」不算「已結紮」。
 - description：保留使用者描述個性、習慣、健康的內容，整理成通順句子，不增加使用者沒說的事實。

@@ -7,7 +7,6 @@ import f from "@/components/onboarding/intake.module.css";
 import CatButton from "@/components/ui/CatButton";
 import Icon from "@/components/ui/Icon";
 import { LIFE_STAGE_LABEL, type LifeStage } from "@/lib/cat-profile/life-stage";
-import { ageLabel } from "@/lib/onboarding/cat";
 import { useState } from "react";
 import type { CaretakerType } from "@/lib/onboarding/household";
 import { DWELLINGS, LIVING, ROLE_INFO, type Home } from "@/lib/onboarding/household-rules";
@@ -17,7 +16,7 @@ export interface Household {
   id: string; name: string; caretaker_type: CaretakerType; city: string; district: string; intro: string; verified_shelter: boolean; home: Home | null;
 }
 export interface CatRow {
-  id: string; household_id: string; name: string; sex: string; birthday: string | null; est_age_months: number | null;
+  id: string; household_id: string; origin_household_id: string | null; name: string; sex: string;
   life_stage: LifeStage | null; coat: string | null; breed: string | null; personality_tags: string[]; photo_url: string | null; status: string;
 }
 
@@ -48,18 +47,29 @@ function CatActions({ cat, onDelete }: { cat: CatRow; onDelete: (id: string) => 
       </div>
     );
   }
+  // 從中途領養來的貓不能刪，要退養時到貓咪頁向原中途提出（#109）
   return (
     <div className={s.catActions}>
       <a className={s.textBtn} href={`/cats/${cat.id}/edit`}>修改</a>
-      <button type="button" className={s.textBtn} onClick={() => setAsking(true)}>刪除</button>
+      {cat.origin_household_id
+        ? <a className={s.textBtn} href={`/cats/${cat.id}#sec-return`}>退養</a>
+        : <button type="button" className={s.textBtn} onClick={() => setAsking(true)}>刪除</button>}
     </div>
   );
 }
 
 /** 修改、刪除喵戶；刪除前再問一次，並說清楚裡面的貓會一起刪除 */
-function HomeActions({ home, catCount, onDelete }: { home: Household; catCount: number; onDelete: (id: string) => Promise<void> }) {
+function HomeActions({ home, catCount, adopted, onDelete }: { home: Household; catCount: number; adopted: number; onDelete: (id: string) => Promise<void> }) {
   const [asking, setAsking] = useState(false);
   const [busy, setBusy] = useState(false);
+  if (asking && adopted) {
+    return (
+      <div className={s.catActions}>
+        <span className={s.confirmText}>這個喵戶裡有 {adopted} 隻從中途領養來的貓，要先向原中途提出退養，才能刪除喵戶。</span>
+        <button type="button" className={s.textBtn} onClick={() => setAsking(false)}>知道了</button>
+      </div>
+    );
+  }
   if (asking) {
     return (
       <div className={s.catActions}>
@@ -112,14 +122,15 @@ export function MyHomes({ homes, cats, verifs, onVerification, onDeleteCat, onDe
                   <CatButton variant="ghost" size="sm" ears={false} href={`/homes/${home.id}/safety`}><Icon name="check" size={18} />居家安全檢測</CatButton>
                 </div>
               )}
-              <HomeActions home={home} catCount={list.length} onDelete={onDeleteHome} />
+              <HomeActions home={home} catCount={list.length} adopted={list.filter(c => c.origin_household_id).length} onDelete={onDeleteHome} />
             </section>
 
             <div className={s.secHead}>
               <h3>{owner ? "我的貓" : "待領養的貓"}（{list.length}）</h3>
-              <CatButton size="sm" href={`/onboarding?household=${home.id}`}>新增貓咪</CatButton>
+              {/* 只有中途能新增貓；一般飼主的貓只會從中途移轉過來（#109） */}
+              {!owner && <CatButton size="sm" href={`/onboarding?household=${home.id}`}>新增貓咪</CatButton>}
             </div>
-            {list.length === 0 ? <p className={f.lead}>還沒有貓，按「新增貓咪」開始吧。</p> : (
+            {list.length === 0 ? <p className={f.lead}>{owner ? "從中途領養的貓，領養完成後會出現在這裡。" : "還沒有貓，按「新增貓咪」開始吧。"}</p> : (
               <ul className={s.cats}>
                 {list.map(c => (
                   <li key={c.id} className={s.cat}>
@@ -128,7 +139,7 @@ export function MyHomes({ homes, cats, verifs, onVerification, onDeleteCat, onDe
                     </div>
                     <h4 className={s.catName}><a className={s.catLink} href={`/cats/${c.id}`}>{c.name}</a></h4>
                     <p className={s.meta}>
-                      {[SEX_LABEL[c.sex], c.life_stage ? LIFE_STAGE_LABEL[c.life_stage] : ageLabel({ birthday: c.birthday, estAgeMonths: c.est_age_months }), c.coat, c.breed].filter(Boolean).join("・")}
+                      {[SEX_LABEL[c.sex], c.life_stage && LIFE_STAGE_LABEL[c.life_stage], c.coat, c.breed].filter(Boolean).join("・")}
                     </p>
                     <div className={s.tags}>
                       <span className={`${s.tag} ${s.status}`}>{STATUS_LABEL[c.status] ?? c.status}</span>
