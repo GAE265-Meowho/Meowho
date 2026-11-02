@@ -2,13 +2,14 @@
 /* eslint-disable @next/next/no-img-element */
 // 貓咪頁（#70）：給想領養的人看的公開名片，可以收藏、填寫領養問卷。看不看得到交給 meow_cats 的 RLS。
 // 年齡只顯示幼貓／壯貓／老貓（#109），不顯示年齡數字。從中途領養來的貓，飼主在這裡提出退養請求（#109）。
-// 私訊（#70）做好後在這裡加「傳訊息給喵戶長」。
+// 待領養貓可以「傳訊息給喵戶長」（#70，#128），對話在「我的領養申請」。
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/components/Auth";
 import { SiteHeader, TabBar } from "@/components/Chrome";
 import { ReturnRequest } from "@/components/cats/CatReturn";
 import { FavoriteButton } from "@/components/cats/FavoriteButton";
+import { MessageButton } from "@/components/cats/MessageButton";
 import s from "@/components/cats/catPage.module.css";
 import f from "@/components/onboarding/intake.module.css";
 import CatButton from "@/components/ui/CatButton";
@@ -107,6 +108,7 @@ export default function CatPage() {
             )}
             <div className={f.actions}>
               {adoptable && formOpen && !isOwner && <CatButton href={`/cats/${id}/apply`}>填寫領養問卷</CatButton>}
+              {adoptable && !isOwner && <MessageButton catId={id} />}
               {!isOwner && <FavoriteButton catId={id} />}
               {isOwner && <CatButton variant="ghost" size="sm" ears={false} href={`/cats/${id}/edit`}>修改這隻貓</CatButton>}
             </div>

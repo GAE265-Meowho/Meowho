@@ -103,7 +103,7 @@ export function FormEditor({ catId, catStatus, householdId }: { catId: string; c
               </CatButton>
             )}
           </div>
-          <Responses formId={form.id} questions={form.questions} />
+          <Responses formId={form.id} catId={catId} questions={form.questions} />
         </>
       )}
 

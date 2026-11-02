@@ -214,6 +214,43 @@ try {
   }
 }
 
+// 0011（領養管理與私訊，#128）：0001→0010 後先放舊的問卷回覆（待聯絡／進一步了解／婉拒），跑 0011 兩次，檢查轉換＋測試
+{
+  const m = new PGlite();
+  const base = read("./stub_supabase.sql") + ["0001_meow", "0002_meow_hq", "0003_meow_site_assets", "0004_meow_cat_profile", "0005_meow_cat_models", "0006_meow_household_roles", "0007_meow_adoption_forms", "0008_meow_cat_favorites", "0009_meow_cat_returns", "0010_meow_adoption_notify"]
+    .map((f) => read(`../migrations/${f}.sql`)).join("");
+  const id = (n) => `00000000-0000-0000-0000-0000000011${n}`;
+  try {
+    await m.exec(base);
+    await m.exec(`insert into auth.users (id, email) values ('${id("a0")}', 'f@old.example'), ('${id("a1")}', 'p1@old.example'), ('${id("a2")}', 'p2@old.example'), ('${id("a3")}', 'p3@old.example');
+      insert into public.meow_profiles (id, email) select id, email from auth.users where email like '%@old.example';
+      insert into public.meow_households (id, owner_id, name, caretaker_type, city, district) values ('${id("d0")}', '${id("a0")}', '舊中途', 'personal_foster', '桃園市', '龍潭區');
+      insert into public.meow_cats (id, household_id, name, sex, life_stage, status) values ('${id("c0")}', '${id("d0")}', '舊貓', 'male', 'adult', 'adoptable');
+      insert into public.meow_adoption_forms (id, cat_id, questions) values ('${id("f0")}', '${id("c0")}', '[{"id":"q1"}]');
+      insert into public.meow_adoption_responses (form_id, respondent_id, respondent_name, status) values
+        ('${id("f0")}', '${id("a1")}', '待聯絡的人', 'submitted'), ('${id("f0")}', '${id("a2")}', '進一步的人', 'submitted'), ('${id("f0")}', '${id("a3")}', '婉拒的人', 'submitted');
+      update public.meow_adoption_responses set status = 'contact' where respondent_id = '${id("a1")}';
+      update public.meow_adoption_responses set status = 'follow_up' where respondent_id = '${id("a2")}';
+      update public.meow_adoption_responses set status = 'declined' where respondent_id = '${id("a3")}';`);
+    await m.exec(read("../migrations/0011_meow_threads.sql"));
+    await m.exec(read("../migrations/0011_meow_threads.sql"));
+    const one = async (sql) => Object.values((await m.query(sql)).rows[0] ?? {})[0];
+    const eq = (name, expected, actual) =>
+      results.push({ name, status: String(actual) === String(expected) ? "PASS" : "FAIL", detail: String(actual) === String(expected) ? null : `預期 ${expected}，實際 ${actual}` });
+    eq("THR-L1 舊的已送出問卷各開一串（重跑不重複）", 3, await one("select count(*) from public.meow_threads"));
+    eq("THR-L2 每串一則「送出了領養問卷」（重跑不重複）", 3, await one("select count(*) from public.meow_messages where kind = 'system' and body like '%送出了領養問卷。'"));
+    eq("THR-L3 待聯絡／進一步了解改回已送出", "declined,submitted,submitted", await one("select string_agg(status, ',' order by status) from public.meow_adoption_responses"));
+    eq("THR-L4 婉拒轉成對話串的婉拒標記", "婉拒的人", await one("select string_agg(member_name, ',') from public.meow_threads where declined_at is not null"));
+    eq("THR-L5 中途處理過的申請算已讀", 3, await one("select count(*) from public.meow_threads where keeper_read_at is not null"));
+    const sql11 = read("./0011_meow_threads.test.sql").replace(/^\s*begin;/im, "").replace(/rollback;\s*$/i, "");
+    const out11 = await m.exec(sql11);
+    results = results.concat(out11.flatMap((r) => r.rows ?? []).filter((r) => "status" in r));
+  } catch (e) {
+    console.error(`✗ 0011 測試中斷：${e.message}`);
+    process.exit(1);
+  }
+}
+
 let failed = 0;
 for (const r of results) {
   if (r.status === "FAIL") failed++;
