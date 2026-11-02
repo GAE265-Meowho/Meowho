@@ -35,14 +35,16 @@ describe("UT-HQ-42 手機選單", () => {
     fireEvent.click(btn);
     expect(btn).toHaveAttribute("aria-expanded", "false");
   });
-  it("只顯示傳入的項目，Admin 授權前有分隔線", () => {
+  it("只顯示傳入的項目，依 Stitch 分組並附圖示（#113）；沒有項目的分組不顯示", () => {
     render(shell());
     const nav = screen.getByRole("navigation", { name: "後台導覽" });
-    expect(nav).toHaveTextContent("首頁");
-    expect(nav).toHaveTextContent("用戶權限管理");
     expect(nav).not.toHaveTextContent("商品");
-    const items = Array.from(nav.querySelectorAll("li")).map(li => li.getAttribute("role") ?? li.textContent);
-    expect(items).toEqual(["首頁", "用戶權限管理", "separator", "Admin 授權"]);
+    const groups = Array.from(nav.querySelectorAll(".hq-navgroup")).map(g => g.textContent);
+    expect(groups).toEqual(["營運與社群", "系統"]);
+    const links = Array.from(nav.querySelectorAll("a")).map(a => a.textContent);
+    expect(links).toEqual(["首頁", "用戶權限管理", "Admin 授權"]);
+    for (const a of nav.querySelectorAll("a")) expect(a.querySelector("svg")).not.toBeNull();
+    expect(screen.getByRole("link", { name: "首頁" })).toHaveAttribute("aria-current", "page");
   });
 });
 
