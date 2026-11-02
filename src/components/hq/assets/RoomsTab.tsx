@@ -11,10 +11,6 @@ const CARDS = [
     art: <><rect x="3" y="6" width="13" height="12" rx="2" /><path d="M16 10l5-3v10l-5-3" /></>,
   },
   {
-    value: "rooms-polaroid", title: "寶麗來轉換", desc: "把房間的寶麗來（拍立得）照片轉成 3D 室內場景。",
-    art: <><rect x="4" y="3" width="16" height="18" rx="2" /><rect x="6.5" y="5.5" width="11" height="10" rx="1" /><path d="M6.5 13l3-3 3 3 2-2 3 3" /></>,
-  },
-  {
     value: "rooms-floorplan", title: "平面圖轉換", desc: "把房屋平面圖轉成可以走動的 3D 室內空間。",
     art: <><rect x="3" y="3" width="18" height="18" rx="1.5" /><path d="M3 12h7M10 3v5M10 12v9M14 12h7M14 12V8" /></>,
   },
