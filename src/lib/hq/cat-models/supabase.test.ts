@@ -8,6 +8,7 @@ let user: { id: string } | null = { id: "u-1" };
 let files: { name: string }[] = [];
 let insertError: { code: string } | null = null;
 let modelRow: Record<string, unknown> | null = null;
+let download: Blob | null = null;
 
 /** 夠用的假 client：記下每次呼叫，回傳測試設定的結果 */
 function fakeClient() {
@@ -29,6 +30,9 @@ function fakeClient() {
       from: () => ({
         createSignedUploadUrl: async (p: string) => { calls.push({ op: "sign", args: [p] }); return { data: { token: "tok" }, error: null }; },
         list: async () => ({ data: files, error: null }),
+        download: async (p: string) => { calls.push({ op: "download", args: [p] }); return { data: download, error: null }; },
+        upload: async (p: string, _b: unknown, o: unknown) => { calls.push({ op: "upload", args: [p, o] }); return { error: null }; },
+        remove: async (paths: string[]) => { calls.push({ op: "remove", args: [paths] }); return { error: null }; },
       }),
     },
   };
@@ -37,7 +41,7 @@ function fakeClient() {
 vi.mock("@/lib/supabase/server", () => ({ getServerSupabase: async () => fakeClient() }));
 vi.mock("@/lib/supabase/admin", () => ({ getAdminSupabase: () => null }));
 
-const { sbCreateCat, sbPhotoUpload, sbQueuePaint, sbRestore } = await import("./supabase");
+const { sbStartViews, sbCreateCat, sbPhotoUpload, sbQueuePaint, sbRestore } = await import("./supabase");
 
 const ID = "cat_20261101_090507";
 const row = (over: Record<string, unknown> = {}) => ({
@@ -46,7 +50,7 @@ const row = (over: Record<string, unknown> = {}) => ({
   created_at: "2026-11-01T01:00:00Z", updated_at: "2026-11-01T01:00:00Z", ...over,
 });
 
-beforeEach(() => { calls.length = 0; user = { id: "u-1" }; files = []; insertError = null; modelRow = row(); });
+beforeEach(() => { calls.length = 0; user = { id: "u-1" }; files = []; insertError = null; modelRow = row(); download = new Blob(["jpg"], { type: "image/jpeg" }); });
 
 describe("sbPhotoUpload（新增第一步）", () => {
   it("格式、大小不合法直接擋，不簽網址", async () => {
@@ -105,6 +109,75 @@ describe("sbCreateCat（新增第二步）", () => {
     files = [{ name: "photo.png" }];
     insertError = { code: "23505" };
     expect(await sbCreateCat({ id: ID, photoPath: `${ID}/photo.png`, name: "小虎" })).toEqual({ ok: false, code: "busy" });
+  });
+});
+
+describe("sbStartViews（AI 三視角，#110）", () => {
+  const fake = () => async () => ({ png: new Uint8Array([9]), usage: null });
+  const NOW = new Date("2026-11-02T00:00:00Z");
+  it("沒設定影像模型：ai_disabled；角度不對：invalid_option", async () => {
+    expect(await sbStartViews(ID)).toEqual({ ok: false, code: "ai_disabled" });
+    expect(await sbStartViews(ID, ["side"], { makeEdit: fake, analyze: async () => null })).toEqual({ ok: false, code: "invalid_option" });
+  });
+  it("先標記產生中，run 讀原始照片、平行產生、存 gen_<角度>.png、寫回結果", async () => {
+    const r = await sbStartViews(ID, ["left", "back"], { makeEdit: fake, analyze: async () => null, now: NOW });
+    expect(r.ok).toBe(true);
+    const start = calls.find(c => c.op === "update")!.args[0] as { profile: { generated: unknown } };
+    expect(start.profile.generated).toEqual({ running: ["left", "back"], errors: {}, started_at: NOW.toISOString() });
+    calls.length = 0;
+    await (r as { run: () => Promise<void> }).run();
+    expect(calls.find(c => c.op === "download")!.args[0]).toBe(`${ID}/photo.png`);
+    expect(calls.filter(c => c.op === "upload").map(c => c.args[0]).sort()).toEqual([`${ID}/gen_back.png`, `${ID}/gen_left.png`]);
+    const done = calls.filter(c => c.op === "update").at(-1)!.args[0] as { profile: { generated: unknown } };
+    expect(done.profile.generated).toMatchObject({ views: { left: `${ID}/gen_left.png`, back: `${ID}/gen_back.png` }, running: [] });
+  });
+  it("帶入補傳的正面照當第二張參考、存年齡判斷與中英指示、記畫質（#110 Stitch 版）", async () => {
+    modelRow = row({ profile: { age_months: 3, extra_photos: { front: `${ID}/photo_front.jpg` } } });
+    let refCount = 0;
+    const r = await sbStartViews(ID, ["left"], {
+      makeEdit: () => async refs => { refCount = refs.length; return { png: new Uint8Array([9]), usage: { input: 10, output: 196, textIn: null, imageIn: null } }; },
+      analyze: async () => ({ months: 2, isCat: true, coat: "灰白", breed: null, confidence: 0.9 }), now: NOW, quality: "medium", size: "bogus",
+    });
+    const start = calls.find(c => c.op === "update")!.args[0] as { profile: { generated: Record<string, unknown> } };
+    expect(start.profile.generated).toMatchObject({ quality: "medium" });
+    expect(start.profile.generated).not.toHaveProperty("size");
+    calls.length = 0;
+    await (r as { run: () => Promise<void> }).run();
+    expect(calls.filter(c => c.op === "download").map(c => c.args[0])).toEqual([`${ID}/photo.png`, `${ID}/photo_front.jpg`]);
+    expect(refCount).toBe(2);
+    const done = calls.filter(c => c.op === "update").at(-1)!.args[0] as { profile: { generated: Record<string, unknown> } };
+    expect(done.profile.generated).toMatchObject({
+      age: { months: 2, source: "ai", coat: "灰白" },
+      usage: { left: { output: 196 } },
+    });
+    expect((done.profile.generated.prompts as { left: { zh: string } }).left.zh).toContain("這是幼貓");
+  });
+  it("讀不到原始照片：全部記失敗", async () => {
+    download = null;
+    const r = await sbStartViews(ID, ["front"], { makeEdit: fake, analyze: async () => null, now: NOW });
+    await (r as { run: () => Promise<void> }).run();
+    const done = calls.filter(c => c.op === "update").at(-1)!.args[0] as { profile: { generated: { errors: unknown } } };
+    expect(done.profile.generated.errors).toEqual({ front: "讀不到原始照片" });
+  });
+  it("產生中再按：busy", async () => {
+    modelRow = row({ profile: { generated: { running: ["left"], started_at: NOW.toISOString() } } });
+    expect(await sbStartViews(ID, ["left"], { makeEdit: fake, analyze: async () => null, now: NOW })).toEqual({ ok: false, code: "busy" });
+  });
+});
+
+describe("sbQueuePaint 改用 AI 左側面照（#110）", () => {
+  it("有 AI 左側面照：photo_path 換成 AI 照片、原始另存、清去背快取、角度固定 left", async () => {
+    modelRow = row({ profile: { generated: { views: { left: `${ID}/gen_left.png` } } } });
+    expect(await sbQueuePaint(ID, "front", "none")).toEqual({ ok: true });
+    const swap = calls.find(c => c.op === "update")!.args[0];
+    expect(swap).toEqual({ photo_path: `${ID}/gen_left.png`, profile: { generated: { views: { left: `${ID}/gen_left.png` } }, original_photo: `${ID}/photo.png` } });
+    expect(calls.find(c => c.op === "remove")!.args[0]).toEqual([`${ID}/photo_nobg.png`]);
+    expect((calls.find(c => c.op === "insert")!.args[0] as { view: string }).view).toBe("left");
+  });
+  it("沒有 AI 照片：照原本選的角度，不換照片", async () => {
+    expect(await sbQueuePaint(ID, "right", "tabby")).toEqual({ ok: true });
+    expect(calls.some(c => c.op === "remove")).toBe(false);
+    expect((calls.find(c => c.op === "insert")!.args[0] as { view: string }).view).toBe("right");
   });
 });
 

@@ -1,5 +1,5 @@
 "use client";
-// 貼圖工作頁（T-HQ-11，規格書 04 §2.3）：/MeowHQ/assets/cats/<id>/studio
+// 製作glb工作區（T-HQ-11，規格書 04 §2.3）：/MeowHQ/assets/cats/<id>/studio
 import { useParams } from "next/navigation";
 import { HqModuleGuard } from "@/components/hq/HqActor";
 import { StudioPageBody } from "@/components/hq/assets/StudioPage";

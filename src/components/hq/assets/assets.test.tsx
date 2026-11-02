@@ -1,13 +1,13 @@
 // 虛擬體驗元件管理｜貓咪（規格書 04 §1、§2.2、§2.4、§5）
 import "@testing-library/jest-dom/vitest";
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { CatModelView } from "@/lib/hq/cat-models/types";
 import { BaseSamples } from "./BaseSamples";
 import { ClipList } from "./ClipList";
 import { filterCats } from "./CatsTab";
 import { PlannedTab } from "./PlannedTab";
-import { checkPhoto, NewCat } from "./NewCat";
+import { checkPhoto } from "./NewCat";
 import { StudioPageBody } from "./StudioPage";
 import { HqToastProvider } from "../HqToast";
 
@@ -19,7 +19,7 @@ afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 const cat = (over: Partial<CatModelView>): CatModelView => ({
   id: "cat_20261031_100000", name: "小橘", ownerType: "template", status: "ready", ageMonths: null, weightKg: null, notes: "",
   photoView: null, fillPattern: null, hasAlbedo: true, hasPrevAlbedo: false, albedoVersion: null, body: "adult", jobStatus: null, jobQueuedAt: null, jobStartedAt: null, jobSeconds: null, jobStep: null, jobError: null,
-  createdAt: "2026-10-31T10:00:00", updatedAt: "2026-10-31T10:00:00", createdBy: null, ...over,
+  createdAt: "2026-10-31T10:00:00", updatedAt: "2026-10-31T10:00:00", createdBy: null, extraPhotos: [], aiViews: [], aiRunning: [], aiErrors: {}, aiAge: null, aiPrompts: {}, aiUsage: {}, aiQuality: null, ...over,
 });
 
 describe("ClipList（UT 動作清單）", () => {
@@ -68,39 +68,7 @@ describe("checkPhoto", () => {
   });
 });
 
-describe("NewCat", () => {
-  it("不預告會套用哪個骨架（#104 體型可切換）；正面、背部角度可選填上傳", () => {
-    render(<NewCat />);
-    fireEvent.change(screen.getByLabelText("年齡（月，選填）"), { target: { value: "4" } });
-    expect(screen.queryByText(/將使用|成貓骨架|幼貓骨架/)).toBeNull();
-    expect(screen.getByText("必填・用來上色")).toBeInTheDocument();
-    expect(screen.getAllByText("選填", { exact: true })).toHaveLength(2); // #105：正面、背部花紋改為選填上傳
-  });
-  it("沒選照片就送出：顯示提示，不呼叫 API", async () => {
-    const fetchMock = vi.fn();
-    vi.stubGlobal("fetch", fetchMock);
-    render(<NewCat />);
-    fireEvent.change(screen.getByLabelText("名稱（必填）"), { target: { value: "小橘" } });
-    fireEvent.click(screen.getByRole("button", { name: "儲存並前往貼圖工作頁" }));
-    expect(await screen.findByRole("alert")).toHaveTextContent("請先選一張貓咪照片");
-    expect(fetchMock).not.toHaveBeenCalled();
-  });
-  it("顯示拍攝提示與「儲存後是草稿」說明", () => {
-    render(<NewCat />);
-    expect(screen.getByText(/側拍、坐姿或站姿/)).toBeInTheDocument();
-    expect(screen.getByText("儲存後狀態是「草稿」，不會自動開始生成。")).toBeInTheDocument();
-  });
-  it("拍攝範例：成貓、幼貓各一張範例照（#98）", () => {
-    render(<NewCat />);
-    const examples = screen.getByRole("group", { name: "拍攝範例" });
-    expect(within(examples).getByRole("img", { name: "成貓拍攝範例：側面全身站姿" })).toHaveAttribute("src", "/hq-cat-models/examples/adult.webp");
-    expect(within(examples).getByRole("img", { name: "幼貓拍攝範例：側面全身站姿" })).toHaveAttribute("src", "/hq-cat-models/examples/kitten.webp");
-    expect(within(examples).getByText("成貓")).toBeInTheDocument();
-    expect(within(examples).getByText("幼貓")).toBeInTheDocument();
-  });
-});
-
-describe("貼圖工作頁", () => {
+describe("製作glb工作區", () => {
   function mockCat(over: Partial<CatModelView>) {
     const fetchMock = vi.fn().mockImplementation(async (url: string, init?: { method?: string }) => ({
       ok: true, status: 200, json: async () => (init?.method === "POST" ? { ok: true } : { enabled: true, cat: cat(over) }),
@@ -118,6 +86,19 @@ describe("貼圖工作頁", () => {
     fireEvent.click(screen.getByRole("button", { name: "產生動作 glb" }));
     await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/hq/cat-models/cat_20261031_100000/paint",
       expect.objectContaining({ method: "POST", body: JSON.stringify({ view: "left", fill: "tabby" }) })));
+  });
+  it("#110 有 AI 左側面照：不用選照片角度，說明用 AI 照片上色", async () => {
+    mockCat({ status: "draft", hasAlbedo: false, aiViews: ["left", "front", "back"] });
+    renderStudio();
+    expect(await screen.findByText("使用 AI 左側面照（頭朝左）上色；原始照片保留在貼圖結果。")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "左側" })).toBeNull();
+    expect(screen.getByRole("heading", { name: "製作glb工作區" })).toBeInTheDocument();
+  });
+  it("#110 AI 照片產生中：產生 glb 先停用並說明", async () => {
+    mockCat({ status: "draft", hasAlbedo: false, aiRunning: ["left"] });
+    renderStudio();
+    expect(await screen.findByRole("button", { name: "產生動作 glb" })).toBeDisabled();
+    expect(screen.getByText("AI 照片產生中，完成後再送出。")).toBeInTheDocument();
   });
   it("排隊中：按鈕停用並說明原因；排隊超過 2 分鐘提示 worker 可能沒開", async () => {
     mockCat({ status: "queued", jobStatus: "queued", jobQueuedAt: new Date(Date.now() - 5 * 60000).toISOString(), jobStep: "排隊中" });

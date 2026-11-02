@@ -2,13 +2,14 @@ import "server-only";
 // 模型工廠：所有 LLM 都從這裡取得，換供應商只改環境變數，不改業務程式。
 // 各供應商套件用動態 import，只載入實際用到的那一家。
 import type { BaseChatModel } from "@langchain/core/language_models/chat_models";
-import { describe, isConfigured, resolveModel, resolveProvider, type Task } from "./config";
+import { describe, isAzureV1, isConfigured, resolveModel, resolveProvider, withProvider, type Provider, type Task } from "./config";
 
-export const isAIConfigured = () => isConfigured(process.env);
+/** provider：指定這次固定用哪家（不指定＝全站 AI_PROVIDER） */
+export const isAIConfigured = (provider?: Provider) => isConfigured(withProvider(process.env, provider));
 export const aiLabel = () => describe(process.env);
 
-export async function getChatModel(task: Task, opts: { temperature?: number } = {}): Promise<BaseChatModel> {
-  const env = process.env;
+export async function getChatModel(task: Task, opts: { temperature?: number; provider?: Provider } = {}): Promise<BaseChatModel> {
+  const env = withProvider(process.env, opts.provider);
   const provider = resolveProvider(env);
   if (!provider || !isConfigured(env)) throw new Error("AI 尚未設定");
   const model = resolveModel(env, provider, task);
@@ -25,6 +26,15 @@ export async function getChatModel(task: Task, opts: { temperature?: number } = 
       return new ChatOpenAI({ model, apiKey: env.OPENAI_API_KEY, temperature, maxRetries });
     }
     case "azure": {
+      if (isAzureV1(env.AZURE_OPENAI_ENDPOINT)) {
+        // v1 端點是 OpenAI 相容 API：用 ChatOpenAI 指向這個網址，部署名稱當 model
+        const { ChatOpenAI } = await import("@langchain/openai");
+        // 不帶 temperature：較新的部署（例如 gpt-6-luna）可能只接受預設值；cat_studio demo 不帶 temperature 實測可用
+        return new ChatOpenAI({
+          model, apiKey: env.AZURE_OPENAI_API_KEY, maxRetries,
+          configuration: { baseURL: env.AZURE_OPENAI_ENDPOINT!.trim().replace(/\/+$/, ""), defaultHeaders: { "api-key": env.AZURE_OPENAI_API_KEY ?? "" } },
+        });
+      }
       const { AzureChatOpenAI } = await import("@langchain/openai");
       return new AzureChatOpenAI({
         azureOpenAIApiKey: env.AZURE_OPENAI_API_KEY,

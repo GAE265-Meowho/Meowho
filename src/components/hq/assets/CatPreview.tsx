@@ -4,7 +4,7 @@
 //   - 材質 cat_fur 的 map 換成這隻貓的貼圖；cat_eye 換成自訂眼球 shader
 //   - 動作用 AnimationMixer，切換時淡入淡出 0.4 秒
 //   - 形狀鍵 blink_L／blink_R 控制眨眼；「看游標」時眼睛在眼窩內跟著滑鼠轉（最大 28°）
-// 貓咪頁與（PR 2b）貼圖工作頁共用。這個元件要用 next/dynamic（ssr: false）載入。
+// 貓咪頁與（PR 2b）製作glb工作區共用。這個元件要用 next/dynamic（ssr: false）載入。
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls, useGLTF } from "@react-three/drei";
 import { Component, Suspense, useEffect, useMemo, useRef, type ReactNode } from "react";

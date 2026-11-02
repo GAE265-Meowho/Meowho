@@ -112,6 +112,10 @@
 
 網址 `/MeowHQ/assets/cats/<id>`。這個頁面專門用來看這隻貓會做什麼動作，也是上架前的最後確認。
 
+> **2026-11-02 變更（#110，Tina）**：「貼圖工作頁」改名「**製作glb工作區**」（網址不變 `/cats/<id>/studio`）。新增貓咪後自動以 Azure 影像模型（`AZURE_OPENAI_IMAGE_DEPLOYMENT=gpt-image-2`；年齡判斷用聊天模型 `AZURE_OPENAI_CHAT_DEPLOYMENT_NAME=gpt-6-luna`）產生 **AI 三視角照片**：左側面全身（頭朝左，用來上色）、正面、背部，存 `<id>/gen_<角度>.png`、狀態記 `profile.generated`；工作區「貼圖結果」並排顯示原始照片＋三張，可單張重新產生。有 AI 左側面照時，產生 glb 自動用它上色、角度固定 `left`（網站把 `photo_path` 換成 AI 照片、原始另存 `profile.original_photo`、清掉 `photo_nobg.png` 快取；worker 不改）。第二階段（worker 同時用三張照片上色）與「選擇要產生的動作」另行討論。
+>
+> **2026-11-02 變更二（#110，Tina，依 Stitch「MeowHQ Cat Model Builder」）**：新增貓咪頁改兩步驟——**01 上傳照片與基本資料**（原始照片必填、原樣保留；其他角度照片 2、3 選填，當 AI 參考圖；名稱、年齡、體重、備註；進階畫質 low／medium／high、尺寸）→ 按「產生 AI 三視角」建立草稿並背景產生（網址 `?id=`）；**02 AI 三視角照片與參數**：AI 看照片判斷年齡（判斷不出用表單年齡；幼貓自動加幼貓比例指示）、「不是貓」警告、原始＋AI 左側面（用來上色）／正面／背部四張卡片（狀態、重新產生、實際送出的指示中｜EN 切換）、用量與費用清單（gpt-image-2 每百萬 token：文字輸入 5、圖片輸入 8、圖片輸出 30 美元）；底部「確認並前往製作glb工作區」（產生中停用）。工具列不改。兩隻體型骨架移到 `/MeowHQ/assets/bases`，貓咪 tab 用「體型骨架預覽」按鈕進入。
+
 > **2026-11-01 變更（#100，Tina）**：不提供上架／下架。貓咪頁的「上架管理」、`POST /api/hq/cat-models/<id>/publish` 及其寫入函式已移除；本規格書其餘提到上架、下架的段落一併作廢。資料庫的 `meow_publish_cat_model` 與既有上架紀錄未動，舊資料仍會顯示「已上架／已下架」狀態。
 
 **預覽做法（沿用 cat_studio 的 `/eye?mode=clips&cat=<id>`）**

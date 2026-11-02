@@ -8,14 +8,14 @@ export const DEFAULT_MODELS: Record<Provider, Record<Task, string>> = {
   // 2.5 系列已不開放給新申請的金鑰；3.8-flash 單次 12 秒以上，對話用不了，改用 flash-lite（約 2 秒，2026-10-31 實測）
   gemini: { text: "gemini-3.1-flash-lite", vision: "gemini-3.1-flash-lite" },
   openai: { text: "gpt-4o-mini", vision: "gpt-4o-mini" },
-  azure: { text: "", vision: "" },            // Azure 以部署名稱為準（AZURE_OPENAI_DEPLOYMENT）
+  azure: { text: "", vision: "" },            // Azure 以部署名稱為準（AZURE_OPENAI_CHAT_DEPLOYMENT_NAME，例如 gpt-6-luna）
   anthropic: { text: "claude-haiku-4-5", vision: "claude-haiku-4-5" },
 };
 
 const KEY_ENV: Record<Provider, string[]> = {
   gemini: ["GEMINI_API_KEY"],
   openai: ["OPENAI_API_KEY"],
-  azure: ["AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT", "AZURE_OPENAI_DEPLOYMENT"],
+  azure: ["AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT"],          // 部署名稱另外檢查（azureDeployment，兩個名稱擇一）
   anthropic: ["ANTHROPIC_API_KEY"],
 };
 
@@ -32,17 +32,36 @@ export function resolveProvider(env: Env): Provider | null {
   return null;
 }
 
+/** Azure 聊天模型的部署名稱：AZURE_OPENAI_CHAT_DEPLOYMENT_NAME（cat_studio 也用這個名稱），相容舊的 AZURE_OPENAI_DEPLOYMENT */
+export function azureDeployment(env: Env): string {
+  return (env.AZURE_OPENAI_CHAT_DEPLOYMENT_NAME ?? env.AZURE_OPENAI_DEPLOYMENT ?? "").trim();
+}
+
+/** 指定某個模組固定用哪家（例如 MeowHQ 貓咪模型固定用 Azure），不受全站 AI_PROVIDER 影響 */
+export function withProvider(env: Env, provider?: Provider): Env {
+  return provider ? { ...env, AI_PROVIDER: provider } : env;
+}
+
 /** 供應商需要的環境變數都齊全才算可用 */
 export function isConfigured(env: Env): boolean {
   const p = resolveProvider(env);
-  return Boolean(p && KEY_ENV[p].every(k => env[k]));
+  if (!p || !KEY_ENV[p].every(k => env[k])) return false;
+  return p !== "azure" || Boolean(azureDeployment(env));
 }
 
 /** 依任務取模型名稱：AI_MODEL_VISION ＞ AI_MODEL（相容 LLM_MODEL）＞ 預設 */
 export function resolveModel(env: Env, provider: Provider, task: Task): string {
-  if (provider === "azure") return env.AZURE_OPENAI_DEPLOYMENT ?? "";
+  if (provider === "azure") return azureDeployment(env);
   const general = env.AI_MODEL ?? env.LLM_MODEL;
   return (task === "vision" ? env.AI_MODEL_VISION ?? general : general) ?? DEFAULT_MODELS[provider][task];
+}
+
+/**
+ * Azure 的新版 v1 端點（https://<資源>.openai.azure.com/openai/v1）：
+ * 走 OpenAI 相容 API，部署名稱放在 model 欄位、不用 api-version；舊版端點（https://<資源>.openai.azure.com）走 deployments 路徑。
+ */
+export function isAzureV1(endpoint: string | undefined): boolean {
+  return /\/openai\/v1\/?$/.test((endpoint ?? "").trim());
 }
 
 export function describe(env: Env): string {

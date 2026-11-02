@@ -1,11 +1,11 @@
 // 貓咪模型資料來源：本機檔案 ＞ Supabase ＞ 靜態 bundled ＞ 關閉
 import {
-  createCat, getCat, listCats, localRoot, queuePaint, readBaseGlb, readCatFile, restorePrevious,
+  createCat, getCat, listCats, localRoot, queuePaint, readBaseGlb, readCatFile, restorePrevious, startViews,
   type CreateResult, type FileKind, type QueueResult, type RestoreResult, type NewCatInput,
 } from "./local";
 import { bundledBasePublicPath, bundledEnabled, bundledFilePublicPath, getBundledCat, listBundledCats } from "./bundled";
 import {
-  sbBaseRedirect, sbCreateCat, sbFileRedirect, sbGetCat, sbListCats, sbPhotoUpload, sbQueuePaint, sbRestore,
+  sbBaseRedirect, sbCreateCat, sbFileRedirect, sbGetCat, sbListCats, sbStartViews, sbPhotoUpload, sbQueuePaint, sbRestore,
   type UploadTicket,
 } from "./supabase";
 import type { BodyType, CatModelView } from "./types";
@@ -128,6 +128,16 @@ export async function repoQueuePaint(id: string, view: unknown, fill: unknown): 
   const src = resolveCatSource();
   if (src === "local") return queuePaint(localRoot()!, id, view, fill);
   if (src === "supabase") return sbQueuePaint(id, view, fill);
+  return { ok: false, code: "disabled" };
+}
+
+/** AI 三視角（#110）：標記產生中，回傳 run 讓 API 放進 after() 背景執行 */
+export async function repoStartViews(id: string, views: unknown, settings: { quality?: unknown; size?: unknown } = {}): Promise<
+  { ok: true; run: () => Promise<void> } | { ok: false; code: "ai_disabled" | "invalid_option" | "not_found" | "busy" | "permission_denied" } | Denied
+> {
+  const src = resolveCatSource();
+  if (src === "local") return startViews(localRoot()!, id, views, settings);
+  if (src === "supabase") return sbStartViews(id, views, settings);
   return { ok: false, code: "disabled" };
 }
 

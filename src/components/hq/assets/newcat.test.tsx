@@ -1,57 +1,75 @@
-// 新增貓咪頁（#105）：1 照片｜2 基本資料各佔一半；側面必填，正面、背部花紋可選填上傳
+// 新增貓咪頁（#110 Stitch 兩步驟）：01 上傳照片與基本資料 → 02 AI 三視角；底部列「確認並前往製作glb工作區」
 import "@testing-library/jest-dom/vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import { listBundledCats } from "@/lib/hq/cat-models/bundled";
 import { NewCat } from "./NewCat";
 
 const push = vi.fn();
-vi.mock("next/navigation", () => ({ useRouter: () => ({ push, replace: vi.fn() }) }));
+const replace = vi.fn();
+let search = "";
+vi.mock("next/navigation", () => ({ useRouter: () => ({ push, replace }), useSearchParams: () => new URLSearchParams(search) }));
 vi.mock("../HqStates", async orig => ({ ...(await orig<typeof import("../HqStates")>()), useOnline: () => true }));
 
 beforeAll(() => {
-  // jsdom 沒有 createObjectURL
   URL.createObjectURL = vi.fn(() => "blob:preview");
   URL.revokeObjectURL = vi.fn();
 });
-afterEach(() => { cleanup(); vi.unstubAllGlobals(); push.mockReset(); });
+afterEach(() => { cleanup(); vi.unstubAllGlobals(); push.mockReset(); replace.mockReset(); search = ""; });
 
 const jpg = (name: string) => new File(["x"], name, { type: "image/jpeg" });
+const ID = "cat_20261102_120000";
+const base = listBundledCats()[1];
 
-describe("新增貓咪頁版面（#105）", () => {
-  it("兩個步驟並排：1 貓咪照片、2 基本資料；主要按鈕在兩欄之後", () => {
+describe("新增貓咪頁（#110）", () => {
+  it("步驟 01：照片｜基本資料兩欄；原始照片必填且會保留，其他角度 2、3 選填；底部按鈕先停用", () => {
     render(<NewCat />);
     const grid = screen.getByTestId("newcat-grid");
-    const steps = within(grid).getAllByRole("region");
-    expect(steps.map(s => s.getAttribute("aria-label"))).toEqual(["照片", "基本資料"]);
-    const save = screen.getByRole("button", { name: "儲存並前往貼圖工作頁" });
-    expect(grid.compareDocumentPosition(save) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(within(grid).getAllByRole("region").map(s => s.getAttribute("aria-label"))).toEqual(["貓咪照片", "基本資料"]);
+    expect(screen.getByText("原始照片會保留")).toBeInTheDocument();
+    const extras = screen.getByRole("group", { name: "其他角度照片" });
+    expect(within(extras).getAllByText("選填")).toHaveLength(2);
+    expect(screen.getByRole("button", { name: "確認並前往製作glb工作區 →" })).toBeDisabled();
+    expect(screen.getByText("進階生成參數與畫質設定")).toBeInTheDocument();
   });
-  it("三個角度都能上傳：側面必填，正面、背部花紋選填", () => {
+  it("沒選照片就按「產生 AI 三視角」：提示，不呼叫 API", async () => {
+    const f = vi.fn();
+    vi.stubGlobal("fetch", f);
     render(<NewCat />);
-    const angles = screen.getByRole("group", { name: "照片角度" });
-    expect(within(angles).getByText("必填・用來上色")).toBeInTheDocument();
-    expect(within(angles).getAllByText("選填")).toHaveLength(2);
-    expect(within(angles).getByLabelText("側面全身照片")).toBeInTheDocument();
-    expect(within(angles).getByLabelText("正面照片")).toBeInTheDocument();
-    expect(within(angles).getByLabelText("背部花紋照片")).toBeInTheDocument();
-    expect(within(angles).queryByText("規劃中")).toBeNull();
+    fireEvent.change(screen.getByLabelText("名稱（必填）"), { target: { value: "小橘" } });
+    fireEvent.click(screen.getByRole("button", { name: "產生 AI 三視角" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("請先選一張貓咪照片");
+    expect(f).not.toHaveBeenCalled();
   });
-  it("選了正面照會顯示預覽；本機模式儲存時正面照一起送出", async () => {
-    const fetchMock = vi.fn(async (url: string, init?: { body?: string }) => {
+  it("本機模式：原始＋其他角度照片一起建立，送出三個角度與畫質，網址加 ?id=", async () => {
+    const fetchMock = vi.fn(async (url: string) => {
       if (url.endsWith("/upload")) return { ok: true, json: async () => ({ ok: true, mode: "inline" }) };
-      return { ok: true, json: async () => ({ ok: true, id: "cat_20261101_230000", body: init?.body }) };
+      if (url.endsWith("/views")) return { ok: true, status: 202, json: async () => ({ ok: true }) };
+      if (url === `/api/hq/cat-models/${ID}`) return { ok: true, status: 200, json: async () => ({ enabled: true, cat: { ...base, id: ID, aiRunning: ["left", "front", "back"] } }) };
+      return { ok: true, json: async () => ({ ok: true, id: ID }) };
     });
     vi.stubGlobal("fetch", fetchMock);
     render(<NewCat />);
-    fireEvent.change(screen.getByLabelText("側面全身照片"), { target: { files: [jpg("side.jpg")] } });
-    fireEvent.change(screen.getByLabelText("正面照片"), { target: { files: [jpg("front.jpg")] } });
-    expect(screen.getByAltText("選好的正面照片預覽")).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("原始照片"), { target: { files: [jpg("side.jpg")] } });
+    fireEvent.change(screen.getByLabelText("其他角度照片 2"), { target: { files: [jpg("front.jpg")] } });
     fireEvent.change(screen.getByLabelText("名稱（必填）"), { target: { value: "小灰" } });
-    fireEvent.click(screen.getByRole("button", { name: "儲存並前往貼圖工作頁" }));
-    await waitFor(() => expect(push).toHaveBeenCalled());
-    const create = fetchMock.mock.calls.find(([u]) => u === "/api/hq/cat-models")!;
-    const body = JSON.parse(String(create[1]!.body));
-    expect(body.extras.front).toMatch(/^data:image\/jpeg;base64,/);
-    expect(body.extras.back).toBeUndefined();
+    fireEvent.click(screen.getByRole("button", { name: "產生 AI 三視角" }));
+    await waitFor(() => expect(replace).toHaveBeenCalledWith(`/MeowHQ/assets/cats/new?id=${ID}`));
+    const create = fetchMock.mock.calls.find(([u]) => u === "/api/hq/cat-models")! as unknown as [string, { body: string }];
+    expect(JSON.parse(create[1].body).extras.front).toMatch(/^data:image\/jpeg;base64,/);
+    const views = fetchMock.mock.calls.find(([u]) => u.endsWith("/views"))! as unknown as [string, { body: string }];
+    expect(JSON.parse(views[1].body)).toEqual({ views: ["left", "front", "back"], quality: "low", size: "1024x1024" });
+    expect(await screen.findByText(/AI 照片產生中/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "確認並前往製作glb工作區 →" })).toBeDisabled();
+  });
+  it("帶 ?id= 回來且已完成：顯示四張照片，按確認前往製作glb工作區", async () => {
+    search = `id=${ID}`;
+    vi.stubGlobal("fetch", vi.fn(async () => ({ ok: true, status: 200, json: async () => ({ enabled: true, cat: { ...base, id: ID, aiViews: ["left", "front", "back"], aiRunning: [], aiErrors: {} } }) })));
+    render(<NewCat />);
+    expect(await screen.findByAltText("AI 左側面照片")).toBeInTheDocument();
+    const go = screen.getByRole("button", { name: "確認並前往製作glb工作區 →" });
+    await waitFor(() => expect(go).toBeEnabled());
+    fireEvent.click(go);
+    expect(push).toHaveBeenCalledWith(`/MeowHQ/assets/cats/${ID}/studio`);
   });
 });

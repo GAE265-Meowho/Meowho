@@ -99,6 +99,16 @@ export interface CatModelView {
   updatedAt: string;
   /** 建立者顯示名稱；示範貓為「系統」，查不到時為 null（#102） */
   createdBy: string | null;
+  /** 已上傳的正面／背部花紋照（#105、#107） */
+  extraPhotos: ExtraView[];
+  /** AI 三視角照片（#110）：已產生、產生中、失敗原因、年齡判斷、送出的指示（中英）、用量、畫質 */
+  aiViews: GenView[];
+  aiRunning: GenView[];
+  aiErrors: Partial<Record<GenView, string>>;
+  aiAge: AiAge | null;
+  aiPrompts: Partial<Record<GenView, { en: string; zh: string }>>;
+  aiUsage: Partial<Record<GenView, { input: number; output: number; textIn: number | null; imageIn: number | null }>>;
+  aiQuality: AiQuality | null;
 }
 
 /** 任務是否在忙（排隊中或生成中）：忙的時候不能再送、不能換版 */
@@ -161,6 +171,111 @@ export const photoExt = (type: unknown): string | null => (typeof type === "stri
 
 /** 照片路徑只能是 `<貓咪ID>/photo.<jpg|png|webp>`（瀏覽器送來的值，不能指到別隻貓或別的資料夾） */
 export const ownPhotoPath = (id: string, path: string) => new RegExp(`^${id}/photo\\.(jpg|png|webp)$`).test(path);
+
+/** AI 三視角照片（#110）：左側面（頭朝左，用來上色）、正面、背部；存成 <id>/gen_<角度>.png */
+export const GEN_VIEWS = ["left", "front", "back"] as const;
+export type GenView = (typeof GEN_VIEWS)[number];
+export const GEN_VIEW_LABELS: Record<GenView, string> = { left: "AI 左側面", front: "AI 正面", back: "AI 背部" };
+export const isGenView = (v: unknown): v is GenView => (GEN_VIEWS as readonly unknown[]).includes(v);
+export const genPhotoName = (view: GenView) => `gen_${view}.png`;
+
+export const AI_QUALITIES = ["low", "medium", "high"] as const;
+export type AiQuality = (typeof AI_QUALITIES)[number];
+export const AI_SIZES = ["1024x1024", "1024x1536", "1536x1024"] as const;
+export type AiSize = (typeof AI_SIZES)[number];
+
+/** 年齡判斷：source＝ai（模型看照片估的）／form（表單填的）／null（都沒有） */
+export interface AiAge {
+  months: number | null;
+  isCat: boolean | null;
+  coat: string | null;
+  breed: string | null;
+  confidence: number | null;
+  source: "ai" | "form" | null;
+}
+
+type Usage = { input: number; output: number; textIn: number | null; imageIn: number | null };
+
+/** 存在 profile.generated 的狀態 */
+export interface GeneratedProfile {
+  views?: Partial<Record<GenView, string>>;
+  running?: GenView[];
+  errors?: Partial<Record<GenView, string>>;
+  started_at?: string;
+  age?: AiAge;
+  prompts?: Partial<Record<GenView, { en: string; zh: string }>>;
+  usage?: Partial<Record<GenView, Usage>>;
+  quality?: AiQuality;
+  size?: AiSize;
+}
+
+/**
+ * 估計費用（美元）：gpt-image-2 每百萬 token 文字輸入 5、圖片輸入 8、圖片輸出 30（OpenAI 公開價，2026-10；Azure 實際以帳單為準）。
+ * 沒有分項時，輸入全部用圖片價（估高不估低）。
+ */
+export const IMAGE_PRICE = { textIn: 5, imageIn: 8, output: 30 } as const;
+export function imageCostUsd(u: Usage): number {
+  const input = u.textIn === null && u.imageIn === null
+    ? u.input * IMAGE_PRICE.imageIn
+    : (u.textIn ?? 0) * IMAGE_PRICE.textIn + (u.imageIn ?? 0) * IMAGE_PRICE.imageIn;
+  return (input + u.output * IMAGE_PRICE.output) / 1_000_000;
+}
+/** 每張輸出 token 的大約值（1024×1024），畫面估價用 */
+export const QUALITY_OUTPUT_TOKENS: Record<AiQuality, number> = { low: 196, medium: 1756, high: 7024 };
+
+/** 產生超過這個時間還沒結束，視為失敗（伺服器函式最長 5 分鐘） */
+export const GEN_TIMEOUT_MS = 6 * 60 * 1000;
+
+/** 由 profile.generated 算出畫面要用的狀態；逾時的「產生中」改成失敗 */
+export function generatedState(g: GeneratedProfile | undefined, now = Date.now()): Pick<CatModelView,
+  "aiViews" | "aiRunning" | "aiErrors" | "aiAge" | "aiPrompts" | "aiUsage" | "aiQuality"> {
+  const aiViews = GEN_VIEWS.filter(v => g?.views?.[v]);
+  const errors: Partial<Record<GenView, string>> = { ...g?.errors };
+  let running = GEN_VIEWS.filter(v => g?.running?.includes(v));
+  const started = g?.started_at ? Date.parse(g.started_at) : NaN;
+  if (running.length && Number.isFinite(started) && now - started > GEN_TIMEOUT_MS) {
+    for (const v of running) errors[v] = "產生逾時，請重新產生";
+    running = [];
+  }
+  return {
+    aiViews, aiRunning: running, aiErrors: errors,
+    aiAge: g?.age ?? null, aiPrompts: { ...g?.prompts }, aiUsage: { ...g?.usage }, aiQuality: g?.quality ?? null,
+  };
+}
+
+/** 開始產生：標記哪些角度產生中，清掉它們上次的錯誤，記下這次的畫質與尺寸 */
+export function startGenerated(
+  g: GeneratedProfile | undefined, views: GenView[], now = new Date(), settings: { quality?: AiQuality; size?: AiSize } = {},
+): GeneratedProfile {
+  const errors = { ...g?.errors };
+  for (const v of views) delete errors[v];
+  return { ...g, running: views, errors, started_at: now.toISOString(), ...settings };
+}
+
+/** 產生結束：成功的記路徑與用量、失敗的記原因，記下年齡與送出的指示，產生中清空 */
+export function finishGenerated(
+  g: GeneratedProfile | undefined,
+  results: Partial<Record<GenView, { path: string; usage?: Usage | null } | { error: string }>>,
+  extra: { age?: AiAge; prompts?: Partial<Record<GenView, { en: string; zh: string }>> } = {},
+): GeneratedProfile {
+  const views = { ...g?.views };
+  const errors = { ...g?.errors };
+  const usage = { ...g?.usage };
+  for (const v of GEN_VIEWS) {
+    const r = results[v];
+    if (!r) continue;
+    if ("path" in r) {
+      views[v] = r.path;
+      delete errors[v];
+      if (r.usage) usage[v] = r.usage; else delete usage[v];
+    } else errors[v] = r.error;
+  }
+  return {
+    ...g, views, errors, usage, running: [],
+    ...(extra.age ? { age: extra.age } : {}),
+    prompts: { ...g?.prompts, ...extra.prompts },
+  };
+}
 
 /** 正面、背部花紋照片（#105）：先只上傳保存，上色仍只用側面照；存成 <id>/photo_<角度>.<副檔名> */
 export const EXTRA_VIEWS = ["front", "back"] as const;

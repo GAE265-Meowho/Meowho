@@ -26,7 +26,7 @@ vi.mock("../HqStates", async orig => ({ ...(await orig<typeof import("../HqState
 const cat: CatModelView = {
   id: "cat_20261031_100000", name: "小橘", ownerType: "template", status: "ready", ageMonths: null, weightKg: null, notes: "",
   photoView: "front", fillPattern: "none", hasAlbedo: true, hasPrevAlbedo: false, albedoVersion: null, body: "adult", jobStatus: null, jobQueuedAt: null, jobStartedAt: null, jobSeconds: null, jobStep: null, jobError: null,
-  createdAt: "2026-10-31T10:00:00", updatedAt: "2026-10-31T10:00:00", createdBy: null,
+  createdAt: "2026-10-31T10:00:00", updatedAt: "2026-10-31T10:00:00", createdBy: null, extraPhotos: [], aiViews: [], aiRunning: [], aiErrors: {}, aiAge: null, aiPrompts: {}, aiUsage: {}, aiQuality: null,
 };
 vi.mock("./useCatModels", async orig => ({
   ...(await orig<typeof import("./useCatModels")>()),
