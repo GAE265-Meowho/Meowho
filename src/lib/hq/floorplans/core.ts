@@ -37,12 +37,21 @@ export function dbFail(error: { code?: string; message?: string }, where: string
   return error.code && NOT_READY.has(error.code) ? "db_not_ready" : "permission_denied";
 }
 
-export async function listHouses({ sb }: Deps): Promise<{ ok: true; houses: FloorplanSummary[] } | Fail<"db_not_ready" | "permission_denied">> {
+export async function listHouses({ sb, store }: Deps): Promise<{ ok: true; houses: FloorplanSummary[] } | Fail<"db_not_ready" | "permission_denied">> {
   const { data, error } = await sb.from(TABLE).select("id,name,meta,updated_at,created_by,creator:meow_profiles!created_by(display_name,email)").eq("source", "floorplan").order("updated_at", { ascending: false }).limit(50);
   if (error) return { ok: false, code: dbFail(error, "list") };
-  return { ok: true, houses: (data as Row[]).map(r => ({ id: r.id, name: r.name, roomCount: readMeta(r.meta).rooms.length, updatedAt: r.updated_at,
-    createdBy: r.created_by ? r.creator?.display_name || r.creator?.email || null : "系統",
-  })) };
+  // 原圖網址是本機簽 SAS（不連網路），每張卡片都帶上預覽
+  const houses = await Promise.all((data as Row[]).map(async r => {
+    const rooms = await Promise.all(readMeta(r.meta).rooms.map(async m => ({
+      id: m.id, name: m.name, status: m.status,
+      imageUrl: store ? await store.readUrl(m.image_path, READ_TTL_SEC).catch(() => null) : null,
+    })));
+    return {
+      id: r.id, name: r.name, roomCount: rooms.length, updatedAt: r.updated_at, rooms,
+      createdBy: r.created_by ? r.creator?.display_name || r.creator?.email || null : "系統",
+    };
+  }));
+  return { ok: true, houses };
 }
 
 export async function createHouse(deps: Deps, name: unknown): Promise<{ ok: true; id: string } | Fail<"name_required" | "name_taken" | "permission_denied" | "db_not_ready">> {

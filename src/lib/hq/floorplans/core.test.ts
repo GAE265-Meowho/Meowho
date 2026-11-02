@@ -84,7 +84,8 @@ describe("一戶（Q11：一筆＝一戶）", () => {
     await createHouse(deps(), "小美家");
     await upload();
     rows[1].creator = { display_name: "Tina", email: "t@x" };
-    expect(await listHouses(deps())).toEqual({ ok: true, houses: [{ id: H, name: "小美家", roomCount: 1, updatedAt: NOW.toISOString(), createdBy: "Tina" }] });
+    expect(await listHouses(deps())).toEqual({ ok: true, houses: [{ id: H, name: "小美家", roomCount: 1, updatedAt: NOW.toISOString(), createdBy: "Tina",
+      rooms: [{ id: "r1", name: "房間 1", status: "uploaded", imageUrl: `memory://read/floorplans/${H}/r1.png` }] }] });
     expect(await getHouse(deps(), "room_20261101_100000")).toBeNull();
   });
 });
