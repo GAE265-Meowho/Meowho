@@ -7,6 +7,7 @@ export const FLOORPLAN_API = "/api/hq/floorplans";
 
 export const FLOORPLAN_ERRORS: Record<string, string> = {
   name_required: "請填名稱（40 字以內）",
+  name_taken: "已經有同名的一戶，請換個名稱",
   plan_invalid: "請選 JPG 或 PNG 平面圖",
   plan_too_large: `平面圖不能超過 ${MAX_PLAN_BYTES / 1024 / 1024} MB`,
   too_many_rooms: `一戶最多 ${MAX_ROOMS} 間`,
@@ -16,6 +17,7 @@ export const FLOORPLAN_ERRORS: Record<string, string> = {
   busy: "有其他人同時在修改，請再試一次",
   not_found: "找不到這一戶，可能已被刪除",
   permission_denied: "你沒有這個功能的權限",
+  db_not_ready: "資料庫還沒更新：請確認 Supabase 已執行 0014、0015",
 };
 
 export const planProblem = (f: File) => {

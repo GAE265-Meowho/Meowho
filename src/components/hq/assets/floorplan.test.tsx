@@ -37,16 +37,30 @@ afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 describe("一戶清單（#138）", () => {
   it("一戶一列，連到工作頁；建立後直接進入新的一戶", async () => {
     mockFetch((url, init) => init?.method === "POST" ? { status: 201, body: { ok: true, id: H } }
-      : { body: { houses: [{ id: H, name: "小美家", roomCount: 2, updatedAt: "2026-11-02T14:00:00Z" }], storage: true } });
+      : { body: { houses: [{ id: H, name: "小美家", roomCount: 2, updatedAt: "2026-11-02T14:00:00Z", createdBy: "Tina" }], storage: true } });
     wrap(<FloorplanTab />);
     const table = await screen.findByRole("table", { name: "平面圖清單" });
     expect(within(table).getByRole("link", { name: "小美家" })).toHaveAttribute("href", `/MeowHQ/assets/floorplans/${H}`);
     expect(within(table).getByText("2")).toBeInTheDocument();
+    expect(within(table).getByText("Tina")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "建立" })).toBeDisabled();
     fireEvent.change(screen.getByLabelText("戶名"), { target: { value: "阿明家" } });
     fireEvent.click(screen.getByRole("button", { name: "建立" }));
     await waitFor(() => expect(nav.push).toHaveBeenCalledWith(`/MeowHQ/assets/floorplans/${H}`));
+    // 換頁前按鈕保持停用，連按不會建立好幾戶
+    expect(screen.getByRole("button", { name: "開啟中…" })).toBeDisabled();
     expect(JSON.parse(String(calls.find(c => c[1]?.method === "POST")![1]!.body))).toEqual({ name: "阿明家" });
+  });
+  it("列表可刪除一戶，要再按一次確認", async () => {
+    mockFetch((url, init) => init?.method === "DELETE" ? { body: { ok: true } }
+      : { body: { houses: [{ id: H, name: "小美家", roomCount: 0, updatedAt: "2026-11-02T14:00:00Z", createdBy: null }], storage: true } });
+    wrap(<FloorplanTab />);
+    const table = await screen.findByRole("table", { name: "平面圖清單" });
+    expect(within(table).getByText("—")).toBeInTheDocument();
+    fireEvent.click(within(table).getByRole("button", { name: "刪除小美家" }));
+    expect(calls.some(c => c[1]?.method === "DELETE")).toBe(false);
+    fireEvent.click(within(table).getByRole("button", { name: "確認刪除" }));
+    await waitFor(() => expect(calls.find(c => c[1]?.method === "DELETE")?.[0]).toBe(`/api/hq/floorplans/${H}`));
   });
   it("沒有資料時說明下一步；沒設定 Azure 時提醒", async () => {
     mockFetch(() => ({ body: { houses: [], storage: false } }));
@@ -54,6 +68,12 @@ describe("一戶清單（#138）", () => {
     expect(await screen.findByText(/還沒有任何一戶/)).toBeInTheDocument();
     expect(screen.getByRole("alert")).toHaveTextContent("尚未設定 Azure Blob");
   });
+});
+
+it("資料庫還沒更新（0014／0015）：直接說原因，不只顯示載入失敗", async () => {
+  mockFetch(() => ({ status: 503, body: { error: "db_not_ready" } }));
+  wrap(<FloorplanTab />);
+  expect(await screen.findByRole("alert")).toHaveTextContent("資料庫還沒更新");
 });
 
 describe("一戶的工作頁（#138）", () => {

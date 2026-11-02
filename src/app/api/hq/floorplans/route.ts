@@ -8,8 +8,8 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   const deps = await floorplanDeps();
   if (!deps) return denied();
-  const houses = await listHouses(deps);
-  return houses ? Response.json({ houses, storage: !!deps.store }) : denied();
+  const r = await listHouses(deps);
+  return r.ok ? Response.json({ houses: r.houses, storage: !!deps.store }) : fail(r.code);
 }
 
 export async function POST(req: Request) {
