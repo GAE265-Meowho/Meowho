@@ -34,46 +34,92 @@ const wrap = (ui: React.ReactNode) => render(<HqToastProvider>{ui}</HqToastProvi
 beforeEach(() => nav.push.mockReset());
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
-describe("一戶清單（#138）", () => {
-  it("一戶一列，連到工作頁；建立後直接進入新的一戶", async () => {
-    mockFetch((url, init) => init?.method === "POST" ? { status: 201, body: { ok: true, id: H } }
-      : { body: { houses: [{ id: H, name: "小美家", roomCount: 2, updatedAt: "2026-11-02T14:00:00Z", createdBy: "Tina" }], storage: true } });
+const summary = (over = {}) => ({
+  id: H, name: "小美家", roomCount: 2, updatedAt: "2026-11-02T14:00:00Z", createdBy: "Tina",
+  rooms: [{ id: "r1", name: "客廳", status: "uploaded", imageUrl: "https://blob/r1.png?sas" }, { id: "r2", name: "主臥", status: "uploaded", imageUrl: "https://blob/r2.png?sas" }],
+  ...over,
+});
+
+describe("平面圖轉換一頁完成（#138）", () => {
+  it("每一戶一張預覽卡片：封面是第一張平面圖，列出房間、建立者、更新時間；「管理」進去補傳", async () => {
+    mockFetch(() => ({ body: { houses: [summary()], storage: true } }));
     wrap(<FloorplanTab />);
-    const table = await screen.findByRole("table", { name: "平面圖清單" });
-    expect(within(table).getByRole("link", { name: "小美家" })).toHaveAttribute("href", `/MeowHQ/assets/floorplans/${H}`);
-    expect(within(table).getByText("2")).toBeInTheDocument();
-    expect(within(table).getByText("Tina")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "建立" })).toBeDisabled();
-    fireEvent.change(screen.getByLabelText("戶名"), { target: { value: "阿明家" } });
-    fireEvent.click(screen.getByRole("button", { name: "建立" }));
-    await waitFor(() => expect(nav.push).toHaveBeenCalledWith(`/MeowHQ/assets/floorplans/${H}`));
-    // 換頁前按鈕保持停用，連按不會建立好幾戶
-    expect(screen.getByRole("button", { name: "開啟中…" })).toBeDisabled();
-    expect(JSON.parse(String(calls.find(c => c[1]?.method === "POST")![1]!.body))).toEqual({ name: "阿明家" });
+    const list = await screen.findByRole("list", { name: "平面圖清單" });
+    expect(within(list).getByAltText("小美家的客廳平面圖")).toHaveAttribute("src", "https://blob/r1.png?sas");
+    expect(within(within(list).getByRole("list", { name: "小美家的房間" })).getAllByRole("listitem").map(li => li.textContent)).toEqual(["客廳", "主臥"]);
+    expect(within(list).getByText("2 間")).toBeInTheDocument();
+    expect(within(list).getByText("Tina")).toBeInTheDocument();
+    expect(within(list).getByRole("link", { name: "管理" })).toHaveAttribute("href", `/MeowHQ/assets/floorplans/${H}`);
   });
-  it("列表可刪除一戶，要再按一次確認", async () => {
-    mockFetch((url, init) => init?.method === "DELETE" ? { body: { ok: true } }
-      : { body: { houses: [{ id: H, name: "小美家", roomCount: 0, updatedAt: "2026-11-02T14:00:00Z", createdBy: null }], storage: true } });
+  it("新增一戶時一起選平面圖：檔名當房名、可改名或移除，一次建立並逐張上傳，不換頁", async () => {
+    let n = 0;
+    mockFetch((url, init) => {
+      if (url === "/api/hq/floorplans" && init?.method === "POST") return { status: 201, body: { ok: true, id: H } };
+      if (url.endsWith("/rooms") && init?.method === "POST") {
+        const b = JSON.parse(String(init.body));
+        if ("roomId" in b) return { status: 201, body: { ok: true } };
+        n += 1;
+        return { body: { ok: true, roomId: `r${n}`, path: `floorplans/${H}/r${n}.png`, upload: { url: `https://blob/up${n}`, headers: {} } } };
+      }
+      if (url.startsWith("https://blob/up")) return {};
+      return { body: { houses: [], storage: true } };
+    });
     wrap(<FloorplanTab />);
-    const table = await screen.findByRole("table", { name: "平面圖清單" });
-    expect(within(table).getByText("—")).toBeInTheDocument();
-    fireEvent.click(within(table).getByRole("button", { name: "刪除小美家" }));
+    await screen.findByText(/還沒有任何一戶/);
+    const button = screen.getByRole("button", { name: "建立並上傳" });
+    fireEvent.change(screen.getByLabelText("戶名"), { target: { value: "阿明家" } });
+    expect(button).toBeDisabled();  // 至少一張平面圖
+    const files = [new File(["a"], "客廳.png", { type: "image/png" }), new File(["b"], "主臥.jpg", { type: "image/jpeg" }), new File(["c"], "x.pdf", { type: "application/pdf" })];
+    fireEvent.change(screen.getByLabelText(/各房間平面圖/), { target: { files } });
+    expect(screen.getByRole("alert")).toHaveTextContent("已略過不符合的檔案");
+    const picked = screen.getByRole("list", { name: "已選的平面圖" });
+    expect(within(picked).getByLabelText("第 1 張的房間名稱")).toHaveValue("客廳");
+    fireEvent.change(within(picked).getByLabelText("第 2 張的房間名稱"), { target: { value: "主臥室" } });
+    fireEvent.click(button);
+    await waitFor(() => expect(screen.getByLabelText("戶名")).toHaveValue(""));
+    const adds = calls.filter(c => c[1]?.method === "POST" && c[0].endsWith("/rooms")).map(c => JSON.parse(String(c[1]!.body))).filter(b => "roomId" in b);
+    expect(adds.map(b => b.name)).toEqual(["客廳", "主臥室"]);
+    expect(calls.filter(c => c[1]?.method === "PUT")).toHaveLength(2);
+    expect(nav.push).not.toHaveBeenCalled();
+  });
+  it("中途有一張上傳失敗：說明已建立、哪一張失敗，留下沒傳的檔案", async () => {
+    mockFetch((url, init) => {
+      if (url === "/api/hq/floorplans" && init?.method === "POST") return { status: 201, body: { ok: true, id: H } };
+      if (url.endsWith("/rooms")) return { status: 503, body: { error: "storage_disabled" } };
+      return { body: { houses: [], storage: true } };
+    });
+    wrap(<FloorplanTab />);
+    await screen.findByText(/還沒有任何一戶/);
+    fireEvent.change(screen.getByLabelText("戶名"), { target: { value: "阿明家" } });
+    fireEvent.change(screen.getByLabelText(/各房間平面圖/), { target: { files: [new File(["a"], "客廳.png", { type: "image/png" })] } });
+    fireEvent.click(screen.getByRole("button", { name: "建立並上傳" }));
+    expect(await screen.findByText(/已建立「阿明家」，但第 1 張沒有上傳成功/)).toBeInTheDocument();
+    expect(within(screen.getByRole("list", { name: "已選的平面圖" })).getAllByRole("listitem")).toHaveLength(1);
+  });
+  it("卡片可刪除一戶，要再按一次確認", async () => {
+    mockFetch((url, init) => init?.method === "DELETE" ? { body: { ok: true } } : { body: { houses: [summary({ createdBy: null, rooms: [], roomCount: 0 })], storage: true } });
+    wrap(<FloorplanTab />);
+    const list = await screen.findByRole("list", { name: "平面圖清單" });
+    expect(within(list).getByText("—")).toBeInTheDocument();
+    expect(within(list).getByText("還沒有平面圖")).toBeInTheDocument();
+    fireEvent.click(within(list).getByRole("button", { name: "刪除小美家" }));
     expect(calls.some(c => c[1]?.method === "DELETE")).toBe(false);
-    fireEvent.click(within(table).getByRole("button", { name: "確認刪除" }));
+    fireEvent.click(within(list).getByRole("button", { name: "確認刪除" }));
     await waitFor(() => expect(calls.find(c => c[1]?.method === "DELETE")?.[0]).toBe(`/api/hq/floorplans/${H}`));
   });
-  it("沒有資料時說明下一步；沒設定 Azure 時提醒", async () => {
+  it("沒有資料時說明下一步；沒設定 Azure 時不顯示選檔並提醒", async () => {
     mockFetch(() => ({ body: { houses: [], storage: false } }));
     wrap(<FloorplanTab />);
     expect(await screen.findByText(/還沒有任何一戶/)).toBeInTheDocument();
     expect(screen.getByRole("alert")).toHaveTextContent("尚未設定 Azure Blob");
+    expect(screen.queryByLabelText(/各房間平面圖/)).toBeNull();
   });
 });
 
 it("資料庫還沒更新（0014／0015）：直接說原因，不只顯示載入失敗", async () => {
   mockFetch(() => ({ status: 503, body: { error: "db_not_ready" } }));
   wrap(<FloorplanTab />);
-  expect(await screen.findByRole("alert")).toHaveTextContent("資料庫還沒更新");
+  expect(await screen.findByText(/資料庫還沒更新/)).toBeInTheDocument();
 });
 
 describe("一戶的工作頁（#138）", () => {

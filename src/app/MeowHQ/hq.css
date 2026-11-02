@@ -476,3 +476,16 @@
 .hq-fp-room { display: flex; align-items: center; gap: .6rem; background: none; border: 0; padding: 0; font: inherit; color: inherit; cursor: pointer; text-align: left; min-width: 0; }
 .hq-fp-add { border-top: 1px solid var(--hq-line); padding-top: .75rem; }
 .hq-fp-add h4 { margin: 0 0 .5rem; font-size: .95rem; font-weight: 500; }
+/* 平面圖：新增一戶時已選的檔案、每一戶的預覽卡片（#138 改一頁完成） */
+.hq-fp-picked { list-style: none; margin: .5rem 0 0; padding: 0; display: flex; flex-direction: column; gap: .4rem; }
+.hq-fp-picked li { display: flex; align-items: center; gap: .5rem; }
+.hq-fp-cards { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1rem; }
+.hq-fp-card { background: var(--hq-card); border: 1px solid var(--hq-line); border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; }
+.hq-fp-cover { display: grid; place-items: center; aspect-ratio: 4 / 3; background: var(--hq-bg); border-bottom: 1px solid var(--hq-line); color: var(--hq-sub); font-size: .85rem; }
+.hq-fp-cover img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.hq-fp-card-body { padding: .75rem; display: flex; flex-direction: column; gap: .5rem; }
+.hq-fp-roomchips { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: .3rem; }
+.hq-fp-roomchips li { font-size: .8rem; padding: .1rem .5rem; border-radius: 999px; background: var(--hq-sage-soft); color: var(--hq-sage-ink); }
+.hq-fp-meta { margin: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .25rem; font-size: .8rem; }
+.hq-fp-meta dt { color: var(--hq-sub); }
+.hq-fp-meta dd { margin: 0; overflow-wrap: anywhere; }

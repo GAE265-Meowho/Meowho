@@ -38,7 +38,11 @@ export interface FloorplanMeta { version: 1; next: number; rooms: PlanRoom[] }
 /** 畫面用：房間加上有時效的原圖網址 */
 export interface PlanRoomView extends PlanRoom { imageUrl: string | null }
 /** createdBy：建立者顯示名稱；讀不到個人資料時為 null（畫面顯示「—」） */
-export interface FloorplanSummary { id: string; name: string; roomCount: number; updatedAt: string; createdBy: string | null }
+export interface FloorplanSummary {
+  id: string; name: string; roomCount: number; updatedAt: string; createdBy: string | null;
+  /** 清單卡片用：各房間名稱、狀態與原圖預覽網址 */
+  rooms: Pick<PlanRoomView, "id" | "name" | "status" | "imageUrl">[];
+}
 export interface FloorplanHouse { id: string; name: string; updatedAt: string; rooms: PlanRoomView[] }
 
 export const isHouseId = (v: unknown): v is string => typeof v === "string" && ROOM_ID_RE.test(v);
