@@ -31,7 +31,7 @@ export default function FavoritesPage() {
     const sb = getBrowserSupabase();
     if (loading || !sb || !user) return;
     sb.from("meow_cat_favorites")
-      .select("cat_id, cat:meow_cats(name, status, life_stage, photo_url, household:meow_households(city, district), form:meow_adoption_forms(is_open))")
+      .select("cat_id, cat:meow_cats(name, status, life_stage, photo_url, household:meow_households!meow_cats_household_id_fkey(city, district), form:meow_adoption_forms(is_open))")
       .eq("user_id", user.id).order("created_at", { ascending: false })
       .then(({ data }) => setRows((data ?? []) as unknown as Row[]));
   }, [loading, user]);

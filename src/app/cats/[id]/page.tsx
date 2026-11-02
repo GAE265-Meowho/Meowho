@@ -41,7 +41,7 @@ export default function CatPage() {
     if (!sb || loading) return;
     (async () => {
       const [{ data: row }, { data: fm }] = await Promise.all([
-        sb.from("meow_cats").select("*, household:meow_households(id, name, city, district, owner_id, adoption_terms)").eq("id", id).maybeSingle(),
+        sb.from("meow_cats").select("*, household:meow_households!meow_cats_household_id_fkey(id, name, city, district, owner_id, adoption_terms)").eq("id", id).maybeSingle(),
         sb.from("meow_adoption_forms").select("is_open").eq("cat_id", id).maybeSingle(),
       ]);
       if (!row) { setCat(null); return; }

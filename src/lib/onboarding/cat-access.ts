@@ -6,7 +6,7 @@ import { getServerSupabase } from "@/lib/supabase/server";
 export async function canWriteCat(userId: string | null, catId: string): Promise<boolean> {
   const sb = await getServerSupabase();
   if (!sb || !userId) return true; // 示範模式
-  const { data } = await sb.from("meow_cats").select("household:meow_households!inner(owner_id)").eq("id", catId).maybeSingle();
+  const { data } = await sb.from("meow_cats").select("household:meow_households!meow_cats_household_id_fkey!inner(owner_id)").eq("id", catId).maybeSingle();
   if (!data) return true;
   const owner = (data.household as unknown as { owner_id: string } | null)?.owner_id;
   return owner === userId;

@@ -68,7 +68,7 @@ export default function EditCatPage() {
     if (loading || !sb || !user) return;
     (async () => {
       const [{ data: row, error: err }, { data: vids }] = await Promise.all([
-        sb.from("meow_cats").select("*, household:meow_households!inner(owner_id, adoption_terms)").eq("id", id).maybeSingle(),
+        sb.from("meow_cats").select("*, household:meow_households!meow_cats_household_id_fkey!inner(owner_id, adoption_terms)").eq("id", id).maybeSingle(),
         sb.from("meow_cat_videos").select("storage_path").eq("cat_id", id),
       ]);
       if (err || !row) { setError(err?.message ?? "找不到這隻貓"); return; }
