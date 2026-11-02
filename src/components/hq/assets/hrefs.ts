@@ -5,6 +5,8 @@ export const assetsHref = (id: string) => `/MeowHQ/assets/cats/${id}`;
 export const studioHref = (id: string) => `/MeowHQ/assets/cats/${id}/studio`;
 /** 兩隻體型骨架預覽（成貓、幼貓） */
 export const BASES_HREF = "/MeowHQ/assets/bases";
+/** 平面圖轉換（#138）：一戶的工作頁 */
+export const floorplanHref = (id: string) => `/MeowHQ/assets/floorplans/${id}`;
 export const baseLabHref = (body: "adult" | "kitten") => `/MeowHQ/assets/bases/${body}`;
 
 /** 虛擬體驗元件管理的區塊（#113：左側選單第一層；?tab= 切換）。有 parent 的是該區塊頁裡的大卡片，不放選單 */

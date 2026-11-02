@@ -22,6 +22,7 @@
 
 - **MeowHQ 紋理貼圖確認（#129，分支 `feat/129-studio-detail-layout`）**：貓咪製作改 4 步，第 3 步紋理貼圖要「確認使用」才能進第 4 步。已確認路徑存 `meow_cat_models.profile.confirmed_albedo`；判斷一律用 `textureOf()`／`textureInfo()`（`src/lib/hq/cat-models/types.ts`），**貓咪頁不要再用 `hasAlbedo` 判斷能不能預覽**。產生紋理貼圖仍由 Tina 電腦上的 `paint_worker.py --supabase` 執行。
 - **產生紋理貼圖前置條件（#135，分支 `fix/135-texture-needs-views`）**：三視角都成功才能產生，判斷一律用 `viewsReady()`（`src/lib/hq/cat-models/types.ts`）；`queuePaint`／`sbQueuePaint` 回 `views_required`（409）。舊貓沒有三視角的要先補產生。
+- **平面圖轉換（#138，分支 `feat/138-floorplan-entry`，規格 `docs/hq/05`）**：PR 1 完成入口與上傳。一戶＝`meow_room_models` 一列（`source='floorplan'`），房間在 `meta.rooms`；原圖在 Azure Blob `floorplans/<戶>/<房間>`（決策 007 例外，見其補充）。邏輯在 `src/lib/hq/floorplans/`（`core.ts` 依賴注入、可測）。**`0015_meow_room_floorplan.sql` 要先執行**，否則影片轉換清單（`listRooms` 加了 `source='video'`）會讀不到。Azure CORS 不允許 PR 預覽網址，上傳要在正式站或 localhost 測。下一步：PR 2 AI 讀圖。
 - **LLM 輸入防護（#38，決策 004）**：新增任何 LLM 任務，使用者內容必須經 `wrapUserInput()`、API 必須用 `checkInput()`（`src/lib/ai/guard.ts`）。問答模組上線時要實作「每段 20 輪、每天 50 次」。
 - **`0003_meow_site_assets.sql` 已在 Supabase 執行（2026-10-29，`meow_0003_site_assets`）**：Logo 上傳與網站設定可用，待 Tina 登入實測。
 

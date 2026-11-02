@@ -92,8 +92,12 @@ describe("#113 虛擬體驗元件管理分組", () => {
     expect(screen.getByRole("link", { name: "貓咪製作" })).not.toHaveAttribute("aria-current");
     unmount();
     search = "";
-    render(assets("/MeowHQ/assets/cats/new"));
+    const cats = render(assets("/MeowHQ/assets/cats/new"));
     expect(screen.getByRole("link", { name: "貓咪製作" })).toHaveAttribute("aria-current", "page");
+    cats.unmount();
+    // #138：平面圖的戶算室內空間
+    render(assets("/MeowHQ/assets/floorplans/room_20261102_220000"));
+    expect(screen.getByRole("link", { name: "室內空間" })).toHaveAttribute("aria-current", "page");
   });
   it("沒有虛擬體驗元件管理權限就不顯示這個分組", () => {
     render(shell());
