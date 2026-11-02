@@ -2,7 +2,7 @@
 /* eslint-disable @next/next/no-img-element */
 // 貓咪頁（#70）：給想領養的人看的公開名片，可以收藏、填寫領養問卷。看不看得到交給 meow_cats 的 RLS。
 // 年齡只顯示幼貓／壯貓／老貓（#109），不顯示年齡數字。從中途領養來的貓，飼主在這裡提出退養請求（#109）。
-// 待領養貓可以「傳訊息給喵戶長」（#70，#128），對話在「我的領養申請」。
+// 待領養貓可以「傳訊息給喵戶長」（#70，#128），對話在「領養管理」。
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/components/Auth";

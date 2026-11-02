@@ -51,14 +51,6 @@
   --pink-soft: #fde7e4;
   --mint-soft: #e3f2e7;
 
-  /* 領養管理（#128）每隻貓的代表色：深色當色條與圓點（只當裝飾，不放字），-soft 當卡片底（--ink 字對比都 > 10:1）。
-     顏色一定搭配貓名一起出現，不單靠顏色分辨。 */
-  --desk-1: #e8913a; --desk-1-soft: #fde3c6;
-  --desk-2: #5b9bd5; --desk-2-soft: #e1edf8;
-  --desk-3: #6cae7c; --desk-3-soft: #e3f2e7;
-  --desk-4: #e07a8a; --desk-4-soft: #fde7e4;
-  --desk-5: #e9a21f; --desk-5-soft: #fdedc4;
-  --desk-6: #9a7fc6; --desk-6-soft: #eee8f7;
 
   --radius-sm: 12px;
   --radius: 20px;

@@ -102,7 +102,7 @@ export default function MyHomePage() {
       <SiteHeader />
       <main className={s.page}>
         <h1 className={f.title}>我的喵戶</h1>
-        {/* 領養管理只給中途、我的領養申請給開過對話的人（#128）；收藏（#70）還沒有喵戶的會員也能用 */}
+        {/* 領養管理給中途或開過對話的人（#128）；收藏（#70）還沒有喵戶的會員也能用 */}
         {user && (
           <div className={s.quick}>
             <AdoptionsLink userId={user.id} />

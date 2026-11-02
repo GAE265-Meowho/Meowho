@@ -1,5 +1,5 @@
 "use client";
-// 貓咪頁「傳訊息給喵戶長」（#70，#128）：開啟或沿用（會員 × 貓）的對話串，再到「我的領養申請」的那一串
+// 貓咪頁「傳訊息給喵戶長」（#70，#128）：開啟或沿用（會員 × 貓）的對話串，再到「領養管理」的那一串
 import { useState } from "react";
 import { useAuth } from "@/components/Auth";
 import f from "@/components/onboarding/intake.module.css";
@@ -27,7 +27,7 @@ export function MessageButton({ catId }: { catId: string }) {
     const { data, error: err } = await sb.rpc("meow_open_thread", { p_cat_id: catId });
     setBusy(false);
     if (err) { setError(Object.entries(ERRORS).find(([k]) => err.message.includes(k))?.[1] ?? `開啟失敗：${err.message}`); return; }
-    window.location.href = `/me/applications?t=${data}`;
+    window.location.href = `/me/adoptions?t=${data}`;
   }
 
   return (

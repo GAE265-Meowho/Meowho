@@ -9,12 +9,11 @@ import { AnswerList } from "@/components/adoption-form/Responses";
 import f from "@/components/onboarding/intake.module.css";
 import CatButton from "@/components/ui/CatButton";
 import Icon from "@/components/ui/Icon";
-import { KEEPER_STATUS, MEMBER_STATUS, replyStatus, type DeskThread, type Role } from "@/lib/adoption-desk";
+import { STATUS_LABEL, replyStatus, roleOf, type DeskThread } from "@/lib/adoption-desk";
 import type { Answers, Question } from "@/lib/adoption-form/questionnaire";
 import { getBrowserSupabase } from "@/lib/supabase/client";
 import s from "./desk.module.css";
 
-export interface PaneThread extends DeskThread { member_id: string; household_id: string }
 interface Msg { id: string; sender_id: string | null; kind: "text" | "system"; body: string; created_at: string }
 interface Applied { questions: Question[]; answers: Answers; photo_paths: string[]; submitted_at: string | null }
 type Block = "none" | "i_blocked" | "blocked";
@@ -28,13 +27,16 @@ const ERRORS: Record<string, string> = {
   thread_not_participant: "找不到這段對話，請重新整理。",
   thread_not_keeper: "只有喵戶長可以這樣做。",
   thread_cat_gone: "這隻貓已經不在你的喵戶等家了，不能恢復。",
+  thread_homed: "這隻貓已經找到家了。",
 };
 const errText = (m: string) => Object.entries(ERRORS).find(([k]) => m.includes(k))?.[1] ?? `操作失敗：${m}`;
 const when = (iso: string) => new Date(iso).toLocaleString("zh-TW", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: false });
 
-export function ThreadPane({ thread, role, userId, onChanged, onBack }: {
-  thread: PaneThread; role: Role; userId: string; onChanged: () => void; onBack: () => void;
+export function ThreadPane({ thread, userId, onChanged, onBack }: {
+  thread: DeskThread; userId: string; onChanged: () => void; onBack: () => void;
 }) {
+  // 同一頁混合兩種角色：我是這串的會員＝申請方，否則＝審核方（只有審核方能婉拒、看背景標記）
+  const role = roleOf(thread, userId);
   const sb = getBrowserSupabase();
   const [msgs, setMsgs] = useState<Msg[] | null>(null);
   const [applied, setApplied] = useState<Applied | null>(null);
@@ -114,8 +116,7 @@ export function ThreadPane({ thread, role, userId, onChanged, onBack }: {
     if (res) setBlock((res.data as Block) ?? "none");
   }
 
-  const status = replyStatus(thread);
-  const label = (role === "keeper" ? KEEPER_STATUS : MEMBER_STATUS)[status];
+  const label = thread.homed_at && thread.is_adopter ? "領養人" : STATUS_LABEL[replyStatus(thread, role)];
   const other = role === "keeper" ? thread.member_name : thread.household_name;
 
   return (
@@ -128,7 +129,7 @@ export function ThreadPane({ thread, role, userId, onChanged, onBack }: {
           <span className={s.status}>{label}</span>
         </div>
         <div className={s.headActions}>
-          {role === "keeper" && (thread.declined_at
+          {role === "keeper" && !thread.homed_at && (thread.declined_at
             ? <CatButton variant="ghost" size="sm" ears={false} tail={false} disabled={busy} onClick={() => decline(false)}>恢復</CatButton>
             : <CatButton variant="ghost" size="sm" ears={false} tail={false} disabled={busy} onClick={() => setAsking("decline")}>婉拒</CatButton>)}
           {block === "i_blocked"
@@ -152,7 +153,7 @@ export function ThreadPane({ thread, role, userId, onChanged, onBack }: {
       )}
 
       <div className={s.scroll}>
-        {(role === "keeper" || applied) && (
+        {applied && (
           <div className={s.about}>
             {role === "keeper" && applied && (
               <ul className={s.badges} aria-label="背景標記">
