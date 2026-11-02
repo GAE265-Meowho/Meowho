@@ -56,6 +56,12 @@ describe("一戶清單（#138）", () => {
   });
 });
 
+it("資料庫還沒更新（0014／0015）：直接說原因，不只顯示載入失敗", async () => {
+  mockFetch(() => ({ status: 503, body: { error: "db_not_ready" } }));
+  wrap(<FloorplanTab />);
+  expect(await screen.findByRole("alert")).toHaveTextContent("資料庫還沒更新");
+});
+
 describe("一戶的工作頁（#138）", () => {
   it("房間清單＋原圖預覽（預設第一間，點別間切換）", async () => {
     mockFetch(() => ({ body: { house: house(), storage: true } }));

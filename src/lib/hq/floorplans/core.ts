@@ -20,20 +20,31 @@ export interface Deps { sb: Db; userId: string; store: MediaStore | null; now?: 
 interface Row { id: string; name: string; meta: unknown; updated_at: string }
 
 export type Fail<C extends string> = { ok: false; code: C };
-type Common = "permission_denied" | "not_found" | "busy";
+type Common = "permission_denied" | "not_found" | "busy" | "db_not_ready";
 
-export async function listHouses({ sb }: Deps): Promise<FloorplanSummary[] | null> {
-  const { data, error } = await sb.from(TABLE).select("id,name,meta,updated_at").eq("source", "floorplan").order("updated_at", { ascending: false }).limit(50);
-  if (error) return null;
-  return (data as Row[]).map(r => ({ id: r.id, name: r.name, roomCount: readMeta(r.meta).rooms.length, updatedAt: r.updated_at }));
+/**
+ * 資料庫錯誤分類：缺表／缺欄位（0014、0015 沒執行，或 PostgREST 欄位快取還沒更新）回 db_not_ready，
+ * 其他（多半是 RLS 擋下）回 permission_denied。真正的錯誤寫進伺服器紀錄（Vercel Logs）方便查。
+ */
+const NOT_READY = new Set(["42P01", "42703", "PGRST204", "PGRST205"]);
+export function dbFail(error: { code?: string; message?: string }, where: string): "db_not_ready" | "permission_denied" {
+  console.error(`[floorplans] ${where}:`, error.code, error.message);
+  return error.code && NOT_READY.has(error.code) ? "db_not_ready" : "permission_denied";
 }
 
-export async function createHouse(deps: Deps, name: unknown): Promise<{ ok: true; id: string } | Fail<"name_required" | "permission_denied">> {
+export async function listHouses({ sb }: Deps): Promise<{ ok: true; houses: FloorplanSummary[] } | Fail<"db_not_ready" | "permission_denied">> {
+  const { data, error } = await sb.from(TABLE).select("id,name,meta,updated_at").eq("source", "floorplan").order("updated_at", { ascending: false }).limit(50);
+  if (error) return { ok: false, code: dbFail(error, "list") };
+  return { ok: true, houses: (data as Row[]).map(r => ({ id: r.id, name: r.name, roomCount: readMeta(r.meta).rooms.length, updatedAt: r.updated_at })) };
+}
+
+export async function createHouse(deps: Deps, name: unknown): Promise<{ ok: true; id: string } | Fail<"name_required" | "permission_denied" | "db_not_ready">> {
   const clean = cleanName(name);
   if (!clean) return { ok: false, code: "name_required" };
   const now = deps.now ?? new Date();
   const base = newRoomId(now);
   const meta: FloorplanMeta = { version: 1, next: 1, rooms: [] };
+  let last: { code?: string; message?: string } = {};
   // 同一秒建立兩戶：id 加尾碼
   for (let i = 1; i <= 5; i++) {
     const id = i === 1 ? base : `${base}_${i}`;
@@ -41,9 +52,10 @@ export async function createHouse(deps: Deps, name: unknown): Promise<{ ok: true
       id, name: clean, status: "ready", source: "floorplan", meta, created_by: deps.userId, updated_at: now.toISOString(),
     });
     if (!error) return { ok: true, id };
+    last = error;
     if (error.code !== "23505") break;
   }
-  return { ok: false, code: "permission_denied" };
+  return { ok: false, code: dbFail(last, "create") };
 }
 
 async function readHouse(sb: Db, id: string): Promise<Row | null> {
@@ -76,7 +88,7 @@ async function mutateMeta<C extends string, T>(
     const { data, error } = await deps.sb.from(TABLE)
       .update({ meta: result.meta, updated_at: (deps.now ?? new Date()).toISOString() })
       .eq("id", id).eq("updated_at", row.updated_at).select("id");
-    if (error) return { ok: false, code: "permission_denied" };
+    if (error) return { ok: false, code: dbFail(error, "update") };
     if ((data as unknown[] | null)?.length) return { ok: true, value: result.value };
   }
   return { ok: false, code: "busy" };
@@ -147,11 +159,11 @@ export async function deleteHouseRoom(deps: Deps, houseId: string, roomId: strin
   return { ok: true };
 }
 
-export async function deleteHouse(deps: Deps, houseId: string): Promise<{ ok: true } | Fail<"not_found" | "permission_denied">> {
+export async function deleteHouse(deps: Deps, houseId: string): Promise<{ ok: true } | Fail<"not_found" | "permission_denied" | "db_not_ready">> {
   const row = await readHouse(deps.sb, houseId);
   if (!row) return { ok: false, code: "not_found" };
   const { error } = await deps.sb.from(TABLE).delete().eq("id", houseId).eq("source", "floorplan");
-  if (error) return { ok: false, code: "permission_denied" };
+  if (error) return { ok: false, code: dbFail(error, "delete") };
   // 戶刪掉後原圖一併刪（含上傳到一半、沒加進房間的）
   if (deps.store) for (const p of await deps.store.list(`floorplans/${houseId}/`)) await deps.store.remove(p);
   return { ok: true };

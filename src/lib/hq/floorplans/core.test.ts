@@ -1,9 +1,9 @@
 // 平面圖轉換（#138）資料存取：用記憶體版資料表與儲存模擬，不連線
 // @vitest-environment node
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createMemoryStore } from "@/lib/storage/memory";
 import type { MediaStore } from "@/lib/storage/types";
-import { addUploadedRoom, createHouse, createRoomUpload, deleteHouse, deleteHouseRoom, getHouse, listHouses, renameHouseRoom, type Db, type Deps } from "./core";
+import { addUploadedRoom, createHouse, dbFail, createRoomUpload, deleteHouse, deleteHouseRoom, getHouse, listHouses, renameHouseRoom, type Db, type Deps } from "./core";
 
 type Row = Record<string, unknown>;
 let rows: Row[];
@@ -72,6 +72,7 @@ describe("一戶（Q11：一筆＝一戶）", () => {
     expect(rows[0]).toMatchObject({ source: "floorplan", status: "ready", created_by: "u-1", meta: { version: 1, next: 1, rooms: [] } });
   });
   it("沒有權限（RLS 擋下）：permission_denied", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
     failWrites = true;
     expect(await createHouse(deps(), "小美家")).toEqual({ ok: false, code: "permission_denied" });
   });
@@ -79,8 +80,18 @@ describe("一戶（Q11：一筆＝一戶）", () => {
     rows.push({ id: "room_20261101_100000", name: "影片房", source: "video", meta: {}, updated_at: "x" });
     await createHouse(deps(), "小美家");
     await upload();
-    expect(await listHouses(deps())).toEqual([{ id: H, name: "小美家", roomCount: 1, updatedAt: NOW.toISOString() }]);
+    expect(await listHouses(deps())).toEqual({ ok: true, houses: [{ id: H, name: "小美家", roomCount: 1, updatedAt: NOW.toISOString() }] });
     expect(await getHouse(deps(), "room_20261101_100000")).toBeNull();
+  });
+});
+
+describe("資料庫錯誤分類", () => {
+  it("缺欄位／缺表（0014、0015 沒執行或欄位快取沒更新）：db_not_ready；其他：permission_denied", () => {
+    const quiet = vi.spyOn(console, "error").mockImplementation(() => {});
+    for (const code of ["42P01", "42703", "PGRST204", "PGRST205"]) expect(dbFail({ code }, "t")).toBe("db_not_ready");
+    expect(dbFail({ code: "42501" }, "t")).toBe("permission_denied");
+    expect(dbFail({}, "t")).toBe("permission_denied");
+    quiet.mockRestore();
   });
 });
 

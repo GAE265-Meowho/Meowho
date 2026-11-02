@@ -16,6 +16,7 @@ export const FLOORPLAN_ERRORS: Record<string, string> = {
   busy: "有其他人同時在修改，請再試一次",
   not_found: "找不到這一戶，可能已被刪除",
   permission_denied: "你沒有這個功能的權限",
+  db_not_ready: "資料庫還沒更新：請確認 Supabase 已執行 0014、0015",
 };
 
 export const planProblem = (f: File) => {

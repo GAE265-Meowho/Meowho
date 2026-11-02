@@ -9,7 +9,7 @@ import { floorplanHref } from "./hrefs";
 import { FLOORPLAN_API, FLOORPLAN_ERRORS } from "./floorplanApi";
 import { hintError, postJson } from "./useCatModels";
 
-type State = { state: "loading" } | { state: "error" } | { state: "ready"; houses: FloorplanSummary[]; storage: boolean };
+type State = { state: "loading" } | { state: "error"; message?: string } | { state: "ready"; houses: FloorplanSummary[]; storage: boolean };
 
 const fmt = (iso: string) => new Date(iso).toLocaleString("zh-TW", { dateStyle: "short", timeStyle: "short" });
 
@@ -20,7 +20,10 @@ export function FloorplanTab() {
 
   const load = useCallback(async () => {
     const res = await fetch(FLOORPLAN_API, { cache: "no-store" }).catch(() => null);
-    if (!res?.ok) return setData({ state: "error" });
+    if (!res?.ok) {
+      const code = ((await res?.json().catch(() => ({}))) as { error?: string } | undefined)?.error;
+      return setData({ state: "error", message: code === "db_not_ready" || code === "permission_denied" ? FLOORPLAN_ERRORS[code] : undefined });
+    }
     const json = (await res.json()) as { houses: FloorplanSummary[]; storage: boolean };
     setData({ state: "ready", ...json });
   }, []);
@@ -45,7 +48,7 @@ export function FloorplanTab() {
       </section>
 
       {data.state === "loading" && <HqSkeleton rows={3} />}
-      {data.state === "error" && <HqLoadError onRetry={load} />}
+      {data.state === "error" && (data.message ? <p className="hq-error" role="alert">{data.message}</p> : <HqLoadError onRetry={load} />)}
       {data.state === "ready" && (data.houses.length === 0 ? (
         <div className="hq-state"><p>還沒有任何一戶。輸入戶名建立第一戶，再上傳各房間的平面圖。</p></div>
       ) : (
