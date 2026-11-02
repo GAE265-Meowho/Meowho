@@ -58,8 +58,9 @@ describe("#113 虛擬體驗元件管理子選單", () => {
     </HqShell>
   );
   afterEach(() => { search = ""; });
-  it("在左側列出子項目（室內空間下有寶麗來、平面圖轉換），連到各區塊", () => {
+  it("在左側列出子項目（室內空間下有寶麗來、平面圖轉換），連到各區塊；不重複「虛擬與科技體驗」分組標題", () => {
     render(assets("/MeowHQ"));
+    expect(screen.queryByText("虛擬與科技體驗")).toBeNull();
     const sub = screen.getByRole("list", { name: "虛擬體驗元件管理子選單" });
     const links = Array.from(sub.querySelectorAll("a")).map(a => [a.textContent, a.getAttribute("href")]);
     expect(links).toEqual([

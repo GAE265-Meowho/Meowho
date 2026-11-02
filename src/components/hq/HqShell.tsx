@@ -28,7 +28,8 @@ const NAV_GROUPS: { label: string | null; items: SidebarItem[] }[] = [
   { label: null, items: ["home"] },
   { label: "營運與社群", items: ["report_moderation", "user_management"] },
   { label: "商品與知識", items: ["products", "knowledge"] },
-  { label: "虛擬與科技體驗", items: ["virtual_assets"] },
+  // 虛擬體驗元件管理自己就有子選單，不再加「虛擬與科技體驗」分組標題（Tina：看起來重複）
+  { label: null, items: ["virtual_assets"] },
   { label: "系統", items: ["admin_authorization"] },
 ];
 
