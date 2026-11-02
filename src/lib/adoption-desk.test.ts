@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildDesk, categoryOf, isUnread, replyStatus, type DeskThread } from "./adoption-desk";
+import { buildDesk, categoriesOf, isUnread, replyStatus, toCard, type DeskThread } from "./adoption-desk";
 
 const ME = "me";
 const at = (h: number) => new Date(Date.UTC(2026, 10, 2, h)).toISOString();
@@ -40,10 +40,17 @@ describe("未讀與分類", () => {
     expect(isUnread(x, "keeper")).toBe(true);
     expect(isUnread(x, "member")).toBe(false);
   });
-  it("每一串只屬於一個分類：找到家優先（即使被婉拒），其次婉拒，其餘在全部", () => {
-    expect(categoryOf(th({ homed_at: at(5), declined_at: at(5) }))).toBe("homed");
-    expect(categoryOf(th({ declined_at: at(5) }))).toBe("declined");
-    expect(categoryOf(th())).toBe("all");
+  it("每一串都在「全部」；待回覆、婉拒、送養追蹤可以同時符合", () => {
+    expect(categoriesOf(th({ homed_at: at(5), declined_at: at(5) }), "keeper")).toEqual(["all", "declined", "homed"]);
+    expect(categoriesOf(th({ declined_at: at(5) }), "keeper")).toEqual(["all", "declined"]);
+    expect(categoriesOf(th(), "keeper")).toEqual(["all", "reply"]);
+  });
+  it("卡片標籤：回覆狀態、送養追蹤／領養人、退養請求、移轉中", () => {
+    expect(toCard(th(), ME).tags).toEqual(["待回覆"]);
+    expect(toCard(th({ homed_at: at(5), declined_at: at(5) }), ME).tags).toEqual(["婉拒", "送養追蹤"]);
+    expect(toCard(th({ homed_at: at(5), is_adopter: true, member_text_at: at(6), keeper_text_at: at(5), pending_return: true }), ME).tags)
+      .toEqual(["待回覆", "領養人", "退養請求"]);
+    expect(toCard(th({ pending_transfer: true }), ME).tags).toEqual(["待回覆", "移轉中"]);
   });
 });
 
@@ -60,9 +67,10 @@ describe("領養管理：申請方和審核方在同一頁", () => {
   const fuAdopter = th({ id: "f-adopter", cat_id: "c-fu", cat_name: "阿福", member_name: "小陳", homed_at: at(6), is_adopter: true, keeper_text_at: at(6), last_message_at: at(6), keeper_read_at: at(6) });
   const all = [orangeNew, orangeWait, orangeDeclined, mineTofu, fuOther, fuAdopter];
 
-  it("分類列：全部、待回覆、婉拒、送養追蹤，各自數量；全部不含婉拒和送養追蹤", () => {
+  it("分類列：全部列出所有對話，其他分類各自數量", () => {
     const d = buildDesk(all, ME, { category: "all", cat: "all" });
-    expect(d.categories.map(c => `${c.label}${c.count}`)).toEqual(["全部3", "待回覆2", "婉拒1", "送養追蹤2"]);
+    expect(d.categories.map(c => `${c.label}${c.count}`)).toEqual(["全部6", "待回覆2", "婉拒2", "送養追蹤2"]);
+    expect(d.cards).toHaveLength(6);
   });
   it("待回覆同時列出兩種身分輪到我回的對話", () => {
     const d = buildDesk(all, ME, { category: "reply", cat: "all" });
@@ -79,16 +87,16 @@ describe("領養管理：申請方和審核方在同一頁", () => {
     expect(d.cards.map(c => `${c.id}:${c.adopter}`)).toEqual(["f-adopter:true", "f-other:false"]);
   });
   it("貓篩選只列目前分類裡有對話的貓，帶數量和未讀數", () => {
-    expect(buildDesk(all, ME, { category: "all", cat: "all" }).cats.map(c => `${c.name}:${c.count}:${c.unread}`)).toEqual(["豆花:1:1", "橘子:2:1"]);
+    expect(buildDesk(all, ME, { category: "reply", cat: "all" }).cats.map(c => `${c.name}:${c.count}:${c.unread}`)).toEqual(["豆花:1:1", "橘子:1:1"]);
     expect(buildDesk(all, ME, { category: "homed", cat: "all" }).cats.map(c => c.name)).toEqual(["阿福"]);
   });
   it("兩排篩選取交集，分類數量跟著貓篩選", () => {
     const d = buildDesk(all, ME, { category: "reply", cat: "c-orange" });
     expect(d.cards.map(c => c.id)).toEqual(["o-new"]);
-    expect(d.categories.map(c => c.count)).toEqual([2, 1, 1, 0]);
+    expect(d.categories.map(c => c.count)).toEqual([3, 1, 1, 0]);
   });
   it("排序：未讀在前，其餘依最後訊息時間由新到舊；只有問卷的申請也能排", () => {
     const d = buildDesk(all, ME, { category: "all", cat: "all" });
-    expect(d.cards.map(c => c.id)).toEqual(["m-tofu", "o-new", "o-wait"]);
+    expect(d.cards.map(c => c.id)).toEqual(["f-other", "m-tofu", "o-new", "f-adopter", "o-wait", "o-dec"]);
   });
 });

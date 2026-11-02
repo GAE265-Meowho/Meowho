@@ -12,7 +12,7 @@ import Icon from "@/components/ui/Icon";
 import { STATUS_LABEL, replyStatus, roleOf, type DeskThread } from "@/lib/adoption-desk";
 import type { Answers, Question } from "@/lib/adoption-form/questionnaire";
 import { getBrowserSupabase } from "@/lib/supabase/client";
-import { DeclinePanel, TransferBanner, TransferPanel, type PendingTransfer } from "./ThreadActions";
+import { DeclinePanel, ReturnBanner, ReturnPanel, TransferBanner, TransferPanel, type PendingReturn, type PendingTransfer } from "./ThreadActions";
 import s from "./desk.module.css";
 
 interface Msg { id: string; sender_id: string | null; kind: "text" | "system"; body: string; created_at: string }
@@ -37,6 +37,11 @@ const ERRORS: Record<string, string> = {
   transfer_not_pending: "這筆移轉已經處理過了，請重新整理。",
   transfer_bad_household: "請選擇你自己的一般飼主喵戶。",
   household_limit: "你的喵戶數量已經到上限，請選擇現有的喵戶。",
+  return_not_owner: "只有目前的飼主能提出退養請求。",
+  return_no_origin: "這隻貓沒有原中途，無法退養。",
+  return_reason_required: "請說明退養原因。",
+  return_not_pending: "這筆退養請求已經處理過了，請重新整理。",
+  meow_cat_returns_one_pending: "已經有一筆處理中的退養請求。",
 };
 const errText = (m: string) => Object.entries(ERRORS).find(([k]) => m.includes(k))?.[1] ?? `操作失敗：${m}`;
 const when = (iso: string) => new Date(iso).toLocaleString("zh-TW", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: false });
@@ -53,8 +58,10 @@ export function ThreadPane({ thread, userId, onChanged, onBack }: {
   const [block, setBlock] = useState<Block>("none");
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
-  const [asking, setAsking] = useState<"decline" | "block" | "transfer" | null>(null);
+  const [asking, setAsking] = useState<"decline" | "block" | "transfer" | "return" | null>(null);
   const [transfer, setTransfer] = useState<PendingTransfer | null>(null);
+  const [pendingReturn, setPendingReturn] = useState<PendingReturn | null>(null);
+  const [catIsMine, setCatIsMine] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
   const id = thread.id;
@@ -104,7 +111,12 @@ export function ThreadPane({ thread, userId, onChanged, onBack }: {
     if (!sb) return;
     sb.from("meow_cat_transfers").select("id, to_member_id").eq("thread_id", id).eq("status", "pending").maybeSingle()
       .then(({ data }) => setTransfer(data as PendingTransfer | null));
-  }, [sb, id, msgs?.length]);
+    sb.from("meow_cat_returns").select("id, reason").eq("thread_id", id).eq("status", "pending").maybeSingle()
+      .then(({ data }) => setPendingReturn(data as PendingReturn | null));
+    // 退養只有貓目前的飼主能提出：讀得到貓、而且貓的喵戶是自己的
+    sb.from("meow_cats").select("household:meow_households!meow_cats_household_id_fkey(owner_id)").eq("id", thread.cat_id).maybeSingle()
+      .then(({ data }) => setCatIsMine((data?.household as { owner_id?: string } | null)?.owner_id === userId));
+  }, [sb, id, thread.cat_id, userId, msgs?.length]);
 
   async function call(fn: string, args: Record<string, unknown>) {
     if (!sb) return null;
@@ -133,6 +145,17 @@ export function ThreadPane({ thread, userId, onChanged, onBack }: {
     return ok;
   }
 
+  // 退養的函式以貓或請求為對象，不帶對話串 id
+  async function actReturn(fn: string, args: Record<string, unknown>) {
+    if (!sb) return false;
+    setBusy(true); setError(null);
+    const { error: err } = await sb.rpc(fn, args);
+    setBusy(false);
+    if (err) { setError(errText(err.message)); return false; }
+    setAsking(null); await loadMsgs(); onChanged();
+    return true;
+  }
+
   async function setBlocked(on: boolean) {
     setAsking(null);
     const res = await call("meow_set_thread_block", { p_block: on });
@@ -158,6 +181,9 @@ export function ThreadPane({ thread, userId, onChanged, onBack }: {
           {role === "keeper" && !thread.homed_at && (thread.declined_at
             ? <CatButton variant="ghost" size="sm" ears={false} tail={false} disabled={busy} onClick={restore}>恢復</CatButton>
             : <CatButton variant="ghost" size="sm" ears={false} tail={false} disabled={busy} onClick={() => setAsking("decline")}>婉拒</CatButton>)}
+          {role === "member" && catIsMine && !pendingReturn && (
+            <CatButton variant="ghost" size="sm" ears={false} tail={false} disabled={busy} onClick={() => setAsking("return")}>退養</CatButton>
+          )}
           {block === "i_blocked"
             ? <button type="button" className={f.linkBtn} disabled={busy} onClick={() => setBlocked(false)}>解除封鎖</button>
             : <button type="button" className={f.linkBtn} disabled={busy} onClick={() => setAsking("block")}>封鎖</button>}
@@ -165,6 +191,10 @@ export function ThreadPane({ thread, userId, onChanged, onBack }: {
       </header>
 
       {asking === "decline" && <DeclinePanel threadId={id} memberName={thread.member_name} rpc={act} onCancel={() => setAsking(null)} />}
+      {asking === "return" && <ReturnPanel catId={thread.cat_id} catName={thread.cat_name} onSubmit={actReturn} onCancel={() => setAsking(null)} />}
+      {pendingReturn && !asking && (
+        <ReturnBanner pending={pendingReturn} isMember={role === "member"} catName={thread.cat_name} memberName={thread.member_name} onSubmit={actReturn} />
+      )}
       {asking === "transfer" && <TransferPanel catName={thread.cat_name} memberName={thread.member_name} rpc={act} onCancel={() => setAsking(null)} />}
       {asking === "block" && (
         <div className={s.confirm} role="alertdialog" aria-label="確認封鎖">
