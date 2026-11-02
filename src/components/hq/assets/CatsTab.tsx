@@ -3,14 +3,15 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo } from "react";
-import { catProgress, formatCatTime, type CatModelView } from "@/lib/hq/cat-models/types";
+import { CAT_STEPS, catProgress, textureOf, formatCatTime, type CatModelView } from "@/lib/hq/cat-models/types";
+import { FLOW_ICONS, FlowStepper } from "./FlowStepper";
 import { paginate, type ListQuery } from "@/lib/hq/listing";
 import { HqListBody, HqPager, HqTable, HqToolbar, type Column } from "../list/HqList";
 import { assetsHref, BASES_HREF, NEW_CAT_HREF, studioHref } from "./hrefs";
 import { catFileUrl, useCatList } from "./useCatModels";
 
-/** #118：還沒有 3D 的貓直接進製作glb工作區，有 3D 的進貓咪頁 */
-export const catHref = (c: CatModelView) => (c.hasAlbedo ? assetsHref(c.id) : studioHref(c.id));
+/** #118：還沒有 3D 的貓直接進製作glb工作區，有 3D 的進貓咪頁（#129：以「有確認過的紋理貼圖」為準） */
+export const catHref = (c: CatModelView) => (textureOf(c).preview ? assetsHref(c.id) : studioHref(c.id));
 
 export function filterCats(cats: readonly CatModelView[], q: { q?: string; status?: string }): CatModelView[] {
   const text = q.q?.trim().toLowerCase();
@@ -51,13 +52,11 @@ export function CatsTab({ query, update }: { query: ListQuery & { page: number }
 
   return (
     <>
-      {/* 流程（#110 Stitch）：上傳照片 → AI 三視角 → 產生 3D；兩隻體型骨架移到另一頁，用按鈕進入 */}
+      {/* 流程（#110 Stitch；#129 改 4 步）：上傳照片 → AI 三視角 → 紋理貼圖 → 動作 glb；兩隻體型骨架移到另一頁，用按鈕進入 */}
       <section className="hq-flow" aria-label="製作流程">
-        <ol className="hq-steps">
-          <li><b>1</b><span><strong>上傳照片</strong><span className="hq-hint">原始照片與基本資料</span></span></li>
-          <li><b>2</b><span><strong>AI 三視角</strong><span className="hq-hint">AI 產生左側面、正面、背部照片</span></span></li>
-          <li><b>3</b><span><strong>產生 3D 貓咪</strong><span className="hq-hint">在製作glb工作區按「產生動作 glb」</span></span></li>
-        </ol>
+        {/* #129：改為 4 步；第 3 步的紋理貼圖要人工確認才能進第 4 步，不滿意回到第 3 步重新產生 */}
+        <FlowStepper overview label="貓咪製作流程" loop={{ from: 3, to: 2, text: "不滿意可重新產生紋理貼圖" }}
+          steps={CAT_STEPS.map((s, i) => ({ title: s.title, desc: s.desc, icon: FLOW_ICONS[i], state: "todo" }))} />
         <div className="hq-row">
           <Link href={BASES_HREF} className="hq-btn ghost">體型骨架預覽</Link>
           <Link href={NEW_CAT_HREF} className="hq-btn">新增貓咪模型</Link>

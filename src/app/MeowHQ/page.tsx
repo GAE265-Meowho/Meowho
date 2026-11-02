@@ -6,6 +6,7 @@ import { useHqActor } from "@/components/hq/HqActor";
 import { HqLoadError, HqSkeleton } from "@/components/hq/HqStates";
 import { describeAudit, formatTaipei, type AuditLog } from "@/lib/hq/audit";
 import { hasModule } from "@/lib/hq/permissions";
+import { countTexturePending, textureInfo } from "@/lib/hq/cat-models/types";
 import { buildTodoCards, recentOwnActions, type TodoCounts } from "@/lib/hq/todos";
 import { getBrowserSupabase } from "@/lib/supabase/client";
 
@@ -29,6 +30,19 @@ export default function HqHomePage() {
         const r = await sb.from("meow_shelter_verifications").select("id", { count: "exact", head: true }).eq("status", "pending");
         if (r.error) throw r.error;
         next.verifications_pending = r.count ?? 0;
+      }
+      if (hasModule(actor, "virtual_assets")) {
+        // #129：紋理貼圖待確認（目前版不是已確認的版本）；沒有確認欄位的舊資料視為已確認
+        const r = await sb.from("meow_cat_models").select("albedo_path,prev_albedo_path,base_version,meta,profile");
+        if (!r.error) {
+          next.textures_pending = countTexturePending((r.data ?? []).map(row => ({
+            hasAlbedo: Boolean(row.albedo_path), body: "adult" as const,
+            texture: textureInfo({
+              albedo: row.albedo_path, prev: row.prev_albedo_path, confirmed: row.profile?.confirmed_albedo,
+              baseVersion: row.base_version, prevBaseVersion: row.meta?.prev_base_version, ageMonths: null,
+            }),
+          })));
+        }
       }
       const own = await sb.from("meow_audit_logs").select(LOG_COLS).eq("actor_id", userId).order("created_at", { ascending: false }).limit(5);
       if (own.error) throw own.error;

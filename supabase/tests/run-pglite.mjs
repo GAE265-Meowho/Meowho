@@ -303,6 +303,24 @@ try {
   }
 }
 
+// 0014（影片轉 3D 房間，#93）：0001→0013 後跑 0014 兩次＋測試
+{
+  const m = new PGlite();
+  const base = read("./stub_supabase.sql") + ["0001_meow", "0002_meow_hq", "0003_meow_site_assets", "0004_meow_cat_profile", "0005_meow_cat_models", "0006_meow_household_roles", "0007_meow_adoption_forms", "0008_meow_cat_favorites", "0009_meow_cat_returns", "0010_meow_adoption_notify", "0011_meow_threads", "0012_meow_thread_homed", "0013_meow_decline_reason_transfer"]
+    .map((f) => read(`../migrations/${f}.sql`)).join("");
+  try {
+    await m.exec(base);
+    await m.exec(read("../migrations/0014_meow_room_models.sql"));
+    await m.exec(read("../migrations/0014_meow_room_models.sql"));
+    const sql14 = read("./0014_meow_room_models.test.sql").replace(/^\s*begin;/im, "").replace(/rollback;\s*$/i, "");
+    const out14 = await m.exec(sql14);
+    results = results.concat(out14.flatMap((r) => r.rows ?? []).filter((r) => "status" in r));
+  } catch (e) {
+    console.error(`✗ 0014 測試中斷：${e.message}`);
+    process.exit(1);
+  }
+}
+
 // 0014（退養接到領養管理，#128 追加）：0001→0013 後先放一筆處理中的退養請求（還沒接對話串），跑 0014 兩次，檢查補資料＋測試
 {
   const m = new PGlite();

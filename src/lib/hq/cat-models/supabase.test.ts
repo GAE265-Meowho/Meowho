@@ -41,7 +41,9 @@ function fakeClient() {
 vi.mock("@/lib/supabase/server", () => ({ getServerSupabase: async () => fakeClient() }));
 vi.mock("@/lib/supabase/admin", () => ({ getAdminSupabase: () => null }));
 
-const { sbStartViews, sbCreateCat, sbPhotoUpload, sbQueuePaint, sbRestore } = await import("./supabase");
+const { sbStartViews, sbCreateCat, sbPhotoUpload, sbQueuePaint, sbRestore, sbConfirmTexture } = await import("./supabase");
+/** 找寫入某個欄位的 update（同一次操作可能有好幾筆 update） */
+const updateWith = (key: string) => calls.find(c => c.op === "update" && key in (c.args[0] as object))?.args[0] as Record<string, unknown> | undefined;
 
 const ID = "cat_20261101_090507";
 const row = (over: Record<string, unknown> = {}) => ({
@@ -169,7 +171,7 @@ describe("sbQueuePaint 改用 AI 左側面照（#110）", () => {
   it("有 AI 左側面照：photo_path 換成 AI 照片、原始另存、清去背快取、角度固定 left", async () => {
     modelRow = row({ profile: { generated: { views: { left: `${ID}/gen_left.png` } } } });
     expect(await sbQueuePaint(ID, "front", "none")).toEqual({ ok: true });
-    const swap = calls.find(c => c.op === "update")!.args[0];
+    const swap = updateWith("photo_path");
     expect(swap).toEqual({ photo_path: `${ID}/gen_left.png`, profile: { generated: { views: { left: `${ID}/gen_left.png` } }, original_photo: `${ID}/photo.png` } });
     expect(calls.find(c => c.op === "remove")!.args[0]).toEqual([`${ID}/photo_nobg.png`]);
     expect((calls.find(c => c.op === "insert")!.args[0] as { view: string }).view).toBe("left");
@@ -197,8 +199,52 @@ describe("sbQueuePaint（產生）", () => {
   it("成功：新增 queued 任務、貓改排隊中、寫稽核", async () => {
     expect(await sbQueuePaint(ID, "left", "tabby")).toEqual({ ok: true });
     expect(calls.find(c => c.op === "insert")).toMatchObject({ table: "meow_cat_model_jobs", args: [{ model_id: ID, status: "queued", view: "left", fill: "tabby" }] });
-    expect(calls.find(c => c.op === "update")?.args[0]).toMatchObject({ status: "queued" });
+    expect(updateWith("status")).toMatchObject({ status: "queued" });
     expect(calls.find(c => c.op === "rpc")?.args[1]).toMatchObject({ p_action: "generate_model", p_target_id: ID, p_detail: { body: "kitten" } });
+  });
+});
+
+describe("貼圖確認（#129）", () => {
+  it("舊資料第一次重新產生：先記下目前版為已確認，不動貼圖", async () => {
+    modelRow = row({ status: "ready", albedo_path: "a1.png", prev_albedo_path: null });
+    expect(await sbQueuePaint(ID, "left", "none")).toEqual({ ok: true });
+    expect(updateWith("profile")).toEqual({ profile: { age_months: 3, confirmed_albedo: "a1.png" } });
+    expect(updateWith("albedo_path")).toBeUndefined();
+  });
+  it("新貼圖待確認又重新產生：丟掉未確認的，已確認的換回目前版", async () => {
+    modelRow = row({
+      status: "ready", albedo_path: "a2.png", prev_albedo_path: "a1.png", base_version: "kitten-v1", meta: { prev_base_version: "adult-v1" },
+      profile: { age_months: 3, confirmed_albedo: "a1.png" },
+    });
+    expect(await sbQueuePaint(ID, "left", "none")).toEqual({ ok: true });
+    expect(updateWith("albedo_path")).toEqual({ albedo_path: "a1.png", prev_albedo_path: null, base_version: "adult-v1", meta: { prev_base_version: null } });
+    expect(calls.find(c => c.op === "remove")?.args[0]).toEqual(["a2.png"]);
+  });
+  it("已確認的貼圖重新產生：不調整", async () => {
+    modelRow = row({ status: "ready", albedo_path: "a2.png", prev_albedo_path: "a1.png", profile: { confirmed_albedo: "a2.png" } });
+    expect(await sbQueuePaint(ID, "left", "none")).toEqual({ ok: true });
+    expect(updateWith("albedo_path")).toBeUndefined();
+    expect(calls.some(c => c.op === "remove")).toBe(false);
+  });
+  it("確認使用：記下目前版、寫稽核；忙碌中或沒有貼圖擋下", async () => {
+    modelRow = row({ status: "running", albedo_path: "a2.png" });
+    expect(await sbConfirmTexture(ID)).toEqual({ ok: false, code: "busy" });
+    modelRow = row({ status: "draft" });
+    expect(await sbConfirmTexture(ID)).toEqual({ ok: false, code: "no_texture" });
+    modelRow = row({ status: "ready", albedo_path: "a2.png", profile: { age_months: 3, confirmed_albedo: "a1.png" } });
+    expect(await sbConfirmTexture(ID)).toEqual({ ok: true });
+    expect(updateWith("profile")).toMatchObject({ profile: { age_months: 3, confirmed_albedo: "a2.png" } });
+    expect(calls.find(c => c.op === "rpc")?.args[1]).toMatchObject({ p_action: "confirm_texture", p_target_id: ID });
+  });
+  it("改用上一版也算確認", async () => {
+    modelRow = row({ status: "ready", albedo_path: "a2.png", prev_albedo_path: "a1.png", profile: { confirmed_albedo: "a1.png" } });
+    expect(await sbRestore(ID, "新的不好看")).toEqual({ ok: true });
+    expect(updateWith("albedo_path")).toMatchObject({ albedo_path: "a1.png", profile: { confirmed_albedo: "a1.png" } });
+  });
+  it("讀取時帶出確認狀態：待確認時預覽用上一版", async () => {
+    const { sbGetCat } = await import("./supabase");
+    modelRow = row({ status: "ready", albedo_path: "a2.png", prev_albedo_path: "a1.png", base_version: "adult-v1", meta: { prev_base_version: "kitten-v1" }, profile: { confirmed_albedo: "a1.png" } });
+    expect((await sbGetCat(ID))?.texture).toEqual({ state: "pending", preview: "albedo_prev", previewBody: "kitten" });
   });
 });
 

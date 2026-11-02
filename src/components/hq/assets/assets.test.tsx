@@ -53,8 +53,9 @@ describe("PlannedTab", () => {
 });
 
 describe("RoomsTab（#113）", () => {
-  it("兩張大卡片連到寶麗來轉換、平面圖轉換，標示規劃中", () => {
+  it("大卡片連到影片轉換、寶麗來轉換、平面圖轉換，還沒做的標示規劃中", () => {
     render(<RoomsTab />);
+    expect(screen.getByRole("link", { name: /影片轉換/ })).toHaveAttribute("href", "/MeowHQ/assets?tab=rooms-video");
     expect(screen.getByRole("link", { name: /寶麗來轉換/ })).toHaveAttribute("href", "/MeowHQ/assets?tab=rooms-polaroid");
     expect(screen.getByRole("link", { name: /平面圖轉換/ })).toHaveAttribute("href", "/MeowHQ/assets?tab=rooms-floorplan");
     expect(screen.getAllByText("規劃中")).toHaveLength(2);
@@ -88,34 +89,40 @@ describe("製作glb工作區", () => {
   }
   const renderStudio = () => render(<HqToastProvider><StudioPageBody id="cat_20261031_100000" /></HqToastProvider>);
 
-  it("草稿：預設正面、不補花紋；按「產生動作 glb」送出選項", async () => {
+  it("草稿：預設正面、不補花紋；按「產生紋理貼圖」送出選項（#129 改名）", async () => {
     const fetchMock = mockCat({ status: "draft", hasAlbedo: false });
     renderStudio();
     fireEvent.click(await screen.findByRole("button", { name: "左側" }));
     fireEvent.click(screen.getByRole("button", { name: "虎斑" }));
-    fireEvent.click(screen.getByRole("button", { name: "產生動作 glb" }));
+    fireEvent.click(screen.getByRole("button", { name: "產生紋理貼圖" }));
     await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/hq/cat-models/cat_20261031_100000/paint",
       expect.objectContaining({ method: "POST", body: JSON.stringify({ view: "left", fill: "tabby" }) })));
   });
   it("#110 有 AI 左側面照：不用選照片角度，說明用 AI 照片上色", async () => {
     mockCat({ status: "draft", hasAlbedo: false, aiViews: ["left", "front", "back"] });
     renderStudio();
-    expect(await screen.findByText("使用 AI 左側面照（頭朝左）上色；原始照片保留在貼圖結果。")).toBeInTheDocument();
+    expect(await screen.findByText("使用 AI 左側面照（頭朝左）上色。")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "左側" })).toBeNull();
-    expect(screen.getByRole("heading", { name: "製作glb工作區" })).toBeInTheDocument();
+    // #129：標題只保留一個「製作 GLB 工作區」，頁面標題改為貓咪名稱
+    expect(screen.getAllByRole("heading", { name: /製作 ?glb工作區|製作 GLB 工作區/i })).toHaveLength(1);
+    expect(screen.getByRole("heading", { level: 1, name: "小橘" })).toBeInTheDocument();
   });
-  it("#110 AI 照片產生中：產生 glb 先停用並說明", async () => {
+  it("#110 AI 照片產生中：產生紋理貼圖先停用並說明", async () => {
     mockCat({ status: "draft", hasAlbedo: false, aiRunning: ["left"] });
     renderStudio();
-    expect(await screen.findByRole("button", { name: "產生動作 glb" })).toBeDisabled();
+    expect(await screen.findByRole("button", { name: "產生紋理貼圖" })).toBeDisabled();
     expect(screen.getByText("AI 照片產生中，完成後再送出。")).toBeInTheDocument();
   });
   it("排隊中：按鈕停用並說明原因；排隊超過 2 分鐘提示 worker 可能沒開", async () => {
     mockCat({ status: "queued", jobStatus: "queued", jobQueuedAt: new Date(Date.now() - 5 * 60000).toISOString(), jobStep: "排隊中" });
     renderStudio();
-    expect(await screen.findByRole("button", { name: "重新產生動作 glb" })).toBeDisabled();
-    expect(screen.getByText("已有排隊中或生成中的任務，完成後才能再送出。")).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "重新產生紋理貼圖" })).toBeDisabled();
+    expect(screen.getByText("已有排隊中或生成中的任務。")).toBeInTheDocument();
     expect(screen.getByText(/paint_worker 可能沒有開啟/)).toBeInTheDocument();
+    // #129：任務進度標出「排隊」逾時，不顯示百分比
+    const progress = screen.getByRole("list", { name: "紋理貼圖任務進度" });
+    expect(within(progress).getByText("排隊逾時")).toBeInTheDocument();
+    expect(screen.queryByText(/%/)).toBeNull();
   });
   it("失敗：顯示原因與「重試」，並說明沒動到現在的貼圖", async () => {
     mockCat({ status: "failed", jobStatus: "error", jobError: "CUDA out of memory" });
@@ -143,10 +150,30 @@ describe("製作glb工作區", () => {
     renderStudio();
     expect(await screen.findByRole("link", { name: "← 虛擬體驗元件管理" })).toHaveAttribute("href", "/MeowHQ/assets");
   });
-  it("有貼圖時提供「回到貓咪頁看動作」", async () => {
+  it("已確認紋理貼圖：第 4 步提供「前往貓咪頁看動作」", async () => {
     mockCat({ status: "ready" });
     renderStudio();
-    expect(await screen.findByRole("link", { name: "回到貓咪頁看動作" })).toHaveAttribute("href", "/MeowHQ/assets/cats/cat_20261031_100000");
+    expect(await screen.findByRole("link", { name: "前往貓咪頁看動作" })).toHaveAttribute("href", "/MeowHQ/assets/cats/cat_20261031_100000");
+  });
+  it("#129 紋理貼圖待確認：第 4 步鎖住，按「確認使用」送出確認", async () => {
+    const fetchMock = mockCat({ status: "ready", hasPrevAlbedo: true, texture: { state: "pending", preview: "albedo_prev", previewBody: "adult" } });
+    renderStudio();
+    const step4 = await screen.findByRole("region", { name: "製作動作 glb" });
+    expect(within(step4).getByText("請先確認紋理貼圖。")).toBeInTheDocument();
+    expect(within(step4).queryByRole("link")).toBeNull();
+    expect(screen.getByText("新的紋理貼圖（待確認）・點圖放大")).toBeInTheDocument();
+    expect(screen.getByText("重新產生會放棄這張還沒確認的紋理貼圖。")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "確認使用" }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/hq/cat-models/cat_20261031_100000/confirm", expect.objectContaining({ method: "POST" })));
+  });
+  it("#129 生成中：貼圖區顯示「生成中」與目前步驟；首次生成顯示空狀態", async () => {
+    mockCat({ status: "running", hasAlbedo: false, jobStatus: "running", jobStep: "AI 上色", jobStartedAt: new Date().toISOString() });
+    renderStudio();
+    const texture = await screen.findByRole("region", { name: "紋理貼圖" });
+    expect(within(texture).getByText("生成中")).toBeInTheDocument();
+    expect(within(texture).getByText("第一張紋理貼圖生成中")).toBeInTheDocument();
+    const progress = screen.getByRole("list", { name: "紋理貼圖任務進度" });
+    expect(within(progress).getByText("AI 上色").closest("li")).toHaveAttribute("aria-current", "step");
   });
   it("#123 將虛擬貓咪檔案和 GLB 工作區分成兩區，檔案區可收合", async () => {
     mockCat({ status: "ready", gender: "female", ageMonths: 18, weightKg: 4.2, notes: "愛曬太陽" });
@@ -162,9 +189,14 @@ describe("製作glb工作區", () => {
     expect(screen.getByRole("region", { name: "製作 GLB 工作區" })).toBeInTheDocument();
     expect(screen.getByRole("region", { name: "產生選項" })).toBeInTheDocument();
     expect(screen.queryByRole("region", { name: "任務進度" })).toBeNull();
+    // #129：貼圖預覽在右側工作區
+    expect(within(screen.getByRole("region", { name: "製作 GLB 工作區" })).getByRole("region", { name: "紋理貼圖" })).toBeInTheDocument();
+    expect(within(file).queryByRole("region", { name: "紋理貼圖" })).toBeNull();
+    expect(screen.getByRole("button", { name: "收合虛擬貓咪檔案" })).toHaveTextContent("▾");
     expect(screen.getByRole("button", { name: "收合虛擬貓咪檔案" })).toHaveAttribute("aria-expanded", "true");
     fireEvent.click(screen.getByRole("button", { name: "收合虛擬貓咪檔案" }));
     expect(screen.getByRole("button", { name: "展開虛擬貓咪檔案" })).toHaveAttribute("aria-expanded", "false");
+    expect(screen.getByRole("button", { name: "展開虛擬貓咪檔案" })).toHaveTextContent("▸");
   });
 });
 

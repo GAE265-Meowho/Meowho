@@ -5,7 +5,7 @@ import {
 } from "./local";
 import { bundledBasePublicPath, bundledEnabled, bundledFilePublicPath, getBundledCat, listBundledCats } from "./bundled";
 import {
-  sbBaseRedirect, sbCreateCat, sbFileRedirect, sbGetCat, sbListCats, sbStartViews, sbPhotoUpload, sbQueuePaint, sbRestore,
+  sbBaseRedirect, sbCreateCat, sbFileRedirect, sbGetCat, sbListCats, sbStartViews, sbPhotoUpload, sbQueuePaint, sbRestore, sbConfirmTexture,
   type UploadTicket,
 } from "./supabase";
 import type { BodyType, CatModelView } from "./types";
@@ -148,3 +148,15 @@ export async function repoRestore(id: string, reason: string, actor: string): Pr
   return { ok: false, code: "disabled" };
 }
 
+
+/**
+ * 確認使用目前的貼圖（#129）。本機 Cat Studio 沒有確認欄位，貼圖一律視為已確認，所以直接回 ok。
+ */
+export async function repoConfirmTexture(id: string): Promise<
+  { ok: true } | { ok: false; code: "not_found" | "busy" | "no_texture" | "permission_denied" } | Denied
+> {
+  const src = resolveCatSource();
+  if (src === "local") return (await getCat(localRoot()!, id)) ? { ok: true } : { ok: false, code: "not_found" };
+  if (src === "supabase") return sbConfirmTexture(id);
+  return { ok: false, code: "disabled" };
+}
