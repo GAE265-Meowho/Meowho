@@ -1,0 +1,16 @@
+# 008 房間轉換 MVP 先放 Supabase，本機 worker 負責運算
+- 日期：2026-11-02
+- 發起人 × 工具：珮瑜 × Claude Code (claude-opus-5-5)
+- 背景：11/5 要讓有後台權限的組員實際上傳影片、產生 3D 房間。決策 006 規劃影片與 3D 檔放 Azure Blob、GPU 工作機包成 Docker，這些本週來不及。
+- 決定：
+  - 原始影片先放 Supabase 私有 bucket `meow-room-videos`，單檔上限 50 MB；成果放公開 bucket `meow-room-models`。
+  - 運算先用組員的 Mac：本機 worker 用 service role 領 `meow_room_jobs`，跑完上傳成果；Mac 沒開時工作會排隊。
+  - 成果路徑用隨機名稱 `results/<隨機字串>/`，資料庫只存路徑（沿用決策 006 的可轉移規則）。
+  - 影片在轉換成功後立即刪除（決策 007）；失敗時保留，方便重試。
+- 例外：`meow-room-models` 是公開 bucket，知道網址的人看得到 3D 檔，與決策 007「3D 場景不公開」不同。**本例外只限屋主同意的展示房間，開放領養人使用前要改成私有。**
+- 影響：
+  - 新增 `0011_meow_room_models.sql`，執行前須 Tina 確認。
+  - Supabase 免費版總容量約 1 GB，影片要轉完就刪，成果也要定期清理。
+- 替代方案（未採用的原因）：
+  - 直接接 Azure Blob 和 GPU 主機（未採用：11/5 前來不及，且 VM 全天開著約 US$530／月）
+  - 成果也放私有 bucket（未採用：要多做臨時網址，MVP 先簡化）

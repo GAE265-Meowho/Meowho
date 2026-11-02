@@ -1,5 +1,6 @@
 // 影片轉 3D 房間（#93）前後端共用的規則
 export const VIDEO_BUCKET = "meow-room-videos";
+export const RESULT_BUCKET = "meow-room-models";
 export const MAX_VIDEO_BYTES = 50 * 1024 * 1024;  // Supabase 免費版單檔上限
 export const ROOM_ID_RE = /^room_\d{8}_\d{6}(_\d+)?$/;
 
@@ -15,6 +16,7 @@ export interface RoomView {
   step: string | null;
   error: string | null;
   createdAt: string;
+  resultBase: string | null;  // 3D 成果的資料夾網址，轉換完成才有
 }
 
 const VIDEO_EXT_BY_TYPE: Record<string, string> = { "video/mp4": "mp4", "video/quicktime": "mov" };

@@ -32,7 +32,7 @@ async function uploadSupabase(name: string, file: File) {
   await postJson(API, { id: ticket.id, name, path: ticket.path }, ERRORS);
 }
 
-export function RoomUpload({ onView }: { onView?: (id: string) => void }) {
+export function RoomUpload({ onView }: { onView: (base: string) => void }) {
   const [name, setName] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
@@ -83,8 +83,8 @@ export function RoomUpload({ onView }: { onView?: (id: string) => void }) {
               <span className={`hq-tag ${TAG[r.status]}`}>{ROOM_STATUS_LABELS[r.status]}</span>
               {r.status === "running" && r.step && <span className="hq-hint">{r.step}</span>}
               {r.status === "failed" && r.error && <span className="hq-error">{r.error}</span>}
-              {r.status === "ready" && LOCAL_MODE && onView && (
-                <button type="button" className="hq-btn small ghost" onClick={() => onView(r.id)}>查看房間</button>
+              {r.resultBase && (
+                <button type="button" className="hq-btn small ghost" onClick={() => onView(r.resultBase!)}>查看房間</button>
               )}
             </li>
           ))}

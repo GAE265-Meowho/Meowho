@@ -10,11 +10,11 @@ const RoomViewer = dynamic(() => import("./RoomViewer"), { ssr: false, loading: 
 
 export function RoomVideoTab() {
   const [picked, setPicked] = useState<string | null>(null);
-  const base = picked ? `/api/hq/rooms/local/${picked}` : process.env.NEXT_PUBLIC_ROOM_DEMO_BASE;
+  const base = picked ?? process.env.NEXT_PUBLIC_ROOM_DEMO_BASE;
   return (
     <div className="hq-roomvideo">
       {(isSupabaseConfigured || process.env.NEXT_PUBLIC_ROOM_LOCAL === "1") && <RoomUpload onView={setPicked} />}
-      {base ? <RoomViewer key={base} base={base} /> : <div className="hq-state"><p>還沒有設定展示房間。</p></div>}
+      {base ? <RoomViewer key={base} base={base} /> : <div className="hq-state"><p>轉換完成後，在上面選一間房間查看。</p></div>}
     </div>
   );
 }

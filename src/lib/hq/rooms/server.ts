@@ -1,8 +1,9 @@
 // 影片轉 3D 房間（#93）：寫入一律用登入者 session，讓 RLS 的 virtual_assets 權限把關。
 // 影片由瀏覽器直傳私有 bucket，避開 Vercel 約 4.5 MB 的請求上限；轉換由本機 worker 領 meow_room_jobs。
 import "server-only";
+import { SUPABASE_URL } from "@/lib/supabase/config";
 import { getServerSupabase } from "@/lib/supabase/server";
-import { ROOM_ID_RE, VIDEO_BUCKET, checkVideo, newRoomId, videoExt, type RoomStatus, type RoomView, type VideoProblem } from "./types";
+import { RESULT_BUCKET, ROOM_ID_RE, VIDEO_BUCKET, checkVideo, newRoomId, videoExt, type RoomStatus, type RoomView, type VideoProblem } from "./types";
 
 async function userClient() {
   const sb = await getServerSupabase();
@@ -56,6 +57,7 @@ interface RoomRow {
   id: string;
   name: string;
   status: RoomStatus;
+  result_path: string | null;
   created_at: string;
   meow_room_jobs: { step: string | null; error: string | null; queued_at: string }[] | null;
 }
@@ -64,12 +66,17 @@ export async function listRooms(): Promise<RoomView[] | null> {
   const user = await userClient();
   if (!user) return null;
   const { data, error } = await user.sb.from("meow_room_models")
-    .select("id,name,status,created_at,meow_room_jobs(step,error,queued_at)")
+    .select("id,name,status,result_path,created_at,meow_room_jobs(step,error,queued_at)")
     .order("created_at", { ascending: false })
     .limit(20);
   if (error) return null;
   return (data as unknown as RoomRow[]).map(row => {
     const job = [...(row.meow_room_jobs ?? [])].sort((a, b) => b.queued_at.localeCompare(a.queued_at))[0];
-    return { id: row.id, name: row.name, status: row.status, step: job?.step ?? null, error: job?.error ?? null, createdAt: row.created_at };
+    return {
+      id: row.id, name: row.name, status: row.status, step: job?.step ?? null, error: job?.error ?? null, createdAt: row.created_at,
+      resultBase: row.status === "ready" && row.result_path
+        ? `${SUPABASE_URL.replace(/\/$/, "")}/storage/v1/object/public/${RESULT_BUCKET}/${row.result_path}`
+        : null,
+    };
   });
 }

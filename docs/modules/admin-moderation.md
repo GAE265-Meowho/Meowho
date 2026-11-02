@@ -1,6 +1,6 @@
 # 模組：後台與內容審核（admin-moderation）
 
-> 最後更新：2026-10-28｜Tina × Claude Code
+> 最後更新：2026-11-02｜珮瑜 × Claude Code
 > 規則：本檔隨程式碼同一個 PR 更新；「決策」與「地雷」只增不刪（過時的標註［已失效］）。
 
 ## 目的
@@ -20,7 +20,10 @@
 MeowHQ（`/MeowHQ`，取代舊隱藏後台）開發中：階段 0（#18）、db（#19，`0002_meow_hq.sql`）、logic（#20）已合併；外殼（#21）：路由／大小寫導向／登入閘門／Nordic Meow 樣式／頂列／側欄／toast／空白、載入、錯誤、離線元件；側欄改接 `permissions.ts`。舊後台 `/mh-console-8k2p` 已移除（Tina 2026-10-29 決定），功能移到 #23（管理員授權、網站外觀）、#24（中途認證）。`Auth.tsx` 的 `isAdmin` 為 admin 或 system_admin（`src/lib/auth-role.ts`）。T-HQ-11（虛擬體驗元件管理—貓咪模型）由 Issue #75 進行：規格 `docs/hq/04_assets-cat-models規格書.md`，儲存位置定為 Supabase Storage（解決 #15）；PR 2a、2b 已有 `/MeowHQ/assets` 四個分頁、貓咪列表、新增貓咪 `/cats/new`、貓咪頁 `/cats/<id>`、貼圖工作頁 `/cats/<id>/studio`（本機檔案來源，需設 `CAT_STUDIO_ROOT`，見 `.env.example`）。
 2026-10-29：`0002_meow_hq.sql` 已在 Supabase 執行。#22：待辦總覽（`/MeowHQ`）、列表共用元件（`src/components/hq/list/HqList.tsx`）、模組守門（`HqModuleGuard`）、側欄改接 `permissions.ts`（授權讀取中只顯示首頁，不再退回全部可見）、資料庫錯誤轉白話（`hqErrorMessage`，優先顯示函式 hint）。
 
+2026-11-02（#93）：虛擬體驗元件管理「室內空間」新增**影片轉換**：管理員上傳影片建立工作，本機 worker 轉換後在後台查看 3D 房間，貓咪可走路、跳上床、推倒杯子。檢視器 `src/components/hq/assets/RoomViewer.tsx`，互動 `src/lib/hq/rooms/world.ts`（`cat.js`、`physics.js`、`audio.js` 來自影片轉 3D 專案）。
+
 ## 資料表（Supabase）
+- `0011_meow_room_models.sql`（**尚未執行，須 Tina 確認**）：`meow_room_models`、`meow_room_jobs`；只有 `virtual_assets` 能讀寫，worker 用 service role。Bucket：`meow-room-videos`（私有）、`meow-room-models`（公開），見決策 008。
 - 已建立（`0001_meow.sql`）：`meow_shelter_verifications`（同一貓戶同時只能一筆審核中）、`meow_notifications`、`meow_site_settings`（key/value，公開讀、管理員寫）
 - `meow_profiles.role`（0001：member/admin；0002 起：member/admin/system_admin）、`meow_profiles.email`
 - 0002（尚未執行）新增：`meow_admin_module_grants`、`meow_audit_logs`、`meow_user_suspensions`、`meow_banlist`（見下）\n- 待建立：`reports`

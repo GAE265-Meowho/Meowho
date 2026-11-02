@@ -27,7 +27,7 @@ export async function createLocalRoom(root: string, input: { name: string; type:
   await mkdir(path.join(root, id), { recursive: true });
   await writeFile(path.join(root, id, `source.${videoExt(input.type)}`), input.data);
   // room.json 最後才寫：worker 看到它時影片一定已經完整
-  await writeRoom(root, { id, name, status: "queued", step: null, error: null, createdAt: now.toISOString() });
+  await writeRoom(root, { id, name, status: "queued", step: null, error: null, createdAt: now.toISOString(), resultBase: null });
   return { ok: true, id };
 }
 
@@ -36,7 +36,8 @@ export async function listLocalRooms(root: string): Promise<RoomView[]> {
   const names = (await readdir(root)).filter(n => ROOM_ID_RE.test(n));
   const rooms = await Promise.all(names.map(async n => {
     try {
-      return JSON.parse(await readFile(path.join(root, n, "room.json"), "utf8")) as RoomView;
+      const room = JSON.parse(await readFile(path.join(root, n, "room.json"), "utf8")) as RoomView;
+      return { ...room, resultBase: room.status === "ready" ? `/api/hq/rooms/local/${room.id}` : null };
     } catch {
       return null;  // 還在建立中
     }
