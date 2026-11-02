@@ -6,6 +6,7 @@ import { canAnalyzeVideo, catPhotoAnalysisChain, catVideoChain, catVideoInput, m
 import { resolveProvider, type Provider } from "./config";
 import { CatPhotoAnalysisSchema, CatTurnSchema, CatVideoSchema, HouseholdTurnSchema } from "./schemas";
 import type { TurnExtractor } from "@/lib/onboarding/conversation";
+import { DeclineDraftSchema, declineDraftChain, declineDraftInput, type DeclineContext } from "./decline";
 
 export { aiLabel, isAIConfigured } from "./models";
 
@@ -47,3 +48,7 @@ export const analyzeCatVideo = (mime: string, bytes: Uint8Array) => {
   return safe(async () => catVideoChain(structured(await getChatModel("vision"), CatVideoSchema, "cat_video"))
     .invoke(catVideoInput(mime, Buffer.from(bytes).toString("base64"))), 50_000); // API 路由上限 60 秒
 };
+
+/** 婉拒理由草稿（#128）：未設定或失敗回傳 null，由呼叫端改用固定草稿 */
+export const draftDeclineReason = (c: DeclineContext) => safe(async () =>
+  declineDraftChain(structured(await getChatModel("text", { temperature: 0.4 }), DeclineDraftSchema, "decline_draft")).invoke(declineDraftInput(c)));

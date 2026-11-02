@@ -71,7 +71,7 @@
   border: 0; border-radius: 50%; background: var(--cream); color: var(--ink); cursor: pointer;
 }
 .confirm {
-  display: flex; flex-direction: column; gap: 8px; margin: 12px 18px 0; padding: 14px 16px;
+  display: flex; flex-direction: column; gap: 8px; margin: 12px 18px 0; padding: 14px 16px; max-height: 65%; overflow-y: auto; flex: none;
   border-radius: 20px; background: var(--yellow-soft); color: var(--ink);
 }
 .confirm p { margin: 0; font-size: 15px; line-height: 1.7; }
@@ -127,3 +127,19 @@
 
 /* 頁面：比一般內頁寬，讓兩欄有空間 */
 .page { max-width: 1180px; margin: 0 auto; padding: 24px 16px 120px; display: flex; flex-direction: column; gap: 20px; }
+
+/* 婉拒理由、移轉確認、等待接收 */
+.confirm textarea, .confirm input:not([type="checkbox"]), .pendingBar select {
+  width: 100%; padding: 10px 14px; border: 2px solid var(--line); border-radius: 18px; background: var(--card);
+  color: var(--ink); font: inherit; font-size: 15px; line-height: 1.6;
+}
+.confirm textarea:focus, .confirm input:focus, .pendingBar select:focus { outline: none; border-color: var(--orange); }
+.confirm textarea::placeholder { color: #8f7663; }
+.consequences { margin: 0; padding-left: 1.2em; font-size: 15px; line-height: 1.8; }
+.check { display: flex; align-items: flex-start; gap: 10px; min-height: max(36px, var(--tap)); font-size: 15px; line-height: 1.6; cursor: pointer; }
+.check input { width: 20px; height: 20px; margin-top: 3px; accent-color: var(--caramel); }
+.pendingBar {
+  display: flex; flex-direction: column; gap: 8px; margin: 12px 18px 0; padding: 14px 16px;
+  border-radius: 20px; background: var(--mint-soft); color: var(--ink);
+}
+.pendingBar p { margin: 0; font-size: 15px; line-height: 1.7; }
