@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { floorplanRoomSchema } from "@/lib/ai/schemas";
 import living from "./fixtures/living-room.json";
 import { normalizeReading } from "./read";
-import { colliders, houseScene, ROOM_GAP_M, roomBoxes, sceneBounds } from "./scene";
+import { colliders, focusScenes, houseScene, ROOM_GAP_M, roomBoxes, sceneBounds } from "./scene";
 import type { PlanGeometry, PlanRoom } from "./types";
 
 const geo = (): PlanGeometry => {
@@ -21,7 +21,8 @@ describe("roomBoxes", () => {
     expect(size).toEqual([4.2, 3.6]);
     expect(boxes[0]).toMatchObject({ kind: "floor", x: 2.1, z: 1.8, sx: 4.2, sz: 3.6 });
     const sofa = boxes.find(b => b.furniture === "sofa")!;
-    expect(sofa).toMatchObject({ x: 1.5, y: 0.4, z: 2.9, sx: 2.1, sy: 0.8, sz: 0.9, walkable: true });
+    expect(sofa).toMatchObject({ x: 1.5, y: 0.4, z: 3.065, sx: 2.1, sy: 0.8, sz: 0.9, walkable: true });
+    expect(Math.abs(sofa.rotY)).toBeCloseTo(Math.PI);
     expect(boxes.find(b => b.furniture === "chair")?.walkable).toBeUndefined();
   });
 
@@ -45,6 +46,15 @@ describe("roomBoxes", () => {
     expect(Math.abs(sill.rotY)).toBeCloseTo(Math.PI / 2);  // 垂直的牆轉 90°
   });
 
+  it("牆的朝外方向指離房間中心（畫面用來把面向鏡頭的牆降低）", () => {
+    const walls = roomBoxes(geo()).boxes.filter(b => b.kind === "wall");
+    const outOf = (pred: (b: (typeof walls)[number]) => boolean) => walls.find(pred)?.out;
+    expect(outOf(b => b.z === 0)).toEqual([0, -1]);
+    expect(outOf(b => b.x === 4.2)).toEqual([1, 0]);
+    expect(outOf(b => b.z === 3.6)).toEqual([0, 1]);
+    expect(outOf(b => b.x === 0)).toEqual([-1, 0]);
+  });
+
   it("重疊或超出牆長的開口不產生負長度的方塊", () => {
     const g = geo();
     g.openings = [{ kind: "door", wall: 0, at: 1, w: 1, h: 2.1 }, { kind: "door", wall: 0, at: 1.5, w: 1, h: 2.1 }, { kind: "door", wall: 0, at: 4, w: 2, h: 2.1 }];
@@ -55,7 +65,7 @@ describe("roomBoxes", () => {
     const g = geo();
     g.walls = g.walls.map(w => ({ ...w, a: [w.a[0] + 5, w.a[1] + 2] as [number, number], b: [w.b[0] + 5, w.b[1] + 2] as [number, number] }));
     g.furniture = g.furniture.map(f => ({ ...f, x: f.x + 5, y: f.y + 2 }));
-    expect(roomBoxes(g).boxes.find(b => b.furniture === "sofa")).toMatchObject({ x: 1.5, z: 2.9 });
+    expect(roomBoxes(g).boxes.find(b => b.furniture === "sofa")).toMatchObject({ x: 1.5, z: 3.065 });
   });
 });
 
@@ -69,5 +79,11 @@ describe("houseScene（Q10：不拼接，並排）", () => {
   it("碰撞體：牆、門楣、窗台、家具；不含玻璃與地板", () => {
     const kinds = new Set(colliders(houseScene([room("r1", geo())])[0]).map(b => b.kind));
     expect([...kinds].sort()).toEqual(["furniture", "lintel", "sill", "wall"]);
+  });
+  it("切換單間：只留那一間並移到原點；全部或找不到時整戶並排", () => {
+    const scenes = houseScene([room("r1", geo()), room("r2", geo())]);
+    expect(focusScenes(scenes, "r2").map(s => [s.id, s.offset])).toEqual([["r2", [0, 0]]]);
+    expect(focusScenes(scenes, null)).toBe(scenes);
+    expect(focusScenes(scenes, "r9")).toBe(scenes);
   });
 });

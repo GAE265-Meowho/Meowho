@@ -33,6 +33,8 @@
 | Q10 | 多房間怎麼拼 | **不拼接**：娃娃屋裡各間獨立並排（中間留走道），貓只在所選房間內活動 |
 | Q11 | 資料分組 | **一筆＝一戶**，底下多間房，可之後增刪房間 |
 | Q13 | 實景照片（#144，Tina 2026-11-03） | 同一個上傳也收**室內實景照片**，AI 自動分辨平面圖或照片；一間房可傳 **1～4 張**不同角度照片合併判斷；實景照片的比例一律記為推估；原圖保留（決策 007 補充第二個例外） |
+| Q14 | 3D 外觀（Tina 2026-11-03） | 效果比照 `Meow/meowho_3d_room`：家具換成**家具模型庫**（`scripts/blender/furniture_kit.py` 沿用該專案的材質與建模做法，一種家具一個 glb，先固定一套放在 `public/hq-floorplan/furniture/`），地板橡木貼圖、柔光陰影，面向鏡頭的牆自動降低（娃娃屋剖面） |
+| Q15 | 家具位置（Tina 2026-11-03） | AI 先用文字描述每面牆有什麼（`layoutNotes`），家具填**背面靠哪面牆**（`wall`）；系統把家具貼齊該牆內側、背面朝牆（`read.ts` 的 `snapToWall`） |
 | Q12 | 原圖保留 | **保留，可預覽原圖**；列為決策 007 的例外（平面圖是格局圖，不是居家實景照片） |
 
 ## 3. 畫面
@@ -111,10 +113,12 @@ alter table public.meow_room_models
 
 - 依 JSON 用 three.js 拉出：地板、牆（扣掉門窗洞）、門框、窗玻璃（半透明）、家具方塊；無天花板（娃娃屋）。
 - Rapier：牆、家具建 cuboid collider；`surface: walkable` 的家具頂面貓可以跳上去。
-- 並排：各房依 bounding box 由左到右排，間距 1 m；房名做成 3D 上方的按鈕列，點房名或地板選房間。
+- 並排：各房依 bounding box 由左到右排，間距 1 m；房名做成 3D 上方的膠囊列：「全部」＝整戶並排，點某間＝3D 只顯示那一間並重新取景（`focusScenes`），同時切換下方的原圖預覽。
 - 地板先用房間外框矩形（斜牆房間會多一點地板，線框修正時再處理）。
 - 貓：點進某間房才放貓；沿用 `src/lib/hq/rooms/` 的 `RoomCat`、`RoomPhysics`，世界座標直接用公尺。
 - 新元件 `FloorplanViewer`（`next/dynamic`、`ssr: false`），不改動 `RoomViewer`（Gaussian Splat 用）。
+- 家具模型庫（Q14）：`kit.ts` 的 `FURNITURE_KIT` 記每個模型的寬、深、`ref_h`（AI 高度對應的模型高度，例如床是床墊高、不含床頭板），網頁依讀圖尺寸縮放；模型正面朝 +Z。要改模型：改 `scripts/blender/furniture_kit.py` 後執行（`blender -b --python …` 或 `pip install bpy` 後 `python3 …`），`kit.test.ts` 會檢查尺寸與 kit.json 一致。
+- 娃娃屋剖面：每段牆帶朝外方向 `out`，鏡頭在牆外側時牆降到 0.25 m、門楣窗台玻璃先隱藏，轉到另一邊自動恢復；碰撞體不受影響。
 
 ## 7. 權限與隱私
 
