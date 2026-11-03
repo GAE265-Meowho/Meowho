@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { floorplanRoomSchema } from "@/lib/ai/schemas";
 import living from "./fixtures/living-room.json";
 import { normalizeReading } from "./read";
-import { colliders, houseScene, ROOM_GAP_M, roomBoxes, sceneBounds } from "./scene";
+import { colliders, focusScenes, houseScene, ROOM_GAP_M, roomBoxes, sceneBounds } from "./scene";
 import type { PlanGeometry, PlanRoom } from "./types";
 
 const geo = (): PlanGeometry => {
@@ -79,5 +79,11 @@ describe("houseScene（Q10：不拼接，並排）", () => {
   it("碰撞體：牆、門楣、窗台、家具；不含玻璃與地板", () => {
     const kinds = new Set(colliders(houseScene([room("r1", geo())])[0]).map(b => b.kind));
     expect([...kinds].sort()).toEqual(["furniture", "lintel", "sill", "wall"]);
+  });
+  it("切換單間：只留那一間並移到原點；全部或找不到時整戶並排", () => {
+    const scenes = houseScene([room("r1", geo()), room("r2", geo())]);
+    expect(focusScenes(scenes, "r2").map(s => [s.id, s.offset])).toEqual([["r2", [0, 0]]]);
+    expect(focusScenes(scenes, null)).toBe(scenes);
+    expect(focusScenes(scenes, "r9")).toBe(scenes);
   });
 });

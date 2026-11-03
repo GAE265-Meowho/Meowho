@@ -4,11 +4,11 @@
 // 效果比照 Meow/meowho_3d_room），地板用同一套橡木貼圖。點地板或上方房名＝選那間房（選中的房間在房名按鈕標示）。
 // 用 next/dynamic（ssr: false）載入；不改動 Gaussian Splat 用的 RoomViewer。
 import { OrbitControls, useGLTF, useTexture } from "@react-three/drei";
-import { Canvas, useFrame } from "@react-three/fiber";
-import { Suspense, useMemo, useRef } from "react";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { FLOOR_TEXTURE, kitScale, kitUrl } from "@/lib/hq/floorplans/kit";
-import { houseScene, sceneBounds, type RoomScene, type SceneBox } from "@/lib/hq/floorplans/scene";
+import { focusScenes, houseScene, sceneBounds, type RoomScene, type SceneBox } from "@/lib/hq/floorplans/scene";
 import type { PlanRoom } from "@/lib/hq/floorplans/types";
 
 // 牆用 meowho_3d_room 的牆面漆色
@@ -114,34 +114,63 @@ function cameraFor(width: number, depth: number, height: number, aspect: number)
   return { position: [dir.x * dist, dir.y * dist, dir.z * dist] as [number, number, number], dist };
 }
 
+/** 切換「全部／單間」時把鏡頭移回預設角度，並讓旋轉中心回到原點 */
+function CameraRig({ position, view }: { position: [number, number, number]; view: string }) {
+  const camera = useThree(st => st.camera);
+  const controls = useThree(st => st.controls) as unknown as { target: THREE.Vector3; update(): void } | null;
+  useEffect(() => {
+    camera.position.set(...position);
+    camera.lookAt(0, 0, 0);
+    controls?.target.set(0, 0, 0);
+    controls?.update();
+    // 只在切換房間時重設；position 由 view 決定
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view, camera, controls]);
+  return null;
+}
+
+/**
+ * 上方膠囊：「全部」＝讀圖完成的房間並排；點某間＝3D 只顯示那一間並重新取景，同時切換下方的原圖預覽（onPick）。
+ */
 export default function FloorplanViewer({ rooms, selected, onPick }: { rooms: PlanRoom[]; selected: string | null; onPick: (id: string) => void }) {
   const scenes = useMemo(() => houseScene(rooms), [rooms]);
-  const { width, depth, height } = sceneBounds(scenes);
+  const [focus, setFocus] = useState<string | null>(null);
+  const shown = useMemo(() => focusScenes(scenes, focus), [scenes, focus]);
+  const { width, depth, height } = sceneBounds(shown);
   const half = Math.max(width, depth) / 2 + 2;
   // 畫面寬高比：桌機約 2.5、手機約 1.1（hq.css 的 .hq-fp-3d）；取保守值讓兩邊都框得住
   const cam = cameraFor(width, depth, height, 1.6);
+  const view = focus ?? "all";
+  // 在下方房間清單切換時，單間模式跟著換到那一間（全部模式不動）
+  useEffect(() => { setFocus(f => (f && selected && f !== selected ? selected : f)); }, [selected]);
+  const pick = (id: string) => { setFocus(id); onPick(id); };
 
   return (
     <div className="hq-fp-3dwrap">
       {/* 房名放在 3D 上方：浮在場景裡的標籤在 React 19 會掉，手機也不好點 */}
       <div className="hq-row hq-fp-3dnames" role="group" aria-label="選房間">
-        {scenes.map(s => (
-          <button key={s.id} type="button" className={`hq-fp-3dlabel${s.id === selected ? " on" : ""}`} aria-pressed={s.id === selected} onClick={() => onPick(s.id)}>{s.name}</button>
-        ))}
+        {scenes.length > 1 && (
+          <button type="button" className={`hq-fp-3dlabel${focus === null ? " on" : ""}`} aria-pressed={focus === null} onClick={() => setFocus(null)}>全部</button>
+        )}
+        {scenes.map(s => {
+          const on = focus === s.id || (scenes.length === 1 && s.id === selected);
+          return <button key={s.id} type="button" className={`hq-fp-3dlabel${on ? " on" : ""}`} aria-pressed={on} onClick={() => pick(s.id)}>{s.name}</button>;
+        })}
       </div>
       <div className="hq-fp-3d">
         <Canvas shadows={{ type: THREE.PCFSoftShadowMap }} camera={{ position: cam.position, fov: FOV, near: 0.1, far: 500 }}>
           <color attach="background" args={["#F3EFE7"]} />
           <hemisphereLight args={["#fffaf2", "#d8ccb8", 1.7]} />
           <ambientLight intensity={0.35} />
-          {/* 整戶移到原點附近：平行光的目標是原點，陰影範圍才會罩住所有房間 */}
+          {/* 顯示的房間移到原點附近：平行光的目標是原點，陰影範圍才會罩住所有房間 */}
           <directionalLight position={[-4, 8, 5]} intensity={2.2} color="#fff6e8" castShadow
             shadow-mapSize={[2048, 2048]} shadow-bias={-0.0004}
             shadow-camera-left={-half} shadow-camera-right={half} shadow-camera-top={half} shadow-camera-bottom={-half} />
           <group position={[-width / 2, 0, -depth / 2]}>
-            {scenes.map(s => <Room key={s.id} s={s} onPick={() => onPick(s.id)} />)}
+            {shown.map(s => <Room key={s.id} s={s} onPick={() => pick(s.id)} />)}
           </group>
           <OrbitControls target={[0, 0, 0]} maxPolarAngle={Math.PI / 2.1} minDistance={1.5} maxDistance={cam.dist * 2.5} makeDefault />
+          <CameraRig position={cam.position} view={view} />
         </Canvas>
       </div>
     </div>
