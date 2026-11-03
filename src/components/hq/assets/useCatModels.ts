@@ -26,6 +26,14 @@ export async function postJson<T = Record<string, unknown>>(url: string, body: u
   throw hintError(errors[json?.error] ?? "操作失敗，請稍後再試");
 }
 
+/** DELETE；失敗時依 API 回的 error 代碼丟出白話訊息 */
+export async function deleteJson(url: string, errors: Record<string, string>): Promise<void> {
+  const res = await fetch(url, { method: "DELETE" });
+  if (res.ok) return;
+  const json = await res.json().catch(() => ({}));
+  throw hintError(errors[json?.error] ?? "刪除失敗，請稍後再試");
+}
+
 async function load<T>(url: string, pick: (json: { cats?: CatModelView[]; cat?: CatModelView | null }) => T | null): Promise<Loadable<T>> {
   try {
     const res = await fetch(url, { cache: "no-store" });

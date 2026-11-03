@@ -494,3 +494,30 @@ export async function sbRestore(id: string, reason: string, body?: unknown): Pro
   return { ok: true };
 }
 
+
+/** 刪除貓咪模型：資料列（任務、體型變體跟著 cascade）＋照片與貼圖檔；排隊或生成中不能刪 */
+export async function sbDeleteCat(id: string): Promise<
+  { ok: true } | { ok: false; code: "not_found" | "busy" | "permission_denied" }
+> {
+  const user = await userClient();
+  if (!user) return { ok: false, code: "permission_denied" };
+  const { data: row } = await user.sb.from("meow_cat_models").select("name,status,albedo_path,prev_albedo_path,profile").eq("id", id).maybeSingle();
+  if (!row) return { ok: false, code: "not_found" };
+  const running = generatedState(row.profile?.generated).aiRunning.length > 0;
+  if (isJobActive(normalizeStatus(row.status as CatModelStatus)) || running) return { ok: false, code: "busy" };
+  const { data: variants } = await user.sb.from("meow_cat_model_variants").select("albedo_path,prev_albedo_path").eq("model_id", id);
+  const textures = [row, ...(variants ?? [])].flatMap(v => [v.albedo_path, v.prev_albedo_path]).filter((p): p is string => Boolean(p));
+
+  const { error } = await user.sb.from("meow_cat_models").delete().eq("id", id);
+  if (error) return { ok: false, code: "permission_denied" };
+  // 檔案刪不掉不擋刪除（資料列已不在，畫面不會再顯示），只留伺服器紀錄
+  const { data: photos } = await user.sb.storage.from(PHOTO_BUCKET).list(id, { limit: 100 });
+  const photoPaths = (photos ?? []).map(f => `${id}/${f.name}`);
+  for (const [bucket, paths] of [[PHOTO_BUCKET, photoPaths], [MODEL_BUCKET, textures]] as const) {
+    if (!paths.length) continue;
+    const { error: e } = await user.sb.storage.from(bucket).remove([...paths]);
+    if (e) console.warn(`[cat-models] 刪除 ${id} 的檔案失敗（${bucket}）：${e.message}`);
+  }
+  await audit(user.sb, "cat_model_delete", id, "刪除貓咪模型", { name: row.name });
+  return { ok: true };
+}

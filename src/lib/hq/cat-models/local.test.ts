@@ -4,7 +4,7 @@ import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { createCat, getCat, listCats, localRoot, queuePaint, readCatFile, restorePrevious, startViews } from "./local";
+import { createCat, deleteCat, getCat, listCats, localRoot, queuePaint, readCatFile, restorePrevious, startViews } from "./local";
 
 let root: string;
 const png = Buffer.from([0x89, 0x50, 0x4e, 0x47]);
@@ -286,5 +286,20 @@ describe("restorePrevious（改用上一版）", () => {
     await fs.writeFile(catPath(ID, "paint_job.json"), JSON.stringify({ status: "running" }));
     expect(await restorePrevious(root, ID, "x", "a")).toEqual({ ok: false, code: "busy" });
     expect(await fs.readFile(catPath(ID, "paint_albedo.png"))).toEqual(png);
+  });
+});
+
+describe("deleteCat（刪除貓咪模型）", () => {
+  it("刪掉整個資料夾，列表不再出現", async () => {
+    await addCat(ID, { albedo: true });
+    expect(await deleteCat(root, ID)).toEqual({ ok: true });
+    expect(await getCat(root, ID)).toBeNull();
+    expect(await listCats(root)).toEqual([]);
+  });
+  it("排隊或生成中不能刪；找不到回 not_found", async () => {
+    await addCat(ID, { job: { status: "running" } });
+    expect(await deleteCat(root, ID)).toEqual({ ok: false, code: "busy" });
+    expect(await getCat(root, ID)).not.toBeNull();
+    expect(await deleteCat(root, "cat_20261031_999999")).toEqual({ ok: false, code: "not_found" });
   });
 });

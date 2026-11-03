@@ -355,3 +355,14 @@ export async function restorePrevious(root: string, id: string, reason: string, 
   await fs.appendFile(path.join(dir, "audit.jsonl"), JSON.stringify({ action: "restore_texture", actor, reason: text, at: now.toISOString() }) + "\n", "utf-8");
   return { ok: true };
 }
+
+export type DeleteResult = { ok: true } | { ok: false; code: "not_found" | "busy" | "template" };
+
+/** 刪除貓咪模型：整個 adoption_cats/<id> 資料夾。排隊或生成中不能刪（worker 會寫回檔案）。 */
+export async function deleteCat(root: string, id: string): Promise<DeleteResult> {
+  const cat = await getCat(root, id);
+  if (!cat) return { ok: false, code: "not_found" };
+  if (isJobActive(cat.status) || cat.aiRunning.length) return { ok: false, code: "busy" };
+  await fs.rm(catDir(root, id), { recursive: true, force: true });
+  return { ok: true };
+}
