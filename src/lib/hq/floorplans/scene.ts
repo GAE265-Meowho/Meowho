@@ -14,6 +14,8 @@ export interface SceneBox {
   furniture?: string;
   /** 貓可以跳上去的家具頂面 */
   walkable?: boolean;
+  /** 牆（含門楣、窗台、玻璃）朝房間外的方向 (x, z)：畫面用來把面向鏡頭的牆降低（娃娃屋剖面） */
+  out?: [number, number];
 }
 export interface RoomScene {
   id: string;
@@ -31,7 +33,7 @@ export const ROOM_GAP_M = 1;
 const FLOOR_T = 0.05;
 const MIN_PIECE_M = 0.02;
 
-const r3 = (n: number) => Math.round(n * 1000) / 1000;
+const r3 = (n: number) => Math.round(n * 1000) / 1000 + 0;  // + 0：把 -0 變成 0
 
 /** 沿著一面牆（a→b）放方塊：s 是從 a 起算的距離中心，len 是長度 */
 function along(a: Point, b: Point, s: number, len: number, y: number, h: number, t: number, kind: BoxKind): SceneBox {
@@ -45,7 +47,7 @@ function along(a: Point, b: Point, s: number, len: number, y: number, h: number,
 }
 
 /** 一面牆扣掉門窗：實心段＋門楣（門上方）＋窗台、窗玻璃、窗楣 */
-function wallBoxes(geo: PlanGeometry, index: number, shift: Point): SceneBox[] {
+function wallBoxes(geo: PlanGeometry, index: number, shift: Point, center: Point): SceneBox[] {
   const w = geo.walls[index];
   const H = geo.wall_height_m;
   const a: Point = [w.a[0] - shift[0], w.a[1] - shift[1]];
@@ -56,24 +58,29 @@ function wallBoxes(geo: PlanGeometry, index: number, shift: Point): SceneBox[] {
   const total = L + w.t;
   const a2: Point = [a[0] - (b[0] - a[0]) / L * ext, a[1] - (b[1] - a[1]) / L * ext];
   const ops = geo.openings.filter(o => o.wall === index).sort((p, q) => p.at - q.at);
+  // 朝外方向：牆的法線中，指離房間中心的那一個
+  const nx = -(b[1] - a[1]) / L, nz = (b[0] - a[0]) / L;
+  const mx = (a[0] + b[0]) / 2 - center[0], mz = (a[1] + b[1]) / 2 - center[1];
+  const out: [number, number] = nx * mx + nz * mz >= 0 ? [r3(nx), r3(nz)] : [r3(-nx), r3(-nz)];
+  const piece = (s: number, len: number, y: number, h: number, t: number, kind: BoxKind) => ({ ...along(a2, b, s, len, y, h, t, kind), out });
 
-  const out: SceneBox[] = [];
+  const pieces: SceneBox[] = [];
   let cursor = 0;
   for (const o of ops) {
     const start = Math.max(cursor, o.at + ext);
     const end = Math.min(total, o.at + ext + o.w);
     if (end - start < MIN_PIECE_M) continue;  // 和前一個開口重疊或超出牆長
-    if (start - cursor > MIN_PIECE_M) out.push(along(a2, b, (cursor + start) / 2, start - cursor, H / 2, H, w.t, "wall"));
+    if (start - cursor > MIN_PIECE_M) pieces.push(piece((cursor + start) / 2, start - cursor, H / 2, H, w.t, "wall"));
     const mid = (start + end) / 2, span = end - start;
     const bottom = o.kind === "window" ? Math.min(o.sill ?? 0, H) : 0;
     const top = Math.min(bottom + o.h, H);
-    if (bottom > MIN_PIECE_M) out.push(along(a2, b, mid, span, bottom / 2, bottom, w.t, "sill"));
-    if (o.kind === "window" && top - bottom > MIN_PIECE_M) out.push(along(a2, b, mid, span, (bottom + top) / 2, top - bottom, 0.02, "glass"));
-    if (H - top > MIN_PIECE_M) out.push(along(a2, b, mid, span, (top + H) / 2, H - top, w.t, "lintel"));
+    if (bottom > MIN_PIECE_M) pieces.push(piece(mid, span, bottom / 2, bottom, w.t, "sill"));
+    if (o.kind === "window" && top - bottom > MIN_PIECE_M) pieces.push(piece(mid, span, (bottom + top) / 2, top - bottom, 0.02, "glass"));
+    if (H - top > MIN_PIECE_M) pieces.push(piece(mid, span, (top + H) / 2, H - top, w.t, "lintel"));
     cursor = end;
   }
-  if (total - cursor > MIN_PIECE_M) out.push(along(a2, b, (cursor + total) / 2, total - cursor, H / 2, H, w.t, "wall"));
-  return out;
+  if (total - cursor > MIN_PIECE_M) pieces.push(piece((cursor + total) / 2, total - cursor, H / 2, H, w.t, "wall"));
+  return pieces;
 }
 
 /** 一間房的方塊（座標已平移到房間左上角＝原點） */
@@ -85,7 +92,8 @@ export function roomBoxes(geo: PlanGeometry): { boxes: SceneBox[]; size: [number
 
   // 地板用外框矩形（斜牆房間會多出一點地板，之後線框修正再處理）
   const boxes: SceneBox[] = [{ kind: "floor", x: size[0] / 2, y: -FLOOR_T / 2, z: size[1] / 2, sx: size[0], sy: FLOOR_T, sz: size[1], rotY: 0 }];
-  geo.walls.forEach((_, i) => boxes.push(...wallBoxes(geo, i, shift)));
+  const center: Point = [size[0] / 2, size[1] / 2];
+  geo.walls.forEach((_, i) => boxes.push(...wallBoxes(geo, i, shift, center)));
   for (const f of geo.furniture) {
     boxes.push({
       kind: "furniture", furniture: f.kind, walkable: f.surface === "walkable" || undefined,

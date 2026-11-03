@@ -1,41 +1,125 @@
 "use client";
-// 平面圖 → 3D 娃娃屋（#138 步驟 4，規格 docs/hq/05 §6）：讀圖完成的房間並排，無天花板，可旋轉縮放。
-// 場景資料在 src/lib/hq/floorplans/scene.ts（純函式、可測）；這裡只照著畫方塊。點地板或上方房名＝選那間房。
+// 平面圖 → 3D 娃娃屋（#138，規格 docs/hq/05 §6）：讀圖完成的房間並排，無天花板，可旋轉縮放。
+// 場景資料在 src/lib/hq/floorplans/scene.ts（純函式、可測）；家具換成模型庫的 glb（kit.ts，Tina 2026-11-03：
+// 效果比照 Meow/meowho_3d_room），地板用同一套橡木貼圖。點地板或上方房名＝選那間房（選中的房間在房名按鈕標示）。
 // 用 next/dynamic（ssr: false）載入；不改動 Gaussian Splat 用的 RoomViewer。
-import { OrbitControls } from "@react-three/drei";
-import { Canvas } from "@react-three/fiber";
-import { useMemo } from "react";
-import { houseScene, sceneBounds, type SceneBox } from "@/lib/hq/floorplans/scene";
+import { OrbitControls, useGLTF, useTexture } from "@react-three/drei";
+import { Canvas, useFrame } from "@react-three/fiber";
+import { Suspense, useMemo, useRef } from "react";
+import * as THREE from "three";
+import { FLOOR_TEXTURE, kitScale, kitUrl } from "@/lib/hq/floorplans/kit";
+import { houseScene, sceneBounds, type RoomScene, type SceneBox } from "@/lib/hq/floorplans/scene";
 import type { PlanRoom } from "@/lib/hq/floorplans/types";
 
-// Nordic Meow 色系：牆象牙白、地板淺木、選中的房間地板鼠尾草綠
-const COLORS = { wall: "#F3EFE7", floor: "#DCCBAE", floorOn: "#C9D8C6", glass: "#9CC3D5" };
-const FURNITURE: Record<string, string> = {
-  sofa: "#8FA58F", bed: "#C9B7D6", table: "#B08A63", chair: "#9B7B5B", desk: "#B08A63", wardrobe: "#8C7A68",
-  cabinet: "#A88F74", tv_stand: "#6F6A64", counter: "#A7A29A", toilet: "#E9EEF0", bathtub: "#DCE7EC", other: "#B9B2A8",
-};
+// 牆用 meowho_3d_room 的牆面漆色
+const COLORS = { wall: "#EEE9E0", glass: "#BFD8E3" };
+/** 面向鏡頭的牆降到這個高度（娃娃屋剖面），才看得到房間裡面 */
+const CUT_M = 0.25;
+const FOV = 38;
 
-function Box({ b, color, onClick }: { b: SceneBox; color: string; onClick?: () => void }) {
+/**
+ * 牆、門楣、窗台、玻璃：鏡頭在牆外側時（朝外方向和「牆→鏡頭」同向），牆降到 CUT_M、其餘先藏起來，
+ * 轉到另一邊時自動恢復（比照 meowho_3d_room 的 open 版本，前面沒有牆擋住）。碰撞體不受影響。
+ */
+function WallPiece({ b }: { b: SceneBox }) {
+  const ref = useRef<THREE.Mesh>(null);
+  const tmp = useMemo(() => new THREE.Vector3(), []);
+  useFrame(({ camera }) => {
+    const m = ref.current;
+    if (!m || !b.out) return;
+    m.getWorldPosition(tmp);
+    const dx = camera.position.x - tmp.x, dz = camera.position.z - tmp.z;
+    const cut = (b.out[0] * dx + b.out[1] * dz) / (Math.hypot(dx, dz) || 1) > 0.2;
+    if (b.kind === "wall") {
+      const h = cut ? Math.min(CUT_M, b.sy) : b.sy;
+      m.scale.y = h / b.sy;
+      m.position.y = h / 2;
+    } else m.visible = !cut;
+  });
   const glass = b.kind === "glass";
   return (
-    <mesh position={[b.x, b.y, b.z]} rotation={[0, b.rotY, 0]} castShadow={!glass} receiveShadow onClick={onClick ? e => { e.stopPropagation(); onClick(); } : undefined}>
+    <mesh ref={ref} position={[b.x, b.y, b.z]} rotation={[0, b.rotY, 0]} castShadow={!glass} receiveShadow>
       <boxGeometry args={[b.sx, b.sy, b.sz]} />
-      <meshStandardMaterial color={color} transparent={glass} opacity={glass ? 0.35 : 1} roughness={0.85} />
+      <meshStandardMaterial color={glass ? COLORS.glass : COLORS.wall} transparent={glass} opacity={glass ? 0.35 : 1} roughness={glass ? 0.1 : 0.9} />
     </mesh>
   );
 }
 
-const colorOf = (b: SceneBox, on: boolean) =>
-  b.kind === "floor" ? (on ? COLORS.floorOn : COLORS.floor)
-    : b.kind === "glass" ? COLORS.glass
-      : b.kind === "furniture" ? FURNITURE[b.furniture ?? "other"] ?? FURNITURE.other
-        : COLORS.wall;
+function Block({ b, color }: { b: SceneBox; color: string }) {
+  const glass = b.kind === "glass";
+  return (
+    <mesh position={[b.x, b.y, b.z]} rotation={[0, b.rotY, 0]} castShadow={!glass} receiveShadow>
+      <boxGeometry args={[b.sx, b.sy, b.sz]} />
+      <meshStandardMaterial color={color} transparent={glass} opacity={glass ? 0.35 : 1} roughness={glass ? 0.1 : 0.9} />
+    </mesh>
+  );
+}
+
+/** 家具：模型庫的 glb，縮放成讀圖結果的寬、高、深；載入中先用方塊 */
+function Furniture({ b }: { b: SceneBox }) {
+  const { scene } = useGLTF(kitUrl(b.furniture ?? "other"));
+  const model = useMemo(() => {
+    const m = scene.clone(true);
+    m.traverse(o => { if ((o as THREE.Mesh).isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+    return m;
+  }, [scene]);
+  return (
+    <primitive object={model} position={[b.x, 0, b.z]} rotation={[0, b.rotY, 0]}
+      scale={kitScale(b.furniture ?? "other", { w: b.sx, h: b.sy, d: b.sz })} />
+  );
+}
+
+/** 地板：橡木貼圖，每 1.2 公尺重複一次 */
+function Floor({ b, onClick }: { b: SceneBox; onClick: () => void }) {
+  const [color, normal] = useTexture([FLOOR_TEXTURE.color, FLOOR_TEXTURE.normal]);
+  const maps = useMemo(() => [color, normal].map(t => {
+    const c = t.clone();
+    c.wrapS = c.wrapT = THREE.RepeatWrapping;
+    c.repeat.set(b.sx / FLOOR_TEXTURE.tileM, b.sz / FLOOR_TEXTURE.tileM);
+    c.anisotropy = 4;
+    c.needsUpdate = true;
+    return c;
+  }), [color, normal, b.sx, b.sz]);
+  maps[0].colorSpace = THREE.SRGBColorSpace;
+  return (
+    <mesh position={[b.x, b.y, b.z]} receiveShadow onClick={e => { e.stopPropagation(); onClick(); }}>
+      <boxGeometry args={[b.sx, b.sy, b.sz]} />
+      <meshStandardMaterial map={maps[0]} normalMap={maps[1]} roughness={0.55} />
+    </mesh>
+  );
+}
+
+function Room({ s, onPick }: { s: RoomScene; onPick: () => void }) {
+  return (
+    <group position={[s.offset[0], 0, s.offset[1]]}>
+      {s.boxes.map((b, i) =>
+        b.kind === "floor" ? (
+          <Suspense key={i} fallback={<Block b={b} color="#D9CCB4" />}><Floor b={b} onClick={onPick} /></Suspense>
+        ) : b.kind === "furniture" ? (
+          <Suspense key={i} fallback={<Block b={b} color="#D8D2C8" />}><Furniture b={b} /></Suspense>
+        ) : (
+          <WallPiece key={i} b={b} />
+        ))}
+    </group>
+  );
+}
+
+/** 鏡頭：從前上方斜看整戶中心（原點），距離依整戶外框算，讓所有房間完整入鏡 */
+function cameraFor(width: number, depth: number, height: number, aspect: number) {
+  const radius = Math.max(Math.hypot(width, depth, height) / 2, 1.5);
+  const vfov = (FOV * Math.PI) / 180;
+  const fit = Math.min(vfov, 2 * Math.atan(Math.tan(vfov / 2) * aspect));  // 窄畫面（手機）以水平視角為準
+  const dist = (radius / Math.sin(fit / 2)) * 1.1;
+  const dir = new THREE.Vector3(-0.42, 0.72, 0.62).normalize();  // 左前上方斜看（比照 meowho_3d_room 的 camera_open_wide）
+  return { position: [dir.x * dist, dir.y * dist, dir.z * dist] as [number, number, number], dist };
+}
 
 export default function FloorplanViewer({ rooms, selected, onPick }: { rooms: PlanRoom[]; selected: string | null; onPick: (id: string) => void }) {
   const scenes = useMemo(() => houseScene(rooms), [rooms]);
   const { width, depth, height } = sceneBounds(scenes);
-  const center: [number, number, number] = [width / 2, 0, depth / 2];
-  const reach = Math.max(width, depth, 3);
+  const half = Math.max(width, depth) / 2 + 2;
+  // 畫面寬高比：桌機約 2.5、手機約 1.1（hq.css 的 .hq-fp-3d）；取保守值讓兩邊都框得住
+  const cam = cameraFor(width, depth, height, 1.6);
 
   return (
     <div className="hq-fp-3dwrap">
@@ -46,19 +130,18 @@ export default function FloorplanViewer({ rooms, selected, onPick }: { rooms: Pl
         ))}
       </div>
       <div className="hq-fp-3d">
-        {/* 鏡頭偏高往下看，前面的牆才不會擋住房間裡的家具 */}
-        <Canvas shadows camera={{ position: [width / 2, reach * 1.0 + height, depth / 2 + reach * 0.5], fov: 40, near: 0.1, far: 500 }}>
-          <color attach="background" args={["#FAF7F0"]} />
-          <hemisphereLight args={["#ffffff", "#d9cfbf", 0.9]} />
-          <directionalLight position={[width, reach * 2, depth + reach]} intensity={1.1} castShadow />
-          {scenes.map(s => (
-            <group key={s.id} position={[s.offset[0], 0, s.offset[1]]}>
-              {s.boxes.map((b, i) => (
-                <Box key={i} b={b} color={colorOf(b, s.id === selected)} onClick={b.kind === "floor" ? () => onPick(s.id) : undefined} />
-              ))}
-            </group>
-          ))}
-          <OrbitControls target={center} maxPolarAngle={Math.PI / 2.1} minDistance={2} maxDistance={reach * 4} makeDefault />
+        <Canvas shadows={{ type: THREE.PCFSoftShadowMap }} camera={{ position: cam.position, fov: FOV, near: 0.1, far: 500 }}>
+          <color attach="background" args={["#F3EFE7"]} />
+          <hemisphereLight args={["#fffaf2", "#d8ccb8", 1.7]} />
+          <ambientLight intensity={0.35} />
+          {/* 整戶移到原點附近：平行光的目標是原點，陰影範圍才會罩住所有房間 */}
+          <directionalLight position={[-4, 8, 5]} intensity={2.2} color="#fff6e8" castShadow
+            shadow-mapSize={[2048, 2048]} shadow-bias={-0.0004}
+            shadow-camera-left={-half} shadow-camera-right={half} shadow-camera-top={half} shadow-camera-bottom={-half} />
+          <group position={[-width / 2, 0, -depth / 2]}>
+            {scenes.map(s => <Room key={s.id} s={s} onPick={() => onPick(s.id)} />)}
+          </group>
+          <OrbitControls target={[0, 0, 0]} maxPolarAngle={Math.PI / 2.1} minDistance={1.5} maxDistance={cam.dist * 2.5} makeDefault />
         </Canvas>
       </div>
     </div>

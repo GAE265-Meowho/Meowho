@@ -2,7 +2,7 @@
 import { describe, expect, it } from "vitest";
 import { floorplanRoomSchema, type FloorplanRoomOut } from "@/lib/ai/schemas";
 import living from "./fixtures/living-room.json";
-import { DEFAULT_WALL_HEIGHT_M, normalizeReading } from "./read";
+import { DEFAULT_WALL_HEIGHT_M, normalizeReading, snapToWall } from "./read";
 
 const fixture = () => floorplanRoomSchema.parse(structuredClone(living)) as FloorplanRoomOut;
 const with_ = (patch: Partial<FloorplanRoomOut>) => ({ ...fixture(), ...patch });
@@ -24,7 +24,8 @@ describe("normalizeReading", () => {
       { kind: "door", wall: 0, at: 1.2, w: 0.9, h: 2.1 },
       { kind: "window", wall: 1, at: 0.8, w: 1.5, h: 1.2, sill: 0.9 },
     ]);
-    expect(r.geometry.furniture[0]).toEqual({ kind: "sofa", label: "沙發", x: 1.5, y: 2.9, w: 2.1, d: 0.9, h: 0.8, rot: 0, surface: "walkable" });
+    // 沙發背靠牆 2（下方 y=3.6）：貼齊牆內側（3.6 − 半牆厚 − 半個深度 − 1 公分），背面朝牆＝轉 180 度
+    expect(r.geometry.furniture[0]).toEqual({ kind: "sofa", label: "沙發", x: 1.5, y: 3.065, w: 2.1, d: 0.9, h: 0.8, rot: 180, wall: 2, surface: "walkable" });
     expect(r.geometry.furniture[2].surface).toBeUndefined();  // 椅子不標可跳上
   });
 
@@ -63,11 +64,11 @@ describe("normalizeReading", () => {
   });
 
   it("家具：中心在房間外或尺寸不合理就丟掉（容許 0.3 公尺誤差）", () => {
-    const sofa = fixture().furniture[0];
+    const chair = fixture().furniture[2];  // 不靠牆
     const r = normalizeReading(with_({ furniture: [
-      { ...sofa, x: 4.4 },          // 超出 0.2，保留
-      { ...sofa, x: 6 },            // 在房間外
-      { ...sofa, w: 0, d: 0.9 },    // 沒有寬度
+      { ...chair, x: 4.4 },         // 超出 0.2，保留
+      { ...chair, x: 6 },           // 在房間外
+      { ...chair, w: 0, d: 0.9 },   // 沒有寬度
     ] }));
     expect(r.ok && r.geometry.furniture.map(f => f.x)).toEqual([4.4]);
   });
@@ -78,5 +79,31 @@ describe("normalizeReading", () => {
     expect(r.ok && r.geometry.scale).toEqual({ m_per_px: null, source: "estimate" });
     const tall = normalizeReading(with_({ wallHeightM: 12 }));
     expect(tall.ok && tall.geometry.wall_height_m).toBe(DEFAULT_WALL_HEIGHT_M);
+  });
+});
+
+describe("靠牆家具貼齊牆面（照片推估位置偏差大，Tina 2026-11-03）", () => {
+  const walls = () => { const r = normalizeReading(fixture()); if (!r.ok) throw new Error(); return r.geometry.walls; };
+  it("貼在牆內側、背面朝牆：上牆不轉、右牆 90、下牆 180、左牆 270 度", () => {
+    const w = walls();
+    const f = { x: 1.5, y: 1.0, w: 1.6, d: 0.4 };
+    expect(snapToWall(w[0], w, f)).toEqual({ x: 1.5, y: 0.285, rot: 0 });
+    expect(snapToWall(w[1], w, f)).toEqual({ x: 3.915, y: 1, rot: 90 });
+    expect(snapToWall(w[2], w, f)).toEqual({ x: 1.5, y: 3.315, rot: 180 });
+    expect(snapToWall(w[3], w, f)).toEqual({ x: 0.285, y: 1, rot: 270 });
+  });
+  it("沿牆位置不超出牆的兩端", () => {
+    const w = walls();
+    expect(snapToWall(w[0], w, { x: 9, y: 0, w: 2, d: 0.5 }).x).toBe(3.2);
+    expect(snapToWall(w[0], w, { x: -3, y: 0, w: 2, d: 0.5 }).x).toBe(1);
+  });
+  it("AI 的牆有被丟掉時，門窗與家具的牆索引跟著換", () => {
+    const out = fixture();
+    out.walls = [{ ax: 0, ay: 0, bx: 0, by: 0, t: null }, ...out.walls];  // 長度 0 的牆會被丟掉
+    out.openings = out.openings.map(o => ({ ...o, wall: o.wall + 1 }));
+    out.furniture = out.furniture.map(f => ({ ...f, wall: f.wall === null ? null : f.wall + 1 }));
+    const r = normalizeReading(out);
+    expect(r.ok && r.geometry.openings.map(o => o.wall)).toEqual([0, 1]);
+    expect(r.ok && r.geometry.furniture[0]).toMatchObject({ wall: 2, y: 3.065, rot: 180 });
   });
 });

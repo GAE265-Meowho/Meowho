@@ -116,6 +116,8 @@ export const FLOORPLAN_FURNITURE_KINDS = [
 ] as const;
 
 export const floorplanRoomSchema = z.object({
+  // 放在最前面：先用文字把每面牆有什麼說清楚，再給座標，家具位置比較準（Tina 2026-11-03 實測照片推估偏差大）
+  layoutNotes: z.string().describe("先依序描述每面牆（walls 的索引）上有哪些門窗、哪些家具靠著它，每面牆一句，200 字內"),
   kind: z.enum(["floorplan", "photo", "other"]).describe("floorplan＝俯視平面圖；photo＝室內實景照片；other＝都不是"),
   name: z.string().nullable().describe("圖上標示的房間名稱，例如 客廳；看不出來填 null"),
   scale: z.object({
@@ -136,11 +138,12 @@ export const floorplanRoomSchema = z.object({
   furniture: z.array(z.object({
     kind: z.enum(FLOORPLAN_FURNITURE_KINDS),
     label: z.string().describe("圖上的家具名稱或中文名稱，例如 沙發"),
+    wall: z.number().int().nullable().describe("背面靠著哪一面牆（walls 的索引）；床頭、沙發背、櫃子背、書桌靠牆那側；不靠牆填 null"),
     x: z.number().describe("家具中心 x（公尺）"),
     y: z.number().describe("家具中心 y（公尺）"),
-    w: z.number().describe("寬（公尺，沿 x）"),
-    d: z.number().describe("深（公尺，沿 y）"),
-    rot: z.number().describe("旋轉角度（度），通常 0 或 90"),
+    w: z.number().describe("寬（公尺）：靠牆時是沿著牆的長度；不靠牆時沿 x"),
+    d: z.number().describe("深（公尺）：靠牆時是離開牆的深度；不靠牆時沿 y"),
+    rot: z.number().describe("不靠牆時的旋轉角度（度），通常 0 或 90；靠牆時由系統決定，填 0"),
   })),
 });
 export type FloorplanRoomOut = z.infer<typeof floorplanRoomSchema>;
