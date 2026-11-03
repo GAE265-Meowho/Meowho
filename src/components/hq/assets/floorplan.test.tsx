@@ -14,8 +14,8 @@ const H = "room_20261102_220000";
 const house = (over: Partial<House> = {}): House => ({
   id: H, name: "小美家", updatedAt: "2026-11-02T14:00:00Z",
   rooms: [
-    { id: "r1", name: "客廳", image_path: `floorplans/${H}/r1.png`, status: "uploaded", created_at: "x", imageUrl: "https://blob/r1.png?sas" },
-    { id: "r2", name: "主臥", image_path: `floorplans/${H}/r2.jpg`, status: "uploaded", created_at: "x", imageUrl: "https://blob/r2.jpg?sas" },
+    { id: "r1", name: "客廳", image_path: `floorplans/${H}/r1.png`, status: "uploaded", created_at: "x", imageUrl: "https://blob/r1.png?sas", photoUrls: [] },
+    { id: "r2", name: "主臥", image_path: `floorplans/${H}/r2.jpg`, status: "uploaded", created_at: "x", imageUrl: "https://blob/r2.jpg?sas", photoUrls: [] },
   ],
   ...over,
 });
@@ -146,9 +146,9 @@ describe("一戶的工作頁（#138）", () => {
       return { body: { house: house({ rooms: [] }), storage: true } };
     });
     wrap(<FloorplanHouse id={H} />);
-    const input = await screen.findByLabelText("平面圖（JPG 或 PNG，10 MB 以內）");
+    const input = await screen.findByLabelText("平面圖或室內照片（JPG 或 PNG，10 MB 以內）");
     fireEvent.change(input, { target: { files: [new File(["x"], "a.pdf", { type: "application/pdf" })] } });
-    expect(screen.getByRole("alert")).toHaveTextContent("請選 JPG 或 PNG 平面圖");
+    expect(screen.getByRole("alert")).toHaveTextContent("請選 JPG 或 PNG 圖片");
     expect(screen.getByRole("button", { name: "上傳" })).toBeDisabled();
     const png = new File(["x"], "a.png", { type: "image/png" });
     fireEvent.change(input, { target: { files: [png] } });
@@ -207,5 +207,21 @@ describe("一戶的工作頁（#138）", () => {
     const preview = await screen.findByRole("region", { name: "原圖預覽" });
     expect(within(preview).getByText(/AI 讀圖中/)).toBeInTheDocument();
     expect(within(preview).queryByRole("button", { name: /讀圖/ })).toBeNull();
+  });
+
+  it("其他角度照片（#144）：可移除；未滿 4 張可再加，走三步上傳；實景照片的結果註明是推估", async () => {
+    const rooms = [{ ...house().rooms[0], status: "ready" as const, input: "photo" as const, walls: [], openings: [], furniture: [],
+      scale: { m_per_px: null, source: "estimate" as const }, photoUrls: [{ path: `floorplans/${H}/r1_abc123.jpg`, url: "https://blob/r1_abc123.jpg?sas" }] }];
+    mockFetch(url => url.endsWith("/photos") ? { body: { path: `floorplans/${H}/r1_def456.jpg`, upload: { url: "https://blob/put", headers: {} } } } : { body: { house: house({ rooms }), storage: true } });
+    wrap(<FloorplanHouse id={H} />);
+    const preview = await screen.findByRole("region", { name: "原圖預覽" });
+    expect(within(preview).getByAltText("客廳的照片 2")).toBeInTheDocument();
+    expect(within(preview).getByText(/依實景照片推估/)).toBeInTheDocument();
+    fireEvent.change(within(preview).getByLabelText("加一張不同角度的室內照片（2／4）"), { target: { files: [new File(["x"], "b.jpg", { type: "image/jpeg" })] } });
+    fireEvent.click(within(preview).getByRole("button", { name: "加入" }));
+    await waitFor(() => expect(calls.filter(([u]) => u.endsWith("/photos"))).toHaveLength(2));
+    expect(calls.some(([u, i]) => u === "https://blob/put" && i?.method === "PUT")).toBe(true);
+    fireEvent.click(within(preview).getByRole("button", { name: "移除" }));
+    await waitFor(() => expect(calls.some(([u, i]) => u.endsWith("/photos") && i?.method === "DELETE")).toBe(true));
   });
 });

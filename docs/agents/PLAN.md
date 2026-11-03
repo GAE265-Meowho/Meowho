@@ -69,7 +69,7 @@
 | 23-18 | MeowHQ 工作室左右分區、手機可收合虛擬貓咪檔案；新增貓咪名稱與性別同列 | admin-moderation | 23-17 | P2 | #123 | Tina × Codex | 審查中（待 PR） |
 | 23-19 | MeowHQ 貓咪工作室與貓咪頁版面整理；流程改 4 步、紋理貼圖人工確認 | admin-moderation | 23-18 | P2 | #129 | Tina × Claude Code | 審查中（PR #131） |
 | 23-20 | MeowHQ 尚未產生 AI 三視角時不能產生紋理貼圖（前端停用＋API 檢查） | admin-moderation | 23-19 | P2 | #135 | Tina × Claude Code | 完成（#137 已合併） |
-| 23-21 | MeowHQ 平面圖轉換 PR 1：一戶清單、上傳房間平面圖（Azure Blob）、原圖預覽；後續 AI 讀圖、3D、放貓、線框修正 | admin-moderation | — | P2 | #138 | Tina × Claude Code | 進行中（PR 1 完成；PR 3 AI 讀圖審查中） |
+| 23-21 | MeowHQ 平面圖轉換 PR 1：一戶清單、上傳房間平面圖（Azure Blob）、原圖預覽；後續 AI 讀圖、3D、放貓、線框修正 | admin-moderation | — | P2 | #138 | Tina × Claude Code | 進行中（PR 1、PR 3 AI 讀圖完成；#144 實景照片審查中） |
 | 23-15 | MeowHQ 登入頁依 Stitch 改版、瀏覽器標題改 MeoWho｜喵戶總部 | admin-moderation | — | P2 | #116 | Tina × Claude Code | 完成（#117 已合併） |
 | 23-14 | MeowHQ AI 三視角第二階段：worker 同時用三張照片上色；製作glb工作區選擇要產生的動作 | admin-moderation | 23-13 | P2 | 待建立 | — | 待辦 |
 | 23-11 | MeowHQ 貓咪模型：同一隻貓可切換成貓／幼貓體型 | admin-moderation | 23-10 | P2 | #104 | Tina × Codex | 審查中 |

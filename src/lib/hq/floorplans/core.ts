@@ -4,7 +4,7 @@
 import type { MediaStore, UploadTarget } from "@/lib/storage/types";
 import { newRoomId } from "../rooms/types";
 import {
-  addRoom, canRead, checkPlan, cleanName, defaultRoomName, houseStatus, isDefaultRoomName, isHouseId, isOwnPlanPath, isRoomKey, MAX_ROOMS, patchRoom, planExt,
+  addRoom, canRead, checkPlan, isOwnPhotoPath, MAX_ROOM_IMAGES, photoPath, roomImages, cleanName, defaultRoomName, houseStatus, isDefaultRoomName, isHouseId, isOwnPlanPath, isRoomKey, MAX_ROOMS, patchRoom, planExt,
   planPath, readMeta, removeRoom, renameRoom, reserveRoomKey, type FloorplanHouse, type FloorplanMeta, type FloorplanSummary, type PlanProblem,
 } from "./types";
 import type { FloorplanRoomOut } from "@/lib/ai/schemas";
@@ -92,7 +92,9 @@ export async function getHouse({ sb, store }: Deps, id: string): Promise<Floorpl
   const rooms = await Promise.all(readMeta(row.meta).rooms.map(async room => {
     const r = { ...room };
     delete r.ai_raw;
-    return { ...r, imageUrl: store ? await store.readUrl(r.image_path, READ_TTL_SEC).catch(() => null) : null };
+    const sign = async (path: string) => (store ? await store.readUrl(path, READ_TTL_SEC).catch(() => null) : null);
+    const photoUrls = await Promise.all((r.photo_paths ?? []).map(async path => ({ path, url: await sign(path) })));
+    return { ...r, imageUrl: await sign(r.image_path), photoUrls };
   }));
   return { id: row.id, name: row.name, updatedAt: row.updated_at, rooms };
 }
@@ -180,7 +182,7 @@ export async function deleteHouseRoom(deps: Deps, houseId: string, roomId: strin
     return removed ? { meta: next, value: removed } : "not_found" as const;
   });
   if (!r.ok) return r;
-  await deps.store?.remove(r.value.image_path);
+  for (const path of roomImages(r.value)) await deps.store?.remove(path);
   return { ok: true };
 }
 
@@ -195,7 +197,7 @@ export async function deleteHouse(deps: Deps, houseId: string): Promise<{ ok: tr
 }
 
 /** AI 讀圖：讀不到（未設定、逾時、格式錯）回 null。正式入口是 src/lib/ai/server.ts 的 readFloorplanRoom */
-export type FloorplanReader = (mime: string, bytes: Uint8Array, roomName: string | null) => Promise<FloorplanRoomOut | null>;
+export type FloorplanReader = (images: { mime: string; bytes: Uint8Array }[], roomName: string | null) => Promise<FloorplanRoomOut | null>;
 
 /**
  * 讀圖第一步：把房間標成「讀圖中」。回傳 run，由 API 用 after() 在背景執行（約 20～60 秒），畫面輪詢看結果。
@@ -215,15 +217,20 @@ export async function startRoomRead(deps: Deps, houseId: string, roomId: unknown
   });
   if (!r.ok) return r;
   const room = r.value;
-  return { ok: true, run: () => finishRoomRead(deps, houseId, roomId, room.image_path, room.name, startedAt, reader) };
+  return { ok: true, run: () => finishRoomRead(deps, houseId, roomId, roomImages(room), room.name, startedAt, reader) };
 }
 
 async function finishRoomRead(
-  deps: Deps, houseId: string, roomId: string, imagePath: string, roomName: string, startedAt: string, reader: FloorplanReader,
+  deps: Deps, houseId: string, roomId: string, paths: string[], roomName: string, startedAt: string, reader: FloorplanReader,
 ): Promise<void> {
-  const bytes = await deps.store!.download(imagePath).catch(() => null);
-  const out = bytes ? await reader(imagePath.endsWith(".png") ? "image/png" : "image/jpeg", bytes, isDefaultRoomName(roomName) ? null : roomName) : null;
-  const result = !bytes ? { ok: false as const, error: "讀不到原圖，請重新上傳" }
+  const files = await Promise.all(paths.map(async path => {
+    const bytes = await deps.store!.download(path).catch(() => null);
+    return bytes ? { mime: path.endsWith(".png") ? "image/png" : "image/jpeg", bytes } : null;
+  }));
+  const images = files.filter(f => f !== null);
+  const missing = images.length !== paths.length;
+  const out = missing ? null : await reader(images, isDefaultRoomName(roomName) ? null : roomName);
+  const result = missing ? { ok: false as const, error: "讀不到原圖，請重新上傳" }
     : !out ? { ok: false as const, error: "AI 讀圖失敗或逾時，請重新讀圖" }
       : normalizeReading(out);
   await mutateMeta(deps, houseId, meta => {
@@ -236,4 +243,54 @@ async function finishRoomRead(
       : { status: "failed" as const, error: result.error, ...(out ? { ai_raw: out } : {}) };
     return { meta: patchRoom(meta, roomId, patch)!, value: undefined };
   });
+}
+
+/** 其他角度照片（#144）第一步：檢查檔案與張數、簽 Azure 上傳網址（隨機檔名，不用先保留編號） */
+export async function createPhotoUpload(deps: Deps, houseId: string, roomId: string, type: unknown, size: unknown): Promise<
+  { ok: true; path: string; upload: UploadTarget } | Fail<PlanProblem | "storage_disabled" | "too_many_images" | "not_found">
+> {
+  const problem = checkPlan(type, size);
+  if (problem) return { ok: false, code: problem };
+  if (!deps.store) return { ok: false, code: "storage_disabled" };
+  const row = await readHouse(deps.sb, houseId);
+  const room = row && readMeta(row.meta).rooms.find(r => r.id === roomId);
+  if (!room) return { ok: false, code: "not_found" };
+  if (roomImages(room).length >= MAX_ROOM_IMAGES) return { ok: false, code: "too_many_images" };
+  const code = globalThis.crypto.randomUUID().replace(/-/g, "").slice(0, 6);
+  const path = photoPath(houseId, roomId, code, planExt(type)!);
+  return { ok: true, path, upload: await deps.store.uploadUrl(path, type as string) };
+}
+
+/** 其他角度照片第二步：確認已上傳後加進房間（之後由 API 自動重新讀圖） */
+export async function addRoomPhoto(deps: Deps, houseId: string, roomId: string, path: unknown): Promise<
+  { ok: true } | Fail<"room_invalid" | "upload_missing" | "storage_disabled" | "too_many_images" | Common>
+> {
+  if (!isOwnPhotoPath(houseId, roomId, path)) return { ok: false, code: "room_invalid" };
+  if (!deps.store) return { ok: false, code: "storage_disabled" };
+  if (!(await deps.store.list(`floorplans/${houseId}/`)).includes(path)) return { ok: false, code: "upload_missing" };
+  const r = await mutateMeta(deps, houseId, meta => {
+    const room = meta.rooms.find(x => x.id === roomId);
+    if (!room) return "not_found" as const;
+    if (roomImages(room).includes(path)) return "room_invalid" as const;
+    if (roomImages(room).length >= MAX_ROOM_IMAGES) return "too_many_images" as const;
+    return { meta: patchRoom(meta, roomId, { photo_paths: [...(room.photo_paths ?? []), path] })!, value: undefined };
+  });
+  if (!r.ok) {
+    await deps.store.remove(path);  // 沒加進去的照片不留著
+    return r;
+  }
+  return { ok: true };
+}
+
+/** 移除一張其他角度照片（主圖不能單獨移除，要刪整間房） */
+export async function removeRoomPhoto(deps: Deps, houseId: string, roomId: string, path: unknown): Promise<{ ok: true } | Fail<"room_invalid" | Common>> {
+  if (!isOwnPhotoPath(houseId, roomId, path)) return { ok: false, code: "room_invalid" };
+  const r = await mutateMeta(deps, houseId, meta => {
+    const room = meta.rooms.find(x => x.id === roomId);
+    if (!room?.photo_paths?.includes(path)) return "not_found" as const;
+    return { meta: patchRoom(meta, roomId, { photo_paths: room.photo_paths.filter(p => p !== path) })!, value: undefined };
+  });
+  if (!r.ok) return r;
+  await deps.store?.remove(path);
+  return { ok: true };
 }

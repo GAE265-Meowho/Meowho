@@ -1,7 +1,7 @@
 // 平面圖轉換 API 的錯誤代碼 → HTTP 狀態
 const STATUS: Record<string, number> = {
   name_required: 400, name_taken: 409, plan_invalid: 400, plan_too_large: 413, room_invalid: 400, invalid_body: 400,
-  permission_denied: 403, not_found: 404, busy: 409, too_many_rooms: 409, upload_missing: 409, storage_disabled: 503, db_not_ready: 503, ai_disabled: 503,
+  permission_denied: 403, not_found: 404, busy: 409, too_many_rooms: 409, too_many_images: 409, upload_missing: 409, storage_disabled: 503, db_not_ready: 503, ai_disabled: 503,
 };
 export const fail = (code: string) => Response.json({ error: code }, { status: STATUS[code] ?? 400 });
 export const denied = () => fail("permission_denied");

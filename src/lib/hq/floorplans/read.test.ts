@@ -28,8 +28,17 @@ describe("normalizeReading", () => {
     expect(r.geometry.furniture[2].surface).toBeUndefined();  // 椅子不標可跳上
   });
 
-  it("不是平面圖：失敗並說明", () => {
-    expect(normalizeReading(with_({ isFloorplan: false }))).toEqual({ ok: false, error: "這張圖看起來不是平面圖，請換一張" });
+  it("不是平面圖也不是室內照片：失敗並說明", () => {
+    expect(normalizeReading(with_({ kind: "other" }))).toEqual({ ok: false, error: "看起來不是平面圖或室內照片，請換一張" });
+  });
+
+  it("實景照片（#144）：照樣整理，標記來源，比例一律記為推估", () => {
+    const r = normalizeReading(with_({ kind: "photo" }));
+    expect(r.ok && r.geometry.input).toBe("photo");
+    expect(r.ok && r.geometry.scale).toEqual({ m_per_px: null, source: "estimate" });
+    expect(r.ok && r.geometry.walls).toHaveLength(4);
+    const plan = normalizeReading(fixture());
+    expect(plan.ok && plan.geometry.input).toBe("floorplan");
   });
 
   it("牆少於 3 面、沒圍成封閉：失敗", () => {
