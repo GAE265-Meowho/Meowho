@@ -140,6 +140,7 @@ ole === "admin" 判斷管理員，而現有 admin 會升為 system_admin；舊�
 | 2026-11-03 | Tina × Claude Code | 貓咪頁左欄加「AI 三視角」「貓咪紋理」（可收合）；列表加刪除（`DELETE /api/hq/cat-models/<id>`，排隊／生成中不能刪，示範貓不能刪，Supabase 一併刪照片與貼圖檔並寫稽核） | #154 |
 | 2026-11-03 | Tina × Claude Code | #150 虛擬體驗二：Tina 覺得貓太小 → 貓放大 1.2 倍（`CAT_SCALE`）、鏡頭靠近並跟著貓（`FollowCat`）、起點固定在離房間中心最近的空位；點床、沙發坐墊、桌子等檯面跳上去、在上面走、點地板跳下來（`catjump.ts`，弧線跳躍先播 walk）；閒置在床或沙發上睡覺；娃娃屋剖面改以房間中心判斷鏡頭在哪側；`catwalk.ts` 抽出 `stepToward`（地板與檯面共用） | （見 PR） |
 | 2026-11-03 | Tina × Claude Code | #154 修正列表沒有刪除按鈕：MeowHQ 新增的貓 `owner_type` 也是 template，改用 `builtin`（只有內建示範貓）判斷不能刪 | #154 |
+| 2026-11-03 | Tina × Claude Code | #154 排隊或生成中的貓也能刪除（Tina 決定）；已在跑的 worker 寫回時可能留下 Storage 孤兒檔 | #154 |
 - 2026-10-29｜#24：前端呼叫 `meow_suspend_user`／`meow_unsuspend_user`／`meow_ban_email`／`meow_unban_email`／`meow_review_verification`／`meow_revoke_badge`；「要求補件」不另設狀態，用退回＋快選原因「退回並要求補件」；黑名單狀態只有系統管理員讀得到（RLS），其他管理員看不到黑名單欄與操作。
 
 - 2026-10-31｜#75：虛擬體驗元件分四個區塊（貓咪、室內空間、生活用品、其他），R3 已改寫；貓咪模型的貼圖由 cat_studio/paint_worker.py 產生，網頁只建任務與預覽（共用母體 ase_clips.glb 換 cat_fur 貼圖，不需每隻貓各一個 glb）；動作屬母體，補入新動作後所有貓自動擁有；本機模式（可新增／產生）只在非 production 且設了 CAT_STUDIO_ROOT 時啟用；正式站改讀 `public/hq-cat-models/` 示範貓（已完成的 bb）供預覽，寫入仍關閉。004_meow_cat_models.sql（資料表 meow_cat_models、meow_cat_model_jobs、bucket meow-cat-photos／meow-cat-models）在 PR 3，執行前須經 Tina 確認。
