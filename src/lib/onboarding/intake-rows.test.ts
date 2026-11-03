@@ -21,13 +21,13 @@ describe("寫入資料庫的格式", () => {
     });
   });
 
-  it("貓咪：待領養、公開、存照片路徑；性別沒說就是不確定；不存月齡與生日", () => {
+  it("貓咪：準備中、公開、存照片路徑；性別沒說就是不確定；不存月齡與生日", () => {
     const row = toCatInsert(ready().cat, { id: "c1", householdId: "h1", coverUrl: "https://x/a.jpg" });
     expect(row).toMatchObject({
       id: "c1", household_id: "h1", name: "橘子", sex: "unknown", birthday: null, est_age_months: null, life_stage: "adult",
       coat: "橘白", breed: null, personality_tags: ["親人"], health_tags: ["已結紮"], neutered: true,
       description: "很黏人", photo_paths: ["u/a.jpg", "u/b.jpg"], photo_url: "https://x/a.jpg",
-      status: "adoptable", visibility: "public",
+      status: "preparing", visibility: "public",
     });
   });
 

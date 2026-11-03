@@ -2,7 +2,7 @@
 /* eslint-disable @next/next/no-img-element */
 // 領養管理的對話框（#128，#70 私訊）：上方是貓與對方、背景標記、可收合的問卷回答；中間是訊息；底部輸入框。
 // 寫入一律走 0011 的資料庫函式；新訊息用 Supabase Realtime 即時出現，切回視窗時也會重新讀一次。
-// 背景標記：「系統認證」依系統紀錄（目前只有「送出了這隻貓的領養問卷」，7 天虛擬飼養完成後再加）；
+// 背景標記：「系統認證」依系統紀錄（送出了這隻貓的領養問卷；完成領養任務見 TaskProof，規格 09 §7.4）；
 // 「自填」等領養人 profile（#56）做好後從那裡讀，現在沒有資料就不顯示。
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AnswerList } from "@/components/adoption-form/Responses";
@@ -12,6 +12,7 @@ import Icon from "@/components/ui/Icon";
 import { STATUS_LABEL, replyStatus, roleOf, type DeskThread } from "@/lib/adoption-desk";
 import type { Answers, Question } from "@/lib/adoption-form/questionnaire";
 import { getBrowserSupabase } from "@/lib/supabase/client";
+import { TaskProof } from "./TaskProof";
 import { DeclinePanel, ReturnBanner, ReturnPanel, TransferBanner, TransferPanel, type PendingReturn, type PendingTransfer } from "./ThreadActions";
 import s from "./desk.module.css";
 
@@ -211,6 +212,9 @@ export function ThreadPane({ thread, userId, onChanged, onBack }: {
       )}
 
       <div className={s.scroll}>
+        <TaskProof threadId={id} catId={thread.cat_id} catName={thread.cat_name} isKeeper={role === "keeper"}
+          showHint={!thread.homed_at && !thread.declined_at} refresh={msgs?.length ?? 0}
+          onShared={async () => { await loadMsgs(); onChanged(); }} />
         {applied && (
           <div className={s.about}>
             {role === "keeper" && applied && (

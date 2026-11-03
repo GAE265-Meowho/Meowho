@@ -351,8 +351,8 @@ describe("送養文欄位（#82）", () => {
     expect(setCatField(s, "medical", { ...s.cat.medical, neutered: "done" }).pending).toEqual(["sex"]);
   });
 
-  it("新貓的狀態依喵戶身分：一般飼主是自家貓，中途是待領養", () => {
+  it("新貓的狀態依喵戶身分：一般飼主是自家貓，中途是準備中（規格 09 §5）", () => {
     expect(beginCat(emptyIntake(), "own").cat.status).toBe("own");
-    expect(beginCat(emptyIntake()).cat.status).toBe("adoptable");
+    expect(beginCat(emptyIntake()).cat.status).toBe("preparing");
   });
 });

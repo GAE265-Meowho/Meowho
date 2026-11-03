@@ -106,7 +106,8 @@ export function toHouseholdRow(f: HouseholdForm) {
 }
 
 /** 一般飼主新增的是自家貓；中途新增的是待領養貓 */
-export const defaultCatStatus = (role: CaretakerType) => (role === "cat_owner" ? "own" : "adoptable") as "own" | "adoptable";
+// 中途新增的貓先是「準備中」，前台看不到；中途按「準備出發找新主人」才公開（規格 09 §5，0017）
+export const defaultCatStatus = (role: CaretakerType) => (role === "cat_owner" ? "own" : "preparing") as "own" | "preparing";
 
 /** 中途徽章申請（沿用既有的認證審核表）；不需要申請時回傳 null */
 export function verificationRow(f: HouseholdForm, ids: { householdId: string; userId: string }) {

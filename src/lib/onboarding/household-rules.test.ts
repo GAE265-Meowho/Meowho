@@ -49,11 +49,11 @@ describe("寫入資料庫的格式", () => {
     expect(defaultCatStatus("cat_owner")).toBe("own");
   });
 
-  it("中途：存預設送養條件、不存居住環境，貓預設待領養", () => {
+  it("中途：存預設送養條件、不存居住環境，貓預設準備中（規格 09 §5）", () => {
     const row = toHouseholdRow(base({ role: "personal_foster", name: "小橘之家", terms: { items: ["不放養", "家訪"], note: "" } }));
     expect(row).toMatchObject({ name: "小橘之家", home: null, adoption_terms: { items: ["不放養", "家訪"], note: "" }, org_name: null });
-    expect(defaultCatStatus("personal_foster")).toBe("adoptable");
-    expect(defaultCatStatus("shelter_org")).toBe("adoptable");
+    expect(defaultCatStatus("personal_foster")).toBe("preparing");
+    expect(defaultCatStatus("shelter_org")).toBe("preparing");
   });
 });
 
