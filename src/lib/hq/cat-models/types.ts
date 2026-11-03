@@ -392,6 +392,14 @@ export function catProgress(c: { hasAlbedo: boolean; body?: BodyType; texture?: 
   return { step: 1, text: "1/4 上傳照片", tone: "mute" };
 }
 
+/** #159 列表的進度篩選：示範貓自成一組；排隊／生成中（含 AI 三視角產生中）為「產生中」；確認過貼圖為「完成」 */
+export type CatListGroup = "running" | "done" | "demo" | "other";
+export function catListGroup(c: Parameters<typeof catProgress>[0] & { builtin?: boolean }): CatListGroup {
+  if (c.builtin) return "demo";
+  if (isJobActive(c.status) || c.aiRunning.length) return "running";
+  return catProgress(c).step === 4 ? "done" : "other";
+}
+
 /** 製作流程每一步的狀態（給步驟圖用） */
 export type StepState = "done" | "active" | "todo" | "failed";
 export function catStepStates(c: Parameters<typeof catProgress>[0]): StepState[] {

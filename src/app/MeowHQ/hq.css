@@ -118,6 +118,25 @@
 @keyframes hq-rise { from { opacity: 0; transform: translateY(8px); } }
 
 /* 手機：側欄收合為抽屜 */
+/* #159 已建立的貓咪模型列表 */
+.hq-catcell { display: flex; align-items: center; gap: .75rem; min-width: 0; }
+.hq-catcell a { font-weight: 700; }
+.hq-stack { display: flex; flex-direction: column; align-items: flex-start; gap: .15rem; min-width: 0; }
+.hq-stack .hq-hint { font-size: .85rem; white-space: nowrap; }
+.hq-clamp2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.hq-progress { display: flex; flex-direction: column; gap: .3rem; min-width: 140px; max-width: 180px; }
+.hq-progress-head { display: flex; justify-content: space-between; font-size: .85rem; font-weight: 500; color: var(--hq-sub); }
+.hq-progress.warn .hq-progress-head { color: var(--hq-caramel-ink); }
+.hq-progress.danger .hq-progress-head { color: var(--hq-danger); }
+.hq-progress-bar { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 3px; }
+.hq-progress-bar > span { height: 6px; border-radius: 3px; background: #EFE9DF; }
+.hq-progress-bar > span.on { background: var(--hq-sub); }
+.hq-progress.warn .hq-progress-bar > span.on { background: var(--hq-caramel); }
+.hq-progress.danger .hq-progress-bar > span.on { background: var(--hq-danger); }
+.hq-progress-step { font-size: .8rem; color: var(--hq-sub); }
+.hq-root .hq-btn.hq-btn-del { color: var(--hq-danger); }
+.hq-delconfirm { display: flex; flex-direction: column; gap: .5rem; max-width: 280px; padding: .6rem .75rem; border-radius: 8px; background: #F8ECE9; color: #7E2E24; font-size: .88rem; line-height: 1.5; }
+
 @media (max-width: 767px) {
   .hq-burger { display: inline-flex; }
   .hq-logo-mark { height: 30px; max-width: min(140px, 36vw); }

@@ -63,10 +63,21 @@ describe("RoomsTab（#113）", () => {
 });
 
 describe("filterCats", () => {
-  const cats = [cat({ id: "a", name: "虎斑範本", status: "ready" }), cat({ id: "b", name: "三花", status: "draft" })];
-  it("依名稱搜尋（不分大小寫）", () => expect(filterCats(cats, { q: "虎斑" }).map(c => c.id)).toEqual(["a"]));
-  it("依狀態篩選", () => expect(filterCats(cats, { status: "draft" }).map(c => c.id)).toEqual(["b"]));
-  it("沒有條件時全部顯示", () => expect(filterCats(cats, {})).toHaveLength(2));
+  const cats = [
+    cat({ id: "a", name: "虎斑範本", status: "ready", hasAlbedo: true }),
+    cat({ id: "b", name: "三花", status: "running", createdBy: "Yucian" }),
+    cat({ id: "c", name: "示範", status: "ready", hasAlbedo: true, builtin: true }),
+  ];
+  it("依名稱或建立者搜尋（不分大小寫）", () => {
+    expect(filterCats(cats, { q: "虎斑" }).map(c => c.id)).toEqual(["a"]);
+    expect(filterCats(cats, { q: "yucian" }).map(c => c.id)).toEqual(["b"]);
+  });
+  it("#159 依進度篩選：產生中／完成／示範貓", () => {
+    expect(filterCats(cats, { status: "running" }).map(c => c.id)).toEqual(["b"]);
+    expect(filterCats(cats, { status: "done" }).map(c => c.id)).toEqual(["a"]);
+    expect(filterCats(cats, { status: "demo" }).map(c => c.id)).toEqual(["c"]);
+  });
+  it("沒有條件時全部顯示", () => expect(filterCats(cats, {})).toHaveLength(3));
 });
 
 describe("checkPhoto", () => {

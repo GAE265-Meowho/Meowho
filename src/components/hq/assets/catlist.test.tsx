@@ -1,4 +1,4 @@
-// 已建立的貓咪模型列表（#102）：欄位為縮圖、名稱、進度、建立者、更新時間、備註說明、操作（刪除）；不顯示狀態
+// 已建立的貓咪模型列表（#102；#159 改版）：貓咪模型、進度、備註說明、建立者／更新、操作；依進度篩選
 import "@testing-library/jest-dom/vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -23,15 +23,15 @@ const base = listBundledCats()[0];
 const member: CatModelView = { ...base, ownerType: "template", builtin: false, id: "cat_20261101_200000", name: "小橘", status: "ready", notes: "", createdBy: "Tina", updatedAt: "2026-11-01T14:44:54Z" };
 
 describe("已建立的貓咪模型列表（#102）", () => {
-  it("欄位：縮圖、名稱、動作數、建立者、更新時間、備註說明", () => {
+  it("#159 欄位：貓咪模型、進度、備註說明、建立者／更新、操作", () => {
     rows.data = [member];
     render(<CatsTab query={{ page: 1 }} update={() => {}} />);
     const headers = screen.getAllByRole("columnheader").map(h => h.textContent);
-    expect(headers).toEqual(["縮圖", "名稱", "進度", "建立者", "更新時間", "備註說明", "操作"]); // #118 動作數換成進度
+    expect(headers).toEqual(["貓咪模型", "進度", "備註說明", "建立者／更新", "操作"]);
     const row = screen.getByRole("row", { name: /小橘/ });
     expect(within(row).getByText("Tina")).toBeInTheDocument();
     expect(within(row).getByText("2026/11/01 22:44")).toBeInTheDocument();
-    expect(within(row).getByText("—")).toBeInTheDocument(); // 沒有備註
+    expect(within(row).getByText("尚未填寫")).toBeInTheDocument(); // 沒有備註
     expect(within(row).queryByRole("link", { name: /預覽動作|製作glb工作區/ })).toBeNull();
   });
   it("#110：流程改成上傳照片 → AI 三視角 → 產生 3D；兩隻骨架改用「體型骨架預覽」按鈕進入", () => {
@@ -47,16 +47,21 @@ describe("已建立的貓咪模型列表（#102）", () => {
       { ...member, id: "cat_20261102_020000", name: "有3D", hasAlbedo: true, status: "ready" },
     ];
     render(<CatsTab query={{ page: 1 }} update={() => {}} />);
-    expect(within(screen.getByRole("row", { name: /沒3D/ })).getByText("2/4 AI 三視角・完成")).toBeInTheDocument();
+    const draft = screen.getByRole("row", { name: /沒3D/ });
+    expect(within(draft).getByRole("progressbar", { name: "2/4 AI 三視角・完成" })).toHaveAttribute("aria-valuenow", "2");
     expect(within(screen.getByRole("row", { name: /有3D/ })).getByText("完成")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "沒3D" })).toHaveAttribute("href", "/MeowHQ/assets/cats/cat_20261102_010000/studio");
     expect(screen.getByRole("link", { name: "有3D" })).toHaveAttribute("href", "/MeowHQ/assets/cats/cat_20261102_020000");
   });
-  it("不顯示狀態與狀態篩選", () => {
+  it("#159 依進度篩選：全部、產生中、完成、示範貓，寫入網址參數 status", () => {
     rows.data = [member];
-    render(<CatsTab query={{ page: 1 }} update={() => {}} />);
-    expect(screen.queryByText(/已上架|已下架|已完成/)).toBeNull();
-    expect(screen.queryByRole("group", { name: /狀態/ })).toBeNull();
+    const update = vi.fn();
+    render(<CatsTab query={{ page: 1 }} update={update} />);
+    const chips = within(screen.getByRole("group", { name: "依進度篩選" }));
+    expect(chips.getAllByRole("button").map(b => b.textContent)).toEqual(["全部", "產生中 0", "完成 1", "示範貓 0"]);
+    fireEvent.click(chips.getByRole("button", { name: "完成 1" }));
+    expect(update).toHaveBeenCalledWith({ status: "done", page: 1 });
+    expect(screen.queryByText(/已上架|已下架/)).toBeNull();
   });
   it("兩隻示範貓：建立者「系統」、備註「系統預設範例」", () => {
     const cats = listBundledCats();
@@ -71,12 +76,25 @@ describe("已建立的貓咪模型列表（#102）", () => {
     const fetchMock = vi.fn(async () => new Response(JSON.stringify({ ok: true }), { status: 200 }));
     vi.stubGlobal("fetch", fetchMock);
     render(<CatsTab query={{ page: 1 }} update={() => {}} />);
-    expect(within(screen.getByRole("row", { name: /範本/ })).queryByRole("button", { name: /刪除/ })).toBeNull();
+    const demo = screen.getByRole("row", { name: /範本/ });
+    expect(within(demo).queryByRole("button", { name: /刪除/ })).toBeNull();
+    expect(within(demo).getByText("不可刪除")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "刪除小橘" }));
     expect(fetchMock).not.toHaveBeenCalled();
+    expect(screen.getByText(/3D 模型與貼圖會一併刪除，無法復原/)).toBeInTheDocument();
+    expect(screen.queryByText(/進行中的任務會一併取消/)).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "確認刪除" }));
     await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(`/api/hq/cat-models/${member.id}`, { method: "DELETE" }));
     await waitFor(() => expect(toast.show).toHaveBeenCalledWith({ message: "已刪除「小橘」" }));
     vi.unstubAllGlobals();
+  });
+  it("#159 排隊或生成中也能刪除，確認時說明任務會一併取消", () => {
+    rows.data = [{ ...member, name: "產生中", status: "running" }];
+    render(<CatsTab query={{ page: 1 }} update={() => {}} />);
+    const row = screen.getByRole("row", { name: /產生中/ });
+    expect(within(row).getByRole("progressbar", { name: "3/4 紋理貼圖・產生中" })).toBeInTheDocument();
+    fireEvent.click(within(row).getByRole("button", { name: "刪除產生中" }));
+    expect(screen.getByText(/進行中的任務會一併取消/)).toBeInTheDocument();
+    expect(screen.queryByText(/排隊或生成中不能刪除/)).toBeNull();
   });
 });

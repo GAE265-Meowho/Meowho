@@ -71,7 +71,7 @@ export function HqOfflineBanner() {
 }
 
 /** 儲存按鈕：失敗時保留表單、在按鈕旁以白話顯示原因；離線時停用。onSave 拋出帶 code 的錯誤即可。 */
-export function HqSaveButton({ onSave, disabled, children }: { onSave: () => Promise<void>; disabled?: boolean; children: React.ReactNode }) {
+export function HqSaveButton({ onSave, disabled, danger, children }: { onSave: () => Promise<void>; disabled?: boolean; danger?: boolean; children: React.ReactNode }) {
   const online = useOnline();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -81,7 +81,7 @@ export function HqSaveButton({ onSave, disabled, children }: { onSave: () => Pro
   }
   return (
     <span className="hq-save">
-      <button className="hq-btn" onClick={click} disabled={disabled || busy || !online}>{children}</button>
+      <button className={danger ? "hq-btn danger small" : "hq-btn"} onClick={click} disabled={disabled || busy || !online}>{children}</button>
       {error && <span className="hq-error" role="alert">{error}</span>}
     </span>
   );

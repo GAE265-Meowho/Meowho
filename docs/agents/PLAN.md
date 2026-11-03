@@ -29,6 +29,7 @@
 | 6 | AI 建檔：拍照＋對話問答、自由口述（中途之家 onboarding） | ai-onboarding | 2 | P1 | #1 | Tina | 審查中 |
 | 7 | 領養人 onboarding（文字＋語音） | ai-onboarding | 1 | P1 | 待建立 | D | 待辦 |
 | 93 | MeowHQ 室內空間：影片轉 3D 房間與貓咪互動 | admin-moderation | — | P1 | #93 | 珮瑜 | 審查中 |
+| 159 | MeowHQ 貓咪製作：已建立的貓咪模型列表改版 | admin-moderation | — | P2 | #159 | Tina | 審查中 |
 | 33 | 真實走查並修正中途之家 onboarding | ai-onboarding、household-cats | 2、6 | P1 | #33 | Tina × Codex | 審查中 |
 | 8 | 一句話 RAG 配對（取代關鍵字原型） | matching | 3、7 | P1 | 待建立 | E | 待辦 |
 | 9 | 私訊＋站內通知鈴鐺（通知基本版已完成於 #3） | social | 1 | P1 | 待建立 | C | 待辦 |
