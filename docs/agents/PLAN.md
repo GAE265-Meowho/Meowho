@@ -30,6 +30,7 @@
 | 7 | 領養人 onboarding（文字＋語音） | ai-onboarding | 1 | P1 | 待建立 | D | 待辦 |
 | 93 | MeowHQ 室內空間：影片轉 3D 房間與貓咪互動 | admin-moderation | — | P1 | #93 | 珮瑜 | 審查中 |
 | 33 | 真實走查並修正中途之家 onboarding | ai-onboarding、household-cats | 2、6 | P1 | #33 | Tina × Codex | 審查中 |
+| 161 | 領養任務目標流程規格（spec 09）與資料庫（0017，已執行） | readiness、adoption、household-cats | — | P1 | #161 | 子哲 | 審查中 |
 | 8 | 一句話 RAG 配對（取代關鍵字原型） | matching | 3、7 | P1 | 待建立 | E | 待辦 |
 | 9 | 私訊＋站內通知鈴鐺（通知基本版已完成於 #3） | social | 1 | P1 | 待建立 | C | 待辦 |
 | 10 | 領養設定、提出申請、審核流程（含多人申請） | adoption | 2、7、9 | P1 | 待建立 | C | 待辦 |

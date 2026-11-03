@@ -20,6 +20,7 @@
 ## 資料表（Supabase）
 - 已建立：`meow_households`（一個帳號最多 2 戶，trigger 限制）、`meow_cats`（visibility null＝沿用貓戶預設、status own/adoptable/adopted）、Storage bucket `meow-cat-photos`（路徑 `<uid>/<uuid>.jpg`）
 - 0004 草稿（#57，**尚未執行**）：`meow_cats` 加 `life_stage`（四級，新增時必填）、`personality_tags`、`health_tags`、`description`、`photo_paths`（最多 5）；`status` 預設 `adoptable`；新表 `meow_cat_videos`（每隻最多 3 支、每支 60 秒內，RLS 同貓咪）
+- 0017（已執行）：`meow_cats.status` 加 `preparing`（準備中，前台只有喵戶長看得到）；`meow_cat_models.cat_id` 綁定中途的 3D 貓
 - 待建立：`cat_adoption_settings`、`cat_diagnoses`、`cat_ownerships`、`posts`、`post_cats`、`media`
 
 ## API／主要函式
@@ -38,6 +39,7 @@
 - 必填只有名字、性別、照片。
 
 - 2026-10-31（子哲）：年齡層改為 AAFP／AAHA 四級（幼貓、年輕成貓、成熟成貓、老貓），3D 體型由年齡層推出（幼貓／壯貓／老貓）；個性、健康標籤改用固定清單；新建的貓一律為待領養貓；必填改為名字、1 張照片、年齡層。詳見 #57。
+- 2026-11-03（子哲，spec 09）：新增的貓先是「準備中」，中途按「準備出發找新主人」（`meow_publish_cat()`：3D 貓已確認＋任務已存）才變待領養。過渡期 0017 仍允許新增時直接是待領養，等 `/onboarding` 改送 `preparing` 後再收緊。
 - 2026-10-31（子哲）：移轉後只有新喵戶長能修改貓資料，原喵戶長唯讀（見 `GLOSSARY.md` 移轉）。
 
 ## 待確認
@@ -51,6 +53,7 @@
 | 日期 | 發起人 × 工具 | 變更 | PR |
 |---|---|---|---|
 | 2026-10-28 | Tina × Claude Code | 建立模組文件 | — |
+| 2026-11-03 | 子哲 × Claude Code | 準備中狀態、3D 貓綁定（spec 09、0017） | — |
 | 2026-10-28 | Tina × Claude Code | 貓戶、貓咪資料表與 RLS、照片儲存、我的貓戶頁 | #1 |
 | 2026-10-29 | Tina × Codex | Issue #33 走查 `/onboarding` → `/me` 流程；未修改資料表或 `/me` 查詢 | #33 |
 | 2026-10-31 | 子哲 × Claude Code | #57 範圍定案（年齡層、標籤、必填、移轉後唯讀）；只改文件 | 待建立 |
