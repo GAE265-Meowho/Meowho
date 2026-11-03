@@ -449,6 +449,12 @@
 .hq-box.locked { opacity: .7; }
 /* 貓咪頁（#129）：原貓咪資訊 : 3D 動作預覽 : 播放與畫面 ＝ 1:2:1 */
 .hq-catpage { grid-template-columns: minmax(220px, 1fr) minmax(0, 2fr) minmax(260px, 1fr); }
+/* 貓咪頁左欄：AI 三視角縮圖 */
+.hq-cat-gens { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .5rem; }
+.hq-cat-gens figure { margin: 0; display: flex; flex-direction: column; gap: .25rem; min-width: 0; }
+.hq-cat-gens img, .hq-cat-gens-empty { width: 100%; aspect-ratio: 1; object-fit: cover; border: 1px solid var(--hq-line); border-radius: 10px; background: var(--hq-bg); display: block; }
+.hq-cat-gens-empty { display: flex; align-items: center; justify-content: center; font-size: .8rem; color: var(--hq-sub); }
+.hq-cat-gens figcaption { font-size: .85rem; color: var(--hq-sub); text-align: center; }
 .hq-catinfo { display: flex; flex-direction: column; gap: .75rem; min-width: 0; min-height: 0; overflow-y: auto; }
 @media (max-width: 1023px) {
   .hq-studio-grid { grid-template-columns: minmax(0, 1fr); }

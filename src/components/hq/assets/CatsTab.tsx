@@ -2,13 +2,41 @@
 // 貓咪區塊｜列表（規格書 04 §2.2）：搜尋、分頁；點整列或名稱進入該貓的貓咪頁（#102 移除狀態與操作欄）
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { CAT_STEPS, catProgress, textureOf, formatCatTime, type CatModelView } from "@/lib/hq/cat-models/types";
 import { FLOW_ICONS, FlowStepper } from "./FlowStepper";
 import { paginate, type ListQuery } from "@/lib/hq/listing";
 import { HqListBody, HqPager, HqTable, HqToolbar, type Column } from "../list/HqList";
 import { assetsHref, BASES_HREF, NEW_CAT_HREF, studioHref } from "./hrefs";
-import { catFileUrl, useCatList } from "./useCatModels";
+import { CAT_API, catFileUrl, deleteJson, useCatList } from "./useCatModels";
+import { HqSaveButton } from "../HqStates";
+import { useHqToast } from "../HqToast";
+
+const DELETE_ERRORS: Record<string, string> = {
+  busy: "排隊或生成中不能刪除，請等任務結束",
+  template: "內建的示範貓不能刪除",
+  not_found: "找不到這隻貓，可能已被刪除",
+  permission_denied: "你沒有虛擬體驗元件管理的權限，或登入已過期",
+  disabled: "資料來源還沒有啟用",
+};
+
+/** 刪除：按一次「刪除」後在原位確認（同平面圖轉換），不跳視窗 */
+function DeleteCell({ cat, onDeleted }: { cat: CatModelView; onDeleted: () => void }) {
+  const [confirming, setConfirming] = useState(false);
+  if (cat.ownerType === "template") return <span className="hq-hint">示範貓</span>;
+  return (
+    <span className="hq-row-tight" onClick={e => e.stopPropagation()}>
+      {confirming ? (
+        <>
+          <HqSaveButton onSave={async () => { await deleteJson(`${CAT_API}/${cat.id}`, DELETE_ERRORS); onDeleted(); }}>確認刪除</HqSaveButton>
+          <button type="button" className="hq-btn ghost small" onClick={() => setConfirming(false)}>取消</button>
+        </>
+      ) : (
+        <button type="button" className="hq-btn ghost small" aria-label={`刪除${cat.name}`} onClick={() => setConfirming(true)}>刪除</button>
+      )}
+    </span>
+  );
+}
 
 /** #118：還沒有 3D 的貓直接進製作glb工作區，有 3D 的進貓咪頁（#129：以「有確認過的紋理貼圖」為準） */
 export const catHref = (c: CatModelView) => (textureOf(c).preview ? assetsHref(c.id) : studioHref(c.id));
@@ -21,6 +49,7 @@ export function filterCats(cats: readonly CatModelView[], q: { q?: string; statu
 export function CatsTab({ query, update }: { query: ListQuery & { page: number }; update: (p: Partial<ListQuery>) => void }) {
   const router = useRouter();
   const { value, reload } = useCatList();
+  const toast = useHqToast();
   const filtered = useMemo(() => filterCats(value.state === "ready" ? value.data : [], query), [value, query]);
   const page = paginate(filtered, query.page);
 
@@ -47,6 +76,7 @@ export function CatsTab({ query, update }: { query: ListQuery & { page: number }
     { key: "creator", label: "建立者", render: c => c.createdBy ?? "—" },
     { key: "updated", label: "更新時間", render: c => formatCatTime(c.updatedAt) },
     { key: "notes", label: "備註說明", render: c => c.notes || "—" },
+    { key: "actions", label: "操作", render: c => <DeleteCell cat={c} onDeleted={() => { toast.show({ message: `已刪除「${c.name}」` }); reload(); }} /> },
   ];
   // #102：不顯示狀態與操作欄；整列點擊進貓咪頁，製作glb工作區從貓咪頁進入
 

@@ -137,6 +137,7 @@ ole === "admin" 判斷管理員，而現有 admin 會升為 system_admin；舊�
 | 2026-11-03 | Tina × Claude Code | #138 3D 外觀與家具位置：Tina 要 `Meow/meowho_3d_room` 的效果 → 家具模型庫 `scripts/blender/furniture_kit.py`（沿用該專案材質與建模，12 種家具各一個 glb，約 800 KB，`public/hq-floorplan/`）、`kit.ts` 縮放；`FloorplanViewer` 改用模型、橡木地板、柔光陰影、面向鏡頭的牆自動降低、鏡頭依外框取景；AI 輸出加 `layoutNotes`（先描述每面牆）與家具 `wall`（背面靠哪面牆），`snapToWall` 貼齊牆面並轉向；牆被丟掉時門窗與家具的牆索引跟著換 | （見 PR） |
 | 2026-11-03 | Tina × Claude Code | #138 修正：3D 上方房名膠囊切換沒有作用（只換下方預覽）→ 加「全部」，點某間時 3D 只顯示那一間並重新取景（`scene.ts` 的 `focusScenes`、`FloorplanViewer` 的 `CameraRig`）；下方房間清單切換時，單間模式跟著換 | （見 PR） |
 | 2026-11-03 | Tina × Claude Code | #150 虛擬體驗：虛擬體驗元件管理加第一層「虛擬體驗」（`?tab=experience&cat=&house=`），選虛擬貓（只列有確認貼圖的，`catLook.ts`，貓咪頁共用 `defaultBody`）＋選喵戶（只列有讀圖完成房間的），貓放進 `FloorplanViewer`（新 `cat` 屬性；`CatPreview` 匯出 `CatModel` 重用）；點地板貓走過去、被牆與家具擋住並沿邊滑過去、閒置自己逛（`catwalk.ts` 純函式） | （見 PR） |
+| 2026-11-03 | Tina × Claude Code | 貓咪頁左欄加「AI 三視角」「貓咪紋理」（可收合）；列表加刪除（`DELETE /api/hq/cat-models/<id>`，排隊／生成中不能刪，示範貓不能刪，Supabase 一併刪照片與貼圖檔並寫稽核） | #154 |
 | 2026-11-03 | Tina × Claude Code | #150 虛擬體驗二：Tina 覺得貓太小 → 貓放大 1.2 倍（`CAT_SCALE`）、鏡頭靠近並跟著貓（`FollowCat`）、起點固定在離房間中心最近的空位；點床、沙發坐墊、桌子等檯面跳上去、在上面走、點地板跳下來（`catjump.ts`，弧線跳躍先播 walk）；閒置在床或沙發上睡覺；娃娃屋剖面改以房間中心判斷鏡頭在哪側；`catwalk.ts` 抽出 `stepToward`（地板與檯面共用） | （見 PR） |
 - 2026-10-29｜#24：前端呼叫 `meow_suspend_user`／`meow_unsuspend_user`／`meow_ban_email`／`meow_unban_email`／`meow_review_verification`／`meow_revoke_badge`；「要求補件」不另設狀態，用退回＋快選原因「退回並要求補件」；黑名單狀態只有系統管理員讀得到（RLS），其他管理員看不到黑名單欄與操作。
 
