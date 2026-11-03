@@ -474,6 +474,11 @@
 .hq-fp-rooms li { display: flex; align-items: center; justify-content: space-between; gap: .5rem; padding: .35rem .5rem; border-radius: 10px; }
 .hq-fp-rooms li.on { background: var(--hq-sage-soft); }
 .hq-fp-room { display: flex; align-items: center; gap: .6rem; background: none; border: 0; padding: 0; font: inherit; color: inherit; cursor: pointer; text-align: left; min-width: 0; }
+.hq-fp-3dbox { margin-bottom: 1rem; }
+.hq-fp-3d { height: 440px; border-radius: 12px; overflow: hidden; border: 1px solid var(--hq-line); touch-action: none; }
+@media (max-width: 1023px) { .hq-fp-3d { height: 320px; } }
+.hq-fp-3dlabel { font: inherit; font-size: .85rem; padding: .15rem .6rem; border-radius: 999px; border: 1px solid var(--hq-line); background: var(--hq-card); color: var(--hq-text); cursor: pointer; white-space: nowrap; }
+.hq-fp-3dlabel.on { background: var(--hq-sage); border-color: var(--hq-sage); color: #fff; }
 .hq-fp-add { border-top: 1px solid var(--hq-line); padding-top: .75rem; }
 .hq-fp-add h4 { margin: 0 0 .5rem; font-size: .95rem; font-weight: 500; }
 /* 平面圖：新增一戶時已選的檔案、每一戶的預覽卡片（#138 改一頁完成） */
