@@ -32,7 +32,7 @@ function AssetsPage() {
       {parent && <Link href={assetSectionHref(parent.value)} className="hq-back">← {parent.label}</Link>}
       {tab === "cats" ? <CatsTab query={query} update={update} />
         : tab === "rooms" ? <RoomsTab />
-        : tab === "rooms-video" ? <RoomVideoTab />
+        : tab === "rooms-video" ? <RoomVideoTab query={query} update={update} />
         : tab === "rooms-floorplan" ? <FloorplanTab />
         : <PlannedTab label={section.label} examples={PLANNED[tab]} />}
     </>

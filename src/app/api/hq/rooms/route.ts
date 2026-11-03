@@ -4,7 +4,7 @@ import { createRoomJob, listRooms } from "@/lib/hq/rooms/server";
 
 export const dynamic = "force-dynamic";
 
-const STATUS: Record<string, number> = { name_required: 400, video_invalid: 400, permission_denied: 403 };
+const STATUS: Record<string, number> = { name_required: 400, note_too_long: 400, video_invalid: 400, permission_denied: 403 };
 
 export async function GET() {
   const root = localRoomRoot();
@@ -16,6 +16,6 @@ export async function GET() {
 export async function POST(req: Request) {
   const body = (await req.json().catch(() => null)) as Record<string, unknown> | null;
   if (!body) return Response.json({ error: "invalid_body" }, { status: 400 });
-  const result = await createRoomJob({ id: body.id, name: body.name, path: body.path });
+  const result = await createRoomJob({ id: body.id, name: body.name, path: body.path, note: body.note });
   return result.ok ? Response.json(result, { status: 201 }) : Response.json({ error: result.code }, { status: STATUS[result.code] ?? 400 });
 }
