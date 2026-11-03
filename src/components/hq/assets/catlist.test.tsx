@@ -19,7 +19,8 @@ vi.mock("./useCatModels", async orig => ({
 afterEach(() => cleanup());
 
 const base = listBundledCats()[0];
-const member: CatModelView = { ...base, ownerType: "member", id: "cat_20261101_200000", name: "小橘", status: "ready", notes: "", createdBy: "Tina", updatedAt: "2026-11-01T14:44:54Z" };
+// MeowHQ 新增的貓在資料庫是 owner_type='template'，也要能刪（只有內建示範貓 builtin 不能刪）
+const member: CatModelView = { ...base, ownerType: "template", builtin: false, id: "cat_20261101_200000", name: "小橘", status: "ready", notes: "", createdBy: "Tina", updatedAt: "2026-11-01T14:44:54Z" };
 
 describe("已建立的貓咪模型列表（#102）", () => {
   it("欄位：縮圖、名稱、動作數、建立者、更新時間、備註說明", () => {
@@ -66,7 +67,7 @@ describe("已建立的貓咪模型列表（#102）", () => {
     }
   });
   it("刪除：按「刪除」後原位確認，送出 DELETE；示範貓不能刪", async () => {
-    rows.data = [member, { ...member, id: "cat_20261101_210000", name: "範本", ownerType: "template" }];
+    rows.data = [member, { ...member, id: "cat_20261101_210000", name: "範本", builtin: true }];
     const fetchMock = vi.fn(async () => new Response(JSON.stringify({ ok: true }), { status: 200 }));
     vi.stubGlobal("fetch", fetchMock);
     render(<CatsTab query={{ page: 1 }} update={() => {}} />);
