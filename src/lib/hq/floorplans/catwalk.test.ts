@@ -33,12 +33,14 @@ describe("障礙與可站位置", () => {
     expect(blocked(2, 2.9, s, obs, 0)).toBe(true);   // 長邊轉成沿 z
     expect(blocked(2.9, 2, s, obs, 0)).toBe(false);
   });
-  it("起點：房間中心可站就用中心，否則隨機找空位", () => {
+  it("起點：房間中心可站就用中心，否則找離中心最近的空位（固定，不隨機）", () => {
     const s = scene();
     expect(freeSpot(s, obstacles(s))).toEqual({ x: 2.1, z: 1.8 });
     const full = [{ x: 2.1, z: 1.8, hx: 0.5, hz: 0.5, rotY: 0 }];
-    const spot = freeSpot(s, full, () => 0.1)!;
+    const spot = freeSpot(s, full)!;
     expect(blocked(spot.x, spot.z, s, full)).toBe(false);
+    expect(freeSpot(s, full)).toEqual(spot);
+    expect(Math.hypot(spot.x - 2.1, spot.z - 1.8)).toBeLessThan(0.5 + 0.2 + 0.15);
     expect(freeSpot(s, [{ x: 2.1, z: 1.8, hx: 9, hz: 9, rotY: 0 }])).toBeNull();
   });
   it("閒置亂逛：隨機找可站的位置，不一定是中心", () => {

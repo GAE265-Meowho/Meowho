@@ -101,7 +101,7 @@ export function ExperienceTab() {
             : house.state === "error" ? <HqLoadError onRetry={() => choose("house", houseId)} />
               : (
                 <>
-                  <p className="hq-hint">點地板，貓會走過去；閒置一陣子會自己逛。上方可以切換房間。</p>
+                  <p className="hq-hint">點地板，貓會走過去；點床、沙發、桌子，貓會跳上去。閒置一陣子會自己逛，在床或沙發上會睡覺。</p>
                   <FloorplanViewer key={`${houseId}:${cat?.id}`} rooms={house.data.rooms} selected={room} onPick={setRoom} cat={look} />
                 </>
               )}
