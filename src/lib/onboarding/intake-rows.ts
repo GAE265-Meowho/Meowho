@@ -1,5 +1,5 @@
 // 建檔對話草稿 → 資料表欄位（#72），以及檢查瀏覽器送來的草稿。
-// 新建的喵戶預設接受私訊、公開；新建的貓公開，狀態依喵戶身分（一般飼主是自家貓、中途是待領養）。
+// 新建的喵戶預設接受私訊、公開；新建的貓公開，狀態依喵戶身分（一般飼主是自家貓、中途是準備中，規格 09 §5）。
 import { z } from "zod";
 import { HEALTH_TAGS, PERSONALITY_TAGS, pickTags } from "../cat-profile/tags";
 import { AdoptionTermsSchema, CompatSchema, HABITS, HANDOVER_ITEMS, MedicalSchema, emptyCompat, emptyMedical } from "../cat-profile/adoption";
@@ -84,7 +84,7 @@ export function fromCatRow(r: CatRowIn): CatFields {
     habits: pickTags(r.habits ?? [], HABITS),
     adoptionTerms: r.adoption_terms && terms.success ? terms.data : null,
     handover: pickTags(r.handover ?? [], HANDOVER_ITEMS),
-    status: r.status === "own" ? "own" : "adoptable",
+    status: r.status === "own" ? "own" : r.status === "preparing" ? "preparing" : "adoptable",
   };
 }
 
@@ -128,7 +128,7 @@ export const IntakeStateSchema = z.object({
     habits: z.array(z.enum(HABITS)).max(HABITS.length),
     adoptionTerms: AdoptionTermsSchema.nullable(),
     handover: z.array(z.enum(HANDOVER_ITEMS)).max(HANDOVER_ITEMS.length),
-    status: z.enum(["own", "adoptable"]),
+    status: z.enum(["own", "adoptable", "preparing"]),
     photos: z.array(str(300)).max(MAX_PHOTOS),
     videos: z.array(str(300)).max(MAX_VIDEOS),
   }),

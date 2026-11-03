@@ -3,6 +3,7 @@
 // 貓咪頁（#70）：給想領養的人看的公開名片，可以收藏、填寫領養問卷。看不看得到交給 meow_cats 的 RLS。
 // 年齡只顯示幼貓／壯貓／老貓（#109），不顯示年齡數字。從中途領養來的貓，飼主在這裡提出退養請求（#109）。
 // 待領養貓可以「傳訊息給喵戶長」（#70，#128），對話在「領養管理」。
+// 準備中的貓只有中途看得到（0017 RLS）；中途在這裡確認 3D 模型、按「準備出發找新主人」（規格 09 §5）。
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/components/Auth";
@@ -10,6 +11,7 @@ import { SiteHeader, TabBar } from "@/components/Chrome";
 import { ReturnRequest } from "@/components/cats/CatReturn";
 import { FavoriteButton } from "@/components/cats/FavoriteButton";
 import { MessageButton } from "@/components/cats/MessageButton";
+import { PublishPanel } from "@/components/cats/PublishPanel";
 import s from "@/components/cats/catPage.module.css";
 import f from "@/components/onboarding/intake.module.css";
 import CatButton from "@/components/ui/CatButton";
@@ -24,7 +26,7 @@ import { photoSrc } from "@/lib/supabase/config";
 
 interface Home { id: string; name: string; city: string; district: string; owner_id: string; adoption_terms: AdoptionTerms | null }
 
-const STATUS = { adoptable: "待領養", own: "自家貓", adopted: "已被領養" } as const;
+const STATUS = { adoptable: "待領養", own: "自家貓", adopted: "已被領養", preparing: "準備中" } as const;
 const SEX = { male: "男生", female: "女生", unknown: "" } as const;
 
 export default function CatPage() {
@@ -115,6 +117,10 @@ export default function CatPage() {
             {isOwner && favCount !== null && <p className={f.lead}>有 {favCount} 人收藏</p>}
           </div>
         </section>
+
+        {isOwner && (cat.rawStatus === "preparing" || adoptable) && (
+          <PublishPanel catId={id} catName={cat.name} lifeStage={cat.lifeStage} status={cat.rawStatus} />
+        )}
 
         {(cat.healthTags.length > 0 || med.length > 0) && (
           <section className={f.card} aria-labelledby="sec-health">
