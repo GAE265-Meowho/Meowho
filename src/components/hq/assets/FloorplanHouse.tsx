@@ -1,6 +1,8 @@
 "use client";
 // 一戶的工作頁（#138，規格 docs/hq/05 §3.2）：左邊房間清單＋上傳，右邊原圖預覽（Q12：原圖保留、可預覽）。
-// 兩欄等分（MeowHQ 版面原則）。上傳後自動 AI 讀圖（Q2），有房間讀圖中時每 4 秒重新讀取；3D 在後續 PR 接上。
+// 上方 3D 娃娃屋（讀圖完成的房間並排，點地板或房名選房間）；下方兩欄等分（MeowHQ 版面原則）。
+// 上傳後自動 AI 讀圖（Q2），有房間讀圖中時每 4 秒重新讀取。
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
@@ -12,6 +14,9 @@ import { canRead, MAX_ROOM_IMAGES, MAX_ROOMS, NAME_MAX, PLAN_ROOM_STATUS_LABELS,
 import { assetSectionHref } from "./hrefs";
 import { FLOORPLAN_API, FLOORPLAN_ERRORS, planProblem, sendJson, startRead, uploadRoomPhoto, uploadRoomPlan } from "./floorplanApi";
 import { hintError } from "./useCatModels";
+
+// 3D 要 WebGL，只在瀏覽器載入（規格 §6）
+const FloorplanViewer = dynamic(() => import("./FloorplanViewer"), { ssr: false, loading: () => <HqSkeleton rows={4} /> });
 
 type State = { state: "loading" } | { state: "error" } | { state: "missing" } | { state: "ready"; house: House; storage: boolean };
 const TAG: Record<PlanRoomView["status"], string> = { uploaded: "warn", reading: "warn", ready: "", failed: "danger" };
@@ -47,6 +52,12 @@ export function FloorplanHouse({ id }: { id: string }) {
     <>
       <HqPageHeader title={`平面圖轉換｜${house.name}`} sub="每個房間傳一張平面圖，或 1～4 張不同角度的室內照片；上傳後 AI 自動讀出牆、門窗與家具。" />
       <Link href={assetSectionHref("rooms-floorplan")} className="hq-back">← 平面圖轉換</Link>
+      <section className="hq-box hq-fp-3dbox" aria-label="3D 檢視">
+        <h3>3D 檢視</h3>
+        {house.rooms.some(r => r.status === "ready")
+          ? <FloorplanViewer rooms={house.rooms} selected={room?.id ?? null} onPick={setPicked} />
+          : <div className="hq-texture-empty" role="status"><strong>讀圖完成後會在這裡顯示 3D 娃娃屋</strong></div>}
+      </section>
       <div className="hq-floorplan">
         <section className="hq-box" aria-label="房間">
           <h3>房間（{house.rooms.length}／{MAX_ROOMS}）</h3>
