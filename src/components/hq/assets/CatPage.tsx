@@ -19,6 +19,7 @@ import { ClipList } from "./ClipList";
 import { PanelGroup } from "./PanelGroup";
 import { ASSETS_CATS_HREF, studioHref } from "./hrefs";
 import { baseGlbUrl, catFileUrl, useCat } from "./useCatModels";
+import { defaultBody } from "./catLook";
 
 const CatPreview = dynamic(() => import("./CatPreview"), { ssr: false, loading: () => <HqSkeleton rows={4} /> });
 
@@ -35,10 +36,7 @@ function Preview({ cat }: { cat: CatModelView }) {
   const [light, setLight] = useState(1);
   const [follow, setFollow] = useState(true);
   const [viewKey, setViewKey] = useState(0);
-  const [selectedBody, setSelectedBody] = useState<BodyType>(() => {
-    if (!cat.variantStorage || cat.bodyVariants?.[cat.body]?.texture.preview) return cat.body;
-    return (["adult", "kitten"] as const).find(body => cat.bodyVariants?.[body]?.texture.preview) ?? cat.body;
-  });
+  const [selectedBody, setSelectedBody] = useState<BodyType>(() => defaultBody(cat));
 
   const clips = info?.clips ?? [];
   const clip = info ? resolveClip(params.get("clip"), clips) : null;

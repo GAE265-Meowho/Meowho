@@ -19,6 +19,8 @@ export const ASSET_SECTIONS = [
   { value: "food", label: "飼料" },
   { value: "items", label: "生活用品" },
   { value: "others", label: "其他" },
+  // 虛擬體驗（#150）：把上面做好的貓和室內空間放在一起互動
+  { value: "experience", label: "虛擬體驗" },
 ] as const satisfies readonly { value: string; label: string; parent?: string }[];
 export type AssetSection = (typeof ASSET_SECTIONS)[number]["value"];
 export const isAssetSection = (v: unknown): v is AssetSection => ASSET_SECTIONS.some(s => s.value === v);

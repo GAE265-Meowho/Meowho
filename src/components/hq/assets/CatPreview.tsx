@@ -68,7 +68,7 @@ function Environment() {
   return null;
 }
 
-function CatModel({ baseUrl, albedoUrl, clip, speed = 1, paused = false, blink = 0, pupil = 0.25, eye, eyeRight, follow = true, onInfo, onTextureError }: CatPreviewProps) {
+export function CatModel({ baseUrl, albedoUrl, clip, speed = 1, paused = false, blink = 0, pupil = 0.25, eye, eyeRight, follow = true, onInfo, onTextureError }: CatPreviewProps) {
   const [textureReady, setTextureReady] = useState(false);
   const gltf = useGLTF(baseUrl);
   const matL = useMemo(() => createCatEyeMaterial(), []);

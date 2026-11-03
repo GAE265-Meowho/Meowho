@@ -475,6 +475,8 @@
 .hq-fp-rooms li.on { background: var(--hq-sage-soft); }
 .hq-fp-room { display: flex; align-items: center; gap: .6rem; background: none; border: 0; padding: 0; font: inherit; color: inherit; cursor: pointer; text-align: left; min-width: 0; }
 .hq-fp-3dbox { margin-bottom: 1rem; }
+.hq-exp-pick { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1rem; margin-bottom: 1rem; }
+@media (max-width: 639px) { .hq-exp-pick { grid-template-columns: minmax(0, 1fr); } }
 .hq-fp-3d { height: 440px; border-radius: 12px; overflow: hidden; border: 1px solid var(--hq-line); touch-action: none; }
 @media (max-width: 1023px) { .hq-fp-3d { height: 320px; } }
 .hq-fp-3dlabel { font: inherit; font-size: .85rem; padding: .15rem .6rem; border-radius: 999px; border: 1px solid var(--hq-line); background: var(--hq-card); color: var(--hq-text); cursor: pointer; white-space: nowrap; }

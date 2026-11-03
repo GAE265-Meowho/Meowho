@@ -8,6 +8,7 @@ import { ASSET_SECTIONS, assetSectionHref, isAssetSection } from "@/components/h
 import { RoomsTab } from "@/components/hq/assets/RoomsTab";
 import { RoomVideoTab } from "@/components/hq/assets/RoomVideoTab";
 import { FloorplanTab } from "@/components/hq/assets/FloorplanTab";
+import { ExperienceTab } from "@/components/hq/assets/ExperienceTab";
 import { PlannedTab } from "@/components/hq/assets/PlannedTab";
 import { HqModuleGuard } from "@/components/hq/HqActor";
 import { HqPageHeader } from "@/components/hq/HqPageHeader";
@@ -28,12 +29,14 @@ function AssetsPage() {
   const parent = "parent" in section ? ASSET_SECTIONS.find(s => s.value === section.parent)! : null;
   return (
     <>
-      <HqPageHeader title={`虛擬體驗元件管理｜${section.label}`} sub="虛擬貓咪新手照顧體驗會用到的 3D 元件。" />
+      <HqPageHeader title={`虛擬體驗元件管理｜${section.label}`}
+        sub={tab === "experience" ? "選一隻虛擬貓和一戶喵戶，把貓放進 3D 室內空間互動。" : "虛擬貓咪新手照顧體驗會用到的 3D 元件。"} />
       {parent && <Link href={assetSectionHref(parent.value)} className="hq-back">← {parent.label}</Link>}
       {tab === "cats" ? <CatsTab query={query} update={update} />
         : tab === "rooms" ? <RoomsTab />
         : tab === "rooms-video" ? <RoomVideoTab />
         : tab === "rooms-floorplan" ? <FloorplanTab />
+        : tab === "experience" ? <ExperienceTab />
         : <PlannedTab label={section.label} examples={PLANNED[tab]} />}
     </>
   );
