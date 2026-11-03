@@ -107,3 +107,40 @@ export const CatVideoSchema = z.object({
   reason: z.string().describe("40 字內，說明從哪些動作看出這些個性"),
 });
 export type CatVideoOut = z.infer<typeof CatVideoSchema>;
+
+// ---------- 平面圖讀圖（#138，規格 docs/hq/05 §5）：一張圖＝一間房 ----------
+// 座標一律公尺、平面 (x, y)，原點在房間左上角；牆用中心線端點。陣列欄位不用 tuple（部分供應商的嚴格模式不支援），
+// 由 src/lib/hq/floorplans/read.ts 整理成 meta 的格式並檢查是否合理。
+export const FLOORPLAN_FURNITURE_KINDS = [
+  "sofa", "bed", "table", "chair", "desk", "wardrobe", "cabinet", "tv_stand", "counter", "toilet", "bathtub", "other",
+] as const;
+
+export const floorplanRoomSchema = z.object({
+  isFloorplan: z.boolean().describe("這張圖是否為室內平面圖"),
+  name: z.string().nullable().describe("圖上標示的房間名稱，例如 客廳；看不出來填 null"),
+  scale: z.object({
+    mPerPx: z.number().nullable().describe("每個像素約幾公尺；算不出來填 null"),
+    source: z.enum(["label", "estimate"]).describe("label＝讀圖上的尺寸標註；estimate＝用門寬、床長等常見尺寸推估"),
+  }),
+  wallHeightM: z.number().nullable().describe("圖上標示的牆高（公尺），沒標示填 null"),
+  walls: z.array(z.object({
+    ax: z.number(), ay: z.number(), bx: z.number(), by: z.number(),
+    t: z.number().nullable().describe("牆厚（公尺），看不出來填 null"),
+  })).describe("牆的中心線，公尺；首尾相接圍出房間"),
+  openings: z.array(z.object({
+    kind: z.enum(["door", "window"]),
+    wall: z.number().int().describe("所在牆在 walls 陣列的索引（從 0 起）"),
+    at: z.number().describe("從該牆起點 (ax, ay) 到開口起點的距離（公尺）"),
+    w: z.number().describe("開口寬（公尺）"),
+  })),
+  furniture: z.array(z.object({
+    kind: z.enum(FLOORPLAN_FURNITURE_KINDS),
+    label: z.string().describe("圖上的家具名稱或中文名稱，例如 沙發"),
+    x: z.number().describe("家具中心 x（公尺）"),
+    y: z.number().describe("家具中心 y（公尺）"),
+    w: z.number().describe("寬（公尺，沿 x）"),
+    d: z.number().describe("深（公尺，沿 y）"),
+    rot: z.number().describe("旋轉角度（度），通常 0 或 90"),
+  })),
+});
+export type FloorplanRoomOut = z.infer<typeof floorplanRoomSchema>;

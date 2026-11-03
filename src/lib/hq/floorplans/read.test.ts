@@ -1,0 +1,73 @@
+// 平面圖讀圖結果整理與檢查（#138，規格 §4.2、§5）：用固定 JSON（fixtures/living-room.json）測試，不連 AI
+import { describe, expect, it } from "vitest";
+import { floorplanRoomSchema, type FloorplanRoomOut } from "@/lib/ai/schemas";
+import living from "./fixtures/living-room.json";
+import { DEFAULT_WALL_HEIGHT_M, normalizeReading } from "./read";
+
+const fixture = () => floorplanRoomSchema.parse(structuredClone(living)) as FloorplanRoomOut;
+const with_ = (patch: Partial<FloorplanRoomOut>) => ({ ...fixture(), ...patch });
+const square = (side: number) => [
+  { ax: 0, ay: 0, bx: side, by: 0, t: null }, { ax: side, ay: 0, bx: side, by: side, t: null },
+  { ax: side, ay: side, bx: 0, by: side, t: null }, { ax: 0, ay: side, bx: 0, by: 0, t: null },
+];
+
+describe("normalizeReading", () => {
+  it("固定 JSON：符合 schema，整理成 meta 的格式（牆用 a／b 端點、預設牆高、門窗高度、可跳上的家具）", () => {
+    const r = normalizeReading(fixture());
+    if (!r.ok) throw new Error(r.error);
+    expect(r.name).toBe("客廳");
+    expect(r.geometry.scale).toEqual({ m_per_px: 0.012, source: "label" });
+    expect(r.geometry.wall_height_m).toBe(DEFAULT_WALL_HEIGHT_M);
+    expect(r.geometry.walls[0]).toEqual({ a: [0, 0], b: [4.2, 0], t: 0.15 });
+    expect(r.geometry.walls[2].t).toBe(0.15);  // 沒讀到牆厚用預設
+    expect(r.geometry.openings).toEqual([
+      { kind: "door", wall: 0, at: 1.2, w: 0.9, h: 2.1 },
+      { kind: "window", wall: 1, at: 0.8, w: 1.5, h: 1.2, sill: 0.9 },
+    ]);
+    expect(r.geometry.furniture[0]).toEqual({ kind: "sofa", label: "沙發", x: 1.5, y: 2.9, w: 2.1, d: 0.9, h: 0.8, rot: 0, surface: "walkable" });
+    expect(r.geometry.furniture[2].surface).toBeUndefined();  // 椅子不標可跳上
+  });
+
+  it("不是平面圖：失敗並說明", () => {
+    expect(normalizeReading(with_({ isFloorplan: false }))).toEqual({ ok: false, error: "這張圖看起來不是平面圖，請換一張" });
+  });
+
+  it("牆少於 3 面、沒圍成封閉：失敗", () => {
+    expect(normalizeReading(with_({ walls: square(4).slice(0, 2) })).ok).toBe(false);
+    const open = square(4).slice(0, 3);
+    expect(normalizeReading(with_({ walls: open, openings: [], furniture: [] }))).toMatchObject({ ok: false, error: expect.stringContaining("封閉") });
+  });
+
+  it("房間單邊小於 1 公尺或大於 20 公尺：失敗（多半是比例尺讀錯）", () => {
+    expect(normalizeReading(with_({ walls: square(0.5), openings: [], furniture: [] }))).toMatchObject({ ok: false, error: expect.stringContaining("大小不合理") });
+    expect(normalizeReading(with_({ walls: square(25), openings: [], furniture: [] })).ok).toBe(false);
+    expect(normalizeReading(with_({ walls: square(20), openings: [], furniture: [] })).ok).toBe(true);
+  });
+
+  it("門窗：牆索引不存在就丟掉；超出牆長截掉，截完太窄丟掉", () => {
+    const r = normalizeReading(with_({ openings: [
+      { kind: "door", wall: 9, at: 0, w: 0.9 },
+      { kind: "door", wall: 0, at: 3.6, w: 0.9 },   // 4.2 長的牆，只剩 0.6
+      { kind: "window", wall: 0, at: 4.0, w: 1 },   // 只剩 0.2，丟掉
+    ] }));
+    expect(r.ok && r.geometry.openings).toEqual([{ kind: "door", wall: 0, at: 3.6, w: 0.6, h: 2.1 }]);
+  });
+
+  it("家具：中心在房間外或尺寸不合理就丟掉（容許 0.3 公尺誤差）", () => {
+    const sofa = fixture().furniture[0];
+    const r = normalizeReading(with_({ furniture: [
+      { ...sofa, x: 4.4 },          // 超出 0.2，保留
+      { ...sofa, x: 6 },            // 在房間外
+      { ...sofa, w: 0, d: 0.9 },    // 沒有寬度
+    ] }));
+    expect(r.ok && r.geometry.furniture.map(f => f.x)).toEqual([4.4]);
+  });
+
+  it("圖上標示的牆高在 2～5 公尺才採用；比例算不出來存 null", () => {
+    const r = normalizeReading(with_({ wallHeightM: 3.1, scale: { mPerPx: null, source: "estimate" } }));
+    expect(r.ok && r.geometry.wall_height_m).toBe(3.1);
+    expect(r.ok && r.geometry.scale).toEqual({ m_per_px: null, source: "estimate" });
+    const tall = normalizeReading(with_({ wallHeightM: 12 }));
+    expect(tall.ok && tall.geometry.wall_height_m).toBe(DEFAULT_WALL_HEIGHT_M);
+  });
+});

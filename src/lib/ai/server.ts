@@ -7,6 +7,8 @@ import { resolveProvider, type Provider } from "./config";
 import { CatPhotoAnalysisSchema, CatTurnSchema, CatVideoSchema, HouseholdTurnSchema } from "./schemas";
 import type { TurnExtractor } from "@/lib/onboarding/conversation";
 import { DeclineDraftSchema, declineDraftChain, declineDraftInput, type DeclineContext } from "./decline";
+import { floorplanReadChain, floorplanReadInput } from "./floorplan";
+import { floorplanRoomSchema } from "./schemas";
 
 export { aiLabel, isAIConfigured } from "./models";
 
@@ -52,3 +54,11 @@ export const analyzeCatVideo = (mime: string, bytes: Uint8Array) => {
 /** 婉拒理由草稿（#128）：未設定或失敗回傳 null，由呼叫端改用固定草稿 */
 export const draftDeclineReason = (c: DeclineContext) => safe(async () =>
   declineDraftChain(structured(await getChatModel("text", { temperature: 0.4 }), DeclineDraftSchema, "decline_draft")).invoke(declineDraftInput(c)));
+
+/**
+ * 平面圖讀圖（#138）：MeowHQ 固定用 Azure 聊天部署（同 #110，不受全站 AI_PROVIDER 影響）。
+ * 未設定或失敗回傳 null；逾時 100 秒（API route 上限 120 秒，規格 §5）。
+ */
+export const readFloorplanRoom = (mime: string, bytes: Uint8Array, roomName: string | null) => safe(async () =>
+  floorplanReadChain(structured(await getChatModel("vision", { provider: "azure" }), floorplanRoomSchema, "floorplan_room"))
+    .invoke(floorplanReadInput(mime, Buffer.from(bytes).toString("base64"), roomName)), 100_000, "azure");

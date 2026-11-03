@@ -3,7 +3,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createMemoryStore } from "@/lib/storage/memory";
 import type { MediaStore } from "@/lib/storage/types";
-import { addUploadedRoom, createHouse, dbFail, createRoomUpload, deleteHouse, deleteHouseRoom, getHouse, listHouses, renameHouseRoom, type Db, type Deps } from "./core";
+import { addUploadedRoom, createHouse, dbFail, createRoomUpload, deleteHouse, deleteHouseRoom, getHouse, listHouses, renameHouseRoom, startRoomRead, type Db, type Deps, type FloorplanReader } from "./core";
+import living from "./fixtures/living-room.json";
 
 type Row = Record<string, unknown>;
 let rows: Row[];
@@ -106,7 +107,7 @@ describe("上傳房間平面圖（Q9）", () => {
   it("兩步：簽網址（保留 r1）→ 確認已上傳後加入；房名空白用預設，原圖網址可預覽", async () => {
     const { ticket, added } = await upload();
     expect(ticket).toMatchObject({ roomId: "r1", path: `floorplans/${H}/r1.png`, upload: { url: `memory://upload/floorplans/${H}/r1.png` } });
-    expect(added).toEqual({ ok: true });
+    expect(added).toEqual({ ok: true, roomId: "r1" });
     const house = await getHouse(deps(), H);
     expect(house?.rooms).toEqual([{
       id: "r1", name: "房間 1", image_path: `floorplans/${H}/r1.png`, status: "uploaded", created_at: NOW.toISOString(),
@@ -157,5 +158,65 @@ describe("上傳房間平面圖（Q9）", () => {
     expect(rows).toEqual([]);
     expect(await store.list(`floorplans/${H}/`)).toEqual([]);
     expect(await deleteHouse(deps(), H)).toEqual({ ok: false, code: "not_found" });
+  });
+});
+
+describe("AI 讀圖（規格 §5、Q2）", () => {
+  const ok: FloorplanReader = async () => structuredClone(living) as never;
+  const meta = () => (rows[0].meta as { rooms: Record<string, unknown>[] }).rooms;
+  beforeEach(async () => { await createHouse(deps(), "小美家"); await upload(); });
+
+  it("開始：房間標讀圖中、戶標 running；執行後寫入格局、狀態完成，預設房名換成 AI 讀到的", async () => {
+    const seen: (string | null)[] = [];
+    const r = await startRoomRead(deps(), H, "r1", async (mime, bytes, name) => { seen.push(mime, name); return ok(mime, bytes, name); });
+    if (!r.ok) throw new Error(r.code);
+    expect(meta()[0]).toMatchObject({ status: "reading", read_started_at: NOW.toISOString() });
+    expect(rows[0].status).toBe("running");
+    await r.run();
+    expect(seen).toEqual(["image/png", null]);  // 預設房名不送給 AI
+    expect(meta()[0]).toMatchObject({ status: "ready", name: "客廳", error: null, edited: false, wall_height_m: 2.8 });
+    expect(meta()[0].walls).toHaveLength(4);
+    expect(rows[0].status).toBe("ready");
+    // 畫面拿不到 AI 原始輸出
+    expect((await getHouse(deps(), H))?.rooms[0]).not.toHaveProperty("ai_raw");
+  });
+
+  it("管理員自己填的房名不覆蓋，並當作提示送給 AI", async () => {
+    await upload(H, "主臥");
+    const seen: (string | null)[] = [];
+    const r = await startRoomRead(deps(), H, "r2", async (m, b, name) => { seen.push(name); return ok(m, b, name); });
+    if (r.ok) await r.run();
+    expect(seen).toEqual(["主臥"]);
+    expect(meta()[1]).toMatchObject({ status: "ready", name: "主臥" });
+  });
+
+  it("AI 失敗或結果不合理：標失敗並寫原因，戶標 failed", async () => {
+    const r = await startRoomRead(deps(), H, "r1", async () => null);
+    if (r.ok) await r.run();
+    expect(meta()[0]).toMatchObject({ status: "failed", error: "AI 讀圖失敗或逾時，請重新讀圖" });
+    expect(rows[0].status).toBe("failed");
+    const bad = await startRoomRead(deps(), H, "r1", async () => ({ ...structuredClone(living), isFloorplan: false }) as never);
+    if (bad.ok) await bad.run();
+    expect(meta()[0]).toMatchObject({ status: "failed", error: "這張圖看起來不是平面圖，請換一張" });
+  });
+
+  it("讀圖中不重複開始；超過 3 分鐘視為中斷，可以重新讀圖", async () => {
+    expect((await startRoomRead(deps(), H, "r1", ok)).ok).toBe(true);
+    expect(await startRoomRead(deps(), H, "r1", ok)).toEqual({ ok: false, code: "busy" });
+    const later = new Date(NOW.getTime() + 4 * 60 * 1000);
+    expect((await startRoomRead(deps({ now: later }), H, "r1", ok)).ok).toBe(true);
+  });
+
+  it("讀圖期間房間被刪掉或又重新讀圖：舊結果不寫入", async () => {
+    const r = await startRoomRead(deps(), H, "r1", ok);
+    await deleteHouseRoom(deps(), H, "r1");
+    if (r.ok) await r.run();
+    expect(meta()).toEqual([]);
+  });
+
+  it("房間不存在、編號不對、沒設定儲存：擋下", async () => {
+    expect(await startRoomRead(deps(), H, "r9", ok)).toEqual({ ok: false, code: "not_found" });
+    expect(await startRoomRead(deps(), H, "x", ok)).toEqual({ ok: false, code: "room_invalid" });
+    expect(await startRoomRead(deps({ store: null }), H, "r1", ok)).toEqual({ ok: false, code: "storage_disabled" });
   });
 });

@@ -1,7 +1,7 @@
 // 平面圖轉換（#138）共用規則
 import { describe, expect, it } from "vitest";
 import {
-  addRoom, checkPlan, cleanName, defaultRoomName, isHouseId, isOwnPlanPath, MAX_ROOMS, planPath, readMeta, removeRoom, renameRoom, reserveRoomKey,
+  addRoom, canRead, checkPlan, cleanName, defaultRoomName, houseStatus, isDefaultRoomName, isHouseId, isOwnPlanPath, MAX_ROOMS, planPath, readMeta, removeRoom, renameRoom, reserveRoomKey,
   type PlanRoom,
 } from "./types";
 
@@ -72,5 +72,27 @@ describe("meta.rooms", () => {
     expect(renameRoom(meta, "r1", "書房")?.rooms[0].name).toBe("書房");
     expect(renameRoom(meta, "r9", "書房")).toBeNull();
     expect(defaultRoomName(meta)).toBe("房間 3");
+  });
+});
+
+describe("讀圖狀態（#138 PR 3）", () => {
+  const now = new Date("2026-11-03T02:00:00Z");
+  it("戶的狀態：有房讀圖中或待讀圖 → running；有失敗 → failed；其他（含沒有房間）→ ready", () => {
+    const m = (...rooms: PlanRoom[]) => ({ version: 1 as const, next: 9, rooms });
+    expect(houseStatus(m())).toBe("ready");
+    expect(houseStatus(m(room("r1", { status: "ready" }), room("r2", { status: "reading" })))).toBe("running");
+    expect(houseStatus(m(room("r1", { status: "uploaded" }), room("r2", { status: "failed" })))).toBe("running");
+    expect(houseStatus(m(room("r1", { status: "ready" }), room("r2", { status: "failed" })))).toBe("failed");
+  });
+  it("讀圖中 3 分鐘內不能重新讀；超過或沒有開始時間視為中斷；其他狀態都可以", () => {
+    expect(canRead(room("r1", { status: "reading", read_started_at: "2026-11-03T01:58:00Z" }), now)).toBe(false);
+    expect(canRead(room("r1", { status: "reading", read_started_at: "2026-11-03T01:56:00Z" }), now)).toBe(true);
+    expect(canRead(room("r1", { status: "reading" }), now)).toBe(true);
+    for (const status of ["uploaded", "ready", "failed"] as const) expect(canRead(room("r1", { status }), now)).toBe(true);
+  });
+  it("預設房名（房間 N）才會被 AI 讀出的房名取代", () => {
+    expect(isDefaultRoomName("房間 3")).toBe(true);
+    expect(isDefaultRoomName("客廳")).toBe(false);
+    expect(isDefaultRoomName("房間 3 號")).toBe(false);
   });
 });

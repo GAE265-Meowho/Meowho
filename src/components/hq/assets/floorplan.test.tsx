@@ -183,4 +183,29 @@ describe("一戶的工作頁（#138）", () => {
     wrap(<FloorplanHouse id={H} />);
     expect(await screen.findByRole("alert")).toHaveTextContent("尚未設定 Azure Blob");
   });
+
+  it("AI 讀圖（PR 3）：失敗顯示原因並可重新讀圖；完成顯示讀到的牆、門窗、家具", async () => {
+    const rooms = [
+      { ...house().rooms[0], status: "failed" as const, error: "這張圖看起來不是平面圖，請換一張" },
+      { ...house().rooms[1], status: "ready" as const, walls: [{ a: [0, 0], b: [4, 0], t: 0.15 }, { a: [4, 0], b: [4, 3], t: 0.15 }, { a: [4, 3], b: [0, 0], t: 0.15 }] as never,
+        openings: [{ kind: "door" as const, wall: 0, at: 1, w: 0.9, h: 2.1 }], furniture: [], scale: { m_per_px: null, source: "estimate" as const } },
+    ];
+    mockFetch(() => ({ body: { house: house({ rooms }), storage: true } }));
+    wrap(<FloorplanHouse id={H} />);
+    const preview = await screen.findByRole("region", { name: "原圖預覽" });
+    expect(within(preview).getByText("這張圖看起來不是平面圖，請換一張")).toBeInTheDocument();
+    fireEvent.click(within(preview).getByRole("button", { name: "重新讀圖" }));
+    await waitFor(() => expect(calls.some(([u, i]) => u === "/api/hq/rooms/floorplan/read" && i?.body === JSON.stringify({ houseId: H, roomId: "r1" }))).toBe(true));
+    fireEvent.click(within(screen.getByRole("list", { name: "房間清單" })).getByRole("button", { name: /主臥/ }));
+    expect(within(preview).getByText(/讀到 3 面牆、1 個門窗、0 件家具；\s*比例由 AI 推估/)).toBeInTheDocument();
+  });
+
+  it("讀圖中（剛開始）不顯示重新讀圖", async () => {
+    const rooms = [{ ...house().rooms[0], status: "reading" as const, read_started_at: new Date().toISOString() }];
+    mockFetch(() => ({ body: { house: house({ rooms }), storage: true } }));
+    wrap(<FloorplanHouse id={H} />);
+    const preview = await screen.findByRole("region", { name: "原圖預覽" });
+    expect(within(preview).getByText(/AI 讀圖中/)).toBeInTheDocument();
+    expect(within(preview).queryByRole("button", { name: /讀圖/ })).toBeNull();
+  });
 });

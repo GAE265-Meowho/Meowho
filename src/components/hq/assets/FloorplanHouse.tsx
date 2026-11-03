@@ -1,6 +1,6 @@
 "use client";
 // 一戶的工作頁（#138，規格 docs/hq/05 §3.2）：左邊房間清單＋上傳，右邊原圖預覽（Q12：原圖保留、可預覽）。
-// 兩欄等分（MeowHQ 版面原則）；AI 讀圖與 3D 在後續 PR 接上。
+// 兩欄等分（MeowHQ 版面原則）。上傳後自動 AI 讀圖（Q2），有房間讀圖中時每 4 秒重新讀取；3D 在後續 PR 接上。
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
@@ -8,9 +8,9 @@ import { HqPageHeader } from "@/components/hq/HqPageHeader";
 import { HqLoadError, HqSaveButton, HqSkeleton } from "@/components/hq/HqStates";
 import { HqNotFound } from "@/components/hq/HqLoginPage";
 import { useHqToast } from "@/components/hq/HqToast";
-import { MAX_ROOMS, NAME_MAX, PLAN_ROOM_STATUS_LABELS, type FloorplanHouse as House, type PlanRoomView } from "@/lib/hq/floorplans/types";
+import { canRead, MAX_ROOMS, NAME_MAX, PLAN_ROOM_STATUS_LABELS, type FloorplanHouse as House, type PlanRoomView } from "@/lib/hq/floorplans/types";
 import { assetSectionHref } from "./hrefs";
-import { FLOORPLAN_API, FLOORPLAN_ERRORS, planProblem, sendJson, uploadRoomPlan } from "./floorplanApi";
+import { FLOORPLAN_API, FLOORPLAN_ERRORS, planProblem, sendJson, startRead, uploadRoomPlan } from "./floorplanApi";
 import { hintError } from "./useCatModels";
 
 type State = { state: "loading" } | { state: "error" } | { state: "missing" } | { state: "ready"; house: House; storage: boolean };
@@ -29,6 +29,12 @@ export function FloorplanHouse({ id }: { id: string }) {
     setData({ state: "ready", ...((await res.json()) as { house: House; storage: boolean }) });
   }, [id]);
   useEffect(() => { void load(); }, [load]);
+  const reading = data.state === "ready" && data.house.rooms.some(r => r.status === "reading");
+  useEffect(() => {
+    if (!reading) return;
+    const t = setInterval(() => { void load(); }, 4000);
+    return () => clearInterval(t);
+  }, [reading, load]);
 
   if (data.state === "loading") return <HqSkeleton rows={4} />;
   if (data.state === "missing") return <HqNotFound />;
@@ -39,7 +45,7 @@ export function FloorplanHouse({ id }: { id: string }) {
 
   return (
     <>
-      <HqPageHeader title={`平面圖轉換｜${house.name}`} sub="每個房間各傳一張平面圖，之後由 AI 轉成 3D 室內空間。" />
+      <HqPageHeader title={`平面圖轉換｜${house.name}`} sub="每個房間各傳一張平面圖，上傳後 AI 自動讀出牆、門窗與家具。" />
       <Link href={assetSectionHref("rooms-floorplan")} className="hq-back">← 平面圖轉換</Link>
       <div className="hq-floorplan">
         <section className="hq-box" aria-label="房間">
@@ -60,7 +66,7 @@ export function FloorplanHouse({ id }: { id: string }) {
                 ))}
               </ul>
             )}
-          {house.rooms.length < MAX_ROOMS && <AddRoom houseId={house.id} storage={storage} onDone={async () => { await load(); toast.show({ message: "已上傳平面圖" }); }} />}
+          {house.rooms.length < MAX_ROOMS && <AddRoom houseId={house.id} storage={storage} onDone={async () => { await load(); toast.show({ message: "已上傳平面圖，AI 讀圖中" }); }} />}
         </section>
 
         <section className="hq-box" aria-label="原圖預覽">
@@ -127,6 +133,7 @@ function RoomPreview({ houseId, room, onChanged, onDeleted }: { houseId: string;
           <figcaption>點圖在新分頁開啟原圖</figcaption>
         </figure>
       ) : <p className="hq-error" role="alert">讀不到原圖，請重新整理。</p>}
+      <ReadResult houseId={houseId} room={room} onChanged={onChanged} />
       <label className="hq-label" htmlFor="fp-rename">房間名稱</label>
       <div className="hq-row">
         <input id="fp-rename" className="hq-input hq-grow" maxLength={NAME_MAX} value={name} onChange={e => setName(e.target.value)} />
@@ -141,6 +148,31 @@ function RoomPreview({ houseId, room, onChanged, onDeleted }: { houseId: string;
         ) : <button type="button" className="hq-btn ghost small" onClick={() => setConfirming(true)}>刪除房間</button>}
       </div>
     </>
+  );
+}
+
+/** 讀圖結果：讀圖中顯示等待；完成顯示讀到幾面牆、門窗、家具；失敗顯示原因。讀圖中以外都可以（重新）讀圖 */
+function ReadResult({ houseId, room, onChanged }: { houseId: string; room: PlanRoomView; onChanged: () => Promise<void> }) {
+  const doors = room.openings?.length ?? 0;
+  return (
+    <div className="hq-fp-read" role="status">
+      {room.status === "reading" && <p className="hq-hint">AI 讀圖中，約需 20～60 秒…</p>}
+      {room.status === "uploaded" && <p className="hq-hint">還沒讀圖。</p>}
+      {room.status === "failed" && <p className="hq-error">{room.error ?? "讀圖失敗"}</p>}
+      {room.status === "ready" && (
+        <p className="hq-hint">
+          讀到 {room.walls?.length ?? 0} 面牆、{doors} 個門窗、{room.furniture?.length ?? 0} 件家具；
+          比例{room.scale?.source === "label" ? "依圖上標註" : room.scale?.source === "manual" ? "已手動設定" : "由 AI 推估"}。
+        </p>
+      )}
+      {canRead(room, new Date()) && (
+        <div className="hq-row hq-actions">
+          <HqSaveButton onSave={async () => { await startRead(houseId, room.id); await onChanged(); }}>
+            {room.status === "uploaded" ? "開始讀圖" : "重新讀圖"}
+          </HqSaveButton>
+        </div>
+      )}
+    </div>
   );
 }
 

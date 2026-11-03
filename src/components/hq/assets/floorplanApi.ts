@@ -18,6 +18,7 @@ export const FLOORPLAN_ERRORS: Record<string, string> = {
   not_found: "找不到這一戶，可能已被刪除",
   permission_denied: "你沒有這個功能的權限",
   db_not_ready: "資料庫還沒更新：請確認 Supabase 已執行 0014、0015",
+  ai_disabled: "尚未設定 Azure AI（AZURE_OPENAI_CHAT_DEPLOYMENT_NAME），無法讀圖",
 };
 
 export const planProblem = (f: File) => {
@@ -40,3 +41,7 @@ export async function uploadRoomPlan(houseId: string, file: File, name: string):
   if (!put?.ok) throw hintError("平面圖上傳失敗，請檢查網路後再試一次");
   await postJson(api, { roomId: ticket.roomId, path: ticket.path, name }, FLOORPLAN_ERRORS);
 }
+
+/** AI 讀圖／重新讀圖：伺服器標成「讀圖中」後在背景讀，畫面輪詢看結果 */
+export const startRead = (houseId: string, roomId: string) =>
+  postJson(`/api/hq/rooms/floorplan/read`, { houseId, roomId }, FLOORPLAN_ERRORS);
