@@ -18,6 +18,8 @@
 首頁有虛擬試養看板示意（`TrialBoard`）。
 - 2026-11-03：目標流程定稿於 `docs/spec/09_領養任務目標流程規格.md`；資料庫 0017 已執行，前台畫面尚未開始。
 
+- 2026-11-04 中途出領養任務（規格 09 §5.2，#161）：`/cats/[id]/tasks`。三種做法：AI 幫我生成（`POST /api/cats/[id]/tasks/draft`，AI 沒回應時用 `fallbackTaskDraft`）、自己寫（`templateContent`）、先用系統預設任務（`meow_save_cat_tasks(p_use_default => true)`，內容是 0018 的起始版）。內容格式、檢查、動作帶入在 `src/lib/adoption-tasks.ts`；3D 貓的動作由劇情關鍵字帶入（`inferAction`），進行任務時再依房間替換家具。
+
 ## 資料表（Supabase）
 - ［已失效］`env_reports`、`virtual_sessions`、`virtual_tasks`（規劃名稱，改用下列 0017 的表）
 - 領養任務：`meow_task_templates`（系統預設任務，依年齡層）、`meow_cat_task_sets`（中途草稿）、`meow_cat_task_versions`（存了就不改）
