@@ -38,7 +38,7 @@ export function cleanNote(note: unknown): string | null | undefined {
 /** 轉換的 6 個步驟；worker 回報的 step 用關鍵字對到其中一步 */
 export const ROOM_STAGES = ["排隊", "下載與抽影格", "相機定位", "訓練 3D 畫面", "切物品", "上傳成果"] as const;
 export const ROOM_STAGE_HINTS: Partial<Record<number, string>> = { 3: "約 10 分鐘" };
-export const ROOM_TOTAL_MINUTES = 15;  // 本機 Mac 轉一支 80 秒影片的實測
+export const ROOM_TOTAL_MINUTES = 20;  // 完整品質，本機 Mac 轉一支 80 秒影片約 17 分鐘，加上下載和上傳
 export const ROOM_QUEUE_STALL_MS = 2 * 60 * 1000;
 
 const STAGE_KEYWORDS: [number, RegExp][] = [

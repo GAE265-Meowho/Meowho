@@ -44,7 +44,7 @@ describe("RoomVideoTab（#93 總覽與進度）", () => {
   it("沒選房間時自動顯示處理中那間的任務進度", async () => {
     renderTab();
     expect(await screen.findByRole("region", { name: "任務進度" })).toHaveTextContent("第 4 步／共 6 步：訓練 3D 畫面");
-    expect(screen.getByRole("status")).toHaveTextContent("已經過 6 分鐘，整體約需 15 分鐘。這一步最久");
+    expect(screen.getByRole("status")).toHaveTextContent("已經過 6 分鐘，整體約需 20 分鐘。這一步最久");
   });
 
   it("點完成的房間進 3D 檢視並顯示耗時", async () => {
