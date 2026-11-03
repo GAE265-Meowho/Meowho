@@ -13,7 +13,6 @@ import { HqSaveButton } from "../HqStates";
 import { useHqToast } from "../HqToast";
 
 const DELETE_ERRORS: Record<string, string> = {
-  busy: "排隊或生成中不能刪除，請等任務結束",
   template: "內建的示範貓不能刪除",
   not_found: "找不到這隻貓，可能已被刪除",
   permission_denied: "你沒有虛擬體驗元件管理的權限，或登入已過期",

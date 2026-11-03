@@ -296,10 +296,10 @@ describe("deleteCat（刪除貓咪模型）", () => {
     expect(await getCat(root, ID)).toBeNull();
     expect(await listCats(root)).toEqual([]);
   });
-  it("排隊或生成中不能刪；找不到回 not_found", async () => {
+  it("排隊或生成中也能刪（Tina 2026-11-03）；找不到回 not_found", async () => {
     await addCat(ID, { job: { status: "running" } });
-    expect(await deleteCat(root, ID)).toEqual({ ok: false, code: "busy" });
-    expect(await getCat(root, ID)).not.toBeNull();
+    expect(await deleteCat(root, ID)).toEqual({ ok: true });
+    expect(await getCat(root, ID)).toBeNull();
     expect(await deleteCat(root, "cat_20261031_999999")).toEqual({ ok: false, code: "not_found" });
   });
 });

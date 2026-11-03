@@ -495,16 +495,18 @@ export async function sbRestore(id: string, reason: string, body?: unknown): Pro
 }
 
 
-/** 刪除貓咪模型：資料列（任務、體型變體跟著 cascade）＋照片與貼圖檔；排隊或生成中不能刪 */
+/**
+ * 刪除貓咪模型：資料列（任務、體型變體跟著 cascade）＋照片與貼圖檔。
+ * Tina 2026-11-03：排隊或生成中（含卡住的任務）也要能刪。任務列跟著刪，worker 不會再領；
+ * 已在跑的 worker／AI 三視角寫回時找不到資料列，只會在 Storage 留下孤兒檔，不影響畫面。
+ */
 export async function sbDeleteCat(id: string): Promise<
-  { ok: true } | { ok: false; code: "not_found" | "busy" | "permission_denied" }
+  { ok: true } | { ok: false; code: "not_found" | "permission_denied" }
 > {
   const user = await userClient();
   if (!user) return { ok: false, code: "permission_denied" };
   const { data: row } = await user.sb.from("meow_cat_models").select("name,status,albedo_path,prev_albedo_path,profile").eq("id", id).maybeSingle();
   if (!row) return { ok: false, code: "not_found" };
-  const running = generatedState(row.profile?.generated).aiRunning.length > 0;
-  if (isJobActive(normalizeStatus(row.status as CatModelStatus)) || running) return { ok: false, code: "busy" };
   const { data: variants } = await user.sb.from("meow_cat_model_variants").select("albedo_path,prev_albedo_path").eq("model_id", id);
   const textures = [row, ...(variants ?? [])].flatMap(v => [v.albedo_path, v.prev_albedo_path]).filter((p): p is string => Boolean(p));
 
