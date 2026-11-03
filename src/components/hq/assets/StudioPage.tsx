@@ -135,6 +135,10 @@ function Options({ cat, onDone, onSelectBody }: { cat: CatModelView; onDone: () 
         <div className="hq-chips" role="group" aria-labelledby="opt-fill">
           {FILLS.map(f => <button key={f} type="button" className={fill === f ? "on" : ""} aria-pressed={fill === f} onClick={() => setFill(f)}>{FILL_LABELS[f]}</button>)}
         </div>
+        {/* 邏輯見 Meow/cat_base/step3b_fill.py 的 fill_pattern：取色範圍、8 條條紋、背線、壓暗 0.75 */}
+        <p className="hq-hint">{fill === "tabby"
+          ? "虎斑：只補照片看不到的背部與側腹。顏色取自這隻貓的肩膀與前腳（中間亮度當底色、最暗的當條紋色），畫上深色條紋與背線，越近肚子越淡。適合虎斑貓。"
+          : "不補：看不到的地方沿用 AI 上色結果，不加條紋。純色、白貓、三花請選這個。"}</p>
       </div>
       <div className="hq-row">
         <HqSaveButton onSave={save} disabled={busy || !ready}>{label}</HqSaveButton>
