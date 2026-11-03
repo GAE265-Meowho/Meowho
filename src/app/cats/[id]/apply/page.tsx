@@ -13,6 +13,7 @@ import { shrinkPhoto } from "@/components/onboarding/media";
 import f from "@/components/onboarding/intake.module.css";
 import CatButton from "@/components/ui/CatButton";
 import Required from "@/components/ui/Required";
+import { guideUrl } from "@/lib/household-gate";
 import { SECTIONS, missingAnswers, prefillAnswers, type Answer, type Answers, type Question, type Section } from "@/lib/adoption-form/questionnaire";
 import { getBrowserSupabase } from "@/lib/supabase/client";
 
@@ -42,12 +43,12 @@ export default function ApplyPage() {
         sb.from("meow_households").select("city, district, home, caretaker_type").eq("owner_id", user.id).order("created_at"),
       ]);
       setCat(c);
+      setHasHome(Boolean(homes?.length));
       if (!fm) { setForm(null); return; }
       const { data: mine } = await sb.from("meow_adoption_responses").select("id, status, answers, photo_paths").eq("form_id", fm.id).eq("respondent_id", user.id).neq("status", "declined").maybeSingle();
       if (!fm.is_open && !mine) { setForm(null); return; }
       setForm({ id: fm.id, questions: fm.questions });
       const home = (homes ?? []).find(h => h.caretaker_type === "cat_owner") ?? homes?.[0] ?? null;
-      setHasHome(Boolean(home));
       if (mine) {
         setResponseId(mine.id);
         setSubmitted(mine.status !== "draft");
@@ -133,6 +134,14 @@ export default function ApplyPage() {
       <div className={f.actions} style={{ justifyContent: "center" }}><CatButton onClick={() => login(window.location.pathname)}>使用 Google 登入</CatButton></div>
     </section>
   );
+  // 提出領養需求要先有喵戶（規格 09 §2）；已經送出的仍可以看
+  else if (!hasHome && !submitted) body = (
+    <section className={`${f.card} ${f.center}`}>
+      <h2>先建立你的喵戶</h2>
+      <p className={f.lead}>收藏貓咪、聯絡喵戶長、體驗領養任務和提出領養需求，都會用到它。</p>
+      <div className={f.actions} style={{ justifyContent: "center" }}><CatButton href={guideUrl(`/cats/${catId}/apply`)}>建立喵戶</CatButton></div>
+    </section>
+  );
   else if (!form) body = (
     <section className={`${f.card} ${f.center}`}>
       <h2>{cat ? `${cat.name}目前沒有開放領養問卷` : "找不到這份問卷"}</h2>
@@ -144,7 +153,6 @@ export default function ApplyPage() {
       <h2>問卷已經送給中途了</h2>
       <p className={f.lead}>中途看過之後，會透過站內私訊和你聯絡。</p>
       <div className={f.actions} style={{ justifyContent: "center" }}>
-        {!hasHome && <CatButton href="/onboarding?new=1">順便建立我的喵戶</CatButton>}
         <CatButton variant="ghost" href="/me">回到我的喵戶</CatButton>
       </div>
     </section>

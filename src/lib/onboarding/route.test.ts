@@ -18,3 +18,9 @@ describe("建立喵戶", () => {
   it("已滿 2 戶 → 選擇", () => expect(decideStart({ ...base, homesCount: 2, wantNew: true })).toBe("choose"));
   it("不限制時，有很多戶也能建立新的", () => expect(decideStart({ ...base, homesCount: 9, wantNew: true, householdLimit: null })).toBe("household"));
 });
+
+describe("登入後引導建立喵戶（規格 09 §7.1）", () => {
+  it("沒有喵戶 → 先說明為什麼要建立", () => expect(decideStart({ ...base, wantGuide: true })).toBe("guide"));
+  it("已經有喵戶 → 回到原本那一步", () => expect(decideStart({ ...base, wantGuide: true, homesCount: 1 })).toBe("back"));
+  it("沒登入仍然先登入", () => expect(decideStart({ ...base, wantGuide: true, loggedIn: false })).toBe("login"));
+});

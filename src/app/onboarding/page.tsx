@@ -7,6 +7,7 @@ import { HouseholdForm } from "@/components/onboarding/HouseholdForm";
 import { IntakeChat, type ExistingHome } from "@/components/onboarding/IntakeChat";
 import s from "@/components/onboarding/intake.module.css";
 import CatButton from "@/components/ui/CatButton";
+import { afterHousehold, safeNext } from "@/lib/household-gate";
 import { canAddHousehold, parseHouseholdLimit } from "@/lib/onboarding/household-rules";
 import { decideStart, type StartPhase } from "@/lib/onboarding/route";
 import { getBrowserSupabase } from "@/lib/supabase/client";
@@ -16,6 +17,8 @@ type HomeRow = { id: string; name: string; city: string | null; district: string
 const toHome = (r: HomeRow): Home => ({ id: r.id, name: r.name, city: r.city, district: r.district, role: r.caretaker_type, terms: r.adoption_terms });
 
 // 建立喵戶（表單）、在喵戶新增待領養貓（對話）（#72）。建好喵戶後回到「我的喵戶」，再從那裡新增貓。
+// ?guide=1&next=<原本那一步>（規格 09 §7.1）：登入後還沒有喵戶，先說明為什麼要建立；建好後給「建立我家的 3D 房間」「先逛逛貓咪」，
+//   一般飼主的喵戶不管從哪裡來都顯示這兩個下一步。
 // 示範模式（沒有 Supabase）不需登入、不存檔。
 export default function OnboardingPage() {
   const { configured, loading, user, needsTerms, login, agreeTerms } = useAuth();
@@ -23,11 +26,15 @@ export default function OnboardingPage() {
   const [homes, setHomes] = useState<Home[]>([]);
   const [home, setHome] = useState<Home | null>(null);
   const [limit, setLimit] = useState<number | null>(null);
+  const [next, setNext] = useState<string | null>(null);
+  const [created, setCreated] = useState<{ id: string; name: string } | null>(null);
 
   useEffect(() => {
     if (loading) return;
     const sb = getBrowserSupabase();
     const params = new URLSearchParams(window.location.search);
+    const nextParam = params.get("next");
+    setNext(nextParam ? safeNext(nextParam) : null);
     const decide = (list: Home[], householdLimit: number | null = null) => {
       // 只有中途的喵戶能新增貓（#109）；一般飼主的貓只會從中途移轉過來
       const target = list.find(h => h.id === params.get("household") && h.role !== "cat_owner") ?? null;
@@ -36,6 +43,7 @@ export default function OnboardingPage() {
       setPhase(decideStart({
         configured: Boolean(sb), loggedIn: Boolean(user), wantCat: params.get("cat") === "1",
         wantNew: params.get("new") === "1", homesCount: list.length, householdLimit, targetFound: Boolean(target),
+        wantGuide: params.get("guide") === "1",
       }));
     };
     if (!sb || !user) { decide([]); return; }
@@ -51,8 +59,11 @@ export default function OnboardingPage() {
     });
   }, [loading, user]);
 
+  // 已經有喵戶了：直接回到原本那一步
+  useEffect(() => { if (phase === "back") window.location.replace(next ?? "/"); }, [phase, next]);
+
   let body: React.ReactNode;
-  if (loading || phase === "checking") {
+  if (loading || phase === "checking" || phase === "back") {
     body = <p className={s.lead} role="status">載入中…</p>;
   } else if (phase === "login") {
     body = (
@@ -66,6 +77,29 @@ export default function OnboardingPage() {
     );
   } else if (needsTerms) {
     body = <TermsGate onAgree={agreeTerms} />;
+  } else if (created) {
+    const to = afterHousehold(created.id, next);
+    body = (
+      <section className={`${s.card} ${s.center}`} aria-labelledby="created-title">
+        <h2 id="created-title">「{created.name}」建好了</h2>
+        <p className={s.lead}>讓想領養的貓在你家走一圈，體驗完整的領養任務。</p>
+        <div className={s.actions} style={{ justifyContent: "center" }}>
+          <CatButton href={to.room}>建立我家的 3D 房間</CatButton>
+          <CatButton variant="ghost" href={to.browse}>先逛逛貓咪</CatButton>
+        </div>
+      </section>
+    );
+  } else if (phase === "guide") {
+    body = (
+      <section className={`${s.card} ${s.center}`} aria-labelledby="guide-title">
+        <h2 id="guide-title">先建立你的喵戶</h2>
+        <p className={s.lead}>收藏貓咪、聯絡喵戶長、體驗領養任務和提出領養需求，都會用到它。</p>
+        <div className={s.actions} style={{ justifyContent: "center" }}>
+          <CatButton onClick={() => setPhase("household")}>建立喵戶</CatButton>
+          <CatButton variant="ghost" href={next ?? "/"}>先不要</CatButton>
+        </div>
+      </section>
+    );
   } else if (phase === "choose") {
     const canNew = canAddHousehold(homes.length, limit);
     const fosters = homes.filter(h => h.role !== "cat_owner");
@@ -103,6 +137,7 @@ export default function OnboardingPage() {
   } else {
     // 示範模式沒有「我的喵戶」可以回去，建好後直接在這裡新增貓
     body = <HouseholdForm userId={user?.id ?? null} existingNames={homes.map(h => h.name)}
+      onCreated={h => { if (next || h.role === "cat_owner") setCreated(h); else window.location.href = "/me"; }}
       onDemoCreated={(name, role) => { setHome({ id: "demo", name, city: null, district: null, role: role ?? "personal_foster", terms: null }); setPhase("cat"); }} />;
   }
 
