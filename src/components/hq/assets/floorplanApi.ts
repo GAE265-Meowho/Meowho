@@ -1,5 +1,5 @@
 // 平面圖轉換（#138）前端共用：API 路徑、白話錯誤、上傳流程
-import { checkPlan, MAX_PLAN_BYTES, MAX_ROOMS } from "@/lib/hq/floorplans/types";
+import { checkPlan, MAX_PLAN_BYTES, MAX_ROOM_IMAGES, MAX_ROOMS } from "@/lib/hq/floorplans/types";
 import type { UploadTarget } from "@/lib/storage/types";
 import { hintError, postJson } from "./useCatModels";
 
@@ -8,9 +8,10 @@ export const FLOORPLAN_API = "/api/hq/floorplans";
 export const FLOORPLAN_ERRORS: Record<string, string> = {
   name_required: "請填名稱（40 字以內）",
   name_taken: "已經有同名的一戶，請換個名稱",
-  plan_invalid: "請選 JPG 或 PNG 平面圖",
+  plan_invalid: "請選 JPG 或 PNG 圖片",
   plan_too_large: `平面圖不能超過 ${MAX_PLAN_BYTES / 1024 / 1024} MB`,
   too_many_rooms: `一戶最多 ${MAX_ROOMS} 間`,
+  too_many_images: `一間房最多 ${MAX_ROOM_IMAGES} 張圖`,
   storage_disabled: "尚未設定 Azure Blob，無法上傳平面圖",
   upload_missing: "平面圖沒有上傳成功，請再試一次",
   room_invalid: "上傳資料不正確，請重新選檔",
@@ -45,3 +46,12 @@ export async function uploadRoomPlan(houseId: string, file: File, name: string):
 /** AI 讀圖／重新讀圖：伺服器標成「讀圖中」後在背景讀，畫面輪詢看結果 */
 export const startRead = (houseId: string, roomId: string) =>
   postJson(`/api/hq/rooms/floorplan/read`, { houseId, roomId }, FLOORPLAN_ERRORS);
+
+/** 同一間房再加一張不同角度的照片（#144）：拿上傳網址 → 直接 PUT 到 Azure → 通知加入（伺服器會自動重新讀圖） */
+export async function uploadRoomPhoto(houseId: string, roomId: string, file: File): Promise<void> {
+  const api = `${FLOORPLAN_API}/${houseId}/rooms/${roomId}/photos`;
+  const ticket = await postJson<{ path: string; upload: UploadTarget }>(api, { type: file.type, size: file.size }, FLOORPLAN_ERRORS);
+  const put = await fetch(ticket.upload.url, { method: "PUT", headers: ticket.upload.headers, body: file }).catch(() => null);
+  if (!put?.ok) throw hintError("照片上傳失敗，請檢查網路後再試一次");
+  await postJson(api, { path: ticket.path }, FLOORPLAN_ERRORS);
+}

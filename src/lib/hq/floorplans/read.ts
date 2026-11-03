@@ -1,4 +1,4 @@
-// 平面圖讀圖（#138，規格 docs/hq/05 §4.2、§5）：AI 輸出 → meta 的格局格式，並檢查是否合理。純函式。
+// 平面圖讀圖（#138，規格 docs/hq/05 §4.2、§5；實景照片 #144）：AI 輸出 → meta 的格局格式，並檢查是否合理。純函式。
 // 數值只做單位整理與預設值，不替 AI 補牆或補家具；不合理就整間標 failed，讓管理員重新讀圖或之後在線框修正。
 import { FLOORPLAN_FURNITURE_KINDS, type FloorplanRoomOut } from "@/lib/ai/schemas";
 import type { PlanFurniture, PlanGeometry, PlanOpening, PlanWall, Point } from "./types";
@@ -30,7 +30,7 @@ const finite = (n: unknown): n is number => typeof n === "number" && Number.isFi
 const dist = (p: Point, q: Point) => Math.hypot(p[0] - q[0], p[1] - q[1]);
 
 export function normalizeReading(out: FloorplanRoomOut): ReadResult {
-  if (!out.isFloorplan) return { ok: false, error: "這張圖看起來不是平面圖，請換一張" };
+  if (out.kind === "other") return { ok: false, error: "看起來不是平面圖或室內照片，請換一張" };
 
   const walls: PlanWall[] = out.walls
     .filter(w => [w.ax, w.ay, w.bx, w.by].every(finite))
@@ -82,10 +82,12 @@ export function normalizeReading(out: FloorplanRoomOut): ReadResult {
   });
 
   const height = finite(out.wallHeightM) && out.wallHeightM >= 2 && out.wallHeightM <= 5 ? round(out.wallHeightM) : DEFAULT_WALL_HEIGHT_M;
-  const mPerPx = finite(out.scale.mPerPx) && out.scale.mPerPx > 0 ? out.scale.mPerPx : null;
+  // 實景照片沒有固定比例尺：一律記為推估（#144）
+  const photo = out.kind === "photo";
+  const mPerPx = !photo && finite(out.scale.mPerPx) && out.scale.mPerPx > 0 ? out.scale.mPerPx : null;
   const name = out.name?.trim().slice(0, 40) || null;
   return {
     ok: true, name,
-    geometry: { scale: { m_per_px: mPerPx, source: out.scale.source }, wall_height_m: height, walls, openings, furniture },
+    geometry: { input: out.kind, scale: { m_per_px: mPerPx, source: photo ? "estimate" : out.scale.source }, wall_height_m: height, walls, openings, furniture },
   };
 }

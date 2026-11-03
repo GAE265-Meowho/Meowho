@@ -59,6 +59,6 @@ export const draftDeclineReason = (c: DeclineContext) => safe(async () =>
  * 平面圖讀圖（#138）：MeowHQ 固定用 Azure 聊天部署（同 #110，不受全站 AI_PROVIDER 影響）。
  * 未設定或失敗回傳 null；逾時 100 秒（API route 上限 120 秒，規格 §5）。
  */
-export const readFloorplanRoom = (mime: string, bytes: Uint8Array, roomName: string | null) => safe(async () =>
+export const readFloorplanRoom = (images: { mime: string; bytes: Uint8Array }[], roomName: string | null) => safe(async () =>
   floorplanReadChain(structured(await getChatModel("vision", { provider: "azure" }), floorplanRoomSchema, "floorplan_room"))
-    .invoke(floorplanReadInput(mime, Buffer.from(bytes).toString("base64"), roomName)), 100_000, "azure");
+    .invoke(floorplanReadInput(images.map(i => ({ mime: i.mime, base64: Buffer.from(i.bytes).toString("base64") })), roomName)), 100_000, "azure");

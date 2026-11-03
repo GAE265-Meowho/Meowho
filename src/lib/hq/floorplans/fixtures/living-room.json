@@ -1,5 +1,5 @@
 {
-  "isFloorplan": true,
+  "kind": "floorplan",
   "name": "客廳",
   "scale": { "mPerPx": 0.012, "source": "label" },
   "wallHeightM": null,

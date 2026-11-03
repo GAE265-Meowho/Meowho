@@ -108,7 +108,7 @@ export const CatVideoSchema = z.object({
 });
 export type CatVideoOut = z.infer<typeof CatVideoSchema>;
 
-// ---------- 平面圖讀圖（#138，規格 docs/hq/05 §5）：一張圖＝一間房 ----------
+// ---------- 平面圖讀圖（#138，規格 docs/hq/05 §5）：一間房一張平面圖，或 1～4 張實景照片（#144）----------
 // 座標一律公尺、平面 (x, y)，原點在房間左上角；牆用中心線端點。陣列欄位不用 tuple（部分供應商的嚴格模式不支援），
 // 由 src/lib/hq/floorplans/read.ts 整理成 meta 的格式並檢查是否合理。
 export const FLOORPLAN_FURNITURE_KINDS = [
@@ -116,7 +116,7 @@ export const FLOORPLAN_FURNITURE_KINDS = [
 ] as const;
 
 export const floorplanRoomSchema = z.object({
-  isFloorplan: z.boolean().describe("這張圖是否為室內平面圖"),
+  kind: z.enum(["floorplan", "photo", "other"]).describe("floorplan＝俯視平面圖；photo＝室內實景照片；other＝都不是"),
   name: z.string().nullable().describe("圖上標示的房間名稱，例如 客廳；看不出來填 null"),
   scale: z.object({
     mPerPx: z.number().nullable().describe("每個像素約幾公尺；算不出來填 null"),

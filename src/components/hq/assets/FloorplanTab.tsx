@@ -102,7 +102,7 @@ function NewHouse({ storage, onDone, onPartial }: { storage: boolean; onDone: (m
       <input id="fp-name" className="hq-input" maxLength={NAME_MAX} placeholder="例如：小美家" value={name} disabled={busy} onChange={e => setName(e.target.value)} />
       {storage ? (
         <>
-          <label className="hq-label" htmlFor="fp-files">各房間平面圖（JPG 或 PNG，每張 10 MB 以內，最多 {MAX_ROOMS} 張；檔名會當房間名稱）</label>
+          <label className="hq-label" htmlFor="fp-files">各房間平面圖或室內照片（JPG 或 PNG，每張 10 MB 以內，最多 {MAX_ROOMS} 張；一張一間，檔名會當房間名稱，同一間的其他角度照片進「管理」再加）</label>
           <input key={inputKey} id="fp-files" className="hq-input" type="file" multiple accept="image/png,image/jpeg" disabled={busy || files.length >= MAX_ROOMS}
             onChange={e => add(e.target.files)} />
           {fileError && <p className="hq-error" role="alert">{fileError}</p>}

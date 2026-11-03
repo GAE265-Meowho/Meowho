@@ -8,9 +8,9 @@ import { HqPageHeader } from "@/components/hq/HqPageHeader";
 import { HqLoadError, HqSaveButton, HqSkeleton } from "@/components/hq/HqStates";
 import { HqNotFound } from "@/components/hq/HqLoginPage";
 import { useHqToast } from "@/components/hq/HqToast";
-import { canRead, MAX_ROOMS, NAME_MAX, PLAN_ROOM_STATUS_LABELS, type FloorplanHouse as House, type PlanRoomView } from "@/lib/hq/floorplans/types";
+import { canRead, MAX_ROOM_IMAGES, MAX_ROOMS, NAME_MAX, PLAN_ROOM_STATUS_LABELS, type FloorplanHouse as House, type PlanRoomView } from "@/lib/hq/floorplans/types";
 import { assetSectionHref } from "./hrefs";
-import { FLOORPLAN_API, FLOORPLAN_ERRORS, planProblem, sendJson, startRead, uploadRoomPlan } from "./floorplanApi";
+import { FLOORPLAN_API, FLOORPLAN_ERRORS, planProblem, sendJson, startRead, uploadRoomPhoto, uploadRoomPlan } from "./floorplanApi";
 import { hintError } from "./useCatModels";
 
 type State = { state: "loading" } | { state: "error" } | { state: "missing" } | { state: "ready"; house: House; storage: boolean };
@@ -45,7 +45,7 @@ export function FloorplanHouse({ id }: { id: string }) {
 
   return (
     <>
-      <HqPageHeader title={`平面圖轉換｜${house.name}`} sub="每個房間各傳一張平面圖，上傳後 AI 自動讀出牆、門窗與家具。" />
+      <HqPageHeader title={`平面圖轉換｜${house.name}`} sub="每個房間傳一張平面圖，或 1～4 張不同角度的室內照片；上傳後 AI 自動讀出牆、門窗與家具。" />
       <Link href={assetSectionHref("rooms-floorplan")} className="hq-back">← 平面圖轉換</Link>
       <div className="hq-floorplan">
         <section className="hq-box" aria-label="房間">
@@ -106,7 +106,7 @@ function AddRoom({ houseId, storage, onDone }: { houseId: string; storage: boole
   return (
     <div className="hq-fp-add">
       <h4>新增房間</h4>
-      <label className="hq-label" htmlFor="fp-room-file">平面圖（JPG 或 PNG，10 MB 以內）</label>
+      <label className="hq-label" htmlFor="fp-room-file">平面圖或室內照片（JPG 或 PNG，10 MB 以內）</label>
       <input key={inputKey} id="fp-room-file" className="hq-input" type="file" accept="image/png,image/jpeg" onChange={e => pick(e.target.files?.[0] ?? null)} />
       {fileError && <p className="hq-error" role="alert">{fileError}</p>}
       <label className="hq-label" htmlFor="fp-room-name">房間名稱（選填）</label>
@@ -133,6 +133,7 @@ function RoomPreview({ houseId, room, onChanged, onDeleted }: { houseId: string;
           <figcaption>點圖在新分頁開啟原圖</figcaption>
         </figure>
       ) : <p className="hq-error" role="alert">讀不到原圖，請重新整理。</p>}
+      <RoomPhotos houseId={houseId} room={room} onChanged={onChanged} />
       <ReadResult houseId={houseId} room={room} onChanged={onChanged} />
       <label className="hq-label" htmlFor="fp-rename">房間名稱</label>
       <div className="hq-row">
@@ -151,6 +152,50 @@ function RoomPreview({ houseId, room, onChanged, onDeleted }: { houseId: string;
   );
 }
 
+/** 同一間房的其他角度照片（#144）：縮圖可移除；未滿 4 張可再加，加完伺服器自動重新讀圖 */
+function RoomPhotos({ houseId, room, onChanged }: { houseId: string; room: PlanRoomView; onChanged: () => Promise<void> }) {
+  const [file, setFile] = useState<File | null>(null);
+  const [fileError, setFileError] = useState<string | null>(null);
+  const [inputKey, setInputKey] = useState(0);
+  const count = 1 + room.photoUrls.length;
+  const api = `${FLOORPLAN_API}/${houseId}/rooms/${room.id}/photos`;
+  const pick = (f: File | null) => {
+    const problem = f && planProblem(f);
+    setFileError(problem);
+    setFile(problem ? null : f);
+  };
+  return (
+    <div className="hq-fp-photos">
+      {room.photoUrls.length > 0 && (
+        <ul className="hq-fp-rooms" aria-label="其他角度照片">
+          {room.photoUrls.map((p, i) => (
+            <li key={p.path}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              {p.url ? <a href={p.url} target="_blank" rel="noreferrer"><img src={p.url} alt={`${room.name}的照片 ${i + 2}`} className="hq-thumb" /></a> : <span className="hq-thumb" aria-hidden />}
+              <HqSaveButton onSave={async () => { await sendJson(api, "DELETE", { path: p.path }); await onChanged(); }}>移除</HqSaveButton>
+            </li>
+          ))}
+        </ul>
+      )}
+      {count < MAX_ROOM_IMAGES && (
+        <>
+          <label className="hq-label" htmlFor="fp-photo-file">加一張不同角度的室內照片（{count}／{MAX_ROOM_IMAGES}）</label>
+          <div className="hq-row">
+            <input key={inputKey} id="fp-photo-file" className="hq-input hq-grow" type="file" accept="image/png,image/jpeg" onChange={e => pick(e.target.files?.[0] ?? null)} />
+            <HqSaveButton disabled={!file} onSave={async () => {
+              if (!file) throw hintError("請先選照片");
+              await uploadRoomPhoto(houseId, room.id, file);
+              setFile(null); setInputKey(k => k + 1);
+              await onChanged();
+            }}>加入</HqSaveButton>
+          </div>
+          {fileError && <p className="hq-error" role="alert">{fileError}</p>}
+        </>
+      )}
+    </div>
+  );
+}
+
 /** 讀圖結果：讀圖中顯示等待；完成顯示讀到幾面牆、門窗、家具；失敗顯示原因。讀圖中以外都可以（重新）讀圖 */
 function ReadResult({ houseId, room, onChanged }: { houseId: string; room: PlanRoomView; onChanged: () => Promise<void> }) {
   const doors = room.openings?.length ?? 0;
@@ -162,7 +207,7 @@ function ReadResult({ houseId, room, onChanged }: { houseId: string; room: PlanR
       {room.status === "ready" && (
         <p className="hq-hint">
           讀到 {room.walls?.length ?? 0} 面牆、{doors} 個門窗、{room.furniture?.length ?? 0} 件家具；
-          比例{room.scale?.source === "label" ? "依圖上標註" : room.scale?.source === "manual" ? "已手動設定" : "由 AI 推估"}。
+          {room.input === "photo" ? "依實景照片推估，比例可能有誤差" : `比例${room.scale?.source === "label" ? "依圖上標註" : room.scale?.source === "manual" ? "已手動設定" : "由 AI 推估"}`}。
         </p>
       )}
       {canRead(room, new Date()) && (

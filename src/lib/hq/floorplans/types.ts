@@ -5,6 +5,8 @@ import { ROOM_ID_RE } from "../rooms/types";
 export const MAX_PLAN_BYTES = 10 * 1024 * 1024;
 /** 一戶最多幾間（規格 §10） */
 export const MAX_ROOMS = 8;
+/** 一間房最多幾張圖（主圖＋其他角度，#144） */
+export const MAX_ROOM_IMAGES = 4;
 export const NAME_MAX = 40;
 export const ROOM_KEY_RE = /^r\d{1,3}$/;
 
@@ -29,6 +31,8 @@ export interface PlanWall { a: Point; b: Point; t: number }
 export interface PlanOpening { kind: "door" | "window"; wall: number; at: number; w: number; h: number; sill?: number }
 export interface PlanFurniture { kind: string; label: string; x: number; y: number; w: number; d: number; h: number; rot: number; surface?: "walkable" }
 export interface PlanGeometry {
+  /** AI 讀的是平面圖還是實景照片（#144）；實景照片的比例一律是推估 */
+  input: "floorplan" | "photo";
   scale: { m_per_px: number | null; source: "label" | "estimate" | "manual" };
   wall_height_m: number;
   walls: PlanWall[];
@@ -40,7 +44,10 @@ export interface PlanGeometry {
 export interface PlanRoom extends Partial<PlanGeometry> {
   id: string;
   name: string;
+  /** 主圖：平面圖或第一張實景照片 */
   image_path: string;
+  /** 同一間房的其他角度實景照片（#144，加主圖最多 MAX_ROOM_IMAGES 張） */
+  photo_paths?: string[];
   status: PlanRoomStatus;
   error?: string | null;
   created_at: string;
@@ -53,7 +60,7 @@ export interface PlanRoom extends Partial<PlanGeometry> {
 export interface FloorplanMeta { version: 1; next: number; rooms: PlanRoom[] }
 
 /** 畫面用：房間加上有時效的原圖網址 */
-export interface PlanRoomView extends PlanRoom { imageUrl: string | null }
+export interface PlanRoomView extends PlanRoom { imageUrl: string | null; photoUrls: { path: string; url: string | null }[] }
 /** createdBy：建立者顯示名稱；讀不到個人資料時為 null（畫面顯示「—」） */
 export interface FloorplanSummary {
   id: string; name: string; roomCount: number; updatedAt: string; createdBy: string | null;
@@ -69,6 +76,12 @@ export const isRoomKey = (v: unknown): v is string => typeof v === "string" && R
 export const planPath = (houseId: string, roomId: string, ext: string) => `floorplans/${houseId}/${roomId}.${ext}`;
 export const isOwnPlanPath = (houseId: string, roomId: string, path: unknown) =>
   typeof path === "string" && new RegExp(`^floorplans/${houseId}/${roomId}\\.(png|jpg)$`).test(path);
+/** 其他角度照片：floorplans/<戶 id>/<房間 id>_<6 碼>.<png|jpg>（隨機碼，不用先保留編號） */
+export const photoPath = (houseId: string, roomId: string, code: string, ext: string) => `floorplans/${houseId}/${roomId}_${code}.${ext}`;
+export const isOwnPhotoPath = (houseId: string, roomId: string, path: unknown): path is string =>
+  typeof path === "string" && new RegExp(`^floorplans/${houseId}/${roomId}_[a-z0-9]{6}\\.(png|jpg)$`).test(path);
+/** 一間房的所有圖（主圖在前） */
+export const roomImages = (room: Pick<PlanRoom, "image_path" | "photo_paths">) => [room.image_path, ...(room.photo_paths ?? [])];
 
 export function cleanName(v: unknown): string | null {
   const s = typeof v === "string" ? v.trim() : "";
