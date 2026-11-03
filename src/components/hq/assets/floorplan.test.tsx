@@ -1,11 +1,20 @@
 // 平面圖轉換畫面（#138）：一戶清單、新增一戶、上傳房間（三步上傳）、原圖預覽、改名與刪除
 import "@testing-library/jest-dom/vitest";
-import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { FloorplanHouse as House } from "@/lib/hq/floorplans/types";
 import { HqToastProvider } from "../HqToast";
 import { FloorplanHouse } from "./FloorplanHouse";
 import { FloorplanTab } from "./FloorplanTab";
+
+// 3D 要 WebGL，測試裡換成替身：記錄收到的房間與選中的房間
+const viewer = vi.hoisted(() => ({ last: null as null | { rooms: { id: string }[]; selected: string | null; onPick: (id: string) => void } }));
+vi.mock("./FloorplanViewer", () => ({
+  default: function FakeViewer(props: { rooms: { id: string }[]; selected: string | null; onPick: (id: string) => void }) {
+    viewer.last = props;
+    return <div data-testid="fake-viewer">{props.selected}</div>;
+  },
+}));
 
 const nav = vi.hoisted(() => ({ push: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: nav.push, replace: vi.fn() }), useSearchParams: () => new URLSearchParams() }));
@@ -223,5 +232,24 @@ describe("一戶的工作頁（#138）", () => {
     expect(calls.some(([u, i]) => u === "https://blob/put" && i?.method === "PUT")).toBe(true);
     fireEvent.click(within(preview).getByRole("button", { name: "移除" }));
     await waitFor(() => expect(calls.some(([u, i]) => u.endsWith("/photos") && i?.method === "DELETE")).toBe(true));
+  });
+
+  it("3D 檢視（步驟 4）：有讀圖完成的房間才顯示娃娃屋；在 3D 點房間會切換下方的房間", async () => {
+    const ready = { status: "ready" as const, walls: [], openings: [], furniture: [], wall_height_m: 2.8 };
+    mockFetch(() => ({ body: { house: house({ rooms: [{ ...house().rooms[0], ...ready }, { ...house().rooms[1], ...ready }] }), storage: true } }));
+    wrap(<FloorplanHouse id={H} />);
+    const box = await screen.findByRole("region", { name: "3D 檢視" });
+    expect(await within(box).findByTestId("fake-viewer")).toHaveTextContent("r1");
+    expect(viewer.last?.rooms.map(r => r.id)).toEqual(["r1", "r2"]);
+    act(() => viewer.last!.onPick("r2"));
+    expect(within(screen.getByRole("region", { name: "原圖預覽" })).getByAltText("主臥的平面圖")).toBeInTheDocument();
+  });
+
+  it("還沒有讀圖完成的房間：3D 區說明之後會顯示", async () => {
+    mockFetch(() => ({ body: { house: house(), storage: true } }));
+    wrap(<FloorplanHouse id={H} />);
+    const box = await screen.findByRole("region", { name: "3D 檢視" });
+    expect(within(box).getByText("讀圖完成後會在這裡顯示 3D 娃娃屋")).toBeInTheDocument();
+    expect(within(box).queryByTestId("fake-viewer")).toBeNull();
   });
 });

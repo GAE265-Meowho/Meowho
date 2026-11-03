@@ -111,7 +111,8 @@ alter table public.meow_room_models
 
 - 依 JSON 用 three.js 拉出：地板、牆（扣掉門窗洞）、門框、窗玻璃（半透明）、家具方塊；無天花板（娃娃屋）。
 - Rapier：牆、家具建 cuboid collider；`surface: walkable` 的家具頂面貓可以跳上去。
-- 並排：各房依 bounding box 由左到右排，間距 1 m，房名標籤浮在上方。
+- 並排：各房依 bounding box 由左到右排，間距 1 m；房名做成 3D 上方的按鈕列，點房名或地板選房間。
+- 地板先用房間外框矩形（斜牆房間會多一點地板，線框修正時再處理）。
 - 貓：點進某間房才放貓；沿用 `src/lib/hq/rooms/` 的 `RoomCat`、`RoomPhysics`，世界座標直接用公尺。
 - 新元件 `FloorplanViewer`（`next/dynamic`、`ssr: false`），不改動 `RoomViewer`（Gaussian Splat 用）。
 
@@ -126,7 +127,7 @@ alter table public.meow_room_models
 1. ✅ Migration `0015` ＋ 型別、Blob 上傳 SAS API（#138 PR 1）。
 2. ✅ 一戶清單、新增一戶、新增房間上傳、原圖預覽、改名、刪除（#138 PR 1）。
 3. ✅ AI 讀圖 API（structured output＋驗證）＋測試用固定 JSON；上傳後自動讀圖、可重新讀圖（#138 PR 3）。
-4. `FloorplanViewer`：JSON → 3D 娃娃屋並排＋碰撞。
+4. ✅ `FloorplanViewer`：JSON → 3D 娃娃屋並排＋碰撞體資料（#138 步驟 4）。場景資料是純函式 `src/lib/hq/floorplans/scene.ts`（`houseScene`、`colliders`）；Rapier 物理在步驟 5 放貓時接上。房名改放在 3D 上方的按鈕列（場景內浮動標籤在 React 19 會掉、手機不好點）。
 5. 點房間進第一人稱＋放貓。
 6. 2D 線框修正編輯器。
 7. ✅ `RoomsTab` 拿掉「平面圖轉換」的「規劃中」標籤（#138 PR 1）。
