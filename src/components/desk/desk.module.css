@@ -146,3 +146,11 @@
 .muted { background: var(--cream); color: var(--ink-soft); }
 .alert { background: var(--pink-soft); }
 .returnBar { background: var(--pink-soft); }
+
+/* 領養任務狀態（規格 09 §7.4） */
+.taskProof { display: flex; flex-direction: column; gap: 10px; padding: 14px 16px; border-radius: 20px; background: var(--cream); }
+.taskHint { margin: 0; padding: 10px 16px; border-radius: 20px; background: var(--cream); color: var(--ink-soft); }
+.abandon { display: inline-flex; align-items: center; padding: 4px 12px; border-radius: 999px; background: var(--pink-soft); color: var(--ink); font-size: 14px; }
+.proofList { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+.proofList li { display: grid; gap: 2px; padding: 8px 12px; border-radius: 14px; background: var(--card); }
+.proofList span { color: var(--ink-soft); }
