@@ -23,7 +23,7 @@ const DELETE_ERRORS: Record<string, string> = {
 /** 刪除：按一次「刪除」後在原位確認（同平面圖轉換），不跳視窗 */
 function DeleteCell({ cat, onDeleted }: { cat: CatModelView; onDeleted: () => void }) {
   const [confirming, setConfirming] = useState(false);
-  if (cat.ownerType === "template") return <span className="hq-hint">示範貓</span>;
+  if (cat.builtin) return <span className="hq-hint">示範貓</span>;
   return (
     <span className="hq-row-tight" onClick={e => e.stopPropagation()}>
       {confirming ? (

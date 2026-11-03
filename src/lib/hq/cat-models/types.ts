@@ -80,6 +80,8 @@ export interface CatModelView {
   id: string;
   name: string;
   ownerType: "template" | "member";
+  /** 程式內建的示範貓（bundled.ts）：不在資料庫，不能刪除。MeowHQ 新增的貓 ownerType 也是 template，不能用它判斷 */
+  builtin?: boolean;
   status: CatModelStatus;
   ageMonths: number | null;
   gender?: CatGender | null;
