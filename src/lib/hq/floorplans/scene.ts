@@ -121,6 +121,13 @@ export function houseScene(rooms: PlanRoom[]): RoomScene[] {
   });
 }
 
+/** 要顯示的房間：focus＝null 是整戶並排；指定某間就只放那一間，並移到原點（鏡頭重新取景） */
+export function focusScenes(scenes: RoomScene[], focus: string | null): RoomScene[] {
+  if (!focus) return scenes;
+  const one = scenes.find(s => s.id === focus);
+  return one ? [{ ...one, offset: [0, 0] }] : scenes;
+}
+
 /** 整戶外框（鏡頭取景用） */
 export function sceneBounds(scenes: RoomScene[]): { width: number; depth: number; height: number } {
   return {

@@ -113,7 +113,7 @@ alter table public.meow_room_models
 
 - 依 JSON 用 three.js 拉出：地板、牆（扣掉門窗洞）、門框、窗玻璃（半透明）、家具方塊；無天花板（娃娃屋）。
 - Rapier：牆、家具建 cuboid collider；`surface: walkable` 的家具頂面貓可以跳上去。
-- 並排：各房依 bounding box 由左到右排，間距 1 m；房名做成 3D 上方的按鈕列，點房名或地板選房間。
+- 並排：各房依 bounding box 由左到右排，間距 1 m；房名做成 3D 上方的膠囊列：「全部」＝整戶並排，點某間＝3D 只顯示那一間並重新取景（`focusScenes`），同時切換下方的原圖預覽。
 - 地板先用房間外框矩形（斜牆房間會多一點地板，線框修正時再處理）。
 - 貓：點進某間房才放貓；沿用 `src/lib/hq/rooms/` 的 `RoomCat`、`RoomPhysics`，世界座標直接用公尺。
 - 新元件 `FloorplanViewer`（`next/dynamic`、`ssr: false`），不改動 `RoomViewer`（Gaussian Splat 用）。
