@@ -36,6 +36,7 @@ export default function CatPage() {
   const [cat, setCat] = useState<(CatFields & { rawStatus: string; fromFoster: boolean }) | null | undefined>(undefined);
   const [home, setHome] = useState<Home | null>(null);
   const [formOpen, setFormOpen] = useState(false);
+  const [hasTasks, setHasTasks] = useState(false);
   const [videos, setVideos] = useState<{ path: string; url: string }[]>([]);
   const [favCount, setFavCount] = useState<number | null>(null);
   const [current, setCurrent] = useState(0);
@@ -43,14 +44,17 @@ export default function CatPage() {
   useEffect(() => {
     if (!sb || loading) return;
     (async () => {
-      const [{ data: row }, { data: fm }] = await Promise.all([
+      const [{ data: row }, { data: fm }, { data: ver }] = await Promise.all([
         sb.from("meow_cats").select("*, household:meow_households!meow_cats_household_id_fkey(id, name, city, district, owner_id, adoption_terms)").eq("id", id).maybeSingle(),
         sb.from("meow_adoption_forms").select("is_open").eq("cat_id", id).maybeSingle(),
+        // 有存好的任務版本才有「進行領養任務」（待領養貓的版本登入的人讀得到，0017）
+        sb.from("meow_cat_task_versions").select("id").eq("cat_id", id).limit(1),
       ]);
       if (!row) { setCat(null); return; }
       setCat({ ...fromCatRow(row), rawStatus: row.status, fromFoster: Boolean(row.origin_household_id) });
       setHome(row.household as Home);
       setFormOpen(Boolean(fm?.is_open));
+      setHasTasks(Boolean(ver?.length));
       fetch(`/api/cats/${id}/videos`).then(r => r.json()).then(d => setVideos(d.videos ?? [])).catch(() => {});
       if (user && row.household?.owner_id === user.id) {
         const { data: n } = await sb.rpc("meow_cat_favorite_count", { p_cat_id: id });
@@ -109,7 +113,9 @@ export default function CatPage() {
               <div className={s.tags}>{cat.personalityTags.map(t => <span key={t} className={s.tag}>{t}</span>)}</div>
             )}
             <div className={f.actions}>
-              {adoptable && formOpen && !isOwner && <CatButton href={`/cats/${id}/apply`}>填寫領養問卷</CatButton>}
+              {/* 沒登入時讀不到任務版本，也顯示按鈕，按下去先登入（規格 09 §6） */}
+              {adoptable && !isOwner && (hasTasks || !user) && <CatButton href={`/cats/${id}/run`}>進行領養任務</CatButton>}
+              {adoptable && formOpen && !isOwner && <CatButton variant={hasTasks || !user ? "ghost" : "primary"} href={`/cats/${id}/apply`}>填寫領養問卷</CatButton>}
               {adoptable && !isOwner && <MessageButton catId={id} />}
               {!isOwner && <FavoriteButton catId={id} />}
               {isOwner && <CatButton variant="ghost" size="sm" ears={false} href={`/cats/${id}/edit`}>修改這隻貓</CatButton>}

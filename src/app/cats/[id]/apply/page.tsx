@@ -28,6 +28,7 @@ export default function ApplyPage() {
   const [responseId, setResponseId] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
   const [hasHome, setHasHome] = useState(true);
+  const [taskDone, setTaskDone] = useState(true);
   const [answers, setAnswers] = useState<Answers>({});
   const [previews, setPreviews] = useState<Record<string, string>>({});
   const [step, setStep] = useState(0);
@@ -44,6 +45,9 @@ export default function ApplyPage() {
       ]);
       setCat(c);
       setHasHome(Boolean(homes?.length));
+      // 沒完成領養任務也能申請，送出前再提醒一次（規格 09 §7.4）
+      const { count: runs } = await sb.from("meow_task_runs").select("id", { count: "exact", head: true }).eq("cat_id", catId).eq("member_id", user.id).eq("status", "completed");
+      setTaskDone((runs ?? 0) > 0);
       if (!fm) { setForm(null); return; }
       const { data: mine } = await sb.from("meow_adoption_responses").select("id, status, answers, photo_paths").eq("form_id", fm.id).eq("respondent_id", user.id).neq("status", "declined").maybeSingle();
       if (!fm.is_open && !mine) { setForm(null); return; }
@@ -169,6 +173,9 @@ export default function ApplyPage() {
 
         {cur && cur.qs.map(q => <QuestionInput key={q.id} q={q} value={answers[q.id]} onChange={v => set(q.id, v)} previews={previews} onPhotos={files => addPhotos(q, files)} busy={busy} />)}
 
+        {!cur && !taskDone && (
+          <p className={f.warn}>完成{cat?.name ?? "這隻貓"}的領養任務會影響中途的判斷，強烈建議先完成。<a href={`/cats/${catId}/run`}>去做任務</a></p>
+        )}
         {!cur && (
           <dl className={s.answers}>
             {form.questions.filter(q => q.type !== "note").map(q => (
