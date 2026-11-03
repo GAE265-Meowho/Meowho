@@ -8,7 +8,10 @@ import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { FLOOR_TEXTURE, kitScale, kitUrl } from "@/lib/hq/floorplans/kit";
+import { freeSpot, obstacles, stepCat, wanderSpot, type CatState } from "@/lib/hq/floorplans/catwalk";
 import { focusScenes, houseScene, sceneBounds, type RoomScene, type SceneBox } from "@/lib/hq/floorplans/scene";
+import type { BodyType } from "@/lib/hq/cat-models/types";
+import { CatModel } from "./CatPreview";
 import type { PlanRoom } from "@/lib/hq/floorplans/types";
 
 // 牆用 meowho_3d_room 的牆面漆色
@@ -70,7 +73,8 @@ function Furniture({ b }: { b: SceneBox }) {
 }
 
 /** 地板：橡木貼圖，每 1.2 公尺重複一次 */
-function Floor({ b, onClick }: { b: SceneBox; onClick: () => void }) {
+/** onClick 帶點到的位置（這間房的座標，公尺）：虛擬體驗用來叫貓走過去 */
+function Floor({ b, onClick }: { b: SceneBox; onClick: (x: number, z: number) => void }) {
   const [color, normal] = useTexture([FLOOR_TEXTURE.color, FLOOR_TEXTURE.normal]);
   const maps = useMemo(() => [color, normal].map(t => {
     const c = t.clone();
@@ -82,24 +86,67 @@ function Floor({ b, onClick }: { b: SceneBox; onClick: () => void }) {
   }), [color, normal, b.sx, b.sz]);
   maps[0].colorSpace = THREE.SRGBColorSpace;
   return (
-    <mesh position={[b.x, b.y, b.z]} receiveShadow onClick={e => { e.stopPropagation(); onClick(); }}>
+    <mesh position={[b.x, b.y, b.z]} receiveShadow onClick={e => {
+      e.stopPropagation();
+      const local = e.object.worldToLocal(e.point.clone());  // 地板方塊中心 → 房間座標
+      onClick(local.x + b.x, local.z + b.z);
+    }}>
       <boxGeometry args={[b.sx, b.sy, b.sz]} />
       <meshStandardMaterial map={maps[0]} normalMap={maps[1]} roughness={0.55} />
     </mesh>
   );
 }
 
-function Room({ s, onPick }: { s: RoomScene; onPick: () => void }) {
+function Room({ s, onFloor, children }: { s: RoomScene; onFloor: (x: number, z: number) => void; children?: React.ReactNode }) {
   return (
     <group position={[s.offset[0], 0, s.offset[1]]}>
+      {children}
       {s.boxes.map((b, i) =>
         b.kind === "floor" ? (
-          <Suspense key={i} fallback={<Block b={b} color="#D9CCB4" />}><Floor b={b} onClick={onPick} /></Suspense>
+          <Suspense key={i} fallback={<Block b={b} color="#D9CCB4" />}><Floor b={b} onClick={onFloor} /></Suspense>
         ) : b.kind === "furniture" ? (
           <Suspense key={i} fallback={<Block b={b} color="#D8D2C8" />}><Furniture b={b} /></Suspense>
         ) : (
           <WallPiece key={i} b={b} />
         ))}
+    </group>
+  );
+}
+
+export interface ViewerCat { baseUrl: string; albedoUrl: string; body: BodyType }
+
+/**
+ * 虛擬體驗（#150）：貓在房間裡走。點地板＝目標；走路播 walk、停下播 idle；閒置 6 秒後自己找個空位逛過去。
+ * 移動規則在 src/lib/hq/floorplans/catwalk.ts（純函式、可測）。
+ */
+function CatActor({ s, look, target }: { s: RoomScene; look: ViewerCat; target: { x: number; z: number; at: number } | null }) {
+  const obs = useMemo(() => obstacles(s), [s]);
+  const start = useMemo(() => freeSpot(s, obs) ?? { x: s.size[0] / 2, z: s.size[1] / 2 }, [s, obs]);
+  const ref = useRef<THREE.Group>(null);
+  const cat = useRef<CatState>({ ...start, heading: 0, moving: false });
+  const goal = useRef<{ x: number; z: number } | null>(null);
+  const idle = useRef(0);
+  const [moving, setMoving] = useState(false);
+  useEffect(() => { if (target) goal.current = { x: target.x, z: target.z }; }, [target]);
+  useFrame((_, delta) => {
+    const dt = Math.min(delta, 0.1);
+    const next = stepCat(cat.current, goal.current, s, obs, dt);
+    if (next.moving) idle.current = 0;
+    else {
+      goal.current = null;
+      idle.current += dt;
+      if (idle.current > 6) { idle.current = 0; goal.current = wanderSpot(s, obs); }
+    }
+    cat.current = next;
+    ref.current?.position.set(next.x, 0, next.z);
+    ref.current?.rotation.set(0, next.heading, 0);
+    if (next.moving !== moving) setMoving(next.moving);
+  });
+  return (
+    <group ref={ref} position={[start.x, 0, start.z]}>
+      <Suspense fallback={null}>
+        <CatModel baseUrl={look.baseUrl} albedoUrl={look.albedoUrl} clip={moving ? "walk" : "idle"} follow={false} />
+      </Suspense>
     </group>
   );
 }
@@ -132,9 +179,14 @@ function CameraRig({ position, view }: { position: [number, number, number]; vie
 /**
  * 上方膠囊：「全部」＝讀圖完成的房間並排；點某間＝3D 只顯示那一間並重新取景，同時切換下方的原圖預覽（onPick）。
  */
-export default function FloorplanViewer({ rooms, selected, onPick }: { rooms: PlanRoom[]; selected: string | null; onPick: (id: string) => void }) {
+export default function FloorplanViewer({ rooms, selected, onPick, cat }: {
+  rooms: PlanRoom[]; selected: string | null; onPick: (id: string) => void;
+  /** 虛擬體驗（#150）：放一隻貓進去；有貓時只顯示單間（沒有「全部」），點地板叫貓走過去 */
+  cat?: ViewerCat | null;
+}) {
   const scenes = useMemo(() => houseScene(rooms), [rooms]);
-  const [focus, setFocus] = useState<string | null>(null);
+  const [focus, setFocus] = useState<string | null>(cat ? selected ?? scenes[0]?.id ?? null : null);
+  const [target, setTarget] = useState<{ x: number; z: number; at: number } | null>(null);
   const shown = useMemo(() => focusScenes(scenes, focus), [scenes, focus]);
   const { width, depth, height } = sceneBounds(shown);
   const half = Math.max(width, depth) / 2 + 2;
@@ -143,17 +195,17 @@ export default function FloorplanViewer({ rooms, selected, onPick }: { rooms: Pl
   const view = focus ?? "all";
   // 在下方房間清單切換時，單間模式跟著換到那一間（全部模式不動）
   useEffect(() => { setFocus(f => (f && selected && f !== selected ? selected : f)); }, [selected]);
-  const pick = (id: string) => { setFocus(id); onPick(id); };
+  const pick = (id: string) => { setFocus(id); setTarget(null); onPick(id); };
 
   return (
     <div className="hq-fp-3dwrap">
       {/* 房名放在 3D 上方：浮在場景裡的標籤在 React 19 會掉，手機也不好點 */}
       <div className="hq-row hq-fp-3dnames" role="group" aria-label="選房間">
-        {scenes.length > 1 && (
+        {scenes.length > 1 && !cat && (
           <button type="button" className={`hq-fp-3dlabel${focus === null ? " on" : ""}`} aria-pressed={focus === null} onClick={() => setFocus(null)}>全部</button>
         )}
         {scenes.map(s => {
-          const on = focus === s.id || (scenes.length === 1 && s.id === selected);
+          const on = focus === s.id || (scenes.length === 1 && (s.id === selected || !!cat));
           return <button key={s.id} type="button" className={`hq-fp-3dlabel${on ? " on" : ""}`} aria-pressed={on} onClick={() => pick(s.id)}>{s.name}</button>;
         })}
       </div>
@@ -167,7 +219,11 @@ export default function FloorplanViewer({ rooms, selected, onPick }: { rooms: Pl
             shadow-mapSize={[2048, 2048]} shadow-bias={-0.0004}
             shadow-camera-left={-half} shadow-camera-right={half} shadow-camera-top={half} shadow-camera-bottom={-half} />
           <group position={[-width / 2, 0, -depth / 2]}>
-            {shown.map(s => <Room key={s.id} s={s} onPick={() => pick(s.id)} />)}
+            {shown.map(s => (
+              <Room key={s.id} s={s} onFloor={(x, z) => (cat ? setTarget({ x, z, at: Date.now() }) : pick(s.id))}>
+                {cat && <CatActor key={`${s.id}:${cat.albedoUrl}`} s={s} look={cat} target={target} />}
+              </Room>
+            ))}
           </group>
           <OrbitControls target={[0, 0, 0]} maxPolarAngle={Math.PI / 2.1} minDistance={1.5} maxDistance={cam.dist * 2.5} makeDefault />
           <CameraRig position={cam.position} view={view} />

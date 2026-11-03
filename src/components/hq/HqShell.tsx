@@ -50,6 +50,7 @@ const SECTION_ICONS: Partial<Record<AssetSection, React.ReactNode>> = {
   food: <><path d="M3 12h18a9 6 0 0 1-18 0z" /><path d="M8 9c.5-1.5 1.5-2 3-2M13 8c1-1 2.5-1.2 3.5-.5" /></>,
   items: <><path d="M4 9h16v11H4z" /><path d="M4 9l2-5h12l2 5M10 13h4" /></>,
   others: <><circle cx="6" cy="12" r="1.3" /><circle cx="12" cy="12" r="1.3" /><circle cx="18" cy="12" r="1.3" /></>,
+  experience: <><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z" /><path d="M10 9.5v5l4.5-2.5z" /></>,
 };
 const MENU_SECTIONS = ASSET_SECTIONS.filter(s => !("parent" in s));
 

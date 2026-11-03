@@ -70,7 +70,7 @@ describe("#113 虛擬體驗元件管理分組", () => {
     </HqShell>
   );
   afterEach(() => { search = ""; });
-  it("「虛擬體驗元件管理」當分組標題，五個區塊是第一層、各有線條圖示；寶麗來、平面圖轉換不在選單（在室內空間頁）", () => {
+  it("「虛擬體驗元件管理」當分組標題，六個區塊是第一層（含 #150 虛擬體驗）、各有線條圖示；寶麗來、平面圖轉換不在選單（在室內空間頁）", () => {
     render(assets("/MeowHQ"));
     const group = screen.getByRole("list", { name: "虛擬體驗元件管理" });
     const links = Array.from(group.querySelectorAll("a")).map(a => [a.textContent, a.getAttribute("href")]);
@@ -80,6 +80,7 @@ describe("#113 虛擬體驗元件管理分組", () => {
       ["飼料", "/MeowHQ/assets?tab=food"],
       ["生活用品", "/MeowHQ/assets?tab=items"],
       ["其他", "/MeowHQ/assets?tab=others"],
+      ["虛擬體驗", "/MeowHQ/assets?tab=experience"],
     ]);
     for (const a of group.querySelectorAll("a")) expect(a.querySelector("svg")).not.toBeNull();
     expect(screen.queryByText("虛擬與科技體驗")).toBeNull();
