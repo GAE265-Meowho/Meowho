@@ -23,14 +23,31 @@ export const PLAN_ROOM_STATUS_LABELS: Record<PlanRoomStatus, string> = {
   uploaded: "待讀圖", reading: "讀圖中", ready: "完成", failed: "讀圖失敗",
 };
 
-/** 存在 meta.rooms 的一間房（PR 2 起會再加上 AI 讀出的 walls／openings／furniture／scale） */
-export interface PlanRoom {
+/** AI 讀出的格局（規格 §4.2），公尺、平面座標 (x, y) */
+export type Point = [number, number];
+export interface PlanWall { a: Point; b: Point; t: number }
+export interface PlanOpening { kind: "door" | "window"; wall: number; at: number; w: number; h: number; sill?: number }
+export interface PlanFurniture { kind: string; label: string; x: number; y: number; w: number; d: number; h: number; rot: number; surface?: "walkable" }
+export interface PlanGeometry {
+  scale: { m_per_px: number | null; source: "label" | "estimate" | "manual" };
+  wall_height_m: number;
+  walls: PlanWall[];
+  openings: PlanOpening[];
+  furniture: PlanFurniture[];
+}
+
+/** 存在 meta.rooms 的一間房；讀圖完成（ready）後才有格局欄位 */
+export interface PlanRoom extends Partial<PlanGeometry> {
   id: string;
   name: string;
   image_path: string;
   status: PlanRoomStatus;
   error?: string | null;
   created_at: string;
+  /** 開始讀圖的時間：讀圖中太久（函式中斷）時畫面可重新讀圖 */
+  read_started_at?: string | null;
+  ai_raw?: unknown;
+  edited?: boolean;
 }
 /** next：下一個房間編號。拿上傳網址時就先保留，刪掉的編號不重用，避免舊原圖對到新房間 */
 export interface FloorplanMeta { version: 1; next: number; rooms: PlanRoom[] }
@@ -76,6 +93,27 @@ export function reserveRoomKey(meta: FloorplanMeta): { id: string; meta: Floorpl
 }
 
 export const defaultRoomName = (meta: FloorplanMeta) => `房間 ${meta.rooms.length + 1}`;
+/** 是不是系統給的預設名稱（AI 讀出房名時只覆蓋預設名稱，不動管理員自己填的） */
+export const isDefaultRoomName = (name: string) => /^房間 \d+$/.test(name);
+
+/** 讀圖中超過這個時間視為中斷（Vercel 函式上限 120 秒，留一點餘裕），可以重新讀圖 */
+export const READ_STALE_MS = 3 * 60 * 1000;
+export const isReadStale = (room: Pick<PlanRoom, "status" | "read_started_at">, now: Date) =>
+  room.status === "reading" && (!room.read_started_at || now.getTime() - Date.parse(room.read_started_at) > READ_STALE_MS);
+/** 可以（重新）讀圖：待讀圖、失敗、完成（整間重跑）、或讀圖中斷 */
+export const canRead = (room: Pick<PlanRoom, "status" | "read_started_at">, now: Date) => room.status !== "reading" || isReadStale(room, now);
+
+/** 一戶的狀態（規格 §4.1）：任一房讀圖中 → running；有房失敗 → failed；其他 → ready */
+export function houseStatus(meta: FloorplanMeta): "running" | "ready" | "failed" {
+  if (meta.rooms.some(r => r.status === "uploaded" || r.status === "reading")) return "running";
+  return meta.rooms.some(r => r.status === "failed") ? "failed" : "ready";
+}
+
+/** 改一間房的欄位；房間不存在回 null */
+export function patchRoom(meta: FloorplanMeta, roomId: string, patch: Partial<PlanRoom>): FloorplanMeta | null {
+  if (!meta.rooms.some(r => r.id === roomId)) return null;
+  return { ...meta, rooms: meta.rooms.map(r => (r.id === roomId ? { ...r, ...patch } : r)) };
+}
 
 export type AddRoomProblem = "too_many_rooms" | "room_invalid";
 export function addRoom(meta: FloorplanMeta, room: PlanRoom): FloorplanMeta | AddRoomProblem {

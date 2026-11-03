@@ -4,9 +4,11 @@
 import type { MediaStore, UploadTarget } from "@/lib/storage/types";
 import { newRoomId } from "../rooms/types";
 import {
-  addRoom, checkPlan, cleanName, defaultRoomName, isHouseId, isOwnPlanPath, isRoomKey, MAX_ROOMS, planExt, planPath, readMeta, removeRoom, renameRoom,
-  reserveRoomKey, type FloorplanHouse, type FloorplanMeta, type FloorplanSummary, type PlanProblem,
+  addRoom, canRead, checkPlan, cleanName, defaultRoomName, houseStatus, isDefaultRoomName, isHouseId, isOwnPlanPath, isRoomKey, MAX_ROOMS, patchRoom, planExt,
+  planPath, readMeta, removeRoom, renameRoom, reserveRoomKey, type FloorplanHouse, type FloorplanMeta, type FloorplanSummary, type PlanProblem,
 } from "./types";
+import type { FloorplanRoomOut } from "@/lib/ai/schemas";
+import { normalizeReading } from "./read";
 
 const TABLE = "meow_room_models";
 const READ_TTL_SEC = 10 * 60;  // 規格 §7：原圖網址 10 分鐘有效
@@ -86,9 +88,12 @@ async function readHouse(sb: Db, id: string): Promise<Row | null> {
 export async function getHouse({ sb, store }: Deps, id: string): Promise<FloorplanHouse | null> {
   const row = await readHouse(sb, id);
   if (!row) return null;
-  const rooms = await Promise.all(readMeta(row.meta).rooms.map(async r => ({
-    ...r, imageUrl: store ? await store.readUrl(r.image_path, READ_TTL_SEC).catch(() => null) : null,
-  })));
+  // ai_raw 只留在資料庫除錯用，不送到畫面
+  const rooms = await Promise.all(readMeta(row.meta).rooms.map(async room => {
+    const r = { ...room };
+    delete r.ai_raw;
+    return { ...r, imageUrl: store ? await store.readUrl(r.image_path, READ_TTL_SEC).catch(() => null) : null };
+  }));
   return { id: row.id, name: row.name, updatedAt: row.updated_at, rooms };
 }
 
@@ -99,13 +104,14 @@ export async function getHouse({ sb, store }: Deps, id: string): Promise<Floorpl
 async function mutateMeta<C extends string, T>(
   deps: Deps, id: string, change: (meta: FloorplanMeta) => { meta: FloorplanMeta; value: T } | C,
 ): Promise<{ ok: true; value: T } | Fail<C | Common>> {
-  for (let attempt = 0; attempt < 3; attempt++) {
+  // 一戶多間同時讀圖完成時會互相撞版本，多試幾次
+  for (let attempt = 0; attempt < 5; attempt++) {
     const row = await readHouse(deps.sb, id);
     if (!row) return { ok: false, code: "not_found" };
     const result = change(readMeta(row.meta));
     if (typeof result === "string") return { ok: false, code: result };
     const { data, error } = await deps.sb.from(TABLE)
-      .update({ meta: result.meta, updated_at: (deps.now ?? new Date()).toISOString() })
+      .update({ meta: result.meta, status: houseStatus(result.meta), updated_at: (deps.now ?? new Date()).toISOString() })
       .eq("id", id).eq("updated_at", row.updated_at).select("id");
     if (error) return { ok: false, code: dbFail(error, "update") };
     if ((data as unknown[] | null)?.length) return { ok: true, value: result.value };
@@ -134,7 +140,7 @@ export async function createRoomUpload(deps: Deps, houseId: string, type: unknow
 
 /** 上傳第二步：確認原圖真的傳上去了，再把房間加進這一戶 */
 export async function addUploadedRoom(deps: Deps, houseId: string, input: { roomId: unknown; path: unknown; name: unknown }): Promise<
-  { ok: true } | Fail<"room_invalid" | "upload_missing" | "storage_disabled" | "too_many_rooms" | "name_required" | Common>
+  { ok: true; roomId: string } | Fail<"room_invalid" | "upload_missing" | "storage_disabled" | "too_many_rooms" | "name_required" | Common>
 > {
   const { roomId, path } = input;
   if (!isRoomKey(roomId) || !isOwnPlanPath(houseId, roomId, path)) return { ok: false, code: "room_invalid" };
@@ -155,7 +161,7 @@ export async function addUploadedRoom(deps: Deps, houseId: string, input: { room
     await deps.store.remove(path as string);  // 沒加進去的原圖不留著
     return r;
   }
-  return { ok: true };
+  return { ok: true, roomId };
 }
 
 export async function renameHouseRoom(deps: Deps, houseId: string, roomId: string, name: unknown): Promise<{ ok: true } | Fail<"name_required" | Common>> {
@@ -186,4 +192,48 @@ export async function deleteHouse(deps: Deps, houseId: string): Promise<{ ok: tr
   // 戶刪掉後原圖一併刪（含上傳到一半、沒加進房間的）
   if (deps.store) for (const p of await deps.store.list(`floorplans/${houseId}/`)) await deps.store.remove(p);
   return { ok: true };
+}
+
+/** AI 讀圖：讀不到（未設定、逾時、格式錯）回 null。正式入口是 src/lib/ai/server.ts 的 readFloorplanRoom */
+export type FloorplanReader = (mime: string, bytes: Uint8Array, roomName: string | null) => Promise<FloorplanRoomOut | null>;
+
+/**
+ * 讀圖第一步：把房間標成「讀圖中」。回傳 run，由 API 用 after() 在背景執行（約 20～60 秒），畫面輪詢看結果。
+ * 讀圖中（且還沒逾時）的房間不重複開始。
+ */
+export async function startRoomRead(deps: Deps, houseId: string, roomId: unknown, reader: FloorplanReader): Promise<
+  { ok: true; run: () => Promise<void> } | Fail<"room_invalid" | "storage_disabled" | Common>
+> {
+  if (!isRoomKey(roomId)) return { ok: false, code: "room_invalid" };
+  if (!deps.store) return { ok: false, code: "storage_disabled" };
+  const startedAt = (deps.now ?? new Date()).toISOString();
+  const r = await mutateMeta(deps, houseId, meta => {
+    const room = meta.rooms.find(x => x.id === roomId);
+    if (!room) return "not_found" as const;
+    if (!canRead(room, deps.now ?? new Date())) return "busy" as const;
+    return { meta: patchRoom(meta, roomId, { status: "reading", error: null, read_started_at: startedAt })!, value: room };
+  });
+  if (!r.ok) return r;
+  const room = r.value;
+  return { ok: true, run: () => finishRoomRead(deps, houseId, roomId, room.image_path, room.name, startedAt, reader) };
+}
+
+async function finishRoomRead(
+  deps: Deps, houseId: string, roomId: string, imagePath: string, roomName: string, startedAt: string, reader: FloorplanReader,
+): Promise<void> {
+  const bytes = await deps.store!.download(imagePath).catch(() => null);
+  const out = bytes ? await reader(imagePath.endsWith(".png") ? "image/png" : "image/jpeg", bytes, isDefaultRoomName(roomName) ? null : roomName) : null;
+  const result = !bytes ? { ok: false as const, error: "讀不到原圖，請重新上傳" }
+    : !out ? { ok: false as const, error: "AI 讀圖失敗或逾時，請重新讀圖" }
+      : normalizeReading(out);
+  await mutateMeta(deps, houseId, meta => {
+    const room = meta.rooms.find(x => x.id === roomId);
+    // 讀圖期間房間被刪掉，或已經又開始了新的一次讀圖：這次結果不寫入
+    if (!room || room.read_started_at !== startedAt) return "not_found" as const;
+    const patch = result.ok
+      ? { ...result.geometry, status: "ready" as const, error: null, ai_raw: out, edited: false,
+        ...(result.name && isDefaultRoomName(room.name) ? { name: result.name } : {}) }
+      : { status: "failed" as const, error: result.error, ...(out ? { ai_raw: out } : {}) };
+    return { meta: patchRoom(meta, roomId, patch)!, value: undefined };
+  });
 }

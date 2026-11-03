@@ -1,0 +1,21 @@
+{
+  "isFloorplan": true,
+  "name": "客廳",
+  "scale": { "mPerPx": 0.012, "source": "label" },
+  "wallHeightM": null,
+  "walls": [
+    { "ax": 0, "ay": 0, "bx": 4.2, "by": 0, "t": 0.15 },
+    { "ax": 4.2, "ay": 0, "bx": 4.2, "by": 3.6, "t": 0.15 },
+    { "ax": 4.2, "ay": 3.6, "bx": 0, "by": 3.6, "t": null },
+    { "ax": 0, "ay": 3.6, "bx": 0, "by": 0, "t": 0.15 }
+  ],
+  "openings": [
+    { "kind": "door", "wall": 0, "at": 1.2, "w": 0.9 },
+    { "kind": "window", "wall": 1, "at": 0.8, "w": 1.5 }
+  ],
+  "furniture": [
+    { "kind": "sofa", "label": "沙發", "x": 1.5, "y": 2.9, "w": 2.1, "d": 0.9, "rot": 0 },
+    { "kind": "tv_stand", "label": "電視櫃", "x": 1.5, "y": 0.4, "w": 1.8, "d": 0.45, "rot": 0 },
+    { "kind": "chair", "label": "單椅", "x": 3.6, "y": 2.0, "w": 0.6, "d": 0.6, "rot": 90 }
+  ]
+}

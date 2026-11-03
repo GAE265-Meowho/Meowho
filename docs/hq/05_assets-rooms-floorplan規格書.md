@@ -101,6 +101,9 @@ alter table public.meow_room_models
 - Prompt 重點：只讀這一張圖的一間房；牆用中心線端點；門窗掛在牆上；家具只用限定清單；回傳比例來源（label／estimate）。
 - 後端驗證：牆至少 3 段且大致封閉、尺寸在合理範圍（單邊 1–20 m、家具不超出房間）；不合格就標 `failed` 並顯示原因，可「重新讀圖」。
 - 逾時：route 設 `maxDuration = 120`。
+- 觸發（PR 3）：房間上傳確認後由 `after()` 背景自動讀圖；`POST /api/hq/rooms/floorplan/read` 立即回 202，畫面每 4 秒輪詢。讀圖中超過 3 分鐘視為中斷，可重新讀圖。
+- AI 輸出用扁平欄位（`ax, ay, bx, by`），門窗只讀牆、位置、寬度；門高 2.1 m、窗高 1.2 m（窗台 0.9 m）、家具高度依種類給預設值，由 `src/lib/hq/floorplans/read.ts` 整理成 §4.2 格式。
+- 房名：只有預設名稱「房間 N」會被 AI 讀出的房名取代，管理員自己填的不動（並當作提示送給 AI）。
 
 ## 6. 3D 產生（前端）
 
@@ -120,7 +123,7 @@ alter table public.meow_room_models
 
 1. ✅ Migration `0015` ＋ 型別、Blob 上傳 SAS API（#138 PR 1）。
 2. ✅ 一戶清單、新增一戶、新增房間上傳、原圖預覽、改名、刪除（#138 PR 1）。
-3. AI 讀圖 API（structured output＋驗證）＋測試用固定 JSON。
+3. ✅ AI 讀圖 API（structured output＋驗證）＋測試用固定 JSON；上傳後自動讀圖、可重新讀圖（#138 PR 3）。
 4. `FloorplanViewer`：JSON → 3D 娃娃屋並排＋碰撞。
 5. 點房間進第一人稱＋放貓。
 6. 2D 線框修正編輯器。
