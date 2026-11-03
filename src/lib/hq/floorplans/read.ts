@@ -29,17 +29,47 @@ const round = (n: number) => Math.round(n * 1000) / 1000;
 const finite = (n: unknown): n is number => typeof n === "number" && Number.isFinite(n);
 const dist = (p: Point, q: Point) => Math.hypot(p[0] - q[0], p[1] - q[1]);
 
+/**
+ * 靠牆家具（Tina 2026-11-03：照片推估的家具位置偏差大）：AI 只要說靠哪面牆、大概在牆的哪一段，
+ * 由這裡把家具貼齊牆的內側、背面朝牆，並限制在牆的範圍內。
+ * 方向：模型背面在 rot=0 時朝平面 -y（scene.ts 的 rotY = -rot），要讓背面朝向牆外 (nx, ny)。
+ */
+export function snapToWall(wall: PlanWall, walls: PlanWall[], f: { x: number; y: number; w: number; d: number }): { x: number; y: number; rot: number } {
+  const L = dist(wall.a, wall.b);
+  const ux = (wall.b[0] - wall.a[0]) / L, uy = (wall.b[1] - wall.a[1]) / L;
+  // 牆外側：兩個法線中，遠離所有牆端點中心的那一個
+  const pts = walls.flatMap(w => [w.a, w.b]);
+  const cx = pts.reduce((s, p) => s + p[0], 0) / pts.length, cy = pts.reduce((s, p) => s + p[1], 0) / pts.length;
+  let nx = -uy, ny = ux;
+  const mx = (wall.a[0] + wall.b[0]) / 2 - cx, my = (wall.a[1] + wall.b[1]) / 2 - cy;
+  if (nx * mx + ny * my < 0) { nx = -nx; ny = -ny; }
+  // 沿牆位置：AI 的中心投影到牆上，家具不超出牆的兩端
+  const half = Math.min(f.w, L) / 2;
+  const s = Math.min(Math.max((f.x - wall.a[0]) * ux + (f.y - wall.a[1]) * uy, half), L - half);
+  const inset = wall.t / 2 + f.d / 2 + 0.01;
+  const x = wall.a[0] + ux * s - nx * inset, y = wall.a[1] + uy * s - ny * inset;
+  // 背面朝牆外：rot=0 背面朝 (0, -1)；轉 rot 度後背面＝(sin, -cos)…以 rotY=-rot 的 three.js 慣例換算
+  const rot = (Math.atan2(nx, -ny) * 180) / Math.PI;
+  return { x: round(x), y: round(y), rot: round(((rot % 360) + 360) % 360) };
+}
+
 export function normalizeReading(out: FloorplanRoomOut): ReadResult {
   if (out.kind === "other") return { ok: false, error: "看起來不是平面圖或室內照片，請換一張" };
 
-  const walls: PlanWall[] = out.walls
-    .filter(w => [w.ax, w.ay, w.bx, w.by].every(finite))
-    .map(w => ({
+  // 丟掉不合格的牆；門窗、家具的牆索引要跟著換成整理後的索引（index：AI 給的 → 整理後）
+  const index = new Map<number, number>();
+  const walls: PlanWall[] = [];
+  out.walls.forEach((w, i) => {
+    if (![w.ax, w.ay, w.bx, w.by].every(finite)) return;
+    const wall = {
       a: [round(w.ax), round(w.ay)] as Point,
       b: [round(w.bx), round(w.by)] as Point,
       t: finite(w.t) && w.t > 0 && w.t <= 0.5 ? round(w.t) : DEFAULT_WALL_T_M,
-    }))
-    .filter(w => dist(w.a, w.b) > 0.05);
+    };
+    if (dist(wall.a, wall.b) <= 0.05) return;
+    index.set(i, walls.length);
+    walls.push(wall);
+  });
   if (walls.length < 3) return { ok: false, error: "AI 讀到的牆少於 3 面，請重新讀圖" };
 
   // 大致封閉：每個端點都要接到另一面牆的端點
@@ -58,15 +88,16 @@ export function normalizeReading(out: FloorplanRoomOut): ReadResult {
 
   // 門窗：牆索引要存在；超出牆長的部分截掉，截完太窄就丟掉
   const openings: PlanOpening[] = out.openings.flatMap(o => {
-    const wall = walls[o.wall];
-    if (!wall || !finite(o.at) || !finite(o.w)) return [];
+    const wi = index.get(o.wall);
+    const wall = wi === undefined ? undefined : walls[wi];
+    if (!wall || wi === undefined || !finite(o.at) || !finite(o.w)) return [];
     const len = dist(wall.a, wall.b);
     const at = Math.max(0, o.at);
     const w = Math.min(o.w, len - at);
     if (w < 0.3) return [];
     return [o.kind === "door"
-      ? { kind: "door" as const, wall: o.wall, at: round(at), w: round(w), h: DOOR_H_M }
-      : { kind: "window" as const, wall: o.wall, at: round(at), w: round(w), h: WINDOW_H_M, sill: WINDOW_SILL_M }];
+      ? { kind: "door" as const, wall: wi, at: round(at), w: round(w), h: DOOR_H_M }
+      : { kind: "window" as const, wall: wi, at: round(at), w: round(w), h: WINDOW_H_M, sill: WINDOW_SILL_M }];
   });
 
   // 家具：尺寸要合理、中心要在房間內（容許畫圖誤差）
@@ -74,9 +105,13 @@ export function normalizeReading(out: FloorplanRoomOut): ReadResult {
     x >= box.minX - FURNITURE_TOL_M && x <= box.maxX + FURNITURE_TOL_M && y >= box.minY - FURNITURE_TOL_M && y <= box.maxY + FURNITURE_TOL_M;
   const furniture: PlanFurniture[] = out.furniture.flatMap(f => {
     if (![f.x, f.y, f.w, f.d].every(finite) || f.w <= 0.1 || f.d <= 0.1 || f.w > ROOM_SIDE_MAX_M || f.d > ROOM_SIDE_MAX_M || !inside(f.x, f.y)) return [];
+    const wi = f.wall === null ? undefined : index.get(f.wall);
+    const snapped = wi === undefined ? null : snapToWall(walls[wi], walls, { x: f.x, y: f.y, w: f.w, d: f.d });
     const item: PlanFurniture = {
       kind: f.kind, label: f.label.trim().slice(0, 20) || f.kind,
-      x: round(f.x), y: round(f.y), w: round(f.w), d: round(f.d), h: FURNITURE_HEIGHT_M[f.kind], rot: finite(f.rot) ? round(f.rot) : 0,
+      ...(snapped ?? { x: round(f.x), y: round(f.y), rot: finite(f.rot) ? round(f.rot) : 0 }),
+      w: round(f.w), d: round(f.d), h: FURNITURE_HEIGHT_M[f.kind],
+      ...(wi !== undefined && snapped ? { wall: wi } : {}),
     };
     return [WALKABLE.has(f.kind) ? { ...item, surface: "walkable" as const } : item];
   });
