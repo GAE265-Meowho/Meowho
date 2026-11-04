@@ -16,7 +16,7 @@ MeowHQ「室內空間」的轉換程式：從 Supabase 的 `meow_room_jobs` 領�
 | `pipeline/*.py` | 各步驟（切物品、家具外框、場景輸出等） |
 | `assets/furniture/` | 家具網格模型（`build_scene.py` 會用到） |
 
-> 原始開發環境在珮瑜電腦的 `3Dtest/`（含檢視器與實驗檔）。**之後改 worker 請改這裡**。
+> **這裡是正本**（2026-11-05 起）。珮瑜電腦的 `3Dtest/` 只做實驗（含檢視器與實驗檔），改好要搬回這裡。
 
 ## 安裝（macOS / Apple Silicon）
 ```bash
