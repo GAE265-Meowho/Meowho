@@ -14,7 +14,9 @@
 .count { color:var(--hq-sub); margin:0 0 1rem; }
 .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:var(--item-gap); }
 .card { border:1px solid var(--hq-line); background:var(--hq-card); border-radius:var(--item-radius); overflow:hidden; min-width:0; display:flex; flex-direction:column; }
-.preview { position:relative; aspect-ratio:4/3; margin:.75rem; background:var(--hq-sage-soft); border-radius:8px; display:grid; place-items:center; color:var(--hq-sage-ink); font-size:.85rem; }
+.preview { position:relative; aspect-ratio:4/3; margin:.75rem; background:var(--hq-sage-soft); border-radius:8px; display:grid; place-items:center; color:var(--hq-sage-ink); font-size:.85rem; overflow:hidden; min-height:160px; }
+.preview :global(.hq-item-preview) { position:absolute; inset:0; }
+.preview :global(.hq-item-preview), .preview :global(canvas) { width:100%; height:100%; display:block; }
 .copy { padding:0 1rem 1rem; flex:1; display:flex; flex-direction:column; gap:.35rem; }
 .copy h3 { font-size:1rem; margin:.4rem 0 0; overflow-wrap:anywhere; }
 .en { color:var(--hq-sub); font-size:.8rem; margin:0; }

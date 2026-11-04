@@ -1,5 +1,6 @@
 "use client";
 // 生活用品（#197）：上傳 .glb、類別管理、左側篩選；資料在 meow_items／meow-items。
+import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { HqSaveButton } from "@/components/hq/HqStates";
 import { measureGlbFile } from "@/lib/hq/items/glb-bounds";
@@ -10,6 +11,11 @@ import {
 import { getBrowserSupabase } from "@/lib/supabase/client";
 import { deleteJson, hintError, postJson } from "./useCatModels";
 import styles from "./itemsTab.module.css";
+
+const ItemPreview = dynamic(() => import("./ItemPreview").then(m => m.ItemPreview), {
+  ssr: false,
+  loading: () => <div className={styles.preview}>載入預覽…</div>,
+});
 
 const API = "/api/hq/items";
 const ERRORS: Record<string, string> = {
@@ -38,12 +44,14 @@ export function ItemsTab() {
   const [formError, setFormError] = useState<string | null>(null);
   const [sizeWarn, setSizeWarn] = useState<string | null>(null);
   const [newCat, setNewCat] = useState("");
-  const [name, setName] = useState("貓砂盆");
-  const [nameEn, setNameEn] = useState("Litter Box");
+  const [name, setName] = useState("");
+  const [nameEn, setNameEn] = useState("");
   const [categoryId, setCategoryId] = useState("litter_box");
-  const [price, setPrice] = useState("1127");
+  const [price, setPrice] = useState("");
   const [instructions, setInstructions] = useState("");
   const [file, setFile] = useState<File | null>(null);
+  const [fileKey, setFileKey] = useState(0);
+  const [localPreview, setLocalPreview] = useState<string | null>(null);
   const [dims, setDims] = useState<{ widthM: number; depthM: number; heightM: number } | null>(null);
 
   const visible = useMemo(() => filterItems(items, filter), [items, filter]);
@@ -64,7 +72,12 @@ export function ItemsTab() {
 
   useEffect(() => { void reload(); }, [reload]);
 
+  function clearLocalPreview() {
+    setLocalPreview(old => { if (old) URL.revokeObjectURL(old); return null; });
+  }
+
   async function onPickFile(f: File | null) {
+    clearLocalPreview();
     setFile(f);
     setDims(null);
     setSizeWarn(null);
@@ -72,6 +85,7 @@ export function ItemsTab() {
     if (!f) return;
     if (!f.name.toLowerCase().endsWith(".glb")) { setFormError(ERRORS.file_invalid); setFile(null); return; }
     if (f.size > MAX_ITEM_BYTES) { setFormError(ERRORS.file_too_large); setFile(null); return; }
+    setLocalPreview(URL.createObjectURL(f));
     try {
       const m = await measureGlbFile(f);
       setDims({ widthM: m.widthM, depthM: m.depthM, heightM: m.heightM });
@@ -79,6 +93,13 @@ export function ItemsTab() {
     } catch {
       setFormError("無法讀取模型尺寸，仍可上傳，但請稍後確認比例。");
     }
+  }
+
+  function resetForm(defaultCategory = categoryId) {
+    clearLocalPreview();
+    setName(""); setNameEn(""); setPrice(""); setInstructions("");
+    setFile(null); setFileKey(k => k + 1); setDims(null); setSizeWarn(null); setFormError(null);
+    setCategoryId(defaultCategory);
   }
 
   async function upload() {
@@ -102,7 +123,7 @@ export function ItemsTab() {
       modelPath: ticket.path,
       widthM: dims?.widthM, depthM: dims?.depthM, heightM: dims?.heightM,
     }, ERRORS);
-    setFile(null); setDims(null); setSizeWarn(null); setInstructions("");
+    resetForm(categoryId);
     await reload();
   }
 
@@ -157,8 +178,13 @@ export function ItemsTab() {
         </div>
         <label className="hq-label">使用說明<textarea className="hq-input" rows={2} value={instructions} onChange={e => setInstructions(e.target.value)} maxLength={4000} /></label>
         <label className="hq-label">3D 模型（.glb，最大 20MB）
-          <input type="file" accept=".glb,model/gltf-binary" onChange={e => void onPickFile(e.target.files?.[0] ?? null)} />
+          <input key={fileKey} type="file" accept=".glb,model/gltf-binary" onChange={e => void onPickFile(e.target.files?.[0] ?? null)} />
         </label>
+        {localPreview && (
+          <div className={styles.preview} aria-label="上傳前預覽">
+            <ItemPreview url={localPreview} label={name || file?.name || "模型"} />
+          </div>
+        )}
         {dims && <p className="hq-hint">量到尺寸：{dims.widthM} × {dims.depthM} × {dims.heightM} m</p>}
         {sizeWarn && <p className={styles.warn} role="status">{sizeWarn}</p>}
         {formError && <p className={styles.warn} role="alert">{formError}</p>}
@@ -191,7 +217,9 @@ export function ItemsTab() {
           <div className={styles.grid}>
             {visible.map(it => (
               <article key={it.id} className={styles.card}>
-                <div className={styles.preview} aria-hidden="true">.glb</div>
+                <div className={styles.preview}>
+                  <ItemPreview url={it.modelUrl} label={it.name} />
+                </div>
                 <div className={styles.copy}>
                   <div className={styles.tags}><span>{it.categoryName}</span></div>
                   <h3>{it.name}</h3>
