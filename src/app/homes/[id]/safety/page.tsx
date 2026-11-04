@@ -2,19 +2,19 @@
 // 居家安全檢測（規格 09 v0.6 §7.2、§8；#62）：
 // - 有產生好的報告（喵戶卡片的「查看報告」）：顯示最新一份，下方列出檢測紀錄（日期、來源、風險項目數量），可點選看舊的；「再檢測一次」走單獨檢測。
 // - 還沒有報告：單獨檢測的畫面，只做檢查、不建 3D 房間。
-// ⚠ 單獨檢測的上傳與 AI 風險偵測後端還沒做：上傳按鈕先用 data-proto 顯示提示，不接真的上傳。
+// ⚠ 單獨檢測的上傳與 AI 風險偵測後端還沒做：按鈕直接產生一份示範報告（/api/homes/[id]/safety，內容在 lib/home-room.ts）。
 //   接上時：原始檔放私有 bucket `meow-home-videos`，伺服器建 `meow_env_reports`（room_model_id = null、status = 'queued'），
 //   產生報告與風險裁切照（`meow-home-risk-crops`）後，成功或失敗都立即刪除原始檔（決策 007）。舊報告不覆蓋，每份都留成檢測紀錄。
 // 報告只有本人讀得到（RLS），分享給中途要在對話串主動分享（meow_share_env_report）。
 import { useParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/components/Auth";
 import { SiteHeader, TabBar } from "@/components/Chrome";
 import s from "@/components/me/me.module.css";
 import f from "@/components/onboarding/intake.module.css";
 import CatButton from "@/components/ui/CatButton";
 import Icon from "@/components/ui/Icon";
-import { SAFETY_ONLY_PRIVACY, SHOOTING_TIPS, safetyRecords, type ReportRow } from "@/lib/home-room";
+import { SAFETY_ONLY_PRIVACY, SHOOTING_TIPS, demoReportRow, safetyRecords, type ReportRow } from "@/lib/home-room";
 import { getBrowserSupabase } from "@/lib/supabase/client";
 import r from "../scene/scene.module.css";
 import k from "./safety.module.css";
@@ -32,13 +32,34 @@ export default function SafetyPage() {
   const [rows, setRows] = useState<Row[] | undefined>(undefined);
   const [picked, setPicked] = useState<string | null>(null);
   const [again, setAgain] = useState(false);
+  const [making, setMaking] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    if (!sb) return;
+    const { data } = await sb.from("meow_env_reports").select("id, status, room_model_id, created_at, items, summary").eq("household_id", id).order("created_at", { ascending: false });
+    setRows((data ?? []) as Row[]);
+  }, [sb, id]);
 
   useEffect(() => {
     if (!sb) { setRows([]); return; }
     if (loading || !user) return;
-    sb.from("meow_env_reports").select("id, status, room_model_id, created_at, items, summary").eq("household_id", id).order("created_at", { ascending: false })
-      .then(({ data }) => setRows((data ?? []) as Row[]));
-  }, [loading, sb, user, id]);
+    load();
+  }, [loading, sb, user, load]);
+
+  // 「開始檢測」「上傳影片或照片」：目前直接產生示範報告，新報告加進檢測紀錄
+  async function check() {
+    setMaking(true); setError(null);
+    if (!sb) {
+      // 示範模式（沒有資料庫）：只在畫面上加一份
+      setRows(v => [{ id: crypto.randomUUID(), ...demoReportRow(id, null, new Date()) }, ...(v ?? [])]);
+    } else {
+      const res = await fetch(`/api/homes/${id}/safety`, { method: "POST" }).then(x => x.json()).catch(() => null);
+      if (!res?.reportId) { setError("安全檢測失敗，請再試一次。"); setMaking(false); return; }
+      await load();
+    }
+    setPicked(null); setAgain(false); setMaking(false);
+  }
 
   const records = rows ? safetyRecords(rows) : [];
   const busy = rows?.some(x => x.status === "queued" || x.status === "running") ?? false;
@@ -52,7 +73,7 @@ export default function SafetyPage() {
     </section>
   );
   else if (rows === undefined) body = <p className={f.lead} role="status">載入中…</p>;
-  else if (busy && (again || !shown)) body = (
+  else if (making || (busy && (again || !shown))) body = (
     <section className={`${f.card} ${f.center}`} role="status">
       <h2>正在產生你家的安全報告</h2>
       <p className={f.lead}>你可以先離開，好了會通知你。</p>
@@ -119,10 +140,11 @@ export default function SafetyPage() {
 
       {/* 單獨檢測前的說明是業務規則要求的聲明（決策 007），用一般內文字級 */}
       <p className={f.lead}>{SAFETY_ONLY_PRIVACY}</p>
-      {/* 上傳還沒接：外層 data-proto 讓點擊顯示「製作中」提示（Providers.tsx） */}
-      <div className={f.actions} data-proto="居家安全檢測">
-        <CatButton><Icon name="video" size={18} />開始檢測</CatButton>
-        <CatButton variant="ghost"><Icon name="plus" size={18} />上傳影片或照片</CatButton>
+      {error && <p className={f.error} role="alert">{error}</p>}
+      {/* 錄影、上傳還沒接：兩個按鈕都直接產生示範報告 */}
+      <div className={f.actions}>
+        <CatButton onClick={check}><Icon name="video" size={18} />開始檢測</CatButton>
+        <CatButton variant="ghost" onClick={check}><Icon name="plus" size={18} />上傳影片或照片</CatButton>
       </div>
       {again && <div className={f.actions}><CatButton variant="ghost" onClick={() => setAgain(false)}>回到報告</CatButton></div>}
     </>

@@ -48,3 +48,25 @@ export function safetyRecords<T extends ReportRow>(reports: T[]): SafetyRecord<T
     .sort((a, b) => b.created_at.localeCompare(a.created_at))
     .map(r => ({ ...r, source: r.room_model_id ? "建立 3D 房間時" : "單獨檢測", riskCount: Array.isArray(r.items) ? r.items.length : 0 }));
 }
+
+// ---------- 示範報告（AI 環境安全檢查接上前先用） ----------
+// ⚠ 單獨檢測、建立 3D 房間時的報告目前都是這份固定內容，由 /api/homes/[id]/safety 與 /api/homes/[id]/room 寫入 meow_env_reports。
+//   接上 AI 風險偵測後，改成建 status = 'queued' 的報告、背景產生 items 與風險裁切照（meow-home-risk-crops），再刪掉這段。
+export const DEMO_REPORT_ITEMS = [
+  { key: "window", label: "窗戶沒有紗窗", level: "high", note: "貓可能從窗戶跳出或摔落。開窗前先裝好紗窗或防墜網。" },
+  { key: "plant", label: "陽台的盆栽", level: "high", note: "有些植物對貓有毒，例如百合。不確定的植物先移到貓碰不到的地方。" },
+  { key: "cable", label: "電視櫃後面的電線", level: "medium", note: "貓可能會咬電線。把電線收進收納盒或套上保護套。" },
+  { key: "small", label: "桌上的髮圈和橡皮筋", level: "medium", note: "小東西容易被貓吞下去，用完收進抽屜。" },
+  { key: "trash", label: "沒有蓋子的垃圾桶", level: "low", note: "貓可能翻垃圾桶找食物，換成有蓋子的比較安心。" },
+] as const;
+
+export const DEMO_REPORT_SUMMARY = "家裡大部分的地方對貓都很友善，有幾個地方建議在貓來之前先處理，高風險的優先。";
+
+/** 示範報告的一筆：單獨檢測 roomId 為 null，建立 3D 房間時填房間 id */
+export function demoReportRow(householdId: string, roomId: string | null, now: Date) {
+  const at = now.toISOString();
+  return {
+    household_id: householdId, room_model_id: roomId, status: "ready", summary: DEMO_REPORT_SUMMARY,
+    items: DEMO_REPORT_ITEMS.map(i => ({ ...i })), created_at: at, ready_at: at,
+  };
+}
