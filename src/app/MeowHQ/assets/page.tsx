@@ -10,6 +10,7 @@ import { RoomsTab } from "@/components/hq/assets/RoomsTab";
 import { RoomVideoTab } from "@/components/hq/assets/RoomVideoTab";
 import { FloorplanTab } from "@/components/hq/assets/FloorplanTab";
 import { ExperienceTab } from "@/components/hq/assets/ExperienceTab";
+import { ItemsTab } from "@/components/hq/assets/ItemsTab";
 import { PlannedTab } from "@/components/hq/assets/PlannedTab";
 import { HqModuleGuard } from "@/components/hq/HqActor";
 import { HqPageHeader } from "@/components/hq/HqPageHeader";
@@ -18,7 +19,6 @@ import { useListQuery } from "@/components/hq/list/HqList";
 
 const PLANNED: Record<string, string> = {
   "rooms-polaroid": "把寶麗來（拍立得）照片轉成室內場景",
-  items: "碗、貓砂盆、玩具、貓抓板",
   others: "風險點示範動畫等不屬於前幾類的元件",
 };
 
@@ -30,10 +30,14 @@ function AssetsPage() {
   return (
     <>
       <HqPageHeader title={`虛擬體驗元件管理｜${section.label}`}
-        sub={tab === "food" ? "分類瀏覽食物照片、規格與 TWD 參考價；詳細資訊連至皇家官方。" : tab === "experience" ? "選一隻虛擬貓和一戶喵戶，把貓放進 3D 室內空間互動。" : "虛擬貓咪新手照顧體驗會用到的 3D 元件。"} />
+        sub={tab === "food" ? "分類瀏覽食物照片、規格與 TWD 參考價；詳細資訊連至皇家官方。"
+          : tab === "experience" ? "選一隻虛擬貓和一戶喵戶，把貓放進 3D 室內空間互動；可再選生活用品放到房間。"
+          : tab === "items" ? "上傳生活用品 .glb、管理類別與篩選；虛擬體驗可把用品放到房間。"
+          : "虛擬貓咪新手照顧體驗會用到的 3D 元件。"} />
       {parent && <Link href={assetSectionHref(parent.value)} className="hq-back">← {parent.label}</Link>}
       {tab === "cats" ? <CatsTab query={query} update={update} />
         : tab === "food" ? <FoodTab />
+        : tab === "items" ? <ItemsTab />
         : tab === "rooms" ? <RoomsTab />
         : tab === "rooms-video" ? <RoomVideoTab />
         : tab === "rooms-floorplan" ? <FloorplanTab />

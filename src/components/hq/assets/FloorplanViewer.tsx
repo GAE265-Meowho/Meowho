@@ -9,11 +9,24 @@ import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import { FLOOR_TEXTURE, kitScale, kitUrl } from "@/lib/hq/floorplans/kit";
 import { goalForBox, idleAction, stepActor, worldOf, type Actor, type Goal } from "@/lib/hq/floorplans/catjump";
-import { CAT_SCALE, freeSpot, obstacles } from "@/lib/hq/floorplans/catwalk";
+import { CAT_SCALE, freeSpot, obstacles, type Obstacle } from "@/lib/hq/floorplans/catwalk";
 import { focusScenes, houseScene, sceneBounds, type RoomScene, type SceneBox } from "@/lib/hq/floorplans/scene";
 import type { BodyType } from "@/lib/hq/cat-models/types";
 import { CatModel } from "./CatPreview";
 import type { PlanRoom } from "@/lib/hq/floorplans/types";
+
+/** 虛擬體驗放置的生活用品（#197）：位置在該房間座標，尺寸為公尺 */
+export interface PlacedHouseholdItem {
+  key: string;
+  roomId: string;
+  url: string;
+  name: string;
+  x: number;
+  z: number;
+  widthM: number;
+  depthM: number;
+  heightM: number;
+}
 
 // 牆用 meowho_3d_room 的牆面漆色
 const COLORS = { wall: "#EEE9E0", glass: "#BFD8E3" };
@@ -74,6 +87,29 @@ function Furniture({ b, onClick }: { b: SceneBox; onClick?: (e: ThreeEvent<Mouse
   );
 }
 
+/** 生活用品：依量到的公尺尺寸縮放，底部貼地；貓會繞過（obstacle） */
+function PlacedItemModel({ item }: { item: PlacedHouseholdItem }) {
+  const { scene } = useGLTF(item.url);
+  const prepared = useMemo(() => {
+    const m = scene.clone(true);
+    m.traverse(o => { if ((o as THREE.Mesh).isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+    const box = new THREE.Box3().setFromObject(m);
+    const size = box.getSize(new THREE.Vector3());
+    const sx = item.widthM / Math.max(size.x, 1e-4);
+    const sy = item.heightM / Math.max(size.y, 1e-4);
+    const sz = item.depthM / Math.max(size.z, 1e-4);
+    return { m, scale: [sx, sy, sz] as [number, number, number], y: -box.min.y * sy };
+  }, [scene, item.widthM, item.heightM, item.depthM]);
+  return (
+    <primitive object={prepared.m} position={[item.x, prepared.y, item.z]} scale={prepared.scale}
+      onClick={(e: ThreeEvent<MouseEvent>) => e.stopPropagation()} />
+  );
+}
+
+function itemObstacles(items: PlacedHouseholdItem[]): Obstacle[] {
+  return items.map(i => ({ x: i.x, z: i.z, hx: i.widthM / 2, hz: i.depthM / 2, rotY: 0 }));
+}
+
 /** 地板：橡木貼圖，每 1.2 公尺重複一次 */
 function Floor({ b, onClick }: { b: SceneBox; onClick: (e: ThreeEvent<MouseEvent>) => void }) {
   const [color, normal] = useTexture([FLOOR_TEXTURE.color, FLOOR_TEXTURE.normal]);
@@ -128,8 +164,11 @@ export interface ViewerCat { baseUrl: string; albedoUrl: string; body: BodyType 
  * 規則在 catwalk.ts、catjump.ts（純函式、可測）；貓放大 CAT_SCALE 倍（真實比例在整間房的鏡頭裡太小）。
  * pos：貓的世界座標，給鏡頭跟隨用。
  */
-function CatActor({ s, look, click, pos }: { s: RoomScene; look: ViewerCat; click: (RoomClick & { at: number }) | null; pos: React.RefObject<THREE.Vector3> }) {
-  const world = useMemo(() => worldOf(s, obstacles(s)), [s]);
+function CatActor({ s, look, click, pos, extraObs }: {
+  s: RoomScene; look: ViewerCat; click: (RoomClick & { at: number }) | null; pos: React.RefObject<THREE.Vector3>;
+  extraObs: Obstacle[];
+}) {
+  const world = useMemo(() => worldOf(s, [...obstacles(s), ...extraObs]), [s, extraObs]);
   const start = useMemo(() => freeSpot(s, world.obs) ?? { x: s.size[0] / 2, z: s.size[1] / 2 }, [s, world]);
   const ref = useRef<THREE.Group>(null);
   const cat = useRef<Actor>({ ...start, y: 0, heading: 0, moving: false, on: null, jump: null });
@@ -217,10 +256,15 @@ function CameraRig({ position, view }: { position: [number, number, number]; vie
 /**
  * 上方膠囊：「全部」＝讀圖完成的房間並排；點某間＝3D 只顯示那一間並重新取景，同時切換下方的原圖預覽（onPick）。
  */
-export default function FloorplanViewer({ rooms, selected, onPick, cat }: {
+export default function FloorplanViewer({ rooms, selected, onPick, cat, placedItems = [], placeMode = false, onPlace }: {
   rooms: PlanRoom[]; selected: string | null; onPick: (id: string) => void;
   /** 虛擬體驗（#150）：放一隻貓進去；有貓時只顯示單間（沒有「全部」），點地板叫貓走過去 */
   cat?: ViewerCat | null;
+  /** 虛擬體驗（#197）：已放進房間的生活用品 */
+  placedItems?: PlacedHouseholdItem[];
+  /** 放置模式：點地板改放用品，不叫貓走 */
+  placeMode?: boolean;
+  onPlace?: (roomId: string, x: number, z: number) => void;
 }) {
   const scenes = useMemo(() => houseScene(rooms), [rooms]);
   const [focus, setFocus] = useState<string | null>(cat ? selected ?? scenes[0]?.id ?? null : null);
@@ -259,11 +303,21 @@ export default function FloorplanViewer({ rooms, selected, onPick, cat }: {
             shadow-mapSize={[2048, 2048]} shadow-bias={-0.0004}
             shadow-camera-left={-half} shadow-camera-right={half} shadow-camera-top={half} shadow-camera-bottom={-half} />
           <group position={[-width / 2, 0, -depth / 2]}>
-            {shown.map(s => (
-              <Room key={s.id} s={s} onClick={c => (cat ? setClick({ ...c, at: Date.now() }) : pick(s.id))}>
-                {cat && <CatActor key={`${s.id}:${cat.albedoUrl}`} s={s} look={cat} click={click} pos={catPos} />}
-              </Room>
-            ))}
+            {shown.map(s => {
+              const roomItems = placedItems.filter(i => i.roomId === s.id);
+              return (
+                <Room key={s.id} s={s} onClick={c => {
+                  if (!cat) { pick(s.id); return; }
+                  if (placeMode && c.box === null && onPlace) { onPlace(s.id, c.x, c.z); return; }
+                  setClick({ ...c, at: Date.now() });
+                }}>
+                  {roomItems.map(item => (
+                    <Suspense key={item.key} fallback={null}><PlacedItemModel item={item} /></Suspense>
+                  ))}
+                  {cat && <CatActor key={`${s.id}:${cat.albedoUrl}`} s={s} look={cat} click={click} pos={catPos} extraObs={itemObstacles(roomItems)} />}
+                </Room>
+              );
+            })}
           </group>
           <OrbitControls target={[0, 0, 0]} maxPolarAngle={Math.PI / 2.1} minDistance={cat ? 0.8 : 1.5} maxDistance={cat ? Math.max(cam.dist * 3, 12) : cam.dist * 2.5} makeDefault />
           <CameraRig position={cam.position} view={view} />
