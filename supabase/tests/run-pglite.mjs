@@ -420,6 +420,37 @@ try {
   }
 }
 
+// 0019（喵戶頭像）：0001→0018 後跑 0019 兩次，喵戶長能存自己喵戶的頭像路徑、不能存網址
+{
+  const m = new PGlite();
+  const base = read("./stub_supabase.sql") + ["0001_meow", "0002_meow_hq", "0003_meow_site_assets", "0004_meow_cat_profile", "0005_meow_cat_models", "0006_meow_household_roles", "0007_meow_adoption_forms", "0008_meow_cat_favorites", "0009_meow_cat_returns", "0010_meow_adoption_notify", "0011_meow_threads", "0012_meow_thread_homed", "0013_meow_decline_reason_transfer", "0014_meow_room_models", "0014_meow_returns_in_threads", "0015_meow_room_floorplan", "0016_meow_cat_model_variants", "0017_meow_adoption_tasks", "0018_meow_task_templates_seed"]
+    .map((f) => read(`../migrations/${f}.sql`)).join("");
+  const id = (n) => `00000000-0000-0000-0000-0000000019${n}`;
+  try {
+    await m.exec(base);
+    await m.exec(read("../migrations/0019_meow_household_avatar.sql"));
+    await m.exec(read("../migrations/0019_meow_household_avatar.sql"));
+    await m.exec(`insert into auth.users (id, email) values ('${id("a0")}', 'h@av19.example');
+      insert into public.meow_profiles (id, email, display_name) values ('${id("a0")}', 'h@av19.example', 'h');
+      insert into public.meow_households (id, owner_id, name, caretaker_type, city, district) values ('${id("d0")}', '${id("a0")}', '黃家', 'cat_owner', '桃園市', '中壢區');`);
+    const one = async (sql) => Object.values((await m.query(sql)).rows[0] ?? {})[0];
+    const eq = (name, expected, actual) =>
+      results.push({ name, status: String(actual) === String(expected) ? "PASS" : "FAIL", detail: String(actual) === String(expected) ? null : `預期 ${expected}，實際 ${actual}` });
+    await m.exec(`begin;
+      select set_config('request.jwt.claim.sub', '${id("a0")}', true);
+      set local role authenticated;
+      update public.meow_households set avatar_path = '${id("a0")}/households/a.jpg' where id = '${id("d0")}';
+      commit;`);
+    eq("AV-1 喵戶長能存自己喵戶的頭像路徑", `${id("a0")}/households/a.jpg`, await one(`select avatar_path from public.meow_households where id = '${id("d0")}'`));
+    let blocked = "no";
+    try { await m.exec(`update public.meow_households set avatar_path = 'https://evil.example/a.jpg' where id = '${id("d0")}'`); } catch { blocked = "yes"; }
+    eq("AV-2 只存路徑，不能存網址", "yes", blocked);
+  } catch (e) {
+    console.error(`✗ 0019 測試中斷：${e.message}`);
+    process.exit(1);
+  }
+}
+
 let failed = 0;
 for (const r of results) {
   if (r.status === "FAIL") failed++;
