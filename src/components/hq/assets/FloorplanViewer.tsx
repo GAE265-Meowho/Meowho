@@ -157,7 +157,8 @@ function CatActor({ s, look, click, pos }: { s: RoomScene; look: ViewerCat; clic
       }
     }
     cat.current = actor;
-    ref.current?.position.set(actor.x, actor.y, actor.z);
+    // 抬高 1 公分：走路動作的腳掌會略低於地面，貼著檯面時看起來像陷進去
+    ref.current?.position.set(actor.x, actor.y + 0.01, actor.z);
     ref.current?.rotation.set(0, actor.heading, 0);
     ref.current?.getWorldPosition(pos.current);
     if (next !== clip) setClip(next);
