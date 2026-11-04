@@ -139,6 +139,21 @@
 .hq-stack { display: flex; flex-direction: column; align-items: flex-start; gap: .15rem; min-width: 0; }
 .hq-stack .hq-hint { font-size: .85rem; white-space: nowrap; }
 .hq-clamp2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+/* 已建立的貓咪模型列表（Tina 2026-11-04）：正方形縮圖不被表格擠壓、備註欄限寬、表頭與按鈕不換行；
+   平板寬度（<1200px）收起備註與建立者欄，改在名稱下方各一行 */
+.hq-thumb.hq-thumb-lg { width: 56px; height: 56px; min-width: 56px; max-width: none; flex: none; aspect-ratio: 1; object-fit: cover; }
+.hq-catlist .hq-table th { white-space: nowrap; }
+.hq-catlist .hq-table td[data-label="貓咪模型"] { min-width: 200px; }
+.hq-catlist .hq-table td[data-label="進度"] { min-width: 140px; }
+.hq-catlist .hq-table td[data-label="備註說明"] { max-width: 200px; width: 200px; color: var(--hq-sub); font-size: .9rem; }
+.hq-catlist .hq-table td[data-label="建立者／更新"], .hq-catlist .hq-table td[data-label="操作"] { white-space: nowrap; width: 1%; }
+.hq-catlist .hq-catnote { display: none; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (min-width: 768px) and (max-width: 1199px) {
+  .hq-catlist .hq-table th:nth-child(3), .hq-catlist .hq-table td[data-label="備註說明"],
+  .hq-catlist .hq-table th:nth-child(4), .hq-catlist .hq-table td[data-label="建立者／更新"] { display: none; }
+  .hq-catlist .hq-catnote { display: block; }
+  .hq-catlist .hq-table td[data-label="貓咪模型"] { min-width: 0; }
+}
 .hq-progress { display: flex; flex-direction: column; gap: .3rem; min-width: 140px; max-width: 180px; }
 .hq-progress-head { display: flex; justify-content: space-between; font-size: .85rem; font-weight: 500; color: var(--hq-sub); }
 .hq-progress.warn .hq-progress-head { color: var(--hq-caramel-ink); }

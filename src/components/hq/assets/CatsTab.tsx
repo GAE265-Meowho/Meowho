@@ -95,12 +95,15 @@ export function CatsTab({ query, update }: { query: ListQuery & { page: number }
       render: c => (
         <span className="hq-catcell">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img className="hq-thumb" src={catFileUrl(c.id, "photo")} alt="" width={44} height={44} loading="lazy" />
+          <img className="hq-thumb hq-thumb-lg" src={catFileUrl(c.id, "photo")} alt="" width={56} height={56} loading="lazy" />
           <span className="hq-stack">
             <Link href={catHref(c)} onClick={e => e.stopPropagation()}>{c.name}</Link>
             {/* #181：前台中途建的貓顯示所屬喵戶 */}
             {c.household && <span className="hq-hint">喵戶：{c.household.name}</span>}
             {c.builtin && <span className="hq-tag mute">示範貓</span>}
+            {/* 窄畫面（平板）時備註、建立者欄收起，改在名稱下方各顯示一行 */}
+            {c.notes && <span className="hq-hint hq-catnote" title={c.notes}>{c.notes}</span>}
+            <span className="hq-hint hq-catnote">{c.createdBy ?? "—"}・{formatCatTime(c.updatedAt)}</span>
           </span>
         </span>
       ),
@@ -138,7 +141,9 @@ export function CatsTab({ query, update }: { query: ListQuery & { page: number }
         empty={{ message: "還沒有貓咪模型。按上方「新增貓咪模型」上傳照片開始。", actionLabel: "重新整理", onAction: reload }}
         onClear={() => update({ q: undefined, status: undefined })}
       >
-        <HqTable rows={page.rows} columns={columns} rowKey={c => c.id} onSelect={c => router.push(catHref(c))} />
+        <div className="hq-catlist">
+          <HqTable rows={page.rows} columns={columns} rowKey={c => c.id} onSelect={c => router.push(catHref(c))} />
+        </div>
         <HqPager page={page.page} pageCount={page.pageCount} total={page.total} onPage={p => update({ page: p })} />
       </HqListBody>
     </>
