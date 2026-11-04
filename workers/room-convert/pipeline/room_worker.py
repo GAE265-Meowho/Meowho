@@ -6,8 +6,11 @@
   加 --once 處理完目前的工作就結束
 
 本機資料夾內容：room.json（狀態）、source.*（原始影片）、result/（成果）。
-本機模式每間房間一個資料夾；Supabase 模式讀 meow_room_jobs，成果傳到 meow-room-models。
-成功後刪除原始影片、影格和中間檔（決策 007）；失敗時保留影片，可以把狀態改回 queued 重試。
+本機模式每間房間一個資料夾；Supabase 模式讀 meow_room_jobs：
+  後台房間（owner_household_id 是 null）：影片在 meow-room-videos，成果傳到公開的 meow-room-models。
+  前台我的 3D 房間（有 owner_household_id）：影片在 meow-home-videos，成果傳到私有的 meow-home-scenes/<喵戶>/<房間>/，
+    完成或失敗都通知喵戶長；環境報告由另一支 worker 做，兩邊都處理完才刪影片（決策 007）。
+後台房間成功後刪除原始影片、影格和中間檔（決策 007）；失敗時保留影片，可以把狀態改回 queued 重試。
 """
 import argparse
 import json
@@ -28,6 +31,8 @@ ROOT = Path(__file__).resolve().parent.parent
 POLL_SECONDS = 5
 VIDEO_BUCKET = "meow-room-videos"
 RESULT_BUCKET = "meow-room-models"
+HOME_VIDEO_BUCKET = "meow-home-videos"
+HOME_RESULT_BUCKET = "meow-home-scenes"
 RESULT_FILES = ["scene.json", "scene.cameras.json", "scene.layout.json"]
 THUMB = "thumb.jpg"
 
@@ -158,6 +163,35 @@ def claim(sb):
     return job if done else None
 
 
+def object_labels(scene_json):
+    """給前台任務找家具用的物品清單（meta.objects[].label，網站的 roomFurniture() 讀，名稱要是中文才對得到 placeFor()）。"""
+    from catalog import NAMES_ZH
+    labels = [o.get("label") for o in json.loads(scene_json.read_text()).get("objects", [])]
+    return [{"label": NAMES_ZH.get(l, l)} for l in dict.fromkeys(l for l in labels if l)]
+
+
+def finish_home(sb, room_id, household, video_path, ok):
+    """前台房間處理完：通知喵戶長；環境報告也處理完了才刪影片並寫 raw_deleted_at，否則留給報告那支 worker 刪。"""
+    try:
+        owner = sb.rest("GET", f"meow_households?id=eq.{household}&select=owner_id")[0]["owner_id"]
+        sb.rest("POST", "meow_notifications", {
+            "user_id": owner, "type": "home_room_ready" if ok else "home_room_failed",
+            "title": "你家的 3D 房間建好了" if ok else "3D 房間沒有建成功",
+            "body": "來看看，沒問題就按「完成」。" if ok else "請照拍攝須知重新拍一次。",
+            "link": f"/homes/{household}/scene"})
+    except (OSError, IndexError, KeyError) as e:
+        print(f"[worker] {room_id}：通知沒送出：{e}", flush=True)
+    try:
+        pending = sb.rest("GET", f"meow_env_reports?room_model_id=eq.{room_id}&status=in.(queued,running)&select=id")
+        if pending:
+            print(f"[worker] {room_id}：環境報告還沒好，影片留給報告那邊刪", flush=True)
+            return
+        sb.remove(HOME_VIDEO_BUCKET, video_path)
+        sb.rest("PATCH", f"meow_room_models?id=eq.{room_id}", {"video_path": None, "raw_deleted_at": now()})
+    except OSError as e:
+        print(f"[worker] {room_id}：雲端影片沒刪掉，請手動刪除 {HOME_VIDEO_BUCKET}/{video_path}：{e}", flush=True)
+
+
 def report_failed(sb, room_row, job_row, error):
     try:
         sb.rest("PATCH", room_row, {"status": "failed", "updated_at": now()})
@@ -185,35 +219,45 @@ def run_next_supabase(sb):
     print(f"[worker] 開始 {room_id}", flush=True)
     work = ROOT / "rooms" / "worker_tmp" / room_id
     set_step = lambda step: sb.rest("PATCH", job_row, {"step": step})
+    household = video_path = None
     try:
         sb.rest("PATCH", room_row, {"status": "running", "updated_at": now()})
         work.mkdir(parents=True, exist_ok=True)
-        row = sb.rest("GET", f"{room_row}&select=video_path,meta")[0]
-        video_path = row["video_path"]
+        row = sb.rest("GET", f"{room_row}&select=video_path,meta,owner_household_id")[0]
+        video_path, household = row["video_path"], row.get("owner_household_id")
         if not video_path:
             raise RuntimeError("沒有影片，可能已經轉換過")
         video = work / Path(video_path).name
         set_step("下載影片")
-        sb.download(VIDEO_BUCKET, video_path, video)
+        sb.download(HOME_VIDEO_BUCKET if household else VIDEO_BUCKET, video_path, video)
         convert(video, room_id, set_step, work / "result", work / "worker.log")
         set_step("上傳成果")
-        # 路徑用隨機名稱：bucket 是公開的，不能從房間 ID 猜到網址
-        result_path = f"results/{secrets.token_hex(8)}"
+        # 前台：私有 bucket，路徑第一層要是喵戶 id（RLS 才讀得到）；後台：bucket 是公開的，用隨機名稱讓人猜不到網址
+        bucket, result_path = (HOME_RESULT_BUCKET, f"{household}/{room_id}") if household else (RESULT_BUCKET, f"results/{secrets.token_hex(8)}")
         for f in (work / "result").rglob("*"):
             if f.is_file():
-                sb.upload(RESULT_BUCKET, f"{result_path}/{f.relative_to(work / 'result').as_posix()}", f)
-        # meta 也放上傳時的備註，只加上縮圖檔名，不覆蓋其他欄位
+                sb.upload(bucket, f"{result_path}/{f.relative_to(work / 'result').as_posix()}", f)
+        # meta 也放上傳時的備註，只加上縮圖檔名（前台再加物品清單），不覆蓋其他欄位
         meta = {**(row.get("meta") or {}), **({"thumb": THUMB} if (work / "result" / THUMB).exists() else {})}
-        sb.rest("PATCH", room_row, {"status": "ready", "result_path": result_path, "video_path": None, "meta": meta, "updated_at": now()})
+        if household:
+            meta["objects"] = object_labels(work / "result" / "scene.json")
+        # 前台的影片要等環境報告也好了才刪（finish_home），這裡先不清 video_path
+        sb.rest("PATCH", room_row, {"status": "ready", "result_path": result_path, "meta": meta, "updated_at": now(),
+                                    **({} if household else {"video_path": None})})
         sb.rest("PATCH", job_row, {"status": "done", "step": None, "finished_at": now()})
         print(f"[worker] {room_id}：ready", flush=True)
-        try:  # 房間已經 ready，影片刪不掉只留警告，不能再改成失敗
-            sb.remove(VIDEO_BUCKET, video_path)
-        except OSError as e:
-            print(f"[worker] {room_id}：雲端影片沒刪掉，請手動刪除 {video_path}：{e}", flush=True)
-    except Exception as e:  # 任何錯誤都要回報，不然工作會卡在 running；失敗時保留雲端影片，方便重試
+        if household:
+            finish_home(sb, room_id, household, video_path, ok=True)
+        else:
+            try:  # 房間已經 ready，影片刪不掉只留警告，不能再改成失敗
+                sb.remove(VIDEO_BUCKET, video_path)
+            except OSError as e:
+                print(f"[worker] {room_id}：雲端影片沒刪掉，請手動刪除 {video_path}：{e}", flush=True)
+    except Exception as e:  # 任何錯誤都要回報，不然工作會卡在 running；後台失敗時保留雲端影片，方便重試
         print(f"[worker] {room_id}：failed {e!r}", flush=True)
         report_failed(sb, room_row, job_row, str(e) or "轉換失敗")
+        if household and video_path:  # 前台失敗也要刪影片（決策 007），飼主重新拍一次
+            finish_home(sb, room_id, household, video_path, ok=False)
     finally:
         shutil.rmtree(work, ignore_errors=True)
     return True

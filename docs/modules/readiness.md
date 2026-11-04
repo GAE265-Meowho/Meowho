@@ -1,6 +1,6 @@
 # 模組：準備度評估（readiness）
 
-> 最後更新：2026-11-04｜子哲 × Claude Code（#161 房間模型 API 交接給珮瑜）
+> 最後更新：2026-11-04｜珮瑜 × Claude Code（#161 前台我的 3D 房間接上影片轉換）
 > 規則：本檔隨程式碼同一個 PR 更新；「決策」與「地雷」只增不刪（過時的標註［已失效］）。
 
 ## 目的
@@ -59,6 +59,11 @@
 | 7. 拿掉示範 | `src/lib/home-room.ts` 的 `DEMO_REPORT_ITEMS`、`demoReportRow`；`src/lib/task-run.ts` 的 `DEFAULT_ROOM_FURNITURE`；兩支 API 的示範段落 | 真流程在正式站跑通後再刪；已經建的示範房間和報告可以留著 |
 | 8. 任務裡的 3D（之後） | `src/app/cats/[id]/run/page.tsx` 的舞台（`s.stage`） | 換成房間檢視器＋把貓放進房間，依任務的 `action` 和 `placeFor` 找到的家具播動作；`textOnly` 時維持文字情境 |
 
+**進度（2026-11-04 珮瑜）**：第 1、2、3、5 步已接上（`feat/161-home-room-video`）。
+- 上傳路徑是 `<household_id>/<隨機 uuid>.mp4|mov`（`isHomeVideoPath()` 檢查），房間 id 由伺服器產生；同一個喵戶已有 `queued`／`running` 的房間時回 `409 room_busy`。
+- 預覽讀檔走 `GET /api/homes/[id]/room/[roomId]/[...file]`：用登入者身分查房間（RLS），換 10 分鐘 signed URL 再轉過去；檢視器沿用 `RoomViewer`。
+- worker（`workers/room-convert`）看 `owner_household_id` 分流；成果路徑 `meow-home-scenes/<household_id>/<房間 id>/`；物品清單從 `scene.json` 轉成中文（`catalog.py` 的 `NAMES_ZH`）寫進 `meta.objects`；完成、失敗都寫通知（`home_room_ready`／`home_room_failed`）。
+- **給做環境報告（第 4 步）的人**：影片在 `meow_room_models.video_path`（`meow-home-videos`）。房間 worker 處理完時若報告還是 `queued`／`running`，影片會留著；報告處理完時若房間已不是 `queued`／`running`，就由報告那邊刪影片、把房間的 `video_path` 設 null、寫 `raw_deleted_at`。
 - 不需要新的 migration：0017 已建好上面的 bucket、policy、欄位。要改資料庫時新開 migration，執行前給子哲確認。
 - 要一直保持通過的測試：`src/lib/home-room.test.ts`（按鈕狀態、檢測紀錄）、`src/lib/task-run.test.ts`（家具替換）。
 - AI 摘要（`meow_task_runs.summary`）還沒做：完成任務後由伺服器（service role）寫入，對話框的任務證明已經會顯示。
@@ -95,6 +100,8 @@
 - 植物不可直接判定有毒，只提示查證。
 - ［已失效］居家影片在貓咪移轉完成時刪除原檔（改見決策 007 與 spec 09）。
 - 會員家裡的 3D 房間後台（virtual_assets）也看不到，處理一律走伺服器 service role。
+- 房間和環境報告剛好同時處理完時，兩邊都以為對方還沒好，影片會留著沒刪；之後要加每天清一次的檢查。
+- worker 中斷（`fail_stale`）標成失敗的前台房間不會通知、也不會刪影片。
 
 ## 變更紀錄
 | 日期 | 發起人 × 工具 | 變更 | PR |
@@ -102,3 +109,4 @@
 | 2026-10-28 | Tina × Claude Code | 建立模組文件 | — |
 | 2026-11-03 | 子哲 × Claude Code | 目標流程 spec 09、0017 資料表 | — |
 | 2026-11-04 | 子哲 × Claude Code | 建立 3D 房間拿掉環境檢查詢問；喵戶卡片按鈕依狀態切換；居家安全檢測報告頁與檢測紀錄 | （見 PR） |
+| 2026-11-04 | 珮瑜 × Claude Code | 前台我的 3D 房間接上影片轉換：上傳、建房間＋排工作＋環境報告、worker 寫私有 bucket 與通知、預覽與完成 | （見 PR） |

@@ -7,3 +7,10 @@
   display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%;
   background: var(--yellow-soft); color: var(--ink); font-weight: 700;
 }
+
+/* 預覽：沿用 MeowHQ 的房間檢視器（RoomViewer），它的 hq-* class 在前台沒有樣式，這裡補上會用到的 */
+.viewer :global(.hq-roomviewer) { display: flex; flex-direction: column; gap: 12px; }
+.viewer :global(.hq-roomviewer-host) { position: relative; height: min(60vh, 520px); border-radius: 20px; overflow: hidden; background: var(--yellow-soft); }
+.viewer :global(.hq-roomviewer-stage) { position: absolute; inset: 0; }
+.viewer :global(.hq-roomviewer-loading) { position: absolute; inset: 24px; z-index: 1; }
+.viewer :global(.hq-roomviewer-bar) { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 12px; color: var(--ink-soft); }
