@@ -20,6 +20,7 @@ from pathlib import Path
 
 import numpy as np
 
+from plan_objects import load_plan
 from train_3dgs import read_gaussian_ply, ply_to_splat
 
 # 一起放進提示詞的干擾詞：沒列出的東西容易被硬套成目標（例如腳踏車被當成清淨機）
@@ -153,8 +154,8 @@ def main():
     ap.add_argument("ply", type=Path, help="訓練輸出的 scene.ply")
     ap.add_argument("--frames", type=Path, required=True, help="訓練用的原始影格資料夾")
     ap.add_argument("--cameras", type=Path, help="預設為 <ply>.cameras.json")
-    ap.add_argument("--object", action="append", required=True, metavar='名稱="英文描述"',
-                    help='要切的物品，可重複，例如 --object backpack="a backpack"')
+    ap.add_argument("--object", action="append", default=[], metavar='名稱="英文描述"',
+                    help='要切的物品，可重複，例如 --object backpack="a backpack"；沒給時讀 objects_plan.json')
     ap.add_argument("--multi", action="append", default=[], metavar="名稱",
                     help="這個物品有好幾個（例如鞋子），每一團各自輸出成 名稱_1、名稱_2…")
     ap.add_argument("--min-cluster", type=int, default=80, help="--multi 時一團至少幾顆高斯")
@@ -168,6 +169,14 @@ def main():
     ap.add_argument("--reuse", action="store_true", help="沿用上次的 votes.npz，只重調門檻與分群（幾秒完成）")
     ap.add_argument("--out", type=Path, help="預設為 <ply 所在資料夾>/objects")
     args = ap.parse_args()
+    if not args.object:
+        plan = load_plan(args.ply)
+        if not plan:
+            ap.error("要給 --object，或先跑 plan_objects.py 產生 objects_plan.json")
+        args.object = [f"{o['name']}={o['prompt']}" for o in plan["objects"]]
+        args.multi += [o["name"] for o in plan["objects"] if o["multiple"]]
+        # 大型家具常只入鏡一部分，和原本床、沙發一樣放寬門檻
+        args.vote_for += [f"{o['name']}=0.3" for o in plan["objects"] if o["kind"] == "solid"]
 
     try:
         import torch

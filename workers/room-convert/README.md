@@ -33,6 +33,7 @@ pip install -r requirements.txt torch torchvision "transformers>=4.56"
 ```
 NEXT_PUBLIC_SUPABASE_URL=
 SUPABASE_SERVICE_ROLE_KEY=
+GEMINI_API_KEY=            # AI 辨識房間有哪些物品，必填
 ```
 ```bash
 cd workers/room-convert
@@ -46,7 +47,9 @@ caffeinate -i python3 pipeline/room_worker.py --supabase    # 開著終端機分
 ```bash
 pipeline/room_demo.sh 影片.mp4 房間名稱
 ```
-結果在 `rooms/<名稱>/`。最後一步打包網站需要 3Dtest 的檢視器檔案，這裡沒有；worker 會自動略過（`SKIP_SITE=1`）。
+結果在 `rooms/<名稱>/`。物品清單在 `pipeline/catalog.py`（描述、類型、材質寫死），AI 只勾選房間有哪幾樣。
+
+測試：`python3 pipeline/test_room_worker.py`
 
 ## 注意
 - 只有完整品質（房間每秒 3 張影格、訓練 7000 步），2026-11-03 起刪除快速模式。

@@ -13,33 +13,14 @@ from pathlib import Path
 import numpy as np
 import open3d as o3d
 
+from catalog import AFFORDANCES, CATALOG, dynamic, fixed
+from plan_objects import load_plan
 from train_3dgs import read_gaussian_ply
 
 NOTHING = {"jump_on": False, "hide_under": False, "push": False, "play": False}
 
 
-def fixed(surface):
-    return {"body": "fixed", "surface": surface}
-
-
-def dynamic(mass, surface):
-    return {"body": "dynamic", "mass_kg": mass, "collider": "convex_hull", "surface": surface}
-
-
-# 互動屬性對照表：依標籤查，不呼叫 AI。沒列到的標籤一律當成不能互動的固定物。
-# surface 是 physics.js 的材質，決定摩擦力、彈性和碰撞音色
-AFFORDANCES = {
-    "bed":      ({"jump_on": True},                     fixed("soft")),
-    "sofa":     ({"jump_on": True, "hide_under": True}, fixed("soft")),
-    "desk":     ({"jump_on": True, "hide_under": True}, fixed("wood")),
-    "table":    ({"jump_on": True, "hide_under": True}, fixed("wood")),
-    "cup":      ({"push": True},                        dynamic(0.3, "glass")),
-    "shoe":     ({"push": True, "play": True},          dynamic(0.4, "plastic")),
-    "backpack": ({"push": True},                        dynamic(1.5, "soft")),
-    "purifier": ({},                                    fixed("plastic")),
-    "trash_can": ({},                                   fixed("plastic")),
-    "towel":    ({},                                    fixed("soft")),
-}
+# 互動屬性和物理都在 catalog.py 的物品目錄調，不呼叫 AI。目錄沒有的標籤用 objects_plan.json 估的值，再沒有才當成固定物。
 ALIASES = {"shoes": "shoe"}
 # 模型庫：size 是對齊外框用的基準尺寸（床取到床墊頂面，貓才站得剛好），hide 是實物沒有的零件
 # 床面積大才烘貼圖，杯子、垃圾桶這類小物只用單色
@@ -54,6 +35,28 @@ def label_of(name):
     """shoes_2 → shoe"""
     base = re.sub(r"_\d+$", "", name)
     return ALIASES.get(base, base)
+
+
+def affordance_of(label, plan):
+    """對照表的數值是調過的，優先用；新標籤用 plan_objects.py 估的材質、重量和互動。"""
+    if label in AFFORDANCES:
+        return AFFORDANCES[label]
+    for o in (plan or {}).get("objects", []):
+        if label_of(o["name"]) == label:
+            if o["kind"] == "movable":
+                return {"push": True}, dynamic(o["mass_kg"], o["material"])
+            return {"jump_on": o["jump_on"], "hide_under": o["hide_under"]}, fixed(o["material"])
+    for s in (plan or {}).get("surfaces", []):
+        if label_of(s["name"]) == label:
+            return {"jump_on": True, "hide_under": s["hide_under"]}, fixed(s["material"])
+    return {}, fixed("plastic")
+
+
+def name_zh(label, plan):
+    """目錄的中文名稱，沒有就用 AI 補充物品給的；都沒有時檢視器會顯示英文標籤。"""
+    if label in CATALOG:
+        return CATALOG[label]["zh"]
+    return next((o.get("name_zh") for o in (plan or {}).get("objects", []) if label_of(o["name"]) == label), None)
 
 
 def hull_points(ply, layout, center, max_points=48):
@@ -74,14 +77,15 @@ def hull_points(ply, layout, center, max_points=48):
     return np.round(pts, 4).tolist()
 
 
-def to_object(o, splats, meshes, objects_dir, layout):
+def to_object(o, splats, meshes, objects_dir, layout, plan):
     label = label_of(o["name"])
-    aff, physics = AFFORDANCES.get(label, ({}, fixed("plastic")))
+    aff, physics = affordance_of(label, plan)
     x, y, z = o["floor_pos_m"]
     w, h, d = o["size_m"]
     item = {
         "id": o["name"],
         "label": label,
+        "name_zh": name_zh(label, plan),
         "box": {"center": [x, round(y + h / 2, 4), z], "size": [w, h, d], "yaw": o.get("yaw", 0)},
         "affordance": {**NOTHING, **aff},
         "physics": physics,
@@ -110,15 +114,39 @@ def to_object(o, splats, meshes, objects_dir, layout):
     return item
 
 
+def rotate(p, yaw):
+    """地板座標 (N,2) 的 (x, z) 轉到房間方向：第一軸是 (cos, sin)，和家具外框的 yaw 同一種定義。"""
+    c, s = np.cos(yaw), np.sin(yaw)
+    return np.stack([p[:, 0] * c + p[:, 1] * s, -p[:, 0] * s + p[:, 1] * c], 1)
+
+
+def room_yaw(p):
+    """牆的方向（弧度，-45°~45°）。從上往下看，轉到和牆平行時牆上的點會擠成很尖的峰，
+    取兩個軸 5 公分直方圖平方和最大的角度。座標軸是重建時隨便定的，牆可能歪十幾度。"""
+    def score(yaw):
+        r = rotate(p, yaw)
+        return sum((np.histogram(a, bins=np.arange(a.min(), a.max() + 0.05, 0.05))[0].astype(float) ** 2).sum() for a in r.T)
+    yaws = np.radians(np.arange(-45, 45, 0.5))
+    return float(yaws[np.argmax([score(y) for y in yaws])])
+
+
 def room_bounds(ply, layout):
-    """地板座標下的房間範圍（x, z），當作牆壁。取百分位，窗外的雜點不算。"""
+    """沿著牆方向的房間範圍，物理引擎在四邊放看不見的牆。取百分位，窗外的雜點不算。
+    回傳的 min / max 是轉到房間方向後的座標（公尺），yaw 是那個方向。"""
     v = read_gaussian_ply(ply)
     xyz = np.stack([v["x"], v["y"], v["z"]], 1).astype(np.float64)
+    alpha = 1 / (1 + np.exp(-v["opacity"].astype(np.float64)))
     origin = np.asarray(layout["origin"])
     with np.errstate(all="ignore"):
-        q = (xyz - origin) @ np.array([layout["e1"], layout["e2"]]).T / layout["units_per_meter"]
-    q = q[np.isfinite(q).all(1)]
-    return {"min": np.round(np.percentile(q, 1, 0), 3).tolist(), "max": np.round(np.percentile(q, 99, 0), 3).tolist()}
+        q = (xyz - origin) @ np.array([layout["e1"], layout["up"], layout["e2"]]).T / layout["units_per_meter"]
+    ok = np.isfinite(q).all(1)
+    q, alpha = q[ok], alpha[ok]
+    wall = (alpha > 0.3) & (q[:, 1] > 0.3) & (q[:, 1] < 1.8)  # 牆的高度，避開地板和天花板
+    yaw = room_yaw(q[wall][:, [0, 2]])
+    r = rotate(q[:, [0, 2]], yaw)
+    print(f"[scene] 牆和座標軸差 {np.degrees(yaw):.1f}°")
+    return {"min": np.round(np.percentile(r, 1, 0), 3).tolist(), "max": np.round(np.percentile(r, 99, 0), 3).tolist(),
+            "yaw": round(yaw, 4)}
 
 
 def main():
@@ -129,6 +157,7 @@ def main():
     root = args.ply.parent
     layout = json.loads(args.ply.with_suffix(".layout.json").read_text())
     objects = json.loads((root / "objects" / "objects.json").read_text())
+    plan = load_plan(args.ply)
     cut_path = root / "objects" / "cut.json"
     cut = json.loads(cut_path.read_text()) if cut_path.exists() else {"objects": []}
     splats = {c["name"]: {"file": f"objects/{c['file']}", "pivot": c["pivot"]} for c in cut["objects"]}
@@ -144,14 +173,15 @@ def main():
         "floor": {"y": 0.0, "surface": "wood"},
         "room": room_bounds(args.ply, layout),
         "assets": assets,
-        "objects": [to_object(o, splats, meshes, root / "objects", layout) for o in objects if o.get("floor_pos_m") and o.get("size_m")],
+        "objects": [to_object(o, splats, meshes, root / "objects", layout, plan) for o in objects if o.get("floor_pos_m") and o.get("size_m")],
     }
     out = args.ply.with_suffix(".json")
     out.write_text(json.dumps(scene, indent=2, ensure_ascii=False))
     print(f"[scene] {out}: {len(scene['objects'])} 個物品")
-    unknown = sorted({o["label"] for o in scene["objects"]} - AFFORDANCES.keys())
+    planned = {label_of(o["name"]) for o in (plan or {}).get("objects", []) + (plan or {}).get("surfaces", [])}
+    unknown = sorted({o["label"] for o in scene["objects"]} - AFFORDANCES.keys() - planned)
     if unknown:
-        print(f"[scene] 對照表沒有這些標籤，當成固定物：{', '.join(unknown)}")
+        print(f"[scene] 對照表和 objects_plan.json 都沒有這些標籤，當成固定物：{', '.join(unknown)}")
 
 
 if __name__ == "__main__":

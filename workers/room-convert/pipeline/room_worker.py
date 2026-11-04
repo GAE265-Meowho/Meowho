@@ -15,6 +15,7 @@ import os
 import platform
 import secrets
 import shutil
+import signal
 import subprocess
 import time
 import urllib.error
@@ -74,17 +75,35 @@ def make_thumb(video, target):
 def convert(video, room_id, on_step, result, log_path):
     """跑完整流程，成果放進 result；成功後清掉影格和中間檔。"""
     built = ROOT / "rooms" / room_id
-    on_step("抽影格")
+
+    def report(step):
+        try:
+            on_step(step)
+        except OSError as e:  # 進度只是給後台看的，網路斷一下不能中斷轉換
+            print(f"[worker] 進度「{step}」沒送出：{e}", flush=True)
+
+    report("抽影格")
     with log_path.open("w") as log:
-        proc = subprocess.Popen(["pipeline/room_demo.sh", str(video), room_id], cwd=ROOT, stdout=log, stderr=subprocess.STDOUT,
-                                env={**os.environ, "SKIP_SITE": "1"})
-        step = "抽影格"
-        while proc.poll() is None:
-            time.sleep(POLL_SECONDS)
-            latest = step_of(built / "timing.json")
-            if latest not in (step, "準備中"):  # 只在換步驟時回報
-                step = latest
-                on_step(step)
+        # 自己一個 process group，出錯時才能連 Brush、Python 這些子程式一起結束
+        proc = subprocess.Popen(["pipeline/room_demo.sh", str(video), room_id], cwd=ROOT, stdout=log,
+                                stderr=subprocess.STDOUT, start_new_session=True)
+        try:
+            step = "抽影格"
+            while proc.poll() is None:
+                time.sleep(POLL_SECONDS)
+                latest = step_of(built / "timing.json")
+                if latest not in (step, "準備中"):  # 只在換步驟時回報
+                    step = latest
+                    report(step)
+        finally:
+            # 任何錯誤或 Ctrl+C 都不能留下還在跑的轉換：它和下一個工作共用 input_frames、colmap_ws
+            if proc.poll() is None:
+                os.killpg(proc.pid, signal.SIGTERM)
+                try:
+                    proc.wait(timeout=10)
+                except subprocess.TimeoutExpired:
+                    os.killpg(proc.pid, signal.SIGKILL)
+                    proc.wait()
     if proc.returncode != 0:
         raise RuntimeError(f"{step}失敗")
     copy_result(built, result)
@@ -242,6 +261,9 @@ def main():
     ap.add_argument("--env", type=Path, default=ROOT / ".env.worker", help="放 Supabase 網址和金鑰的檔案")
     ap.add_argument("--once", action="store_true", help="處理完目前的工作就結束")
     args = ap.parse_args()
+    # room_demo.sh 的 AI 辨識物品要用，子程序會繼承
+    if key := read_env(args.env).get("GEMINI_API_KEY"):
+        os.environ["GEMINI_API_KEY"] = key
     if args.supabase:
         env = read_env(args.env)
         url, key = env.get("NEXT_PUBLIC_SUPABASE_URL"), env.get("SUPABASE_SERVICE_ROLE_KEY")

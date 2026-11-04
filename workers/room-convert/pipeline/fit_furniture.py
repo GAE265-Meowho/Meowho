@@ -16,6 +16,9 @@ import cv2
 import numpy as np
 import open3d as o3d
 
+from plan_objects import load_plan
+
+OFF_FLOOR_M = 0.25  # 大型家具底部離地超過這個高度（公尺）就不當成地上的家具；床底常拍不到，實測約 0.12 m
 from train_3dgs import read_gaussian_ply
 
 
@@ -139,6 +142,10 @@ def main():
     ap.add_argument("--band", type=float, default=0.05, help="表面高度的容許範圍（公尺）")
     ap.add_argument("--reach", type=float, default=1.6, help="從物品往外找多遠（公尺）")
     args = ap.parse_args()
+    plan = load_plan(args.ply)
+    if plan and not args.solid and not args.surface:  # 沒給參數就照 objects_plan.json
+        args.solid = [o["name"] for o in plan["objects"] if o["kind"] == "solid"]
+        args.surface = [f"{s['name']}:{s['holds']}" for s in plan["surfaces"]]
 
     out = args.ply.parent / "objects"
     layout = json.loads(args.ply.with_suffix(".layout.json").read_text())
@@ -148,6 +155,10 @@ def main():
     for name in args.solid:
         if name not in by_name:  # 這個房間沒拍到或沒切到，略過
             print(f"[fit] 沒有 {name}，略過")
+            continue
+        bottom = by_name[name].get("floor_pos_m", [0, 0, 0])[1]
+        if bottom > OFF_FLOOR_M:  # 放在床上的小桌這類被認成大型家具，照地上家具算會畫出穿過床的方框
+            print(f"[fit] {name}: 底部離地 {bottom:.2f} m，不是放在地上的家具，不算外框")
             continue
         q, _ = to_floor(read_gaussian_ply(out / f"{name}.ply"), layout)
         q = q[np.isfinite(q).all(1)]

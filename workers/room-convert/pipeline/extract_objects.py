@@ -17,7 +17,8 @@ from pathlib import Path
 
 import numpy as np
 
-from build_scene import AFFORDANCES, label_of
+from build_scene import affordance_of, label_of
+from plan_objects import load_plan
 from segment_objects import write_ply
 from train_3dgs import read_gaussian_ply, ply_to_splat
 
@@ -58,7 +59,7 @@ def main():
     ap = argparse.ArgumentParser(description="從房間拿掉物品，另存成可移動的 splat")
     ap.add_argument("ply", type=Path, help="房間 scene.ply")
     ap.add_argument("--names", nargs="+", help="objects.json 裡的物品名稱")
-    ap.add_argument("--auto", action="store_true", help="自動挑對照表裡會動的物品（杯子、鞋子）")
+    ap.add_argument("--auto", action="store_true", help="自動挑會動的物品（對照表或 objects_plan.json 裡的 dynamic）")
     ap.add_argument("--max-size", type=float, default=0.4, help="--auto 時略過超過這個長度的（公尺），通常是幾個黏在一起")
     ap.add_argument("--radius", type=float, default=0.015, help="物品周圍一併拿掉的範圍（公尺）")
     ap.add_argument("--mesh", nargs="+", default=[], help="換成網格的家具名稱")
@@ -74,8 +75,9 @@ def main():
     e1, up, e2, origin = (np.array(layout[k]) for k in ("e1", "up", "e2", "origin"))
     objects = {o["name"]: o for o in json.loads((out / "objects.json").read_text())}
     if args.auto:
-        args.names = [n for n, o in objects.items() if label_of(n) in ("cup", "shoe")
-                      and AFFORDANCES[label_of(n)][1]["body"] == "dynamic" and max(o["size_m"]) <= args.max_size]
+        plan = load_plan(args.ply)
+        args.names = [n for n, o in objects.items() if o.get("size_m")
+                      and affordance_of(label_of(n), plan)[1]["body"] == "dynamic" and max(o["size_m"]) <= args.max_size]
         print(f"[extract] 自動挑選: {args.names}")
     if not args.names and not args.mesh:
         (out / "cut.json").write_text(json.dumps({"objects": []}))
