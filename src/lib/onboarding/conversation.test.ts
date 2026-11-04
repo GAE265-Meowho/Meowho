@@ -182,6 +182,16 @@ describe("建立貓咪：先看照片影片，再補問", () => {
     expect(s.cat.angles?.front).toBe("u1/e.jpg");
   });
 
+  it("按角度按鈕上傳：放進指定角度；該角度已有照片時改當生活照", () => {
+    let s = applyMediaAnalysis(catPhase(), { ...photo, path: "u1/back.jpg", confidence: 0.1, angle: "back" });
+    expect(s.cat.angles).toEqual({ side: null, front: null, back: "u1/back.jpg" });
+    expect(nextAngle(s.cat)).toBe("side");
+    s = applyMediaAnalysis(s, { ...photo, path: "u1/front.jpg", confidence: 0.1, angle: "front" });
+    s = applyMediaAnalysis(s, { ...photo, path: "u1/front2.jpg", confidence: 0.1, angle: "front" });
+    expect(s.cat.angles).toEqual({ side: null, front: "u1/front.jpg", back: "u1/back.jpg" });
+    expect(s.cat.photos).toHaveLength(3);
+  });
+
   it("#188 修改既有的貓（angles＝null）只要有照片就好，不要求三個角度", () => {
     const s = { ...catPhase(), cat: { ...catPhase().cat, angles: null, photos: ["u1/a.jpg"], name: "橘子", lifeStage: "adult" as const, description: "x" } };
     expect(photosLeft(s.cat)).toBe(0);

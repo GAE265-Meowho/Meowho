@@ -18,6 +18,7 @@
 
 ## 任務（tracer-bullet，每張可獨立 Demo）
 
+- 新增貓咪三個角度上傳按鈕（#195，Tina × Claude Code，2026-11-04）：審查中；分支 `fix/195-angle-upload-buttons`。
 - 皇家食物元件（#186，Tina × Codex，2026-11-04）：審查中；分支 `feat/186-royalcanin-food-catalog`。台灣官方 sitemap 86 款、照片與交叉分類完成，72 款參考價、14 款待查；詳細資訊官方外連。尚需正式字型建置／人工視覺驗證，購買流程另做。
 
 | # | 任務 | 模組文件 | 前置 | 期別 | Issue | 負責 | 狀態 |
