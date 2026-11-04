@@ -6,6 +6,9 @@ vi.mock("@/lib/supabase/client", () => ({ getBrowserSupabase: () => null }));
 vi.mock("@/lib/hq/items/glb-bounds", () => ({
   measureGlbFile: async () => ({ widthM: 0.5, depthM: 0.4, heightM: 0.35, scale: 1, warning: null }),
 }));
+vi.mock("next/dynamic", () => ({
+  default: () => () => <div>3D 預覽</div>,
+}));
 
 const categories = [{ id: "litter_box", name: "貓砂盆", sortOrder: 1 }, { id: "toys", name: "玩具", sortOrder: 3 }];
 const items = [{
