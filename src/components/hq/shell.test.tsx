@@ -78,8 +78,13 @@ describe("#113 虛擬體驗元件管理分組", () => {
     </HqShell>
   );
   afterEach(() => { search = ""; });
-  it("「虛擬體驗元件管理」當分組標題，六個區塊是第一層（含 #150 虛擬體驗）、各有線條圖示；寶麗來、平面圖轉換不在選單（在室內空間頁）", () => {
+  it("「虛擬體驗元件管理」可收合（#183）：不在模組內時預設收合，按標題展開六個區塊（含 #150 虛擬體驗）、各有線條圖示；寶麗來、平面圖轉換不在選單（在室內空間頁）", () => {
     render(assets("/MeowHQ"));
+    const toggle = screen.getByRole("button", { name: "虛擬體驗元件管理" });
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByRole("link", { name: "貓咪製作" })).toBeNull();
+    fireEvent.click(toggle);
+    expect(toggle).toHaveAttribute("aria-expanded", "true");
     const group = screen.getByRole("list", { name: "虛擬體驗元件管理" });
     const links = Array.from(group.querySelectorAll("a")).map(a => [a.textContent, a.getAttribute("href")]);
     expect(links).toEqual([
@@ -93,6 +98,13 @@ describe("#113 虛擬體驗元件管理分組", () => {
     for (const a of group.querySelectorAll("a")) expect(a.querySelector("svg")).not.toBeNull();
     expect(screen.queryByText("虛擬與科技體驗")).toBeNull();
     expect(screen.queryByText("寶麗來轉換")).toBeNull();
+  });
+  it("在模組內時自動展開（#183），再按標題可收合", () => {
+    render(assets("/MeowHQ/assets"));
+    const toggle = screen.getByRole("button", { name: "虛擬體驗元件管理" });
+    expect(toggle).toHaveAttribute("aria-expanded", "true");
+    fireEvent.click(toggle);
+    expect(screen.queryByRole("link", { name: "貓咪製作" })).toBeNull();
   });
   it("目前區塊標示 aria-current；室內空間的子頁算室內空間，貓咪子頁算貓咪製作", () => {
     search = "tab=rooms-polaroid";
