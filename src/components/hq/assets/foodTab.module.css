@@ -1,0 +1,22 @@
+.catalog { --food-gap: 1rem; --food-radius: 12px; }
+.filterToggle { display:none!important; }
+.bar { display:flex; align-items:center; justify-content:space-between; gap:var(--food-gap); flex-wrap:wrap; margin-bottom:1.5rem; }
+.bar h2 { font-size:1.2rem; margin:0; }.bar p { margin:.25rem 0 0; }
+.search { display:grid; gap:.35rem; font-size:.85rem; width:min(100%,280px); }
+.layout { display:grid; grid-template-columns:190px minmax(0,1fr); gap:1.5rem; }
+.filters { border-right:1px solid var(--hq-line); padding-right:1rem; }
+.filters details { border-bottom:1px solid var(--hq-line); padding-bottom:1rem; margin-bottom:1rem; }
+.filters summary { font-weight:600; min-height:44px; cursor:pointer; }
+.check { display:flex; align-items:center; gap:.5rem; min-height:44px; font-size:.875rem; overflow-wrap:anywhere; }
+.check input { accent-color:var(--hq-sage); width:18px; height:18px; flex-shrink:0; }
+.count { color:var(--hq-sub); margin:0 0 1rem; }
+.grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:var(--food-gap); }
+.product { border:1px solid var(--hq-line); background:var(--hq-card); border-radius:var(--food-radius); overflow:hidden; min-width:0; }
+.photo { position:relative; aspect-ratio:4/3; margin:.75rem; }
+.copy { padding:0 1rem 1rem; }.copy h3 { font-size:1rem; margin:.6rem 0; overflow-wrap:anywhere; }
+.tags { display:flex; gap:.4rem; flex-wrap:wrap; }.tags span { padding:.15rem .5rem; background:var(--hq-sage-soft); color:var(--hq-sage-ink); border-radius:var(--food-radius); font-size:.75rem; }
+.pack { color:var(--hq-sub); font-size:.8rem; min-height:1.6em; overflow-wrap:anywhere; }
+.price { display:block; margin:.8rem 0; font-size:1.2rem; color:var(--hq-text); }.price span { font-size:.75rem; font-weight:400; color:var(--hq-sub); }
+.links { display:flex; gap:.5rem; align-items:center; flex-wrap:wrap; }.links>a { min-height:44px; display:inline-flex; align-items:center; font-size:.8rem; }
+.date { font-size:.75rem; color:var(--hq-sub); margin:.6rem 0 0; }
+@media(max-width:760px) { .filterToggle { display:inline-flex!important; margin-bottom:1rem; }.layout { grid-template-columns:1fr; }.filters { display:none; border:0; padding:0; }.filters.expanded { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:var(--food-gap); align-items:start; }.grid { grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); } }

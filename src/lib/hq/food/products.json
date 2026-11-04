@@ -1,0 +1,3742 @@
+[
+  {
+    "id": "royalcanin-1227",
+    "officialId": "1227",
+    "brand": "royalcanin",
+    "name": "GIK35C 幼貓 腸胃道配方罐頭（1至12個月）",
+    "category": "wet",
+    "image": "/hq-food/royalcanin/1227.webp",
+    "imageSourceUrl": "https://marspetcareaprimocdn.petcare.global/3997f66b-8b52-4dfb-91b5-b20b0040c366/3997f66b-8b52-4dfb-91b5-b20b0040c366_DownloadAsJpg.jpg",
+    "officialUrl": "https://www.royalcanin.com/tw/cats/products/vet-products/gastrointestinal-kitten-1227",
+    "packs": [
+      {
+        "label": "1 x 195 g",
+        "ean": "9003579013410"
+      }
+    ],
+    "ages": [
+      "adult",
+      "kitten"
+    ],
+    "needs": [
+      {
+        "code": "digestive_support",
+        "label": "消化道呵護"
+      }
+    ],
+    "neutered": [
+      {
+        "code": "intact",
+        "label": "未絕育"
+      }
+    ],
+    "requiresVetDiagnosis": true,
+    "currency": "TWD",
+    "referencePrice": null,
+    "importedOn": "2026-11-04"
+  },
+  {
+    "id": "royalcanin-1228",
+    "officialId": "1228",
+    "brand": "royalcanin",
+    "name": "GIK35 幼貓 腸胃道配方乾糧（1至12個月）",
+    "category": "dry",
+    "image": "/hq-food/royalcanin/1228.webp",
+    "imageSourceUrl": "https://marspetcareaprimocdn.petcare.global/8a442878-2ef8-4bff-8afe-b1ef001de122/8a442878-2ef8-4bff-8afe-b1ef001de122_DownloadAsJpg.jpg",
+    "officialUrl": "https://www.royalcanin.com/tw/cats/products/vet-products/gastrointestinal-kitten-1228",
+    "packs": [
+      {
+        "label": "400 g",
+        "ean": "3182550906241"
+      },
+      {
+        "label": "2 kg",
+        "ean": "3182550906258"
+      }
+    ],
+    "ages": [
+      "adult",
+      "kitten"
+    ],
+    "needs": [
+      {
+        "code": "digestive_support",
+        "label": "消化道呵護"
+      }
+    ],
+    "neutered": [
+      {
+        "code": "intact",
+        "label": "未絕育"
+      }
+    ],
+    "requiresVetDiagnosis": true,
+    "currency": "TWD",
+    "referencePrice": {
+      "amount": 999,
+      "pack": "2 kg",
+      "source": "棉花寵物商城",
+      "url": "https://www.mianhua-pet.com.tw/130.html",
+      "checkedOn": "2026-11-04",
+      "note": "人工查閱通路目錄之參考價，非即時報價，運費另計"
+    },
+    "importedOn": "2026-11-04"
+  },
+  {
+    "id": "royalcanin-1242",
+    "officialId": "1242",
+    "brand": "royalcanin",
+    "name": "ER28 貓 早期腎臟病配方乾糧",
+    "category": "dry",
+    "image": "/hq-food/royalcanin/1242.webp",
+    "imageSourceUrl": "https://marspetcareaprimocdn.petcare.global/4b85109b-6a57-4d41-ae61-b37701164bb6/4b85109b-6a57-4d41-ae61-b37701164bb6_DownloadAsJpg.jpg",
+    "officialUrl": "https://www.royalcanin.com/tw/cats/products/vet-products/early-renal-1242",
+    "packs": [
+      {
+        "label": "1.5 kg",
+        "ean": "3182550914642"
+      },
+      {
+        "label": "3.5 kg",
+        "ean": "3182550915397"
+      }
+    ],
+    "ages": [
+      "adult",
+      "mature",
+      "ageing"
+    ],
+    "needs": [
+      {
+        "code": "kidney_support",
+        "label": "腎臟支持"
+      }
+    ],
+    "neutered": [
+      {
+        "code": "intact",
+        "label": "未絕育"
+      }
+    ],
+    "requiresVetDiagnosis": true,
+    "currency": "TWD",
+    "referencePrice": {
+      "amount": 669,
+      "pack": "1.5 kg",
+      "source": "棉花寵物商城",
+      "url": "https://www.mianhua-pet.com.tw/130.html",
+      "checkedOn": "2026-11-04",
+      "note": "人工查閱通路目錄之參考價，非即時報價，運費另計"
+    },
+    "importedOn": "2026-11-04"
+  },
+  {
+    "id": "royalcanin-1243",
+    "officialId": "1243",
+    "brand": "royalcanin",
+    "name": "ER28W 貓 早期腎臟病配方濕糧",
+    "category": "wet",
+    "image": "/hq-food/royalcanin/1243.webp",
+    "imageSourceUrl": "https://marspetcareaprimocdn.petcare.global/86f88d92-39c5-4fc5-a7a0-b1ef001e859d/86f88d92-39c5-4fc5-a7a0-b1ef001e859d_DownloadAsJpg.jpg",
+    "officialUrl": "https://www.royalcanin.com/tw/cats/products/vet-products/early-renal-1243",
+    "packs": [
+      {
+        "label": "1 x 85 g",
+        "ean": "9003579015889"
+      },
+      {
+        "label": "12 x 85 g",
+        "ean": "9003579015872"
+      }
+    ],
+    "ages": [
+      "adult",
+      "mature",
+      "ageing"
+    ],
+    "needs": [
+      {
+        "code": "kidney_support",
+        "label": "腎臟支持"
+      }
+    ],
+    "neutered": [
+      {
+        "code": "intact",
+        "label": "未絕育"
+      }
+    ],
+    "requiresVetDiagnosis": true,
+    "currency": "TWD",
+    "referencePrice": {
+      "amount": 50,
+      "pack": "1 x 85 g",
+      "source": "棉花寵物商城",
+      "url": "https://www.mianhua-pet.com.tw/335.html",
+      "checkedOn": "2026-11-04",
+      "note": "人工查閱通路目錄之參考價，非即時報價，運費另計"
+    },
+    "importedOn": "2026-11-04"
+  },
+  {
+    "id": "royalcanin-1246",
+    "officialId": "1246",
+    "brand": "royalcanin",
+    "name": "RF23W 貓 腎臟病配方濕糧",
+    "category": "wet",
+    "image": "/hq-food/royalcanin/1246.webp",
+    "imageSourceUrl": "https://marspetcareaprimocdn.petcare.global/6566a461-daa4-444f-8bd1-b2490009f950/6566a461-daa4-444f-8bd1-b2490009f950_DownloadAsJpg.jpg",
+    "officialUrl": "https://www.royalcanin.com/tw/cats/products/vet-products/renal-1246",
+    "packs": [
+      {
+        "label": "1 x 85 g",
+        "ean": "9003579027554"
+      }
+    ],
+    "ages": [
+      "adult",
+      "mature",
+      "ageing"
+    ],
+    "needs": [
+      {
+        "code": "kidney_support",
+        "label": "腎臟支持"
+      }
+    ],
+    "neutered": [
+      {
+        "code": "intact",
+        "label": "未絕育"
+      }
+    ],
+    "requiresVetDiagnosis": true,
+    "currency": "TWD",
+    "referencePrice": {
+      "amount": 50,
+      "pack": "1 x 85 g",
+      "source": "棉花寵物商城",
+      "url": "https://www.mianhua-pet.com.tw/335.html",
+      "checkedOn": "2026-11-04",
+      "note": "人工查閱通路目錄之參考價，非即時報價，運費另計"
+    },
+    "importedOn": "2026-11-04"
+  },
+  {
+    "id": "royalcanin-1264",
+    "officialId": "1264",
+    "brand": "royalcanin",
+    "name": "MFLC32+7 貓 泌尿道+舒緩緊張熟齡專用配方",
+    "category": "dry",
+    "image": "/hq-food/royalcanin/1264.webp",
+    "imageSourceUrl": "https://marspetcareaprimocdn.petcare.global/b616cfb3-6360-43b2-a02b-b1f6001b4d03/b616cfb3-6360-43b2-a02b-b1f6001b4d03_DownloadAsJpg.jpg",
+    "officialUrl": "https://www.royalcanin.com/tw/cats/products/vet-products/urinary-so-ageing-7+-+-bladder-comfort-1264",
+    "packs": [
+      {
+        "label": "2 kg",
+        "ean": "3182551055047"
+      }
+    ],
+    "ages": [
+      "adult",
+      "mature",
+      "ageing"
+    ],
+    "needs": [
+      {
+        "code": "urinary_support",
+        "label": "泌尿道呵護"
+      }
+    ],
+    "neutered": [
+      {
+        "code": "intact",
+        "label": "未絕育"
+      }
+    ],
+    "requiresVetDiagnosis": true,
+    "currency": "TWD",
+    "referencePrice": null,
+    "importedOn": "2026-11-04"
+  },
+  {
+    "id": "royalcanin-1278",
+    "officialId": "1278",
+    "brand": "royalcanin",
+    "name": "IN27W 室內貓主食濕糧",
+    "category": "wet",
+    "image": "/hq-food/royalcanin/1278.webp",
+    "imageSourceUrl": "https://marspetcareaprimocdn.petcare.global/ed88785a-0aab-4628-98f0-b42c00dc0765/ed88785a-0aab-4628-98f0-b42c00dc0765_DownloadAsJpg.jpg",
+    "officialUrl": "https://www.royalcanin.com/tw/cats/products/retail-products/indoor-sterilized-morsels-in-gravy-1278",
+    "packs": [
+      {
+        "label": "12 x 85 g",
+        "ean": "9003579013793"
+      }
+    ],
+    "ages": [
+      "adult"
+    ],
+    "needs": [],
+    "neutered": [
+      {
+        "code": "intact",
+        "label": "未絕育"
+      }
+    ],
+    "requiresVetDiagnosis": false,
+    "currency": "TWD",
+    "referencePrice": {
+      "amount": 504,
+      "pack": "12 x 85 g",
+      "source": "BONEBONE",
+      "url": "https://www.bonebone.com.tw/categories/%E7%9A%87%E5%AE%B6%E8%B2%93%E6%BF%95%E7%B3%A7-85g195g%E5%B9%BC%E8%B2%93%E5%A5%B6%E7%B2%89",
+      "checkedOn": "2026-11-04",
+      "note": "人工查閱台灣通路目錄參考價，非即時報價，運費另計"
+    },
+    "importedOn": "2026-11-04"
+  },
+  {
+    "id": "royalcanin-1305",
+    "officialId": "1305",
+    "brand": "royalcanin",
+    "name": "IN+7W 室內熟齡貓主食濕糧",
+    "category": "wet",
+    "image": "/hq-food/royalcanin/1305.webp",
+    "imageSourceUrl": "https://marspetcareaprimocdn.petcare.global/5e3ab344-f30d-4d16-9902-b42d00f61b5a/5e3ab344-f30d-4d16-9902-b42d00f61b5a_DownloadAsJpg.jpg",
+    "officialUrl": "https://www.royalcanin.com/tw/cats/products/retail-products/indoor-sterilized-7+-morsels-in-gravy-1305",
+    "packs": [
+      {
+        "label": "1 x 85 g",
+        "ean": "9003579013984"
+      },
+      {
+        "label": "12 x 85 g",
+        "ean": "9003579013977"
+      }
+    ],
+    "ages": [
+      "mature"
+    ],
+    "needs": [],
+    "neutered": [
+      {
+        "code": "intact",
+        "label": "未絕育"
+      }
+    ],
+    "requiresVetDiagnosis": false,
+    "currency": "TWD",
+    "referencePrice": {
+      "amount": 42,
+      "pack": "1 x 85 g",
+      "source": "BONEBONE",
+      "url": "https://www.bonebone.com.tw/categories/%E7%9A%87%E5%AE%B6%E8%B2%93%E6%BF%95%E7%B3%A7-85g195g%E5%B9%BC%E8%B2%93%E5%A5%B6%E7%B2%89",
+      "checkedOn": "2026-11-04",
+      "note": "人工查閱台灣通路目錄參考價，非即時報價，運費另計"
+    },
+    "importedOn": "2026-11-04"
+  },
+  {
+    "id": "royalcanin-1517",
+    "officialId": "1517",
+    "brand": "royalcanin",
+    "name": "SSW 感官饗宴™ 濃郁香氣主食濕糧",
+    "category": "wet",
+    "image": "/hq-food/royalcanin/1517.webp",
+    "imageSourceUrl": "https://marspetcareaprimocdn.petcare.global/3783d2b4-2a60-41b0-b7b2-b1ef00126e3d/3783d2b4-2a60-41b0-b7b2-b1ef00126e3d_DownloadAsJpg.jpg",
+    "officialUrl": "https://www.royalcanin.com/tw/cats/products/retail-products/sensory-smell-chunks-in-gravy-1517",
+    "packs": [
+      {
+        "label": "1 x 85 g",
+        "ean": "9003579018514"
+      }
+    ],
+    "ages": [
+      "adult",
+      "mature"
+    ],
+    "needs": [],
+    "neutered": [
+      {
+        "code": "intact",
+        "label": "未絕育"
+      }
+    ],
+    "requiresVetDiagnosis": false,
+    "currency": "TWD",
+    "referencePrice": {
+      "amount": 42,
+      "pack": "1 x 85 g",
+      "source": "BONEBONE",
+      "url": "https://www.bonebone.com.tw/categories/%E7%9A%87%E5%AE%B6%E8%B2%93%E6%BF%95%E7%B3%A7-85g195g%E5%B9%BC%E8%B2%93%E5%A5%B6%E7%B2%89",
+      "checkedOn": "2026-11-04",
+      "note": "人工查閱台灣通路目錄參考價，非即時報價，運費另計"
+    },
+    "importedOn": "2026-11-04"
+  },
+  {
+    "id": "royalcanin-1518",
+    "officialId": "1518",
+    "brand": "royalcanin",
+    "name": "STW 感官饗宴™ 豐富鮮味主食濕糧",
+    "category": "wet",
+    "image": "/hq-food/royalcanin/1518.webp",
+    "imageSourceUrl": "https://marspetcareaprimocdn.petcare.global/69666a2a-bfc3-4b2b-86e5-b37e00a8b6fd/69666a2a-bfc3-4b2b-86e5-b37e00a8b6fd_DownloadAsJpg.jpg",
+    "officialUrl": "https://www.royalcanin.com/tw/cats/products/retail-products/sensory-taste-chunks-in-gravy-1518",
+    "packs": [
+      {
+        "label": "1 x 85 g",
+        "ean": "9003579018866"
+      }
+    ],
+    "ages": [
+      "adult",
+      "mature"
+    ],
+    "needs": [],
+    "neutered": [
+      {
+        "code": "intact",
+        "label": "未絕育"
+      }
+    ],
+    "requiresVetDiagnosis": false,
+    "currency": "TWD",
+    "referencePrice": {
+      "amount": 42,
+      "pack": "1 x 85 g",
+      "source": "BONEBONE",
+      "url": "https://www.bonebone.com.tw/categories/%E7%9A%87%E5%AE%B6%E8%B2%93%E6%BF%95%E7%B3%A7-85g195g%E5%B9%BC%E8%B2%93%E5%A5%B6%E7%B2%89",
+      "checkedOn": "2026-11-04",
+      "note": "人工查閱台灣通路目錄參考價，非即時報價，運費另計"
+    },
+    "importedOn": "2026-11-04"
+  },
+  {
+    "id": "royalcanin-1519",
+    "officialId": "1519",
+    "brand": "royalcanin",
+    "name": "SFW 感官饗宴™ 多元口感主食濕糧",
+    "category": "wet",
+    "image": "/hq-food/royalcanin/1519.webp",
+    "imageSourceUrl": "https://marspetcareaprimocdn.petcare.global/16407988-755c-46ac-99af-b2490007d87e/16407988-755c-46ac-99af-b2490007d87e_DownloadAsJpg.jpg",
+    "officialUrl": "https://www.royalcanin.com/tw/cats/products/retail-products/sensory-feel-morsels-in-gravy-1519",
+    "packs": [
+      {
+        "label": "1 x 85 g",
+        "ean": "9003579018941"
+      }
+    ],
+    "ages": [
+      "adult",
+      "mature"
+    ],
+    "needs": [],
+    "neutered": [
+      {
+        "code": "intact",
+        "label": "未絕育"
+      }
+    ],
+    "requiresVetDiagnosis": false,
+    "currency": "TWD",
+    "referencePrice": {
+      "amount": 42,
+      "pack": "1 x 85 g",
+      "source": "BONEBONE",
+      "url": "https://www.bonebone.com.tw/categories/%E7%9A%87%E5%AE%B6%E8%B2%93%E6%BF%95%E7%B3%A7-85g195g%E5%B9%BC%E8%B2%93%E5%A5%B6%E7%B2%89",
+      "checkedOn": "2026-11-04",
+      "note": "人工查閱台灣通路目錄參考價，非即時報價，運費另計"
+    },
+    "importedOn": "2026-11-04"
+  },
+  {
+    "id": "royalcanin-1606",
+    "officialId": "1606",
+    "brand": "royalcanin",
+    "name": "AIRLIFT 體重控制成貓主食罐 L40C",
+    "category": "wet",
+    "image": "/hq-food/royalcanin/1606.webp",
+    "imageSourceUrl": "https://marspetcareaprimocdn.petcare.global/e4ad3cf9-1e00-49b8-95e6-b3d8009d8627/e4ad3cf9-1e00-49b8-95e6-b3d8009d8627_DownloadAsJpg.jpg",
+    "officialUrl": "https://www.royalcanin.com/tw/cats/products/retail-products/light-weight-care-airlift-mousse-1606",
+    "packs": [
+      {
+        "label": "1 x 85 g",
+        "ean": "9003579052235"
+      },
+      {
+        "label": "3 x 85 g",
+        "ean": "3182550961400"
+      }
+    ],
+    "ages": [
+      "adult",
+      "mature"
+    ],
+    "needs": [
+      {
+        "code": "weight_management",
+        "label": "體重管理"
+      }
+    ],
+    "neutered": [
+      {
+        "code": "intact",
+        "label": "未絕育"
+      }
+    ],
+    "requiresVetDiagnosis": false,
+    "currency": "TWD",
+    "referencePrice": {
+      "amount": 53,
+      "pack": "1 x 85 g",
+      "source": "寵物公園",
+      "url": "https://shop.petpark.com.tw/catalogsearch/result/index/?main_category=616&q=%E7%9A%87%E5%AE%B6",
+      "checkedOn": "2026-11-04",
+      "note": "人工查閱台灣通路目錄參考價，非即時報價，運費另計"
+    },
+    "importedOn": "2026-11-04"
+  },
+  {
+    "id": "royalcanin-1607",
+    "officialId": "1607",
+    "brand": "royalcanin",
+    "name": "AIRLIFT 貪嘴成貓主食罐 AP40C",
+    "category": "wet",
+    "image": "/hq-food/royalcanin/1607.webp",
+    "imageSourceUrl": "https://marspetcareaprimocdn.petcare.global/217f168a-684c-4eaa-9d01-b3d8009e41ba/217f168a-684c-4eaa-9d01-b3d8009e41ba_DownloadAsJpg.jpg",
+    "officialUrl": "https://www.royalcanin.com/tw/cats/products/retail-products/appetite-control-airlift-mousse-1607",
+    "packs": [
+      {
+        "label": "1 x 85 g",
+        "ean": "9003579052280"
+      },
+      {
+        "label": "3 x 85 g",
+        "ean": "3182550961417"
+      }
+    ],
+    "ages": [
+      "adult",
+      "mature"
+    ],
+    "needs": [
+      {
+        "code": "tendency_to_beg_for_food",
+        "label": "有乞食習慣"
+      },
+      {
+        "code": "weight_management",
+        "label": "體重管理"
+      }
+    ],
+    "neutered": [
+      {
+        "code": "intact",
+        "label": "未絕育"
+      }
+    ],
+    "requiresVetDiagnosis": false,
+    "currency": "TWD",
+    "referencePrice": null,
+    "importedOn": "2026-11-04"
+  },
+  {
+    "id": "royalcanin-1613",
+    "officialId": "1613",
+    "brand": "royalcanin",
+    "name": "AIRLIFT 腸胃保健成貓主食罐 S33C",
+    "category": "wet",
+    "image": "/hq-food/royalcanin/1613.webp",
+    "imageSourceUrl": "https://marspetcareaprimocdn.petcare.global/cacd28ac-358f-4a5e-a2a2-b3d8009e06d3/cacd28ac-358f-4a5e-a2a2-b3d8009e06d3_DownloadAsJpg.jpg",
+    "officialUrl": "https://www.royalcanin.com/tw/cats/products/retail-products/digestive-care-airlift-mousse-1613",
+    "packs": [
+      {
+        "label": "1 x 85 g",
+        "ean": "9003579052341"
+      }
+    ],
+    "ages": [
+      "adult",
+      "mature"
+    ],
+    "needs": [
+      {
+        "code": "weight_management",
+        "label": "體重管理"
+      }
+    ],
+    "neutered": [
+      {
+        "code": "intact",
+        "label": "未絕育"
+      }
+    ],
+    "requiresVetDiagnosis": false,
+    "currency": "TWD",
+    "referencePrice": null,
+    "importedOn": "2026-11-04"
+  },
+  {
+    "id": "royalcanin-1800",
+    "officialId": "1800",
+    "brand": "royalcanin",
+    "name": "UC33 泌尿道保健成貓專用乾糧",
+    "category": "dry",
+    "image": "/hq-food/royalcanin/1800.webp",
+    "imageSourceUrl": "https://cdn.royalcanin-weshare-online.io/Euh7J4oBaPOZra8qvgz6/v17/0824-uc33",
+    "officialUrl": "https://www.royalcanin.com/tw/cats/products/retail-products/urinary-care-1800",
+    "packs": [
+      {
+        "label": "2 kg",
+        "ean": "3182550842938"
+      },
+      {
+        "label": "4 kg",
+        "ean": "3182550842952"
+      },
+      {
+        "label": "10 kg",
+        "ean": "3182550842969"
+      }
+    ],
+    "ages": [
+      "adult",
+      "mature"
+    ],
+    "needs": [
+      {
+        "code": "urinary_support",
+        "label": "泌尿道呵護"
+      }
+    ],
+    "neutered": [
+      {
+        "code": "intact",
+        "label": "未絕育"
+      }
+    ],
+    "requiresVetDiagnosis": false,
+    "currency": "TWD",
+    "referencePrice": {
+      "amount": 849,
+      "pack": "2 kg",
+      "source": "棉花寵物商城",
+      "url": "https://www.mianhua-pet.com.tw/129.html",
+      "checkedOn": "2026-11-04",
+      "note": "人工查閱通路目錄之參考價，非即時報價，運費另計"
+    },
+    "importedOn": "2026-11-04"
+  },
+  {
+    "id": "royalcanin-1950",
+    "officialId": "1950",
+    "brand": "royalcanin",
+    "name": "AN24 貓 水解低敏配方乾糧",
+    "category": "dry",
+    "image": "/hq-food/royalcanin/1950.webp",
+    "imageSourceUrl": "https://marspetcareaprimocdn.petcare.global/03a24084-cbfb-498d-b365-b37701387f7d/03a24084-cbfb-498d-b365-b37701387f7d_DownloadAsJpg.jpg",
+    "officialUrl": "https://www.royalcanin.com/tw/cats/products/vet-products/anallergenic-1950",
+    "packs": [
+      {
+        "label": "2 kg",
+        "ean": "3182550939218"
+      }
+    ],
+    "ages": [
+      "adult"
+    ],
+    "needs": [
+      {
+        "code": "digestive_support",
+        "label": "消化道呵護"
+      },
+      {
+        "code": "food_sensitivities",
+        "label": "食物過敏"
+      },
+      {
+        "code": "skin_and_coat_support",
+        "label": "皮膚與毛髮支持"
+      }
+    ],
+    "neutered": [
+      {
+        "code": "intact",
+        "label": "未絕育"
+      }
+    ],
+    "requiresVetDiagnosis": true,
+    "currency": "TWD",
+    "referencePrice": {
+      "amount": 1179,
+      "pack": "2 kg",
+      "source": "棉花寵物商城",
+      "url": "https://www.mianhua-pet.com.tw/130.html",
+      "checkedOn": "2026-11-04",
+      "note": "人工查閱通路目錄之參考價，非即時報價，運費另計"
+    },
+    "importedOn": "2026-11-04"
+  },
+  {
+    "id": "royalcanin-2515",
+    "officialId": "2515",
+    "brand": "royalcanin",
+    "name": "RD32 布偶成貓專用乾糧",
+    "category": "dry",
+    "image": "/hq-food/royalcanin/2515.webp",
+    "imageSourceUrl": "https://marspetcareaprimocdn.petcare.global/f5246721-9190-4338-ab38-b2490007b376/f5246721-9190-4338-ab38-b2490007b376_DownloadAsJpg.jpg",
+    "officialUrl": "https://www.royalcanin.com/tw/cats/products/retail-products/ragdoll-adult-2515",
+    "packs": [
+      {
+        "label": "2 kg",
+        "ean": "3182550825351"
+      }
+    ],
+    "ages": [
+      "adult",
+      "mature"
+    ],
+    "needs": [],
+    "neutered": [
+      {
+        "code": "intact",
+        "label": "未絕育"
+      }
+    ],
+    "requiresVetDiagnosis": false,
+    "currency": "TWD",
+    "referencePrice": {
+      "amount": 829,
+      "pack": "2 kg",
+      "source": "棉花寵物商城",
+      "url": "https://www.mianhua-pet.com.tw/129.html",
+      "checkedOn": "2026-11-04",
+      "note": "人工查閱通路目錄之參考價，非即時報價，運費另計"
+    },
+    "importedOn": "2026-11-04"
+  },
+  {
+    "id": "royalcanin-2520",
+    "officialId": "2520",
+    "brand": "royalcanin",
+    "name": "F32 理想體態成貓專用乾糧",
+    "category": "dry",
+    "image": "/hq-food/royalcanin/2520.webp",
+    "imageSourceUrl": "https://cdn.royalcanin-weshare-online.io/cGm8rWsBG95Xk-RBDvsa/v120/16-fit-32-b1-in",
+    "officialUrl": "https://www.royalcanin.com/tw/cats/products/retail-products/fit-32-2520",
+    "packs": [
+      {
+        "label": "2 kg",
+        "ean": "3182550702201"
+      },
+      {
+        "label": "4 kg",
+        "ean": "3182550702225"
+      },
+      {
+        "label": "10 kg",
+        "ean": "3182550702249"
+      },
+      {
+        "label": "15 kg",
+        "ean": "3182550702256"
+      }
+    ],
+    "ages": [
+      "adult",
+      "mature"
+    ],
+    "needs": [],
+    "neutered": [
+      {
+        "code": "intact",
+        "label": "未絕育"
+      }
+    ],
+    "requiresVetDiagnosis": false,
+    "currency": "TWD",
+    "referencePrice": {
+      "amount": 829,
+      "pack": "2 kg",
+      "source": "棉花寵物商城",
+      "url": "https://www.mianhua-pet.com.tw/129.html",
+      "checkedOn": "2026-11-04",
+      "note": "人工查閱通路目錄之參考價，非即時報價，運費另計"
+    },
+    "importedOn": "2026-11-04"
+  },
+  {
+    "id": "royalcanin-2521",
+    "officialId": "2521",
+    "brand": "royalcanin",
+    "name": "S33 腸胃敏感成貓專用乾糧",
+    "category": "dry",
+    "image": "/hq-food/royalcanin/2521.webp",
+    "imageSourceUrl": "https://marspetcareaprimocdn.petcare.global/3a19d773-b0bc-47b9-8853-b37900712f28/3a19d773-b0bc-47b9-8853-b37900712f28_DownloadAsJpg.jpg",
+    "officialUrl": "https://www.royalcanin.com/tw/cats/products/retail-products/sensible-33-2521",
+    "packs": [
+      {
+        "label": "2 kg",
+        "ean": "3182550702317"
+      },
+      {
+        "label": "4 kg",
+        "ean": "3182550702331"
+      },
+      {
+        "label": "15 kg",
+        "ean": "3182550702362"
+      }
+    ],
+    "ages": [
+      "adult",
+      "mature"
+    ],
+    "needs": [
+      {
+        "code": "digestive_support",
+        "label": "消化道呵護"
+      }
+    ],
+    "neutered": [
+      {
+        "code": "intact",
+        "label": "未絕育"
+      }
+    ],
+    "requiresVetDiagnosis": false,
+    "currency": "TWD",
+    "referencePrice": {
+      "amount": 849,
+      "pack": "2 kg",
+      "source": "棉花寵物商城",
+      "url": "https://www.mianhua-pet.com.tw/129.html",
+      "checkedOn": "2026-11-04",
+      "note": "人工查閱通路目錄之參考價，非即時報價，運費另計"
+    },
+    "importedOn": "2026-11-04"
+  },
+  {
+    "id": "royalcanin-2522",
+    "officialId": "2522",
+    "brand": "royalcanin",
+    "name": "K36 幼貓專用乾糧",
+    "category": "dry",
+    "image": "/hq-food/royalcanin/2522.webp",
+    "imageSourceUrl": "https://marspetcareaprimocdn.petcare.global/fa1241ac-7528-4e00-b045-b2490009a695/fa1241ac-7528-4e00-b045-b2490009a695_DownloadAsJpg.jpg",
+    "officialUrl": "https://www.royalcanin.com/tw/cats/products/retail-products/kitten-2522",
+    "packs": [
+      {
+        "label": "2 kg",
+        "ean": "3182550702423"
+      },
+      {
+        "label": "4 kg",
+        "ean": "3182550702447"
+      },
+      {
+        "label": "10 kg",
+        "ean": "3182550702973"
+      }
+    ],
+    "ages": [
+      "kitten"
+    ],
+    "needs": [],
+    "neutered": [
+      {
+        "code": "intact",
+        "label": "未絕育"
+      }
+    ],
+    "requiresVetDiagnosis": false,
+    "currency": "TWD",
+    "referencePrice": {
+      "amount": 853,
+      "pack": "2 kg",
+      "source": "momo",
+      "url": "https://www.momoshop.com.tw/product/14175245",
+      "checkedOn": "2026-11-04",
+      "note": "頁面限時折後價；非即時報價"
+    },
+    "importedOn": "2026-11-04"
+  },
+  {
+    "id": "royalcanin-2524",
+    "officialId": "2524",
+    "brand": "royalcanin",
+    "name": "L40 體重控制成貓專用乾糧",
+    "category": "dry",
+    "image": "/hq-food/royalcanin/2524.webp",
+    "imageSourceUrl": "https://cdn.royalcanin-weshare-online.io/EehzJ4oBaPOZra8q6wxj/v17/0824-l40",
+    "officialUrl": "https://www.royalcanin.com/tw/cats/products/retail-products/light-weight-care-2524",
+    "packs": [
+      {
+        "label": "1.5 kg",
+        "ean": "3182550902991"
+      },
+      {
+        "label": "3 kg",
+        "ean": "3182550903929"
+      },
+      {
+        "label": "8 kg",
+        "ean": "3182550902984"
+      }
+    ],
+    "ages": [
+      "adult",
+      "mature"
+    ],
+    "needs": [
+      {
+        "code": "weight_management",
+        "label": "體重管理"
+      }
+    ],
+    "neutered": [
+      {
+        "code": "intact",
+        "label": "未絕育"
+      }
+    ],
+    "requiresVetDiagnosis": false,
+    "currency": "TWD",
+    "referencePrice": {
+      "amount": 669,
+      "pack": "1.5 kg",
+      "source": "棉花寵物商城",
+      "url": "https://www.mianhua-pet.com.tw/129.html",
+      "checkedOn": "2026-11-04",
+      "note": "人工查閱通路目錄之參考價，非即時報價，運費另計"
+    },
+    "importedOn": "2026-11-04"
+  },
+  {
+    "id": "royalcanin-2526",
+    "officialId": "2526",
+    "brand": "royalcanin",
+    "name": "HS33 亮毛護膚成貓專用乾糧",
+    "category": "dry",
+    "image": "/hq-food/royalcanin/2526.webp",
+    "imageSourceUrl": "https://cdn.royalcanin-weshare-online.io/D-hvJ4oBaPOZra8qOAxj/v17/0824-hs33",
+    "officialUrl": "https://www.royalcanin.com/tw/cats/products/retail-products/hair-and-skin-care-2526",
+    "packs": [
+      {
+        "label": "2 kg",
+        "ean": "3182550721738"
+      },
+      {
+        "label": "4 kg",
+        "ean": "3182550721745"
+      }
+    ],
+    "ages": [
+      "adult",
+      "mature"
+    ],
+    "needs": [
+      {
+        "code": "skin_and_coat_support",
+        "label": "皮膚與毛髮支持"
+      }
+    ],
+    "neutered": [
+      {
+        "code": "intact",
+        "label": "未絕育"
+      }
+    ],
+    "requiresVetDiagnosis": false,
+    "currency": "TWD",
+    "referencePrice": {
+      "amount": 869,
+      "pack": "2 kg",
+      "source": "棉花寵物商城",
+      "url": "https://www.mianhua-pet.com.tw/129.html",
+      "checkedOn": "2026-11-04",
+      "note": "人工查閱通路目錄之參考價，非即時報價，運費另計"
+    },
+    "importedOn": "2026-11-04"
+  },
+  {
+    "id": "royalcanin-2529",
+    "officialId": "2529",
+    "brand": "royalcanin",
+    "name": "IN27 室內成貓專用乾糧",
+    "category": "dry",
+    "image": "/hq-food/royalcanin/2529.webp",
+    "imageSourceUrl": "https://marspetcareaprimocdn.petcare.global/6e85bfb2-2a80-4d09-800d-b3aa00a4ebfc/6e85bfb2-2a80-4d09-800d-b3aa00a4ebfc_DownloadAsJpg.jpg",
+    "officialUrl": "https://www.royalcanin.com/tw/cats/products/retail-products/indoor-27-2529",
+    "packs": [
+      {
+        "label": "2 kg",
+        "ean": "3182550704625"
+      },
+      {
+        "label": "4 kg",
+        "ean": "3182550706933"
+      },
+      {
+        "label": "10 kg",
+        "ean": "3182550706940"
+      }
+    ],
+    "ages": [
+      "adult"
+    ],
+    "needs": [],
+    "neutered": [
+      {
+        "code": "intact",
+        "label": "未絕育"
+      }
+    ],
+    "requiresVetDiagnosis": false,
+    "currency": "TWD",
+    "referencePrice": {
+      "amount": 829,
+      "pack": "2 kg",
+      "source": "棉花寵物商城",
+      "url": "https://www.mianhua-pet.com.tw/129.html",
+      "checkedOn": "2026-11-04",
+      "note": "人工查閱通路目錄之參考價，非即時報價，運費另計"
+    },
+    "importedOn": "2026-11-04"
+  },
+  {
+    "id": "royalcanin-2531",
+    "officialId": "2531",
+    "brand": "royalcanin",
+    "name": "E35 挑嘴成貓絕佳口感乾糧",
+    "category": "dry",
+    "image": "/hq-food/royalcanin/2531.webp",
+    "imageSourceUrl": "https://marspetcareaprimocdn.petcare.global/d33ba6e1-c2e8-401a-9599-b3f600de1b2e/d33ba6e1-c2e8-401a-9599-b3f600de1b2e_DownloadAsJpg.jpg",
+    "officialUrl": "https://www.royalcanin.com/tw/cats/products/retail-products/savour-exigent-2531",
+    "packs": [
+      {
+        "label": "2 kg",
+        "ean": "3182550717137"
+      },
+      {
+        "label": "4 kg",
+        "ean": "3182550717144"
+      }
+    ],
+    "ages": [
+      "adult",
+      "mature"
+    ],
+    "needs": [
+      {
+        "code": "appetite_stimulation",
+        "label": "刺激食慾"
+      }
+    ],
+    "neutered": [
+      {
+        "code": "intact",
+        "label": "未絕育"
+      }
+    ],
+    "requiresVetDiagnosis": false,
+    "currency": "TWD",
+    "referencePrice": {
+      "amount": 879,
+      "pack": "2 kg",
+      "source": "棉花寵物商城",
+      "url": "https://www.mianhua-pet.com.tw/129.html",
+      "checkedOn": "2026-11-04",
+      "note": "人工查閱通路目錄之參考價，非即時報價，運費另計"
+    },
+    "importedOn": "2026-11-04"
+  },
+  {
+    "id": "royalcanin-2532",
+    "officialId": "2532",
+    "brand": "royalcanin",
+    "name": "O30 潔牙保健成貓專用乾糧",
+    "category": "dry",
+    "image": "/hq-food/royalcanin/2532.webp",
+    "imageSourceUrl": "https://cdn.royalcanin-weshare-online.io/A1d1J4oBBKJuub5qpAeI/v17/0824-o30",
+    "officialUrl": "https://www.royalcanin.com/tw/cats/products/retail-products/oral-care-2532",
+    "packs": [
+      {
+        "label": "1.5 kg",
+        "ean": "3182550717182"
+      },
+      {
+        "label": "3.5 kg",
+        "ean": "3182550721615"
+      }
+    ],
+    "ages": [
+      "adult",
+      "mature"
+    ],
+    "needs": [
+      {
+        "code": "oral_dental_hygiene",
+        "label": "口腔/牙齒衛生"
+      }
+    ],
+    "neutered": [
+      {
+        "code": "intact",
+        "label": "未絕育"
+      }
+    ],
+    "requiresVetDiagnosis": false,
+    "currency": "TWD",
+    "referencePrice": {
+      "amount": 659,
+      "pack": "1.5 kg",
+      "source": "棉花寵物商城",
+      "url": "https://www.mianhua-pet.com.tw/129.html",
+      "checkedOn": "2026-11-04",
+      "note": "人工查閱通路目錄之參考價，非即時報價，運費另計"
+    },
+    "importedOn": "2026-11-04"
+  },
+  {
+    "id": "royalcanin-2534",
+    "officialId": "2534",
+    "brand": "royalcanin",
+    "name": "IH34 有效化毛成貓專用乾糧",
+    "category": "dry",
+    "image": "/hq-food/royalcanin/2534.webp",
+    "imageSourceUrl": "https://cdn.royalcanin-weshare-online.io/AVdyJ4oBBKJuub5qLQeF/v17/0824-ih34",
+    "officialUrl": "https://www.royalcanin.com/tw/cats/products/retail-products/hairball-care-2534",
+    "packs": [
+      {
+        "label": "2 kg",
+        "ean": "3182550721400"
+      },
+      {
+        "label": "4 kg",
+        "ean": "3182550721417"
+      },
+      {
+        "label": "10 kg",
+        "ean": "3182550721424"
+      }
+    ],
+    "ages": [
+      "adult",
+      "mature"
+    ],
+    "needs": [
+      {
+        "code": "hairballs",
+        "label": "毛球"
+      }
+    ],
+    "neutered": [
+      {
+        "code": "intact",
+        "label": "未絕育"
+      }
+    ],
+    "requiresVetDiagnosis": false,
+    "currency": "TWD",
+    "referencePrice": {
+      "amount": 869,
+      "pack": "2 kg",
+      "source": "棉花寵物商城",
+      "url": "https://www.mianhua-pet.com.tw/129.html",
+      "checkedOn": "2026-11-04",
+      "note": "人工查閱通路目錄之參考價，非即時報價，運費另計"
+    },
+    "importedOn": "2026-11-04"
+  },
+  {
+    "id": "royalcanin-2537",
+    "officialId": "2537",
+    "brand": "royalcanin",
+    "name": "S37 絕育成貓專用乾糧",
+    "category": "dry",
+    "image": "/hq-food/royalcanin/2537.webp",
+    "imageSourceUrl": "https://marspetcareaprimocdn.petcare.global/cd9a054c-ee77-4adb-8c2a-b24900071afb/cd9a054c-ee77-4adb-8c2a-b24900071afb_DownloadAsJpg.jpg",
+    "officialUrl": "https://www.royalcanin.com/tw/cats/products/retail-products/sterilised-37-2537",
+    "packs": [
+      {
+        "label": "2 kg",
+        "ean": "3182550737593"
+      },
+      {
+        "label": "4 kg",
+        "ean": "3182550737616"
+      }
+    ],
+    "ages": [
+      "adult"
+    ],
+    "needs": [],
+    "neutered": [
+      {
+        "code": "neutered",
+        "label": "已絕育"
+      }
+    ],
+    "requiresVetDiagnosis": false,
+    "currency": "TWD",
+    "referencePrice": {
+      "amount": 849,
+      "pack": "2 kg",
+      "source": "棉花寵物商城",
+      "url": "https://www.mianhua-pet.com.tw/129.html",
+      "checkedOn": "2026-11-04",
+      "note": "人工查閱通路目錄之參考價，非即時報價，運費另計"
+    },
+    "importedOn": "2026-11-04"
+  },
+  {
+    "id": "royalcanin-2542",
+    "officialId": "2542",
+    "brand": "royalcanin",
+    "name": "E42 挑嘴成貓營養滿分乾糧",
+    "category": "dry",
+    "image": "/hq-food/royalcanin/2542.webp",
+    "imageSourceUrl": "https://cdn.royalcanin-weshare-online.io/gGnnrWsBG95Xk-RBi_uj/v196/16-protein-exigent-b1-ne",
+    "officialUrl": "https://www.royalcanin.com/tw/cats/products/retail-products/protein-exigent-2542",
+    "packs": [
+      {
+        "label": "2 kg",
+        "ean": "3182550767194"
+      },
+      {
+        "label": "4 kg",
+        "ean": "3182550767224"
+      }
+    ],
+    "ages": [
+      "adult",
+      "mature"
+    ],
+    "needs": [
+      {
+        "code": "appetite_stimulation",
+        "label": "刺激食慾"
+      }
+    ],
+    "neutered": [
+      {
+        "code": "intact",
+        "label": "未絕育"
+      }
+    ],
+    "requiresVetDiagnosis": false,
+    "currency": "TWD",
+    "referencePrice": {
+      "amount": 879,
+      "pack": "2 kg",
+      "source": "棉花寵物商城",
+      "url": "https://www.mianhua-pet.com.tw/129.html",
+      "checkedOn": "2026-11-04",
+      "note": "人工查閱通路目錄之參考價，非即時報價，運費另計"
+    },
+    "importedOn": "2026-11-04"
+  },
+  {
+    "id": "royalcanin-2543",
+    "officialId": "2543",
+    "brand": "royalcanin",
+    "name": "E33 挑嘴成貓濃郁香味乾糧",
+    "category": "dry",
+    "image": "/hq-food/royalcanin/2543.webp",
+    "imageSourceUrl": "https://cdn.royalcanin-weshare-online.io/bWm6rWsBG95Xk-RBuvtx/v450/16-aroma-exigent-b1-ne",
+    "officialUrl": "https://www.royalcanin.com/tw/cats/products/retail-products/aroma-exigent-2543",
+    "packs": [
+      {
+        "label": "2 kg",
+        "ean": "3182550767323"
+      },
+      {
+        "label": "4 kg",
+        "ean": "3182550767354"
+      }
+    ],
+    "ages": [
+      "adult",
+      "mature"
+    ],
+    "needs": [
+      {
+        "code": "appetite_stimulation",
+        "label": "刺激食慾"
+      }
+    ],
+    "neutered": [
+      {
+        "code": "intact",
+        "label": "未絕育"
+      }
+    ],
+    "requiresVetDiagnosis": false,
+    "currency": "TWD",
+    "referencePrice": {
+      "amount": 879,
+      "pack": "2 kg",
+      "source": "棉花寵物商城",
+      "url": "https://www.mianhua-pet.com.tw/129.html",
+      "checkedOn": "2026-11-04",
+      "note": "人工查閱通路目錄之參考價，非即時報價，運費另計"
+    },
+    "importedOn": "2026-11-04"
+  },
+  {
+    "id": "royalcanin-2544",
+    "officialId": "2544",
+    "brand": "royalcanin",
+    "name": "BC34 離乳貓與母貓專用乾糧",
+    "category": "dry",
+    "image": "/hq-food/royalcanin/2544.webp",
+    "imageSourceUrl": "https://marspetcareaprimocdn.petcare.global/65b02efe-acc0-435b-8afd-b2490009ae99/65b02efe-acc0-435b-8afd-b2490009ae99_DownloadAsJpg.jpg",
+    "officialUrl": "https://www.royalcanin.com/tw/cats/products/retail-products/mother-&-babycat-2544",
+    "packs": [
+      {
+        "label": "400 g",
+        "ean": "3182550707305"
+      },
+      {
+        "label": "2 kg",
+        "ean": "3182550707312"
+      },
+      {
+        "label": "4 kg",
+        "ean": "3182550707329"
+      },
+      {
+        "label": "10 kg",
+        "ean": "3182550931038"
+      }
+    ],
+    "ages": [
+      "adult",
+      "baby",
+      "kitten",
+      "mature"
+    ],
+    "needs": [
+      {
+        "code": "pregnant",
+        "label": "懷孕"
+      }
+    ],
+    "neutered": [
+      {
+        "code": "intact",
+        "label": "未絕育"
+      }
+    ],
+    "requiresVetDiagnosis": false,
+    "currency": "TWD",
+    "referencePrice": {
+      "amount": 1080,
+      "pack": "2 kg",
+      "source": "momo",
+      "url": "https://www.momoshop.com.tw/product/14175246",
+      "checkedOn": "2026-11-04",
+      "note": "頁面促銷價；不採已結束的十月折扣"
+    },
+    "importedOn": "2026-11-04"
+  },
+  {
+    "id": "royalcanin-2548",
+    "officialId": "2548",
+    "brand": "royalcanin",
+    "name": "IN+7 室內熟齡貓專用乾糧",
+    "category": "dry",
+    "image": "/hq-food/royalcanin/2548.webp",
+    "imageSourceUrl": "https://marspetcareaprimocdn.petcare.global/217ab462-5989-477b-b75f-b3790079354a/217ab462-5989-477b-b75f-b3790079354a_DownloadAsJpg.jpg",
+    "officialUrl": "https://www.royalcanin.com/tw/cats/products/retail-products/indoor-7+-2548",
+    "packs": [
+      {
+        "label": "1.5 kg",
+        "ean": "3182550784399"
+      },
+      {
+        "label": "3.5 kg",
+        "ean": "3182550784412"
+      }
+    ],
+    "ages": [
+      "mature"
+    ],
+    "needs": [],
+    "neutered": [
+      {
+        "code": "intact",
+        "label": "未絕育"
+      }
+    ],
+    "requiresVetDiagnosis": false,
+    "currency": "TWD",
+    "referencePrice": {
+      "amount": 659,
+      "pack": "1.5 kg",
+      "source": "棉花寵物商城",
+      "url": "https://www.mianhua-pet.com.tw/129.html",
+      "checkedOn": "2026-11-04",
+      "note": "人工查閱通路目錄之參考價，非即時報價，運費另計"
+    },
+    "importedOn": "2026-11-04"
+  },
+  {
+    "id": "royalcanin-2552",
+    "officialId": "2552",
+    "brand": "royalcanin",
+    "name": "P30 波斯成貓專用乾糧",
+    "category": "dry",
+    "image": "/hq-food/royalcanin/2552.webp",
+    "imageSourceUrl": "https://marspetcareaprimocdn.petcare.global/07a1fa03-31d3-47e9-94f6-b2490007b362/07a1fa03-31d3-47e9-94f6-b2490007b362_DownloadAsJpg.jpg",
+    "officialUrl": "https://www.royalcanin.com/tw/cats/products/retail-products/persian-adult-2552",
+    "packs": [
+      {
+        "label": "2 kg",
+        "ean": "3182550702614"
+      },
+      {
+        "label": "4 kg",
+        "ean": "3182550704533"
+      },
+      {
+        "label": "10 kg",
+        "ean": "3182550702621"
+      }
+    ],
+    "ages": [
+      "adult",
+      "mature"
+    ],
+    "needs": [],
+    "neutered": [
+      {
+        "code": "intact",
+        "label": "未絕育"
+      }
+    ],
+    "requiresVetDiagnosis": false,
+    "currency": "TWD",
+    "referencePrice": {
+      "amount": 829,
+      "pack": "2 kg",
+      "source": "棉花寵物商城",
+      "url": "https://www.mianhua-pet.com.tw/129.html",
+      "checkedOn": "2026-11-04",
+      "note": "人工查閱通路目錄之參考價，非即時報價，運費另計"
+    },
+    "importedOn": "2026-11-04"
+  },
+  {
+    "id": "royalcanin-2553",
+    "officialId": "2553",
+    "brand": "royalcanin",
+    "name": "奶貓成長奶粉",
+    "category": "other",
+    "image": "/hq-food/royalcanin/2553.webp",
+    "imageSourceUrl": "https://marspetcareaprimocdn.petcare.global/0440c120-7b7f-4a01-bd79-b1ef001ef870/0440c120-7b7f-4a01-bd79-b1ef001ef870_DownloadAsJpg.jpg",
+    "officialUrl": "https://www.royalcanin.com/tw/cats/products/retail-products/babycat-milk-2553",
+    "packs": [
+      {
+        "label": "1 x 300 g",
+        "ean": "3182550710862"
+      }
+    ],
+    "ages": [
+      "baby"
+    ],
+    "needs": [],
+    "neutered": [
+      {
+        "code": "intact",
+        "label": "未絕育"
+      }
+    ],
+    "requiresVetDiagnosis": false,
+    "currency": "TWD",
+    "referencePrice": {
+      "amount": 910,
+      "pack": "1 x 300 g",
+      "source": "BONEBONE",
+      "url": "https://www.bonebone.com.tw/categories/%E7%9A%87%E5%AE%B6%E8%B2%93%E6%BF%95%E7%B3%A7-85g195g%E5%B9%BC%E8%B2%93%E5%A5%B6%E7%B2%89",
+      "checkedOn": "2026-11-04",
+      "note": "人工查閱台灣通路目錄參考價，非即時報價，運費另計"
+    },
+    "importedOn": "2026-11-04"
+  },
+  {
+    "id": "royalcanin-2557",
+    "officialId": "2557",
+    "brand": "royalcanin",
+    "name": "BS34 英國短毛成貓專用乾糧",
+    "category": "dry",
+    "image": "/hq-food/royalcanin/2557.webp",
+    "imageSourceUrl": "https://marspetcareaprimocdn.petcare.global/9428bd90-4035-49ad-b278-b379010aa960/9428bd90-4035-49ad-b278-b379010aa960_DownloadAsJpg.jpg",
+    "officialUrl": "https://www.royalcanin.com/tw/cats/products/retail-products/british-shorthair--adult-2557",
+    "packs": [
+      {
+        "label": "2 kg",
+        "ean": "3182550756419"
+      },
+      {
+        "label": "4 kg",
+        "ean": "3182550756440"
+      },
+      {
+        "label": "10 kg",
+        "ean": "3182550756464"
+      }
+    ],
+    "ages": [
+      "adult",
+      "mature"
+    ],
+    "needs": [],
+    "neutered": [
+      {
+        "code": "intact",
+        "label": "未絕育"
+      }
+    ],
+    "requiresVetDiagnosis": false,
+    "currency": "TWD",
+    "referencePrice": {
+      "amount": 855,
+      "pack": "2 kg",
+      "source": "BONEBONE",
+      "url": "https://www.bonebone.com.tw/categories/%E5%93%81%E7%A8%AE%E8%A8%82%E8%A3%BD%E8%B2%93%E7%B3%BB%E5%88%97-15kg4kg",
+      "checkedOn": "2026-11-04",
+      "note": "人工查閱台灣通路目錄參考價，非即時報價，運費另計"
+    },
+    "importedOn": "2026-11-04"
+  },
+  {
+    "id": "royalcanin-2560",
+    "officialId": "2560",
+    "brand": "royalcanin",
+    "name": "S36+7 絕育熟齡貓專用乾糧",
+    "category": "dry",
+    "image": "/hq-food/royalcanin/2560.webp",
+    "imageSourceUrl": "https://marspetcareaprimocdn.petcare.global/461132d4-a040-4682-8e39-b3d2015dadf1/461132d4-a040-4682-8e39-b3d2015dadf1_DownloadAsJpg.jpg",
+    "officialUrl": "https://www.royalcanin.com/tw/cats/products/retail-products/sterilised-7+-2560",
+    "packs": [
+      {
+        "label": "1.5 kg",
+        "ean": "3182550784566"
+      }
+    ],
+    "ages": [
+      "mature"
+    ],
+    "needs": [],
+    "neutered": [
+      {
+        "code": "neutered",
+        "label": "已絕育"
+      }
+    ],
+    "requiresVetDiagnosis": false,
+    "currency": "TWD",
+    "referencePrice": {
+      "amount": 669,
+      "pack": "1.5 kg",
+      "source": "棉花寵物商城",
+      "url": "https://www.mianhua-pet.com.tw/129.html",
+      "checkedOn": "2026-11-04",
+      "note": "人工查閱通路目錄之參考價，非即時報價，運費另計"
+    },
+    "importedOn": "2026-11-04"
+  },
+  {
+    "id": "royalcanin-2561",
+    "officialId": "2561",
+    "brand": "royalcanin",
+    "name": "FHN 皇家老貓11+歲齡 A30+11",
+    "category": "dry",
+    "image": "/hq-food/royalcanin/2561.webp",
+    "imageSourceUrl": "https://marspetcareaprimocdn.petcare.global/5e803c8b-63b2-490a-8690-b2920089ee1e/5e803c8b-63b2-490a-8690-b2920089ee1e_DownloadAsJpg.jpg",
+    "officialUrl": "https://www.royalcanin.com/tw/cats/products/retail-products/ageing-11+-2561",
+    "packs": [
+      {
+        "label": "2 kg",
+        "ean": "3182550959636"
+      }
+    ],
+    "ages": [
+      "ageing"
+    ],
+    "needs": [],
+    "neutered": [
+      {
+        "code": "intact",
+        "label": "未絕育"
+      }
+    ],
+    "requiresVetDiagnosis": false,
+    "currency": "TWD",
+    "referencePrice": {
+      "amount": 849,
+      "pack": "2 kg",
+      "source": "棉花寵物商城",
+      "url": "https://www.mianhua-pet.com.tw/129.html",
+      "checkedOn": "2026-11-04",
+      "note": "人工查閱通路目錄之參考價，非即時報價，運費另計"
+    },
+    "importedOn": "2026-11-04"
+  },
+  {
+    "id": "royalcanin-2565",
+    "officialId": "2565",
+    "brand": "royalcanin",
+    "name": "FHN 皇家絕育老貓11+歲齡 S30+11",
+    "category": "dry",
+    "image": "/hq-food/royalcanin/2565.webp",
+    "imageSourceUrl": "https://marspetcareaprimocdn.petcare.global/729e08ca-d58b-4791-819d-b292008a0f18/729e08ca-d58b-4791-819d-b292008a0f18_DownloadAsJpg.jpg",
+    "officialUrl": "https://www.royalcanin.com/tw/cats/products/retail-products/ageing-11+-sterilised-2565",
+    "packs": [
+      {
+        "label": "2 kg",
+        "ean": "3182551066036"
+      }
+    ],
+    "ages": [
+      "ageing"
+    ],
+    "needs": [],
+    "neutered": [
+      {
+        "code": "neutered",
+        "label": "已絕育"
+      }
+    ],
+    "requiresVetDiagnosis": false,
+    "currency": "TWD",
+    "referencePrice": {
+      "amount": 849,
+      "pack": "2 kg",
+      "source": "棉花寵物商城",
+      "url": "https://www.mianhua-pet.com.tw/129.html",
+      "checkedOn": "2026-11-04",
+      "note": "人工查閱通路目錄之參考價，非即時報價，運費另計"
+    },
+    "importedOn": "2026-11-04"
+  },
+  {
+    "id": "royalcanin-2566",
+    "officialId": "2566",
+    "brand": "royalcanin",
+    "name": "BSK38 英國短毛幼貓專用乾糧",
+    "category": "dry",
+    "image": "/hq-food/royalcanin/2566.webp",
+    "imageSourceUrl": "https://marspetcareaprimocdn.petcare.global/acf50974-2701-458e-b8ee-b3a2008a67e5/acf50974-2701-458e-b8ee-b3a2008a67e5_DownloadAsJpg.jpg",
+    "officialUrl": "https://www.royalcanin.com/tw/cats/products/retail-products/british-shorthair-kitten-2566",
+    "packs": [
+      {
+        "label": "2 kg",
+        "ean": "3182550816533"
+      },
+      {
+        "label": "10 kg",
+        "ean": "3182550816540"
+      }
+    ],
+    "ages": [
+      "kitten"
+    ],
+    "needs": [],
+    "neutered": [
+      {
+        "code": "intact",
+        "label": "未絕育"
+      }
+    ],
+    "requiresVetDiagnosis": false,
+    "currency": "TWD",
+    "referencePrice": {
+      "amount": 859,
+      "pack": "2 kg",
+      "source": "棉花寵物商城",
+      "url": "https://www.mianhua-pet.com.tw/129.html",
+      "checkedOn": "2026-11-04",
+      "note": "人工查閱通路目錄之參考價，非即時報價，運費另計"
+    },
+    "importedOn": "2026-11-04"
+  },
+  {
+    "id": "royalcanin-2721",
+    "officialId": "2721",
+    "brand": "royalcanin",
+    "name": "NSB35 貓 絕育飽足感均衡配方",
+    "category": "dry",
+    "image": "/hq-food/royalcanin/2721.webp",
+    "imageSourceUrl": "https://marspetcareaprimocdn.petcare.global/cb9c1dad-760a-4ebb-a8c0-b2490009d7d1/cb9c1dad-760a-4ebb-a8c0-b2490009d7d1_DownloadAsJpg.jpg",
+    "officialUrl": "https://www.royalcanin.com/tw/cats/products/vet-products/neutered-satiety-balance-2721",
+    "packs": [
+      {
+        "label": "1.5 kg",
+        "ean": "3182550799638"
+      },
+      {
+        "label": "3.5 kg",
+        "ean": "3182550799645"
+      }
+    ],
+    "ages": [
+      "adult",
+      "kitten",
+      "mature",
+      "ageing"
+    ],
+    "needs": [
+      {
+        "code": "tendency_to_beg_for_food",
+        "label": "有乞食習慣"
+      },
+      {
+        "code": "weight_management",
+        "label": "體重管理"
+      }
+    ],
+    "neutered": [
+      {
+        "code": "neutered",
+        "label": "已絕育"
+      }
+    ],
+    "requiresVetDiagnosis": true,
+    "currency": "TWD",
+    "referencePrice": {
+      "amount": 629,
+      "pack": "1.5 kg",
+      "source": "棉花寵物商城",
+      "url": "https://www.mianhua-pet.com.tw/130.html",
+      "checkedOn": "2026-11-04",
+      "note": "人工查閱通路目錄之參考價，非即時報價，運費另計"
+    },
+    "importedOn": "2026-11-04"
+  },
+  {
+    "id": "royalcanin-2725",
+    "officialId": "2725",
+    "brand": "royalcanin",
+    "name": "WK32 貓 熟齡均衡配方（7歲以上）",
+    "category": "dry",
+    "image": "/hq-food/royalcanin/2725.webp",
+    "imageSourceUrl": "https://marspetcareaprimocdn.petcare.global/51e8cf66-e561-4f2c-af3a-b3af007df5aa/51e8cf66-e561-4f2c-af3a-b3af007df5aa_DownloadAsJpg.jpg",
+    "officialUrl": "https://www.royalcanin.com/tw/cats/products/vet-products/mature-consult-balance-2725",
+    "packs": [
+      {
+        "label": "1.5 kg",
+        "ean": "3182550799478"
+      },
+      {
+        "label": "3.5 kg",
+        "ean": "3182550799485"
+      }
+    ],
+    "ages": [
+      "mature",
+      "ageing"
+    ],
+    "needs": [
+      {
+        "code": "tendency_to_beg_for_food",
+        "label": "有乞食習慣"
+      },
+      {
+        "code": "weight_management",
+        "label": "體重管理"
+      }
+    ],
+    "neutered": [
+      {
+        "code": "neutered",
+        "label": "已絕育"
+      }
+    ],
+    "requiresVetDiagnosis": true,
+    "currency": "TWD",
+    "referencePrice": {
+      "amount": 629,
+      "pack": "1.5 kg",
+      "source": "棉花寵物商城",
+      "url": "https://www.mianhua-pet.com.tw/130.html",
+      "checkedOn": "2026-11-04",
+      "note": "人工查閱通路目錄之參考價，非即時報價，運費另計"
+    },
+    "importedOn": "2026-11-04"
+  },
+  {
+    "id": "royalcanin-2733",
+    "officialId": "2733",
+    "brand": "royalcanin",
+    "name": "FR31W 貓 腸胃道高纖配方濕糧",
+    "category": "wet",
+    "image": "/hq-food/royalcanin/2733.webp",
+    "imageSourceUrl": "https://marspetcareaprimocdn.petcare.global/e425f580-1531-4f8e-80e3-b2490009edda/e425f580-1531-4f8e-80e3-b2490009edda_DownloadAsJpg.jpg",
+    "officialUrl": "https://www.royalcanin.com/tw/cats/products/vet-products/gastrointestinal-fibre-response-2733",
+    "packs": [
+      {
+        "label": "12 x 85 g",
+        "ean": "9003579023778"
+      }
+    ],
+    "ages": [
+      "adult"
+    ],
+    "needs": [
+      {
+        "code": "digestive_support",
+        "label": "消化道呵護"
+      }
+    ],
+    "neutered": [
+      {
+        "code": "intact",
+        "label": "未絕育"
+      }
+    ],
+    "requiresVetDiagnosis": true,
+    "currency": "TWD",
+    "referencePrice": null,
+    "importedOn": "2026-11-04"
+  },
+  {
+    "id": "royalcanin-2735",
+    "officialId": "2735",
+    "brand": "royalcanin",
+    "name": "GIDR31 貓 腸胃道+低過敏專用配方",
+    "category": "dry",
+    "image": "/hq-food/royalcanin/2735.webp",
+    "imageSourceUrl": "https://marspetcareaprimocdn.petcare.global/03ad2d2c-ea1e-4fb0-8c72-b2490009f400/03ad2d2c-ea1e-4fb0-8c72-b2490009f400_DownloadAsJpg.jpg",
+    "officialUrl": "https://www.royalcanin.com/tw/cats/products/vet-products/gastrointestinal-hydrolysed-protein-2735",
+    "packs": [
+      {
+        "label": "2 kg",
+        "ean": "3182550948609"
+      }
+    ],
+    "ages": [
+      "adult",
+      "mature",
+      "ageing"
+    ],
+    "needs": [
+      {
+        "code": "digestive_support",
+        "label": "消化道呵護"
+      }
+    ],
+    "neutered": [
+      {
+        "code": "intact",
+        "label": "未絕育"
+      }
+    ],
+    "requiresVetDiagnosis": true,
+    "currency": "TWD",
+    "referencePrice": null,
+    "importedOn": "2026-11-04"
+  },
+  {
+    "id": "royalcanin-2971",
+    "officialId": "2971",
+    "brand": "royalcanin",
+    "name": "DE29 貓 口腔保健配方乾糧",
+    "category": "dry",
+    "image": "/hq-food/royalcanin/2971.webp",
+    "imageSourceUrl": "https://marspetcareaprimocdn.petcare.global/61df2995-caf9-447c-8d44-b1ef001d5ce5/61df2995-caf9-447c-8d44-b1ef001d5ce5_DownloadAsJpg.jpg",
+    "officialUrl": "https://www.royalcanin.com/tw/cats/products/vet-products/dental-2971",
+    "packs": [
+      {
+        "label": "1.5 kg",
+        "ean": "3182550722308"
+      }
+    ],
+    "ages": [
+      "adult",
+      "mature",
+      "ageing"
+    ],
+    "needs": [
+      {
+        "code": "oral_dental_hygiene",
+        "label": "口腔/牙齒衛生"
+      }
+    ],
+    "neutered": [
+      {
+        "code": "intact",
+        "label": "未絕育"
+      }
+    ],
+    "requiresVetDiagnosis": true,
+    "currency": "TWD",
+    "referencePrice": {
+      "amount": 679,
+      "pack": "1.5 kg",
+      "source": "棉花寵物商城",
+      "url": "https://www.mianhua-pet.com.tw/130.html",
+      "checkedOn": "2026-11-04",
+      "note": "人工查閱通路目錄之參考價，非即時報價，運費另計"
+    },
+    "importedOn": "2026-11-04"
+  },
+  {
+    "id": "royalcanin-3900",
+    "officialId": "3900",
+    "brand": "royalcanin",
+    "name": "RF23 貓 腎臟病配方乾糧",
+    "category": "dry",
+    "image": "/hq-food/royalcanin/3900.webp",
+    "imageSourceUrl": "https://marspetcareaprimocdn.petcare.global/f11ca87f-ae2e-4d90-b32c-b377011dbe58/f11ca87f-ae2e-4d90-b32c-b377011dbe58_DownloadAsJpg.jpg",
+    "officialUrl": "https://www.royalcanin.com/tw/cats/products/vet-products/renal-3900",
+    "packs": [
+      {
+        "label": "2 kg",
+        "ean": "3182550711142"
+      },
+      {
+        "label": "4 kg",
+        "ean": "3182550711012"
+      }
+    ],
+    "ages": [
+      "adult",
+      "mature",
+      "ageing"
+    ],
+    "needs": [
+      {
+        "code": "kidney_support",
+        "label": "腎臟支持"
+      }
+    ],
+    "neutered": [
+      {
+        "code": "intact",
+        "label": "未絕育"
+      }
+    ],
+    "requiresVetDiagnosis": true,
+    "currency": "TWD",
+    "referencePrice": {
+      "amount": 1069,
+      "pack": "2 kg",
+      "source": "棉花寵物商城",
+      "url": "https://www.mianhua-pet.com.tw/130.html",
+      "checkedOn": "2026-11-04",
+      "note": "人工查閱通路目錄之參考價，非即時報價，運費另計"
+    },
+    "importedOn": "2026-11-04"
+  },
+  {
+    "id": "royalcanin-3901",
+    "officialId": "3901",
+    "brand": "royalcanin",
+    "name": "LP34 貓 泌尿道配方乾糧",
+    "category": "dry",
+    "image": "/hq-food/royalcanin/3901.webp",
+    "imageSourceUrl": "https://marspetcareaprimocdn.petcare.global/9ab8dc1a-fc9b-4c9c-b898-b37500f98dae/9ab8dc1a-fc9b-4c9c-b898-b37500f98dae_DownloadAsJpg.jpg",
+    "officialUrl": "https://www.royalcanin.com/tw/cats/products/vet-products/urinary-so-3901",
+    "packs": [
+      {
+        "label": "1.5 kg",
+        "ean": "3182550711159"
+      },
+      {
+        "label": "3.5 kg",
+        "ean": "3182550711050"
+      },
+      {
+        "label": "7 kg",
+        "ean": "3182550859554"
+      }
+    ],
+    "ages": [
+      "adult",
+      "mature",
+      "ageing"
+    ],
+    "needs": [
+      {
+        "code": "urinary_support",
+        "label": "泌尿道呵護"
+      }
+    ],
+    "neutered": [
+      {
+        "code": "intact",
+        "label": "未絕育"
+      }
+    ],
+    "requiresVetDiagnosis": true,
+    "currency": "TWD",
+    "referencePrice": {
+      "amount": 739,
+      "pack": "1.5 kg",
+      "source": "棉花寵物商城",
+      "url": "https://www.mianhua-pet.com.tw/130.html",
+      "checkedOn": "2026-11-04",
+      "note": "人工查閱通路目錄之參考價，非即時報價，運費另計"
+    },
+    "importedOn": "2026-11-04"
+  },
+  {
+    "id": "royalcanin-3902",
+    "officialId": "3902",
+    "brand": "royalcanin",
+    "name": "DR25 貓 低過敏配方乾糧",
+    "category": "dry",
+    "image": "/hq-food/royalcanin/3902.webp",
+    "imageSourceUrl": "https://marspetcareaprimocdn.petcare.global/b27d4078-1b9d-4b99-9dea-b3760077b968/b27d4078-1b9d-4b99-9dea-b3760077b968_DownloadAsJpg.jpg",
+    "officialUrl": "https://www.royalcanin.com/tw/cats/products/vet-products/hypoallergenic-3902",
+    "packs": [
+      {
+        "label": "2.5 kg",
+        "ean": "3182550939478"
+      }
+    ],
+    "ages": [
+      "adult",
+      "mature",
+      "ageing"
+    ],
+    "needs": [
+      {
+        "code": "food_sensitivities",
+        "label": "食物過敏"
+      },
+      {
+        "code": "skin_and_coat_support",
+        "label": "皮膚與毛髮支持"
+      }
+    ],
+    "neutered": [
+      {
+        "code": "intact",
+        "label": "未絕育"
+      }
+    ],
+    "requiresVetDiagnosis": true,
+    "currency": "TWD",
+    "referencePrice": {
+      "amount": 1299,
+      "pack": "2.5 kg",
+      "source": "棉花寵物商城",
+      "url": "https://www.mianhua-pet.com.tw/130.html",
+      "checkedOn": "2026-11-04",
+      "note": "人工查閱通路目錄之參考價，非即時報價，運費另計"
+    },
+    "importedOn": "2026-11-04"
+  },
+  {
+    "id": "royalcanin-3905",
+    "officialId": "3905",
+    "brand": "royalcanin",
+    "name": "GI32 貓 腸胃道配方乾糧",
+    "category": "dry",
+    "image": "/hq-food/royalcanin/3905.webp",
+    "imageSourceUrl": "https://marspetcareaprimocdn.petcare.global/426d252e-2fc6-427c-b5fc-b1ef001dd8b6/426d252e-2fc6-427c-b5fc-b1ef001dd8b6_DownloadAsJpg.jpg",
+    "officialUrl": "https://www.royalcanin.com/tw/cats/products/vet-products/gastrointestinal-3905",
+    "packs": [
+      {
+        "label": "2 kg",
+        "ean": "3182550771252"
+      }
+    ],
+    "ages": [
+      "adult",
+      "kitten",
+      "mature",
+      "ageing"
+    ],
+    "needs": [
+      {
+        "code": "digestive_support",
+        "label": "消化道呵護"
+      }
+    ],
+    "neutered": [
+      {
+        "code": "intact",
+        "label": "未絕育"
+      }
+    ],
+    "requiresVetDiagnosis": true,
+    "currency": "TWD",
+    "referencePrice": {
+      "amount": 999,
+      "pack": "2 kg",
+      "source": "棉花寵物商城",
+      "url": "https://www.mianhua-pet.com.tw/130.html",
+      "checkedOn": "2026-11-04",
+      "note": "人工查閱通路目錄之參考價，非即時報價，運費另計"
+    },
+    "importedOn": "2026-11-04"
+  },
+  {
+    "id": "royalcanin-3906",
+    "officialId": "3906",
+    "brand": "royalcanin",
+    "name": "DS46 貓 糖尿病配方乾糧",
+    "category": "dry",
+    "image": "/hq-food/royalcanin/3906.webp",
+    "imageSourceUrl": "https://cdn.royalcanin-weshare-online.io/SFY9E3oBBKJuub5qtrZs/v7/rgy-ds46",
+    "officialUrl": "https://www.royalcanin.com/tw/cats/products/vet-products/diabetic-3906",
+    "packs": [
+      {
+        "label": "1.5 kg",
+        "ean": "3182550711166"
+      },
+      {
+        "label": "3.5 kg",
+        "ean": "3182550729321"
+      }
+    ],
+    "ages": [
+      "adult",
+      "mature",
+      "ageing"
+    ],
+    "needs": [
+      {
+        "code": "diabetes_support",
+        "label": "糖尿病呵護"
+      }
+    ],
+    "neutered": [
+      {
+        "code": "intact",
+        "label": "未絕育"
+      }
+    ],
+    "requiresVetDiagnosis": true,
+    "currency": "TWD",
+    "referencePrice": {
+      "amount": 779,
+      "pack": "1.5 kg",
+      "source": "棉花寵物商城",
+      "url": "https://www.mianhua-pet.com.tw/130.html",
+      "checkedOn": "2026-11-04",
+      "note": "人工查閱通路目錄之參考價，非即時報價，運費另計"
+    },
+    "importedOn": "2026-11-04"
+  },
+  {
+    "id": "royalcanin-3909",
+    "officialId": "3909",
+    "brand": "royalcanin",
+    "name": "SC27 貓 過敏控制配方乾糧",
+    "category": "dry",
+    "image": "/hq-food/royalcanin/3909.webp",
+    "imageSourceUrl": "https://marspetcareaprimocdn.petcare.global/efff8132-7985-44be-9c2e-b2490009f540/efff8132-7985-44be-9c2e-b2490009f540_DownloadAsJpg.jpg",
+    "officialUrl": "https://www.royalcanin.com/tw/cats/products/vet-products/sensitivity-control-3909",
+    "packs": [
+      {
+        "label": "1.5 kg",
+        "ean": "3182550759687"
+      }
+    ],
+    "ages": [
+      "adult"
+    ],
+    "needs": [
+      {
+        "code": "digestive_support",
+        "label": "消化道呵護"
+      }
+    ],
+    "neutered": [
+      {
+        "code": "intact",
+        "label": "未絕育"
+      }
+    ],
+    "requiresVetDiagnosis": true,
+    "currency": "TWD",
+    "referencePrice": {
+      "amount": 819,
+      "pack": "1.5 kg",
+      "source": "棉花寵物商城",
+      "url": "https://www.mianhua-pet.com.tw/130.html",
+      "checkedOn": "2026-11-04",
+      "note": "人工查閱通路目錄之參考價，非即時報價，運費另計"
+    },
+    "importedOn": "2026-11-04"
+  },
+  {
+    "id": "royalcanin-3949",
+    "officialId": "3949",
+    "brand": "royalcanin",
+    "name": "RSF26 貓 腎臟病強化適口性配方乾糧",
+    "category": "dry",
+    "image": "/hq-food/royalcanin/3949.webp",
+    "imageSourceUrl": "https://marspetcareaprimocdn.petcare.global/9e98851f-dc55-4912-9025-b3ef0162a32f/9e98851f-dc55-4912-9025-b3ef0162a32f_DownloadAsJpg.jpg",
+    "officialUrl": "https://www.royalcanin.com/tw/cats/products/vet-products/renal-special-3949",
+    "packs": [
+      {
+        "label": "2 kg",
+        "ean": "3182550748155"
+      },
+      {
+        "label": "4 kg",
+        "ean": "3182550748179"
+      }
+    ],
+    "ages": [
+      "adult",
+      "mature",
+      "ageing"
+    ],
+    "needs": [
+      {
+        "code": "kidney_support",
+        "label": "腎臟支持"
+      }
+    ],
+    "neutered": [
+      {
+        "code": "intact",
+        "label": "未絕育"
+      }
+    ],
+    "requiresVetDiagnosis": true,
+    "currency": "TWD",
+    "referencePrice": {
+      "amount": 1069,
+      "pack": "2 kg",
+      "source": "棉花寵物商城",
+      "url": "https://www.mianhua-pet.com.tw/130.html",
+      "checkedOn": "2026-11-04",
+      "note": "人工查閱通路目錄之參考價，非即時報價，運費另計"
+    },
+    "importedOn": "2026-11-04"
+  },
+  {
+    "id": "royalcanin-3954",
+    "officialId": "3954",
+    "brand": "royalcanin",
+    "name": "UMC34 貓 泌尿道低卡路里配方乾糧",
+    "category": "dry",
+    "image": "/hq-food/royalcanin/3954.webp",
+    "imageSourceUrl": "https://cdn.royalcanin-weshare-online.io/SVZWE3oBBKJuub5qbbYZ/v9/rgy-umc34",
+    "officialUrl": "https://www.royalcanin.com/tw/cats/products/vet-products/urinary-so-moderate-calorie-3954",
+    "packs": [
+      {
+        "label": "1.5 kg",
+        "ean": "3182550764544"
+      },
+      {
+        "label": "3.5 kg",
+        "ean": "3182550764551"
+      }
+    ],
+    "ages": [
+      "adult",
+      "mature",
+      "ageing"
+    ],
+    "needs": [
+      {
+        "code": "urinary_support",
+        "label": "泌尿道呵護"
+      }
+    ],
+    "neutered": [
+      {
+        "code": "intact",
+        "label": "未絕育"
+      }
+    ],
+    "requiresVetDiagnosis": true,
+    "currency": "TWD",
+    "referencePrice": {
+      "amount": 699,
+      "pack": "1.5 kg",
+      "source": "棉花寵物商城",
+      "url": "https://www.mianhua-pet.com.tw/130.html",
+      "checkedOn": "2026-11-04",
+      "note": "人工查閱通路目錄之參考價，非即時報價，運費另計"
+    },
+    "importedOn": "2026-11-04"
+  },
+  {
+    "id": "royalcanin-4007",
+    "officialId": "4007",
+    "brand": "royalcanin",
+    "name": "FR31 貓 腸胃道高纖配方乾糧",
+    "category": "dry",
+    "image": "/hq-food/royalcanin/4007.webp",
+    "imageSourceUrl": "https://cdn.royalcanin-weshare-online.io/nugm04wBaPOZra8q4Ryy/v9/fr31-bag-image2024",
+    "officialUrl": "https://www.royalcanin.com/tw/cats/products/vet-products/gastrointestinal-fibre-response-4007",
+    "packs": [
+      {
+        "label": "2 kg",
+        "ean": "3182550771337"
+      },
+      {
+        "label": "4 kg",
+        "ean": "3182550771344"
+      }
+    ],
+    "ages": [
+      "adult",
+      "mature",
+      "ageing"
+    ],
+    "needs": [
+      {
+        "code": "digestive_support",
+        "label": "消化道呵護"
+      }
+    ],
+    "neutered": [
+      {
+        "code": "intact",
+        "label": "未絕育"
+      }
+    ],
+    "requiresVetDiagnosis": true,
+    "currency": "TWD",
+    "referencePrice": {
+      "amount": 1049,
+      "pack": "2 kg",
+      "source": "棉花寵物商城",
+      "url": "https://www.mianhua-pet.com.tw/130.html",
+      "checkedOn": "2026-11-04",
+      "note": "人工查閱通路目錄之參考價，非即時報價，運費另計"
+    },
+    "importedOn": "2026-11-04"
+  },
+  {
+    "id": "royalcanin-4008",
+    "officialId": "4008",
+    "brand": "royalcanin",
+    "name": "GIM35 貓 腸胃道低卡路里配方乾糧",
+    "category": "dry",
+    "image": "/hq-food/royalcanin/4008.webp",
+    "imageSourceUrl": "https://marspetcareaprimocdn.petcare.global/0a4cc242-b06f-42b9-9b39-b1ef001de391/0a4cc242-b06f-42b9-9b39-b1ef001de391_DownloadAsJpg.jpg",
+    "officialUrl": "https://www.royalcanin.com/tw/cats/products/vet-products/gastrointestinal-moderate-calorie-4008",
+    "packs": [
+      {
+        "label": "2 kg",
+        "ean": "3182550771290"
+      }
+    ],
+    "ages": [
+      "adult",
+      "mature",
+      "ageing"
+    ],
+    "needs": [
+      {
+        "code": "digestive_support",
+        "label": "消化道呵護"
+      },
+      {
+        "code": "weight_management",
+        "label": "體重管理"
+      }
+    ],
+    "neutered": [
+      {
+        "code": "intact",
+        "label": "未絕育"
+      }
+    ],
+    "requiresVetDiagnosis": true,
+    "currency": "TWD",
+    "referencePrice": {
+      "amount": 1039,
+      "pack": "2 kg",
+      "source": "棉花寵物商城",
+      "url": "https://www.mianhua-pet.com.tw/130.html",
+      "checkedOn": "2026-11-04",
+      "note": "人工查閱通路目錄之參考價，非即時報價，運費另計"
+    },
+    "importedOn": "2026-11-04"
+  },
+  {
+    "id": "royalcanin-4009",
+    "officialId": "4009",
+    "brand": "royalcanin",
+    "name": "GIM35W 貓 腸胃道低卡路里配方濕糧",
+    "category": "wet",
+    "image": "/hq-food/royalcanin/4009.webp",
+    "imageSourceUrl": "https://marspetcareaprimocdn.petcare.global/c9bb51fc-7351-4555-b360-b1ef001de18f/c9bb51fc-7351-4555-b360-b1ef001de18f_DownloadAsJpg.jpg",
+    "officialUrl": "https://www.royalcanin.com/tw/cats/products/vet-products/gastrointestinal-moderate-calorie-4009",
+    "packs": [
+      {
+        "label": "1 x 85 g",
+        "ean": "9003579027783"
+      }
+    ],
+    "ages": [
+      "adult",
+      "mature",
+      "ageing"
+    ],
+    "needs": [
+      {
+        "code": "digestive_support",
+        "label": "消化道呵護"
+      },
+      {
+        "code": "weight_management",
+        "label": "體重管理"
+      }
+    ],
+    "neutered": [
+      {
+        "code": "intact",
+        "label": "未絕育"
+      }
+    ],
+    "requiresVetDiagnosis": true,
+    "currency": "TWD",
+    "referencePrice": {
+      "amount": 50,
+      "pack": "1 x 85 g",
+      "source": "棉花寵物商城",
+      "url": "https://www.mianhua-pet.com.tw/335.html",
+      "checkedOn": "2026-11-04",
+      "note": "人工查閱通路目錄之參考價，非即時報價，運費另計"
+    },
+    "importedOn": "2026-11-04"
+  },
+  {
+    "id": "royalcanin-4012",
+    "officialId": "4012",
+    "brand": "royalcanin",
+    "name": "HF26 貓 肝臟配方乾糧",
+    "category": "dry",
+    "image": "/hq-food/royalcanin/4012.webp",
+    "imageSourceUrl": "https://marspetcareaprimocdn.petcare.global/a84c37e7-9641-44fc-86ed-b1ef001ddcb0/a84c37e7-9641-44fc-86ed-b1ef001ddcb0_DownloadAsJpg.jpg",
+    "officialUrl": "https://www.royalcanin.com/tw/cats/products/vet-products/hepatic-4012",
+    "packs": [
+      {
+        "label": "2 kg",
+        "ean": "3182550787963"
+      }
+    ],
+    "ages": [
+      "adult",
+      "mature",
+      "ageing"
+    ],
+    "needs": [
+      {
+        "code": "digestive_support",
+        "label": "消化道呵護"
+      }
+    ],
+    "neutered": [
+      {
+        "code": "intact",
+        "label": "未絕育"
+      }
+    ],
+    "requiresVetDiagnosis": true,
+    "currency": "TWD",
+    "referencePrice": {
+      "amount": 1039,
+      "pack": "2 kg",
+      "source": "棉花寵物商城",
+      "url": "https://www.mianhua-pet.com.tw/130.html",
+      "checkedOn": "2026-11-04",
+      "note": "人工查閱通路目錄之參考價，非即時報價，運費另計"
+    },
+    "importedOn": "2026-11-04"
+  },
+  {
+    "id": "royalcanin-4030",
+    "officialId": "4030",
+    "brand": "royalcanin",
+    "name": "RF23CW 貓 腎臟病配方濕糧 - 雞肉",
+    "category": "wet",
+    "image": "/hq-food/royalcanin/4030.webp",
+    "imageSourceUrl": "https://marspetcareaprimocdn.petcare.global/76ed0ff5-9427-4afe-af8d-b2490009f93c/76ed0ff5-9427-4afe-af8d-b2490009f93c_DownloadAsJpg.jpg",
+    "officialUrl": "https://www.royalcanin.com/tw/cats/products/vet-products/renal-with-chicken-4030",
+    "packs": [
+      {
+        "label": "1 x 85 g",
+        "ean": "9003579000465"
+      }
+    ],
+    "ages": [
+      "adult",
+      "mature",
+      "ageing"
+    ],
+    "needs": [
+      {
+        "code": "kidney_support",
+        "label": "腎臟支持"
+      }
+    ],
+    "neutered": [
+      {
+        "code": "intact",
+        "label": "未絕育"
+      }
+    ],
+    "requiresVetDiagnosis": true,
+    "currency": "TWD",
+    "referencePrice": {
+      "amount": 50,
+      "pack": "1 x 85 g",
+      "source": "棉花寵物商城",
+      "url": "https://www.mianhua-pet.com.tw/335.html",
+      "checkedOn": "2026-11-04",
+      "note": "人工查閱通路目錄之參考價，非即時報價，運費另計"
+    },
+    "importedOn": "2026-11-04"
+  },
+  {
+    "id": "royalcanin-4032",
+    "officialId": "4032",
+    "brand": "royalcanin",
+    "name": "LP34W 貓 泌尿道配方濕糧 - 雞肉",
+    "category": "wet",
+    "image": "/hq-food/royalcanin/4032.webp",
+    "imageSourceUrl": "https://marspetcareaprimocdn.petcare.global/7e42ed57-a063-472b-a20f-b377001a89ad/7e42ed57-a063-472b-a20f-b377001a89ad_DownloadAsJpg.jpg",
+    "officialUrl": "https://www.royalcanin.com/tw/cats/products/vet-products/urinary-so-4032",
+    "packs": [
+      {
+        "label": "1 x 85 g",
+        "ean": "9003579010051"
+      }
+    ],
+    "ages": [
+      "adult",
+      "mature",
+      "ageing"
+    ],
+    "needs": [
+      {
+        "code": "urinary_support",
+        "label": "泌尿道呵護"
+      }
+    ],
+    "neutered": [
+      {
+        "code": "intact",
+        "label": "未絕育"
+      }
+    ],
+    "requiresVetDiagnosis": true,
+    "currency": "TWD",
+    "referencePrice": {
+      "amount": 50,
+      "pack": "1 x 85 g",
+      "source": "棉花寵物商城",
+      "url": "https://www.mianhua-pet.com.tw/335.html",
+      "checkedOn": "2026-11-04",
+      "note": "人工查閱通路目錄之參考價，非即時報價，運費另計"
+    },
+    "importedOn": "2026-11-04"
+  },
+  {
+    "id": "royalcanin-4035",
+    "officialId": "4035",
+    "brand": "royalcanin",
+    "name": "SC27W 貓 過敏控制配方濕糧 - 雞肉",
+    "category": "wet",
+    "image": "/hq-food/royalcanin/4035.webp",
+    "imageSourceUrl": "https://marspetcareaprimocdn.petcare.global/7f25decb-243d-4339-b966-b2490009dd5f/7f25decb-243d-4339-b966-b2490009dd5f_DownloadAsJpg.jpg",
+    "officialUrl": "https://www.royalcanin.com/tw/cats/products/vet-products/sensitivity-control-chicken-with-rice-4035",
+    "packs": [
+      {
+        "label": "1 x 85 g",
+        "ean": "9003579011430"
+      },
+      {
+        "label": "12 x 85 g",
+        "ean": "9003579011423"
+      }
+    ],
+    "ages": [
+      "adult",
+      "mature"
+    ],
+    "needs": [
+      {
+        "code": "digestive_support",
+        "label": "消化道呵護"
+      }
+    ],
+    "neutered": [
+      {
+        "code": "intact",
+        "label": "未絕育"
+      }
+    ],
+    "requiresVetDiagnosis": true,
+    "currency": "TWD",
+    "referencePrice": {
+      "amount": 50,
+      "pack": "1 x 85 g",
+      "source": "棉花寵物商城",
+      "url": "https://www.mianhua-pet.com.tw/335.html",
+      "checkedOn": "2026-11-04",
+      "note": "人工查閱通路目錄之參考價，非即時報價，運費另計"
+    },
+    "importedOn": "2026-11-04"
+  },
+  {
+    "id": "royalcanin-4039",
+    "officialId": "4039",
+    "brand": "royalcanin",
+    "name": "GI32W 貓 腸胃道配方濕糧",
+    "category": "wet",
+    "image": "/hq-food/royalcanin/4039.webp",
+    "imageSourceUrl": "https://marspetcareaprimocdn.petcare.global/5421ff6c-cf32-4eeb-942f-b20b0040bf0e/5421ff6c-cf32-4eeb-942f-b20b0040bf0e_DownloadAsJpg.jpg",
+    "officialUrl": "https://www.royalcanin.com/tw/cats/products/vet-products/gastrointestinal-4039",
+    "packs": [
+      {
+        "label": "1 x 85 g",
+        "ean": "9003579027752"
+      }
+    ],
+    "ages": [
+      "adult",
+      "kitten",
+      "mature",
+      "ageing"
+    ],
+    "needs": [
+      {
+        "code": "digestive_support",
+        "label": "消化道呵護"
+      }
+    ],
+    "neutered": [
+      {
+        "code": "intact",
+        "label": "未絕育"
+      }
+    ],
+    "requiresVetDiagnosis": true,
+    "currency": "TWD",
+    "referencePrice": {
+      "amount": 50,
+      "pack": "1 x 85 g",
+      "source": "棉花寵物商城",
+      "url": "https://www.mianhua-pet.com.tw/335.html",
+      "checkedOn": "2026-11-04",
+      "note": "人工查閱通路目錄之參考價，非即時報價，運費另計"
+    },
+    "importedOn": "2026-11-04"
+  },
+  {
+    "id": "royalcanin-4058",
+    "officialId": "4058",
+    "brand": "royalcanin",
+    "name": "K36W 幼貓主食濕糧",
+    "category": "wet",
+    "image": "/hq-food/royalcanin/4058.webp",
+    "imageSourceUrl": "https://marspetcareaprimocdn.petcare.global/4b6e2331-f04f-4dce-b952-b2490009a7b0/4b6e2331-f04f-4dce-b952-b2490009a7b0_DownloadAsJpg.jpg",
+    "officialUrl": "https://www.royalcanin.com/tw/cats/products/retail-products/kitten--chunks-in-gravy-4058",
+    "packs": [
+      {
+        "label": "1 x 85 g",
+        "ean": "10030111604351"
+      },
+      {
+        "label": "12 x 85 g",
+        "ean": "9003579308745"
+      }
+    ],
+    "ages": [
+      "kitten"
+    ],
+    "needs": [],
+    "neutered": [
+      {
+        "code": "intact",
+        "label": "未絕育"
+      }
+    ],
+    "requiresVetDiagnosis": false,
+    "currency": "TWD",
+    "referencePrice": {
+      "amount": 49,
+      "pack": "1 x 85 g",
+      "source": "摩摩寵物",
+      "url": "https://www.momopet.com.tw/products/royal-canin-k36w-kitten-gravy",
+      "checkedOn": "2026-11-04",
+      "note": "單包參考價，運費另計"
+    },
+    "importedOn": "2026-11-04"
+  },
+  {
+    "id": "royalcanin-4059",
+    "officialId": "4059",
+    "brand": "royalcanin",
+    "name": "F32W 理想體態貓主食濕糧",
+    "category": "wet",
+    "image": "/hq-food/royalcanin/4059.webp",
+    "imageSourceUrl": "https://marspetcareaprimocdn.petcare.global/c0ad113e-9e4a-487a-b3f4-b1ef00126b04/c0ad113e-9e4a-487a-b3f4-b1ef00126b04_DownloadAsJpg.jpg",
+    "officialUrl": "https://www.royalcanin.com/tw/cats/products/retail-products/instinctive-gravy-4059",
+    "packs": [
+      {
+        "label": "1 x 85 g",
+        "ean": "9003579308936"
+      },
+      {
+        "label": "12 x 85 g",
+        "ean": "9003579308738"
+      }
+    ],
+    "ages": [
+      "adult"
+    ],
+    "needs": [],
+    "neutered": [
+      {
+        "code": "intact",
+        "label": "未絕育"
+      }
+    ],
+    "requiresVetDiagnosis": false,
+    "currency": "TWD",
+    "referencePrice": {
+      "amount": 42,
+      "pack": "1 x 85 g",
+      "source": "BONEBONE",
+      "url": "https://www.bonebone.com.tw/categories/%E7%9A%87%E5%AE%B6%E8%B2%93%E6%BF%95%E7%B3%A7-85g195g%E5%B9%BC%E8%B2%93%E5%A5%B6%E7%B2%89",
+      "checkedOn": "2026-11-04",
+      "note": "人工查閱台灣通路目錄參考價，非即時報價，運費另計"
+    },
+    "importedOn": "2026-11-04"
+  },
+  {
+    "id": "royalcanin-4067",
+    "officialId": "4067",
+    "brand": "royalcanin",
+    "name": "RF23FW 貓 腎臟病配方濕糧 - 魚",
+    "category": "wet",
+    "image": "/hq-food/royalcanin/4067.webp",
+    "imageSourceUrl": "https://marspetcareaprimocdn.petcare.global/e368cc22-a420-47c8-8752-b377011ca322/e368cc22-a420-47c8-8752-b377011ca322_DownloadAsJpg.jpg",
+    "officialUrl": "https://www.royalcanin.com/tw/cats/products/vet-products/renal-with-fish-4067",
+    "packs": [
+      {
+        "label": "1 x 85 g",
+        "ean": "9003579000526"
+      }
+    ],
+    "ages": [
+      "adult",
+      "mature",
+      "ageing"
+    ],
+    "needs": [
+      {
+        "code": "kidney_support",
+        "label": "腎臟支持"
+      }
+    ],
+    "neutered": [
+      {
+        "code": "intact",
+        "label": "未絕育"
+      }
+    ],
+    "requiresVetDiagnosis": true,
+    "currency": "TWD",
+    "referencePrice": {
+      "amount": 50,
+      "pack": "1 x 85 g",
+      "source": "棉花寵物商城",
+      "url": "https://www.mianhua-pet.com.tw/335.html",
+      "checkedOn": "2026-11-04",
+      "note": "人工查閱通路目錄之參考價，非即時報價，運費另計"
+    },
+    "importedOn": "2026-11-04"
+  },
+  {
+    "id": "royalcanin-4070",
+    "officialId": "4070",
+    "brand": "royalcanin",
+    "name": "L40W 體重控制貓主食濕糧",
+    "category": "wet",
+    "image": "/hq-food/royalcanin/4070.webp",
+    "imageSourceUrl": "https://cdn.royalcanin-weshare-online.io/Ald1J4oBBKJuub5qdQcO/v31/0824-l40w",
+    "officialUrl": "https://www.royalcanin.com/tw/cats/products/retail-products/light-weight-care-gravy-4070",
+    "packs": [
+      {
+        "label": "12 x 85 g",
+        "ean": "9003579308707"
+      }
+    ],
+    "ages": [
+      "adult",
+      "mature"
+    ],
+    "needs": [
+      {
+        "code": "weight_management",
+        "label": "體重管理"
+      }
+    ],
+    "neutered": [
+      {
+        "code": "intact",
+        "label": "未絕育"
+      }
+    ],
+    "requiresVetDiagnosis": false,
+    "currency": "TWD",
+    "referencePrice": {
+      "amount": 504,
+      "pack": "12 x 85 g",
+      "source": "BONEBONE",
+      "url": "https://www.bonebone.com.tw/categories/%E7%9A%87%E5%AE%B6%E8%B2%93%E6%BF%95%E7%B3%A7-85g195g%E5%B9%BC%E8%B2%93%E5%A5%B6%E7%B2%89",
+      "checkedOn": "2026-11-04",
+      "note": "人工查閱台灣通路目錄參考價，非即時報價，運費另計"
+    },
+    "importedOn": "2026-11-04"
+  },
+  {
+    "id": "royalcanin-4071",
+    "officialId": "4071",
+    "brand": "royalcanin",
+    "name": "HS33W 亮毛貓主食濕糧",
+    "category": "wet",
+    "image": "/hq-food/royalcanin/4071.webp",
+    "imageSourceUrl": "https://cdn.royalcanin-weshare-online.io/AFdwJ4oBBKJuub5q9Qfd/v21/0824-hs33w",
+    "officialUrl": "https://www.royalcanin.com/tw/cats/products/retail-products/intense-beauty-gravy-4071",
+    "packs": [
+      {
+        "label": "12 x 85 g",
+        "ean": "9003579308721"
+      }
+    ],
+    "ages": [
+      "adult",
+      "mature"
+    ],
+    "needs": [
+      {
+        "code": "skin_and_coat_support",
+        "label": "皮膚與毛髮支持"
+      }
+    ],
+    "neutered": [
+      {
+        "code": "intact",
+        "label": "未絕育"
+      }
+    ],
+    "requiresVetDiagnosis": false,
+    "currency": "TWD",
+    "referencePrice": {
+      "amount": 504,
+      "pack": "12 x 85 g",
+      "source": "BONEBONE",
+      "url": "https://www.bonebone.com.tw/categories/%E7%9A%87%E5%AE%B6%E8%B2%93%E6%BF%95%E7%B3%A7-85g195g%E5%B9%BC%E8%B2%93%E5%A5%B6%E7%B2%89",
+      "checkedOn": "2026-11-04",
+      "note": "人工查閱台灣通路目錄參考價，非即時報價，運費另計"
+    },
+    "importedOn": "2026-11-04"
+  },
+  {
+    "id": "royalcanin-4076",
+    "officialId": "4076",
+    "brand": "royalcanin",
+    "name": "S33W 腸胃保健貓主食濕糧",
+    "category": "wet",
+    "image": "/hq-food/royalcanin/4076.webp",
+    "imageSourceUrl": "https://cdn.royalcanin-weshare-online.io/BVd6J4oBBKJuub5q2wel/v21/0824-s33w",
+    "officialUrl": "https://www.royalcanin.com/tw/cats/products/retail-products/digest-sensitive-gravy-4076",
+    "packs": [
+      {
+        "label": "12 x 85 g",
+        "ean": "9003579309568"
+      }
+    ],
+    "ages": [
+      "adult",
+      "mature"
+    ],
+    "needs": [
+      {
+        "code": "digestive_support",
+        "label": "消化道呵護"
+      }
+    ],
+    "neutered": [
+      {
+        "code": "intact",
+        "label": "未絕育"
+      }
+    ],
+    "requiresVetDiagnosis": false,
+    "currency": "TWD",
+    "referencePrice": {
+      "amount": 504,
+      "pack": "12 x 85 g",
+      "source": "BONEBONE",
+      "url": "https://www.bonebone.com.tw/categories/%E7%9A%87%E5%AE%B6%E8%B2%93%E6%BF%95%E7%B3%A7-85g195g%E5%B9%BC%E8%B2%93%E5%A5%B6%E7%B2%89",
+      "checkedOn": "2026-11-04",
+      "note": "人工查閱台灣通路目錄參考價，非即時報價，運費另計"
+    },
+    "importedOn": "2026-11-04"
+  },
+  {
+    "id": "royalcanin-4080",
+    "officialId": "4080",
+    "brand": "royalcanin",
+    "name": "UMC34W 貓 泌尿道低卡路里配方濕糧",
+    "category": "wet",
+    "image": "/hq-food/royalcanin/4080.webp",
+    "imageSourceUrl": "https://marspetcareaprimocdn.petcare.global/fa430040-7a3f-4a1a-a32e-b2490009f78a/fa430040-7a3f-4a1a-a32e-b2490009f78a_DownloadAsJpg.jpg",
+    "officialUrl": "https://www.royalcanin.com/tw/cats/products/vet-products/urinary-so-moderate-calorie-4080",
+    "packs": [
+      {
+        "label": "1 x 85 g",
+        "ean": "9003579010235"
+      }
+    ],
+    "ages": [
+      "adult",
+      "mature",
+      "ageing"
+    ],
+    "needs": [
+      {
+        "code": "urinary_support",
+        "label": "泌尿道呵護"
+      }
+    ],
+    "neutered": [
+      {
+        "code": "intact",
+        "label": "未絕育"
+      }
+    ],
+    "requiresVetDiagnosis": true,
+    "currency": "TWD",
+    "referencePrice": {
+      "amount": 50,
+      "pack": "1 x 85 g",
+      "source": "棉花寵物商城",
+      "url": "https://www.mianhua-pet.com.tw/335.html",
+      "checkedOn": "2026-11-04",
+      "note": "人工查閱通路目錄之參考價，非即時報價，運費另計"
+    },
+    "importedOn": "2026-11-04"
+  },
+  {
+    "id": "royalcanin-4082",
+    "officialId": "4082",
+    "brand": "royalcanin",
+    "name": "FHNW 11歲老貓主食濕糧A30+11W",
+    "category": "wet",
+    "image": "/hq-food/royalcanin/4082.webp",
+    "imageSourceUrl": "https://marspetcareaprimocdn.petcare.global/cb64bf5f-df87-4782-9991-b292008c0133/cb64bf5f-df87-4782-9991-b292008c0133_DownloadAsJpg.jpg",
+    "officialUrl": "https://www.royalcanin.com/tw/cats/products/retail-products/ageing-11+-chunks-in-gravy-4082",
+    "packs": [
+      {
+        "label": "1 x 85 g",
+        "ean": "9003579050095"
+      },
+      {
+        "label": "12 x 85 g",
+        "ean": "9003579050088"
+      }
+    ],
+    "ages": [
+      "ageing"
+    ],
+    "needs": [],
+    "neutered": [
+      {
+        "code": "intact",
+        "label": "未絕育"
+      }
+    ],
+    "requiresVetDiagnosis": false,
+    "currency": "TWD",
+    "referencePrice": null,
+    "importedOn": "2026-11-04"
+  },
+  {
+    "id": "royalcanin-4083",
+    "officialId": "4083",
+    "brand": "royalcanin",
+    "name": "F+7W 理想體態貓7+歲主食濕糧",
+    "category": "wet",
+    "image": "/hq-food/royalcanin/4083.webp",
+    "imageSourceUrl": "https://marspetcareaprimocdn.petcare.global/95b30871-357b-454a-8d7b-b399014e2ae5/95b30871-357b-454a-8d7b-b399014e2ae5_DownloadAsJpg.jpg",
+    "officialUrl": "https://www.royalcanin.com/tw/cats/products/retail-products/instinctive-7+-gravy-4083",
+    "packs": [
+      {
+        "label": "1 x 85 g",
+        "ean": "9003579310168"
+      },
+      {
+        "label": "12 x 85 g",
+        "ean": "9003579310182"
+      }
+    ],
+    "ages": [
+      "mature"
+    ],
+    "needs": [],
+    "neutered": [
+      {
+        "code": "intact",
+        "label": "未絕育"
+      }
+    ],
+    "requiresVetDiagnosis": false,
+    "currency": "TWD",
+    "referencePrice": {
+      "amount": 42,
+      "pack": "1 x 85 g",
+      "source": "BONEBONE",
+      "url": "https://www.bonebone.com.tw/categories/%E7%9A%87%E5%AE%B6%E8%B2%93%E6%BF%95%E7%B3%A7-85g195g%E5%B9%BC%E8%B2%93%E5%A5%B6%E7%B2%89",
+      "checkedOn": "2026-11-04",
+      "note": "人工查閱台灣通路目錄參考價，非即時報價，運費另計"
+    },
+    "importedOn": "2026-11-04"
+  },
+  {
+    "id": "royalcanin-4085",
+    "officialId": "4085",
+    "brand": "royalcanin",
+    "name": "DS46W 貓 糖尿病配方濕糧",
+    "category": "wet",
+    "image": "/hq-food/royalcanin/4085.webp",
+    "imageSourceUrl": "https://marspetcareaprimocdn.petcare.global/a5bede4e-72fa-4c0a-919f-b1ef001e8932/a5bede4e-72fa-4c0a-919f-b1ef001e8932_DownloadAsJpg.jpg",
+    "officialUrl": "https://www.royalcanin.com/tw/cats/products/vet-products/diabetic-4085",
+    "packs": [
+      {
+        "label": "1 x 85 g",
+        "ean": "9003579012024"
+      }
+    ],
+    "ages": [
+      "adult",
+      "mature",
+      "ageing"
+    ],
+    "needs": [
+      {
+        "code": "diabetes_support",
+        "label": "糖尿病呵護"
+      }
+    ],
+    "neutered": [
+      {
+        "code": "intact",
+        "label": "未絕育"
+      }
+    ],
+    "requiresVetDiagnosis": true,
+    "currency": "TWD",
+    "referencePrice": {
+      "amount": 50,
+      "pack": "1 x 85 g",
+      "source": "棉花寵物商城",
+      "url": "https://www.mianhua-pet.com.tw/335.html",
+      "checkedOn": "2026-11-04",
+      "note": "人工查閱通路目錄之參考價，非即時報價，運費另計"
+    },
+    "importedOn": "2026-11-04"
+  },
+  {
+    "id": "royalcanin-4095",
+    "officialId": "4095",
+    "brand": "royalcanin",
+    "name": "S37W 絕育貓主食濕糧",
+    "category": "wet",
+    "image": "/hq-food/royalcanin/4095.webp",
+    "imageSourceUrl": "https://marspetcareaprimocdn.petcare.global/0f4eff0d-f188-410d-8463-b37e00ae4c73/0f4eff0d-f188-410d-8463-b37e00ae4c73_DownloadAsJpg.jpg",
+    "officialUrl": "https://www.royalcanin.com/tw/cats/products/retail-products/sterilised-gravy-4095",
+    "packs": [
+      {
+        "label": "12 x 85 g",
+        "ean": "9003579311295"
+      }
+    ],
+    "ages": [
+      "adult",
+      "mature"
+    ],
+    "needs": [],
+    "neutered": [
+      {
+        "code": "neutered",
+        "label": "已絕育"
+      }
+    ],
+    "requiresVetDiagnosis": false,
+    "currency": "TWD",
+    "referencePrice": {
+      "amount": 504,
+      "pack": "12 x 85 g",
+      "source": "BONEBONE",
+      "url": "https://www.bonebone.com.tw/categories/%E7%9A%87%E5%AE%B6%E8%B2%93%E6%BF%95%E7%B3%A7-85g195g%E5%B9%BC%E8%B2%93%E5%A5%B6%E7%B2%89",
+      "checkedOn": "2026-11-04",
+      "note": "人工查閱台灣通路目錄參考價，非即時報價，運費另計"
+    },
+    "importedOn": "2026-11-04"
+  },
+  {
+    "id": "royalcanin-4098",
+    "officialId": "4098",
+    "brand": "royalcanin",
+    "name": "BC34W 離乳貓與母貓主食濕糧",
+    "category": "wet",
+    "image": "/hq-food/royalcanin/4098.webp",
+    "imageSourceUrl": "https://marspetcareaprimocdn.petcare.global/584aff9d-bae6-4254-bf44-b1ef001c1461/584aff9d-bae6-4254-bf44-b1ef001c1461_DownloadAsJpg.jpg",
+    "officialUrl": "https://www.royalcanin.com/tw/cats/products/retail-products/mother-&-babycat-ultra-soft-mousse-4098",
+    "packs": [
+      {
+        "label": "1 x 195 g",
+        "ean": "9003579311660"
+      }
+    ],
+    "ages": [
+      "adult",
+      "baby",
+      "kitten",
+      "mature"
+    ],
+    "needs": [
+      {
+        "code": "pregnant",
+        "label": "懷孕"
+      }
+    ],
+    "neutered": [
+      {
+        "code": "intact",
+        "label": "未絕育"
+      }
+    ],
+    "requiresVetDiagnosis": false,
+    "currency": "TWD",
+    "referencePrice": {
+      "amount": 55,
+      "pack": "1 x 195 g",
+      "source": "BONEBONE",
+      "url": "https://www.bonebone.com.tw/categories/royal-canin-%E7%9A%87%E5%AE%B6%E6%BF%95%E7%B3%A7--%E7%9A%87%E5%AE%B6%E9%A4%90%E5%8C%85--%E7%9A%87%E5%AE%B6%E7%BD%90%E9%A0%AD",
+      "checkedOn": "2026-11-04",
+      "note": "目錄標示 TWD 55–660；單罐 195 g 參考價"
+    },
+    "importedOn": "2026-11-04"
+  },
+  {
+    "id": "royalcanin-4157",
+    "officialId": "4157",
+    "brand": "royalcanin",
+    "name": "UC33W 泌尿道保健貓主食濕糧",
+    "category": "wet",
+    "image": "/hq-food/royalcanin/4157.webp",
+    "imageSourceUrl": "https://cdn.royalcanin-weshare-online.io/E-h9J4oBaPOZra8qLQwA/v21/0824-uc33w",
+    "officialUrl": "https://www.royalcanin.com/tw/cats/products/retail-products/urinary-care-gravy-4157",
+    "packs": [
+      {
+        "label": "12 x 85 g",
+        "ean": "9003579000359"
+      }
+    ],
+    "ages": [
+      "adult",
+      "mature"
+    ],
+    "needs": [
+      {
+        "code": "urinary_support",
+        "label": "泌尿道呵護"
+      }
+    ],
+    "neutered": [
+      {
+        "code": "intact",
+        "label": "未絕育"
+      }
+    ],
+    "requiresVetDiagnosis": false,
+    "currency": "TWD",
+    "referencePrice": {
+      "amount": 504,
+      "pack": "12 x 85 g",
+      "source": "BONEBONE",
+      "url": "https://www.bonebone.com.tw/categories/%E7%9A%87%E5%AE%B6%E8%B2%93%E6%BF%95%E7%B3%A7-85g195g%E5%B9%BC%E8%B2%93%E5%A5%B6%E7%B2%89",
+      "checkedOn": "2026-11-04",
+      "note": "人工查閱台灣通路目錄參考價，非即時報價，運費另計"
+    },
+    "importedOn": "2026-11-04"
+  },
+  {
+    "id": "royalcanin-4158",
+    "officialId": "4158",
+    "brand": "royalcanin",
+    "name": "IH34W 有效化毛貓主食濕糧",
+    "category": "wet",
+    "image": "/hq-food/royalcanin/4158.webp",
+    "imageSourceUrl": "https://cdn.royalcanin-weshare-online.io/EOhzJ4oBaPOZra8qGgz9/v21/0824-ih34w",
+    "officialUrl": "https://www.royalcanin.com/tw/cats/products/retail-products/hairball-care-gravy-4158",
+    "packs": [
+      {
+        "label": "12 x 85 g",
+        "ean": "9003579000403"
+      }
+    ],
+    "ages": [
+      "adult",
+      "mature"
+    ],
+    "needs": [
+      {
+        "code": "hairballs",
+        "label": "毛球"
+      }
+    ],
+    "neutered": [
+      {
+        "code": "intact",
+        "label": "未絕育"
+      }
+    ],
+    "requiresVetDiagnosis": false,
+    "currency": "TWD",
+    "referencePrice": {
+      "amount": 504,
+      "pack": "12 x 85 g",
+      "source": "BONEBONE",
+      "url": "https://www.bonebone.com.tw/categories/%E7%9A%87%E5%AE%B6%E8%B2%93%E6%BF%95%E7%B3%A7-85g195g%E5%B9%BC%E8%B2%93%E5%A5%B6%E7%B2%89",
+      "checkedOn": "2026-11-04",
+      "note": "人工查閱台灣通路目錄參考價，非即時報價，運費另計"
+    },
+    "importedOn": "2026-11-04"
+  },
+  {
+    "id": "royalcanin-4160",
+    "officialId": "4160",
+    "brand": "royalcanin",
+    "name": "RSE24 貓 腎臟病精選配方乾糧",
+    "category": "dry",
+    "image": "/hq-food/royalcanin/4160.webp",
+    "imageSourceUrl": "https://marspetcareaprimocdn.petcare.global/8b36ce81-e610-4eb2-8f6a-b1ef001e881a/8b36ce81-e610-4eb2-8f6a-b1ef001e881a_DownloadAsJpg.jpg",
+    "officialUrl": "https://www.royalcanin.com/tw/cats/products/vet-products/renal-select-4160",
+    "packs": [
+      {
+        "label": "400 g",
+        "ean": "3182550917360"
+      },
+      {
+        "label": "2 kg",
+        "ean": "3182550842204"
+      }
+    ],
+    "ages": [
+      "adult",
+      "mature",
+      "ageing"
+    ],
+    "needs": [],
+    "neutered": [
+      {
+        "code": "intact",
+        "label": "未絕育"
+      }
+    ],
+    "requiresVetDiagnosis": true,
+    "currency": "TWD",
+    "referencePrice": {
+      "amount": 1079,
+      "pack": "2 kg",
+      "source": "棉花寵物商城",
+      "url": "https://www.mianhua-pet.com.tw/130.html",
+      "checkedOn": "2026-11-04",
+      "note": "人工查閱通路目錄之參考價，非即時報價，運費另計"
+    },
+    "importedOn": "2026-11-04"
+  },
+  {
+    "id": "royalcanin-4370",
+    "officialId": "4370",
+    "brand": "royalcanin",
+    "name": "BG40 豹貓成貓專用乾糧",
+    "category": "dry",
+    "image": "/hq-food/royalcanin/4370.webp",
+    "imageSourceUrl": "https://marspetcareaprimocdn.petcare.global/504ac1c9-e756-46cf-a213-b40800f0337e/504ac1c9-e756-46cf-a213-b40800f0337e_DownloadAsJpg.jpg",
+    "officialUrl": "https://www.royalcanin.com/tw/cats/products/retail-products/bengal-adult-4370",
+    "packs": [
+      {
+        "label": "2 kg",
+        "ean": "3182550864091"
+      },
+      {
+        "label": "10 kg",
+        "ean": "3182550865111"
+      }
+    ],
+    "ages": [
+      "adult",
+      "mature"
+    ],
+    "needs": [],
+    "neutered": [
+      {
+        "code": "intact",
+        "label": "未絕育"
+      }
+    ],
+    "requiresVetDiagnosis": false,
+    "currency": "TWD",
+    "referencePrice": {
+      "amount": 849,
+      "pack": "2 kg",
+      "source": "棉花寵物商城",
+      "url": "https://www.mianhua-pet.com.tw/129.html",
+      "checkedOn": "2026-11-04",
+      "note": "人工查閱通路目錄之參考價，非即時報價，運費另計"
+    },
+    "importedOn": "2026-11-04"
+  },
+  {
+    "id": "royalcanin-4951",
+    "officialId": "4951",
+    "brand": "royalcanin",
+    "name": "ICU貓腎臟病配方",
+    "category": "liquid",
+    "image": "/hq-food/royalcanin/4951.webp",
+    "imageSourceUrl": "https://marspetcareaprimocdn.petcare.global/ddc315b5-3d06-4834-97c8-b2490007de59/ddc315b5-3d06-4834-97c8-b2490007de59_DownloadAsJpg.jpg",
+    "officialUrl": "https://www.royalcanin.com/tw/cats/products/vet-products/renal-liquid-cat-4951",
+    "packs": [
+      {
+        "label": "3 x 200 ml",
+        "ean": "3182550858861"
+      }
+    ],
+    "ages": [
+      "adult",
+      "mature",
+      "ageing"
+    ],
+    "needs": [
+      {
+        "code": "kidney_support",
+        "label": "腎臟支持"
+      }
+    ],
+    "neutered": [
+      {
+        "code": "intact",
+        "label": "未絕育"
+      }
+    ],
+    "requiresVetDiagnosis": true,
+    "currency": "TWD",
+    "referencePrice": {
+      "amount": 627,
+      "pack": "3 x 200 ml",
+      "source": "棉花寵物商城",
+      "url": "https://www.mianhua-pet.com.tw/336.html",
+      "checkedOn": "2026-11-04",
+      "note": "估算：單瓶 200 ml TWD 209 × 3；非通路整組售價"
+    },
+    "importedOn": "2026-11-04"
+  },
+  {
+    "id": "royalcanin-6530",
+    "officialId": "6530",
+    "brand": "royalcanin",
+    "name": "MFLD27 貓 泌尿道+低過敏專用配方",
+    "category": "dry",
+    "image": "/hq-food/royalcanin/6530.webp",
+    "imageSourceUrl": "https://marspetcareaprimocdn.petcare.global/07b4d518-3b93-4195-913c-b33f008baf79/07b4d518-3b93-4195-913c-b33f008baf79_DownloadAsJpg.jpg",
+    "officialUrl": "https://www.royalcanin.com/tw/cats/products/vet-products/multifunction-therapeutic-diet-so-afr-feline-6530",
+    "packs": [
+      {
+        "label": "2 kg",
+        "ean": "3182550847599"
+      }
+    ],
+    "ages": [
+      "adult",
+      "mature",
+      "ageing"
+    ],
+    "needs": [
+      {
+        "code": "food_sensitivities",
+        "label": "食物過敏"
+      },
+      {
+        "code": "tendency_to_beg_for_food",
+        "label": "有乞食習慣"
+      },
+      {
+        "code": "urinary_support",
+        "label": "泌尿道呵護"
+      }
+    ],
+    "neutered": [
+      {
+        "code": "intact",
+        "label": "未絕育"
+      }
+    ],
+    "requiresVetDiagnosis": true,
+    "currency": "TWD",
+    "referencePrice": null,
+    "importedOn": "2026-11-04"
+  },
+  {
+    "id": "royalcanin-6531",
+    "officialId": "6531",
+    "brand": "royalcanin",
+    "name": "RFDR26 貓 腎臟病+低過敏專用配方",
+    "category": "dry",
+    "image": "/hq-food/royalcanin/6531.webp",
+    "imageSourceUrl": "https://marspetcareaprimocdn.petcare.global/07d475f2-8885-4e86-b673-b2490009f442/07d475f2-8885-4e86-b673-b2490009f442_DownloadAsJpg.jpg",
+    "officialUrl": "https://www.royalcanin.com/tw/cats/products/vet-products/renal-+-hyppoallergenic-6531",
+    "packs": [
+      {
+        "label": "2 kg",
+        "ean": "3182550847872"
+      }
+    ],
+    "ages": [
+      "adult",
+      "mature",
+      "ageing"
+    ],
+    "needs": [
+      {
+        "code": "kidney_support",
+        "label": "腎臟支持"
+      }
+    ],
+    "neutered": [
+      {
+        "code": "intact",
+        "label": "未絕育"
+      }
+    ],
+    "requiresVetDiagnosis": true,
+    "currency": "TWD",
+    "referencePrice": null,
+    "importedOn": "2026-11-04"
+  },
+  {
+    "id": "royalcanin-6533",
+    "officialId": "6533",
+    "brand": "royalcanin",
+    "name": "MFLC34 貓 泌尿道+舒緩緊張專用配方",
+    "category": "dry",
+    "image": "/hq-food/royalcanin/6533.webp",
+    "imageSourceUrl": "https://marspetcareaprimocdn.petcare.global/27e0b32e-08be-47ec-bffb-b33f008b64bd/27e0b32e-08be-47ec-bffb-b33f008b64bd_DownloadAsJpg.jpg",
+    "officialUrl": "https://www.royalcanin.com/tw/cats/products/vet-products/multifunction-therapeutic-diet-so-biopeptide-feline-6533",
+    "packs": [
+      {
+        "label": "2 kg",
+        "ean": "3182550847612"
+      }
+    ],
+    "ages": [
+      "adult",
+      "mature",
+      "ageing"
+    ],
+    "needs": [
+      {
+        "code": "urinary_support",
+        "label": "泌尿道呵護"
+      }
+    ],
+    "neutered": [
+      {
+        "code": "intact",
+        "label": "未絕育"
+      }
+    ],
+    "requiresVetDiagnosis": true,
+    "currency": "TWD",
+    "referencePrice": null,
+    "importedOn": "2026-11-04"
+  },
+  {
+    "id": "royalcanin-6550",
+    "officialId": "6550",
+    "brand": "royalcanin",
+    "name": "MFLCW 貓 泌尿道+舒緩緊張專用配方濕糧",
+    "category": "wet",
+    "image": "/hq-food/royalcanin/6550.webp",
+    "imageSourceUrl": "https://marspetcareaprimocdn.petcare.global/3c65ab85-ddf6-4332-a438-b24b00999fd7/3c65ab85-ddf6-4332-a438-b24b00999fd7_DownloadAsJpg.jpg",
+    "officialUrl": "https://www.royalcanin.com/tw/cats/products/vet-products/urinary-so-+--bladder-comfort-6550",
+    "packs": [
+      {
+        "label": "1 x 85 g",
+        "ean": "9003579030547"
+      },
+      {
+        "label": "12 x 85 g",
+        "ean": "9003579030530"
+      }
+    ],
+    "ages": [
+      "adult",
+      "mature",
+      "ageing"
+    ],
+    "needs": [
+      {
+        "code": "urinary_support",
+        "label": "泌尿道呵護"
+      }
+    ],
+    "neutered": [
+      {
+        "code": "intact",
+        "label": "未絕育"
+      }
+    ],
+    "requiresVetDiagnosis": true,
+    "currency": "TWD",
+    "referencePrice": null,
+    "importedOn": "2026-11-04"
+  },
+  {
+    "id": "royalcanin-8070",
+    "officialId": "8070",
+    "brand": "royalcanin",
+    "name": "GA47 貓 糖尿病控糖專用配方乾糧",
+    "category": "dry",
+    "image": "/hq-food/royalcanin/8070.webp",
+    "imageSourceUrl": "https://marspetcareaprimocdn.petcare.global/2c7fea44-d526-40c5-899f-b30900f87852/2c7fea44-d526-40c5-899f-b30900f87852_DownloadAsJpg.jpg",
+    "officialUrl": "https://www.royalcanin.com/tw/cats/products/vet-products/glycoadvanced-8070",
+    "packs": [
+      {
+        "label": "1.5 kg",
+        "ean": "3182551101867"
+      }
+    ],
+    "ages": [
+      "adult",
+      "mature",
+      "ageing"
+    ],
+    "needs": [
+      {
+        "code": "diabetes_support",
+        "label": "糖尿病呵護"
+      }
+    ],
+    "neutered": [
+      {
+        "code": "intact",
+        "label": "未絕育"
+      }
+    ],
+    "requiresVetDiagnosis": true,
+    "currency": "TWD",
+    "referencePrice": null,
+    "importedOn": "2026-11-04"
+  },
+  {
+    "id": "royalcanin-8071",
+    "officialId": "8071",
+    "brand": "royalcanin",
+    "name": "GA47W 貓 糖尿病控糖專用配方濕糧",
+    "category": "wet",
+    "image": "/hq-food/royalcanin/8071.webp",
+    "imageSourceUrl": "https://marspetcareaprimocdn.petcare.global/278c4921-c760-4d87-94e6-b35200e58609/278c4921-c760-4d87-94e6-b35200e58609_DownloadAsJpg.jpg",
+    "officialUrl": "https://www.royalcanin.com/tw/cats/products/vet-products/glycoadvanced-8071",
+    "packs": [
+      {
+        "label": "1 x 85 g",
+        "ean": "9003579051191"
+      },
+      {
+        "label": "12 x 85 g",
+        "ean": "9003579051184"
+      }
+    ],
+    "ages": [
+      "adult",
+      "mature",
+      "ageing"
+    ],
+    "needs": [
+      {
+        "code": "diabetes_support",
+        "label": "糖尿病呵護"
+      }
+    ],
+    "neutered": [
+      {
+        "code": "intact",
+        "label": "未絕育"
+      }
+    ],
+    "requiresVetDiagnosis": true,
+    "currency": "TWD",
+    "referencePrice": null,
+    "importedOn": "2026-11-04"
+  },
+  {
+    "id": "royalcanin-8074",
+    "officialId": "8074",
+    "brand": "royalcanin",
+    "name": "AIRLIFT 老貓11+歲主食罐 A11C",
+    "category": "wet",
+    "image": "/hq-food/royalcanin/8074.webp",
+    "imageSourceUrl": "https://marspetcareaprimocdn.petcare.global/7b193255-2ec7-4166-80aa-b3d900e8ae02/7b193255-2ec7-4166-80aa-b3d900e8ae02_DownloadAsJpg.jpg",
+    "officialUrl": "https://www.royalcanin.com/tw/cats/products/retail-products/ageing-11+-ultra-soft-mousse-8074",
+    "packs": [
+      {
+        "label": "1 x 85 g",
+        "ean": "9003579051733"
+      },
+      {
+        "label": "3 x 85 g",
+        "ean": "3182550961387"
+      }
+    ],
+    "ages": [
+      "ageing"
+    ],
+    "needs": [],
+    "neutered": [
+      {
+        "code": "intact",
+        "label": "未絕育"
+      }
+    ],
+    "requiresVetDiagnosis": false,
+    "currency": "TWD",
+    "referencePrice": {
+      "amount": 53,
+      "pack": "1 x 85 g",
+      "source": "寵物公園",
+      "url": "https://shop.petpark.com.tw/catalogsearch/result/index/?main_category=616&q=%E7%9A%87%E5%AE%B6",
+      "checkedOn": "2026-11-04",
+      "note": "人工查閱台灣通路目錄參考價，非即時報價，運費另計"
+    },
+    "importedOn": "2026-11-04"
+  },
+  {
+    "id": "royalcanin-8075",
+    "officialId": "8075",
+    "brand": "royalcanin",
+    "name": "FHN 皇家老貓15+歲齡 A30+15",
+    "category": "dry",
+    "image": "/hq-food/royalcanin/8075.webp",
+    "imageSourceUrl": "https://marspetcareaprimocdn.petcare.global/642f3da8-ab6e-4b5d-bbb4-b292008a540f/642f3da8-ab6e-4b5d-bbb4-b292008a540f_DownloadAsJpg.jpg",
+    "officialUrl": "https://www.royalcanin.com/tw/cats/products/retail-products/ageing-15+-8075",
+    "packs": [
+      {
+        "label": "2 kg",
+        "ean": "3182551066067"
+      }
+    ],
+    "ages": [
+      "advanced ageing"
+    ],
+    "needs": [],
+    "neutered": [
+      {
+        "code": "intact",
+        "label": "未絕育"
+      }
+    ],
+    "requiresVetDiagnosis": false,
+    "currency": "TWD",
+    "referencePrice": {
+      "amount": 849,
+      "pack": "2 kg",
+      "source": "棉花寵物商城",
+      "url": "https://www.mianhua-pet.com.tw/129.html",
+      "checkedOn": "2026-11-04",
+      "note": "人工查閱通路目錄之參考價，非即時報價，運費另計"
+    },
+    "importedOn": "2026-11-04"
+  },
+  {
+    "id": "royalcanin-8076",
+    "officialId": "8076",
+    "brand": "royalcanin",
+    "name": "FHNW 15歲老貓主食濕糧A30+15W",
+    "category": "wet",
+    "image": "/hq-food/royalcanin/8076.webp",
+    "imageSourceUrl": "https://marspetcareaprimocdn.petcare.global/20f1dcf2-0128-4e0f-a79d-b2bf00df7bec/20f1dcf2-0128-4e0f-a79d-b2bf00df7bec_DownloadAsJpg.jpg",
+    "officialUrl": "https://www.royalcanin.com/tw/cats/products/retail-products/ageing-15+-chunks-in-gravy-8076",
+    "packs": [
+      {
+        "label": "1 x 85 g",
+        "ean": "9003579050170"
+      },
+      {
+        "label": "12 x 85 g",
+        "ean": "9003579050163"
+      }
+    ],
+    "ages": [
+      "advanced ageing"
+    ],
+    "needs": [],
+    "neutered": [
+      {
+        "code": "intact",
+        "label": "未絕育"
+      }
+    ],
+    "requiresVetDiagnosis": false,
+    "currency": "TWD",
+    "referencePrice": null,
+    "importedOn": "2026-11-04"
+  },
+  {
+    "id": "royalcanin-8077",
+    "officialId": "8077",
+    "brand": "royalcanin",
+    "name": "AIRLIFT 老貓15+歲主食罐 A15C",
+    "category": "wet",
+    "image": "/hq-food/royalcanin/8077.webp",
+    "imageSourceUrl": "https://marspetcareaprimocdn.petcare.global/a8349d9a-bbc3-447f-932a-b3d701075134/a8349d9a-bbc3-447f-932a-b3d701075134_DownloadAsJpg.jpg",
+    "officialUrl": "https://www.royalcanin.com/tw/cats/products/retail-products/fhn-ageing-15+-mousse-in-can-8077",
+    "packs": [
+      {
+        "label": "1 x 85 g",
+        "ean": "9003579051801"
+      },
+      {
+        "label": "3 x 85 g",
+        "ean": "3182550961394"
+      }
+    ],
+    "ages": [
+      "advanced ageing"
+    ],
+    "needs": [],
+    "neutered": [
+      {
+        "code": "intact",
+        "label": "未絕育"
+      }
+    ],
+    "requiresVetDiagnosis": false,
+    "currency": "TWD",
+    "referencePrice": {
+      "amount": 53,
+      "pack": "1 x 85 g",
+      "source": "寵物公園",
+      "url": "https://shop.petpark.com.tw/catalogsearch/result/index/?main_category=616&q=%E7%9A%87%E5%AE%B6",
+      "checkedOn": "2026-11-04",
+      "note": "人工查閱台灣通路目錄參考價，非即時報價，運費另計"
+    },
+    "importedOn": "2026-11-04"
+  }
+]
