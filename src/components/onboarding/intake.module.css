@@ -355,8 +355,8 @@
   border-radius: 24px;
 }
 
-.homeItem b { display: block; color: var(--ink); }
-.homeItem span { color: var(--ink-soft); font-size: 14px; }
+.homeItem > div > b { display: block; color: var(--ink); }
+.homeItem > div > span { color: var(--ink-soft); font-size: 14px; }
 
 .doneCover {
   width: min(240px, 70%);

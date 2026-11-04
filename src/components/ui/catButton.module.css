@@ -188,8 +188,11 @@
   transform: translate(2px, -2px);
 }
 
-.label {
+/* Doubled class so a parent's `span` rule can't recolor or resize the label */
+.btn .label {
   position: relative;
+  color: var(--ink-on);
+  font-size: inherit;
 }
 
 @media (prefers-reduced-motion: reduce) {
