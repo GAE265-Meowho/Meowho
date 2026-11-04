@@ -36,6 +36,7 @@
 - `src/components/onboarding/Chat.tsx`、`HouseholdFlow.tsx`、`CatFlow.tsx`、`src/app/onboarding/page.tsx`
 
 ## 決策
+- 2026-11-04｜新增貓咪：生活照至少 3 張（`MIN_PHOTOS`；第 1 張後可先描述，其餘填好時再要求補滿）；年紀改為選填存月齡（`est_age_months`，名片有「大約年紀」欄，對話問「大約幾個月或幾歲」，年齡層只是照片猜的時也會問），年齡層由月齡算出；取代 #109「不記月齡」。月齡帶進 3D 模型 `profile.age_months`（Tina，#185）。
 - 新貓入戶一律先登入，並由使用者明確選擇貓咪歸屬的貓戶（即使只有一個貓戶也要選），避免放錯戶。
 - LLM 抽取結果一律先給使用者確認才寫入。
 - 必填最少化，其他欄位之後由週報提醒補。

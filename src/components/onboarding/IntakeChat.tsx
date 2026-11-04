@@ -11,7 +11,7 @@ import type { AdoptionTerms } from "@/lib/cat-profile/adoption";
 import type { CaretakerType } from "@/lib/onboarding/household";
 import { defaultCatStatus } from "@/lib/onboarding/household-rules";
 import {
-  MAX_PHOTOS, MAX_VIDEOS, applyMediaAnalysis, beginCat, emptyIntake, nextStep, setCatField,
+  MAX_PHOTOS, MAX_VIDEOS, applyMediaAnalysis, beginCat, emptyIntake, nextStep, photosLeft, setCatField,
   type IntakeState, type MediaAnalysis, type Step,
 } from "@/lib/onboarding/conversation";
 import { LIFE_STAGE_CHIPS, REVIEW_CHIP, VIDEO_ERROR, askText, noticeText } from "@/lib/onboarding/intake-copy";
@@ -134,7 +134,10 @@ export function IntakeChat({ userId, home }: { userId: string | null; home: Exis
       next.cat.lifeStage !== prev.cat.lifeStage && next.cat.lifeStage && `看起來是${LIFE_STAGE_LABEL[next.cat.lifeStage]}`,
     ].filter(Boolean);
     if (guessed.length) setAiUsed(true);
-    advance(prev, next, guessed.length ? `我猜${guessed.join("、")}，最後會請你確認。` : fromAI ? "照片收到了。" : "照片收到了，外觀的部分最後可以自己填。");
+    // #185：生活照至少 3 張，還不夠時提醒還差幾張
+    const left = photosLeft(next.cat);
+    const more = left > 0 ? `再傳 ${left} 張就可以了，不同角度更好。` : "";
+    advance(prev, next, (guessed.length ? `我猜${guessed.join("、")}，最後會請你確認。` : fromAI ? "照片收到了。" : "照片收到了，外觀的部分最後可以自己填。") + more);
   }
 
   async function addPhotos(files: File[]) {
