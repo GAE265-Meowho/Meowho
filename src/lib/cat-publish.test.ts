@@ -31,4 +31,8 @@ describe("預設 3D 貓（真正的背景產生流程完成前先用）", () => 
     expect(rows.variant).toEqual({ model_id: "cat_20261104_010203", body_type: "kitten", albedo_path: DEFAULT_ALBEDO });
     expect(defaultModelRows({ id: "c1", name: "老橘", life_stage: "senior", photo_paths: [] }, "u1", "cat_x").variant.body_type).toBe("adult");
   });
+  it("#185 中途填的月齡帶進模型 profile；沒填就空的", () => {
+    expect(defaultModelRows({ id: "c1", name: "橘子", life_stage: "kitten", photo_paths: [], est_age_months: 4 }, "u1", "cat_x").model.profile).toEqual({ age_months: 4 });
+    expect(defaultModelRows({ id: "c1", name: "橘子", life_stage: "kitten", photo_paths: [] }, "u1", "cat_x").model.profile).toEqual({});
+  });
 });

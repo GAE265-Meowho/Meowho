@@ -16,6 +16,8 @@ import { ageMonths, parseAge, parseSex, type Sex } from "./cat";
 import { cleanName, parseCaretaker, parseCity, parseDistrict, type CaretakerType } from "./household";
 
 export const MAX_PHOTOS = 5;
+/** 生活照至少 3 張（Tina 2026-11-04，#185）：之後 3D 製作要從裡面挑角度 */
+export const MIN_PHOTOS = 3;
 export const MAX_VIDEOS = 3;
 /** 照片判讀信心低於此值只收照片，不填欄位 */
 export const MIN_PHOTO_CONFIDENCE = 0.5;
@@ -161,13 +163,19 @@ function householdMissing(h: HouseholdFields): AskField | null {
 }
 
 // 建貓順序（子哲 2026-10-31）：先上傳照片並描述牠，AI 填完後再依序補問沒講到的
-function catMissing(c: CatFields, reviewRequested = true): AskField | null {
+function catMissing(c: CatFields, reviewRequested = true, pending: readonly PendingField[] = []): AskField | null {
   if (c.photos.length === 0) return "photos";
   if (!reviewRequested && !c.description && c.personalityTags.length === 0) return "description";
   if (!c.name.trim()) return "name";
-  if (!c.lifeStage) return "lifeStage";
+  // #185：問「大約幾個月或幾歲」。年齡層只是 AI 從照片猜的、也還沒有月齡時照樣問；選年齡層按鈕或在名片確認就算略過
+  if (!c.lifeStage || (c.estAgeMonths === null && pending.includes("lifeStage"))) return "lifeStage";
+  // 第 1 張照片之後就可以先描述牠；建立前要補滿 3 張
+  if (c.photos.length < MIN_PHOTOS) return "photos";
   return null;
 }
+
+/** 還差幾張照片（0＝夠了） */
+export const photosLeft = (c: Pick<CatFields, "photos">) => Math.max(0, MIN_PHOTOS - c.photos.length);
 
 export function nextStep(s: IntakeState): Step {
   if (s.phase === "household") {
@@ -175,7 +183,7 @@ export function nextStep(s: IntakeState): Step {
     return missing ? { kind: "ask", field: missing } : { kind: "confirm_household" };
   }
   // 描述是個性標籤的來源（領養任務的觸發條件），所以照片之後先請喵戶長描述；說「先這樣」就略過
-  const missing = catMissing(s.cat, s.reviewRequested);
+  const missing = catMissing(s.cat, s.reviewRequested, s.pending);
   if (missing) return { kind: "ask", field: missing };
   if (s.pending.length > 0) return { kind: "confirm_fields", fields: [...s.pending] };
   return { kind: "confirm_cat" };
@@ -225,9 +233,10 @@ function mergeCat(s: IntakeState, t: CatTurn, today: Date): IntakeState {
   const toConfirm = new Set<PendingField>();
   if (t.name?.trim()) c.name = cleanName(t.name);
   if (t.sex) { c.sex = t.sex; toConfirm.add("sex"); }
-  // 年紀只用來決定三級，生日、月齡不留（#109）
-  const told = t.birthday || t.estAgeMonths !== null ? lifeStageOf(ageMonths({ birthday: t.birthday, estAgeMonths: t.estAgeMonths }, today)) : null;
-  if (told) { c.lifeStage = told; confirmed.add("lifeStage"); }
+  // #185（取代 #109）：講了生日或大約年紀就存月齡（給 3D 製作用），年齡層由月齡算出；生日本身不存
+  const months = t.birthday || t.estAgeMonths !== null ? ageMonths({ birthday: t.birthday, estAgeMonths: t.estAgeMonths }, today) : null;
+  const told = lifeStageOf(months);
+  if (told) { c.lifeStage = told; c.estAgeMonths = months; confirmed.add("lifeStage"); }
   if (t.lifeStage) { c.lifeStage = t.lifeStage; confirmed.add("lifeStage"); }
   if (t.coat?.trim()) { c.coat = t.coat.trim(); confirmed.add("coat"); }
   if (t.breed?.trim()) { c.breed = t.breed.trim(); confirmed.add("breed"); }
@@ -320,7 +329,16 @@ export function setCatField<K extends EditableCatField>(s: IntakeState, field: K
   else if (field === "habits") c.habits = pickTags(value as string[], HABITS);
   else if (field === "handover") c.handover = pickTags(value as string[], HANDOVER_ITEMS);
   else Object.assign(c, { [field]: value });
+  // 改了年齡層、跟已存的月齡對不上時，月齡作廢（以喵戶長選的為準）
+  if (field === "lifeStage" && c.estAgeMonths !== null && lifeStageOf(c.estAgeMonths) !== value) c.estAgeMonths = null;
   return { ...s, cat: c, pending: s.pending.filter((f) => f !== CONFIRMS[field]) };
+}
+
+/** 名片上填大約年紀（#185）：存月齡，年齡層跟著算出並視為已確認；清空只清月齡、保留年齡層 */
+export function setCatAge(s: IntakeState, months: number | null): IntakeState {
+  const m = months !== null && Number.isFinite(months) && months >= 0 && months <= 360 ? Math.round(months) : null;
+  if (m === null) return { ...s, cat: { ...s.cat, estAgeMonths: null } };
+  return { ...s, cat: { ...s.cat, estAgeMonths: m, lifeStage: lifeStageOf(m) }, pending: s.pending.filter((f) => f !== "lifeStage") };
 }
 
 // ---------- 醫療細項 ----------

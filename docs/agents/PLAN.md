@@ -79,6 +79,7 @@
 | 29 | 部署改為 Vercel meowho、Supabase 改為獨立專案（決策 005）的文件 | account | — | P1 | #66 | 子哲 × Claude | 審查中 |
 | 30 | 修正 Google 登入後看不到頭像 | account | — | P1 | #68 | 子哲 × Claude | 審查中 |
 | 31 | MeowHQ 室內空間移除寶麗來轉換卡片 | admin-moderation | — | P2 | — | Tina × Codex | 進行中 |
+| 36 | 前台新增貓咪：生活照至少 3 張、年齡輸入，月齡帶進 3D 模型 | ai-onboarding、household-cats | — | P1 | #185 | Tina × Claude Code | 審查中 |
 | 32 | MeowHQ 貓戶管理模組：依類別查看貓戶、貓咪卡片（0020 待執行） | admin-moderation | — | P2 | #179 | Tina × Claude Code | 審查中 |
 | 34 | MeowHQ 左側選單視覺優化（字級層級、間距、可收合樹狀） | admin-moderation | — | P2 | #183 | Tina × Claude Code | 審查中 |
 

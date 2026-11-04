@@ -23,9 +23,9 @@ export function toCatInsert(c: CatFields, ids: { id: string; householdId: string
     household_id: ids.householdId,
     name: c.name.trim(),
     sex: c.sex ?? "unknown",
-    // 不記生日與月齡，只記年齡層（#109）
+    // #185：存大約月齡（喵戶長有講才有），生日不存
     birthday: null,
-    est_age_months: null,
+    est_age_months: c.estAgeMonths,
     life_stage: c.lifeStage,
     coat: c.coat,
     breed: c.breed,
@@ -69,7 +69,7 @@ export function fromCatRow(r: CatRowIn): CatFields {
     name: r.name,
     sex: (r.sex as CatFields["sex"]) ?? null,
     birthday: null,
-    estAgeMonths: null,
+    estAgeMonths: typeof r.est_age_months === "number" ? r.est_age_months : null,
     lifeStage: r.life_stage ?? null,
     coat: r.coat ?? null,
     breed: r.breed ?? null,

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  applyMediaAnalysis, beginCat, canCreateCat, canCreateHousehold, confirmField, emptyIntake, nextStep, parseTimeline, removeMedia, setCatField, setCover, takeTurn,
+  applyMediaAnalysis, beginCat, canCreateCat, canCreateHousehold, confirmField, emptyIntake, nextStep, parseTimeline, photosLeft, setCatAge, removeMedia, setCatField, setCover, takeTurn,
   type CatTurn, type HouseholdTurn, type PendingField, type IntakeState, type MediaAnalysis, type TurnExtractor,
 } from "./conversation";
 
@@ -20,6 +20,8 @@ const llm = (out: HouseholdTurn | CatTurn): TurnExtractor => async () => out;
 const broken: TurnExtractor = async () => { throw new Error("AI 掛了"); };
 const noAI: TurnExtractor = async () => null;
 
+/** 補到 3 張照片（#185 生活照至少 3 張） */
+const withPhotos = (s: IntakeState): IntakeState => ({ ...s, cat: { ...s.cat, photos: [...s.cat.photos, "u1/p2.jpg", "u1/p3.jpg"].slice(0, 5) } });
 const catPhase = (): IntakeState => {
   const s = emptyIntake();
   return beginCat({ ...s, household: { ...s.household, caretakerType: "personal_foster", name: "小橘之家", city: "台中市", district: "北屯區" } });
@@ -136,9 +138,40 @@ describe("建立貓咪：先看照片影片，再補問", () => {
     expect(r.state.pending).not.toContain("lifeStage");
   });
 
-  it("年紀只用來決定三級，不留生日或月齡", async () => {
+  it("#185 講生日或大約年紀就存月齡（給 3D 製作用），生日本身不存", async () => {
     const r = await takeTurn(catPhase(), "生日 2026/8/1", llm(ct({ birthday: "2026-08-01" })), today);
-    expect(r.state.cat).toMatchObject({ lifeStage: "kitten", birthday: null, estAgeMonths: null });
+    expect(r.state.cat).toMatchObject({ lifeStage: "kitten", birthday: null, estAgeMonths: 2 });
+    const r2 = await takeTurn(catPhase(), "大概 3 歲", noAI, today);
+    expect(r2.state.cat).toMatchObject({ lifeStage: "adult", estAgeMonths: 36 });
+  });
+
+  it("#185 年齡層只是照片猜的時，仍要問大約年紀；選年齡層或在名片確認就算略過", async () => {
+    let s = withPhotos(applyMediaAnalysis(catPhase(), photo));
+    s = { ...s, cat: { ...s.cat, name: "橘子", description: "很親人" } };
+    expect(nextStep(s)).toEqual({ kind: "ask", field: "lifeStage" });
+    expect(nextStep(setCatField(s, "lifeStage", "adult")).kind).not.toBe("ask");
+    expect(nextStep(confirmField(s, "lifeStage")).kind).not.toBe("ask");
+    const told = (await takeTurn(s, "大約 4 個月", noAI, today)).state;
+    expect(told.cat).toMatchObject({ estAgeMonths: 4, lifeStage: "kitten" });
+    expect(told.pending).not.toContain("lifeStage");
+  });
+
+  it("#185 名片上填大約年紀：存月齡、年齡層跟著算；改選不同年齡層時月齡作廢", () => {
+    let s = setCatAge(catPhase(), 18);
+    expect(s.cat).toMatchObject({ estAgeMonths: 18, lifeStage: "adult" });
+    s = setCatField(s, "lifeStage", "senior");
+    expect(s.cat.estAgeMonths).toBeNull();
+    expect(setCatAge(s, null).cat.lifeStage).toBe("senior");
+  });
+
+  it("#185 生活照至少 3 張：第 1 張後可先描述，其餘都填好時再要求補照片", () => {
+    let s = applyMediaAnalysis(catPhase(), { ...photo, estAgeMonths: null });
+    s = { ...s, cat: { ...s.cat, name: "橘子", description: "很親人", lifeStage: "adult" } };
+    expect(nextStep(s)).toEqual({ kind: "ask", field: "photos" });
+    expect(photosLeft(s.cat)).toBe(2);
+    s = withPhotos(s);
+    expect(photosLeft(s.cat)).toBe(0);
+    expect(nextStep(s).kind).not.toBe("ask");
   });
 
   it("說「剛滿月」也能對應到幼貓", async () => {
@@ -176,8 +209,8 @@ describe("建立貓咪：先看照片影片，再補問", () => {
   });
 
   it("必填齊了但還有「請確認」時，不能建立", () => {
-    let s = applyMediaAnalysis(catPhase(), photo);
-    s = { ...s, cat: { ...s.cat, name: "橘子", description: "很親人" } };
+    let s = withPhotos(applyMediaAnalysis(catPhase(), photo));
+    s = { ...s, cat: { ...s.cat, name: "橘子", description: "很親人", estAgeMonths: 30 } };
     expect(canCreateCat(s)).toBe(false);
     expect(nextStep(s)).toEqual({ kind: "confirm_fields", fields: expect.arrayContaining(["coat", "breed", "lifeStage"]) });
     for (const f of [...s.pending]) s = confirmField(s, f);
@@ -192,7 +225,7 @@ describe("建立貓咪：先看照片影片，再補問", () => {
   });
 
   it("性別可以填「不確定」，不是必填", async () => {
-    let s = applyMediaAnalysis(catPhase(), photo);
+    let s = withPhotos(applyMediaAnalysis(catPhase(), photo));
     s = (await takeTurn(s, "叫橘子，性別不確定", llm(ct({ name: "橘子", sex: "unknown", wantsReview: true })), today)).state;
     for (const f of [...s.pending]) s = confirmField(s, f);
     expect(s.cat.sex).toBe("unknown");

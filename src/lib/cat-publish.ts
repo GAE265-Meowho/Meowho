@@ -22,11 +22,13 @@ export const modelIdAt = (d: Date) =>
 
 export const bodyOf = (lifeStage: string | null) => (lifeStage === "kitten" ? "kitten" : "adult") as "adult" | "kitten";
 
-export function defaultModelRows(cat: { id: string; name: string; life_stage: string | null; photo_paths: string[] | null }, userId: string, modelId: string) {
+export function defaultModelRows(cat: { id: string; name: string; life_stage: string | null; photo_paths: string[] | null; est_age_months?: number | null }, userId: string, modelId: string) {
   return {
     model: {
       id: modelId, name: cat.name.slice(0, 40), owner_type: "member", owner_id: userId, cat_id: cat.id, status: "ready",
       photo_path: cat.photo_paths?.[0] ?? "", meta: { source: "default" }, created_by: userId,
+      // #185：中途填的大約月齡帶進模型，MeowHQ 製作頁與 AI 三視角用
+      profile: typeof cat.est_age_months === "number" ? { age_months: cat.est_age_months } : {},
     },
     variant: { model_id: modelId, body_type: bodyOf(cat.life_stage), albedo_path: DEFAULT_ALBEDO },
   };
