@@ -2,7 +2,7 @@
 // MeowHQ 外殼：頂列（Logo、鈴鐺、頭像選單）＋側欄（手機「☰」）＋內容區（規格書 §4.0、§4.9）。
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Fragment, Suspense, useState } from "react";
+import { Fragment, Suspense, useEffect, useState } from "react";
 import { ADMIN_MODULE_LABELS, type SidebarItem } from "@/lib/hq/types";
 import { LOGOS } from "@/lib/mock-data";
 import { HQ_HOME, HQ_MODULE_PATH, isModule } from "./access";
@@ -55,24 +55,37 @@ const SECTION_ICONS: Partial<Record<AssetSection, React.ReactNode>> = {
 };
 const MENU_SECTIONS = ASSET_SECTIONS.filter(s => !("parent" in s));
 
-/** 虛擬體驗元件管理分組（#113）：?tab= 決定目前區塊；子區塊算父區塊，平面圖的戶（/assets/floorplans/…，#138）算室內空間，其他子頁（/assets/cats/…、/assets/bases）算貓咪製作 */
+/** 虛擬體驗元件管理分組（#113；#183 改為可收合的樹狀選單）：?tab= 決定目前區塊；子區塊算父區塊，平面圖的戶（/assets/floorplans/…，#138）算室內空間，其他子頁（/assets/cats/…、/assets/bases）算貓咪製作 */
 function AssetsGroup({ activePath, onPick, tab }: { activePath: string; onPick: () => void; tab: string | null }) {
   const inAssets = activePath === ASSETS_CATS_HREF || activePath.startsWith(ASSETS_CATS_HREF + "/");
   const current = !inAssets ? null
     : activePath === ASSETS_CATS_HREF && isAssetSection(tab) ? topSection(tab)
     : activePath.startsWith(ASSETS_CATS_HREF + "/floorplans/") ? "rooms" : "cats";
+  // #183：可收合的樹狀選單。在這個模組裡時自動展開；其他頁面預設收合，按標題展開
+  const [open, setOpen] = useState(current !== null);
+  useEffect(() => { if (current !== null) setOpen(true); }, [current]);
   return (
     <ul aria-label={ADMIN_MODULE_LABELS.virtual_assets}>
-      <li className="hq-navgroup" aria-hidden="true">{ADMIN_MODULE_LABELS.virtual_assets}</li>
-      {MENU_SECTIONS.map(sct => (
-        <li key={sct.value}>
-          <Link href={assetSectionHref(sct.value)} className={current === sct.value ? "on" : ""}
-            aria-current={current === sct.value ? "page" : undefined} onClick={onPick}>
-            <svg {...icon}>{SECTION_ICONS[sct.value]}</svg>
-            <span>{sct.label}</span>
-          </Link>
-        </li>
-      ))}
+      <li>
+        <button type="button" className={`hq-navtoggle${current ? " in" : ""}`} aria-expanded={open} aria-controls="hq-nav-assets" onClick={() => setOpen(o => !o)}>
+          <svg {...icon}>{NAV_ICONS.virtual_assets}</svg>
+          <span>{ADMIN_MODULE_LABELS.virtual_assets}</span>
+          <svg {...icon} width={16} height={16} className="hq-navchev"><path d="M9 6l6 6-6 6" /></svg>
+        </button>
+        {open && (
+          <ul id="hq-nav-assets" className="hq-navtree">
+            {MENU_SECTIONS.map(sct => (
+              <li key={sct.value}>
+                <Link href={assetSectionHref(sct.value)} className={current === sct.value ? "on" : ""}
+                  aria-current={current === sct.value ? "page" : undefined} onClick={onPick}>
+                  <svg {...icon}>{SECTION_ICONS[sct.value]}</svg>
+                  <span>{sct.label}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </li>
     </ul>
   );
 }
