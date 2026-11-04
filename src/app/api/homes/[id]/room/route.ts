@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { isEnvCheck } from "@/lib/home-room";
 import { DEFAULT_ROOM_FURNITURE, roomIdAt } from "@/lib/task-run";
 import { getAdminSupabase } from "@/lib/supabase/admin";
 import { getServerSupabase } from "@/lib/supabase/server";
@@ -7,8 +8,12 @@ import { getServerSupabase } from "@/lib/supabase/server";
 // ⚠ 接真正流程時：上傳到私有 bucket（meow-home-videos，0017）→ 沿用 MeowHQ 的影片／平面圖轉換（#93、#138）在背景處理 →
 //   成功後 status = 'ready' 並通知；飼主預覽後按「完成」呼叫 meow_finish_home_room()。詳見 docs/modules/readiness.md「我的 3D 房間」。
 // meow_room_models 只有伺服器（service role）能新增；寫之前先用登入者身分確認是自己的喵戶。
-export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+// body.envCheck：環境檢查的選擇（wanted／declined_again，見 lib/home-room.ts），存進 env_check。
+export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  const body = await req.json().catch(() => null) as { envCheck?: unknown } | null;
+  const raw = body?.envCheck;
+  const envCheck = isEnvCheck(raw) ? raw : null;
   const sb = await getServerSupabase();
   const admin = getAdminSupabase();
   if (!sb || !admin) return NextResponse.json({ error: "not_configured" }, { status: 503 });
@@ -19,7 +24,10 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
 
   const { data: existing } = await admin.from("meow_room_models").select("id")
     .eq("owner_household_id", id).eq("status", "ready").not("completed_at", "is", null).limit(1).maybeSingle();
-  if (existing) return NextResponse.json({ roomId: existing.id, created: false });
+  if (existing) {
+    if (envCheck) await admin.from("meow_room_models").update({ env_check: envCheck }).eq("id", existing.id);
+    return NextResponse.json({ roomId: existing.id, created: false });
+  }
 
   const base = roomIdAt(new Date());
   for (let n = 0; n < 5; n++) {
@@ -27,7 +35,7 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
     const now = new Date().toISOString();
     const { error } = await admin.from("meow_room_models").insert({
       id: roomId, name: "示範房間", status: "ready", source: "floorplan", owner_household_id: id,
-      meta: { source: "default", furniture: DEFAULT_ROOM_FURNITURE }, created_by: auth.user.id, completed_at: now,
+      meta: { source: "default", furniture: DEFAULT_ROOM_FURNITURE }, created_by: auth.user.id, completed_at: now, env_check: envCheck,
     });
     if (error?.code === "23505") continue;
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });

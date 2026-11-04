@@ -1,0 +1,17 @@
+/* 建立我家的 3D 房間（規格 09 §7.2） */
+.tips { margin: 0; padding: 0; list-style: none; display: grid; gap: 14px; }
+.tips li { display: grid; grid-template-columns: 36px 1fr; gap: 12px; align-items: start; }
+.tips b { color: var(--ink); }
+.tips p { margin: 2px 0 0; color: var(--ink-soft); line-height: 1.7; }
+.num {
+  display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%;
+  background: var(--yellow-soft); color: var(--ink); font-weight: 700;
+}
+.choices { display: flex; flex-wrap: wrap; gap: 12px; }
+.choice {
+  min-height: max(44px, var(--tap)); padding: 0 22px; border: 2px solid var(--line); border-radius: 999px;
+  background: var(--card); color: var(--ink); font: inherit; font-weight: 700; cursor: pointer;
+}
+.choice[aria-checked="true"] { border-color: var(--ink); background: var(--ink); color: var(--yellow); }
+.choice:focus-visible { outline: 3px solid var(--orange); outline-offset: 2px; }
+.missing { box-shadow: 0 0 0 3px var(--orange); }
