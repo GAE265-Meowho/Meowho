@@ -16,6 +16,8 @@ import { ageMonths, parseAge, parseSex, type Sex } from "./cat";
 import { cleanName, parseCaretaker, parseCity, parseDistrict, type CaretakerType } from "./household";
 
 export const MAX_PHOTOS = 5;
+/** 新增貓咪至少 3 張＝側面、正面、背面各一張（#185、#188），之後可再加生活照到 5 張 */
+export const MIN_PHOTOS = 3;
 export const MAX_VIDEOS = 3;
 /** 照片判讀信心低於此值只收照片，不填欄位 */
 export const MIN_PHOTO_CONFIDENCE = 0.5;
@@ -43,6 +45,11 @@ export interface CatFields {
   timeline: TimelineEntry[];
   /** 儲存路徑（不是網址，決策 006）；第 1 張為封面 */
   photos: string[];
+  /**
+   * 3D 用的三個角度（#188）：側面、正面、背面各一張，都在 photos 裡。新增貓咪時必填，建立後送去 AI 三視角；
+   * null＝不適用（修改既有的貓：角度只在建 3D 模型時用，資料庫不另存）
+   */
+  angles: PhotoAngles | null;
   videos: string[];
   medical: Medical;
   compat: Compat;
@@ -55,6 +62,20 @@ export interface CatFields {
 }
 
 export interface TimelineEntry { date: string; event: string }
+
+export const PHOTO_ANGLES = ["side", "front", "back"] as const;
+export type PhotoAngle = (typeof PHOTO_ANGLES)[number];
+export type PhotoAngles = Record<PhotoAngle, string | null>;
+export const ANGLE_LABEL: Record<PhotoAngle, string> = { side: "側面", front: "正面", back: "背面" };
+export const ANGLE_HINT: Record<PhotoAngle, string> = {
+  side: "整隻貓的側面，身體和尾巴都拍進去",
+  front: "臉朝鏡頭，看得到臉和胸前",
+  back: "從背後拍，看得到背部花紋",
+};
+export const emptyAngles = (): PhotoAngles => ({ side: null, front: null, back: null });
+/** 下一個要拍的角度；都拍好了回 null */
+export const nextAngle = (c: Pick<CatFields, "angles">): PhotoAngle | null =>
+  c.angles ? PHOTO_ANGLES.find((a) => !c.angles![a]) ?? null : null;
 
 export const MAX_TIMELINE = 50;
 
@@ -134,7 +155,7 @@ export const emptyIntake = (): IntakeState => ({
   household: { caretakerType: null, name: "", city: null, district: null, intro: "" },
   cat: {
     name: "", sex: null, birthday: null, estAgeMonths: null, lifeStage: null, coat: null, breed: null,
-    personalityTags: [], healthTags: [], description: null, timeline: [], photos: [], videos: [],
+    personalityTags: [], healthTags: [], description: null, timeline: [], photos: [], videos: [], angles: emptyAngles(),
     medical: emptyMedical(), compat: emptyCompat(), habits: [], adoptionTerms: null, handover: [], status: "preparing",
   },
   pending: [],
@@ -161,13 +182,19 @@ function householdMissing(h: HouseholdFields): AskField | null {
 }
 
 // 建貓順序（子哲 2026-10-31）：先上傳照片並描述牠，AI 填完後再依序補問沒講到的
-function catMissing(c: CatFields, reviewRequested = true): AskField | null {
+function catMissing(c: CatFields, reviewRequested = true, pending: readonly PendingField[] = []): AskField | null {
   if (c.photos.length === 0) return "photos";
   if (!reviewRequested && !c.description && c.personalityTags.length === 0) return "description";
   if (!c.name.trim()) return "name";
-  if (!c.lifeStage) return "lifeStage";
+  // #185：問「大約幾個月或幾歲」。年齡層只是 AI 從照片猜的、也還沒有月齡時照樣問；選年齡層按鈕或在名片確認就算略過
+  if (!c.lifeStage || (c.estAgeMonths === null && pending.includes("lifeStage"))) return "lifeStage";
+  // 第 1 張照片之後就可以先描述牠；建立前三個角度（#188）要補齊
+  if (nextAngle(c)) return "photos";
   return null;
 }
+
+/** 三個角度還差幾張（0＝夠了；修改既有的貓不需要） */
+export const photosLeft = (c: Pick<CatFields, "angles">) => (c.angles ? PHOTO_ANGLES.filter((a) => !c.angles![a]).length : 0);
 
 export function nextStep(s: IntakeState): Step {
   if (s.phase === "household") {
@@ -175,7 +202,7 @@ export function nextStep(s: IntakeState): Step {
     return missing ? { kind: "ask", field: missing } : { kind: "confirm_household" };
   }
   // 描述是個性標籤的來源（領養任務的觸發條件），所以照片之後先請喵戶長描述；說「先這樣」就略過
-  const missing = catMissing(s.cat, s.reviewRequested);
+  const missing = catMissing(s.cat, s.reviewRequested, s.pending);
   if (missing) return { kind: "ask", field: missing };
   if (s.pending.length > 0) return { kind: "confirm_fields", fields: [...s.pending] };
   return { kind: "confirm_cat" };
@@ -225,9 +252,10 @@ function mergeCat(s: IntakeState, t: CatTurn, today: Date): IntakeState {
   const toConfirm = new Set<PendingField>();
   if (t.name?.trim()) c.name = cleanName(t.name);
   if (t.sex) { c.sex = t.sex; toConfirm.add("sex"); }
-  // 年紀只用來決定三級，生日、月齡不留（#109）
-  const told = t.birthday || t.estAgeMonths !== null ? lifeStageOf(ageMonths({ birthday: t.birthday, estAgeMonths: t.estAgeMonths }, today)) : null;
-  if (told) { c.lifeStage = told; confirmed.add("lifeStage"); }
+  // #185（取代 #109）：講了生日或大約年紀就存月齡（給 3D 製作用），年齡層由月齡算出；生日本身不存
+  const months = t.birthday || t.estAgeMonths !== null ? ageMonths({ birthday: t.birthday, estAgeMonths: t.estAgeMonths }, today) : null;
+  const told = lifeStageOf(months);
+  if (told) { c.lifeStage = told; c.estAgeMonths = months; confirmed.add("lifeStage"); }
   if (t.lifeStage) { c.lifeStage = t.lifeStage; confirmed.add("lifeStage"); }
   if (t.coat?.trim()) { c.coat = t.coat.trim(); confirmed.add("coat"); }
   if (t.breed?.trim()) { c.breed = t.breed.trim(); confirmed.add("breed"); }
@@ -275,6 +303,9 @@ export function applyMediaAnalysis(s: IntakeState, m: MediaAnalysis): IntakeStat
     if (m.sameCat === false) return { ...s, notice: "maybe_other_cat" };
     if (c.photos.length >= MAX_PHOTOS) return { ...s, notice: "too_many_photos" };
     c.photos = [...c.photos, m.path];
+    // #188：依序填側面 → 正面 → 背面，三個都有了之後的照片只是生活照
+    const angle = nextAngle(c);
+    if (angle) c.angles = { ...c.angles!, [angle]: m.path };
     if (m.confidence >= MIN_PHOTO_CONFIDENCE) {
       if (!c.coat && m.coat) { c.coat = m.coat; pending.add("coat"); }
       if (!c.breed && m.breed) { c.breed = m.breed; pending.add("breed"); }
@@ -301,7 +332,11 @@ export function setCover(s: IntakeState, path: string): IntakeState {
 /** 從草稿移除照片或影片（檔案本身由畫面另外刪） */
 export const removeMedia = (s: IntakeState, path: string): IntakeState => ({
   ...s,
-  cat: { ...s.cat, photos: s.cat.photos.filter((p) => p !== path), videos: s.cat.videos.filter((p) => p !== path) },
+  cat: {
+    ...s.cat, photos: s.cat.photos.filter((p) => p !== path), videos: s.cat.videos.filter((p) => p !== path),
+    // 移除的是某個角度的照片：那個角度空出來，下一張照片補上
+    angles: s.cat.angles && Object.fromEntries(PHOTO_ANGLES.map((a) => [a, s.cat.angles![a] === path ? null : s.cat.angles![a]])) as PhotoAngles,
+  },
 });
 
 type EditableCatField = "name" | "sex" | "lifeStage" | "coat" | "breed" | "personalityTags" | "healthTags" | "description"
@@ -320,7 +355,16 @@ export function setCatField<K extends EditableCatField>(s: IntakeState, field: K
   else if (field === "habits") c.habits = pickTags(value as string[], HABITS);
   else if (field === "handover") c.handover = pickTags(value as string[], HANDOVER_ITEMS);
   else Object.assign(c, { [field]: value });
+  // 改了年齡層、跟已存的月齡對不上時，月齡作廢（以喵戶長選的為準）
+  if (field === "lifeStage" && c.estAgeMonths !== null && lifeStageOf(c.estAgeMonths) !== value) c.estAgeMonths = null;
   return { ...s, cat: c, pending: s.pending.filter((f) => f !== CONFIRMS[field]) };
+}
+
+/** 名片上填大約年紀（#185）：存月齡，年齡層跟著算出並視為已確認；清空只清月齡、保留年齡層 */
+export function setCatAge(s: IntakeState, months: number | null): IntakeState {
+  const m = months !== null && Number.isFinite(months) && months >= 0 && months <= 360 ? Math.round(months) : null;
+  if (m === null) return { ...s, cat: { ...s.cat, estAgeMonths: null } };
+  return { ...s, cat: { ...s.cat, estAgeMonths: m, lifeStage: lifeStageOf(m) }, pending: s.pending.filter((f) => f !== "lifeStage") };
 }
 
 // ---------- 醫療細項 ----------

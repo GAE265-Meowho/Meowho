@@ -38,8 +38,8 @@ export function FoodTab() {
           <h3>{product.name}</h3>
           <p className={styles.pack}>{product.referencePrice?.pack ?? product.packs.map(p => p.label).join(" ／ ")}</p>
           <strong className={styles.price}>{formatFoodPrice(product.referencePrice?.amount ?? null)}{product.referencePrice && <span>／{product.referencePrice.note.startsWith("估算") ? "估算參考價" : "參考價"}</span>}</strong>
-          <div className={styles.links}><a className="hq-btn ghost" href={product.officialUrl} target="_blank" rel="noopener noreferrer" aria-label={`${product.name} 官方詳細資訊（另開分頁）`}>官方詳細資訊 ↗</a>
-            {product.referencePrice && <a href={product.referencePrice.url} target="_blank" rel="noopener noreferrer">價格來源 ↗</a>}</div>
+          <div className={styles.links}><a className="hq-btn ghost" href={product.officialUrl} target="_blank" rel="noopener noreferrer" aria-label={`${product.name} 官方詳細資訊（另開分頁）`}>官方詳細資訊 <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M14 4h6v6" /><path d="M20 4l-9 9" /><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" /></svg></a>
+            {product.referencePrice && <a href={product.referencePrice.url} target="_blank" rel="noopener noreferrer">價格來源 <svg width={14} height={14} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M14 4h6v6" /><path d="M20 4l-9 9" /><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" /></svg></a>}</div>
           {product.referencePrice && <p className={styles.date}>查價 {product.referencePrice.checkedOn} · {product.referencePrice.source}</p>}
           {product.referencePrice?.note.startsWith("估算") && <p className={styles.date}>{product.referencePrice.note}</p>}
         </div></article>)}</div>

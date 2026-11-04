@@ -2,17 +2,45 @@
 /* eslint-disable @next/next/no-img-element */
 // 新增或修改貓咪的名片：每一欄都能直接改；AI 猜的欄位、性別與健康欄位標「請確認」（#82）。
 // 送養文常見欄位（醫療細項、相處、習慣、送養條件、交接物品）收在可展開的區塊，畫面保持乾淨。
+import { useState } from "react";
 import { LIFE_STAGES } from "@/lib/cat-profile/life-stage";
 import { HEALTH_TAGS, PERSONALITY_TAGS } from "@/lib/cat-profile/tags";
 import { HABITS, HANDOVER_ITEMS, type AdoptionTerms } from "@/lib/cat-profile/adoption";
 import { CompatFields, MedicalFields, MultiPick, TermsFields } from "./AdoptionFields";
 import {
-  canCreateCat, confirmField, removeMedia, setCatField, setCover,
+  ANGLE_LABEL, MIN_PHOTOS, PHOTO_ANGLES, canCreateCat, nextAngle, confirmField, photosLeft, removeMedia, setCatAge, setCatField, setCover,
   type IntakeState, type PendingField,
 } from "@/lib/onboarding/conversation";
 import CatButton from "../ui/CatButton";
 import Required from "../ui/Required";
 import Icon from "../ui/Icon";
+
+/** 這張照片是哪個角度（#188）；不是角度照片回 null */
+const angleOf = (state: IntakeState, path: string) => (state.cat.angles ? PHOTO_ANGLES.find(a => state.cat.angles![a] === path) ?? null : null);
+
+/** 大約年紀：數字＋單位（個月／歲）；換單位時保留數字重新換算 */
+function AgeField({ months, onChange }: { months: number | null; onChange: (m: number | null) => void }) {
+  const [unit, setUnit] = useState<"month" | "year">(months !== null && months >= 12 && months % 12 === 0 ? "year" : "month");
+  const shown = months === null ? "" : unit === "year" ? String(months / 12) : String(months);
+  const apply = (raw: string, u: "month" | "year") => {
+    const n = raw.trim() === "" ? null : Number(raw);
+    onChange(n === null || !Number.isFinite(n) ? null : u === "year" ? n * 12 : n);
+  };
+  return (
+    <div className={s.field}>
+      <label className={s.label} htmlFor="c-age">大約年紀</label>
+      <div style={{ display: "flex", gap: 8 }}>
+        <input id="c-age" type="number" inputMode="decimal" min={0} step={unit === "year" ? 0.5 : 1} value={shown}
+          placeholder="不確定可以不填" onChange={e => apply(e.target.value, unit)} style={{ maxWidth: "10rem" }} />
+        <select aria-label="單位" value={unit} style={{ maxWidth: "6rem" }}
+          onChange={e => { const u = e.target.value as "month" | "year"; setUnit(u); if (shown) apply(shown, u); }}>
+          <option value="month">個月</option>
+          <option value="year">歲</option>
+        </select>
+      </div>
+    </div>
+  );
+}
 import s from "./intake.module.css";
 
 type Update = (next: IntakeState) => void;
@@ -43,6 +71,8 @@ export function MediaTray({ state, previews, onChange, onRemoved }: {
           <figure key={path} className={s.thumb} style={{ margin: 0 }}>
             {p?.kind === "video" ? <video src={p.url} muted playsInline preload="metadata" aria-label="貓咪影片" /> : p && <img src={p.url} alt="貓咪照片" />}
             {isPhoto && i === 0 && <span className={s.coverTag}>封面</span>}
+            {/* #188：3D 用的角度 */}
+            {isPhoto && angleOf(state, path) && <span className={s.coverTag} style={{ top: "auto", bottom: 6 }}>{ANGLE_LABEL[angleOf(state, path)!]}</span>}
             <div className={s.thumbActions}>
               {isPhoto ? (
                 <button type="button" className={s.thumbBtn} aria-label="設為封面" aria-pressed={i === 0} onClick={() => onChange(setCover(state, path))}>
@@ -111,6 +141,9 @@ export function CatCard({ state, onChange, onCreate, saving, error, aiUsed, home
           ))}
         </div>
       </div>
+
+      {/* #185：大約年紀（選填），填了年齡層自動帶出；月齡之後帶進 3D 模型 */}
+      <AgeField months={c.estAgeMonths} onChange={m => onChange(setCatAge(state, m))} />
 
       <div className={s.pair}>
         <div className={s.field}>
@@ -191,6 +224,8 @@ export function CatCard({ state, onChange, onCreate, saving, error, aiUsed, home
 
       {notice}
       {error && <p className={s.error} role="alert">{error}</p>}
+      {/* #185：生活照至少 3 張，按鈕停用時說明原因 */}
+      {photosLeft(c) > 0 && <p className={s.error}>還差{ANGLE_LABEL[nextAngle(c)!]}照（側面、正面、背面各一張，共 {MIN_PHOTOS} 張）。</p>}
       <div className={s.actions}>
         <CatButton onClick={onCreate} disabled={saving || !canCreateCat(state)}>{saving ? "儲存中…" : submitLabel}</CatButton>
       </div>

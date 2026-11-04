@@ -5,6 +5,7 @@
 
 ## 目前狀態
 - **#186 皇家食物元件（Tina × Codex）**：`/MeowHQ/assets?tab=food`，官方 sitemap 86 款、照片落地，分類與官方產品外連已接好。`src/lib/hq/food/` 共用目錄供之後虛擬購買；72 款有參考價、14 款待查。尚未接錢包／訂單／餵食庫存，未改 Supabase。參考價可用 `node scripts/update-food-reference-prices.mjs` 更新人工觀察值；完整官方再匯入用 `node scripts/import-royalcanin-food.mjs`（需網路）。
+- **前台貓咪 3D 接 MeowHQ（#182 → #187 → #188 依序合併）**：#188 讓新增貓咪收側面／正面／背面、建立後自動跑 AI 三視角（需 Vercel 的 `SUPABASE_SERVICE_ROLE_KEY` 與 Azure 影像設定），前台貓咪頁可預覽；Step 03、04 仍在 MeowHQ 手動。下一步：三視角完成後通知 MeowHQ 管理員（之後改自動）。
 - **MeowHQ 貓戶管理（#179，PR #180）**：新模組 `households`。`0020_meow_households_module.sql` **尚未執行**；執行前，系統管理員看得到頁面但只讀得到公開貓咪，其他管理員看不到選單。
 - **前台「我的 3D 房間」接上房間模型 API（珮瑜接手，2026-11-04）**：現在 `/homes/[id]/scene` 和 `/homes/[id]/safety` 按下去都只建示範房間與示範報告（service role，`/api/homes/[id]/room`、`/api/homes/[id]/safety`）。要接的步驟、和後台 #93 不同的隱私規則（私有 bucket `meow-home-videos`／`meow-home-scenes`、原始檔處理完立即刪、成果不能放公開 bucket）、worker 要改的地方，全部寫在 `docs/modules/readiness.md`「給珮瑜：把房間模型 API 接到前台」。目標流程是 `docs/spec/09_領養任務目標流程規格.md` v0.6 §7.2。需要 Vercel 的 `SUPABASE_SERVICE_ROLE_KEY`（沒讀到時 API 回 503 `not_configured`）。
 - `main` 上的首頁、頁首頁尾是 **meowwho-v2 新版 UI**（#65）；首頁「帶我回家」等區塊資料仍為示意（`src/lib/cats.ts`、`households.ts`）。尚未改版的內頁沿用舊元件樣式。
