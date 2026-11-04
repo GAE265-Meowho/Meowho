@@ -250,6 +250,7 @@ function CatProfile({ cat }: { cat: CatModelView }) {
       <h3>目前資訊</h3>
       <dl className="hq-dl">
         <dt>名稱</dt><dd>{cat.name}</dd>
+        <dt>喵戶</dt><dd>{cat.household?.name ?? "—"}</dd>
         <dt>性別</dt><dd>{gender}</dd>
         <dt>年齡</dt><dd>{cat.ageMonths === null ? "未填寫" : `${cat.ageMonths} 個月`}</dd>
         <dt>體重</dt><dd>{cat.weightKg === null ? "未填寫" : `${cat.weightKg} 公斤`}</dd>

@@ -16,7 +16,7 @@ import { ageMonths, parseAge, parseSex, type Sex } from "./cat";
 import { cleanName, parseCaretaker, parseCity, parseDistrict, type CaretakerType } from "./household";
 
 export const MAX_PHOTOS = 5;
-/** 生活照至少 3 張（Tina 2026-11-04，#185）：之後 3D 製作要從裡面挑角度 */
+/** 新增貓咪至少 3 張＝側面、正面、背面各一張（#185、#188），之後可再加生活照到 5 張 */
 export const MIN_PHOTOS = 3;
 export const MAX_VIDEOS = 3;
 /** 照片判讀信心低於此值只收照片，不填欄位 */
@@ -45,6 +45,11 @@ export interface CatFields {
   timeline: TimelineEntry[];
   /** 儲存路徑（不是網址，決策 006）；第 1 張為封面 */
   photos: string[];
+  /**
+   * 3D 用的三個角度（#188）：側面、正面、背面各一張，都在 photos 裡。新增貓咪時必填，建立後送去 AI 三視角；
+   * null＝不適用（修改既有的貓：角度只在建 3D 模型時用，資料庫不另存）
+   */
+  angles: PhotoAngles | null;
   videos: string[];
   medical: Medical;
   compat: Compat;
@@ -57,6 +62,20 @@ export interface CatFields {
 }
 
 export interface TimelineEntry { date: string; event: string }
+
+export const PHOTO_ANGLES = ["side", "front", "back"] as const;
+export type PhotoAngle = (typeof PHOTO_ANGLES)[number];
+export type PhotoAngles = Record<PhotoAngle, string | null>;
+export const ANGLE_LABEL: Record<PhotoAngle, string> = { side: "側面", front: "正面", back: "背面" };
+export const ANGLE_HINT: Record<PhotoAngle, string> = {
+  side: "整隻貓的側面，身體和尾巴都拍進去",
+  front: "臉朝鏡頭，看得到臉和胸前",
+  back: "從背後拍，看得到背部花紋",
+};
+export const emptyAngles = (): PhotoAngles => ({ side: null, front: null, back: null });
+/** 下一個要拍的角度；都拍好了回 null */
+export const nextAngle = (c: Pick<CatFields, "angles">): PhotoAngle | null =>
+  c.angles ? PHOTO_ANGLES.find((a) => !c.angles![a]) ?? null : null;
 
 export const MAX_TIMELINE = 50;
 
@@ -136,7 +155,7 @@ export const emptyIntake = (): IntakeState => ({
   household: { caretakerType: null, name: "", city: null, district: null, intro: "" },
   cat: {
     name: "", sex: null, birthday: null, estAgeMonths: null, lifeStage: null, coat: null, breed: null,
-    personalityTags: [], healthTags: [], description: null, timeline: [], photos: [], videos: [],
+    personalityTags: [], healthTags: [], description: null, timeline: [], photos: [], videos: [], angles: emptyAngles(),
     medical: emptyMedical(), compat: emptyCompat(), habits: [], adoptionTerms: null, handover: [], status: "preparing",
   },
   pending: [],
@@ -169,13 +188,13 @@ function catMissing(c: CatFields, reviewRequested = true, pending: readonly Pend
   if (!c.name.trim()) return "name";
   // #185：問「大約幾個月或幾歲」。年齡層只是 AI 從照片猜的、也還沒有月齡時照樣問；選年齡層按鈕或在名片確認就算略過
   if (!c.lifeStage || (c.estAgeMonths === null && pending.includes("lifeStage"))) return "lifeStage";
-  // 第 1 張照片之後就可以先描述牠；建立前要補滿 3 張
-  if (c.photos.length < MIN_PHOTOS) return "photos";
+  // 第 1 張照片之後就可以先描述牠；建立前三個角度（#188）要補齊
+  if (nextAngle(c)) return "photos";
   return null;
 }
 
-/** 還差幾張照片（0＝夠了） */
-export const photosLeft = (c: Pick<CatFields, "photos">) => Math.max(0, MIN_PHOTOS - c.photos.length);
+/** 三個角度還差幾張（0＝夠了；修改既有的貓不需要） */
+export const photosLeft = (c: Pick<CatFields, "angles">) => (c.angles ? PHOTO_ANGLES.filter((a) => !c.angles![a]).length : 0);
 
 export function nextStep(s: IntakeState): Step {
   if (s.phase === "household") {
@@ -284,6 +303,9 @@ export function applyMediaAnalysis(s: IntakeState, m: MediaAnalysis): IntakeStat
     if (m.sameCat === false) return { ...s, notice: "maybe_other_cat" };
     if (c.photos.length >= MAX_PHOTOS) return { ...s, notice: "too_many_photos" };
     c.photos = [...c.photos, m.path];
+    // #188：依序填側面 → 正面 → 背面，三個都有了之後的照片只是生活照
+    const angle = nextAngle(c);
+    if (angle) c.angles = { ...c.angles!, [angle]: m.path };
     if (m.confidence >= MIN_PHOTO_CONFIDENCE) {
       if (!c.coat && m.coat) { c.coat = m.coat; pending.add("coat"); }
       if (!c.breed && m.breed) { c.breed = m.breed; pending.add("breed"); }
@@ -310,7 +332,11 @@ export function setCover(s: IntakeState, path: string): IntakeState {
 /** 從草稿移除照片或影片（檔案本身由畫面另外刪） */
 export const removeMedia = (s: IntakeState, path: string): IntakeState => ({
   ...s,
-  cat: { ...s.cat, photos: s.cat.photos.filter((p) => p !== path), videos: s.cat.videos.filter((p) => p !== path) },
+  cat: {
+    ...s.cat, photos: s.cat.photos.filter((p) => p !== path), videos: s.cat.videos.filter((p) => p !== path),
+    // 移除的是某個角度的照片：那個角度空出來，下一張照片補上
+    angles: s.cat.angles && Object.fromEntries(PHOTO_ANGLES.map((a) => [a, s.cat.angles![a] === path ? null : s.cat.angles![a]])) as PhotoAngles,
+  },
 });
 
 type EditableCatField = "name" | "sex" | "lifeStage" | "coat" | "breed" | "personalityTags" | "healthTags" | "description"

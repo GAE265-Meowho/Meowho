@@ -10,6 +10,7 @@ import Icon from "@/components/ui/Icon";
 import { DEFAULT_ALBEDO, bodyOf, publishChecklist, type PublishCheck } from "@/lib/cat-publish";
 import { baseFileName } from "@/lib/hq/cat-models/types";
 import { getBrowserSupabase } from "@/lib/supabase/client";
+import { AiViewsPreview } from "./AiViewsPreview";
 import s from "./catPage.module.css";
 
 const CatPreview = dynamic(() => import("@/components/hq/assets/CatPreview"), { ssr: false, loading: () => <div className={s.modelBox} /> });
@@ -102,6 +103,8 @@ export function PublishPanel({ catId, catName, lifeStage, status }: { catId: str
             </>
           )}
       </section>
+
+      <AiViewsPreview catId={catId} catName={catName} />
 
       {preparing && (
         <section className={f.card} aria-labelledby="sec-publish">

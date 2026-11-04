@@ -27,12 +27,17 @@ describe("已建立的貓咪模型列表（#102）", () => {
     rows.data = [member];
     render(<CatsTab query={{ page: 1 }} update={() => {}} />);
     const headers = screen.getAllByRole("columnheader").map(h => h.textContent);
-    expect(headers).toEqual(["縮圖", "名稱", "進度", "建立者", "更新時間", "備註說明", "操作"]); // #118 動作數換成進度
+    expect(headers).toEqual(["縮圖", "名稱", "進度", "喵戶", "建立者", "更新時間", "備註說明", "操作"]); // #118 動作數換成進度；#181 加喵戶
     const row = screen.getByRole("row", { name: /小橘/ });
     expect(within(row).getByText("Tina")).toBeInTheDocument();
     expect(within(row).getByText("2026/11/01 22:44")).toBeInTheDocument();
-    expect(within(row).getByText("—")).toBeInTheDocument(); // 沒有備註
+    expect(within(row).getAllByText("—")).toHaveLength(2); // MeowHQ 自建沒有喵戶、沒有備註
     expect(within(row).queryByRole("link", { name: /預覽動作|製作glb工作區/ })).toBeNull();
+  });
+  it("#181 前台中途建的貓顯示所屬喵戶", () => {
+    rows.data = [{ ...member, ownerType: "member", household: { id: "h1", name: "小橘之家" }, notes: "前台" }];
+    render(<CatsTab query={{ page: 1 }} update={() => {}} />);
+    expect(within(screen.getByRole("row", { name: /小橘/ })).getByText("小橘之家")).toBeInTheDocument();
   });
   it("#110：流程改成上傳照片 → AI 三視角 → 產生 3D；兩隻骨架改用「體型骨架預覽」按鈕進入", () => {
     rows.data = [];
