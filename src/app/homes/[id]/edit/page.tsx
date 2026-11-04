@@ -1,9 +1,10 @@
 "use client";
-// 修改喵戶（#82）：沿用建立時的表單，身分固定；只有喵戶長改得動（RLS 會再擋一次）
+// 修改喵戶（#82）：沿用建立時的表單，身分固定；只有喵戶長改得動（RLS 會再擋一次）。最下方是刪除喵戶（我的喵戶改版）
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/components/Auth";
 import { SiteHeader } from "@/components/Chrome";
+import { DeleteHome } from "@/components/me/DeleteSection";
 import { HouseholdForm } from "@/components/onboarding/HouseholdForm";
 import s from "@/components/onboarding/intake.module.css";
 import CatButton from "@/components/ui/CatButton";
@@ -14,19 +15,25 @@ export default function EditHomePage() {
   const { id } = useParams<{ id: string }>();
   const { loading, user } = useAuth();
   const [form, setForm] = useState<Form | null>(null);
+  const [avatarPath, setAvatarPath] = useState<string | null>(null);
+  const [name, setName] = useState("");
+  const [cats, setCats] = useState<{ id: string; origin_household_id: string | null }[]>([]);
   const [others, setOthers] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const sb = getBrowserSupabase();
     if (loading || !sb || !user) return;
-    sb.from("meow_households").select("id, name, caretaker_type, city, district, intro, home, adoption_terms, org_name, org_proof_url, owner_id")
+    sb.from("meow_households").select("id, name, caretaker_type, city, district, intro, home, adoption_terms, org_name, org_proof_url, owner_id, avatar_path")
       .eq("owner_id", user.id).then(({ data, error: err }) => {
         const row = (data ?? []).find(h => h.id === id);
         if (err || !row) { setError("找不到這個喵戶，或你不是它的喵戶長。"); return; }
         setOthers((data ?? []).filter(h => h.id !== id).map(h => h.name));
+        setAvatarPath(row.avatar_path ?? null);
+        setName(row.name);
         setForm(fromHouseholdRow(row));
       });
+    sb.from("meow_cats").select("id, origin_household_id").eq("household_id", id).then(({ data }) => setCats(data ?? []));
   }, [loading, user, id]);
 
   return (
@@ -41,7 +48,8 @@ export default function EditHomePage() {
           </section>
         )}
         {!error && !form && <p className={s.lead} role="status">載入中…</p>}
-        {form && <HouseholdForm userId={user?.id ?? null} existingNames={others} editing={{ id, form }} />}
+        {form && <HouseholdForm userId={user?.id ?? null} existingNames={others} editing={{ id, form, avatarPath }} />}
+        {form && <DeleteHome home={{ id, name }} cats={cats} />}
       </main>
     </>
   );

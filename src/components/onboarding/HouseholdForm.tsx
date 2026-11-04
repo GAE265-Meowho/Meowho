@@ -14,6 +14,7 @@ import { getBrowserSupabase } from "@/lib/supabase/client";
 import CatButton from "../ui/CatButton";
 import Required from "../ui/Required";
 import { MultiPick, OnePick, TermsFields } from "./AdoptionFields";
+import { HouseholdAvatar } from "./HouseholdAvatar";
 import s from "./intake.module.css";
 
 const MISSING_LABEL: Record<MissingField, string> = {
@@ -28,10 +29,12 @@ export function HouseholdForm({ userId, existingNames, onDemoCreated, onCreated,
   /** 建好後不回「我的喵戶」，改由呼叫的頁面決定下一步 */
   onCreated?: (home: { id: string; name: string; role: Form["role"] }) => void;
   /** 修改既有的喵戶 */
-  editing?: { id: string; form: Form };
+  editing?: { id: string; form: Form; avatarPath?: string | null };
 }) {
   const router = useRouter();
   const [f, setF] = useState<Form>(() => editing?.form ?? emptyHouseholdForm());
+  // 喵戶頭像（0019）：沒上傳就顯示 Google 頭像
+  const [avatar, setAvatar] = useState<string | null>(editing?.avatarPath ?? null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [tried, setTried] = useState(false);
@@ -50,7 +53,7 @@ export function HouseholdForm({ userId, existingNames, onDemoCreated, onCreated,
     const sb = getBrowserSupabase();
     if (!sb || !userId) { setSaving(false); onDemoCreated?.(row.name, f.role); return; }
     if (editing) {
-      const { error: err } = await sb.from("meow_households").update(toHouseholdUpdate(f)).eq("id", editing.id);
+      const { error: err } = await sb.from("meow_households").update({ ...toHouseholdUpdate(f), avatar_path: avatar }).eq("id", editing.id);
       if (err) {
         setSaving(false);
         setError(err.message.includes("household_name_taken") ? "你已經有同名的喵戶，換個名字吧。" : `儲存失敗：${err.message}`);
@@ -59,7 +62,7 @@ export function HouseholdForm({ userId, existingNames, onDemoCreated, onCreated,
       router.push("/me");
       return;
     }
-    const { data, error: err } = await sb.from("meow_households").insert({ ...row, owner_id: userId }).select("id").single();
+    const { data, error: err } = await sb.from("meow_households").insert({ ...row, owner_id: userId, avatar_path: avatar }).select("id").single();
     if (err) {
       setSaving(false);
       setError(err.message.includes("household_limit") ? "已經達到喵戶數量上限，請到「我的喵戶」管理。"
@@ -90,6 +93,7 @@ export function HouseholdForm({ userId, existingNames, onDemoCreated, onCreated,
 
       {f.role && (
         <>
+          <HouseholdAvatar userId={userId} path={avatar} onChange={setAvatar} />
           <div className={s.field}>
             <label className={s.label} htmlFor="h-name">喵戶名稱<Required /></label>
             <input id="h-name" value={f.name} maxLength={30} placeholder={owner ? "例如：子哲的家" : "例如：小橘之家"} onChange={e => set({ name: e.target.value })} />

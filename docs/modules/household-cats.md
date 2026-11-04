@@ -40,6 +40,8 @@
 - `meow_cat_models` 只有 MeowHQ（virtual_assets）能寫，前台都經過伺服器（service role），寫之前先用 `meow_cat_publish_check()` 確認是這隻貓的中途。
 - 預設 3D 貓也會出現在 MeowHQ 的貓咪模型列表（`owner_type = 'member'`）。
 
+- 2026-11-04 我的喵戶改版（子哲）：每個喵戶一個區塊（頭像、名稱、地區、介紹、右上角修改）；中途有「領養管理」「新增貓咪」與分頁「待領養貓／還在準備」，一般飼主有「生成 3D 環境」「居家安全檢測」與分頁「我的貓／收藏貓」（`src/lib/my-homes.ts`）。貓卡片只留修改圖示；刪除喵戶、刪除貓咪移到修改頁最下方（`src/components/me/DeleteSection.tsx`）。喵戶頭像存 `meow_households.avatar_path`（0019），檔案在 `meow-cat-photos/<喵戶長 id>/households/`，沒上傳就顯示 Google 頭像。
+
 ## 資料表（Supabase）
 - 已建立：`meow_households`（一個帳號最多 2 戶，trigger 限制）、`meow_cats`（visibility null＝沿用貓戶預設、status own/adoptable/adopted）、Storage bucket `meow-cat-photos`（路徑 `<uid>/<uuid>.jpg`）
 - 0004 草稿（#57，**尚未執行**）：`meow_cats` 加 `life_stage`（四級，新增時必填）、`personality_tags`、`health_tags`、`description`、`photo_paths`（最多 5）；`status` 預設 `adoptable`；新表 `meow_cat_videos`（每隻最多 3 支、每支 60 秒內，RLS 同貓咪）

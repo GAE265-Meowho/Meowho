@@ -52,6 +52,7 @@
 - API 在 Supabase 已設定時要求登入，避免匿名大量呼叫 LLM。
 - 照片在瀏覽器先縮到最長邊 1024px 再送 AI 與上傳。
 - 新增 LLM 任務時，使用者內容一定要經 `wrapUserInput()`，API 一定要用 `checkInput()`；不要直接把使用者文字接進提示詞。
+- `intake.module.css` 的清單樣式不要寫 `.homeItem span` 這類後代選擇器，會選到 CatButton 的文字；用 `.homeItem > div > span`（#84）。
 
 ## 變更紀錄
 | 日期 | 發起人 × 工具 | 變更 | PR |
@@ -66,3 +67,4 @@
 | 2026-10-29 | Tina × Claude Code | 登入狀態載入失敗不再永遠停在「載入中…」（Auth.tsx catch＋8 秒逾時） | #33 |
 | 2026-10-29 | Tina × Claude Code | 語音輸入依原因顯示錯誤訊息；位置／介紹提問帶入貓戶名稱；聯絡信箱填入 | #33 |
 | 2026-10-31 | 子哲 × Claude Code | 建檔對話引擎與 LLM 擷取鏈（尚未接畫面；舊的一問一答流程仍在） | 待建立 |
+| 2026-11-01 | 子哲 × Claude Code | 修正喵戶清單貓形按鈕文字被染灰（深色按鈕白字） | #84 |

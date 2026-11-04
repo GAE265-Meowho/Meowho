@@ -11,6 +11,7 @@ import { postJson } from "@/components/onboarding/Chat";
 import { CatCard, MediaTray, type MediaPreview } from "@/components/onboarding/IntakeCards";
 import { putUpload, shrinkPhoto, videoDuration } from "@/components/onboarding/media";
 import s from "@/components/onboarding/intake.module.css";
+import { DeleteCat } from "@/components/me/DeleteSection";
 import CatButton from "@/components/ui/CatButton";
 import Icon from "@/components/ui/Icon";
 import { FormEditor } from "@/components/adoption-form/FormEditor";
@@ -38,6 +39,7 @@ export default function EditCatPage() {
   const [original, setOriginal] = useState<{ photos: string[]; videos: string[] }>({ photos: [], videos: [] });
   const [homeTerms, setHomeTerms] = useState<AdoptionTerms | null>(null);
   const [householdId, setHouseholdId] = useState<string | null>(null);
+  const [fromFoster, setFromFoster] = useState(false);
   const [previews, setPreviews] = useState<Record<string, MediaPreview>>({});
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -77,6 +79,7 @@ export default function EditCatPage() {
       const cat = fromCatRow({ ...row, videos });
       setHomeTerms(row.household.adoption_terms ?? null);
       setHouseholdId(row.household_id);
+      setFromFoster(Boolean(row.origin_household_id));
       setOriginal({ photos: cat.photos, videos });
       setPreviews(Object.fromEntries(cat.photos.map(p => [p, { url: photoSrc(sb, p), kind: "photo" as const }])));
       commit({ ...emptyIntake(), phase: "cat", cat, reviewRequested: true });
@@ -242,6 +245,8 @@ export default function EditCatPage() {
             <CatCard state={state} onChange={commit} onCreate={save} saving={saving || busy} error={error} aiUsed={false} homeTerms={homeTerms} submitLabel="儲存修改" />
             {/* 問卷屬於待領養貓（#89）；狀態以已存檔的為準 */}
             {householdId && state.cat.status === "adoptable" && <FormEditor catId={id} catStatus={state.cat.status} householdId={householdId} />}
+            {/* 刪除從「我的喵戶」移到這裡的最下方（我的喵戶改版） */}
+            <DeleteCat cat={{ id, name: state.cat.name, fromFoster }} />
           </>
         )}
       </main>
