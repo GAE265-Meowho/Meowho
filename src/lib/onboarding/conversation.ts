@@ -145,6 +145,8 @@ export type MediaAnalysis =
     kind: "photo"; path: string; isCat: boolean; confidence: number; coat: string | null; breed: string | null; estAgeMonths: number | null;
     /** 裸露、血腥、虐待等違反善良風俗的內容 */
     inappropriate?: boolean;
+    /** 喵戶長按哪個角度的上傳按鈕；沒指定就依序補空的角度 */
+    angle?: PhotoAngle;
     /** 和封面比對是否同一隻；false＝明顯不同，null＝沒有比對或喵戶長已確認 */
     sameCat?: boolean | null;
   }
@@ -303,8 +305,8 @@ export function applyMediaAnalysis(s: IntakeState, m: MediaAnalysis): IntakeStat
     if (m.sameCat === false) return { ...s, notice: "maybe_other_cat" };
     if (c.photos.length >= MAX_PHOTOS) return { ...s, notice: "too_many_photos" };
     c.photos = [...c.photos, m.path];
-    // #188：依序填側面 → 正面 → 背面，三個都有了之後的照片只是生活照
-    const angle = nextAngle(c);
+    // #188：按角度按鈕上傳就放進該角度；沒指定時依序填側面 → 正面 → 背面。該角度已有照片、或三個都齊了，就只是生活照
+    const angle = m.angle ? (c.angles && !c.angles[m.angle] ? m.angle : null) : nextAngle(c);
     if (angle) c.angles = { ...c.angles!, [angle]: m.path };
     if (m.confidence >= MIN_PHOTO_CONFIDENCE) {
       if (!c.coat && m.coat) { c.coat = m.coat; pending.add("coat"); }

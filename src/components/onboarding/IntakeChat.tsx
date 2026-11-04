@@ -11,8 +11,8 @@ import type { AdoptionTerms } from "@/lib/cat-profile/adoption";
 import type { CaretakerType } from "@/lib/onboarding/household";
 import { defaultCatStatus } from "@/lib/onboarding/household-rules";
 import {
-  ANGLE_LABEL, MAX_PHOTOS, MAX_VIDEOS, applyMediaAnalysis, beginCat, emptyIntake, nextAngle, nextStep, setCatField,
-  type IntakeState, type MediaAnalysis, type Step,
+  ANGLE_LABEL, MAX_PHOTOS, MAX_VIDEOS, PHOTO_ANGLES, applyMediaAnalysis, beginCat, emptyIntake, nextAngle, nextStep, setCatField,
+  type IntakeState, type MediaAnalysis, type PhotoAngle, type Step,
 } from "@/lib/onboarding/conversation";
 import { LIFE_STAGE_CHIPS, REVIEW_CHIP, VIDEO_ERROR, angleText, askText, noticeText } from "@/lib/onboarding/intake-copy";
 import { toCatInsert, toCatVideoInserts, type VideoMeta } from "@/lib/onboarding/intake-rows";
@@ -48,8 +48,7 @@ export function IntakeChat({ userId, home }: { userId: string | null; home: Exis
   const [catId, setCatId] = useState(() => crypto.randomUUID());
   const own = defaultCatStatus(home.role) === "own";
   const [messages, setMessages] = useState<ChatMessage[]>(() => [
-    botMsg(`來幫「${home.name}」新增一隻${own ? "" : "待領養的"}貓吧。`),
-    botMsg(askText(nextStep(startState(home)), "cat")),
+    botMsg(`來幫「${home.name}」新增一隻${own ? "" : "待領養的"}貓吧。${askText(nextStep(startState(home)), "cat")}`),
   ]);
   const [busy, setBusy] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -61,6 +60,13 @@ export function IntakeChat({ userId, home }: { userId: string | null; home: Exis
   const videoMeta = useRef<Record<string, VideoMeta>>({});
   const [done, setDone] = useState<{ name: string; cover: string | null; stage: string } | null>(null);
   const photoInput = useRef<HTMLInputElement>(null);
+  // 按哪個角度的上傳按鈕（側面／正面／背面）；「加照片」為 null，依序補空的角度
+  const pickAngle = useRef<PhotoAngle | null>(null);
+  const choosePhotos = (angle: PhotoAngle | null) => {
+    pickAngle.current = angle;
+    if (photoInput.current) photoInput.current.multiple = !angle;
+    photoInput.current?.click();
+  };
   const videoInput = useRef<HTMLInputElement>(null);
   const [upload, setUpload] = useState<{ pct: number; cancel: () => void } | null>(null);
   // 同一個喵戶已有同名的貓：先提醒，喵戶長按「仍要建立」才繼續
@@ -139,7 +145,7 @@ export function IntakeChat({ userId, home }: { userId: string | null; home: Exis
     advance(prev, next, (guessed.length ? `我猜${guessed.join("、")}，最後會請你確認。` : fromAI ? "照片收到了。" : "照片收到了，外觀的部分最後可以自己填。") + more);
   }
 
-  async function addPhotos(files: File[]) {
+  async function addPhotos(files: File[], angle: PhotoAngle | null = null) {
     setBusy(true);
     for (const file of files) {
       if (ref.current.cat.photos.length >= MAX_PHOTOS) { say(noticeText("too_many_photos")); break; }
@@ -157,6 +163,7 @@ export function IntakeChat({ userId, home }: { userId: string | null; home: Exis
       const guess: PhotoGuess = a
         ? { isCat: a.isCat, confidence: a.confidence, coat: a.coat, breed: a.breed, estAgeMonths: a.estAgeMonths, inappropriate: a.inappropriate, sameCat: a.sameCatAsReference }
         : { isCat: true, confidence: 0, coat: null, breed: null, estAgeMonths: null };
+      if (angle) guess.angle = angle;
       const check = applyMediaAnalysis(ref.current, { kind: "photo", path: "check", ...guess });
       if (check.notice === "maybe_other_cat") {
         setHeld({ shrunk, guess });
@@ -319,14 +326,25 @@ export function IntakeChat({ userId, home }: { userId: string | null; home: Exis
         </div>
       )}
 
-      <input ref={photoInput} type="file" accept="image/*" multiple hidden onChange={e => { const f = Array.from(e.target.files ?? []); e.target.value = ""; if (f.length) addPhotos(f); }} />
+      <input ref={photoInput} type="file" accept="image/*" multiple hidden onChange={e => { const f = Array.from(e.target.files ?? []); e.target.value = ""; if (f.length) addPhotos(f, pickAngle.current); }} />
       <input ref={videoInput} type="file" accept="video/mp4,video/quicktime,video/webm" multiple hidden onChange={e => { const f = Array.from(e.target.files ?? []); e.target.value = ""; if (f.length) addVideos(f); }} />
       {!reviewing && <MediaTray state={state} previews={previews} onChange={commit} onRemoved={onRemoved} />}
       {!reviewing && (
         <div className={s.mediaBar}>
-          <CatButton variant={askingPhotos ? "primary" : "ghost"} size="sm" disabled={busy || Boolean(held) || state.cat.photos.length >= MAX_PHOTOS} onClick={() => photoInput.current?.click()}>
-            <Icon name="camera" size={18} /> {nextAngle(state.cat) ? `上傳${ANGLE_LABEL[nextAngle(state.cat)!]}照` : "加照片"}
-          </CatButton>
+          {/* 三個角度各一個按鈕（做 3D 分身用），已上傳的打勾停用；三張齊了改成「加照片」放生活照 */}
+          {state.cat.angles && nextAngle(state.cat) ? PHOTO_ANGLES.map(a => {
+            const got = Boolean(state.cat.angles![a]);
+            return (
+              <CatButton key={a} variant={!got && a === nextAngle(state.cat) ? "primary" : "ghost"} size="sm"
+                disabled={got || busy || Boolean(held) || state.cat.photos.length >= MAX_PHOTOS} onClick={() => choosePhotos(a)}>
+                <Icon name={got ? "check" : "camera"} size={18} /> {got ? `${ANGLE_LABEL[a]}照` : `上傳${ANGLE_LABEL[a]}照`}
+              </CatButton>
+            );
+          }) : (
+            <CatButton variant={askingPhotos ? "primary" : "ghost"} size="sm" disabled={busy || Boolean(held) || state.cat.photos.length >= MAX_PHOTOS} onClick={() => choosePhotos(null)}>
+              <Icon name="camera" size={18} /> 加照片
+            </CatButton>
+          )}
           <CatButton variant="ghost" size="sm" disabled={busy || state.cat.videos.length >= MAX_VIDEOS} onClick={() => videoInput.current?.click()}>
             <Icon name="video" size={18} /> 加影片
           </CatButton>
