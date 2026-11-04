@@ -7,6 +7,7 @@ export interface TodoDef { key: string; label: string; href: string }
 
 /** 各模組的待辦項目與點入後的篩選（UT-HQ-32）。Admin 授權不顯示待辦數，改顯示最近授權變更。 */
 export const TODO_DEFS: Record<AdminModule, TodoDef[]> = {
+  households: [], // 只查看，沒有待辦（不顯示卡片，見 NO_TODO_MODULES）
   report_moderation: [
     { key: "reports_open", label: "未處理檢舉", href: "/MeowHQ/reports?status=open" },
     { key: "ai_flags_pending", label: "AI 標記待審", href: "/MeowHQ/reports?tab=ai&status=pending" },
@@ -27,6 +28,9 @@ export const TODO_DEFS: Record<AdminModule, TodoDef[]> = {
   admin_authorization: [],
 };
 
+/** 沒有待辦概念、待辦總覽不顯示卡片的模組 */
+export const NO_TODO_MODULES: readonly AdminModule[] = ["households"];
+
 export type TodoCounts = Partial<Record<string, number>>;
 export interface TodoItem extends TodoDef { count: number }
 export interface TodoCard {
@@ -41,7 +45,7 @@ export interface TodoCard {
 /** 依登入者權限產生卡片（UT-HQ-29、30）：順序同側欄，只含有權限的模組 */
 export function buildTodoCards(actor: HqActor | null | undefined, counts: TodoCounts): TodoCard[] {
   return getVisibleSidebar(actor)
-    .filter((i): i is AdminModule => !isOpenItem(i))
+    .filter((i): i is AdminModule => !isOpenItem(i) && !NO_TODO_MODULES.includes(i as AdminModule))
     .map(module => {
       const defs = TODO_DEFS[module];
       const label = ADMIN_MODULE_LABELS[module];

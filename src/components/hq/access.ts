@@ -25,10 +25,9 @@ export function visibleSidebar(i: { role: string | null; grants: readonly AdminM
 }
 
 export const HQ_HOME = "/MeowHQ";
-/** 貓戶管理（Issue #179）：所有管理員都看得到 */
-export const HQ_HOUSEHOLDS = "/MeowHQ/households";
 /** 側欄連結（階段 2 實作各頁時若網址不同再調整） */
 export const HQ_MODULE_PATH: Record<AdminModule, string> = {
+  households: "/MeowHQ/households",
   report_moderation: "/MeowHQ/reports",
   user_management: "/MeowHQ/users",
   products: "/MeowHQ/products",

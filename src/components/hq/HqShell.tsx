@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { Fragment, Suspense, useState } from "react";
 import { ADMIN_MODULE_LABELS, type SidebarItem } from "@/lib/hq/types";
 import { LOGOS } from "@/lib/mock-data";
-import { HQ_HOME, HQ_HOUSEHOLDS, HQ_MODULE_PATH, isModule } from "./access";
+import { HQ_HOME, HQ_MODULE_PATH, isModule } from "./access";
 import { ASSET_SECTIONS, ASSETS_CATS_HREF, assetSectionHref, isAssetSection, topSection, type AssetSection } from "./assets/hrefs";
 import { HqOfflineBanner } from "./HqStates";
 import { NotificationBell } from "./NotificationBell";
@@ -98,10 +98,9 @@ export function HqShell({ items, user, unread, onLogout, activePath, children, u
   const [navOpen, setNavOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const row = (item: SidebarItem) => {
-    const href = item === "home" ? HQ_HOME : item === "households" ? HQ_HOUSEHOLDS : isModule(item) ? HQ_MODULE_PATH[item] : HQ_HOME;
+    const href = item === "home" ? HQ_HOME : isModule(item) ? HQ_MODULE_PATH[item] : HQ_HOME;
     const active = item === "home" ? activePath === HQ_HOME : activePath === href || activePath.startsWith(href + "/");
-    const label = item === "home" ? "首頁" : item === "households" ? "貓戶管理" : ADMIN_MODULE_LABELS[item];
-    return { item, href, active, label };
+    return { item, href, active, label: item === "home" ? "首頁" : ADMIN_MODULE_LABELS[item] };
   };
   // 依分組排；傳入但沒列在分組裡的項目放最後，避免漏掉
   const grouped = NAV_GROUPS.map(g => ({ label: g.label, rows: g.items.filter(i => items.includes(i)).map(row) })).filter(g => g.rows.length);

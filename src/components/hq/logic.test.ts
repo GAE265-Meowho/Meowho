@@ -57,10 +57,10 @@ describe("側欄可見模組（改接 permissions.ts）", () => {
     ]);
   });
   it("管理員：只有首頁與被授權模組，不含 Admin 授權", () => {
-    expect(visibleSidebar({ role: "admin", grants: ["knowledge", "products", "admin_authorization"] })).toEqual(["home", "households", "products", "knowledge"]);
+    expect(visibleSidebar({ role: "admin", grants: ["knowledge", "products", "admin_authorization"] })).toEqual(["home", "products", "knowledge"]);
   });
-  it("grants 為 null（讀取中或讀取失敗）：管理員只看到首頁與貓戶管理，不再退回「全部可見」", () => {
-    expect(visibleSidebar({ role: "admin", grants: null })).toEqual(["home", "households"]);
+  it("grants 為 null（讀取中或讀取失敗）：管理員只看到首頁，不再退回「全部可見」", () => {
+    expect(visibleSidebar({ role: "admin", grants: null })).toEqual(["home"]);
   });
   it("一般會員：沒有任何項目", () => expect(visibleSidebar({ role: "member", grants: [] })).toEqual([]));
 });

@@ -1,7 +1,8 @@
 "use client";
-// 貓戶管理（Issue #179）：依類別查看所有貓戶。不是授權模組，所有管理員都看得到（HqGate 已擋非管理員）。
+// 貓戶管理（Issue #179）：依類別查看所有貓戶，點一戶看牠的貓咪卡片。授權模組 households。
 import { Suspense } from "react";
 import { HouseholdsList } from "@/components/hq/households/HouseholdsList";
+import { HqModuleGuard } from "@/components/hq/HqActor";
 import { HqPageHeader } from "@/components/hq/HqPageHeader";
 import { useListQuery } from "@/components/hq/list/HqList";
 
@@ -17,5 +18,5 @@ function HouseholdsPage() {
 }
 
 export default function Page() {
-  return <Suspense><HouseholdsPage /></Suspense>;
+  return <HqModuleGuard module="households"><Suspense><HouseholdsPage /></Suspense></HqModuleGuard>;
 }

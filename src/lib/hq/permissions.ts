@@ -40,10 +40,10 @@ export function hasModule(actor: HqActor | null | undefined, module: AdminModule
   return actor.modules.includes(module);
 }
 
-/** 首頁、貓戶管理：所有管理員都有，不需授權（Issue #179） */
+/** 首頁：所有管理員都有，不需授權 */
 export const isOpenItem = (x: SidebarItem): x is HqOpenItem => (HQ_OPEN_ITEMS as readonly string[]).includes(x);
 
-/** 側欄可見項目（UT-HQ-01、02）：首頁、貓戶管理＋有權限的模組，依固定順序。非管理員為空。 */
+/** 側欄可見項目（UT-HQ-01、02）：首頁＋有權限的模組，依固定順序。非管理員為空。 */
 export function getVisibleSidebar(actor: HqActor | null | undefined): SidebarItem[] {
   if (!actor || (actor.role !== "system_admin" && actor.role !== "admin")) return [];
   return HQ_SIDEBAR_ORDER.filter((item) => isOpenItem(item) || hasModule(actor, item));

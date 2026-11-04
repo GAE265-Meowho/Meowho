@@ -4,12 +4,14 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { formatTaipeiDate } from "@/lib/hq/actions";
 import {
-  buildHouseholdViews, categoryCounts, filterHouseholds, HOUSEHOLD_CATEGORIES,
+  buildHouseholdViews, CAT_STATUS_LABELS, categoryCounts, filterHouseholds, HOUSEHOLD_CATEGORIES,
   type HouseholdView, type HqCatRow, type HqHouseholdRow, type HqOwnerRow,
 } from "@/lib/hq/households";
 import { paginate, type ListQuery } from "@/lib/hq/listing";
 import { CARETAKER_LABEL } from "@/lib/onboarding/household";
+import { LIFE_STAGE_LABEL, type LifeStage } from "@/lib/cat-profile/life-stage";
 import { getBrowserSupabase } from "@/lib/supabase/client";
+import { photoSrc } from "@/lib/supabase/config";
 import { useHqActor } from "../HqActor";
 import { HqListBody, HqPager, HqSplit, HqTable, HqTabs, HqToolbar } from "../list/HqList";
 
@@ -22,8 +24,15 @@ const DEMO: Data = {
     { id: "h2", owner_id: "d3", name: "阿灰的窩", caretaker_type: "cat_owner", city: "台北市", district: "大安區", default_visibility: "private", verified_shelter: false, created_at: "2026-10-29T01:00:00Z" },
   ],
   owners: [{ id: "d2", display_name: "台中小橘中途", email: "foster@example.com" }, { id: "d3", display_name: "貓友阿灰", email: "friend@example.com" }],
-  cats: [{ household_id: "h1", status: "adoptable" }, { household_id: "h1", status: "preparing" }, { household_id: "h2", status: "own" }],
+  cats: [
+    { id: "c1", household_id: "h1", name: "橘寶", status: "adoptable", life_stage: "kitten", photo_url: null, created_at: "2026-10-30T00:00:00Z" },
+    { id: "c2", household_id: "h1", name: "小黑", status: "preparing", life_stage: "adult", photo_url: null, created_at: "2026-10-31T00:00:00Z" },
+    { id: "c3", household_id: "h2", name: "阿灰", status: "own", life_stage: "senior", photo_url: null, created_at: "2026-10-29T00:00:00Z" },
+  ],
 };
+
+/** 貓咪照片：存 bucket 路徑或完整網址（meow-cat-photos 是公開 bucket）；本機示範模式沒有 Supabase 時不顯示 */
+const sbPhoto = (path: string) => { const sb = getBrowserSupabase(); return sb ? photoSrc(sb, path) : /^https?:/.test(path) ? path : null; };
 
 const catsText = (v: HouseholdView) => {
   const parts = [v.cats.adoptable && `待領養 ${v.cats.adoptable}`, v.cats.preparing && `準備中 ${v.cats.preparing}`].filter(Boolean);
@@ -41,18 +50,14 @@ export function HouseholdsList({ query, update }: { query: ListQuery & { page: n
     setError(false);
     const sb = getBrowserSupabase();
     if (!sb || preview) { setData(DEMO); return; }
-    const res = await fetch("/api/hq/households").catch(() => null);
-    if (res?.ok) { setData(await res.json() as Data); return; }
-    if (res?.status !== 503) { setError(true); return; }
-    // 伺服器沒設 SUPABASE_SERVICE_ROLE_KEY（503）：改用登入者身分直讀。RLS 下有「用戶權限管理」者（含系統管理員）看得到全部貓戶，
-    // 其他管理員只看得到公開貓戶；私密貓咪不會計入。Vercel 設好金鑰後就走上面的 API。
+    // 登入者身分直讀：0020 的 RLS 讓有「貓戶管理」模組者讀全部貓戶、貓咪、貓戶長
     const [h, o, c] = await Promise.all([
       sb.from("meow_households").select("id, owner_id, name, caretaker_type, city, district, default_visibility, verified_shelter, created_at"),
       sb.from("meow_profiles").select("id, display_name, email"),
-      sb.from("meow_cats").select("household_id, status"),
+      sb.from("meow_cats").select("id, household_id, name, status, life_stage, photo_url, created_at"),
     ]);
-    if (h.error) { setError(true); return; }
-    setData({ households: h.data as HqHouseholdRow[], owners: (o.data ?? []) as HqOwnerRow[], cats: (c.data ?? []) as HqCatRow[] });
+    if (h.error || o.error || c.error) { setError(true); return; }
+    setData({ households: h.data as HqHouseholdRow[], owners: o.data as HqOwnerRow[], cats: c.data as HqCatRow[] });
   }, [preview]);
   useEffect(() => { void load(); }, [load]);
 
@@ -73,14 +78,29 @@ export function HouseholdsList({ query, update }: { query: ListQuery & { page: n
         <dt>公開設定</dt><dd>{selected.default_visibility === "public" ? "公開" : "私密"}</dd>
         <dt>建立日期</dt><dd>{formatTaipeiDate(new Date(selected.created_at))}</dd>
       </dl>
-      <section className="hq-box" aria-label="貓咪">
-        <h3>貓咪（{selected.cats.total}）</h3>
-        <dl className="hq-dl">
-          <dt>待領養</dt><dd>{selected.cats.adoptable}</dd>
-          <dt>準備中</dt><dd>{selected.cats.preparing}</dd>
-          <dt>已領養</dt><dd>{selected.cats.adopted}</dd>
-          <dt>自家貓</dt><dd>{selected.cats.own}</dd>
-        </dl>
+      <section aria-label="貓咪">
+        <h3 className="hq-h3">貓咪（{selected.cats.total}）</h3>
+        {selected.catList.length === 0 ? <p className="hq-hint">這個貓戶還沒有貓咪。</p> : (
+          <ul className="hq-catcards">
+            {selected.catList.map(cat => (
+              <li key={cat.id}>
+                <a href={`/cats/${cat.id}`} target="_blank" rel="noreferrer" className="hq-catcard">
+                  <span className="hq-catcard-photo">
+                    {cat.photo_url && sbPhoto(cat.photo_url) ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={sbPhoto(cat.photo_url)!} alt="" loading="lazy" />
+                    ) : <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" strokeWidth="1.4" aria-hidden="true"><path d="M5 10l1-5 4 3h4l4-3 1 5c.9 1.2 1.3 2.6 1.3 4 0 4-3.6 6-8.3 6s-8.3-2-8.3-6c0-1.4.4-2.8 1.3-4z" /></svg>}
+                  </span>
+                  <strong>{cat.name}</strong>
+                  <span className="hq-catcard-meta">
+                    <span className={`hq-tag${cat.status === "adoptable" ? "" : cat.status === "preparing" ? " warn" : " mute"}`}>{CAT_STATUS_LABELS[cat.status] ?? cat.status}</span>
+                    {cat.life_stage && LIFE_STAGE_LABEL[cat.life_stage as LifeStage] && <span className="hq-hint">{LIFE_STAGE_LABEL[cat.life_stage as LifeStage]}</span>}
+                  </span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
     </>
   );
