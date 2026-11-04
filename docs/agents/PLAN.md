@@ -82,6 +82,7 @@
 | 36 | 前台新增貓咪：生活照至少 3 張、年齡輸入，月齡帶進 3D 模型 | ai-onboarding、household-cats | — | P1 | #185 | Tina × Claude Code | 審查中 |
 | 32 | MeowHQ 貓戶管理模組：依類別查看貓戶、貓咪卡片（0020 待執行） | admin-moderation | — | P2 | #179 | Tina × Claude Code | 審查中 |
 | 34 | MeowHQ 左側選單視覺優化（字級層級、間距、可收合樹狀） | admin-moderation | — | P2 | #183 | Tina × Claude Code | 審查中 |
+| 35 | 前台待領養貓的 3D 模型接上 MeowHQ 貓咪製作：照片搬到製作用 bucket、列表加喵戶欄；下一步前台三張照片＋年齡 | household-cats、admin-moderation | — | P1 | #181 | Tina × Claude Code | 審查中 |
 
 ## 高風險 PoC（11/05 前）
 

@@ -72,6 +72,8 @@ export function CatsTab({ query, update }: { query: ListQuery & { page: number }
     { key: "name", label: "名稱", render: c => <Link href={catHref(c)} onClick={e => e.stopPropagation()}>{c.name}</Link> },
     // #118：原「動作數 3/9」是骨架共用的動作數、每隻都一樣，改成這隻貓的三步驟進度
     { key: "progress", label: "進度", render: c => { const p = catProgress(c); return <span className={`hq-tag ${p.tone}`}>{p.text}</span>; } },
+    // #181：前台中途建的貓顯示所屬喵戶，MeowHQ 自建的顯示 —
+    { key: "household", label: "喵戶", render: c => c.household?.name ?? "—" },
     { key: "creator", label: "建立者", render: c => c.createdBy ?? "—" },
     { key: "updated", label: "更新時間", render: c => formatCatTime(c.updatedAt) },
     { key: "notes", label: "備註說明", render: c => c.notes || "—" },
