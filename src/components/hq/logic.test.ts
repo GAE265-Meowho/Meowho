@@ -53,14 +53,14 @@ it("UT-HQ-41 錯誤轉白話，不顯示代碼", () => {
 describe("側欄可見模組（改接 permissions.ts）", () => {
   it("系統管理員：首頁＋全部模組，依規格順序", () => {
     expect(visibleSidebar({ role: "system_admin", grants: [] })).toEqual([
-      "home", "report_moderation", "user_management", "products", "knowledge", "virtual_assets", "admin_authorization",
+      "home", "households", "report_moderation", "user_management", "products", "knowledge", "virtual_assets", "admin_authorization",
     ]);
   });
   it("管理員：只有首頁與被授權模組，不含 Admin 授權", () => {
-    expect(visibleSidebar({ role: "admin", grants: ["knowledge", "products", "admin_authorization"] })).toEqual(["home", "products", "knowledge"]);
+    expect(visibleSidebar({ role: "admin", grants: ["knowledge", "products", "admin_authorization"] })).toEqual(["home", "households", "products", "knowledge"]);
   });
-  it("grants 為 null（讀取中或讀取失敗）：管理員只看到首頁，不再退回「全部可見」", () => {
-    expect(visibleSidebar({ role: "admin", grants: null })).toEqual(["home"]);
+  it("grants 為 null（讀取中或讀取失敗）：管理員只看到首頁與貓戶管理，不再退回「全部可見」", () => {
+    expect(visibleSidebar({ role: "admin", grants: null })).toEqual(["home", "households"]);
   });
   it("一般會員：沒有任何項目", () => expect(visibleSidebar({ role: "member", grants: [] })).toEqual([]));
 });

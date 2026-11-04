@@ -32,9 +32,13 @@ export const GRANTABLE_MODULES = ADMIN_MODULES.filter(
 );
 export type GrantableModule = Exclude<AdminModule, (typeof SYSTEM_ADMIN_ONLY_MODULES)[number]>;
 
-/** 側欄項目：首頁（待辦總覽）不是授權模組，所有登入的管理員都有。Admin 授權前有分隔線。 */
-export type SidebarItem = "home" | AdminModule;
-export const HQ_SIDEBAR_ORDER: readonly SidebarItem[] = ["home", ...ADMIN_MODULES];
+/**
+ * 側欄項目：首頁（待辦總覽）與貓戶管理（Issue #179）不是授權模組，所有登入的管理員都有。Admin 授權前有分隔線。
+ */
+export const HQ_OPEN_ITEMS = ["home", "households"] as const;
+export type HqOpenItem = (typeof HQ_OPEN_ITEMS)[number];
+export type SidebarItem = HqOpenItem | AdminModule;
+export const HQ_SIDEBAR_ORDER: readonly SidebarItem[] = [...HQ_OPEN_ITEMS, ...ADMIN_MODULES];
 
 /**
  * 角色（meow_profiles.role）。

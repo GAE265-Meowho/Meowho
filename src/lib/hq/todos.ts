@@ -1,6 +1,6 @@
 // MeowHQ｜待辦總覽（T-HQ-07，規格書 §4.1）
 // 純函式：資料由頁面查好後傳入；待辦數 undefined＝該模組的資料來源尚未建立（顯示「模組開發中」，不當成 0 筆）。
-import { getVisibleSidebar, type HqActor } from "./permissions";
+import { getVisibleSidebar, isOpenItem, type HqActor } from "./permissions";
 import { ADMIN_MODULE_LABELS, type AdminModule } from "./types";
 
 export interface TodoDef { key: string; label: string; href: string }
@@ -41,7 +41,7 @@ export interface TodoCard {
 /** 依登入者權限產生卡片（UT-HQ-29、30）：順序同側欄，只含有權限的模組 */
 export function buildTodoCards(actor: HqActor | null | undefined, counts: TodoCounts): TodoCard[] {
   return getVisibleSidebar(actor)
-    .filter((i): i is AdminModule => i !== "home")
+    .filter((i): i is AdminModule => !isOpenItem(i))
     .map(module => {
       const defs = TODO_DEFS[module];
       const label = ADMIN_MODULE_LABELS[module];
