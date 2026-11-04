@@ -27,9 +27,16 @@
 .form { display:grid; gap:.75rem; margin-bottom:1.5rem; }
 .formRow { display:grid; gap:.75rem; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); }
 .warn { color:#9a3412; font-size:.85rem; margin:0; }
+.modalBackdrop { position:fixed; inset:0; z-index:80; background:rgba(20,28,22,.45); display:grid; place-items:center; padding:1rem; }
+.modal { width:min(100%,720px); background:var(--hq-card); border-radius:var(--item-radius); border:1px solid var(--hq-line); box-shadow:0 16px 48px rgba(20,28,22,.18); display:grid; gap:.75rem; padding:1rem; }
+.modalHead { display:flex; align-items:flex-start; justify-content:space-between; gap:1rem; }
+.modalHead strong { font-size:1.05rem; }
+.modalPreview { position:relative; aspect-ratio:16/10; min-height:280px; background:var(--hq-sage-soft); border-radius:8px; overflow:hidden; }
+.modalPreview :global(.hq-item-preview), .modalPreview :global(canvas) { position:absolute; inset:0; width:100%; height:100%; display:block; }
 @media(max-width:760px) {
   .filterToggle { display:inline-flex!important; margin-bottom:1rem; }
   .layout { grid-template-columns:1fr; }
   .filters { display:none; border:0; padding:0; }
   .filters.expanded { display:grid; gap:var(--item-gap); }
+  .modalPreview { min-height:220px; }
 }

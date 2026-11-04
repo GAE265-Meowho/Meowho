@@ -33,6 +33,17 @@ describe("ItemsTab", () => {
     expect(screen.getByRole("heading", { name: "貓砂盆" })).toBeTruthy();
     fireEvent.click(screen.getByRole("checkbox", { name: "玩具" }));
     expect(screen.getByText("0 件用品")).toBeTruthy();
-    expect(screen.getByText(/還沒有符合條件的生活用品/)).toBeTruthy();
+    expect(screen.getByText("還沒有符合條件的生活用品。")).toBeTruthy();
+    expect(screen.queryByText(/litter_box\.glb/)).toBeNull();
+  });
+
+  it("預覽模型以彈窗顯示，不用另開分頁", async () => {
+    render(<ItemsTab />);
+    await waitFor(() => expect(screen.getByRole("button", { name: "預覽模型" })).toBeTruthy());
+    expect(screen.queryByRole("link", { name: "開啟模型" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "預覽模型" }));
+    expect(screen.getByRole("dialog", { name: "貓砂盆 模型預覽" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "關閉" }));
+    expect(screen.queryByRole("dialog", { name: "貓砂盆 模型預覽" })).toBeNull();
   });
 });
