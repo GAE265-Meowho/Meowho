@@ -53,8 +53,16 @@ export function ItemsTab() {
   const [fileKey, setFileKey] = useState(0);
   const [localPreview, setLocalPreview] = useState<string | null>(null);
   const [dims, setDims] = useState<{ widthM: number; depthM: number; heightM: number } | null>(null);
+  const [previewItem, setPreviewItem] = useState<HouseholdItem | null>(null);
 
   const visible = useMemo(() => filterItems(items, filter), [items, filter]);
+
+  useEffect(() => {
+    if (!previewItem) return;
+    function onKey(e: KeyboardEvent) { if (e.key === "Escape") setPreviewItem(null); }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [previewItem]);
 
   const reload = useCallback(async () => {
     const [cRes, iRes] = await Promise.all([
@@ -164,19 +172,19 @@ export function ItemsTab() {
         <label className={styles.search}>搜尋<input className="hq-input" value={filter.query ?? ""} onChange={e => setFilter(old => ({ ...old, query: e.target.value }))} placeholder="名稱或說明" /></label>
       </div>
 
-      <form className={`hq-box ${styles.form}`} onSubmit={e => e.preventDefault()} aria-label="新增生活用品">
+      <form className={`hq-box ${styles.form}`} onSubmit={e => e.preventDefault()} aria-label="新增生活用品" autoComplete="off">
         <strong>新增用品</strong>
         <div className={styles.formRow}>
-          <label className="hq-label">產品名稱<input className="hq-input" value={name} onChange={e => setName(e.target.value)} required maxLength={80} /></label>
-          <label className="hq-label">英文名稱<input className="hq-input" value={nameEn} onChange={e => setNameEn(e.target.value)} maxLength={80} /></label>
+          <label className="hq-label">產品名稱<input className="hq-input" name="item-name" value={name} onChange={e => setName(e.target.value)} required maxLength={80} autoComplete="off" /></label>
+          <label className="hq-label">英文名稱<input className="hq-input" name="item-name-en" value={nameEn} onChange={e => setNameEn(e.target.value)} maxLength={80} autoComplete="off" /></label>
           <label className="hq-label">類別
-            <select className="hq-input" value={categoryId} onChange={e => setCategoryId(e.target.value)}>
+            <select className="hq-input" name="item-category" value={categoryId} onChange={e => setCategoryId(e.target.value)}>
               {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
           </label>
-          <label className="hq-label">價格（TWD）<input className="hq-input" inputMode="numeric" value={price} onChange={e => setPrice(e.target.value)} placeholder="例如 1127" /></label>
+          <label className="hq-label">價格（TWD）<input className="hq-input" name="item-price" inputMode="numeric" value={price} onChange={e => setPrice(e.target.value)} placeholder="例如 1127" autoComplete="off" /></label>
         </div>
-        <label className="hq-label">使用說明<textarea className="hq-input" rows={2} value={instructions} onChange={e => setInstructions(e.target.value)} maxLength={4000} /></label>
+        <label className="hq-label">使用說明<textarea className="hq-input" name="item-instructions" rows={2} value={instructions} onChange={e => setInstructions(e.target.value)} maxLength={4000} /></label>
         <label className="hq-label">3D 模型（.glb，最大 20MB）
           <input key={fileKey} type="file" accept=".glb,model/gltf-binary" onChange={e => void onPickFile(e.target.files?.[0] ?? null)} />
         </label>
@@ -228,16 +236,39 @@ export function ItemsTab() {
                   {dimsText(it) && <p className={styles.dims}>{dimsText(it)}</p>}
                   {it.instructions && <p className="hq-hint">{it.instructions}</p>}
                   <div className={styles.actions}>
-                    <a className="hq-btn ghost" href={it.modelUrl} target="_blank" rel="noopener noreferrer">開啟模型</a>
+                    <button type="button" className="hq-btn ghost" onClick={() => setPreviewItem(it)}>預覽模型</button>
                     <button type="button" className="hq-btn ghost" onClick={() => void removeItem(it.id).catch(err => setFormError(err instanceof Error ? err.message : "刪除失敗"))}>刪除</button>
                   </div>
                 </div>
               </article>
             ))}
           </div>
-          {!visible.length && <p role="status" className="hq-box">還沒有符合條件的生活用品。可先上傳貓砂盆 litter_box.glb。</p>}
+          {!visible.length && <p role="status" className="hq-box">還沒有符合條件的生活用品。</p>}
         </div>
       </div>
+
+      {previewItem && (
+        <div className={styles.modalBackdrop} role="presentation" onClick={() => setPreviewItem(null)}>
+          <div
+            className={styles.modal}
+            role="dialog"
+            aria-modal="true"
+            aria-label={`${previewItem.name} 模型預覽`}
+            onClick={e => e.stopPropagation()}
+          >
+            <div className={styles.modalHead}>
+              <div>
+                <strong>{previewItem.name}</strong>
+                {previewItem.nameEn && <p className={styles.en}>{previewItem.nameEn}</p>}
+              </div>
+              <button type="button" className="hq-btn ghost" onClick={() => setPreviewItem(null)}>關閉</button>
+            </div>
+            <div className={styles.modalPreview}>
+              <ItemPreview url={previewItem.modelUrl} label={previewItem.name} />
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }
