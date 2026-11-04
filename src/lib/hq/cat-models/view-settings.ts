@@ -1,4 +1,5 @@
 // AI 三視角（#110）的啟動選項，本機與 Supabase 共用
+import type { SupabaseClient } from "@supabase/supabase-js";
 import type { ViewsDeps } from "./ai-views";
 import { AI_QUALITIES, AI_SIZES, type AiQuality, type AiSize } from "./types";
 
@@ -9,6 +10,8 @@ export interface StartViewsOptions {
   now?: Date;
   quality?: unknown;
   size?: unknown;
+  /** 前台中途建貓後自動產生（#188）：呼叫端已確認是這隻貓的中途，傳 service role 進來（不經 virtual_assets RLS） */
+  client?: SupabaseClient;
 }
 
 /** 畫質、尺寸只收白名單內的值，其他當沒填 */

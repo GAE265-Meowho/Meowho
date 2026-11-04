@@ -31,11 +31,18 @@ function toWorld(s: Pick<Surface, "x" | "z" | "rotY">, lx: number, lz: number): 
 
 /**
  * 讀圖完成的家具中，標 walkable 的（沙發、床、桌、書桌、櫃子、電視櫃、中島）都是檯面。
- * 沙發只算坐墊：高度約 0.58 倍、扣掉扶手與靠背（家具模型庫的沙發，正面朝 +Z）。
+ * 沙發只算坐墊：高度約 0.58 倍、扣掉扶手與靠背；床只算棉被、不含枕頭與床頭板（家具模型庫，正面朝 +Z）。
  */
 export function surfaces(scene: RoomScene): Surface[] {
   return scene.boxes.flatMap((b, box) => {
     if (b.kind !== "furniture" || !b.walkable) return [];
+    if (b.furniture === "bed") {
+      // 只算棉被那一段（高 0.5 m）：床頭的枕頭比較高（0.58 m）、床頭板更高，站上去腳會陷進去（Tina 2026-11-03）
+      // 模型庫的床深 2 m：棉被從正面到距離床頭 0.65 m 處
+      const k = b.sz / 2.0;
+      const [x, z] = toWorld(b, 0, 0.325 * k);
+      return [{ box, kind: "bed", x, z, hx: b.sx / 2, hz: 0.675 * k, rotY: b.rotY, y: b.sy }];
+    }
     if (b.furniture === "sofa") {
       const [x, z] = toWorld(b, 0, b.sz * 0.22);
       return [{ box, kind: "sofa", x, z, hx: Math.max(b.sx / 2 - 0.15, 0.2), hz: b.sz * 0.27, rotY: b.rotY, y: b.sy * 0.58 }];

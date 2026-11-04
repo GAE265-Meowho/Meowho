@@ -61,6 +61,14 @@ describe("UT-HQ-42 手機選單", () => {
     for (const a of nav.querySelectorAll("a")) expect(a.querySelector("svg")).not.toBeNull();
     expect(screen.getByRole("link", { name: "首頁" })).toHaveAttribute("aria-current", "page");
   });
+  it("#179 貓戶管理排在「營運與社群」第一個，連到 /MeowHQ/households", () => {
+    render(shell({ items: ["home", "households", "user_management"], activePath: "/MeowHQ/households" }));
+    const nav = screen.getByRole("navigation", { name: "後台導覽" });
+    expect(Array.from(nav.querySelectorAll("a")).map(a => a.textContent)).toEqual(["首頁", "貓戶管理", "用戶權限管理"]);
+    const link = screen.getByRole("link", { name: "貓戶管理" });
+    expect(link).toHaveAttribute("href", "/MeowHQ/households");
+    expect(link).toHaveAttribute("aria-current", "page");
+  });
 });
 
 describe("#113 虛擬體驗元件管理分組", () => {
@@ -70,8 +78,13 @@ describe("#113 虛擬體驗元件管理分組", () => {
     </HqShell>
   );
   afterEach(() => { search = ""; });
-  it("「虛擬體驗元件管理」當分組標題，六個區塊是第一層（含 #150 虛擬體驗）、各有線條圖示；寶麗來、平面圖轉換不在選單（在室內空間頁）", () => {
+  it("「虛擬體驗元件管理」可收合（#183）：不在模組內時預設收合，按標題展開六個區塊（含 #150 虛擬體驗）、各有線條圖示；寶麗來、平面圖轉換不在選單（在室內空間頁）", () => {
     render(assets("/MeowHQ"));
+    const toggle = screen.getByRole("button", { name: "虛擬體驗元件管理" });
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByRole("link", { name: "貓咪製作" })).toBeNull();
+    fireEvent.click(toggle);
+    expect(toggle).toHaveAttribute("aria-expanded", "true");
     const group = screen.getByRole("list", { name: "虛擬體驗元件管理" });
     const links = Array.from(group.querySelectorAll("a")).map(a => [a.textContent, a.getAttribute("href")]);
     expect(links).toEqual([
@@ -85,6 +98,13 @@ describe("#113 虛擬體驗元件管理分組", () => {
     for (const a of group.querySelectorAll("a")) expect(a.querySelector("svg")).not.toBeNull();
     expect(screen.queryByText("虛擬與科技體驗")).toBeNull();
     expect(screen.queryByText("寶麗來轉換")).toBeNull();
+  });
+  it("在模組內時自動展開（#183），再按標題可收合", () => {
+    render(assets("/MeowHQ/assets"));
+    const toggle = screen.getByRole("button", { name: "虛擬體驗元件管理" });
+    expect(toggle).toHaveAttribute("aria-expanded", "true");
+    fireEvent.click(toggle);
+    expect(screen.queryByRole("link", { name: "貓咪製作" })).toBeNull();
   });
   it("目前區塊標示 aria-current；室內空間的子頁算室內空間，貓咪子頁算貓咪製作", () => {
     search = "tab=rooms-polaroid";
@@ -103,6 +123,34 @@ describe("#113 虛擬體驗元件管理分組", () => {
   it("沒有虛擬體驗元件管理權限就不顯示這個分組", () => {
     render(shell());
     expect(screen.queryByRole("list", { name: "虛擬體驗元件管理" })).toBeNull();
+  });
+});
+
+describe("#193 平板、電腦也能收起側欄", () => {
+  it("寬度 ≥768px 時「☰」收起／展開整個側欄，並記在瀏覽器", () => {
+    const mm = vi.fn().mockReturnValue({ matches: true, addEventListener: () => {}, removeEventListener: () => {} });
+    vi.stubGlobal("matchMedia", mm);
+    localStorage.removeItem("meowhq:sidebar-collapsed");
+    const { container } = render(shell());
+    const burger = screen.getByRole("button", { name: "選單" });
+    expect(burger).toHaveAttribute("aria-expanded", "true");
+    fireEvent.click(burger);
+    expect(burger).toHaveAttribute("aria-expanded", "false");
+    expect(container.querySelector(".hq-body")).toHaveClass("collapsed");
+    expect(localStorage.getItem("meowhq:sidebar-collapsed")).toBe("1");
+    fireEvent.click(burger);
+    expect(container.querySelector(".hq-body")).not.toHaveClass("collapsed");
+    vi.unstubAllGlobals();
+  });
+});
+
+describe("#191 頂列「前往前台」", () => {
+  it("連到前台首頁，新分頁開啟", () => {
+    render(shell());
+    const link = screen.getByRole("link", { name: "前往前台（另開新分頁）" });
+    expect(link).toHaveAttribute("href", "/");
+    expect(link).toHaveAttribute("target", "_blank");
+    expect(link).toHaveAttribute("rel", "noopener");
   });
 });
 

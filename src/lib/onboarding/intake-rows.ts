@@ -23,9 +23,9 @@ export function toCatInsert(c: CatFields, ids: { id: string; householdId: string
     household_id: ids.householdId,
     name: c.name.trim(),
     sex: c.sex ?? "unknown",
-    // 不記生日與月齡，只記年齡層（#109）
+    // #185：存大約月齡（喵戶長有講才有），生日不存
     birthday: null,
-    est_age_months: null,
+    est_age_months: c.estAgeMonths,
     life_stage: c.lifeStage,
     coat: c.coat,
     breed: c.breed,
@@ -69,7 +69,7 @@ export function fromCatRow(r: CatRowIn): CatFields {
     name: r.name,
     sex: (r.sex as CatFields["sex"]) ?? null,
     birthday: null,
-    estAgeMonths: null,
+    estAgeMonths: typeof r.est_age_months === "number" ? r.est_age_months : null,
     lifeStage: r.life_stage ?? null,
     coat: r.coat ?? null,
     breed: r.breed ?? null,
@@ -78,6 +78,7 @@ export function fromCatRow(r: CatRowIn): CatFields {
     description: r.description ?? null,
     timeline: r.timeline ?? [],
     photos: r.photo_paths ?? [],
+    angles: null, // 修改既有的貓：角度只在建 3D 模型時用（#188）
     videos: r.videos ?? [],
     medical: medical.success ? medical.data : emptyMedical(),
     compat: compat.success ? compat.data : emptyCompat(),
@@ -130,6 +131,7 @@ export const IntakeStateSchema = z.object({
     handover: z.array(z.enum(HANDOVER_ITEMS)).max(HANDOVER_ITEMS.length),
     status: z.enum(["own", "adoptable", "preparing"]),
     photos: z.array(str(300)).max(MAX_PHOTOS),
+    angles: z.object({ side: nullableStr(300), front: nullableStr(300), back: nullableStr(300) }).nullable().default(null),
     videos: z.array(str(300)).max(MAX_VIDEOS),
   }),
   pending: z.array(z.enum(["coat", "breed", "lifeStage", "personalityTags", "sex", "health"])),

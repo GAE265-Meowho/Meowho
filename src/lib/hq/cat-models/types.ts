@@ -80,6 +80,8 @@ export interface CatModelView {
   id: string;
   name: string;
   ownerType: "template" | "member";
+  /** 前台的貓所屬喵戶（#181）；MeowHQ 自建或讀不到時為 null */
+  household?: { id: string; name: string } | null;
   /** 程式內建的示範貓（bundled.ts）：不在資料庫，不能刪除。MeowHQ 新增的貓 ownerType 也是 template，不能用它判斷 */
   builtin?: boolean;
   status: CatModelStatus;
@@ -390,6 +392,14 @@ export function catProgress(c: { hasAlbedo: boolean; body?: BodyType; texture?: 
   if (c.aiRunning.length) return { step: 2, text: "2/4 AI 三視角・產生中", tone: "warn" };
   if (c.aiViews.length) return { step: 2, text: "2/4 AI 三視角・完成", tone: "mute" };
   return { step: 1, text: "1/4 上傳照片", tone: "mute" };
+}
+
+/** #159 列表的進度篩選：示範貓自成一組；排隊／生成中（含 AI 三視角產生中）為「產生中」；確認過貼圖為「完成」 */
+export type CatListGroup = "running" | "done" | "demo" | "other";
+export function catListGroup(c: Parameters<typeof catProgress>[0] & { builtin?: boolean }): CatListGroup {
+  if (c.builtin) return "demo";
+  if (isJobActive(c.status) || c.aiRunning.length) return "running";
+  return catProgress(c).step === 4 ? "done" : "other";
 }
 
 /** 製作流程每一步的狀態（給步驟圖用） */

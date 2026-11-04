@@ -24,6 +24,8 @@
 - 建立 profile 後，`IntakeChat` 呼叫 `POST /api/cats/[id]/model`；貓咪頁的 `PublishPanel` 發現還沒有 3D 貓時也會再呼叫一次（同一隻貓只建一筆）。
 - 這個 API 只建「預設 3D 貓」：`meow_cat_models` 一筆（`owner_type = 'member'`、`cat_id`＝這隻貓、`status = 'ready'`、`meta.source = 'default'`）＋ `meow_cat_model_variants` 一筆（體型依年齡層，`albedo_path = 'default'`）。
 - 預覽用母體 `public/hq-cat-models/base/` 加母體自己的貼圖（`albedo_path = 'default'` 時 `CatPreview` 收到 `albedoUrl = null`）。
+- **照片（#181，2026-11-04）**：建模型時把封面照片從 `meow-cat-photos` 複製到 `meow-cat-model-photos/<模型ID>/photo.<副檔名>`，`photo_path` 指向複製後的檔案（`src/lib/cat-model-photo.ts`）。之前建的舊模型 `photo_path` 還是前台路徑，MeowHQ 製作頁讀照片時（`sbFileRedirect`）或中途再呼叫 API 時會自動補複製。MeowHQ 貓咪模型列表、貓咪頁、製作glb工作區顯示所屬喵戶。目前 Step 02～04 由管理員在 MeowHQ 手動觸發，之後改自動。
+- **三個角度＋自動 AI 三視角（#188，2026-11-04）**：新增貓咪時依序上傳側面、正面、背面（`CatFields.angles`，必填；之後可再加生活照到 5 張）。建立後 `IntakeChat` 帶 `{ angles }` 呼叫 `POST /api/cats/[id]/model`：三張複製成 `<模型ID>/photo.*`、`photo_front.*`、`photo_back.*`（`profile.extra_photos`），三張都有就用 service role 呼叫 `sbStartViews(..., { client })` 在 `after()` 自動產生 AI 三視角（Step 02）。前台貓咪頁的「AI 三視角」（`AiViewsPreview`，`GET /api/cats/[id]/model/views`，只給中途、短時效網址）顯示進度與結果；MeowHQ 製作頁讀同一份 `profile.generated`。Step 03、04 仍由管理員在 MeowHQ 手動觸發。修改既有的貓（`angles = null`）只需要有照片，不要求三個角度。
 - 中途按「確認使用」→ `meow_confirm_cat_model()` 把 `albedo_path` 複製到 `confirmed_albedo`，「準備出發找新主人」的 3D 檢查就通過。
 
 **之後要接的流程與位置**（照規格 09 §5.1 的流程圖）
@@ -59,6 +61,7 @@
 - `src/lib/mock-data.ts`（首頁示意資料）
 
 ## 決策
+- 2026-11-04｜新增貓咪：生活照至少 3 張（`MIN_PHOTOS`；第 1 張後可先描述，其餘填好時再要求補滿）；年紀改為選填存月齡（`est_age_months`，名片有「大約年紀」欄，對話問「大約幾個月或幾歲」，年齡層只是照片猜的時也會問），年齡層由月齡算出；取代 #109「不記月齡」。月齡帶進 3D 模型 `profile.age_months`（Tina，#185）。
 - 日記與貼文合併為一種內容，用公開／私密區分。
 - 位置只存縣市＋區。
 - 必填只有名字、性別、照片。

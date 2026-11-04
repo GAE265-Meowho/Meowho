@@ -22,12 +22,26 @@ export const modelIdAt = (d: Date) =>
 
 export const bodyOf = (lifeStage: string | null) => (lifeStage === "kitten" ? "kitten" : "adult") as "adult" | "kitten";
 
-export function defaultModelRows(cat: { id: string; name: string; life_stage: string | null; photo_paths: string[] | null }, userId: string, modelId: string) {
+export function defaultModelRows(cat: { id: string; name: string; life_stage: string | null; photo_paths: string[] | null; est_age_months?: number | null }, userId: string, modelId: string) {
   return {
     model: {
       id: modelId, name: cat.name.slice(0, 40), owner_type: "member", owner_id: userId, cat_id: cat.id, status: "ready",
       photo_path: cat.photo_paths?.[0] ?? "", meta: { source: "default" }, created_by: userId,
+      // #185：中途填的大約月齡帶進模型，MeowHQ 製作頁與 AI 三視角用
+      profile: typeof cat.est_age_months === "number" ? { age_months: cat.est_age_months } : {},
     },
     variant: { model_id: modelId, body_type: bodyOf(cat.life_stage), albedo_path: DEFAULT_ALBEDO },
   };
+}
+
+/** 前台 AI 三視角預覽（#188）：GET /api/cats/[id]/model/views 的回應 */
+export interface AiViewsResponse { started: boolean; running: string[]; views: Partial<Record<"left" | "front" | "back", string | null>>; errors: Partial<Record<string, string>> }
+export type AiViewsPhase = "none" | "running" | "done" | "failed";
+
+/** 還沒開始／產生中／三張都好了／有失敗（失敗時畫面請中途聯絡或換照片，管理員可在 MeowHQ 重新產生） */
+export function aiViewsPhase(r: AiViewsResponse | null): AiViewsPhase {
+  if (!r?.started) return "none";
+  if (r.running.length) return "running";
+  if (Object.values(r.errors).some(Boolean)) return "failed";
+  return (["left", "front", "back"] as const).every((v) => r.views[v]) ? "done" : "failed";
 }

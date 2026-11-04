@@ -85,3 +85,9 @@
 .checks li { display: flex; align-items: center; gap: 8px; color: var(--ink-soft); }
 .checks li.ok { color: var(--ink); font-weight: 700; }
 .checks li.ok svg { color: var(--caramel); }
+
+/* AI 三視角預覽（#188） */
+.aiViews { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 0; padding: 0; list-style: none; }
+.aiViews li { display: flex; flex-direction: column; align-items: center; gap: 6px; color: var(--ink-soft); font-size: 14px; }
+.aiViewBox { width: 100%; aspect-ratio: 1; border-radius: 20px; overflow: hidden; background: var(--paper); display: grid; place-items: center; color: var(--ink-soft); }
+.aiViewBox img { width: 100%; height: 100%; object-fit: cover; }

@@ -48,9 +48,20 @@ describe("檯面", () => {
     expect(sofa.y).toBeCloseTo(0.8 * 0.58);
     expect(w.tops.every(s => s.y <= MAX_JUMP_M)).toBe(true);
   });
+  it("床只算棉被那一段：床頭的枕頭比較高，不能站（腳會陷進去）", () => {
+    const w = world();
+    const bed = w.tops.find(s => s.kind === "bed")!;
+    const box = w.scene.boxes[bed.box];
+    // 床頭靠上牆（z 小的那一側）：枕頭在床頭往內 0.18～0.58 m
+    const headZ = box.z - box.sz / 2;
+    expect(onTop(bed, box.x, headZ + 0.4, 0)).toBe(false);   // 枕頭
+    expect(onTop(bed, box.x, headZ + 1.2, 0)).toBe(true);    // 棉被
+    expect(bed.hz * 2).toBeCloseTo(1.35);
+  });
+
   it("點到家具：可以站的回傳檯面目標（夾在檯面內），衣櫃回 null", () => {
     const w = world();
-    const g = goalForBox(w, boxOf(w, "bed"), 1.6, 0.05)!;
+    const g = goalForBox(w, boxOf(w, "bed"), 1.6, 0.05)!;   // 點在枕頭上：夾到棉被那一段
     expect(w.tops[g.surface!].kind).toBe("bed");
     expect(onTop(w.tops[g.surface!], g.x, g.z)).toBe(true);
     expect(goalForBox(w, boxOf(w, "wardrobe"), 3, 2.3)).toBeNull();
