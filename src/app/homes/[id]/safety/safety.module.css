@@ -1,0 +1,22 @@
+/* 居家安全檢測：報告與檢測紀錄（規格 09 §7.2） */
+.source { margin: 0; color: var(--ink-soft); font-weight: 700; }
+.items { margin: 0; padding: 0; list-style: none; display: grid; gap: 12px; }
+.items li { padding: 12px 14px; border: 1px solid var(--line); border-radius: 16px; }
+.items b { color: var(--ink); }
+.items p { margin: 4px 0 0; color: var(--ink-soft); line-height: 1.7; }
+.level {
+  display: inline-block; margin-left: 8px; padding: 2px 10px; border-radius: 999px;
+  background: var(--yellow-soft); color: var(--ink); font-size: 14px; font-weight: 700;
+}
+.records { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; }
+.record {
+  display: grid; grid-template-columns: 1fr auto auto; gap: 12px; align-items: center;
+  width: 100%; min-height: 44px; padding: 8px 14px; border: 1px solid var(--line); border-radius: 16px;
+  background: var(--card); color: var(--ink); font: inherit; text-align: left; cursor: pointer;
+}
+.record[aria-current="true"] { border-color: var(--caramel); background: var(--yellow-soft); }
+.record:focus-visible { outline: 2px solid var(--caramel); outline-offset: 2px; }
+@media (max-width: 420px) {
+  .record { grid-template-columns: 1fr auto; }
+  .record span:nth-child(2) { grid-column: 1; grid-row: 2; color: var(--ink-soft); }
+}
