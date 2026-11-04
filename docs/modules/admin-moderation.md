@@ -1,4 +1,4 @@
-# 模組：後台與內容審核（admin-moderation）
+﻿# 模組：後台與內容審核（admin-moderation）
 
 > 最後更新：2026-11-02｜珮瑜 × Claude Code
 > 規則：本檔隨程式碼同一個 PR 更新；「決策」與「地雷」只增不刪（過時的標註［已失效］）。
@@ -164,7 +164,10 @@ ole === "admin" 判斷管理員，而現有 admin 會升為 system_admin；舊�
 - 2026-11-02｜#123：製作 GLB 工作區桌面左右固定雙欄；左側「虛擬貓咪檔案」包含 profile、上傳照片、AI 三視角、畫質／費用與貼圖，右側包含產生選項與任務進度；手機上下排列並可收合左側；新增貓咪名稱與性別桌面同列、窄螢幕上下排列。既有生成、重試與持久化行為不變。
 
 ### #104 成貓／幼貓變體（2026-11-02）
-- 資料表：`meow_cat_model_variants`，以 `(model_id, body_type)` 區分目前版、上一版、母體版本及確認貼圖；任務新增 `body_type`。Migration：`0016_meow_cat_model_variants.sql`，尚未執行，需 Tina 確認。
+- 資料表：`meow_cat_model_variants`，以 `(model_id, body_type)` 區分目前版、上一版、母體版本及確認貼圖；任務新增 `body_type`。Migration：`0016_meow_cat_model_variants.sql`，已於 2026-11-04 在 `onebpkbkrnnwamwsoelo` 確認存在（variants 表、`body_type`、RLS）。
 - API：`paint`、`confirm`、`restore` 依指定體型操作；貓咪頁只顯示該體型已確認貼圖。舊資料按各貼圖的 `base_version` 分流，舊 `v1` 視為成貓。
 - Worker：Tina 本機 `paint_worker.py` 已按 `docs/hq/paint-worker-104.patch` 修改；重啟 worker 並套用 SQL 後，才設 `CAT_MODEL_VARIANTS_WORKER_READY=1`。未設時沿用舊流程。
 - 驗證：雙體型獨立資料與本機／Supabase 契約測試；尚未在正式 Supabase 執行 migration 或完成線上生成。
+
+### #197 生活用品（2026-11-04）
+- Migration：`0021_meow_household_items.sql`，已於 2026-11-04 在 `onebpkbkrnnwamwsoelo` 執行。新增 `meow_item_categories`、`meow_items`、公開 bucket `meow-items`（只允許 .glb，20MB）；讀取公開，寫入需 `virtual_assets`。畫面與虛擬體驗接線尚未做。
