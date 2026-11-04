@@ -40,7 +40,7 @@
 |---|---|---|
 | 誰的房間 | 示範房間，`owner_household_id` 為 null | 飼主自己家，`owner_household_id`＝喵戶 id |
 | 誰能寫 `meow_room_models`／`meow_room_jobs` | 有 `virtual_assets` 權限的管理員（RLS） | 會員**不能**直接寫，只能讀、刪自己的；建立要經伺服器（service role），先用登入者身分確認是自己的喵戶 |
-| 原始影片 | 私有 bucket `meow-room-videos` | 私有 bucket `meow-home-videos`，路徑第一層是喵戶 id（`<household_id>/…`）；0017 的 policy 已讓喵戶長自己上傳，不用簽網址；50 MB、mp4／mov |
+| 原始影片 | 私有 bucket `meow-room-videos` | 私有 bucket `meow-home-videos`，路徑第一層是喵戶 id（`<household_id>/…`）；喵戶長自己上傳，不用簽網址（0017 的 policy 寫錯會一律擋下，0022 修正）；50 MB、mp4／mov |
 | 成果 | **公開** bucket `meow-room-models` | **私有** bucket `meow-home-scenes`（`<household_id>/…`），只有自己讀得到；前台用短時效 signed URL 讀，**不能放公開 bucket** |
 | 原始檔刪除 | 轉完刪 | 3D 房間和環境報告**都處理完（成功或失敗）立即刪**，並寫 `raw_deleted_at`（決策 007） |
 | 環境報告 | 沒有 | 建房間時一律同時建一筆 `meow_env_reports`（`room_model_id`＝房間、`status = 'queued'`） |
@@ -64,7 +64,7 @@
 - 預覽讀檔走 `GET /api/homes/[id]/room/[roomId]/[...file]`：用登入者身分查房間（RLS），換 10 分鐘 signed URL 再轉過去；檢視器沿用 `RoomViewer`。
 - worker（`workers/room-convert`）看 `owner_household_id` 分流；成果路徑 `meow-home-scenes/<household_id>/<房間 id>/`；物品清單從 `scene.json` 轉成中文（`catalog.py` 的 `NAMES_ZH`）寫進 `meta.objects`；完成、失敗都寫通知（`home_room_ready`／`home_room_failed`）。
 - **給做環境報告（第 4 步）的人**：影片在 `meow_room_models.video_path`（`meow-home-videos`）。房間 worker 處理完時若報告還是 `queued`／`running`，影片會留著；報告處理完時若房間已不是 `queued`／`running`，就由報告那邊刪影片、把房間的 `video_path` 設 null、寫 `raw_deleted_at`。
-- 不需要新的 migration：0017 已建好上面的 bucket、policy、欄位。要改資料庫時新開 migration，執行前給子哲確認。
+- 0017 已建好上面的 bucket、policy、欄位；0022 修正兩條 storage policy（子查詢的 `name` 對到喵戶名稱，喵戶長上傳一律被擋），2026-11-05 珮瑜已在正式資料庫執行。要改資料庫時新開 migration，執行前給子哲確認。
 - 要一直保持通過的測試：`src/lib/home-room.test.ts`（按鈕狀態、檢測紀錄）、`src/lib/task-run.test.ts`（家具替換）。
 - AI 摘要（`meow_task_runs.summary`）還沒做：完成任務後由伺服器（service role）寫入，對話框的任務證明已經會顯示。
 
