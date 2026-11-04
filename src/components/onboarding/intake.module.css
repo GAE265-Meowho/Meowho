@@ -524,3 +524,11 @@
   background: var(--caramel);
   transition: width 0.2s ease;
 }
+
+/* 喵戶頭像（0019） */
+.avatarRow { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; }
+.avatarPick {
+  display: grid; place-items: center; width: 72px; height: 72px; overflow: hidden; border-radius: 50%;
+  background: var(--yellow-soft); color: var(--orange);
+}
+.avatarPick img { width: 100%; height: 100%; object-fit: cover; }

@@ -191,3 +191,60 @@
 .catLink:hover { color: var(--orange-deep); text-decoration: underline; }
 
 .quick { display: flex; flex-wrap: wrap; gap: 12px; margin-top: -12px; }
+
+/* 修改頁最下方的刪除 */
+.danger { border: 2px dashed var(--line); box-shadow: none; }
+.dangerBtn {
+  min-height: max(44px, var(--tap)); padding: 0 20px; border: 2px solid var(--orange-deep); border-radius: 999px;
+  background: var(--card); color: var(--orange-deep); font: inherit; font-weight: 700; cursor: pointer;
+}
+.dangerBtn:hover, .dangerBtn:focus-visible { background: var(--pink-soft); outline: none; }
+
+/* 我的喵戶改版：一個喵戶一個區塊，區塊裡用分頁切換貓的類型 */
+.homeSection {
+  display: flex; flex-direction: column; gap: 18px; padding: 22px 20px 26px;
+  border-radius: 32px; background: var(--card); box-shadow: 0 6px 0 -1px var(--line);
+}
+.homeHead { display: grid; grid-template-columns: auto 1fr auto; gap: 16px; align-items: start; }
+.homeAvatar {
+  display: grid; place-items: center; width: 72px; height: 72px; overflow: hidden; border-radius: 50%;
+  background: var(--yellow-soft); color: var(--orange);
+}
+.homeAvatar img { width: 100%; height: 100%; object-fit: cover; }
+@media (min-width: 768px) { .homeAvatar { width: 96px; height: 96px; } }
+.homeText { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.homeEdit, .catEdit {
+  display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; color: var(--ink); text-decoration: none;
+}
+.homeEdit:hover, .homeEdit:focus-visible { background: var(--yellow-soft); outline: none; }
+.tabs { display: flex; flex-wrap: wrap; gap: 8px; border-bottom: 2px solid var(--line); }
+.tab {
+  display: inline-flex; align-items: center; gap: 6px; min-height: max(44px, var(--tap)); padding: 0 16px; margin-bottom: -2px;
+  border: 0; border-bottom: 3px solid transparent; background: none; color: var(--ink-soft); font: inherit; font-weight: 700; cursor: pointer;
+}
+.tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--caramel); }
+.tab:focus-visible { outline: 3px solid var(--orange); outline-offset: 2px; border-radius: 8px; }
+.tabCount { min-width: 22px; padding: 0 6px; border-radius: 999px; background: var(--paper); font-size: 13px; text-align: center; }
+.catGrid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 0; padding: 0; list-style: none; }
+@media (min-width: 768px) { .catGrid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; } }
+@media (min-width: 1024px) { .catGrid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.catCard { position: relative; }
+.catCover {
+  display: grid; place-items: center; aspect-ratio: 1 / 1; overflow: hidden; border-radius: 24px;
+  background: var(--yellow-soft); color: var(--orange); text-decoration: none;
+}
+.catCover img { width: 100%; height: 100%; object-fit: cover; }
+.catLabel {
+  position: absolute; left: 10px; bottom: 10px; max-width: calc(100% - 70px); padding: 4px 12px; border-radius: 999px;
+  background: var(--card); color: var(--ink); font-weight: 700; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.catEdit { position: absolute; right: 8px; bottom: 8px; background: var(--card); box-shadow: 0 2px 0 var(--line); }
+.catEdit:hover, .catEdit:focus-visible { background: var(--yellow-soft); outline: none; }
+@media (max-width: 767px) {
+  .homeSection { padding: 18px 14px 22px; }
+  .homeHead { gap: 12px; }
+  .homeAvatar { width: 56px; height: 56px; }
+  .homeSection .homeName { font-size: 24px; letter-spacing: 0.02em; }
+  .tabs { flex-wrap: nowrap; gap: 4px; }
+  .tab { padding: 0 10px; white-space: nowrap; }
+}
