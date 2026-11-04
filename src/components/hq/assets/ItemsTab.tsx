@@ -1,5 +1,6 @@
 "use client";
 // 生活用品（#197）：上傳 .glb、類別管理、左側篩選；資料在 meow_items／meow-items。
+import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { HqSaveButton } from "@/components/hq/HqStates";
 import { measureGlbFile } from "@/lib/hq/items/glb-bounds";
@@ -10,6 +11,11 @@ import {
 import { getBrowserSupabase } from "@/lib/supabase/client";
 import { deleteJson, hintError, postJson } from "./useCatModels";
 import styles from "./itemsTab.module.css";
+
+const ItemPreview = dynamic(() => import("./ItemPreview").then(m => m.ItemPreview), {
+  ssr: false,
+  loading: () => <div className={styles.preview}>載入預覽…</div>,
+});
 
 const API = "/api/hq/items";
 const ERRORS: Record<string, string> = {
@@ -191,7 +197,9 @@ export function ItemsTab() {
           <div className={styles.grid}>
             {visible.map(it => (
               <article key={it.id} className={styles.card}>
-                <div className={styles.preview} aria-hidden="true">.glb</div>
+                <div className={styles.preview}>
+                  <ItemPreview url={it.modelUrl} label={it.name} />
+                </div>
                 <div className={styles.copy}>
                   <div className={styles.tags}><span>{it.categoryName}</span></div>
                   <h3>{it.name}</h3>
