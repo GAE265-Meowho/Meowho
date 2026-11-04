@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import * as homeRoom from "./home-room";
-import { homeTools, safetyRecords, UPLOAD_PRIVACY } from "./home-room";
+import { homeTools, safetyRecords, UPLOAD_PRIVACY, demoReportRow } from "./home-room";
 
 const room = (status: string, completed_at: string | null = null) => ({ status, completed_at });
 const report = (status: string, room_model_id: string | null = null, created_at = "2026-11-04T00:00:00Z", items: unknown[] = []) =>
@@ -81,5 +81,17 @@ describe("建立 3D 房間不再詢問環境檢查（v0.6）", () => {
   it("拿掉環境檢查的詢問流程", () => {
     expect("envNext" in homeRoom).toBe(false);
     expect("isEnvCheck" in homeRoom).toBe(false);
+  });
+});
+
+describe("示範報告（AI 環境安全檢查接上前）", () => {
+  it("單獨檢測與建立 3D 房間時都產生產生好的報告，檢測紀錄分得出來源", () => {
+    const now = new Date(Date.UTC(2026, 10, 4, 6));
+    const alone = demoReportRow("h1", null, now);
+    const room = demoReportRow("h1", "room_20261104_060000", new Date(now.getTime() + 1000));
+    expect(alone).toMatchObject({ household_id: "h1", status: "ready", room_model_id: null });
+    const recs = safetyRecords([{ id: "a", ...alone }, { id: "b", ...room }]);
+    expect(recs.map(r => `${r.id}:${r.source}:${r.riskCount}`)).toEqual(["b:建立 3D 房間時:5", "a:單獨檢測:5"]);
+    expect(homeTools([], [alone]).safety.label).toBe("查看報告");
   });
 });
