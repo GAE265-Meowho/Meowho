@@ -50,8 +50,8 @@ export interface CatFields {
   /** null＝沿用喵戶的預設送養條件 */
   adoptionTerms: AdoptionTerms | null;
   handover: string[];
-  /** 一般飼主的喵戶是自家貓，中途的是待領養 */
-  status: "own" | "adoptable";
+  /** 一般飼主的喵戶是自家貓；中途新增的先是準備中（規格 09 §5），出發後才是待領養 */
+  status: "own" | "adoptable" | "preparing";
 }
 
 export interface TimelineEntry { date: string; event: string }
@@ -135,7 +135,7 @@ export const emptyIntake = (): IntakeState => ({
   cat: {
     name: "", sex: null, birthday: null, estAgeMonths: null, lifeStage: null, coat: null, breed: null,
     personalityTags: [], healthTags: [], description: null, timeline: [], photos: [], videos: [],
-    medical: emptyMedical(), compat: emptyCompat(), habits: [], adoptionTerms: null, handover: [], status: "adoptable",
+    medical: emptyMedical(), compat: emptyCompat(), habits: [], adoptionTerms: null, handover: [], status: "preparing",
   },
   pending: [],
   reviewRequested: false,
@@ -147,7 +147,7 @@ export const canCreateHousehold = (s: IntakeState) => householdMissing(s.househo
 export const canCreateCat = (s: IntakeState) => catMissing(s.cat) === null && s.pending.length === 0;
 
 /** 開始建一隻貓；status 依喵戶身分（一般飼主是自家貓） */
-export const beginCat = (s: IntakeState, status: CatFields["status"] = "adoptable"): IntakeState =>
+export const beginCat = (s: IntakeState, status: CatFields["status"] = "preparing"): IntakeState =>
   ({ ...s, phase: "cat", notice: null, cat: { ...s.cat, status } });
 
 export const confirmField = (s: IntakeState, field: PendingField): IntakeState =>

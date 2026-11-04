@@ -261,6 +261,8 @@ export function IntakeChat({ userId, home }: { userId: string | null; home: Exis
         const { error: vErr } = await sb.from("meow_cat_videos").insert(toCatVideoInserts(catId, cur.cat.videos, videoMeta.current));
         if (vErr) say(`貓咪建好了，但影片沒有存進去：${vErr.message}`);
       }
+      // 中途的貓：背景建立 3D 貓（規格 09 §5.1；目前是預設 3D 貓，見 /api/cats/[id]/model）。失敗時貓咪頁會再補一次
+      if (!own) fetch(`/api/cats/${catId}/model`, { method: "POST" }).catch(() => undefined);
     }
     unsaved.current = { photos: new Set(), videos: new Set() };
     setSaving(false);
@@ -281,12 +283,14 @@ export function IntakeChat({ userId, home }: { userId: string | null; home: Exis
       <section className={`${s.card} ${s.center}`} aria-labelledby="done-title">
         {done.cover ? <img className={s.doneCover} src={done.cover} alt={`${done.name}的照片`} /> : <span className={s.avatar} aria-hidden="true"><Icon name="cat" /></span>}
         <h2 id="done-title">{done.name}的名片建立好了</h2>
-        <p className={s.lead}>{done.stage ? `${done.stage}・` : ""}{own ? "自家貓" : "待領養"}{sb ? "" : "（示範模式：資料沒有儲存）"}</p>
+        <p className={s.lead}>{done.stage ? `${done.stage}・` : ""}{own ? "自家貓" : "準備中"}{sb ? "" : "（示範模式：資料沒有儲存）"}</p>
+        {/* 準備中的貓前台看不到；3D 模型確認、任務完成後到貓咪頁按「準備出發找新主人」（規格 09 §5） */}
+        {!own && <p className={s.lead}>確認 3D 模型、出好領養任務，就能出發找新主人。</p>}
         <div className={s.actions} style={{ justifyContent: "center" }}>
-          {/* 建好就能直接建問卷（#109），連到修改頁的問卷區塊 */}
-          {!own && sb && <CatButton href={`/cats/${catId}/edit#form-editor`}>建立領養問卷</CatButton>}
+          {!own && sb && <CatButton href={`/cats/${catId}/tasks`}>出領養任務</CatButton>}
+          {!own && sb && <CatButton variant="ghost" href={`/cats/${catId}`}>看 3D 模型</CatButton>}
           <CatButton variant="ghost" onClick={anotherCat}>再新增一隻</CatButton>
-          <CatButton variant={!own && sb ? "ghost" : "primary"} href="/me">去我的喵戶</CatButton>
+          {(own || !sb) && <CatButton href="/me">去我的喵戶</CatButton>}
         </div>
       </section>
     );

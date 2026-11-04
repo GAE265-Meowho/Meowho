@@ -30,6 +30,7 @@
 | 7 | 領養人 onboarding（文字＋語音） | ai-onboarding | 1 | P1 | 待建立 | D | 待辦 |
 | 93 | MeowHQ 室內空間：影片轉 3D 房間與貓咪互動 | admin-moderation | — | P1 | #93 | 珮瑜 | 審查中 |
 | 33 | 真實走查並修正中途之家 onboarding | ai-onboarding、household-cats | 2、6 | P1 | #33 | Tina × Codex | 審查中 |
+| 161 | 領養任務目標流程規格（spec 09）與資料庫（0017，已執行） | readiness、adoption、household-cats | — | P1 | #161 | 子哲 | 審查中 |
 | 8 | 一句話 RAG 配對（取代關鍵字原型） | matching | 3、7 | P1 | 待建立 | E | 待辦 |
 | 9 | 私訊＋站內通知鈴鐺（通知基本版已完成於 #3） | social | 1 | P1 | 待建立 | C | 待辦 |
 | 10 | 領養設定、提出申請、審核流程（含多人申請） | adoption | 2、7、9 | P1 | 待建立 | C | 待辦 |
@@ -70,6 +71,7 @@
 | 23-19 | MeowHQ 貓咪工作室與貓咪頁版面整理；流程改 4 步、紋理貼圖人工確認 | admin-moderation | 23-18 | P2 | #129 | Tina × Claude Code | 審查中（PR #131） |
 | 23-20 | MeowHQ 尚未產生 AI 三視角時不能產生紋理貼圖（前端停用＋API 檢查） | admin-moderation | 23-19 | P2 | #135 | Tina × Claude Code | 完成（#137 已合併） |
 | 23-21 | MeowHQ 平面圖轉換 PR 1：一戶清單、上傳房間平面圖（Azure Blob）、原圖預覽；後續 AI 讀圖、3D、放貓、線框修正 | admin-moderation | — | P2 | #138 | Tina × Claude Code | 進行中（上傳、AI 讀圖、實景照片、3D 娃娃屋完成；家具模型庫與貼牆擺放審查中） |
+| 23-22 | MeowHQ 虛擬體驗：選虛擬貓＋選喵戶，貓放進 3D 室內空間走動（第一版）；之後跳上家具、遊戲玩法 | admin-moderation | — | P2 | #150 | Tina × Claude Code | 審查中 |
 | 23-15 | MeowHQ 登入頁依 Stitch 改版、瀏覽器標題改 MeoWho｜喵戶總部 | admin-moderation | — | P2 | #116 | Tina × Claude Code | 完成（#117 已合併） |
 | 23-14 | MeowHQ AI 三視角第二階段：worker 同時用三張照片上色；製作glb工作區選擇要產生的動作 | admin-moderation | 23-13 | P2 | 待建立 | — | 待辦 |
 | 23-11 | MeowHQ 貓咪模型：同一隻貓可切換成貓／幼貓體型 | admin-moderation | 23-10 | P2 | #104 | Tina × Codex | 審查中 |

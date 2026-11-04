@@ -1,11 +1,13 @@
-// 已建立的貓咪模型列表（#102）：欄位為縮圖、名稱、動作數、建立者、更新時間、備註說明；不顯示狀態與操作欄
+// 已建立的貓咪模型列表（#102）：欄位為縮圖、名稱、進度、建立者、更新時間、備註說明、操作（刪除）；不顯示狀態
 import "@testing-library/jest-dom/vitest";
-import { cleanup, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { listBundledCats } from "@/lib/hq/cat-models/bundled";
 import type { CatModelView } from "@/lib/hq/cat-models/types";
 import { CatsTab } from "./CatsTab";
 
+const toast = vi.hoisted(() => ({ show: vi.fn() }));
+vi.mock("../HqToast", () => ({ useHqToast: () => toast }));
 vi.mock("next/navigation", () => ({ useRouter: () => ({ push: vi.fn(), replace: vi.fn() }) }));
 
 const rows = vi.hoisted(() => ({ data: [] as CatModelView[] }));
@@ -17,14 +19,15 @@ vi.mock("./useCatModels", async orig => ({
 afterEach(() => cleanup());
 
 const base = listBundledCats()[0];
-const member: CatModelView = { ...base, id: "cat_20261101_200000", name: "小橘", status: "ready", notes: "", createdBy: "Tina", updatedAt: "2026-11-01T14:44:54Z" };
+// MeowHQ 新增的貓在資料庫是 owner_type='template'，也要能刪（只有內建示範貓 builtin 不能刪）
+const member: CatModelView = { ...base, ownerType: "template", builtin: false, id: "cat_20261101_200000", name: "小橘", status: "ready", notes: "", createdBy: "Tina", updatedAt: "2026-11-01T14:44:54Z" };
 
 describe("已建立的貓咪模型列表（#102）", () => {
   it("欄位：縮圖、名稱、動作數、建立者、更新時間、備註說明", () => {
     rows.data = [member];
     render(<CatsTab query={{ page: 1 }} update={() => {}} />);
     const headers = screen.getAllByRole("columnheader").map(h => h.textContent);
-    expect(headers).toEqual(["縮圖", "名稱", "進度", "建立者", "更新時間", "備註說明"]); // #118 動作數換成進度
+    expect(headers).toEqual(["縮圖", "名稱", "進度", "建立者", "更新時間", "備註說明", "操作"]); // #118 動作數換成進度
     const row = screen.getByRole("row", { name: /小橘/ });
     expect(within(row).getByText("Tina")).toBeInTheDocument();
     expect(within(row).getByText("2026/11/01 22:44")).toBeInTheDocument();
@@ -62,5 +65,18 @@ describe("已建立的貓咪模型列表（#102）", () => {
       expect(c.notes).toBe("系統預設範例");
       expect(c.createdBy).toBe("系統");
     }
+  });
+  it("刪除：按「刪除」後原位確認，送出 DELETE；示範貓不能刪", async () => {
+    rows.data = [member, { ...member, id: "cat_20261101_210000", name: "範本", builtin: true }];
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify({ ok: true }), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+    render(<CatsTab query={{ page: 1 }} update={() => {}} />);
+    expect(within(screen.getByRole("row", { name: /範本/ })).queryByRole("button", { name: /刪除/ })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "刪除小橘" }));
+    expect(fetchMock).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "確認刪除" }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(`/api/hq/cat-models/${member.id}`, { method: "DELETE" }));
+    await waitFor(() => expect(toast.show).toHaveBeenCalledWith({ message: "已刪除「小橘」" }));
+    vi.unstubAllGlobals();
   });
 });

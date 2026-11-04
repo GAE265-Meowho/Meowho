@@ -20,7 +20,7 @@ export interface CatRow {
   life_stage: LifeStage | null; coat: string | null; breed: string | null; personality_tags: string[]; photo_url: string | null; status: string;
 }
 
-const STATUS_LABEL: Record<string, string> = { adoptable: "待領養", adopted: "已領養", own: "自家貓" };
+const STATUS_LABEL: Record<string, string> = { adoptable: "待領養", adopted: "已領養", own: "自家貓", preparing: "準備中" };
 const SEX_LABEL: Record<string, string> = { male: "男生", female: "女生" };
 
 /** 舊資料可能缺欄位（#82 早期格式），一律補預設值再顯示 */
