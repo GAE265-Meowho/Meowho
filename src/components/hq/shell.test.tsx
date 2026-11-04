@@ -61,6 +61,14 @@ describe("UT-HQ-42 手機選單", () => {
     for (const a of nav.querySelectorAll("a")) expect(a.querySelector("svg")).not.toBeNull();
     expect(screen.getByRole("link", { name: "首頁" })).toHaveAttribute("aria-current", "page");
   });
+  it("#179 貓戶管理排在「營運與社群」第一個，連到 /MeowHQ/households", () => {
+    render(shell({ items: ["home", "households", "user_management"], activePath: "/MeowHQ/households" }));
+    const nav = screen.getByRole("navigation", { name: "後台導覽" });
+    expect(Array.from(nav.querySelectorAll("a")).map(a => a.textContent)).toEqual(["首頁", "貓戶管理", "用戶權限管理"]);
+    const link = screen.getByRole("link", { name: "貓戶管理" });
+    expect(link).toHaveAttribute("href", "/MeowHQ/households");
+    expect(link).toHaveAttribute("aria-current", "page");
+  });
 });
 
 describe("#113 虛擬體驗元件管理分組", () => {

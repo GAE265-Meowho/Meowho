@@ -26,7 +26,7 @@ const icon = { fill: "none", stroke: "currentColor", strokeWidth: 1.6, strokeLin
 /** 側欄分組（#113，依 Stitch「MeowHQ Cat Model Builder」）：首頁不分組；沒有可見項目的分組不顯示 */
 const NAV_GROUPS: { label: string | null; items: SidebarItem[] }[] = [
   { label: null, items: ["home"] },
-  { label: "營運與社群", items: ["report_moderation", "user_management"] },
+  { label: "營運與社群", items: ["households", "report_moderation", "user_management"] },
   { label: "商品與知識", items: ["products", "knowledge"] },
   // virtual_assets 不是單一連結：以「虛擬體驗元件管理」為分組標題、各區塊為第一層（見 AssetsGroup；Tina 2026-11-02）
   { label: "系統", items: ["admin_authorization"] },
@@ -35,6 +35,7 @@ const NAV_GROUPS: { label: string | null; items: SidebarItem[] }[] = [
 /** 側欄圖示（線條，跟頂列圖示同一組 stroke 設定） */
 const NAV_ICONS: Record<SidebarItem, React.ReactNode> = {
   home: <path d="M4 11l8-7 8 7v8a1 1 0 0 1-1 1h-4v-6h-6v6H5a1 1 0 0 1-1-1z" />,
+  households: <><path d="M3 10.5L8.5 6l5.5 4.5V19H3z" /><path d="M14 9l3.5-3 3.5 3v10h-7" /><path d="M7 19v-4h3v4" /></>,
   report_moderation: <><path d="M5 21V4" /><path d="M5 4h11l-2 4 2 4H5" /></>,
   user_management: <><circle cx="9" cy="8" r="3.2" /><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6" /><path d="M16 4.5a3 3 0 0 1 0 6M18 14c2 .8 3 2.8 3 6" /></>,
   products: <><path d="M5 8h14l-1 12H6z" /><path d="M9 8V6a3 3 0 0 1 6 0v2" /></>,

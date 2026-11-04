@@ -66,7 +66,10 @@ MeowHQ（`/MeowHQ`，取代舊隱藏後台）開發中：階段 0（#18）、db�
 
 **函式執行權**：上述後台函式與 `meow_is_admin`、`meow_set_admin`、`meow_review_verification` 已收回 `anon`／`PUBLIC`，只開放 `authenticated`；內部函式與 trigger 函式不開放給前端。
 
+2026-11-04（#179）：側欄新增**貓戶管理**（`/MeowHQ/households`），依類別（個人中途／立案協會／收容單位／一般飼主）查看所有貓戶，可搜尋；點一戶看詳情與貓咪卡片。是可授權模組 `households`（Tina：之後要能在 Admin 授權調整），`0020_meow_households_module.sql` 上線時把現有管理員全部授權；第一版唯讀。
+
 ## API／主要函式
+- 貓戶管理（#179）：頁面以登入者身分直讀 `meow_households`、`meow_cats`、`meow_profiles`；0020 新增 policy「read by households module」讓有此模組者讀全部。整理邏輯 `src/lib/hq/households.ts`。
 - 資料庫函式：`meow_is_admin()`、`meow_set_admin(email, bool)`、`meow_review_verification(id, approve, note)`（核准時給徽章並通知申請人）
 - trigger：送出認證申請 → 通知所有管理員；角色與 `verified_shelter` 只能由管理員變更
 - 前端：`src/app/mh-console-8k2p/page.tsx`、`src/components/VerificationApply.tsx`（貓戶長申請）、`src/lib/verification.ts`
@@ -89,6 +92,8 @@ MeowHQ（`/MeowHQ`，取代舊隱藏後台）開發中：階段 0（#18）、db�
 
 - 2026-10-29｜0002（Issue #19）：停權狀態只存在 `meow_user_suspensions`（profiles 不加欄位）；黑名單同時記 `auth_user_id`；角色只能經 `meow_set_role` 變更（`meow.hq_fn` 旗標，僅在該 update 期間有效）；稽核日誌連資料表擁有者都不能改刪；錯誤以代碼回報；收回 `anon`／`PUBLIC` 執行權的同時，把會被匿名訪客觸發的 policy 改為 `to authenticated`，避免 `meow_is_admin` 等被收回後匿名讀取公開貓戶出錯。
 
+- 2026-11-04｜新增後台模組 `households`（貓戶管理，排在側欄「營運與社群」第一個）；上線時現有管理員全部授權，之後由系統管理員調整。沒有待辦，待辦總覽不顯示卡片（`NO_TODO_MODULES`）（Tina，#179）。
+
 ## 待確認
 - 黑名單加入「已登入的現有會員」後是否同時強制登出或停權？目前只擋新建會員資料（UT-HQDB-11）；登入阻擋屬前端／Auth 層，待 #21 或另案。
 - 停權中的會員能使用哪些前台功能（寫入類 RLS 尚未依停權收緊），待另案。
@@ -107,6 +112,7 @@ ole === "admin" 判斷管理員，而現有 admin 會升為 system_admin；舊�
 | 2026-10-28 | Tina × Claude Code | 隱藏後台、中途認證審核、管理員授權、站台標誌存資料庫、站內通知 | #3 |
 | 2026-10-28 | Tina × Cursor | MeowHQ 階段 0：`src/lib/hq/types.ts` 與測試（8 種處置含 `unban`）、0002 資料表草案 | #18 |
 | 2026-10-29 | Tina × Cursor | MeowHQ 階段 1 db：`0002_meow_hq.sql`、`supabase/tests/`（SQL 測試與本機執行器） | #19 |
+| 2026-11-04 | Tina × Claude Code | MeowHQ 新增「貓戶管理」模組：依類別查看貓戶、貓咪卡片；0020 授權現有管理員 | #179 |
 - 2026-10-29｜#26 審查修正：黑名單只用於貓友與貓戶長，`meow_ban_email` 拒絕管理員（`target_is_admin`）；`meow_set_role` 拒絕把停權中的帳號升為管理員（`target_suspended`）；註冊時黑名單同時比對 Email 與 `auth_user_id`；兩個內部函式補 `search_path`；policy 內的權限函式改包 `(select ...)`。
 - 2026-10-29｜依規格書 R9（#30）：`meow_ban_email` 對尚未建立會員資料的 Email 回 `not_found`，不能預先封禁；UT-HQDB-11 改為「會員資料被刪除後，黑名單帳號重新建立會員資料 → 拒絕」。
 

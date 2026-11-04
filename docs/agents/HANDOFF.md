@@ -4,6 +4,7 @@
 > 最後更新：2026-11-04｜子哲 × Claude Code（#161 前台 3D 房間交接）
 
 ## 目前狀態
+- **MeowHQ 貓戶管理（#179，PR #180）**：新模組 `households`。`0020_meow_households_module.sql` **尚未執行**；執行前，系統管理員看得到頁面但只讀得到公開貓咪，其他管理員看不到選單。
 - **前台「我的 3D 房間」接上房間模型 API（珮瑜接手，2026-11-04）**：現在 `/homes/[id]/scene` 和 `/homes/[id]/safety` 按下去都只建示範房間與示範報告（service role，`/api/homes/[id]/room`、`/api/homes/[id]/safety`）。要接的步驟、和後台 #93 不同的隱私規則（私有 bucket `meow-home-videos`／`meow-home-scenes`、原始檔處理完立即刪、成果不能放公開 bucket）、worker 要改的地方，全部寫在 `docs/modules/readiness.md`「給珮瑜：把房間模型 API 接到前台」。目標流程是 `docs/spec/09_領養任務目標流程規格.md` v0.6 §7.2。需要 Vercel 的 `SUPABASE_SERVICE_ROLE_KEY`（沒讀到時 API 回 503 `not_configured`）。
 - `main` 上的首頁、頁首頁尾是 **meowwho-v2 新版 UI**（#65）；首頁「帶我回家」等區塊資料仍為示意（`src/lib/cats.ts`、`households.ts`）。尚未改版的內頁沿用舊元件樣式。
 - 已接 Supabase（Auth、Postgres、Storage）與 AI（LangChain，`src/lib/ai/`，可切換 Gemini／OpenAI／Azure／Anthropic）的程式碼；**環境變數尚未設定時網站為「示範模式」**：可操作但不能登入、不儲存、AI 改用規則解析。設定步驟：`docs/setup/SUPABASE_LLM_SETUP.md`。
