@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/components/Auth";
 import { SiteHeader, TabBar } from "@/components/Chrome";
 import type { VerificationRow } from "@/components/VerificationApply";
-import { MyHomes, type CatRow, type Household } from "@/components/me/MyHomes";
+import { MyHomes, type CatRow, type HomeReportRow, type HomeRoomRow, type Household } from "@/components/me/MyHomes";
 import f from "@/components/onboarding/intake.module.css";
 import CatButton from "@/components/ui/CatButton";
 import Icon from "@/components/ui/Icon";
@@ -22,6 +22,8 @@ export default function MyHomePage() {
   const [homes, setHomes] = useState<Household[] | undefined>(undefined);
   const [cats, setCats] = useState<CatRow[]>([]);
   const [verifs, setVerifs] = useState<VerificationRow[]>([]);
+  const [rooms, setRooms] = useState<HomeRoomRow[]>([]);
+  const [reports, setReports] = useState<HomeReportRow[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [limit, setLimit] = useState<number | null>(null);
 
@@ -39,13 +41,18 @@ export default function MyHomePage() {
       setHomes(list);
       if (!list.length) return;
       const ids = list.map(x => x.id);
-      const [{ data: c, error: cErr }, { data: v }] = await Promise.all([
+      // 3D 房間與環境報告只讀狀態，給喵戶卡片的兩顆按鈕用（規格 09 §7.2）；RLS 只讓本人讀到自己喵戶的
+      const [{ data: c, error: cErr }, { data: v }, { data: rm }, { data: rp }] = await Promise.all([
         sb.from("meow_cats").select("id, household_id, origin_household_id, name, sex, life_stage, coat, breed, personality_tags, photo_url, status").in("household_id", ids).order("created_at"),
         sb.from("meow_shelter_verifications").select("id, household_id, status, review_note, created_at").in("household_id", ids).order("created_at", { ascending: false }),
+        sb.from("meow_room_models").select("owner_household_id, status, completed_at").in("owner_household_id", ids),
+        sb.from("meow_env_reports").select("household_id, status").in("household_id", ids),
       ]);
       if (cErr) setLoadError(cErr.message);
       setCats((c ?? []) as CatRow[]);
       setVerifs((v ?? []) as VerificationRow[]);
+      setRooms((rm ?? []) as HomeRoomRow[]);
+      setReports((rp ?? []) as HomeReportRow[]);
     })();
   }, [loading, user]);
 
@@ -75,7 +82,7 @@ export default function MyHomePage() {
       {loadError && <p className={f.error} role="alert">讀取失敗：{loadError}</p>}
       {/* 退養請求（#109）：收回後貓回到這裡，重新整理清單 */}
       <ReturnInbox homeIds={homes.filter(h => h.caretaker_type !== "cat_owner").map(h => h.id)} onReturned={() => window.location.reload()} />
-      <MyHomes homes={homes} cats={cats} verifs={verifs} onVerification={row => setVerifs(v => [row, ...v])}
+      <MyHomes homes={homes} cats={cats} verifs={verifs} rooms={rooms} reports={reports} onVerification={row => setVerifs(v => [row, ...v])}
         onDeleteCat={async id => {
           const sb = getBrowserSupabase();
           const err = sb ? await deleteCat(sb, id) : null;

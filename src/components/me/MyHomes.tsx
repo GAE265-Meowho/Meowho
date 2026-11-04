@@ -7,6 +7,7 @@ import f from "@/components/onboarding/intake.module.css";
 import CatButton from "@/components/ui/CatButton";
 import Icon from "@/components/ui/Icon";
 import { LIFE_STAGE_LABEL, type LifeStage } from "@/lib/cat-profile/life-stage";
+import { homeTools, type HomeTool, type ReportRow, type RoomRow } from "@/lib/home-room";
 import { useState } from "react";
 import type { CaretakerType } from "@/lib/onboarding/household";
 import { DWELLINGS, LIVING, ROLE_INFO, type Home } from "@/lib/onboarding/household-rules";
@@ -18,6 +19,18 @@ export interface Household {
 export interface CatRow {
   id: string; household_id: string; origin_household_id: string | null; name: string; sex: string;
   life_stage: LifeStage | null; coat: string | null; breed: string | null; personality_tags: string[]; photo_url: string | null; status: string;
+}
+
+/** 喵戶卡片上每個喵戶的 3D 房間與環境報告（只讀狀態，判斷在 lib/home-room.ts 的 homeTools） */
+export type HomeRoomRow = RoomRow & { owner_household_id: string };
+export type HomeReportRow = Pick<ReportRow, "status"> & { household_id: string };
+
+/** 處理中的按鈕停用、不能點；其他狀態連到對應頁面 */
+function ToolButton({ tool, href, icon, variant }: { tool: HomeTool; href: string; icon: "scan" | "check"; variant: "primary" | "ghost" }) {
+  const inner = <><Icon name={icon} size={18} />{tool.label}</>;
+  return tool.state === "busy"
+    ? <CatButton variant={variant} size="sm" ears={false} disabled>{inner}</CatButton>
+    : <CatButton variant={variant} size="sm" ears={false} href={href}>{inner}</CatButton>;
 }
 
 const STATUS_LABEL: Record<string, string> = { adoptable: "待領養", adopted: "已領養", own: "自家貓", preparing: "準備中" };
@@ -91,8 +104,9 @@ function HomeActions({ home, catCount, adopted, onDelete }: { home: Household; c
   );
 }
 
-export function MyHomes({ homes, cats, verifs, onVerification, onDeleteCat, onDeleteHome }: {
-  homes: Household[]; cats: CatRow[]; verifs: VerificationRow[]; onVerification: (row: VerificationRow) => void;
+export function MyHomes({ homes, cats, verifs, rooms = [], reports = [], onVerification, onDeleteCat, onDeleteHome }: {
+  homes: Household[]; cats: CatRow[]; verifs: VerificationRow[]; rooms?: HomeRoomRow[]; reports?: HomeReportRow[];
+  onVerification: (row: VerificationRow) => void;
   onDeleteCat: (id: string) => Promise<void>; onDeleteHome: (id: string) => Promise<void>;
 }) {
   return (
@@ -100,6 +114,7 @@ export function MyHomes({ homes, cats, verifs, onVerification, onDeleteCat, onDe
       {homes.map(home => {
         const list = cats.filter(c => c.household_id === home.id);
         const owner = home.caretaker_type === "cat_owner";
+        const tools = homeTools(rooms.filter(r => r.owner_household_id === home.id), reports.filter(r => r.household_id === home.id));
         return (
           <article key={home.id} className={s.home} aria-labelledby={`home-${home.id}`}>
             <section className={f.card}>
@@ -114,12 +129,12 @@ export function MyHomes({ homes, cats, verifs, onVerification, onDeleteCat, onDe
               <h2 id={`home-${home.id}`} className={s.homeName}>{home.name}</h2>
               <span className={s.place}><Icon name="pin" size={18} />{home.city}{home.district}</span>
               {owner ? homeSummary(home.home) && <p className={s.intro}>{homeSummary(home.home)}</p> : home.intro && <p className={s.intro}>{home.intro}</p>}
-              {/* 3D 環境接 #60（錄影轉空間）、#61（照片轉空間）；居家安全檢測接 #62（環境安全報告）。完成前先開說明頁。
-                  只給一般飼主（準備領養的人看自己的家，決策 007） */}
+              {/* 兩顆按鈕依規格 09 §7.2 狀態表切換：生成 3D 環境／3D 房間處理中／查看模型；居家安全檢測／安全檢測處理中／查看報告。
+                  建模中兩顆一起停用（建模同時在產生報告）。只給一般飼主（準備領養的人看自己的家，決策 007） */}
               {owner && (
                 <div className={s.tools}>
-                  <CatButton size="sm" ears={false} href={`/homes/${home.id}/scene`}><Icon name="scan" size={18} />生成 3D 環境</CatButton>
-                  <CatButton variant="ghost" size="sm" ears={false} href={`/homes/${home.id}/safety`}><Icon name="check" size={18} />居家安全檢測</CatButton>
+                  <ToolButton tool={tools.scene} href={`/homes/${home.id}/scene`} icon="scan" variant="primary" />
+                  <ToolButton tool={tools.safety} href={`/homes/${home.id}/safety`} icon="check" variant="ghost" />
                 </div>
               )}
               <HomeActions home={home} catCount={list.length} adopted={list.filter(c => c.origin_household_id).length} onDelete={onDeleteHome} />
