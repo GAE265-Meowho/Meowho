@@ -1,0 +1,14 @@
+# 房間影片、影格、3D 成果都是家裡的畫面，不進 git（決策 007）
+rooms/
+videos/
+input_frames/
+colmap_ws/
+site/
+*.mp4
+*.mov
+*.ply
+*.splat
+# 金鑰與執行檔
+.env.worker
+tools/
+__pycache__/

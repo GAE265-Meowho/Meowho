@@ -1,0 +1,8 @@
+# Python 3.10 ~ 3.12（Open3D 目前沒有 3.13+ 的 wheel）
+numpy>=1.24,<2.3
+opencv-python>=4.8
+open3d>=0.18
+# 選用：segment_objects.py
+# torch>=2.5
+# torchvision
+# transformers>=4.56
