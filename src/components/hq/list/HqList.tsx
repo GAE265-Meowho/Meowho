@@ -32,8 +32,8 @@ export function HqTabs({ tabs, value, onChange }: { tabs: Option[]; value: strin
   );
 }
 
-export function HqToolbar({ q, onSearch, placeholder, statuses, status, onStatus }: {
-  q?: string; onSearch: (q: string) => void; placeholder: string;
+export function HqToolbar({ q, onSearch, placeholder, statuses, status, onStatus, filterLabel = "篩選" }: {
+  q?: string; onSearch: (q: string) => void; placeholder: string; filterLabel?: string;
   statuses?: Option[]; status?: string; onStatus?: (s: string | undefined) => void;
 }) {
   return (
@@ -42,7 +42,7 @@ export function HqToolbar({ q, onSearch, placeholder, statuses, status, onStatus
         <input className="hq-input" name="q" type="search" defaultValue={q ?? ""} placeholder={placeholder} aria-label="搜尋" />
       </form>
       {statuses && onStatus && (
-        <div className="hq-chips" role="group" aria-label="篩選">
+        <div className="hq-chips" role="group" aria-label={filterLabel}>
           <button className={!status ? "on" : ""} aria-pressed={!status} onClick={() => onStatus(undefined)}>全部</button>
           {statuses.map(s => (
             <button key={s.value} className={status === s.value ? "on" : ""} aria-pressed={status === s.value} onClick={() => onStatus(s.value)}>{s.label}</button>

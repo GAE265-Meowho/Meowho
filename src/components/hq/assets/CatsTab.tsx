@@ -1,9 +1,10 @@
 "use client";
-// 貓咪區塊｜列表（規格書 04 §2.2）：搜尋、分頁；點整列或名稱進入該貓的貓咪頁（#102 移除狀態與操作欄）
+// 貓咪區塊｜列表（規格書 04 §2.2）：搜尋、分頁；點整列或名稱進入該貓的貓咪頁
+// #159 改版：5 欄（貓咪模型、進度、備註說明、建立者／更新、操作）、依進度篩選、排隊或生成中也能刪
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
-import { CAT_STEPS, catProgress, textureOf, formatCatTime, type CatModelView } from "@/lib/hq/cat-models/types";
+import { CAT_STEPS, catListGroup, catProgress, isJobActive, textureOf, formatCatTime, type CatListGroup, type CatModelView } from "@/lib/hq/cat-models/types";
 import { FLOW_ICONS, FlowStepper } from "./FlowStepper";
 import { paginate, type ListQuery } from "@/lib/hq/listing";
 import { HqListBody, HqPager, HqTable, HqToolbar, type Column } from "../list/HqList";
@@ -19,37 +20,64 @@ const DELETE_ERRORS: Record<string, string> = {
   disabled: "資料來源還沒有啟用",
 };
 
-/** 刪除：按一次「刪除」後在原位確認（同平面圖轉換），不跳視窗 */
+/** 刪除：按一次「刪除」後在原位確認（同平面圖轉換），不跳視窗。#159：排隊或生成中也能刪，任務一併取消；示範貓不能刪 */
 function DeleteCell({ cat, onDeleted }: { cat: CatModelView; onDeleted: () => void }) {
   const [confirming, setConfirming] = useState(false);
-  if (cat.builtin) return <span className="hq-hint">示範貓</span>;
+  if (cat.builtin) return <span className="hq-hint" title={DELETE_ERRORS.template}>不可刪除</span>;
   return (
     <span className="hq-row-tight" onClick={e => e.stopPropagation()}>
       {confirming ? (
-        <>
-          <HqSaveButton onSave={async () => { await deleteJson(`${CAT_API}/${cat.id}`, DELETE_ERRORS); onDeleted(); }}>確認刪除</HqSaveButton>
-          <button type="button" className="hq-btn ghost small" onClick={() => setConfirming(false)}>取消</button>
-        </>
+        <span className="hq-delconfirm" role="alert">
+          <span>確定刪除「{cat.name}」？3D 模型與貼圖會一併刪除，無法復原。{isJobActive(cat.status) && "進行中的任務會一併取消。"}</span>
+          <span className="hq-row-tight">
+            <button type="button" className="hq-btn ghost small" onClick={() => setConfirming(false)}>取消</button>
+            <HqSaveButton danger onSave={async () => { await deleteJson(`${CAT_API}/${cat.id}`, DELETE_ERRORS); onDeleted(); }}>確認刪除</HqSaveButton>
+          </span>
+        </span>
       ) : (
-        <button type="button" className="hq-btn ghost small" aria-label={`刪除${cat.name}`} onClick={() => setConfirming(true)}>刪除</button>
+        <button type="button" className="hq-btn ghost small hq-btn-del" aria-label={`刪除${cat.name}`} onClick={() => setConfirming(true)}>刪除</button>
       )}
     </span>
   );
 }
 
+/** #159 進度：未完成顯示「狀態＋n/4」與 4 段進度條，下方為目前步驟；完成顯示標籤 */
+function ProgressCell({ cat }: { cat: CatModelView }) {
+  const p = catProgress(cat);
+  if (p.step === 4) return <span className="hq-tag">完成</span>;
+  const [stepText, state] = p.text.split("・");
+  return (
+    <span className={`hq-progress ${p.tone}`}>
+      <span className="hq-progress-head"><span>{state ?? "進行中"}</span><span>{p.step}/4</span></span>
+      <span className="hq-progress-bar" role="progressbar" aria-label={p.text} aria-valuemin={0} aria-valuemax={4} aria-valuenow={p.step}>
+        {[1, 2, 3, 4].map(n => <span key={n} className={n <= p.step ? "on" : ""} />)}
+      </span>
+      <span className="hq-progress-step">{stepText.replace(/^\d\/4 /, "")}</span>
+    </span>
+  );
+}
+
+const GROUPS: { value: Exclude<CatListGroup, "other">; label: string }[] = [
+  { value: "running", label: "產生中" }, { value: "done", label: "完成" }, { value: "demo", label: "示範貓" },
+];
+
 /** #118：還沒有 3D 的貓直接進製作glb工作區，有 3D 的進貓咪頁（#129：以「有確認過的紋理貼圖」為準） */
 export const catHref = (c: CatModelView) => (textureOf(c).preview ? assetsHref(c.id) : studioHref(c.id));
 
+/** 搜尋名稱或建立者；status 為進度分組（#159：running／done／demo） */
 export function filterCats(cats: readonly CatModelView[], q: { q?: string; status?: string }): CatModelView[] {
   const text = q.q?.trim().toLowerCase();
-  return cats.filter(c => (!q.status || c.status === q.status) && (!text || c.name.toLowerCase().includes(text)));
+  return cats.filter(c => (!q.status || catListGroup(c) === q.status)
+    && (!text || c.name.toLowerCase().includes(text) || (c.createdBy ?? "").toLowerCase().includes(text)));
 }
 
 export function CatsTab({ query, update }: { query: ListQuery & { page: number }; update: (p: Partial<ListQuery>) => void }) {
   const router = useRouter();
   const { value, reload } = useCatList();
   const toast = useHqToast();
-  const filtered = useMemo(() => filterCats(value.state === "ready" ? value.data : [], query), [value, query]);
+  const all = useMemo(() => (value.state === "ready" ? value.data : []), [value]);
+  const filtered = useMemo(() => filterCats(all, query), [all, query]);
+  const chips = GROUPS.map(g => ({ value: g.value, label: `${g.label} ${all.filter(c => catListGroup(c) === g.value).length}` }));
   const page = paginate(filtered, query.page);
 
   if (value.state === "disabled") {
@@ -63,23 +91,29 @@ export function CatsTab({ query, update }: { query: ListQuery & { page: number }
 
   const columns: Column<CatModelView>[] = [
     {
-      key: "photo", label: "縮圖",
+      key: "cat", label: "貓咪模型",
       render: c => (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img className="hq-thumb" src={catFileUrl(c.id, "photo")} alt="" width={44} height={44} loading="lazy" />
+        <span className="hq-catcell">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img className="hq-thumb" src={catFileUrl(c.id, "photo")} alt="" width={44} height={44} loading="lazy" />
+          <span className="hq-stack">
+            <Link href={catHref(c)} onClick={e => e.stopPropagation()}>{c.name}</Link>
+            {/* #181：前台中途建的貓顯示所屬喵戶 */}
+            {c.household && <span className="hq-hint">喵戶：{c.household.name}</span>}
+            {c.builtin && <span className="hq-tag mute">示範貓</span>}
+          </span>
+        </span>
       ),
     },
-    { key: "name", label: "名稱", render: c => <Link href={catHref(c)} onClick={e => e.stopPropagation()}>{c.name}</Link> },
-    // #118：原「動作數 3/9」是骨架共用的動作數、每隻都一樣，改成這隻貓的三步驟進度
-    { key: "progress", label: "進度", render: c => { const p = catProgress(c); return <span className={`hq-tag ${p.tone}`}>{p.text}</span>; } },
-    // #181：前台中途建的貓顯示所屬喵戶，MeowHQ 自建的顯示 —
-    { key: "household", label: "喵戶", render: c => c.household?.name ?? "—" },
-    { key: "creator", label: "建立者", render: c => c.createdBy ?? "—" },
-    { key: "updated", label: "更新時間", render: c => formatCatTime(c.updatedAt) },
-    { key: "notes", label: "備註說明", render: c => c.notes || "—" },
+    { key: "progress", label: "進度", render: c => <ProgressCell cat={c} /> },
+    { key: "notes", label: "備註說明", render: c => (c.notes ? <span className="hq-clamp2" title={c.notes}>{c.notes}</span> : <span className="hq-hint">尚未填寫</span>) },
+    {
+      key: "creator", label: "建立者／更新",
+      render: c => <span className="hq-stack"><span>{c.createdBy ?? "—"}</span><span className="hq-hint">{formatCatTime(c.updatedAt)}</span></span>,
+    },
     { key: "actions", label: "操作", render: c => <DeleteCell cat={c} onDeleted={() => { toast.show({ message: `已刪除「${c.name}」` }); reload(); }} /> },
   ];
-  // #102：不顯示狀態與操作欄；整列點擊進貓咪頁，製作glb工作區從貓咪頁進入
+  // 整列點擊進貓咪頁，製作glb工作區從貓咪頁進入
 
   return (
     <>
@@ -95,7 +129,8 @@ export function CatsTab({ query, update }: { query: ListQuery & { page: number }
       </section>
       <h2 className="hq-listtitle">已建立的貓咪模型</h2>
       <HqToolbar
-        q={query.q} onSearch={q => update({ q })} placeholder="搜尋貓咪名稱"
+        q={query.q} onSearch={q => update({ q })} placeholder="搜尋貓咪名稱或建立者"
+        statuses={chips} status={query.status} onStatus={status => update({ status, page: 1 })} filterLabel="依進度篩選"
       />
       <HqListBody
         loading={value.state === "loading"} error={value.state === "error"} onRetry={reload}
