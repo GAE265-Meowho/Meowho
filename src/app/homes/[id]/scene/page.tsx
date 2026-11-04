@@ -1,6 +1,7 @@
 "use client";
-// 建立我家的 3D 房間（規格 09 §7.2、§8；#60、#61）：拍攝須知 → 環境檢查的提醒 → 「開始製作」或「上傳影片」。
-// ⚠ 影片轉 3D 房間還沒接上前台：按下去直接建一間示範房間當作做好了（/api/homes/[id]/room），接真正流程見 docs/modules/readiness.md。
+// 建立我家的 3D 房間（規格 09 §7.2、§8；#60、#61）：拍攝須知 →「開始製作」或「上傳影片」→ 確認影片沒問題 → 環境檢查的提醒 → 建立。
+// ⚠ 錄影、上傳、影片檢查與轉 3D 房間還沒接上前台：按下去直接當作影片沒問題，問完環境檢查就建一間示範房間當作做好了
+//   （/api/homes/[id]/room），接真正流程見 docs/modules/readiness.md。
 // 居家原始影像建好、環境報告產出後即刪除（決策 007）。?next= 是建好後要回去的那一步（例如某隻貓的領養任務）。
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -10,13 +11,12 @@ import s from "@/components/me/me.module.css";
 import f from "@/components/onboarding/intake.module.css";
 import CatButton from "@/components/ui/CatButton";
 import Icon from "@/components/ui/Icon";
-import Required from "@/components/ui/Required";
 import { safeNext } from "@/lib/household-gate";
-import { SHOOTING_TIPS, startOutcome, type EnvChoice } from "@/lib/home-room";
+import { SHOOTING_TIPS, envNext, type EnvAnswer, type EnvStep } from "@/lib/home-room";
 import { getBrowserSupabase } from "@/lib/supabase/client";
 import r from "./scene.module.css";
 
-type Step = "guide" | "remind" | "declined" | "making" | "done";
+type Step = "guide" | EnvStep | "making" | "done";
 
 export default function ScenePage() {
   const { id } = useParams<{ id: string }>();
@@ -24,9 +24,7 @@ export default function ScenePage() {
   const sb = getBrowserSupabase();
   const [rooms, setRooms] = useState<{ id: string; name: string }[] | undefined>(undefined);
   const [next, setNext] = useState<string | null>(null);
-  const [env, setEnv] = useState<EnvChoice | null>(null);
   const [step, setStep] = useState<Step>("guide");
-  const [tried, setTried] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -51,14 +49,10 @@ export default function ScenePage() {
     setStep("done");
   }
 
-  // 「開始製作」「上傳影片」目前做的事一樣
-  function start(again: "check" | "skip" | null = null) {
-    setTried(true);
-    const out = startOutcome(env, again);
-    if (out.step === "choose") return;
-    if (out.step === "remind") { setStep("remind"); return; }
-    if (out.envCheck === "declined_again") { setStep("declined"); return; }
-    create(out.envCheck);
+  // 環境檢查的回答：建立房間，或進到下一個提醒
+  function answer(step: EnvStep, a: EnvAnswer) {
+    const out = envNext(step, a);
+    if ("create" in out) create(out.create); else setStep(out.step);
   }
 
   const goTask = next ?? "/#adopt";
@@ -87,13 +81,23 @@ export default function ScenePage() {
       <p className={f.lead}>你可以先離開，好了會通知你。</p>
     </section>
   );
+  else if (step === "ask") body = (
+    <section className={f.card} role="dialog" aria-labelledby="ask-title">
+      <h2 id="ask-title">影片沒問題</h2>
+      <p className={f.lead}>要不要一起檢查家裡對貓安不安全？很多中途會想看這份環境報告，強烈建議一起做。</p>
+      <div className={f.actions}>
+        <CatButton onClick={() => answer("ask", "check")}>一起檢查</CatButton>
+        <CatButton variant="ghost" onClick={() => answer("ask", "skip")}>先不要</CatButton>
+      </div>
+    </section>
+  );
   else if (step === "remind") body = (
     <section className={f.card} role="dialog" aria-labelledby="remind-title">
       <h2 id="remind-title">還沒做環境檢查</h2>
       <p className={f.lead}>很多中途會先看這份報告再決定，建議現在做。</p>
       <div className={f.actions}>
-        <CatButton onClick={() => { setEnv("wanted"); start("check"); }}>現在檢查</CatButton>
-        <CatButton variant="ghost" onClick={() => start("skip")}>還是不要</CatButton>
+        <CatButton onClick={() => answer("remind", "check")}>現在檢查</CatButton>
+        <CatButton variant="ghost" onClick={() => answer("remind", "skip")}>還是不要</CatButton>
       </div>
     </section>
   );
@@ -102,8 +106,8 @@ export default function ScenePage() {
       <h2 id="declined-title">好的</h2>
       <p className={f.lead}>為了保護你家的隱私，原始影片和照片會刪除；之後想做環境檢查，需要重新拍攝。</p>
       <div className={f.actions}>
-        <CatButton onClick={() => create("declined_again")}>繼續建立房間</CatButton>
-        <CatButton variant="ghost" onClick={() => { setEnv("wanted"); setStep("guide"); }}>改成一起檢查</CatButton>
+        <CatButton onClick={() => answer("declined", "skip")}>繼續建立房間</CatButton>
+        <CatButton variant="ghost" onClick={() => answer("declined", "check")}>改成一起檢查</CatButton>
       </div>
     </section>
   );
@@ -121,20 +125,11 @@ export default function ScenePage() {
         </ol>
       </section>
 
-      <section className={`${f.card} ${tried && !env ? r.missing : ""}`} aria-labelledby="env-title">
-        <h2 id="env-title">環境檢查<Required /></h2>
-        <p className={f.lead}>要不要一起檢查家裡對貓安不安全？很多中途會想看這份環境報告，強烈建議一起做。</p>
-        <div className={r.choices} role="radiogroup" aria-labelledby="env-title">
-          <button type="button" role="radio" aria-checked={env === "wanted"} className={r.choice} onClick={() => setEnv("wanted")}>一起檢查</button>
-          <button type="button" role="radio" aria-checked={env === "declined"} className={r.choice} onClick={() => setEnv("declined")}>先不要</button>
-        </div>
-        {tried && !env && <p className={f.error} role="alert">還缺：要不要一起做環境檢查</p>}
-      </section>
-
       {error && <p className={f.error} role="alert">{error}</p>}
       <div className={f.actions}>
-        <CatButton onClick={() => start()}><Icon name="video" size={18} />開始製作</CatButton>
-        <CatButton variant="ghost" onClick={() => start()}><Icon name="plus" size={18} />上傳影片</CatButton>
+        {/* 目前兩個按鈕都直接當作影片沒問題（錄影、上傳還沒接） */}
+        <CatButton onClick={() => setStep("ask")}><Icon name="video" size={18} />開始製作</CatButton>
+        <CatButton variant="ghost" onClick={() => setStep("ask")}><Icon name="plus" size={18} />上傳影片</CatButton>
       </div>
     </>
   );
