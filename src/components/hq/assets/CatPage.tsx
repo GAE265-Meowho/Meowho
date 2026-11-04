@@ -116,6 +116,7 @@ function Preview({ cat }: { cat: CatModelView }) {
               <dt>體型骨架</dt><dd>{BODY_LABELS[body]}骨架</dd>
               <dt>照片角度</dt><dd>{cat.photoView ? PHOTO_VIEW_LABELS[cat.photoView] : "—"}</dd>
               <dt>補花紋</dt><dd>{cat.fillPattern ? FILL_LABELS[cat.fillPattern] : "—"}</dd>
+              <dt>喵戶</dt><dd>{cat.household?.name ?? "—"}</dd>
               <dt>建立時間</dt><dd>{formatTaipeiDate(new Date(cat.createdAt))}</dd>
             </dl>
           </div>

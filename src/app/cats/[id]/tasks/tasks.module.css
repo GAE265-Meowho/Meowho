@@ -1,0 +1,12 @@
+/* 中途出領養任務（規格 09 §5.2） */
+.head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; }
+.head h2 { margin: 0; }
+.row { display: grid; grid-template-columns: 1fr; gap: 16px; }
+@media (min-width: 640px) { .row { grid-template-columns: 160px 1fr; } }
+.action { margin: 0; color: var(--ink-soft); }
+.options { display: grid; gap: 16px; margin: 0; padding: 0; border: 0; min-width: 0; }
+.option { display: grid; gap: 10px; padding: 14px 16px; border-radius: 22px; background: var(--paper); }
+.optActions { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; }
+.check { display: inline-flex; align-items: center; gap: 8px; min-height: var(--tap); font-weight: 700; color: var(--ink); cursor: pointer; }
+.check input { width: 20px; height: 20px; accent-color: var(--caramel); }
+.bad { box-shadow: 0 0 0 3px var(--orange); }

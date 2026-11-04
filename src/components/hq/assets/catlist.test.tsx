@@ -34,6 +34,15 @@ describe("已建立的貓咪模型列表（#102）", () => {
     expect(within(row).getByText("尚未填寫")).toBeInTheDocument(); // 沒有備註
     expect(within(row).queryByRole("link", { name: /預覽動作|製作glb工作區/ })).toBeNull();
   });
+  it("#181 前台中途建的貓在「貓咪模型」欄名稱下顯示所屬喵戶；MeowHQ 自建的不顯示", () => {
+    rows.data = [{ ...member, ownerType: "member", household: { id: "h1", name: "小橘之家" }, notes: "前台" }];
+    const { unmount } = render(<CatsTab query={{ page: 1 }} update={() => {}} />);
+    expect(within(screen.getByRole("row", { name: /小橘/ })).getByText("喵戶：小橘之家")).toBeInTheDocument();
+    unmount();
+    rows.data = [member];
+    render(<CatsTab query={{ page: 1 }} update={() => {}} />);
+    expect(within(screen.getByRole("row", { name: /小橘/ })).queryByText(/喵戶：/)).toBeNull();
+  });
   it("#110：流程改成上傳照片 → AI 三視角 → 產生 3D；兩隻骨架改用「體型骨架預覽」按鈕進入", () => {
     rows.data = [];
     render(<CatsTab query={{ page: 1 }} update={() => {}} />);

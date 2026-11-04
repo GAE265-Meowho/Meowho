@@ -1,7 +1,9 @@
 "use client";
 /* eslint-disable @next/next/no-img-element */
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import { parentOf } from "@/lib/back-path";
 import { resolveAvatarUrl } from "@/lib/avatar";
 import { getBrowserSupabase } from "@/lib/supabase/client";
 import CatPerch from "@/components/journey/CatPerch";
@@ -36,6 +38,7 @@ export function BellIcon({ size = 28 }: { size?: number }) {
 export function SiteHeader() {
   const { logo } = useUi();
   return (
+    <>
     <header className={styles.header}>
       <div className={`wrap ${styles.headerInner}`}>
         <Link href="/" className={styles.logo} aria-label="Meowho喵戶 首頁">
@@ -57,6 +60,22 @@ export function SiteHeader() {
         <UserArea />
       </div>
     </header>
+    <BackBar />
+    </>
+  );
+}
+
+/** 功能分頁的「上一層」：連到網站結構的上一層（規則在 lib/back-path.ts），首頁不顯示 */
+function BackBar() {
+  const to = parentOf(usePathname() ?? "/");
+  if (!to) return null;
+  return (
+    <nav className={`wrap ${styles.backBar}`} aria-label="上一層">
+      <Link href={to} className={styles.back}>
+        <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
+        上一層
+      </Link>
+    </nav>
   );
 }
 

@@ -18,6 +18,8 @@
 
 ## 任務（tracer-bullet，每張可獨立 Demo）
 
+- 皇家食物元件（#186，Tina × Codex，2026-11-04）：審查中；分支 `feat/186-royalcanin-food-catalog`。台灣官方 sitemap 86 款、照片與交叉分類完成，72 款參考價、14 款待查；詳細資訊官方外連。尚需正式字型建置／人工視覺驗證，購買流程另做。
+
 | # | 任務 | 模組文件 | 前置 | 期別 | Issue | 負責 | 狀態 |
 |---|---|---|---|---|---|---|---|
 | 0 | 首頁原型（Next.js、設計系統、管理者標誌設定） | matching | — | P0 | — | Tina | 完成 |
@@ -31,6 +33,7 @@
 | 93 | MeowHQ 室內空間：影片轉 3D 房間與貓咪互動 | admin-moderation | — | P1 | #93 | 珮瑜 | 審查中 |
 | 159 | MeowHQ 貓咪製作：已建立的貓咪模型列表改版 | admin-moderation | — | P2 | #159 | Tina | 審查中 |
 | 33 | 真實走查並修正中途之家 onboarding | ai-onboarding、household-cats | 2、6 | P1 | #33 | Tina × Codex | 審查中 |
+| 161 | 領養任務目標流程規格（spec 09）與資料庫（0017，已執行） | readiness、adoption、household-cats | — | P1 | #161 | 子哲 | 審查中 |
 | 8 | 一句話 RAG 配對（取代關鍵字原型） | matching | 3、7 | P1 | 待建立 | E | 待辦 |
 | 9 | 私訊＋站內通知鈴鐺（通知基本版已完成於 #3） | social | 1 | P1 | 待建立 | C | 待辦 |
 | 10 | 領養設定、提出申請、審核流程（含多人申請） | adoption | 2、7、9 | P1 | 待建立 | C | 待辦 |
@@ -79,6 +82,12 @@
 | 29 | 部署改為 Vercel meowho、Supabase 改為獨立專案（決策 005）的文件 | account | — | P1 | #66 | 子哲 × Claude | 審查中 |
 | 30 | 修正 Google 登入後看不到頭像 | account | — | P1 | #68 | 子哲 × Claude | 審查中 |
 | 31 | MeowHQ 室內空間移除寶麗來轉換卡片 | admin-moderation | — | P2 | — | Tina × Codex | 進行中 |
+| 38 | MeowHQ 頂列加「前往前台」連結 | admin-moderation | — | P2 | #191 | Tina × Claude Code | 審查中 |
+| 36 | 前台新增貓咪：生活照至少 3 張、年齡輸入，月齡帶進 3D 模型 | ai-onboarding、household-cats | — | P1 | #185 | Tina × Claude Code | 審查中 |
+| 37 | 前台新增貓咪：側面／正面／背面三張、自動 AI 三視角、前台預覽、接 MeowHQ | ai-onboarding、household-cats | 35、36 | P1 | #188 | Tina × Claude Code | 審查中 |
+| 32 | MeowHQ 貓戶管理模組：依類別查看貓戶、貓咪卡片（0020 待執行） | admin-moderation | — | P2 | #179 | Tina × Claude Code | 審查中 |
+| 34 | MeowHQ 左側選單視覺優化（字級層級、間距、可收合樹狀） | admin-moderation | — | P2 | #183 | Tina × Claude Code | 審查中 |
+| 35 | 前台待領養貓的 3D 模型接上 MeowHQ 貓咪製作：照片搬到製作用 bucket、列表加喵戶欄；下一步前台三張照片＋年齡 | household-cats、admin-moderation | — | P1 | #181 | Tina × Claude Code | 審查中 |
 
 ## 高風險 PoC（11/05 前）
 

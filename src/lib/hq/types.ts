@@ -5,6 +5,7 @@
 
 /** 後台模組代號，也是授權的最小單位（GLOSSARY「後台模組」）。 */
 export const ADMIN_MODULES = [
+  "households", // 貓戶管理（#179；0020 上線時所有現有管理員都已授權）
   "report_moderation", // 檢舉與內容審核
   "user_management", // 用戶權限管理
   "products", // 商品
@@ -15,6 +16,7 @@ export const ADMIN_MODULES = [
 export type AdminModule = (typeof ADMIN_MODULES)[number];
 
 export const ADMIN_MODULE_LABELS: Record<AdminModule, string> = {
+  households: "貓戶管理",
   report_moderation: "檢舉與內容審核",
   user_management: "用戶權限管理",
   products: "商品",
@@ -33,8 +35,10 @@ export const GRANTABLE_MODULES = ADMIN_MODULES.filter(
 export type GrantableModule = Exclude<AdminModule, (typeof SYSTEM_ADMIN_ONLY_MODULES)[number]>;
 
 /** 側欄項目：首頁（待辦總覽）不是授權模組，所有登入的管理員都有。Admin 授權前有分隔線。 */
-export type SidebarItem = "home" | AdminModule;
-export const HQ_SIDEBAR_ORDER: readonly SidebarItem[] = ["home", ...ADMIN_MODULES];
+export const HQ_OPEN_ITEMS = ["home"] as const;
+export type HqOpenItem = (typeof HQ_OPEN_ITEMS)[number];
+export type SidebarItem = HqOpenItem | AdminModule;
+export const HQ_SIDEBAR_ORDER: readonly SidebarItem[] = [...HQ_OPEN_ITEMS, ...ADMIN_MODULES];
 
 /**
  * 角色（meow_profiles.role）。

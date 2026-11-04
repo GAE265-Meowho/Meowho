@@ -11,10 +11,10 @@ import type { AdoptionTerms } from "@/lib/cat-profile/adoption";
 import type { CaretakerType } from "@/lib/onboarding/household";
 import { defaultCatStatus } from "@/lib/onboarding/household-rules";
 import {
-  MAX_PHOTOS, MAX_VIDEOS, applyMediaAnalysis, beginCat, emptyIntake, nextStep, setCatField,
+  ANGLE_LABEL, MAX_PHOTOS, MAX_VIDEOS, applyMediaAnalysis, beginCat, emptyIntake, nextAngle, nextStep, setCatField,
   type IntakeState, type MediaAnalysis, type Step,
 } from "@/lib/onboarding/conversation";
-import { LIFE_STAGE_CHIPS, REVIEW_CHIP, VIDEO_ERROR, askText, noticeText } from "@/lib/onboarding/intake-copy";
+import { LIFE_STAGE_CHIPS, REVIEW_CHIP, VIDEO_ERROR, angleText, askText, noticeText } from "@/lib/onboarding/intake-copy";
 import { toCatInsert, toCatVideoInserts, type VideoMeta } from "@/lib/onboarding/intake-rows";
 import { MAX_ANALYZE_VIDEO_BYTES, validateVideoUpload } from "@/lib/storage/media";
 import type { UploadTarget } from "@/lib/storage/types";
@@ -134,7 +134,9 @@ export function IntakeChat({ userId, home }: { userId: string | null; home: Exis
       next.cat.lifeStage !== prev.cat.lifeStage && next.cat.lifeStage && `看起來是${LIFE_STAGE_LABEL[next.cat.lifeStage]}`,
     ].filter(Boolean);
     if (guessed.length) setAiUsed(true);
-    advance(prev, next, guessed.length ? `我猜${guessed.join("、")}，最後會請你確認。` : fromAI ? "照片收到了。" : "照片收到了，外觀的部分最後可以自己填。");
+    // #188：側面、正面、背面依序收，還沒齊時提示下一個角度
+    const more = angleText(prev.cat, next.cat);
+    advance(prev, next, (guessed.length ? `我猜${guessed.join("、")}，最後會請你確認。` : fromAI ? "照片收到了。" : "照片收到了，外觀的部分最後可以自己填。") + more);
   }
 
   async function addPhotos(files: File[]) {
@@ -261,6 +263,9 @@ export function IntakeChat({ userId, home }: { userId: string | null; home: Exis
         const { error: vErr } = await sb.from("meow_cat_videos").insert(toCatVideoInserts(catId, cur.cat.videos, videoMeta.current));
         if (vErr) say(`貓咪建好了，但影片沒有存進去：${vErr.message}`);
       }
+      // 中途的貓：背景建立 3D 貓（規格 09 §5.1；目前是預設 3D 貓，見 /api/cats/[id]/model）。失敗時貓咪頁會再補一次
+      // #188：帶三個角度的照片，伺服器複製到製作用空間後自動開始 AI 三視角
+      if (!own) fetch(`/api/cats/${catId}/model`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ angles: cur.cat.angles }) }).catch(() => undefined);
     }
     unsaved.current = { photos: new Set(), videos: new Set() };
     setSaving(false);
@@ -281,12 +286,14 @@ export function IntakeChat({ userId, home }: { userId: string | null; home: Exis
       <section className={`${s.card} ${s.center}`} aria-labelledby="done-title">
         {done.cover ? <img className={s.doneCover} src={done.cover} alt={`${done.name}的照片`} /> : <span className={s.avatar} aria-hidden="true"><Icon name="cat" /></span>}
         <h2 id="done-title">{done.name}的名片建立好了</h2>
-        <p className={s.lead}>{done.stage ? `${done.stage}・` : ""}{own ? "自家貓" : "待領養"}{sb ? "" : "（示範模式：資料沒有儲存）"}</p>
+        <p className={s.lead}>{done.stage ? `${done.stage}・` : ""}{own ? "自家貓" : "準備中"}{sb ? "" : "（示範模式：資料沒有儲存）"}</p>
+        {/* 準備中的貓前台看不到；3D 模型確認、任務完成後到貓咪頁按「準備出發找新主人」（規格 09 §5） */}
+        {!own && <p className={s.lead}>確認 3D 模型、出好領養任務，就能出發找新主人。</p>}
         <div className={s.actions} style={{ justifyContent: "center" }}>
-          {/* 建好就能直接建問卷（#109），連到修改頁的問卷區塊 */}
-          {!own && sb && <CatButton href={`/cats/${catId}/edit#form-editor`}>建立領養問卷</CatButton>}
+          {!own && sb && <CatButton href={`/cats/${catId}/tasks`}>出領養任務</CatButton>}
+          {!own && sb && <CatButton variant="ghost" href={`/cats/${catId}`}>看 3D 模型</CatButton>}
           <CatButton variant="ghost" onClick={anotherCat}>再新增一隻</CatButton>
-          <CatButton variant={!own && sb ? "ghost" : "primary"} href="/me">去我的喵戶</CatButton>
+          {(own || !sb) && <CatButton href="/me">去我的喵戶</CatButton>}
         </div>
       </section>
     );
@@ -318,7 +325,7 @@ export function IntakeChat({ userId, home }: { userId: string | null; home: Exis
       {!reviewing && (
         <div className={s.mediaBar}>
           <CatButton variant={askingPhotos ? "primary" : "ghost"} size="sm" disabled={busy || Boolean(held) || state.cat.photos.length >= MAX_PHOTOS} onClick={() => photoInput.current?.click()}>
-            <Icon name="camera" size={18} /> 加照片
+            <Icon name="camera" size={18} /> {nextAngle(state.cat) ? `上傳${ANGLE_LABEL[nextAngle(state.cat)!]}照` : "加照片"}
           </CatButton>
           <CatButton variant="ghost" size="sm" disabled={busy || state.cat.videos.length >= MAX_VIDEOS} onClick={() => videoInput.current?.click()}>
             <Icon name="video" size={18} /> 加影片

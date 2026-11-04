@@ -1,7 +1,7 @@
 // /onboarding 進入點決策（純函式，方便測試）
 import { canAddHousehold } from "./household-rules";
 
-export type StartPhase = "login" | "choose" | "household" | "cat";
+export type StartPhase = "login" | "guide" | "back" | "choose" | "household" | "cat";
 
 export interface StartInput {
   configured: boolean;   // 是否已連接 Supabase（否＝示範模式）
@@ -11,15 +11,18 @@ export interface StartInput {
   homesCount: number;
   householdLimit: number | null; // 喵戶數量上限；null＝不限制（開發期間，#82）
   targetFound: boolean;  // ?household=<id> 指定的貓戶存在
+  wantGuide?: boolean;   // 登入後還沒有喵戶，從 /auth/callback 或喵戶門檻來的（?guide=1，規格 09 §7.1）
 }
 
 /**
  * - 需要登入的情況：已連接資料庫但未登入
  * - 新貓入戶：一律先選擇「新家」或「既有貓戶」，讓使用者明確決定貓咪歸屬
  * - 一般建立喵戶：沒有喵戶 → 直接開始對話（#72 不先讀說明）；有喵戶 → 選擇
+ * - 引導建立喵戶（?guide=1）：沒有喵戶 → 先說明為什麼要建立；已經有了 → 回到原本那一步
  */
 export function decideStart(i: StartInput): StartPhase {
   if (i.configured && !i.loggedIn) return "login";
+  if (i.wantGuide) return i.homesCount === 0 ? "guide" : "back";
   if (i.targetFound) return "cat";
   if (i.wantCat) return "choose";
   if (i.homesCount === 0) return "household";

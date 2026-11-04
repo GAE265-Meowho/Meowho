@@ -1,9 +1,13 @@
 # HANDOFF — 接手的 agent 需要知道的事
 
 > 寫給「完全沒有上下文的下一個 agent」。只保留**現在仍然成立**的內容。
-> 最後更新：2026-11-02｜珮瑜 × Claude Code（#93 房間影片轉換）
+> 最後更新：2026-11-04｜子哲 × Claude Code（#161 前台 3D 房間交接）
 
 ## 目前狀態
+- **#186 皇家食物元件（Tina × Codex）**：`/MeowHQ/assets?tab=food`，官方 sitemap 86 款、照片落地，分類與官方產品外連已接好。`src/lib/hq/food/` 共用目錄供之後虛擬購買；72 款有參考價、14 款待查。尚未接錢包／訂單／餵食庫存，未改 Supabase。參考價可用 `node scripts/update-food-reference-prices.mjs` 更新人工觀察值；完整官方再匯入用 `node scripts/import-royalcanin-food.mjs`（需網路）。
+- **前台貓咪 3D 接 MeowHQ（#182 → #187 → #188 依序合併）**：#188 讓新增貓咪收側面／正面／背面、建立後自動跑 AI 三視角（需 Vercel 的 `SUPABASE_SERVICE_ROLE_KEY` 與 Azure 影像設定），前台貓咪頁可預覽；Step 03、04 仍在 MeowHQ 手動。下一步：三視角完成後通知 MeowHQ 管理員（之後改自動）。
+- **MeowHQ 貓戶管理（#179，PR #180）**：新模組 `households`。`0020_meow_households_module.sql` **尚未執行**；執行前，系統管理員看得到頁面但只讀得到公開貓咪，其他管理員看不到選單。
+- **前台「我的 3D 房間」接上房間模型 API（珮瑜接手，2026-11-04）**：現在 `/homes/[id]/scene` 和 `/homes/[id]/safety` 按下去都只建示範房間與示範報告（service role，`/api/homes/[id]/room`、`/api/homes/[id]/safety`）。要接的步驟、和後台 #93 不同的隱私規則（私有 bucket `meow-home-videos`／`meow-home-scenes`、原始檔處理完立即刪、成果不能放公開 bucket）、worker 要改的地方，全部寫在 `docs/modules/readiness.md`「給珮瑜：把房間模型 API 接到前台」。目標流程是 `docs/spec/09_領養任務目標流程規格.md` v0.6 §7.2。需要 Vercel 的 `SUPABASE_SERVICE_ROLE_KEY`（沒讀到時 API 回 503 `not_configured`）。
 - `main` 上的首頁、頁首頁尾是 **meowwho-v2 新版 UI**（#65）；首頁「帶我回家」等區塊資料仍為示意（`src/lib/cats.ts`、`households.ts`）。尚未改版的內頁沿用舊元件樣式。
 - 已接 Supabase（Auth、Postgres、Storage）與 AI（LangChain，`src/lib/ai/`，可切換 Gemini／OpenAI／Azure／Anthropic）的程式碼；**環境變數尚未設定時網站為「示範模式」**：可操作但不能登入、不儲存、AI 改用規則解析。設定步驟：`docs/setup/SUPABASE_LLM_SETUP.md`。
 - 已完成：中途之家 onboarding（`/onboarding`）、我的貓戶（`/me`）、條款頁（`/legal`）。其他 `data-proto` 按鈕仍只跳提示。
@@ -20,7 +24,7 @@
 
 - **#20（logic）已實作待審**（分支 `feat/20-hq-logic`）：`src/lib/hq/permissions.ts`、`actions.ts` 純函式；#21 shell、#22～#24 直接 import 使用，不要重複寫判斷。時間相關函式由呼叫端傳入 `now`。
 
-- **MeowHQ 紋理貼圖確認（#129，分支 `feat/129-studio-detail-layout`）**：貓咪製作改 4 步，第 3 步紋理貼圖要「確認使用」才能進第 4 步。已確認路徑存 `meow_cat_models.profile.confirmed_albedo`；判斷一律用 `textureOf()`／`textureInfo()`（`src/lib/hq/cat-models/types.ts`），**貓咪頁不要再用 `hasAlbedo` 判斷能不能預覽**。產生紋理貼圖仍由 Tina 電腦上的 `paint_worker.py --supabase` 執行。
+- **MeowHQ 紋理貼圖確認（#129，分支 `feat/129-studio-detail-layout`）**：貓咪製作改 4 步，第 3 步紋理貼圖要「確認使用」才能進第 4 步。已確認路徑存 `meow_cat_models.profile.confirmed_albedo`；判斷一律用 `textureOf()`／`textureInfo()`（`src/lib/hq/cat-models/types.ts`），**貓咪頁不要再用 `hasAlbedo` 判斷能不能預覽**。產生紋理貼圖由 `paint_worker.py --supabase` 執行；**worker 程式已放進本 repo `workers/cat-paint/`**（#169），預定跑在珮瑜建立的 Azure VM（Ubuntu 24.04、T4），安裝見該資料夾 README；同時只能有一個 worker。
 - **#104 成貓／幼貓變體（分支 `feat/104-adult-kitten-variants`）**：`0016_meow_cat_model_variants.sql` 及 `docs/hq/paint-worker-104.patch` 要與新版網站配套。Tina 電腦的 `Meow/cat_studio/paint_worker.py` 已套用補丁；搬到 Azure VM 時也要套同版。SQL **尚未執行**，須經 Tina 明確確認；worker 重啟且 SQL 套用後，才在 Vercel 設 `CAT_MODEL_VARIANTS_WORKER_READY=1`。預設為 0，網站維持單體型舊流程。補丁在 Meowho repo，可在 worker 目錄用 `git apply` 套用。`body_type` 決定生成母體，年齡只作舊任務預設；兩體型貼圖與上一版各自保存。
 - **產生紋理貼圖前置條件（#135，分支 `fix/135-texture-needs-views`）**：三視角都成功才能產生，判斷一律用 `viewsReady()`（`src/lib/hq/cat-models/types.ts`）；`queuePaint`／`sbQueuePaint` 回 `views_required`（409）。舊貓沒有三視角的要先補產生。
 - **平面圖轉換（#138，分支 `feat/138-floorplan-entry`，規格 `docs/hq/05`）**：PR 1 完成入口與上傳。一戶＝`meow_room_models` 一列（`source='floorplan'`），房間在 `meta.rooms`；原圖在 Azure Blob `floorplans/<戶>/<房間>`（決策 007 例外，見其補充）。邏輯在 `src/lib/hq/floorplans/`（`core.ts` 依賴注入、可測）。`0015_meow_room_floorplan.sql` 已於 2026-11-02 由子哲執行。Azure CORS 不允許 PR 預覽網址，上傳要在正式站或 localhost 測。**PR 3 AI 讀圖**（分支 `feat/138-floorplan-ai-read`）：上傳確認後 `after()` 自動讀圖，重新讀圖 `POST /api/hq/rooms/floorplan/read`；固定用 Azure 聊天部署（`AZURE_OPENAI_CHAT_DEPLOYMENT_NAME`），沒設定時房間停在「待讀圖」。整理與檢查在 `read.ts`，房間狀態判斷用 `canRead()`／`houseStatus()`。尚未用真實平面圖在正式站實測準確度。**#144（分支 `feat/144-floorplan-photos`）**：同一個上傳也收室內實景照片（AI 自動分辨），一間房最多 4 張（`photo_paths`，判斷用 `roomImages()`）；實景照片保留原圖是決策 007 的第二個例外。**步驟 4 3D 娃娃屋（分支 `feat/138-floorplan-viewer`）**：場景資料 `scene.ts`（純函式）、畫面 `FloorplanViewer.tsx`（next/dynamic，ssr: false）；不要用 drei 的 `Html` 做房名（React 19 開發模式會掉標籤）。家具是模型庫 glb（`public/hq-floorplan/furniture/`，由 `scripts/blender/furniture_kit.py` 產生，`kit.ts` 的尺寸要和 kit.json 一致）；靠牆家具由 `read.ts` 的 `snapToWall` 貼齊。

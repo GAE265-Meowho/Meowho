@@ -98,6 +98,8 @@ export function CatsTab({ query, update }: { query: ListQuery & { page: number }
           <img className="hq-thumb" src={catFileUrl(c.id, "photo")} alt="" width={44} height={44} loading="lazy" />
           <span className="hq-stack">
             <Link href={catHref(c)} onClick={e => e.stopPropagation()}>{c.name}</Link>
+            {/* #181：前台中途建的貓顯示所屬喵戶 */}
+            {c.household && <span className="hq-hint">喵戶：{c.household.name}</span>}
             {c.builtin && <span className="hq-tag mute">示範貓</span>}
           </span>
         </span>

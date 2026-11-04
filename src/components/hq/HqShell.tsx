@@ -2,7 +2,7 @@
 // MeowHQ 外殼：頂列（Logo、鈴鐺、頭像選單）＋側欄（手機「☰」）＋內容區（規格書 §4.0、§4.9）。
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Fragment, Suspense, useState } from "react";
+import { Fragment, Suspense, useEffect, useState } from "react";
 import { ADMIN_MODULE_LABELS, type SidebarItem } from "@/lib/hq/types";
 import { LOGOS } from "@/lib/mock-data";
 import { HQ_HOME, HQ_MODULE_PATH, isModule } from "./access";
@@ -26,7 +26,7 @@ const icon = { fill: "none", stroke: "currentColor", strokeWidth: 1.6, strokeLin
 /** 側欄分組（#113，依 Stitch「MeowHQ Cat Model Builder」）：首頁不分組；沒有可見項目的分組不顯示 */
 const NAV_GROUPS: { label: string | null; items: SidebarItem[] }[] = [
   { label: null, items: ["home"] },
-  { label: "營運與社群", items: ["report_moderation", "user_management"] },
+  { label: "營運與社群", items: ["households", "report_moderation", "user_management"] },
   { label: "商品與知識", items: ["products", "knowledge"] },
   // virtual_assets 不是單一連結：以「虛擬體驗元件管理」為分組標題、各區塊為第一層（見 AssetsGroup；Tina 2026-11-02）
   { label: "系統", items: ["admin_authorization"] },
@@ -35,6 +35,7 @@ const NAV_GROUPS: { label: string | null; items: SidebarItem[] }[] = [
 /** 側欄圖示（線條，跟頂列圖示同一組 stroke 設定） */
 const NAV_ICONS: Record<SidebarItem, React.ReactNode> = {
   home: <path d="M4 11l8-7 8 7v8a1 1 0 0 1-1 1h-4v-6h-6v6H5a1 1 0 0 1-1-1z" />,
+  households: <><path d="M3 10.5L8.5 6l5.5 4.5V19H3z" /><path d="M14 9l3.5-3 3.5 3v10h-7" /><path d="M7 19v-4h3v4" /></>,
   report_moderation: <><path d="M5 21V4" /><path d="M5 4h11l-2 4 2 4H5" /></>,
   user_management: <><circle cx="9" cy="8" r="3.2" /><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6" /><path d="M16 4.5a3 3 0 0 1 0 6M18 14c2 .8 3 2.8 3 6" /></>,
   products: <><path d="M5 8h14l-1 12H6z" /><path d="M9 8V6a3 3 0 0 1 6 0v2" /></>,
@@ -54,24 +55,37 @@ const SECTION_ICONS: Partial<Record<AssetSection, React.ReactNode>> = {
 };
 const MENU_SECTIONS = ASSET_SECTIONS.filter(s => !("parent" in s));
 
-/** 虛擬體驗元件管理分組（#113）：?tab= 決定目前區塊；子區塊算父區塊，平面圖的戶（/assets/floorplans/…，#138）算室內空間，其他子頁（/assets/cats/…、/assets/bases）算貓咪製作 */
+/** 虛擬體驗元件管理分組（#113；#183 改為可收合的樹狀選單）：?tab= 決定目前區塊；子區塊算父區塊，平面圖的戶（/assets/floorplans/…，#138）算室內空間，其他子頁（/assets/cats/…、/assets/bases）算貓咪製作 */
 function AssetsGroup({ activePath, onPick, tab }: { activePath: string; onPick: () => void; tab: string | null }) {
   const inAssets = activePath === ASSETS_CATS_HREF || activePath.startsWith(ASSETS_CATS_HREF + "/");
   const current = !inAssets ? null
     : activePath === ASSETS_CATS_HREF && isAssetSection(tab) ? topSection(tab)
     : activePath.startsWith(ASSETS_CATS_HREF + "/floorplans/") ? "rooms" : "cats";
+  // #183：可收合的樹狀選單。在這個模組裡時自動展開；其他頁面預設收合，按標題展開
+  const [open, setOpen] = useState(current !== null);
+  useEffect(() => { if (current !== null) setOpen(true); }, [current]);
   return (
     <ul aria-label={ADMIN_MODULE_LABELS.virtual_assets}>
-      <li className="hq-navgroup" aria-hidden="true">{ADMIN_MODULE_LABELS.virtual_assets}</li>
-      {MENU_SECTIONS.map(sct => (
-        <li key={sct.value}>
-          <Link href={assetSectionHref(sct.value)} className={current === sct.value ? "on" : ""}
-            aria-current={current === sct.value ? "page" : undefined} onClick={onPick}>
-            <svg {...icon}>{SECTION_ICONS[sct.value]}</svg>
-            <span>{sct.label}</span>
-          </Link>
-        </li>
-      ))}
+      <li>
+        <button type="button" className={`hq-navtoggle${current ? " in" : ""}`} aria-expanded={open} aria-controls="hq-nav-assets" onClick={() => setOpen(o => !o)}>
+          <svg {...icon}>{NAV_ICONS.virtual_assets}</svg>
+          <span>{ADMIN_MODULE_LABELS.virtual_assets}</span>
+          <svg {...icon} width={16} height={16} className="hq-navchev"><path d="M9 6l6 6-6 6" /></svg>
+        </button>
+        {open && (
+          <ul id="hq-nav-assets" className="hq-navtree">
+            {MENU_SECTIONS.map(sct => (
+              <li key={sct.value}>
+                <Link href={assetSectionHref(sct.value)} className={current === sct.value ? "on" : ""}
+                  aria-current={current === sct.value ? "page" : undefined} onClick={onPick}>
+                  <svg {...icon}>{SECTION_ICONS[sct.value]}</svg>
+                  <span>{sct.label}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </li>
     </ul>
   );
 }
@@ -121,6 +135,11 @@ export function HqShell({ items, user, unread, onLogout, activePath, children, u
         </button>
         <HqLogo />
         <div className="hq-grow" />
+        {/* #191：到前台的入口，新分頁開啟，後台停在原處；手機只顯示圖示 */}
+        <a className="hq-frontlink" href="/" target="_blank" rel="noopener" aria-label="前往前台（另開新分頁）">
+          <svg {...icon}><path d="M14 4h6v6" /><path d="M20 4l-9 9" /><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" /></svg>
+          <span>前往前台</span>
+        </a>
         <NotificationBell unread={unread} userId={userId} onChanged={onNotificationsChanged} />
         <div className="hq-menu-wrap">
           <button className="hq-avatar" aria-label="帳號選單" aria-haspopup="menu" aria-expanded={menuOpen} onClick={() => setMenuOpen(o => !o)}>
