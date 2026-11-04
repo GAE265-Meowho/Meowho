@@ -171,3 +171,4 @@ ole === "admin" 判斷管理員，而現有 admin 會升為 system_admin；舊�
 
 ### #197 生活用品（2026-11-04）
 - Migration：`0021_meow_household_items.sql`，已於 2026-11-04 在 `onebpkbkrnnwamwsoelo` 執行。新增 `meow_item_categories`、`meow_items`、公開 bucket `meow-items`（只允許 .glb，20MB）；讀取公開，寫入需 `virtual_assets`。畫面與虛擬體驗接線尚未做。
+- 畫面：`ItemsTab`（上傳、篩選、類別 CRUD）；虛擬體驗 `ExperienceTab` 可放置用品，`FloorplanViewer` 加入碰撞。
