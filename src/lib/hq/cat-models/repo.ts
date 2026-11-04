@@ -1,11 +1,11 @@
 // 貓咪模型資料來源：本機檔案 ＞ Supabase ＞ 靜態 bundled ＞ 關閉
 import {
-  createCat, getCat, listCats, localRoot, queuePaint, readBaseGlb, readCatFile, restorePrevious, startViews,
-  type CreateResult, type FileKind, type QueueResult, type RestoreResult, type NewCatInput,
+  createCat, deleteCat, getCat, listCats, localRoot, queuePaint, readBaseGlb, readCatFile, restorePrevious, startViews,
+  type CreateResult, type DeleteResult, type FileKind, type QueueResult, type RestoreResult, type NewCatInput,
 } from "./local";
 import { bundledBasePublicPath, bundledEnabled, bundledFilePublicPath, getBundledCat, listBundledCats } from "./bundled";
 import {
-  sbBaseRedirect, sbCreateCat, sbFileRedirect, sbGetCat, sbListCats, sbStartViews, sbPhotoUpload, sbQueuePaint, sbRestore, sbConfirmTexture,
+  sbBaseRedirect, sbCreateCat, sbDeleteCat, sbFileRedirect, sbGetCat, sbListCats, sbStartViews, sbPhotoUpload, sbQueuePaint, sbRestore, sbConfirmTexture,
   type UploadTicket,
 } from "./supabase";
 import type { BodyType, CatModelView } from "./types";
@@ -158,5 +158,17 @@ export async function repoConfirmTexture(id: string, body?: unknown): Promise<
   const src = resolveCatSource();
   if (src === "local") return (await getCat(localRoot()!, id)) ? { ok: true } : { ok: false, code: "not_found" };
   if (src === "supabase") return sbConfirmTexture(id, body);
+  return { ok: false, code: "disabled" };
+}
+
+/** 刪除貓咪模型（以前的示範／範本貓不能刪：它們在程式內建資料裡，不在資料庫） */
+export async function repoDeleteCat(id: string): Promise<DeleteResult | { ok: false; code: "permission_denied" } | Denied> {
+  const src = resolveCatSource();
+  if (src === "local") return deleteCat(localRoot()!, id);
+  if (src === "supabase") {
+    const r = await sbDeleteCat(id);
+    if (!r.ok && r.code === "not_found" && getBundledCat(id)) return { ok: false, code: "template" };
+    return r;
+  }
   return { ok: false, code: "disabled" };
 }

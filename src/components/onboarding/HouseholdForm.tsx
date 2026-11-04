@@ -1,7 +1,7 @@
 "use client";
 // 建立或修改喵戶：先選身分，表單依身分顯示不同欄位（#82）。規則在 lib/onboarding/household-rules.ts。
 // 修改時身分固定（建立後不能切換，資料庫也會擋），中途徽章申請改在「我的喵戶」。
-// 一般飼主的喵戶是「自己的家」；中途的喵戶是「送養據點」。建好後回到「我的喵戶」。
+// 一般飼主的喵戶是「自己的家」；中途的喵戶是「送養據點」。建好後回到「我的喵戶」，有 onCreated 時交給呼叫的頁面（規格 09 §7.1）。
 // 位置只公開到縣市＋區（AGENTS.md §6），所以沒有地址欄。
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -14,22 +14,27 @@ import { getBrowserSupabase } from "@/lib/supabase/client";
 import CatButton from "../ui/CatButton";
 import Required from "../ui/Required";
 import { MultiPick, OnePick, TermsFields } from "./AdoptionFields";
+import { HouseholdAvatar } from "./HouseholdAvatar";
 import s from "./intake.module.css";
 
 const MISSING_LABEL: Record<MissingField, string> = {
   role: "身分", name: "喵戶名稱", nameTaken: "不重複的喵戶名稱（你已經有同名的喵戶）", city: "縣市", district: "區", dwelling: "住家型態", orgName: "單位名稱", orgProofUrl: "立案證明連結（網址）",
 };
 
-export function HouseholdForm({ userId, existingNames, onDemoCreated, editing }: {
+export function HouseholdForm({ userId, existingNames, onDemoCreated, onCreated, editing }: {
   userId: string | null;
   /** 這個帳號其他喵戶的名稱；名稱不能重複 */
   existingNames: string[];
   onDemoCreated?: (name: string, role: Form["role"]) => void;
+  /** 建好後不回「我的喵戶」，改由呼叫的頁面決定下一步 */
+  onCreated?: (home: { id: string; name: string; role: Form["role"] }) => void;
   /** 修改既有的喵戶 */
-  editing?: { id: string; form: Form };
+  editing?: { id: string; form: Form; avatarPath?: string | null };
 }) {
   const router = useRouter();
   const [f, setF] = useState<Form>(() => editing?.form ?? emptyHouseholdForm());
+  // 喵戶頭像（0019）：沒上傳就顯示 Google 頭像
+  const [avatar, setAvatar] = useState<string | null>(editing?.avatarPath ?? null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [tried, setTried] = useState(false);
@@ -48,7 +53,7 @@ export function HouseholdForm({ userId, existingNames, onDemoCreated, editing }:
     const sb = getBrowserSupabase();
     if (!sb || !userId) { setSaving(false); onDemoCreated?.(row.name, f.role); return; }
     if (editing) {
-      const { error: err } = await sb.from("meow_households").update(toHouseholdUpdate(f)).eq("id", editing.id);
+      const { error: err } = await sb.from("meow_households").update({ ...toHouseholdUpdate(f), avatar_path: avatar }).eq("id", editing.id);
       if (err) {
         setSaving(false);
         setError(err.message.includes("household_name_taken") ? "你已經有同名的喵戶，換個名字吧。" : `儲存失敗：${err.message}`);
@@ -57,7 +62,7 @@ export function HouseholdForm({ userId, existingNames, onDemoCreated, editing }:
       router.push("/me");
       return;
     }
-    const { data, error: err } = await sb.from("meow_households").insert({ ...row, owner_id: userId }).select("id").single();
+    const { data, error: err } = await sb.from("meow_households").insert({ ...row, owner_id: userId, avatar_path: avatar }).select("id").single();
     if (err) {
       setSaving(false);
       setError(err.message.includes("household_limit") ? "已經達到喵戶數量上限，請到「我的喵戶」管理。"
@@ -67,6 +72,7 @@ export function HouseholdForm({ userId, existingNames, onDemoCreated, editing }:
     const v = verificationRow(f, { householdId: data.id, userId });
     // 徽章申請失敗不擋建立喵戶：之後可以在「我的喵戶」重新申請
     if (v) await sb.from("meow_shelter_verifications").insert(v);
+    if (onCreated) { onCreated({ id: data.id, name: row.name, role: f.role }); return; }
     router.push("/me");
   }
 
@@ -87,6 +93,7 @@ export function HouseholdForm({ userId, existingNames, onDemoCreated, editing }:
 
       {f.role && (
         <>
+          <HouseholdAvatar userId={userId} path={avatar} onChange={setAvatar} />
           <div className={s.field}>
             <label className={s.label} htmlFor="h-name">喵戶名稱<Required /></label>
             <input id="h-name" value={f.name} maxLength={30} placeholder={owner ? "例如：子哲的家" : "例如：小橘之家"} onChange={e => set({ name: e.target.value })} />

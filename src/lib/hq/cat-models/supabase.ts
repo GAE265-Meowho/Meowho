@@ -18,6 +18,7 @@ import {
 import type { FileKind } from "./local";
 import { confirmVariant, legacyVariants, prepareVariant, restoreVariant, variantTexture, type Variant, type Variants } from "./variants";
 
+import { ensureModelPhoto, isModelPhotoPath } from "@/lib/cat-model-photo";
 export const PHOTO_BUCKET = "meow-cat-model-photos";
 export const MODEL_BUCKET = "meow-cat-models";
 export const BASE_DIR = "base/v1";
@@ -48,6 +49,8 @@ type Row = {
   /** 建立者（#102）：meow_profiles 只有本人或有「用戶權限管理」的管理員讀得到，讀不到時為 null */
   creator?: { display_name: string | null; email: string | null } | null;
   created_by?: string | null;
+  /** 前台的貓（owner_type = member）所屬喵戶（#181）；MeowHQ 自建的貓沒有 */
+  cat?: { household: { id: string; name: string } | null } | null;
 };
 
 type JobRow = {
@@ -122,6 +125,7 @@ function viewFromRow(row: Row, job: JobRow | null = null): CatModelView {
     updatedAt: row.updated_at,
     // 沒有 created_by 的是直接用 SQL 放進來的示範資料；有但讀不到個人資料時顯示 null（畫面顯示「—」）
     createdBy: row.created_by ? row.creator?.display_name || row.creator?.email || null : "系統",
+    household: row.cat?.household ?? null,
     extraPhotos: EXTRA_VIEWS.filter(v => row.profile?.extra_photos?.[v]),
     ...generatedState(row.profile?.generated),
     texture: textureInfo({
@@ -144,12 +148,15 @@ async function userClient() {
 }
 
 const WITH_CREATOR = "*, creator:meow_profiles!created_by(display_name,email)";
+/** #181：前台的貓帶出所屬喵戶 */
+const WITH_HOUSEHOLD = `${WITH_CREATOR}, cat:meow_cats!cat_id(household:meow_households!meow_cats_household_id_fkey(id,name))`;
 
 export async function sbListCats(): Promise<CatModelView[]> {
   const sb = await client();
   if (!sb) return [];
   // 帶出建立者；萬一關聯查詢失敗（例如 schema cache 還沒更新），退回不帶建立者，列表不能因此變空
-  let { data, error } = await sb.from("meow_cat_models").select(WITH_CREATOR).order("updated_at", { ascending: false });
+  let { data, error } = await sb.from("meow_cat_models").select(WITH_HOUSEHOLD).order("updated_at", { ascending: false });
+  if (error) ({ data, error } = await sb.from("meow_cat_models").select(WITH_CREATOR).order("updated_at", { ascending: false }));
   if (error) ({ data, error } = await sb.from("meow_cat_models").select("*").order("updated_at", { ascending: false }));
   if (error || !data) return [];
   return (data as Row[]).map(r => viewFromRow(r));
@@ -158,7 +165,8 @@ export async function sbListCats(): Promise<CatModelView[]> {
 export async function sbGetCat(id: string): Promise<CatModelView | null> {
   const sb = await client();
   if (!sb) return null;
-  const { data, error } = await sb.from("meow_cat_models").select("*").eq("id", id).maybeSingle();
+  let { data, error } = await sb.from("meow_cat_models").select(WITH_HOUSEHOLD).eq("id", id).maybeSingle();
+  if (error) ({ data, error } = await sb.from("meow_cat_models").select("*").eq("id", id).maybeSingle());
   if (error || !data) return null;
   // 製作glb工作區每 3 秒輪詢：帶上最新一筆任務的狀態與步驟
   const { data: job } = await sb.from("meow_cat_model_jobs")
@@ -184,6 +192,14 @@ export async function sbFileRedirect(id: string, kind: FileKind): Promise<string
     : kind === "gen_left" || kind === "gen_front" || kind === "gen_back" ? row.profile?.generated?.views?.[kind.slice(4) as GenView] ?? null
     : null;
   if (photoPath) {
+    // #181：前台的貓建模型時沒複製照片的舊資料，原始照片還在前台 bucket → 先搬過來再簽
+    if (kind === "photo" && !isModelPhotoPath(id, photoPath) && getAdminSupabase()) {
+      const fixed = await ensureModelPhoto(getAdminSupabase()!, id, photoPath);
+      if (fixed) {
+        const { data: signed } = await getAdminSupabase()!.storage.from(PHOTO_BUCKET).createSignedUrl(fixed, 3600);
+        if (signed?.signedUrl) return signed.signedUrl;
+      }
+    }
     // 私有 bucket：先用登入者簽、失敗再用 service role
     const trySign = async (c: NonNullable<Awaited<ReturnType<typeof client>>>) => {
       const { data: signed } = await c.storage.from(PHOTO_BUCKET).createSignedUrl(photoPath, 3600);
@@ -416,7 +432,7 @@ export async function sbStartViews(id: string, views: unknown = GEN_VIEWS, opts:
   const makeEdit = opts.makeEdit ?? (cfg ? () => azureEdit({ ...cfg, ...(settings.quality ? { quality: settings.quality } : {}) }, settings.size) : null);
   if (!makeEdit) return { ok: false, code: "ai_disabled" };
   if (!CAT_ID_RE.test(id)) return { ok: false, code: "not_found" };
-  const user = await userClient();
+  const user = opts.client ? { sb: opts.client } : await userClient();
   if (!user) return { ok: false, code: "permission_denied" };
   const { data } = await user.sb.from("meow_cat_models").select("photo_path,profile").eq("id", id).maybeSingle();
   const row = data as Pick<Row, "photo_path" | "profile"> | null;
@@ -494,3 +510,32 @@ export async function sbRestore(id: string, reason: string, body?: unknown): Pro
   return { ok: true };
 }
 
+
+/**
+ * 刪除貓咪模型：資料列（任務、體型變體跟著 cascade）＋照片與貼圖檔。
+ * Tina 2026-11-03：排隊或生成中（含卡住的任務）也要能刪。任務列跟著刪，worker 不會再領；
+ * 已在跑的 worker／AI 三視角寫回時找不到資料列，只會在 Storage 留下孤兒檔，不影響畫面。
+ */
+export async function sbDeleteCat(id: string): Promise<
+  { ok: true } | { ok: false; code: "not_found" | "permission_denied" }
+> {
+  const user = await userClient();
+  if (!user) return { ok: false, code: "permission_denied" };
+  const { data: row } = await user.sb.from("meow_cat_models").select("name,status,albedo_path,prev_albedo_path,profile").eq("id", id).maybeSingle();
+  if (!row) return { ok: false, code: "not_found" };
+  const { data: variants } = await user.sb.from("meow_cat_model_variants").select("albedo_path,prev_albedo_path").eq("model_id", id);
+  const textures = [row, ...(variants ?? [])].flatMap(v => [v.albedo_path, v.prev_albedo_path]).filter((p): p is string => Boolean(p));
+
+  const { error } = await user.sb.from("meow_cat_models").delete().eq("id", id);
+  if (error) return { ok: false, code: "permission_denied" };
+  // 檔案刪不掉不擋刪除（資料列已不在，畫面不會再顯示），只留伺服器紀錄
+  const { data: photos } = await user.sb.storage.from(PHOTO_BUCKET).list(id, { limit: 100 });
+  const photoPaths = (photos ?? []).map(f => `${id}/${f.name}`);
+  for (const [bucket, paths] of [[PHOTO_BUCKET, photoPaths], [MODEL_BUCKET, textures]] as const) {
+    if (!paths.length) continue;
+    const { error: e } = await user.sb.storage.from(bucket).remove([...paths]);
+    if (e) console.warn(`[cat-models] 刪除 ${id} 的檔案失敗（${bucket}）：${e.message}`);
+  }
+  await audit(user.sb, "cat_model_delete", id, "刪除貓咪模型", { name: row.name });
+  return { ok: true };
+}

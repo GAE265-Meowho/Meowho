@@ -95,7 +95,7 @@ describe("貓咪頁工作區（#96）", () => {
     expect(within(stage).getByTestId("cat-canvas")).toBeInTheDocument();
     expect(groupTitles(panel)).toEqual(["播放與畫面", "動作"]);
     const info = screen.getByRole("region", { name: "原貓咪資訊" });
-    expect(groupTitles(info)).toEqual(["原貓咪資訊"]);
+    expect(groupTitles(info)).toEqual(["原貓咪資訊", "AI 三視角", "貓咪紋理"]); // 已產生的三視角與紋理依序放在原貓咪資訊下方
     // DOM 順序＝桌面欄位順序：資訊、預覽、參數
     const order = [info, stage, panel];
     expect(order.every((el, i) => i === 0 || (order[i - 1].compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING))).toBe(true);

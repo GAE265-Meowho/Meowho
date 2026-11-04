@@ -383,6 +383,108 @@ try {
   }
 }
 
+// 0018（系統預設任務起始內容，#161）：0001→0017 後跑 0018 兩次，檢查三個年齡層各一套、內容通過任務檢查、中途選預設任務能存成版本
+{
+  const m = new PGlite();
+  const base = read("./stub_supabase.sql") + ["0001_meow", "0002_meow_hq", "0003_meow_site_assets", "0004_meow_cat_profile", "0005_meow_cat_models", "0006_meow_household_roles", "0007_meow_adoption_forms", "0008_meow_cat_favorites", "0009_meow_cat_returns", "0010_meow_adoption_notify", "0011_meow_threads", "0012_meow_thread_homed", "0013_meow_decline_reason_transfer", "0014_meow_room_models", "0014_meow_returns_in_threads", "0015_meow_room_floorplan", "0016_meow_cat_model_variants", "0017_meow_adoption_tasks"]
+    .map((f) => read(`../migrations/${f}.sql`)).join("");
+  const id = (n) => `00000000-0000-0000-0000-0000000018${n}`;
+  try {
+    await m.exec(base);
+    await m.exec(read("../migrations/0018_meow_task_templates_seed.sql"));
+    await m.exec(read("../migrations/0018_meow_task_templates_seed.sql"));
+    const one = async (sql) => Object.values((await m.query(sql)).rows[0] ?? {})[0];
+    const eq = (name, expected, actual) =>
+      results.push({ name, status: String(actual) === String(expected) ? "PASS" : "FAIL", detail: String(actual) === String(expected) ? null : `預期 ${expected}，實際 ${actual}` });
+    eq("TPL-1 三個年齡層各一套啟用中的預設任務（重跑不重複）", "adult,kitten,senior",
+      await one("select string_agg(life_stage, ',' order by life_stage) from public.meow_task_templates where is_active"));
+    eq("TPL-2 每套內容都通過任務檢查（劇情、2～6 個選項、回饋、好的選項）", "0",
+      await one("select count(*) from public.meow_task_templates where public.meow_task_content_error(content) is not null"));
+    await m.exec("update public.meow_task_templates set title = 'MeowHQ 改過的' where life_stage = 'adult'");
+    await m.exec(read("../migrations/0018_meow_task_templates_seed.sql"));
+    eq("TPL-3 已經有啟用中的預設任務就不蓋掉", "MeowHQ 改過的", await one("select title from public.meow_task_templates where life_stage = 'adult' and is_active"));
+    await m.exec(`insert into auth.users (id, email) values ('${id("a0")}', 'f@tpl18.example');
+      insert into public.meow_profiles (id, email, display_name) values ('${id("a0")}', 'f@tpl18.example', 'f');
+      insert into public.meow_households (id, owner_id, name, caretaker_type, city, district) values ('${id("d0")}', '${id("a0")}', '中途', 'personal_foster', '桃園市', '龍潭區');
+      insert into public.meow_cats (id, household_id, name, sex, life_stage, status) values ('${id("c0")}', '${id("d0")}', '小老', 'male', 'senior', 'preparing');`);
+    await m.exec(`begin;
+      select set_config('request.jwt.claim.sub', '${id("a0")}', true);
+      set local role authenticated;
+      select public.meow_save_cat_tasks('${id("c0")}', true);
+      commit;`);
+    eq("TPL-4 中途選「先用系統預設任務」：存成這隻貓年齡層的預設版本", "default|老貓的預設任務",
+      await one(`select v.source || '|' || t.title from public.meow_cat_task_versions v join public.meow_task_templates t on t.id = v.template_id where v.cat_id = '${id("c0")}'`));
+  } catch (e) {
+    console.error(`✗ 0018 測試中斷：${e.message}`);
+    process.exit(1);
+  }
+}
+
+// 0019（喵戶頭像）：0001→0018 後跑 0019 兩次，喵戶長能存自己喵戶的頭像路徑、不能存網址
+{
+  const m = new PGlite();
+  const base = read("./stub_supabase.sql") + ["0001_meow", "0002_meow_hq", "0003_meow_site_assets", "0004_meow_cat_profile", "0005_meow_cat_models", "0006_meow_household_roles", "0007_meow_adoption_forms", "0008_meow_cat_favorites", "0009_meow_cat_returns", "0010_meow_adoption_notify", "0011_meow_threads", "0012_meow_thread_homed", "0013_meow_decline_reason_transfer", "0014_meow_room_models", "0014_meow_returns_in_threads", "0015_meow_room_floorplan", "0016_meow_cat_model_variants", "0017_meow_adoption_tasks", "0018_meow_task_templates_seed"]
+    .map((f) => read(`../migrations/${f}.sql`)).join("");
+  const id = (n) => `00000000-0000-0000-0000-0000000019${n}`;
+  try {
+    await m.exec(base);
+    await m.exec(read("../migrations/0019_meow_household_avatar.sql"));
+    await m.exec(read("../migrations/0019_meow_household_avatar.sql"));
+    await m.exec(`insert into auth.users (id, email) values ('${id("a0")}', 'h@av19.example');
+      insert into public.meow_profiles (id, email, display_name) values ('${id("a0")}', 'h@av19.example', 'h');
+      insert into public.meow_households (id, owner_id, name, caretaker_type, city, district) values ('${id("d0")}', '${id("a0")}', '黃家', 'cat_owner', '桃園市', '中壢區');`);
+    const one = async (sql) => Object.values((await m.query(sql)).rows[0] ?? {})[0];
+    const eq = (name, expected, actual) =>
+      results.push({ name, status: String(actual) === String(expected) ? "PASS" : "FAIL", detail: String(actual) === String(expected) ? null : `預期 ${expected}，實際 ${actual}` });
+    await m.exec(`begin;
+      select set_config('request.jwt.claim.sub', '${id("a0")}', true);
+      set local role authenticated;
+      update public.meow_households set avatar_path = '${id("a0")}/households/a.jpg' where id = '${id("d0")}';
+      commit;`);
+    eq("AV-1 喵戶長能存自己喵戶的頭像路徑", `${id("a0")}/households/a.jpg`, await one(`select avatar_path from public.meow_households where id = '${id("d0")}'`));
+    let blocked = "no";
+    try { await m.exec(`update public.meow_households set avatar_path = 'https://evil.example/a.jpg' where id = '${id("d0")}'`); } catch { blocked = "yes"; }
+    eq("AV-2 只存路徑，不能存網址", "yes", blocked);
+  } catch (e) {
+    console.error(`✗ 0019 測試中斷：${e.message}`);
+    process.exit(1);
+  }
+}
+
+// 0020（貓戶管理模組，#179）：0001→0019 後跑 0020 兩次。現有管理員自動授權；有模組的管理員讀得到私密貓戶與貓咪；沒模組的讀不到
+{
+  const m = new PGlite();
+  const base = read("./stub_supabase.sql") + ["0001_meow", "0002_meow_hq", "0003_meow_site_assets", "0004_meow_cat_profile", "0005_meow_cat_models", "0006_meow_household_roles", "0007_meow_adoption_forms", "0008_meow_cat_favorites", "0009_meow_cat_returns", "0010_meow_adoption_notify", "0011_meow_threads", "0012_meow_thread_homed", "0013_meow_decline_reason_transfer", "0014_meow_room_models", "0014_meow_returns_in_threads", "0015_meow_room_floorplan", "0016_meow_cat_model_variants", "0017_meow_adoption_tasks", "0018_meow_task_templates_seed", "0019_meow_household_avatar"]
+    .map((f) => read(`../migrations/${f}.sql`)).join("");
+  const id = (n) => `00000000-0000-0000-0000-0000000020${n}`;
+  const one = async (sql) => Object.values((await m.query(sql)).rows[0] ?? {})[0];
+  const eq = (name, expected, actual) =>
+    results.push({ name, status: String(actual) === String(expected) ? "PASS" : "FAIL", detail: String(actual) === String(expected) ? null : `預期 ${expected}，實際 ${actual}` });
+  const as = async (who, sql) => {
+    await m.exec(`begin; select set_config('request.jwt.claim.sub', '${id(who)}', true); set local role authenticated;`);
+    try { return await one(sql); } finally { await m.exec("rollback;"); }
+  };
+  try {
+    await m.exec(base);
+    await m.exec(`insert into auth.users (id, email) values ('${id("a1")}', 'a1@h20.example'), ('${id("b1")}', 'ho@h20.example');
+      insert into public.meow_profiles (id, email, display_name) values ('${id("a1")}', 'a1@h20.example', 'a1'), ('${id("b1")}', 'ho@h20.example', 'ho');
+      update public.meow_profiles set role = 'admin' where id = '${id("a1")}';
+      insert into public.meow_households (id, owner_id, name, caretaker_type, city, district, default_visibility) values ('${id("d0")}', '${id("b1")}', '私密之家', 'cat_owner', '桃園市', '中壢區', 'private');`);
+    eq("HH-0 0020 前：管理員沒有貓戶管理模組時讀不到私密貓戶", "0", await as("a1", "select count(*) from public.meow_households"));
+    await m.exec(read("../migrations/0020_meow_households_module.sql"));
+    await m.exec(read("../migrations/0020_meow_households_module.sql"));
+    eq("HH-1 現有管理員自動取得貓戶管理模組", "1", await one(`select count(*) from public.meow_admin_module_grants where admin_id = '${id("a1")}' and module = 'households'`));
+    eq("HH-2 有模組的管理員讀得到私密貓戶", "1", await as("a1", "select count(*) from public.meow_households"));
+    eq("HH-3 有模組的管理員讀得到貓戶長資料", "1", await as("a1", `select count(*) from public.meow_profiles where id = '${id("b1")}'`));
+    await m.exec(`delete from public.meow_admin_module_grants where admin_id = '${id("a1")}'`);
+    eq("HH-4 撤銷模組後讀不到私密貓戶", "0", await as("a1", "select count(*) from public.meow_households"));
+    eq("HH-5 households 可以授權", "true", await one("select pg_get_constraintdef(oid) like '%households%' from pg_constraint where conname = 'meow_admin_module_grants_module_check'"));
+  } catch (e) {
+    console.error(`✗ 0020 測試中斷：${e.message}`);
+    process.exit(1);
+  }
+}
+
 let failed = 0;
 for (const r of results) {
   if (r.status === "FAIL") failed++;

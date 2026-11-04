@@ -355,3 +355,13 @@ export async function restorePrevious(root: string, id: string, reason: string, 
   await fs.appendFile(path.join(dir, "audit.jsonl"), JSON.stringify({ action: "restore_texture", actor, reason: text, at: now.toISOString() }) + "\n", "utf-8");
   return { ok: true };
 }
+
+export type DeleteResult = { ok: true } | { ok: false; code: "not_found" | "template" };
+
+/** 刪除貓咪模型：整個 adoption_cats/<id> 資料夾。Tina 2026-11-03：排隊或生成中（含卡住的任務）也要能刪。 */
+export async function deleteCat(root: string, id: string): Promise<DeleteResult> {
+  const cat = await getCat(root, id);
+  if (!cat) return { ok: false, code: "not_found" };
+  await fs.rm(catDir(root, id), { recursive: true, force: true });
+  return { ok: true };
+}

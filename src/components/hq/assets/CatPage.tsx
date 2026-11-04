@@ -9,7 +9,7 @@ import { useCallback, useEffect, useState } from "react";
 import { formatTaipeiDate } from "@/lib/hq/actions";
 import { resolveClip } from "@/lib/hq/cat-models/clips";
 import {
-  BODY_LABELS, FILL_LABELS, PHOTO_VIEW_LABELS, textureOf, type BodyType, type CatModelView,
+  BODY_LABELS, FILL_LABELS, GEN_VIEWS, GEN_VIEW_LABELS, PHOTO_VIEW_LABELS, textureOf, type BodyType, type CatModelView,
 } from "@/lib/hq/cat-models/types";
 import { HqLoadError, HqSkeleton } from "../HqStates";
 import { HqNotFound } from "../HqLoginPage";
@@ -20,6 +20,48 @@ import { PanelGroup } from "./PanelGroup";
 import { ASSETS_CATS_HREF, studioHref } from "./hrefs";
 import { baseGlbUrl, catFileUrl, useCat } from "./useCatModels";
 import { defaultBody } from "./catLook";
+
+const GEN_KIND = { left: "gen_left", front: "gen_front", back: "gen_back" } as const;
+
+/** 已產生的 AI 三視角（唯讀；重新產生在製作glb工作區） */
+function GeneratedViews({ cat }: { cat: CatModelView }) {
+  return (
+    <PanelGroup title="AI 三視角">
+      {cat.aiViews.length ? (
+        <div className="hq-cat-gens">
+          {GEN_VIEWS.map(v => (
+            <figure key={v}>
+              {cat.aiViews.includes(v) ? (
+                <a href={catFileUrl(cat.id, GEN_KIND[v], cat.updatedAt)} target="_blank" rel="noreferrer" aria-label={`放大看${GEN_VIEW_LABELS[v]}照片`}>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={catFileUrl(cat.id, GEN_KIND[v], cat.updatedAt)} alt={`${GEN_VIEW_LABELS[v]}照片`} />
+                </a>
+              ) : <div className="hq-cat-gens-empty">尚未產生</div>}
+              <figcaption>{GEN_VIEW_LABELS[v]}</figcaption>
+            </figure>
+          ))}
+        </div>
+      ) : <p className="hq-hint">還沒有產生 AI 三視角。</p>}
+    </PanelGroup>
+  );
+}
+
+/** 3D 預覽目前使用的（已確認）紋理貼圖 */
+function TextureCard({ url, body }: { url: string | null; body: BodyType }) {
+  return (
+    <PanelGroup title="貓咪紋理">
+      {url ? (
+        <figure className="hq-texture-preview" style={{ margin: 0 }}>
+          <a href={url} target="_blank" rel="noreferrer" aria-label="放大看紋理貼圖">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={url} alt={`${BODY_LABELS[body]}紋理貼圖`} />
+          </a>
+          <figcaption>{BODY_LABELS[body]}・已確認・點圖放大</figcaption>
+        </figure>
+      ) : <p className="hq-hint">還沒有{BODY_LABELS[body]}的紋理貼圖。</p>}
+    </PanelGroup>
+  );
+}
 
 const CatPreview = dynamic(() => import("./CatPreview"), { ssr: false, loading: () => <HqSkeleton rows={4} /> });
 
@@ -74,6 +116,7 @@ function Preview({ cat }: { cat: CatModelView }) {
               <dt>體型骨架</dt><dd>{BODY_LABELS[body]}骨架</dd>
               <dt>照片角度</dt><dd>{cat.photoView ? PHOTO_VIEW_LABELS[cat.photoView] : "—"}</dd>
               <dt>補花紋</dt><dd>{cat.fillPattern ? FILL_LABELS[cat.fillPattern] : "—"}</dd>
+              <dt>喵戶</dt><dd>{cat.household?.name ?? "—"}</dd>
               <dt>建立時間</dt><dd>{formatTaipeiDate(new Date(cat.createdAt))}</dd>
             </dl>
           </div>
@@ -86,6 +129,8 @@ function Preview({ cat }: { cat: CatModelView }) {
             </div>
           )}
         </PanelGroup>
+        <GeneratedViews cat={cat} />
+        <TextureCard url={texture?.preview ? albedoUrl : null} body={body} />
       </section>
 
       <section className="hq-catstage" aria-label="3D 預覽">

@@ -17,6 +17,8 @@ Google 登入、條款同意、角色判斷（訪客／會員／貓戶長／領�
 ## 目前狀態
 Google 登入（Supabase Auth）與條款同意已完成（Issue #1）。條款同意改為「看完才能勾選」（Issue #16）：全文顯示在捲動框，捲到底才啟用 checkbox（`src/components/TermsGate.tsx`、`src/lib/terms.ts`，條款文字由 `/api/legal` 建置時產生）。未設定 Supabase 環境變數時為「示範模式」：可操作但不能登入。
 
+- 2026-11-04 喵戶門檻（規格 09 §2、§7.1，#161）：登入完成時 `/auth/callback` 查有沒有喵戶，沒有就先到 `/onboarding?guide=1&next=<原本那一步>` 說明為什麼要建立；收藏、傳訊息、領養問卷按下去也一樣先檢查（`src/components/useHouseholdGate.ts`，規則在 `src/lib/household-gate.ts`）。建好喵戶後給「建立我家的 3D 房間」「先逛逛貓咪」，回到原本那一步時用 `?do=fav|msg` 自動接著收藏或開對話。
+
 ## 資料表（Supabase）
 - `meow_profiles`（id＝auth.users.id、email、display_name、avatar_url、role、terms_version、terms_agreed_at），第一次登入 Meowho喵戶 時由前端建立（`Auth.tsx`）；email 由 trigger 從登入憑證帶入，不能自填
 - migration：`supabase/migrations/0001_meow.sql`（Supabase 專案 `onebpkbkrnnwamwsoelo`，物件一律 `meow_` 開頭，見 AGENTS.md §7）

@@ -66,7 +66,10 @@ MeowHQ（`/MeowHQ`，取代舊隱藏後台）開發中：階段 0（#18）、db�
 
 **函式執行權**：上述後台函式與 `meow_is_admin`、`meow_set_admin`、`meow_review_verification` 已收回 `anon`／`PUBLIC`，只開放 `authenticated`；內部函式與 trigger 函式不開放給前端。
 
+2026-11-04（#179）：側欄新增**貓戶管理**（`/MeowHQ/households`），依類別（個人中途／立案協會／收容單位／一般飼主）查看所有貓戶，可搜尋；點一戶看詳情與貓咪卡片。是可授權模組 `households`（Tina：之後要能在 Admin 授權調整），`0020_meow_households_module.sql` 上線時把現有管理員全部授權；第一版唯讀。
+
 ## API／主要函式
+- 貓戶管理（#179）：頁面以登入者身分直讀 `meow_households`、`meow_cats`、`meow_profiles`；0020 新增 policy「read by households module」讓有此模組者讀全部。整理邏輯 `src/lib/hq/households.ts`。
 - 資料庫函式：`meow_is_admin()`、`meow_set_admin(email, bool)`、`meow_review_verification(id, approve, note)`（核准時給徽章並通知申請人）
 - trigger：送出認證申請 → 通知所有管理員；角色與 `verified_shelter` 只能由管理員變更
 - 前端：`src/app/mh-console-8k2p/page.tsx`、`src/components/VerificationApply.tsx`（貓戶長申請）、`src/lib/verification.ts`
@@ -89,6 +92,13 @@ MeowHQ（`/MeowHQ`，取代舊隱藏後台）開發中：階段 0（#18）、db�
 
 - 2026-10-29｜0002（Issue #19）：停權狀態只存在 `meow_user_suspensions`（profiles 不加欄位）；黑名單同時記 `auth_user_id`；角色只能經 `meow_set_role` 變更（`meow.hq_fn` 旗標，僅在該 update 期間有效）；稽核日誌連資料表擁有者都不能改刪；錯誤以代碼回報；收回 `anon`／`PUBLIC` 執行權的同時，把會被匿名訪客觸發的 policy 改為 `to authenticated`，避免 `meow_is_admin` 等被收回後匿名讀取公開貓戶出錯。
 
+- 2026-11-04｜新增後台模組 `households`（貓戶管理，排在側欄「營運與社群」第一個）；上線時現有管理員全部授權，之後由系統管理員調整。沒有待辦，待辦總覽不顯示卡片（`NO_TODO_MODULES`）（Tina，#179）。
+- 2026-11-04｜側欄樣式（#183）：群組標題 12.5px 粗體＋字距、項目 14px（選中 600＋底色＋左側色條）、群組間距 24px；「虛擬體驗元件管理」改為可收合樹狀選單（在模組內自動展開，子項目縮排＋左側引導線）（Tina）。
+
+- 2026-11-04｜頂列加「前往前台」（鈴鐺左邊，新分頁開前台首頁；手機只顯示圖示）（Tina，#191）。
+
+- 2026-11-04｜側欄收合：頂列「☰」所有寬度都顯示；手機是抽屜，平板與電腦按下收起整個側欄（記在瀏覽器 `meowhq:sidebar-collapsed`）（Tina，#193）。
+
 ## 待確認
 - 黑名單加入「已登入的現有會員」後是否同時強制登出或停權？目前只擋新建會員資料（UT-HQDB-11）；登入阻擋屬前端／Auth 層，待 #21 或另案。
 - 停權中的會員能使用哪些前台功能（寫入類 RLS 尚未依停權收緊），待另案。
@@ -107,6 +117,7 @@ ole === "admin" 判斷管理員，而現有 admin 會升為 system_admin；舊�
 | 2026-10-28 | Tina × Claude Code | 隱藏後台、中途認證審核、管理員授權、站台標誌存資料庫、站內通知 | #3 |
 | 2026-10-28 | Tina × Cursor | MeowHQ 階段 0：`src/lib/hq/types.ts` 與測試（8 種處置含 `unban`）、0002 資料表草案 | #18 |
 | 2026-10-29 | Tina × Cursor | MeowHQ 階段 1 db：`0002_meow_hq.sql`、`supabase/tests/`（SQL 測試與本機執行器） | #19 |
+| 2026-11-04 | Tina × Claude Code | MeowHQ 新增「貓戶管理」模組：依類別查看貓戶、貓咪卡片；0020 授權現有管理員 | #179 |
 - 2026-10-29｜#26 審查修正：黑名單只用於貓友與貓戶長，`meow_ban_email` 拒絕管理員（`target_is_admin`）；`meow_set_role` 拒絕把停權中的帳號升為管理員（`target_suspended`）；註冊時黑名單同時比對 Email 與 `auth_user_id`；兩個內部函式補 `search_path`；policy 內的權限函式改包 `(select ...)`。
 - 2026-10-29｜依規格書 R9（#30）：`meow_ban_email` 對尚未建立會員資料的 Email 回 `not_found`，不能預先封禁；UT-HQDB-11 改為「會員資料被刪除後，黑名單帳號重新建立會員資料 → 拒絕」。
 
@@ -137,8 +148,13 @@ ole === "admin" 判斷管理員，而現有 admin 會升為 system_admin；舊�
 | 2026-11-03 | Tina × Claude Code | #138 3D 外觀與家具位置：Tina 要 `Meow/meowho_3d_room` 的效果 → 家具模型庫 `scripts/blender/furniture_kit.py`（沿用該專案材質與建模，12 種家具各一個 glb，約 800 KB，`public/hq-floorplan/`）、`kit.ts` 縮放；`FloorplanViewer` 改用模型、橡木地板、柔光陰影、面向鏡頭的牆自動降低、鏡頭依外框取景；AI 輸出加 `layoutNotes`（先描述每面牆）與家具 `wall`（背面靠哪面牆），`snapToWall` 貼齊牆面並轉向；牆被丟掉時門窗與家具的牆索引跟著換 | （見 PR） |
 | 2026-11-03 | Tina × Claude Code | #138 修正：3D 上方房名膠囊切換沒有作用（只換下方預覽）→ 加「全部」，點某間時 3D 只顯示那一間並重新取景（`scene.ts` 的 `focusScenes`、`FloorplanViewer` 的 `CameraRig`）；下方房間清單切換時，單間模式跟著換 | （見 PR） |
 | 2026-11-03 | Tina × Claude Code | #150 虛擬體驗：虛擬體驗元件管理加第一層「虛擬體驗」（`?tab=experience&cat=&house=`），選虛擬貓（只列有確認貼圖的，`catLook.ts`，貓咪頁共用 `defaultBody`）＋選喵戶（只列有讀圖完成房間的），貓放進 `FloorplanViewer`（新 `cat` 屬性；`CatPreview` 匯出 `CatModel` 重用）；點地板貓走過去、被牆與家具擋住並沿邊滑過去、閒置自己逛（`catwalk.ts` 純函式） | （見 PR） |
+| 2026-11-03 | Tina × Claude Code | 貓咪頁左欄加「AI 三視角」「貓咪紋理」（可收合）；列表加刪除（`DELETE /api/hq/cat-models/<id>`，排隊／生成中不能刪，示範貓不能刪，Supabase 一併刪照片與貼圖檔並寫稽核） | #154 |
 | 2026-11-03 | Tina × Claude Code | #150 虛擬體驗二：Tina 覺得貓太小 → 貓放大 1.2 倍（`CAT_SCALE`）、鏡頭靠近並跟著貓（`FollowCat`）、起點固定在離房間中心最近的空位；點床、沙發坐墊、桌子等檯面跳上去、在上面走、點地板跳下來（`catjump.ts`，弧線跳躍先播 walk）；閒置在床或沙發上睡覺；娃娃屋剖面改以房間中心判斷鏡頭在哪側；`catwalk.ts` 抽出 `stepToward`（地板與檯面共用） | （見 PR） |
 | 2026-11-03 | Tina × Claude Code | #150 修正：貓在床上腳被擋住（陷進枕頭）→ 床的檯面只算棉被那一段（`catjump.ts` 的 `surfaces`，枕頭 0.58 m 比棉被 0.5 m 高）；貓整體抬高 1 公分 | （見 PR） |
+| 2026-11-03 | Tina × Claude Code | #154 修正列表沒有刪除按鈕：MeowHQ 新增的貓 `owner_type` 也是 template，改用 `builtin`（只有內建示範貓）判斷不能刪 | #154 |
+| 2026-11-03 | Tina × Claude Code | #154 排隊或生成中的貓也能刪除（Tina 決定）；已在跑的 worker 寫回時可能留下 Storage 孤兒檔 | #154 |
+| 2026-11-03 | Tina × Claude Code | #159 貓咪模型列表改版：欄位改為貓咪模型（縮圖＋名稱＋示範貓標籤）、進度（狀態＋n/4＋4 段進度條＋目前步驟）、備註說明（最多 2 行，空白顯示「尚未填寫」）、建立者／更新、操作；依進度篩選（全部／產生中／完成／示範貓，網址 `status=running|done|demo`，分組邏輯 `catListGroup`）；搜尋也比對建立者；刪除確認說明 3D 模型與貼圖一併刪除、無法復原，排隊或生成中時另註明任務一併取消；示範貓操作欄顯示「不可刪除」 | （見 PR） |
+| 2026-11-04 | Tina × Claude Code | #169 紋理貼圖 worker 放進 repo `workers/cat-paint/`（含 Azure VM 安裝腳本、systemd），預定跑在 Azure VM（T4） | #169 |
 - 2026-10-29｜#24：前端呼叫 `meow_suspend_user`／`meow_unsuspend_user`／`meow_ban_email`／`meow_unban_email`／`meow_review_verification`／`meow_revoke_badge`；「要求補件」不另設狀態，用退回＋快選原因「退回並要求補件」；黑名單狀態只有系統管理員讀得到（RLS），其他管理員看不到黑名單欄與操作。
 
 - 2026-10-31｜#75：虛擬體驗元件分四個區塊（貓咪、室內空間、生活用品、其他），R3 已改寫；貓咪模型的貼圖由 cat_studio/paint_worker.py 產生，網頁只建任務與預覽（共用母體 ase_clips.glb 換 cat_fur 貼圖，不需每隻貓各一個 glb）；動作屬母體，補入新動作後所有貓自動擁有；本機模式（可新增／產生）只在非 production 且設了 CAT_STUDIO_ROOT 時啟用；正式站改讀 `public/hq-cat-models/` 示範貓（已完成的 bb）供預覽，寫入仍關閉。004_meow_cat_models.sql（資料表 meow_cat_models、meow_cat_model_jobs、bucket meow-cat-photos／meow-cat-models）在 PR 3，執行前須經 Tina 確認。
