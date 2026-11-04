@@ -432,7 +432,7 @@ export async function sbStartViews(id: string, views: unknown = GEN_VIEWS, opts:
   const makeEdit = opts.makeEdit ?? (cfg ? () => azureEdit({ ...cfg, ...(settings.quality ? { quality: settings.quality } : {}) }, settings.size) : null);
   if (!makeEdit) return { ok: false, code: "ai_disabled" };
   if (!CAT_ID_RE.test(id)) return { ok: false, code: "not_found" };
-  const user = await userClient();
+  const user = opts.client ? { sb: opts.client } : await userClient();
   if (!user) return { ok: false, code: "permission_denied" };
   const { data } = await user.sb.from("meow_cat_models").select("photo_path,profile").eq("id", id).maybeSingle();
   const row = data as Pick<Row, "photo_path" | "profile"> | null;

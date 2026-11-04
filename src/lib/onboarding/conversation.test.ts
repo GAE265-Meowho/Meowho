@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  applyMediaAnalysis, beginCat, canCreateCat, canCreateHousehold, confirmField, emptyIntake, nextStep, parseTimeline, photosLeft, setCatAge, removeMedia, setCatField, setCover, takeTurn,
+  applyMediaAnalysis, beginCat, canCreateCat, canCreateHousehold, confirmField, emptyIntake, nextAngle, nextStep, parseTimeline, photosLeft, setCatAge, removeMedia, setCatField, setCover, takeTurn,
   type CatTurn, type HouseholdTurn, type PendingField, type IntakeState, type MediaAnalysis, type TurnExtractor,
 } from "./conversation";
 
@@ -20,8 +20,13 @@ const llm = (out: HouseholdTurn | CatTurn): TurnExtractor => async () => out;
 const broken: TurnExtractor = async () => { throw new Error("AI 掛了"); };
 const noAI: TurnExtractor = async () => null;
 
-/** 補到 3 張照片（#185 生活照至少 3 張） */
-const withPhotos = (s: IntakeState): IntakeState => ({ ...s, cat: { ...s.cat, photos: [...s.cat.photos, "u1/p2.jpg", "u1/p3.jpg"].slice(0, 5) } });
+/** 補齊三個角度的照片（#185、#188）：用信心不足的照片，不影響欄位 */
+const withPhotos = (s: IntakeState): IntakeState => {
+  let r = s;
+  for (let i = 0; nextAngle(r.cat) && i < 3; i++)
+    r = applyMediaAnalysis(r, { kind: "photo", path: `u1/p${i + 2}.jpg`, isCat: true, confidence: 0.1, coat: null, breed: null, estAgeMonths: null });
+  return r;
+};
 const catPhase = (): IntakeState => {
   const s = emptyIntake();
   return beginCat({ ...s, household: { ...s.household, caretakerType: "personal_foster", name: "小橘之家", city: "台中市", district: "北屯區" } });
@@ -162,6 +167,25 @@ describe("建立貓咪：先看照片影片，再補問", () => {
     s = setCatField(s, "lifeStage", "senior");
     expect(s.cat.estAgeMonths).toBeNull();
     expect(setCatAge(s, null).cat.lifeStage).toBe("senior");
+  });
+
+  it("#188 照片依序填側面 → 正面 → 背面；之後的只是生活照；移除某角度後由下一張補上", () => {
+    let s = catPhase();
+    expect(nextAngle(s.cat)).toBe("side");
+    for (const p of ["a", "b", "c", "d"]) s = applyMediaAnalysis(s, { ...photo, path: `u1/${p}.jpg`, confidence: 0.1 });
+    expect(s.cat.angles).toEqual({ side: "u1/a.jpg", front: "u1/b.jpg", back: "u1/c.jpg" });
+    expect(s.cat.photos).toHaveLength(4);
+    s = removeMedia(s, "u1/b.jpg");
+    expect(s.cat.angles).toEqual({ side: "u1/a.jpg", front: null, back: "u1/c.jpg" });
+    expect(nextAngle(s.cat)).toBe("front");
+    s = applyMediaAnalysis(s, { ...photo, path: "u1/e.jpg", confidence: 0.1 });
+    expect(s.cat.angles?.front).toBe("u1/e.jpg");
+  });
+
+  it("#188 修改既有的貓（angles＝null）只要有照片就好，不要求三個角度", () => {
+    const s = { ...catPhase(), cat: { ...catPhase().cat, angles: null, photos: ["u1/a.jpg"], name: "橘子", lifeStage: "adult" as const, description: "x" } };
+    expect(photosLeft(s.cat)).toBe(0);
+    expect(nextStep(s).kind).not.toBe("ask");
   });
 
   it("#185 生活照至少 3 張：第 1 張後可先描述，其餘都填好時再要求補照片", () => {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_ALBEDO, defaultModelRows, modelIdAt, publishChecklist } from "./cat-publish";
+import { DEFAULT_ALBEDO, aiViewsPhase, defaultModelRows, modelIdAt, publishChecklist } from "./cat-publish";
 
 describe("準備出發找新主人的兩項檢查（規格 09 §5.2）", () => {
   it("兩項都完成才能按", () => {
@@ -34,5 +34,17 @@ describe("預設 3D 貓（真正的背景產生流程完成前先用）", () => 
   it("#185 中途填的月齡帶進模型 profile；沒填就空的", () => {
     expect(defaultModelRows({ id: "c1", name: "橘子", life_stage: "kitten", photo_paths: [], est_age_months: 4 }, "u1", "cat_x").model.profile).toEqual({ age_months: 4 });
     expect(defaultModelRows({ id: "c1", name: "橘子", life_stage: "kitten", photo_paths: [] }, "u1", "cat_x").model.profile).toEqual({});
+  });
+});
+
+describe("#188 前台 AI 三視角預覽狀態", () => {
+  const r = (o: Partial<Parameters<typeof aiViewsPhase>[0] & object>) => ({ started: true, running: [], views: {}, errors: {}, ...o });
+  it("還沒開始、產生中、完成、失敗", () => {
+    expect(aiViewsPhase(null)).toBe("none");
+    expect(aiViewsPhase(r({ started: false }))).toBe("none");
+    expect(aiViewsPhase(r({ running: ["left"] }))).toBe("running");
+    expect(aiViewsPhase(r({ views: { left: "a", front: "b", back: "c" } }))).toBe("done");
+    expect(aiViewsPhase(r({ views: { left: "a", front: "b", back: "c" }, errors: { back: "逾時" } }))).toBe("failed");
+    expect(aiViewsPhase(r({ views: { left: "a" } }))).toBe("failed");
   });
 });

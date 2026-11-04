@@ -78,6 +78,7 @@ export function fromCatRow(r: CatRowIn): CatFields {
     description: r.description ?? null,
     timeline: r.timeline ?? [],
     photos: r.photo_paths ?? [],
+    angles: null, // 修改既有的貓：角度只在建 3D 模型時用（#188）
     videos: r.videos ?? [],
     medical: medical.success ? medical.data : emptyMedical(),
     compat: compat.success ? compat.data : emptyCompat(),
@@ -130,6 +131,7 @@ export const IntakeStateSchema = z.object({
     handover: z.array(z.enum(HANDOVER_ITEMS)).max(HANDOVER_ITEMS.length),
     status: z.enum(["own", "adoptable", "preparing"]),
     photos: z.array(str(300)).max(MAX_PHOTOS),
+    angles: z.object({ side: nullableStr(300), front: nullableStr(300), back: nullableStr(300) }).nullable().default(null),
     videos: z.array(str(300)).max(MAX_VIDEOS),
   }),
   pending: z.array(z.enum(["coat", "breed", "lifeStage", "personalityTags", "sex", "health"])),
