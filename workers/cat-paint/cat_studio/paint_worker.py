@@ -25,8 +25,26 @@ import socket
 import sys
 import time
 import traceback
+from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
+
+try:
+    import fcntl
+except ImportError:  # Windows 沒有 fcntl：本機單獨跑時不用鎖
+    fcntl = None
+
+GPU_LOCK = "/tmp/meowho-gpu.lock"  # 和 workers/room-convert 共用，同一台機器輪流用 GPU
+
+
+@contextmanager
+def gpu_lock():
+    if fcntl is None:
+        yield
+        return
+    with open(GPU_LOCK, "w") as f:
+        fcntl.flock(f, fcntl.LOCK_EX)  # 房間 worker 在用就等它做完
+        yield
 
 ROOT = Path(__file__).resolve().parent.parent
 CATS_DIR = ROOT / "adoption_cats"
@@ -376,7 +394,8 @@ def main():
                 print(f"連不到 Supabase，稍後重試：{type(e).__name__}")
                 jobs = []
             for job in jobs:
-                run_supabase(worker, sb, job, worker_id)
+                with gpu_lock():
+                    run_supabase(worker, sb, job, worker_id)
             if args.once and not jobs:
                 break
             time.sleep(3)
