@@ -24,6 +24,7 @@
 - 建立 profile 後，`IntakeChat` 呼叫 `POST /api/cats/[id]/model`；貓咪頁的 `PublishPanel` 發現還沒有 3D 貓時也會再呼叫一次（同一隻貓只建一筆）。
 - 這個 API 只建「預設 3D 貓」：`meow_cat_models` 一筆（`owner_type = 'member'`、`cat_id`＝這隻貓、`status = 'ready'`、`meta.source = 'default'`）＋ `meow_cat_model_variants` 一筆（體型依年齡層，`albedo_path = 'default'`）。
 - 預覽用母體 `public/hq-cat-models/base/` 加母體自己的貼圖（`albedo_path = 'default'` 時 `CatPreview` 收到 `albedoUrl = null`）。
+- **照片（#181，2026-11-04）**：建模型時把封面照片從 `meow-cat-photos` 複製到 `meow-cat-model-photos/<模型ID>/photo.<副檔名>`，`photo_path` 指向複製後的檔案（`src/lib/cat-model-photo.ts`）。之前建的舊模型 `photo_path` 還是前台路徑，MeowHQ 製作頁讀照片時（`sbFileRedirect`）或中途再呼叫 API 時會自動補複製。MeowHQ 貓咪模型列表、貓咪頁、製作glb工作區顯示所屬喵戶。目前 Step 02～04 由管理員在 MeowHQ 手動觸發，之後改自動。
 - 中途按「確認使用」→ `meow_confirm_cat_model()` 把 `albedo_path` 複製到 `confirmed_albedo`，「準備出發找新主人」的 3D 檢查就通過。
 
 **之後要接的流程與位置**（照規格 09 §5.1 的流程圖）

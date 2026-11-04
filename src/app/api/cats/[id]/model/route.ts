@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { copyFrontPhotoToModel, ensureModelPhoto } from "@/lib/cat-model-photo";
 import { defaultModelRows, modelIdAt } from "@/lib/cat-publish";
 import { getAdminSupabase } from "@/lib/supabase/admin";
 import { getServerSupabase } from "@/lib/supabase/server";
@@ -20,8 +21,12 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
   const { data: check } = await sb.rpc("meow_cat_publish_check", { p_cat_id: id });
   if (!check) return NextResponse.json({ error: "cat_not_keeper" }, { status: 403 });
 
-  const { data: existing } = await admin.from("meow_cat_models").select("id").eq("cat_id", id).maybeSingle();
-  if (existing) return NextResponse.json({ modelId: existing.id, created: false });
+  const { data: existing } = await admin.from("meow_cat_models").select("id, photo_path").eq("cat_id", id).maybeSingle();
+  if (existing) {
+    // #181：舊資料的 photo_path 還是前台路徑時，順便搬到製作用 bucket
+    await ensureModelPhoto(admin, existing.id, existing.photo_path ?? "");
+    return NextResponse.json({ modelId: existing.id, created: false });
+  }
 
   const { data: cat } = await admin.from("meow_cats").select("id, name, life_stage, photo_paths").eq("id", id).maybeSingle();
   if (!cat) return NextResponse.json({ error: "cat_not_found" }, { status: 404 });
@@ -30,7 +35,9 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
   const base = modelIdAt(new Date());
   for (let n = 0; n < 5; n++) {
     const rows = defaultModelRows(cat, auth.user.id, n ? `${base}_${n}` : base);
-    const { error } = await admin.from("meow_cat_models").insert(rows.model);
+    // #181：照片複製到 MeowHQ 製作用 bucket（meow-cat-model-photos/<模型ID>/photo.*），製作頁與 worker 才讀得到
+    const copied = await copyFrontPhotoToModel(admin, rows.model.id, rows.model.photo_path);
+    const { error } = await admin.from("meow_cat_models").insert({ ...rows.model, photo_path: copied ?? rows.model.photo_path });
     if (error?.code === "23505") {
       // 另一個請求先建好了這隻貓的模型（cat_id 唯一）
       const { data: again } = await admin.from("meow_cat_models").select("id").eq("cat_id", id).maybeSingle();
