@@ -126,6 +126,24 @@ describe("#113 虛擬體驗元件管理分組", () => {
   });
 });
 
+describe("#193 平板、電腦也能收起側欄", () => {
+  it("寬度 ≥768px 時「☰」收起／展開整個側欄，並記在瀏覽器", () => {
+    const mm = vi.fn().mockReturnValue({ matches: true, addEventListener: () => {}, removeEventListener: () => {} });
+    vi.stubGlobal("matchMedia", mm);
+    localStorage.removeItem("meowhq:sidebar-collapsed");
+    const { container } = render(shell());
+    const burger = screen.getByRole("button", { name: "選單" });
+    expect(burger).toHaveAttribute("aria-expanded", "true");
+    fireEvent.click(burger);
+    expect(burger).toHaveAttribute("aria-expanded", "false");
+    expect(container.querySelector(".hq-body")).toHaveClass("collapsed");
+    expect(localStorage.getItem("meowhq:sidebar-collapsed")).toBe("1");
+    fireEvent.click(burger);
+    expect(container.querySelector(".hq-body")).not.toHaveClass("collapsed");
+    vi.unstubAllGlobals();
+  });
+});
+
 describe("#191 頂列「前往前台」", () => {
   it("連到前台首頁，新分頁開啟", () => {
     render(shell());

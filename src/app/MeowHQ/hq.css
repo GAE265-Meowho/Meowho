@@ -62,7 +62,9 @@
 .hq-side .hq-navtree a { padding-left: 10px; }
 @media (prefers-reduced-motion: reduce) { .hq-navtoggle .hq-navchev { transition: none; } }
 .hq-main { flex: 1; min-width: 0; padding: 1.5rem; }
-.hq-burger { display: none; }
+/* #193：「☰」所有寬度都顯示；平板以上按下收起整個側欄 */
+.hq-burger { display: inline-flex; }
+@media (min-width: 768px) { .hq-body.collapsed .hq-side { display: none; } }
 .hq-scrim { display: none; }
 
 .hq-offline { background: var(--hq-caramel-soft); color: var(--hq-caramel-ink); padding: .5rem 1rem; text-align: center; border-bottom: 1px solid var(--hq-line); }

@@ -94,6 +94,9 @@ function AssetsGroupWithQuery(props: { activePath: string; onPick: () => void })
   return <AssetsGroup {...props} tab={tab} />;
 }
 
+const COLLAPSE_KEY = "meowhq:sidebar-collapsed";
+// 手機寬度（<768px）側欄是抽屜（navOpen）；平板以上是收合（collapsed）
+
 export function HqLogo() {
   return (
     <Link href={HQ_HOME} className="hq-logo" aria-label="管理者介面首頁">
@@ -110,6 +113,25 @@ export function HqLogo() {
 export function HqShell({ items, user, unread, onLogout, activePath, children, userId, onNotificationsChanged }: Props) {
   const [navOpen, setNavOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  // #193：平板、電腦也能收起側欄；記在這台瀏覽器（只是個人偏好，讀寫失敗就當展開）
+  const [collapsed, setCollapsed] = useState(false);
+  const [desktop, setDesktop] = useState(false); // 掛載後才知道寬度，避免伺服器與瀏覽器畫面不一致
+  useEffect(() => {
+    try { setCollapsed(localStorage.getItem(COLLAPSE_KEY) === "1"); } catch { /* 無痕或封鎖儲存 */ }
+    if (typeof window.matchMedia !== "function") return;
+    const mq = window.matchMedia("(min-width: 768px)");
+    const sync = () => setDesktop(mq.matches);
+    sync();
+    mq.addEventListener?.("change", sync);
+    return () => mq.removeEventListener?.("change", sync);
+  }, []);
+  const toggleNav = () => {
+    if (!desktop) { setNavOpen(o => !o); return; }
+    setCollapsed(c => {
+      try { localStorage.setItem(COLLAPSE_KEY, c ? "0" : "1"); } catch { /* 無痕或封鎖儲存 */ }
+      return !c;
+    });
+  };
   const row = (item: SidebarItem) => {
     const href = item === "home" ? HQ_HOME : isModule(item) ? HQ_MODULE_PATH[item] : HQ_HOME;
     const active = item === "home" ? activePath === HQ_HOME : activePath === href || activePath.startsWith(href + "/");
@@ -130,7 +152,7 @@ export function HqShell({ items, user, unread, onLogout, activePath, children, u
   return (
     <div className="hq-app">
       <header className="hq-top">
-        <button className="hq-iconbtn hq-burger" aria-label="選單" aria-expanded={navOpen} aria-controls="hq-sidebar" onClick={() => setNavOpen(o => !o)}>
+        <button className="hq-iconbtn hq-burger" aria-label="選單" aria-expanded={desktop ? !collapsed : navOpen} aria-controls="hq-sidebar" onClick={toggleNav}>
           <svg {...icon}><path d="M4 7h16M4 12h16M4 17h16" /></svg>
         </button>
         <HqLogo />
@@ -154,7 +176,7 @@ export function HqShell({ items, user, unread, onLogout, activePath, children, u
         </div>
       </header>
       <HqOfflineBanner />
-      <div className="hq-body">
+      <div className={`hq-body${collapsed ? " collapsed" : ""}`}>
         <nav id="hq-sidebar" className={`hq-side${navOpen ? " open" : ""}`} aria-label="後台導覽">
           {grouped.map((g, gi) => (
             <Fragment key={g.label ?? `g${gi}`}>
