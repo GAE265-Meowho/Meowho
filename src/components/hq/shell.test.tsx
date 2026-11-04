@@ -126,6 +126,16 @@ describe("#113 虛擬體驗元件管理分組", () => {
   });
 });
 
+describe("#191 頂列「前往前台」", () => {
+  it("連到前台首頁，新分頁開啟", () => {
+    render(shell());
+    const link = screen.getByRole("link", { name: "前往前台（另開新分頁）" });
+    expect(link).toHaveAttribute("href", "/");
+    expect(link).toHaveAttribute("target", "_blank");
+    expect(link).toHaveAttribute("rel", "noopener");
+  });
+});
+
 describe("UT-HQ-43 頂列", () => {
   it("鈴鐺含未讀數、頭像選單含登出", () => {
     const logout = vi.fn();

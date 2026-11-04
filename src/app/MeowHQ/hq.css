@@ -27,6 +27,10 @@
 .hq-logo-sub { font-size: .72rem; color: var(--hq-sub); font-weight: 500; letter-spacing: .01em; }
 .hq-iconbtn { position: relative; width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center; background: none; border: 0; border-radius: 8px; color: var(--hq-text); }
 .hq-iconbtn:hover { background: var(--hq-sage-soft); }
+/* 頂列「前往前台」（#191）：文字＋圖示，手機只留圖示 */
+.hq-frontlink { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 12px; border: 1px solid var(--hq-line); border-radius: 999px; color: var(--hq-text); font-size: 14px; white-space: nowrap; }
+.hq-frontlink:hover { background: var(--hq-sage-soft); border-color: var(--hq-sage); }
+@media (max-width: 640px) { .hq-frontlink { width: 44px; padding: 0; justify-content: center; } .hq-frontlink span { display: none; } }
 .hq-badge { position: absolute; top: 4px; right: 2px; min-width: 18px; height: 18px; padding: 0 4px; border-radius: 9px; background: var(--hq-caramel); color: #fff; font-size: .72rem; line-height: 18px; text-align: center; }
 .hq-avatar { width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--hq-line); background: var(--hq-sage-soft); color: var(--hq-sage-ink); font-weight: 700; overflow: hidden; padding: 0; }
 .hq-avatar img { width: 100%; height: 100%; object-fit: cover; }
