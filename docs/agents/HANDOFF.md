@@ -1,9 +1,10 @@
 # HANDOFF — 接手的 agent 需要知道的事
 
 > 寫給「完全沒有上下文的下一個 agent」。只保留**現在仍然成立**的內容。
-> 最後更新：2026-11-05｜Tina × Cursor（#218 KPI Dashboard）
+> 最後更新：2026-11-06｜Tina × Cursor（#221 成貓 sleep）
 
 ## 目前狀態
+- **#221 成貓 sleep 睡姿（Tina × Cursor，審查中）**：PR #236、分支 `fix/221-adult-sleep-clip`。以 `Meow/cat_base` 的 `base_clips.glb`（`stepC_clips.py`）覆寫 `public/hq-cat-models/base/base_clips.glb`；幼貓 `base_clips_kitten.glb` 未動。`CatPreview` sleep 取景對齊貼地睡姿。正式站若用 Storage `base/v1/base_clips.glb` 合併後需再上傳。
 - **#226 MeowHQ Dashboard UI（Tina × Cursor，審查中）**：PR #227、分支 `ui/226-hq-dashboard-ui`（含 #224；舊 #225 已關閉）。卡片去來源／時間雜訊、頂部全域抓取時間、主數值放大。請 Tina **merge PR #227**。
 - **#222 MeowHQ 首頁（Tina × Cursor）**：已合併 #223。移除「我最近的管理動作」；0023 未執行時不掃 Storage。
 - **#218 MeowHQ KPI Dashboard（Tina × Cursor）**：已合併 #219。`/MeowHQ` 營運總覽；`GET /api/hq/dashboard`；`docs/hq/06_kpi-dashboard.md`。`0023_meow_dashboard_stats.sql` **尚未執行**（執行前須 Tina 確認）。付費貓咪欄位未啟用；Vercel Observability 未接時不顯示假數字。需 `SUPABASE_SERVICE_ROLE_KEY`。
