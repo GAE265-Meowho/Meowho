@@ -17,6 +17,18 @@ export const UPLOAD_PRIVACY = "我們會用影片或照片建立你家的 3D 房
 /** 單獨做居家安全檢測前的說明（§8） */
 export const SAFETY_ONLY_PRIVACY = "這次只檢查家裡對貓安不安全，處理完就會刪除原始檔。之後想建立 3D 房間，需要重新拍攝。";
 
+/** 前台我的 3D 房間的私有 bucket（0017）：路徑第一層都是喵戶 id，只有喵戶長讀得到 */
+export const HOME_VIDEO_BUCKET = "meow-home-videos";
+export const HOME_SCENE_BUCKET = "meow-home-scenes";
+
+/** 飼主上傳的影片路徑：<喵戶 id>/<隨機 uuid>.mp4|mov（伺服器建房間前要確認是這個喵戶的） */
+export const isHomeVideoPath = (householdId: string, path: unknown): path is string =>
+  typeof path === "string" && path.startsWith(`${householdId}/`)
+  && /^[0-9a-f-]{36}\.(mp4|mov)$/.test(path.slice(householdId.length + 1));
+
+/** 檢視器讀成果檔的網址；這支 API 再轉到短時效 signed URL */
+export const homeSceneBase = (householdId: string, roomId: string) => `/api/homes/${householdId}/room/${roomId}`;
+
 export interface RoomRow { status: string; completed_at?: string | null }
 export interface ReportRow { id: string; status: string; room_model_id: string | null; created_at: string; items: unknown[] | null }
 
