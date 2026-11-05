@@ -150,9 +150,13 @@
 凡變更會影響 `https://meowho.vercel.app/MeowHQ`（含子路徑）畫面並要發布上線時：
 
 - **每個 MeowHQ 頁**內容區底部必須有頁尾（由 `HqShell` 統一渲染，**不要**在各 tab 重複做）：
-  - **左下**：`update by : <whom>`（建置時的提交者／部署者）
-  - **右下**：`version date: yyyy/mm/dd hh24:mi:ss`（Asia/Taipei 建置時間）
-- 實作來源：`src/lib/hq/build-meta.ts`、`next.config.ts` 寫入 `NEXT_PUBLIC_HQ_UPDATED_BY`／`NEXT_PUBLIC_HQ_VERSION`；UI 在 `src/components/hq/HqShell.tsx` 的 `.hq-pagefoot`。
+  - **左下**：`update by : <whom>`（**目前功能／tab** 對應原始碼的最後 git 作者）
+  - **右下**：`version date: yyyy/mm/dd hh24:mi:ss`（該功能／tab 原始碼最後 commit 時間，Asia/Taipei）
+- 不同功能互不共用：例如只改貓戶管理時，`/MeowHQ/households` 頁尾會更新；`/MeowHQ/assets?tab=experience` 維持體驗相關檔案的作者／時間。
+- 實作來源：
+  - 對照表 `src/lib/hq/page-meta-map.ts`（新增側欄功能或 `?tab=` 時**必須**補 key 與 paths）
+  - `npm run hq:page-meta`（`predev`／`prebuild` 會自動跑）寫入 `src/lib/hq/page-meta.generated.json`
+  - UI：`HqShell` 的 `.hq-pagefoot` 依 pathname + `?tab=` 查表；`NEXT_PUBLIC_HQ_*` 僅作缺資料時的 fallback
 - **禁止**把 version 藏在頂列、或只做在單一 tab；改殼層／頁尾樣式時要跑 `shell.test.tsx` 的頁尾斷言。
 - Cursor、Claude Code、Codex、Antigravity／Gemini 皆遵守本節（本檔為唯一共同規範）。
 
