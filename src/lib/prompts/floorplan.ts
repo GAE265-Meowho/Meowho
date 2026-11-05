@@ -19,7 +19,7 @@ export const FLOORPLAN_READ = {
   用方塊表示：x、y 是中心點，w、d 是寬和深；家具要在房間範圍內。
 - 靠牆的家具一定要填 wall（背面貼著的那面牆的索引）：床頭靠的牆、沙發背靠的牆、書桌與櫃子貼著的牆。此時 w 是沿著牆的長度、d 是離開牆的深度，系統會把它貼齊牆面、背面朝牆。
 - 不靠牆的家具（房間中間的桌子、椅子、落地電風扇）wall 填 null，用 rot 表示方向。
-- parent：大多數家具填 null。下列小物若放在桌面／檯面，parent 填那件 desk／table／cabinet／counter 的索引：
+- parent：每件家具都要填。大多數填 null；下列小物若放在桌面／檯面，parent 填那件 desk／table／cabinet／counter 的索引：
   computer（螢幕／電腦）、cup（杯子／馬克杯）、vase（花瓶）、notebook（筆記本／書本）。
   落地電風扇（fan）一律 parent＝null。花瓶若在地板也 parent＝null。
 - 包包、鍵盤、垃圾桶不要放進 furniture（包包／鍵盤改由生活用品上傳）。

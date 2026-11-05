@@ -140,7 +140,8 @@ export const floorplanRoomSchema = z.object({
     kind: z.enum(FLOORPLAN_FURNITURE_KINDS),
     label: z.string().describe("圖上的家具名稱或中文名稱，例如 沙發"),
     wall: z.number().int().nullable().describe("背面靠著哪一面牆（walls 的索引）；床頭、沙發背、櫃子背、書桌靠牆那側；不靠牆填 null"),
-    parent: z.number().int().nullable().optional().describe("放在哪一件家具上（furniture 陣列索引）；computer／cup／vase／notebook 指向 desk／table／cabinet／counter；落地填 null"),
+    // 跟 wall 一樣必填＋nullable：Azure 嚴格 structured output 不接受 optional 欄位（會整次讀圖失敗）
+    parent: z.number().int().nullable().describe("放在哪一件家具上（furniture 陣列索引）；computer／cup／vase／notebook 指向 desk／table／cabinet／counter；落地填 null"),
     x: z.number().describe("家具中心 x（公尺）"),
     y: z.number().describe("家具中心 y（公尺）"),
     w: z.number().describe("寬（公尺）：靠牆時是沿著牆的長度；不靠牆時沿 x"),
