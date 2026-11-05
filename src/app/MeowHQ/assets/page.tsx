@@ -31,7 +31,7 @@ function AssetsPage() {
     <>
       <HqPageHeader title={`虛擬體驗元件管理｜${section.label}`}
         sub={tab === "food" ? "分類瀏覽食物照片、規格與 TWD 參考價；詳細資訊連至皇家官方。"
-          : tab === "experience" ? "選一隻虛擬貓和一戶喵戶，把貓放進 3D 室內空間互動；可再選生活用品放到房間。"
+          : tab === "experience" ? "選一隻虛擬貓和一戶喵戶，把貓放進 3D 室內空間互動；右側可篩選生活用品並拖拉進房間。"
           : tab === "items" ? "上傳生活用品 .glb、管理類別與篩選；虛擬體驗可把用品放到房間。"
           : "虛擬貓咪新手照顧體驗會用到的 3D 元件。"} />
       {parent && <Link href={assetSectionHref(parent.value)} className="hq-back">← {parent.label}</Link>}

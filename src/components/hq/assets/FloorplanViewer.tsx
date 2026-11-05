@@ -5,7 +5,7 @@
 // 用 next/dynamic（ssr: false）載入；不改動 Gaussian Splat 用的 RoomViewer。
 import { OrbitControls, useGLTF, useTexture } from "@react-three/drei";
 import { Canvas, useFrame, useThree, type ThreeEvent } from "@react-three/fiber";
-import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState, type DragEvent, type MutableRefObject } from "react";
 import * as THREE from "three";
 import { FLOOR_TEXTURE, kitScale, kitUrl } from "@/lib/hq/floorplans/kit";
 import { goalForBox, idleAction, stepActor, worldOf, type Actor, type Goal } from "@/lib/hq/floorplans/catjump";
@@ -13,7 +13,12 @@ import { CAT_SCALE, freeSpot, obstacles, type Obstacle } from "@/lib/hq/floorpla
 import { focusScenes, houseScene, sceneBounds, type RoomScene, type SceneBox } from "@/lib/hq/floorplans/scene";
 import type { BodyType } from "@/lib/hq/cat-models/types";
 import { CatModel } from "./CatPreview";
+import { readItemDragId } from "./itemDrag";
 import type { PlanRoom } from "@/lib/hq/floorplans/types";
+
+/** 把螢幕座標打到地板，回傳該房間座標（給 HTML5 拖放用） */
+export type FloorHit = { roomId: string; x: number; z: number };
+export type FloorRayApi = { hit: (clientX: number, clientY: number) => FloorHit | null };
 
 /** 虛擬體驗放置的生活用品（#197）：位置在該房間座標，尺寸為公尺 */
 export interface PlacedHouseholdItem {
@@ -87,9 +92,19 @@ function Furniture({ b, onClick }: { b: SceneBox; onClick?: (e: ThreeEvent<Mouse
   );
 }
 
-/** 生活用品：依量到的公尺尺寸縮放，底部貼地；貓會繞過（obstacle） */
-function PlacedItemModel({ item }: { item: PlacedHouseholdItem }) {
+/** 生活用品：依量到的公尺尺寸縮放，底部貼地；可拖移（拖時關掉 OrbitControls）；貓會繞過（obstacle） */
+function PlacedItemModel({ item, onMove }: {
+  item: PlacedHouseholdItem;
+  onMove?: (key: string, x: number, z: number) => void;
+}) {
   const { scene } = useGLTF(item.url);
+  const group = useRef<THREE.Group>(null);
+  const dragging = useRef(false);
+  const controls = useThree(s => s.controls) as { enabled: boolean } | null;
+  const { camera, pointer, raycaster } = useThree();
+  const plane = useMemo(() => new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), []);
+  const hit = useMemo(() => new THREE.Vector3(), []);
+  const local = useMemo(() => new THREE.Vector3(), []);
   const prepared = useMemo(() => {
     const m = scene.clone(true);
     m.traverse(o => { if ((o as THREE.Mesh).isMesh) { o.castShadow = true; o.receiveShadow = true; } });
@@ -100,18 +115,95 @@ function PlacedItemModel({ item }: { item: PlacedHouseholdItem }) {
     const sz = item.depthM / Math.max(size.z, 1e-4);
     return { m, scale: [sx, sy, sz] as [number, number, number], y: -box.min.y * sy };
   }, [scene, item.widthM, item.heightM, item.depthM]);
+
+  useEffect(() => {
+    if (dragging.current) return;
+    group.current?.position.set(item.x, prepared.y, item.z);
+  }, [item.x, item.z, prepared.y]);
+
+  useEffect(() => {
+    const end = () => {
+      if (!dragging.current) return;
+      dragging.current = false;
+      if (controls) controls.enabled = true;
+      const g = group.current;
+      if (g && onMove) onMove(item.key, g.position.x, g.position.z);
+      document.body.style.cursor = "";
+    };
+    window.addEventListener("pointerup", end);
+    window.addEventListener("pointercancel", end);
+    return () => {
+      window.removeEventListener("pointerup", end);
+      window.removeEventListener("pointercancel", end);
+    };
+  }, [controls, item.key, onMove]);
+
+  useFrame(() => {
+    if (!dragging.current || !group.current?.parent) return;
+    raycaster.setFromCamera(pointer, camera);
+    if (!raycaster.ray.intersectPlane(plane, hit)) return;
+    group.current.parent.worldToLocal(local.copy(hit));
+    group.current.position.x = local.x;
+    group.current.position.z = local.z;
+  });
+
   return (
-    <primitive object={prepared.m} position={[item.x, prepared.y, item.z]} scale={prepared.scale}
-      onClick={(e: ThreeEvent<MouseEvent>) => e.stopPropagation()} />
+    <group
+      ref={group}
+      position={[item.x, prepared.y, item.z]}
+      onPointerDown={(e: ThreeEvent<PointerEvent>) => {
+        if (!onMove) return;
+        e.stopPropagation();
+        dragging.current = true;
+        if (controls) controls.enabled = false;
+        document.body.style.cursor = "grabbing";
+      }}
+      onClick={(e: ThreeEvent<MouseEvent>) => e.stopPropagation()}
+    >
+      <primitive object={prepared.m} scale={prepared.scale} />
+    </group>
   );
+}
+
+/** 把 HTML 拖放的螢幕座標轉成房間地板座標 */
+function FloorRayBridge({ api }: { api: MutableRefObject<FloorRayApi | null> }) {
+  const { camera, gl, scene } = useThree();
+  const raycaster = useMemo(() => new THREE.Raycaster(), []);
+  const ndc = useMemo(() => new THREE.Vector2(), []);
+  useEffect(() => {
+    api.current = {
+      hit(clientX, clientY) {
+        const rect = gl.domElement.getBoundingClientRect();
+        if (rect.width <= 0 || rect.height <= 0) return null;
+        ndc.set(((clientX - rect.left) / rect.width) * 2 - 1, -((clientY - rect.top) / rect.height) * 2 + 1);
+        raycaster.setFromCamera(ndc, camera);
+        for (const h of raycaster.intersectObjects(scene.children, true)) {
+          let o: THREE.Object3D | null = h.object;
+          while (o) {
+            const roomId = o.userData?.meowFloorRoomId as string | undefined;
+            if (roomId) {
+              const parent = o.parent;
+              if (!parent) return null;
+              const p = parent.worldToLocal(h.point.clone());
+              return { roomId, x: p.x, z: p.z };
+            }
+            o = o.parent;
+          }
+        }
+        return null;
+      },
+    };
+    return () => { api.current = null; };
+  });
+  return null;
 }
 
 function itemObstacles(items: PlacedHouseholdItem[]): Obstacle[] {
   return items.map(i => ({ x: i.x, z: i.z, hx: i.widthM / 2, hz: i.depthM / 2, rotY: 0 }));
 }
 
-/** 地板：橡木貼圖，每 1.2 公尺重複一次 */
-function Floor({ b, onClick }: { b: SceneBox; onClick: (e: ThreeEvent<MouseEvent>) => void }) {
+/** 地板：橡木貼圖，每 1.2 公尺重複一次；userData 供拖放 raycast 對到房間 */
+function Floor({ b, roomId, onClick }: { b: SceneBox; roomId: string; onClick: (e: ThreeEvent<MouseEvent>) => void }) {
   const [color, normal] = useTexture([FLOOR_TEXTURE.color, FLOOR_TEXTURE.normal]);
   const maps = useMemo(() => [color, normal].map(t => {
     const c = t.clone();
@@ -123,7 +215,7 @@ function Floor({ b, onClick }: { b: SceneBox; onClick: (e: ThreeEvent<MouseEvent
   }), [color, normal, b.sx, b.sz]);
   maps[0].colorSpace = THREE.SRGBColorSpace;
   return (
-    <mesh position={[b.x, b.y, b.z]} receiveShadow onClick={onClick}>
+    <mesh position={[b.x, b.y, b.z]} receiveShadow onClick={onClick} userData={{ meowFloorRoomId: roomId }}>
       <boxGeometry args={[b.sx, b.sy, b.sz]} />
       <meshStandardMaterial map={maps[0]} normalMap={maps[1]} roughness={0.55} />
     </mesh>
@@ -146,7 +238,7 @@ function Room({ s, onClick, children }: { s: RoomScene; onClick: (c: RoomClick) 
       {children}
       {s.boxes.map((b, i) =>
         b.kind === "floor" ? (
-          <Suspense key={i} fallback={<Block b={b} color="#D9CCB4" />}><Floor b={b} onClick={handle(null)} /></Suspense>
+          <Suspense key={i} fallback={<Block b={b} color="#D9CCB4" />}><Floor b={b} roomId={s.id} onClick={handle(null)} /></Suspense>
         ) : b.kind === "furniture" ? (
           <Suspense key={i} fallback={<Block b={b} color="#D8D2C8" />}><Furniture b={b} onClick={handle(i)} /></Suspense>
         ) : (
@@ -256,7 +348,7 @@ function CameraRig({ position, view }: { position: [number, number, number]; vie
 /**
  * 上方膠囊：「全部」＝讀圖完成的房間並排；點某間＝3D 只顯示那一間並重新取景，同時切換下方的原圖預覽（onPick）。
  */
-export default function FloorplanViewer({ rooms, selected, onPick, cat, placedItems = [], placeMode = false, onPlace }: {
+export default function FloorplanViewer({ rooms, selected, onPick, cat, placedItems = [], placeMode = false, onPlace, onMoveItem, onFloorDrop }: {
   rooms: PlanRoom[]; selected: string | null; onPick: (id: string) => void;
   /** 虛擬體驗（#150）：放一隻貓進去；有貓時只顯示單間（沒有「全部」），點地板叫貓走過去 */
   cat?: ViewerCat | null;
@@ -265,11 +357,16 @@ export default function FloorplanViewer({ rooms, selected, onPick, cat, placedIt
   /** 放置模式：點地板改放用品，不叫貓走 */
   placeMode?: boolean;
   onPlace?: (roomId: string, x: number, z: number) => void;
+  /** 拖移已放置的用品 */
+  onMoveItem?: (key: string, x: number, z: number) => void;
+  /** 從右側選單拖放到地板 */
+  onFloorDrop?: (itemId: string, roomId: string, x: number, z: number) => void;
 }) {
   const scenes = useMemo(() => houseScene(rooms), [rooms]);
   const [focus, setFocus] = useState<string | null>(cat ? selected ?? scenes[0]?.id ?? null : null);
   const [click, setClick] = useState<(RoomClick & { at: number }) | null>(null);
   const catPos = useRef(new THREE.Vector3());
+  const floorRay = useRef<FloorRayApi | null>(null);
   const shown = useMemo(() => focusScenes(scenes, focus), [scenes, focus]);
   const { width, depth, height } = sceneBounds(shown);
   const half = Math.max(width, depth) / 2 + 2;
@@ -280,6 +377,14 @@ export default function FloorplanViewer({ rooms, selected, onPick, cat, placedIt
   // 在下方房間清單切換時，單間模式跟著換到那一間（全部模式不動）
   useEffect(() => { setFocus(f => (f && selected && f !== selected ? selected : f)); }, [selected]);
   const pick = (id: string) => { setFocus(id); setClick(null); onPick(id); };
+
+  const acceptDrop = (e: DragEvent<HTMLDivElement>) => {
+    if (!onFloorDrop) return;
+    e.preventDefault();
+    const itemId = readItemDragId(e.dataTransfer);
+    const hit = floorRay.current?.hit(e.clientX, e.clientY);
+    if (itemId && hit) onFloorDrop(itemId, hit.roomId, hit.x, hit.z);
+  };
 
   return (
     <div className="hq-fp-3dwrap">
@@ -293,7 +398,11 @@ export default function FloorplanViewer({ rooms, selected, onPick, cat, placedIt
           return <button key={s.id} type="button" className={`hq-fp-3dlabel${on ? " on" : ""}`} aria-pressed={on} onClick={() => pick(s.id)}>{s.name}</button>;
         })}
       </div>
-      <div className="hq-fp-3d">
+      <div
+        className="hq-fp-3d"
+        onDragOver={onFloorDrop ? (e) => { e.preventDefault(); e.dataTransfer.dropEffect = "copy"; } : undefined}
+        onDrop={onFloorDrop ? acceptDrop : undefined}
+      >
         <Canvas shadows={{ type: THREE.PCFSoftShadowMap }} camera={{ position: cam.position, fov: FOV, near: 0.1, far: 500 }}>
           <color attach="background" args={["#F3EFE7"]} />
           <hemisphereLight args={["#fffaf2", "#d8ccb8", 1.7]} />
@@ -312,7 +421,9 @@ export default function FloorplanViewer({ rooms, selected, onPick, cat, placedIt
                   setClick({ ...c, at: Date.now() });
                 }}>
                   {roomItems.map(item => (
-                    <Suspense key={item.key} fallback={null}><PlacedItemModel item={item} /></Suspense>
+                    <Suspense key={item.key} fallback={null}>
+                      <PlacedItemModel item={item} onMove={onMoveItem} />
+                    </Suspense>
                   ))}
                   {cat && <CatActor key={`${s.id}:${cat.albedoUrl}`} s={s} look={cat} click={click} pos={catPos} extraObs={itemObstacles(roomItems)} />}
                 </Room>
@@ -322,6 +433,7 @@ export default function FloorplanViewer({ rooms, selected, onPick, cat, placedIt
           <OrbitControls target={[0, 0, 0]} maxPolarAngle={Math.PI / 2.1} minDistance={cat ? 0.8 : 1.5} maxDistance={cat ? Math.max(cam.dist * 3, 12) : cam.dist * 2.5} makeDefault />
           <CameraRig position={cam.position} view={view} />
           {cat && <FollowCat pos={catPos} />}
+          {onFloorDrop && <FloorRayBridge api={floorRay} />}
         </Canvas>
       </div>
     </div>

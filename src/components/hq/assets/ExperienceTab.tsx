@@ -2,14 +2,16 @@
 // 虛擬體驗（#150，Tina 2026-11-03）：選一隻虛擬貓、選一戶喵戶，把貓放進那戶的 3D 室內空間。之後做互動遊戲的基礎。
 // 貓＝共用母體 base_clips.glb＋這隻貓已確認的貼圖（同貓咪頁，catLook.ts）；房間＝平面圖轉換讀圖完成的房間。
 // 選擇寫進網址（?tab=experience&cat=&house=），複製連結給其他管理員看到同一個畫面。
+// 生活用品（#197）：右側選單類別篩選＋小圖示，可拖拉進空間；已放用品可再拖移；也可點選後點地板放置。
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import type { HouseholdItem } from "@/lib/hq/items/types";
+import type { HouseholdItem, ItemCategory } from "@/lib/hq/items/types";
 import type { FloorplanHouse, FloorplanSummary } from "@/lib/hq/floorplans/types";
 import { HqLoadError, HqSkeleton } from "../HqStates";
 import { catLook } from "./catLook";
+import { ExperienceItemPalette } from "./ExperienceItemPalette";
 import { FLOORPLAN_API } from "./floorplanApi";
 import type { PlacedHouseholdItem } from "./FloorplanViewer";
 import { assetSectionHref } from "./hrefs";
@@ -47,17 +49,37 @@ function useHouse(id: string | null) {
   return value;
 }
 
-function useItems() {
-  const [value, setValue] = useState<Load<HouseholdItem[]>>({ state: "loading" });
+function useItemsCatalog() {
+  const [value, setValue] = useState<Load<{ items: HouseholdItem[]; categories: ItemCategory[] }>>({ state: "loading" });
   useEffect(() => {
     let alive = true;
-    fetch("/api/hq/items", { cache: "no-store" })
-      .then(r => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
-      .then((j: { items?: HouseholdItem[] }) => { if (alive) setValue({ state: "ready", data: j.items ?? [] }); })
+    Promise.all([
+      fetch("/api/hq/items", { cache: "no-store" }),
+      fetch("/api/hq/items/categories", { cache: "no-store" }),
+    ])
+      .then(async ([iRes, cRes]) => {
+        if (!iRes.ok || !cRes.ok) throw new Error("items");
+        const iJson = (await iRes.json()) as { items?: HouseholdItem[] };
+        const cJson = (await cRes.json()) as { categories?: ItemCategory[] };
+        if (alive) setValue({ state: "ready", data: { items: iJson.items ?? [], categories: cJson.categories ?? [] } });
+      })
       .catch(() => { if (alive) setValue({ state: "error" }); });
     return () => { alive = false; };
   }, []);
   return value;
+}
+
+function placeFromItem(item: HouseholdItem, roomId: string, x: number, z: number, list: PlacedHouseholdItem[]): PlacedHouseholdItem {
+  return {
+    key: `${item.id}-${list.length + 1}-${Date.now()}`,
+    roomId,
+    url: item.modelUrl,
+    name: item.name,
+    x, z,
+    widthM: item.widthM ?? 0.5,
+    depthM: item.depthM ?? 0.5,
+    heightM: item.heightM ?? 0.4,
+  };
 }
 
 export function ExperienceTab() {
@@ -66,7 +88,7 @@ export function ExperienceTab() {
   const params = useSearchParams();
   const cats = useCatList().value;
   const houses = useHouses();
-  const items = useItems();
+  const catalog = useItemsCatalog();
   const [room, setRoom] = useState<string | null>(null);
   const [itemId, setItemId] = useState<string>("");
   const [placeMode, setPlaceMode] = useState(false);
@@ -75,7 +97,8 @@ export function ExperienceTab() {
   // 只列出有確認貼圖的貓、有讀圖完成房間的喵戶
   const catOptions = useMemo(() => (cats.state === "ready" ? cats.data.filter(c => catLook(c)) : []), [cats]);
   const houseOptions = useMemo(() => (houses.state === "ready" ? houses.data.filter(h => h.rooms.some(r => r.status === "ready")) : []), [houses]);
-  const itemOptions = useMemo(() => (items.state === "ready" ? items.data : []), [items]);
+  const itemOptions = useMemo(() => (catalog.state === "ready" ? catalog.data.items : []), [catalog]);
+  const categories = useMemo(() => (catalog.state === "ready" ? catalog.data.categories : []), [catalog]);
   const catId = catOptions.some(c => c.id === params.get("cat")) ? params.get("cat") : catOptions[0]?.id ?? null;
   const houseId = houseOptions.some(h => h.id === params.get("house")) ? params.get("house") : houseOptions[0]?.id ?? null;
   const house = useHouse(houseId);
@@ -99,14 +122,19 @@ export function ExperienceTab() {
 
   const place = (roomId: string, x: number, z: number) => {
     if (!selectedItem) return;
-    const widthM = selectedItem.widthM ?? 0.5;
-    const depthM = selectedItem.depthM ?? 0.5;
-    const heightM = selectedItem.heightM ?? 0.4;
-    setPlaced(list => [...list, {
-      key: `${selectedItem.id}-${list.length + 1}-${Date.now()}`,
-      roomId, url: selectedItem.modelUrl, name: selectedItem.name,
-      x, z, widthM, depthM, heightM,
-    }]);
+    setPlaced(list => [...list, placeFromItem(selectedItem, roomId, x, z, list)]);
+  };
+
+  const dropItem = (id: string, roomId: string, x: number, z: number) => {
+    const item = itemOptions.find(i => i.id === id);
+    if (!item) return;
+    setItemId(id);
+    setPlaceMode(true);
+    setPlaced(list => [...list, placeFromItem(item, roomId, x, z, list)]);
+  };
+
+  const moveItem = (key: string, x: number, z: number) => {
+    setPlaced(list => list.map(it => (it.key === key ? { ...it, x, z } : it)));
   };
 
   if (cats.state === "loading" || houses.state === "loading") return <HqSkeleton rows={4} />;
@@ -131,14 +159,6 @@ export function ExperienceTab() {
             </select>
             : <span className="hq-hint">還沒有讀圖完成的室內空間。<Link href={assetSectionHref("rooms-floorplan")}>到平面圖轉換</Link></span>}
         </label>
-        <label className="hq-box">
-          <span className="hq-label">生活用品</span>
-          {itemOptions.length
-            ? <select className="hq-input" value={itemId} onChange={e => setItemId(e.target.value)}>
-              {itemOptions.map(i => <option key={i.id} value={i.id}>{i.name}</option>)}
-            </select>
-            : <span className="hq-hint">還沒有生活用品。<Link href={assetSectionHref("items")}>去上傳</Link></span>}
-        </label>
       </div>
 
       <section className="hq-box" aria-label="3D 虛擬體驗">
@@ -156,11 +176,24 @@ export function ExperienceTab() {
                   </div>
                   <p className="hq-hint">
                     {placeMode
-                      ? `放置模式：點地板放「${selectedItem?.name ?? "用品"}」。貓會繞過用品。`
-                      : "點地板，貓會走過去；點床、沙發、桌子，貓會跳上去。閒置一陣子會自己逛，在床或沙發上會睡覺。"}
+                      ? `放置模式：從右側拖「${selectedItem?.name ?? "用品"}」進房間，或點地板放置。已放的用品可直接拖移。`
+                      : "點地板，貓會走過去；點床、沙發、桌子，貓會跳上去。也可從右側拖生活用品進房間。"}
                   </p>
-                  <FloorplanViewer key={`${houseId}:${cat?.id}`} rooms={house.data.rooms} selected={room} onPick={setRoom}
-                    cat={look} placedItems={placed} placeMode={placeMode} onPlace={place} />
+                  <div className="hq-exp-stage">
+                    <FloorplanViewer key={`${houseId}:${cat?.id}`} rooms={house.data.rooms} selected={room} onPick={setRoom}
+                      cat={look} placedItems={placed} placeMode={placeMode} onPlace={place}
+                      onMoveItem={moveItem} onFloorDrop={dropItem} />
+                    {catalog.state === "loading" ? <HqSkeleton rows={3} />
+                      : catalog.state === "error" ? <p className="hq-hint" role="alert">生活用品選單載入失敗。</p>
+                        : (
+                          <ExperienceItemPalette
+                            categories={categories}
+                            items={itemOptions}
+                            selectedId={selectedItem?.id ?? null}
+                            onSelect={item => { setItemId(item.id); setPlaceMode(true); }}
+                          />
+                        )}
+                  </div>
                 </>
               )}
       </section>

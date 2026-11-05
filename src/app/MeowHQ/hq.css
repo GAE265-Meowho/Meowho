@@ -519,6 +519,12 @@
 .hq-fp-3dbox { margin-bottom: 1rem; }
 .hq-exp-pick { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1rem; margin-bottom: 1rem; }
 @media (max-width: 639px) { .hq-exp-pick { grid-template-columns: minmax(0, 1fr); } }
+.hq-exp-stage { display: grid; grid-template-columns: minmax(0, 1fr) minmax(220px, 280px); gap: 1rem; align-items: start; }
+.hq-exp-stage .hq-fp-3d { height: 520px; }
+@media (max-width: 1023px) {
+  .hq-exp-stage { grid-template-columns: minmax(0, 1fr); }
+  .hq-exp-stage .hq-fp-3d { height: 360px; }
+}
 .hq-fp-3d { height: 440px; border-radius: 12px; overflow: hidden; border: 1px solid var(--hq-line); touch-action: none; }
 @media (max-width: 1023px) { .hq-fp-3d { height: 320px; } }
 .hq-fp-3dlabel { font: inherit; font-size: .85rem; padding: .15rem .6rem; border-radius: 999px; border: 1px solid var(--hq-line); background: var(--hq-card); color: var(--hq-text); cursor: pointer; white-space: nowrap; }
