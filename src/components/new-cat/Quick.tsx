@@ -166,28 +166,25 @@ export function QuickPage({ page, form, set }: { page: number; form: NewCatForm;
 const ZONE_POS: Record<string, [number, number, number]> = {
   top: [96, 66, 70], ear: [168, 92, 62], cheek: [56, 140, 84], chin: [112, 186, 62], back: [208, 146, 76], butt: [294, 166, 64], tail: [316, 78, 58], belly: [214, 222, 70], paw: [152, 306, 70],
 };
-const ZONE_CYCLE = [undefined, "love", "ok", "no"] as const;
 const ZONE_LABEL = { love: "喜歡", ok: "可以", no: "不要摸" } as const;
 const DURS = [["few_strokes", "幾下"], ["1_2_min", "一兩分鐘"], ["long", "很久"], ["mood", "看心情"]] as const;
 
 export function TouchPage({ form, set }: { form: NewCatForm; set: Set }) {
   const touch = form.care.touch ?? {};
-  const cycle = (k: string) => set(f => {
-    const cur = f.care.touch?.[k];
-    const next = ZONE_CYCLE[(ZONE_CYCLE.indexOf(cur as never) + 1) % ZONE_CYCLE.length];
+  // 點貓咪身上的地方會跳出下拉選單：喜歡／可以／不要摸／還沒設定
+  const pick = (k: string, v: string) => set(f => {
     const t = { ...f.care.touch };
-    if (next) t[k] = next; else delete t[k];
+    if (v === "love" || v === "ok" || v === "no") t[k] = v; else delete t[k];
     return { ...f, care: { ...f.care, touch: t } };
   });
   return (
     <>
       <h2 className={s.h1}>摸哪裡牠會開心？</h2>
-      <p className={s.lead} style={{ fontSize: 14 }}>直接點貓咪身上的地方。沒摸過的不用點。</p>
-      <div className={s.legend4} aria-hidden="true">
-        <span style={{ background: "var(--caramel)", color: "#fff" }}>1 下 喜歡</span>
-        <span style={{ background: "var(--yellow-soft)", border: "1.5px solid var(--caramel)" }}>2 下 可以</span>
-        <span style={{ background: "var(--pink-soft)", border: "1.5px dashed var(--orange-deep)" }}>3 下 不要</span>
-        <span style={{ background: "var(--card)", border: "1.5px solid var(--line)", color: "var(--ink-soft)", fontWeight: 500 }}>4 下 取消</span>
+      <p className={s.lead} style={{ fontSize: 14 }}>點貓咪身上的地方，從選單選牠喜不喜歡。沒摸過的不用選。</p>
+      <div className={s.legend4} aria-hidden="true" style={{ gridTemplateColumns: "repeat(3, minmax(0, 1fr))" }}>
+        <span style={{ background: "var(--caramel)", color: "#fff" }}>喜歡</span>
+        <span style={{ background: "var(--yellow-soft)", border: "1.5px solid var(--caramel)" }}>可以</span>
+        <span style={{ background: "var(--pink-soft)", border: "1.5px dashed var(--orange-deep)" }}>不要摸</span>
       </div>
       <div className={s.catbox}>
         <ColorCat />
@@ -196,10 +193,16 @@ export function TouchPage({ form, set }: { form: NewCatForm; set: Set }) {
           const v = touch[k];
           const cls = v === "love" ? s.z1 : v === "ok" ? s.z2 : v === "no" ? s.z3 : "";
           return (
-            <button key={k} type="button" className={`${s.zone} ${cls}`} style={{ left: `${(x / 350 * 100).toFixed(2)}%`, top: `${(y / 330 * 100).toFixed(2)}%`, width: w }}
-              aria-label={`${l}：${v ? ZONE_LABEL[v] : "還沒設定"}。點一下喜歡、兩下可以、三下不要摸、四下取消`} onClick={() => cycle(k)}>
+            <label key={k} className={`${s.zone} ${cls}`} style={{ left: `${(x / 350 * 100).toFixed(2)}%`, top: `${(y / 330 * 100).toFixed(2)}%`, width: w }}>
               <span>{l}</span>{v && <small>{ZONE_LABEL[v]}</small>}
-            </button>
+              {/* 透明的原生下拉選單蓋在上面：手機會跳出系統選單 */}
+              <select className={s.zoneSelect} aria-label={`摸${l}`} value={v ?? ""} onChange={e => pick(k, e.target.value)}>
+                <option value="">還沒設定</option>
+                <option value="love">喜歡</option>
+                <option value="ok">可以</option>
+                <option value="no">不要摸</option>
+              </select>
+            </label>
           );
         })}
       </div>

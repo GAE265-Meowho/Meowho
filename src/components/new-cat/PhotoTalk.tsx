@@ -1,12 +1,11 @@
 "use client";
 /* eslint-disable @next/next/no-img-element */
-// 新增送養貓的第 1、2 步（#206）：拍照（正面、側面＊、背面＋最多 6 張生活照、選封面）、說說牠（口述或貼上 → 填進表格，中途再補）
+// 新增送養貓的第 1、2 步（#206）：上傳照片（正面、側面、背面三張必填＋最多 6 張更多照片、選封面）、說說牠的故事（口述或貼上 → 填進表格，中途再補）
 import { useEffect, useRef, useState } from "react";
 import { HEALTH_TAGS } from "@/lib/cat-profile/tags";
 import { ANGLE_KEYS, ANGLE_NAME, MAX_LIFE_PHOTOS, coverPath, type AngleKey, type Cover } from "@/lib/cat-profile/new-cat";
 import { ORIGIN_LABEL, touched, withAge, type NewCatForm, type Origin } from "@/lib/onboarding/new-cat-form";
 import { MIC_UNSUPPORTED, micErrorMessage } from "@/lib/onboarding/speech";
-import type { LifeStage } from "@/lib/cat-profile/life-stage";
 import Required from "../ui/Required";
 import { AngleGuide, Field, MicIcon, PlusIcon, Said, Seg, Toggles } from "./parts";
 import s from "./newcat.module.css";
@@ -14,8 +13,8 @@ import s from "./newcat.module.css";
 type Set = (fn: (f: NewCatForm) => NewCatForm) => void;
 const HINT: Record<AngleKey, string> = { front: "看得到臉", left: "拍到四隻腳", back: "看得到尾巴" };
 
-export function PhotoStep({ form, previews, busy, onAngle, onOthers, onRemoveOther, onCover }: {
-  form: NewCatForm; previews: Record<string, string>; busy: boolean;
+export function PhotoStep({ form, previews, pendingAngles, pendingOthers, onAngle, onOthers, onRemoveOther, onCover }: {
+  form: NewCatForm; previews: Record<string, string>; pendingAngles: readonly AngleKey[]; pendingOthers: number;
   onAngle: (k: AngleKey, file: File) => void; onOthers: (files: File[]) => void; onRemoveOther: (i: number) => void; onCover: (c: Cover) => void;
 }) {
   const cover = coverPath(form.cover, form.angles, form.others);
@@ -26,18 +25,19 @@ export function PhotoStep({ form, previews, busy, onAngle, onOthers, onRemoveOth
   );
   return (
     <>
-      <h2 className={s.h1}>拍牠的正面、側面、背面</h2>
-      <p className={s.lead}>點一格開相機，讓牠站著，盡量拍到全身。我們會用這三張做出牠的 3D 模樣；正面和背面沒拍的話，AI 會補。</p>
+      <h2 className={s.h1}>上傳貓咪的可愛照片</h2>
+      <p className={s.lead}>正面、側面、背面三張都要拍，我們會用這三張做出牠的 3D 模樣。讓牠站著，盡量拍到全身。</p>
       <div className={s.angles}>
         {ANGLE_KEYS.map(k => {
           const path = form.angles[k];
+          const pending = pendingAngles.includes(k);
           return (
-            <label key={k} className={`${s.slot} ${path ? s.has : ""}`}>
+            <label key={k} className={`${s.slot} ${path ? s.has : ""}`} aria-busy={pending}>
               {path ? <img src={previews[path] ?? ""} alt={`${ANGLE_NAME[k]}照片`} /> : <AngleGuide kind={k} />}
-              <b>{ANGLE_NAME[k]}{k === "left" && <Required />}</b>
-              <span>{path ? "點一下重拍" : HINT[k]}</span>
-              {path && coverBtn(`a:${k}`, path)}
-              <input type="file" accept="image/*" capture="environment" aria-label={`拍${ANGLE_NAME[k]}照片`} disabled={busy}
+              <b>{ANGLE_NAME[k]}<Required /></b>
+              <span>{pending ? "處理中…" : path ? "點一下重拍" : HINT[k]}</span>
+              {path && !pending && coverBtn(`a:${k}`, path)}
+              <input type="file" accept="image/*" capture="environment" aria-label={`拍${ANGLE_NAME[k]}照片`} disabled={pending}
                 onChange={e => { const file = e.target.files?.[0]; e.target.value = ""; if (file) onAngle(k, file); }} />
             </label>
           );
@@ -45,8 +45,8 @@ export function PhotoStep({ form, previews, busy, onAngle, onOthers, onRemoveOth
       </div>
       <div className={s.gap} />
       <section className={`${s.card} ${s.stack}`} aria-labelledby="more" style={{ gap: 10 }}>
-        <div className={s.rowBetween}><h2 id="more" className={s.h2} style={{ fontSize: 16 }}>其他照片</h2><span className={s.muted}>{form.others.length} / {MAX_LIFE_PHOTOS}</span></div>
-        <p className={s.note}>生活照、睡覺、玩耍都好。點照片上的「設為封面」，選一張當名片封面。</p>
+        <div className={s.rowBetween}><h2 id="more" className={s.h2} style={{ fontSize: 16 }}>更多照片</h2><span className={s.muted}>{form.others.length} / {MAX_LIFE_PHOTOS}</span></div>
+        <p className={s.note}>生活照、睡覺、玩耍都好，用更多的照片讓大家知道貓咪的可愛。點照片上的「設為封面」，選一張當名片封面。</p>
         <div className={s.thumbs}>
           {form.others.map((p, i) => (
             <div key={p} className={s.thumb}>
@@ -55,9 +55,11 @@ export function PhotoStep({ form, previews, busy, onAngle, onOthers, onRemoveOth
               <button type="button" className={s.rm} aria-label={`移除第 ${i + 1} 張`} onClick={() => onRemoveOther(i)}>×</button>
             </div>
           ))}
-          {form.others.length < MAX_LIFE_PHOTOS && (
-            <label className={s.add} aria-label="新增其他照片"><PlusIcon />
-              <input type="file" accept="image/*" multiple disabled={busy}
+          {/* 一次選很多張，各自在背景處理 */}
+          {Array.from({ length: pendingOthers }, (_, i) => <div key={`p${i}`} className={`${s.add} ${s.pendingThumb}`} role="status">處理中…</div>)}
+          {form.others.length + pendingOthers < MAX_LIFE_PHOTOS && (
+            <label className={s.add} aria-label="新增更多照片"><PlusIcon />
+              <input type="file" accept="image/*" multiple
                 onChange={e => { const files = [...(e.target.files ?? [])]; e.target.value = ""; if (files.length) onOthers(files); }} />
             </label>
           )}
@@ -101,8 +103,8 @@ export function TalkStep({ form, set, status, setStatus, sending, onSend }: {
   const deworm = [m.dewormInternal === "done" && "體內", m.dewormExternal === "done" && "體外"].filter(Boolean) as string[];
   return (
     <>
-      <h2 className={s.h1}>說說牠</h2>
-      <p className={s.lead}>先用講的，想到什麼說什麼。我會把聽到的填進表格，你再補沒講到的。</p>
+      <h2 className={s.h1}>說說牠的故事</h2>
+      <p className={s.lead}>把遇到牠的故事和我們分享，順便一起完成屬於牠的資料。</p>
       <section className={`${s.card} ${s.stack} ${s.center}`} aria-label="用說的" style={{ gap: 12 }}>
         <button type="button" className={`${s.mic} ${mic.on ? s.on : ""}`} aria-label="按住說話"
           onPointerDown={e => { e.preventDefault(); base.current = form.story ? form.story.replace(/\s*$/, "") + (/[。，！？]$/.test(form.story.trim()) ? "" : "，") : ""; mic.start(); }}
@@ -120,7 +122,10 @@ export function TalkStep({ form, set, status, setStatus, sending, onSend }: {
         </div>
         <p className={s.status} role="status">{status}</p>
       </section>
-      <div className={s.legend}><span><b className={s.tag} style={{ marginLeft: 0 }}>你說過</b>：從你的話填的</span><span><b className={s.tag} style={{ marginLeft: 0 }}>照片猜的</b>：請看一下</span></div>
+      <p className={s.notice} role="note">
+        <span className={s.badge}>你說的</span><span className={`${s.badge} ${s.badgeGuess}`}>照片預測</span>
+        AI會將你說的跟照片預測的自動入表格，記得再檢查是否正確
+      </p>
 
       <section className={`${s.card} ${s.stack}`} aria-labelledby="basic">
         <h2 id="basic" className={s.h2}>基本資料</h2>
@@ -136,9 +141,12 @@ export function TalkStep({ form, set, status, setStatus, sending, onSend }: {
               onChange={e => set(f => withAge(f, e.target.value))} />
             <Seg label="單位" options={[["month", "個月"], ["year", "歲"]] as const} value={form.ageUnit} onChange={v => set(f => withAge(f, f.ageNum, v ?? f.ageUnit))} />
           </div>
-          <span className={s.muted} id="age-hint">填了會自動選年齡層，不確定就直接選下面</span>
-          <Seg label="年齡層" options={[["kitten", "幼貓"], ["adult", "成貓"], ["senior", "老貓"]] as const} value={form.lifeStage}
-            onChange={v => set(f => ({ ...f, lifeStage: v as LifeStage | null }))} />
+          {/* 年齡層（幼貓／成貓／老貓）不讓使用者選，由大概幾歲算出來存進資料表，給 3D 體型與任務用 */}
+          <span className={s.muted} id="age-hint">不確定的話，填一個大概的數字就好</span>
+        </Field>
+        <Field label="體重（公斤）" htmlFor="f-kg">
+          <input id="f-kg" className={s.input} inputMode="decimal" placeholder="例如 1.8" value={form.care.weightKg ?? ""}
+            onChange={e => { const n = Number(e.target.value); set(f => ({ ...f, care: { ...f.care, weightKg: e.target.value && Number.isFinite(n) && n >= 0 && n <= 20 ? n : null } })); }} />
         </Field>
         <div className={s.two}>
           <Field label="毛色" htmlFor="f-coat" tag={tag("coat")}>
@@ -148,19 +156,13 @@ export function TalkStep({ form, set, status, setStatus, sending, onSend }: {
             <input id="f-breed" className={`${s.input} ${form.guessed.includes("breed") ? s.guess : ""}`} maxLength={40} value={form.breed} onChange={e => set(f => touched({ ...f, breed: e.target.value }, "breed"))} />
           </Field>
         </div>
-        <Field label="怎麼來的" tag={tag("origin")}>
-          <Seg label="怎麼來的" cols={2} options={Object.entries(ORIGIN_LABEL) as [Origin, string][]} value={form.care.origin ?? null}
+        <Field label="哪裡相遇的" tag={tag("origin")}>
+          <Seg label="哪裡相遇的" cols={2} options={Object.entries(ORIGIN_LABEL) as [Origin, string][]} value={form.care.origin ?? null}
             onChange={v => set(f => ({ ...f, care: { ...f.care, origin: v } }))} />
         </Field>
-        <div className={s.two}>
-          <Field label="來你這裡" htmlFor="f-since" tag={tag("since")}>
-            <input id="f-since" className={s.input} maxLength={10} placeholder="2026-08-01" value={form.care.since ?? ""} onChange={e => set(f => ({ ...f, care: { ...f.care, since: e.target.value || null } }))} />
-          </Field>
-          <Field label="體重（公斤）" htmlFor="f-kg">
-            <input id="f-kg" className={s.input} inputMode="decimal" placeholder="例如 1.8" value={form.care.weightKg ?? ""}
-              onChange={e => { const n = Number(e.target.value); set(f => ({ ...f, care: { ...f.care, weightKg: e.target.value && Number.isFinite(n) && n >= 0 && n <= 20 ? n : null } })); }} />
-          </Field>
-        </div>
+        <Field label="來你這裡的時間" htmlFor="f-since" tag={tag("since")}>
+          <input id="f-since" className={s.input} maxLength={10} placeholder="2026-08-01" value={form.care.since ?? ""} onChange={e => set(f => ({ ...f, care: { ...f.care, since: e.target.value || null } }))} />
+        </Field>
       </section>
 
       <div className={s.gap} />

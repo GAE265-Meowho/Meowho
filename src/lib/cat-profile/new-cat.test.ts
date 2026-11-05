@@ -1,18 +1,23 @@
 import { describe, expect, it } from "vitest";
 import { coverAfterRemoveAngle, coverAfterRemoveOther, coverPath, emptyAngles, newCatMissing } from "./new-cat";
 
-const ok = { name: "橘子", lifeStage: "kitten" as const, angles: { ...emptyAngles(), left: "u/left.jpg" }, consent: true };
+const ok = { name: "橘子", lifeStage: "kitten" as const, angles: { front: "u/front.jpg", left: "u/left.jpg", back: "u/back.jpg" }, consent: true };
 
-describe("UT-02-07：新增貓咪的必填（名字、年齡層、側面照片、同意授權）", () => {
+describe("UT-02-07：新增貓咪的必填（名字、年齡、正面／側面／背面三張照片、同意授權）", () => {
   it("四項都有就可以建立；其他欄位都可以之後再補", () => {
     expect(newCatMissing(ok)).toEqual([]);
   });
   it("少任何一項都不行，並列出還沒填的", () => {
     expect(newCatMissing({ ...ok, name: " " })).toEqual(["名字"]);
-    expect(newCatMissing({ ...ok, lifeStage: null })).toEqual(["年齡層"]);
+    expect(newCatMissing({ ...ok, lifeStage: null })).toEqual(["大概幾歲"]);
     expect(newCatMissing({ ...ok, angles: { ...emptyAngles(), front: "u/f.jpg", back: "u/b.jpg" } })).toEqual(["側面照片"]);
+    // 建 3D 模型至少要三張：只有兩張不行（子哲 2026-11-05）
+    expect(newCatMissing({ ...ok, angles: { ...emptyAngles(), front: "u/f.jpg", left: "u/l.jpg" } })).toEqual(["背面照片"]);
     expect(newCatMissing({ ...ok, consent: false })).toEqual(["同意授權"]);
-    expect(newCatMissing({ name: "", lifeStage: null, angles: emptyAngles(), consent: false })).toEqual(["名字", "年齡層", "側面照片", "同意授權"]);
+    expect(newCatMissing({ name: "", lifeStage: null, angles: emptyAngles(), consent: false })).toEqual(["名字", "大概幾歲", "正面照片", "側面照片", "背面照片", "同意授權"]);
+  });
+  it("修改既有的貓不要求角度照（0024 以前的貓沒有另外存）", () => {
+    expect(newCatMissing({ ...ok, angles: emptyAngles() }, { angles: false })).toEqual([]);
   });
 });
 
