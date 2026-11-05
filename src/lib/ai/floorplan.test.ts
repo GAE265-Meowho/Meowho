@@ -2,8 +2,21 @@
 import { describe, expect, it } from "vitest";
 import { RunnableLambda } from "@langchain/core/runnables";
 import type { BaseMessage } from "@langchain/core/messages";
+import { z } from "zod";
 import living from "@/lib/hq/floorplans/fixtures/living-room.json";
+import { floorplanRoomSchema } from "./schemas";
 import { floorplanReadChain, floorplanReadInput } from "./floorplan";
+
+describe("floorplanRoomSchema（Azure 嚴格模式）", () => {
+  it("furniture.parent 必填（可 null），不能 optional，否則 structured output 整次失敗", () => {
+    const json = z.toJSONSchema(floorplanRoomSchema) as unknown as {
+      properties: { furniture: { items: { required?: string[] } } };
+    };
+    expect(json.properties.furniture.items.required).toEqual(
+      expect.arrayContaining(["kind", "label", "wall", "parent", "x", "y", "w", "d", "rot"]),
+    );
+  });
+});
 
 describe("floorplanReadChain", () => {
   it("系統指示附防護規則與家具清單；圖片以 image_url 送出；管理員填的房名包成資料區", async () => {

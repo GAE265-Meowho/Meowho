@@ -10,7 +10,7 @@ import { HqLoginPage } from "./HqLoginPage";
 let search = "";
 vi.mock("next/navigation", () => ({ useSearchParams: () => new URLSearchParams(search) }));
 
-afterEach(() => { cleanup(); vi.useRealTimers(); });
+afterEach(() => { cleanup(); vi.useRealTimers(); search = ""; });
 
 const shell = (extra = {}) => (
   <HqShell items={["home", "user_management", "admin_authorization"]} user={{ name: "Tina", roleLabel: "系統管理員" }} unread={3} onLogout={() => {}} activePath="/MeowHQ" {...extra}>
@@ -36,6 +36,35 @@ describe("UT-HQ-13 登入頁", () => {
     expect(screen.getByRole("heading", { level: 1, name: "進入總部" })).toBeInTheDocument();
     expect(screen.queryByText(/隱私權政策|安全規範/)).toBeNull();
     expect(document.querySelector(".hq-login-mark")).toHaveAttribute("src", "/logos/logo-round.jpg"); // 左上角用喵戶圓形 logo
+  });
+});
+
+describe("MeowHQ 頁尾建置資訊", () => {
+  it("每個頁面左下 update by、右下 version date", () => {
+    render(shell());
+    const foot = screen.getByRole("contentinfo", { name: "頁面建置資訊" });
+    expect(foot).toHaveTextContent(/update by :/);
+    expect(foot).toHaveTextContent(/version date:/);
+    expect(foot.textContent).toMatch(/\d{4}\/\d{2}\/\d{2} \d{2}:\d{2}:\d{2}/);
+  });
+
+  it("不同功能／tab 頁尾顯示各自的修改 meta", async () => {
+    const { hqPageMeta } = await import("@/lib/hq/build-meta");
+    const hhMeta = hqPageMeta("/MeowHQ/households");
+    const { unmount } = render(shell({ activePath: "/MeowHQ/households", items: ["home", "households"] }));
+    let foot = screen.getByRole("contentinfo", { name: "頁面建置資訊" });
+    expect(foot).toHaveTextContent(hhMeta.updatedBy);
+    expect(foot).toHaveTextContent(hhMeta.versionDate);
+    unmount();
+
+    search = "tab=experience";
+    const expMeta = hqPageMeta("/MeowHQ/assets", "tab=experience");
+    render(shell({ activePath: "/MeowHQ/assets", items: ["home", "virtual_assets"] }));
+    foot = screen.getByRole("contentinfo", { name: "頁面建置資訊" });
+    expect(foot).toHaveTextContent(expMeta.updatedBy);
+    expect(foot).toHaveTextContent(expMeta.versionDate);
+    expect(`${expMeta.updatedBy}|${expMeta.versionDate}`).not.toBe(`${hhMeta.updatedBy}|${hhMeta.versionDate}`);
+    search = "";
   });
 });
 

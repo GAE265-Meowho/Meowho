@@ -88,7 +88,8 @@ alter table public.meow_room_models
   ]
 }
 ```
-- 家具 `kind` 限定清單（sofa、bed、table、chair、desk、wardrobe、cabinet、tv_stand、counter、toilet、bathtub、other），各有預設高度與顏色。
+- 家具 `kind` 限定清單（sofa、bed、table、chair、desk、wardrobe、cabinet、tv_stand、counter、toilet、bathtub、fan、computer、cup、vase、notebook、other），各有預設高度與顏色。
+- `fan`＝落地電風扇；`computer`／`cup`／`vase`／`notebook` 可填 `parent` 指向 desk／table／cabinet／counter（整理後寫 `elev`＝父家具高）。包包、鍵盤仍不進此清單，改走生活用品（#197）。
 - 座標系與 `meowho_3d_room` 一致：公尺、地板 z=0；three.js 端換成 Y 向上。
 
 ### 4.3 儲存
@@ -101,7 +102,7 @@ alter table public.meow_room_models
 
 - `POST /api/hq/rooms/floorplan/read`：參數為戶 id＋房間 id；後端透過 `src/lib/storage/` 讀圖，走 `src/lib/ai/` 的結構化鏈呼叫 Azure `gpt-6-luna`（`AZURE_OPENAI_CHAT_DEPLOYMENT_NAME`），**不可直接 import 供應商 SDK**（AGENTS.md §2）。
 - 輸出格式寫在 `src/lib/ai/schemas.ts`（zod `floorplanRoomSchema`）；提示詞放 `src/lib/prompts/floorplan.ts`；圖上文字視為資料（決策 004）。
-- Prompt 重點：只讀這一張圖的一間房；牆用中心線端點；門窗掛在牆上；家具只用限定清單；回傳比例來源（label／estimate）。
+- Prompt 重點：只讀這一張圖的一間房；牆用中心線端點；門窗掛在牆上；家具只用限定清單（含 fan／computer／cup／vase／notebook）；桌上小物填 `parent`；包包／鍵盤／垃圾桶不放；回傳比例來源（label／estimate）。
 - 後端驗證：牆至少 3 段且大致封閉、尺寸在合理範圍（單邊 1–20 m、家具不超出房間）；不合格就標 `failed` 並顯示原因，可「重新讀圖」。
 - 逾時：route 設 `maxDuration = 120`。
 - 觸發（PR 3）：房間上傳確認後由 `after()` 背景自動讀圖；`POST /api/hq/rooms/floorplan/read` 立即回 202，畫面每 4 秒輪詢。讀圖中超過 3 分鐘視為中斷，可重新讀圖。

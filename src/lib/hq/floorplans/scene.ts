@@ -1,6 +1,7 @@
 // 平面圖 → 3D 娃娃屋的場景資料（#138 步驟 4，規格 docs/hq/05 §6）。純函式，畫面（FloorplanViewer）只照著畫方塊。
 // 座標：平面 (x, y) 公尺 → three.js (x, z)，Y 向上、地板 y=0。無天花板（娃娃屋）。
 // 同一份方塊也是碰撞體（Rapier cuboid）：牆、門楣、窗台、家具；步驟 5 放貓時接上物理。
+import { movesByRoom, omittedByRoom, resolveFurniturePose, type FurnitureMove } from "./experience-furniture";
 import type { PlanGeometry, PlanRoom, Point } from "./types";
 
 export type BoxKind = "floor" | "wall" | "lintel" | "sill" | "glass" | "furniture";
@@ -12,6 +13,10 @@ export interface SceneBox {
   rotY: number;
   /** 家具種類（顏色用） */
   furniture?: string;
+  /** 對應 PlanRoom.furniture 原始陣列索引（僅 furniture；虛擬體驗移除／拖移用） */
+  furnitureIndex?: number;
+  /** 虛擬體驗手掌模式可拖移（所有未移除家具） */
+  movable?: boolean;
   /** 貓可以跳上去的家具頂面 */
   walkable?: boolean;
   /** 牆（含門楣、窗台、玻璃）朝房間外的方向 (x, z)：畫面用來把面向鏡頭的牆降低（娃娃屋剖面） */
@@ -83,8 +88,8 @@ function wallBoxes(geo: PlanGeometry, index: number, shift: Point, center: Point
   return pieces;
 }
 
-/** 一間房的方塊（座標已平移到房間左上角＝原點） */
-export function roomBoxes(geo: PlanGeometry): { boxes: SceneBox[]; size: [number, number] } {
+/** 一間房的方塊（座標已平移到房間左上角＝原點）；omit＝要略過的 furniture 原始索引；moves＝session 拖移姿態 */
+export function roomBoxes(geo: PlanGeometry, omit?: Set<number>, moves?: Map<number, FurnitureMove>): { boxes: SceneBox[]; size: [number, number] } {
   const xs = geo.walls.flatMap(w => [w.a[0], w.b[0]]);
   const ys = geo.walls.flatMap(w => [w.a[1], w.b[1]]);
   const shift: Point = [Math.min(...xs), Math.min(...ys)];
@@ -94,27 +99,37 @@ export function roomBoxes(geo: PlanGeometry): { boxes: SceneBox[]; size: [number
   const boxes: SceneBox[] = [{ kind: "floor", x: size[0] / 2, y: -FLOOR_T / 2, z: size[1] / 2, sx: size[0], sy: FLOOR_T, sz: size[1], rotY: 0 }];
   const center: Point = [size[0] / 2, size[1] / 2];
   geo.walls.forEach((_, i) => boxes.push(...wallBoxes(geo, i, shift, center)));
-  for (const f of geo.furniture) {
+  geo.furniture.forEach((f, i) => {
+    if (omit?.has(i)) return;
+    const pose = resolveFurniturePose(geo.furniture, i, shift, moves);
     boxes.push({
-      kind: "furniture", furniture: f.kind, walkable: f.surface === "walkable" || undefined,
-      x: r3(f.x - shift[0]), y: r3(f.h / 2), z: r3(f.y - shift[1]), sx: f.w, sy: f.h, sz: f.d,
-      rotY: r3(-(f.rot * Math.PI) / 180),
+      kind: "furniture", furniture: f.kind, furnitureIndex: i,
+      movable: true,
+      walkable: f.surface === "walkable" || undefined,
+      x: pose.x, y: r3(pose.elev + f.h / 2), z: pose.z, sx: f.w, sy: f.h, sz: f.d,
+      rotY: r3(-(pose.rot * Math.PI) / 180),
     });
-  }
+  });
   return { boxes, size };
 }
 
 const hasGeometry = (r: PlanRoom): r is PlanRoom & PlanGeometry =>
   r.status === "ready" && Array.isArray(r.walls) && r.walls.length >= 3 && typeof r.wall_height_m === "number";
 
-/** 整戶娃娃屋：讀圖完成的房間由左到右並排，中間留 1 公尺走道（不拼接，Q10） */
-export function houseScene(rooms: PlanRoom[]): RoomScene[] {
+/** 整戶娃娃屋：讀圖完成的房間由左到右並排，中間留 1 公尺走道（不拼接，Q10）；removedKeys／furnitureMoves＝虛擬體驗 session */
+export function houseScene(
+  rooms: PlanRoom[],
+  removedKeys?: Iterable<string>,
+  furnitureMoves?: Record<string, FurnitureMove> | Map<string, FurnitureMove>,
+): RoomScene[] {
+  const omitMap = removedKeys ? omittedByRoom(rooms, removedKeys) : null;
+  const moveMap = furnitureMoves ? movesByRoom(furnitureMoves) : null;
   let x = 0;
   return rooms.filter(hasGeometry).map(r => {
     const { boxes, size } = roomBoxes({
       input: r.input ?? "floorplan", scale: r.scale ?? { m_per_px: null, source: "estimate" },
       wall_height_m: r.wall_height_m, walls: r.walls, openings: r.openings ?? [], furniture: r.furniture ?? [],
-    });
+    }, omitMap?.get(r.id), moveMap?.get(r.id));
     const scene: RoomScene = { id: r.id, name: r.name, offset: [r3(x), 0], size, height: r.wall_height_m, boxes };
     x += size[0] + ROOM_GAP_M;
     return scene;

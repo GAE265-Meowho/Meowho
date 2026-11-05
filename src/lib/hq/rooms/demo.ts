@@ -71,3 +71,11 @@ export function roomSplats(base: string, scene: RoomScene): RoomSplat[] {
       : []),
   ];
 }
+
+/** 後台「下載」要打包的成果檔（照 room_worker.py 的 copy_result）：有 room_cut 時沒有 scene.splat */
+export function resultFiles(scene: RoomScene): string[] {
+  const splats = scene.assets.room_cut
+    ? [scene.assets.room_cut, ...scene.objects.flatMap(o => (o.splat ? [o.splat.file] : []))]
+    : [scene.assets.room];
+  return ["scene.json", "scene.cameras.json", "scene.layout.json", "thumb.jpg", ...splats];
+}

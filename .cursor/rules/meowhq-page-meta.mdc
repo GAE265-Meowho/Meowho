@@ -1,0 +1,15 @@
+---
+description: MeowHQ 頁尾 update by／version date 必守規範
+globs: src/app/MeowHQ/**/*,src/components/hq/**/*,src/lib/hq/page-meta-map.ts,src/lib/hq/build-meta.ts
+alwaysApply: false
+---
+
+# MeowHQ 頁面建置資訊
+
+變更任何 `/MeowHQ` 畫面並準備發布時，遵守根目錄 `AGENTS.md` §6.1：
+
+- 每個 MeowHQ 頁左下 `update by : whom`、右下 `version date: yyyy/mm/dd hh24:mi:ss`（Asia/Taipei）
+- 顯示的是**目前功能／tab**對應原始碼的最後 git 作者與時間（不是整站同一次 deploy）
+- 由 `HqShell` 的 `.hq-pagefoot` 統一顯示；對照表在 `page-meta-map.ts`，建置前 `hq:page-meta` 寫入 `page-meta.generated.json`
+- 新增功能或 `?tab=` 時要在 `page-meta-map.ts` 補 key 與 paths
+- 不要在個別 tab 重做一組，也不要放回頂列

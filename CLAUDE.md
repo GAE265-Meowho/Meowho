@@ -7,3 +7,4 @@
 Claude Code 補充：
 - 開工先讀 `docs/agents/HANDOFF.md`、`docs/agents/PLAN.md`，以及要修改模組的 `docs/modules/*.md`。
 - Commit trailer 的 Agent 欄寫 `Claude Code (<模型>)`。
+- MeowHQ 畫面發布：遵守 `AGENTS.md` §6.1（頁尾依目前功能／tab 顯示該區塊最後修改人與時間）。

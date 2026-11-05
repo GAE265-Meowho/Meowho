@@ -473,8 +473,66 @@ def other(M):
     return b, (0.8, 0.5, 0.8)
 
 
+def fan(M):
+    """落地電風扇：圓座＋立柱＋圓框扇葉（簡化）"""
+    w, d, h = 0.4, 0.4, 1.0
+    b = MeshBuilder("fan")
+    b.cyl((0, 0, 0.03), 0.16, 0.06, M["black"], segs=16)
+    b.cyl((0, 0, 0.06), 0.025, 0.72, M["alu"], segs=12)
+    # 扇頭中心約 0.85 m
+    b.cyl((0, -0.02, 0.85), 0.04, 0.08, M["black"], segs=12)
+    b.cyl((0, 0.02, 0.85), 0.18, 0.03, M["alu"], segs=20)  # 外框
+    for i in range(5):
+        a = i * (2 * math.pi / 5)
+        bx = 0.12 * math.cos(a)
+        by = 0.02 + 0.12 * math.sin(a)
+        b.box((-0.02 + bx, -0.01 + by, 0.83), (0.02 + bx, 0.01 + by, 0.87), M["greige"])
+    return b, (w, d, h)
+
+
+def computer(M):
+    """桌上螢幕＋底座（電腦視覺代表）"""
+    w, d, h = 0.5, 0.22, 0.45
+    b = MeshBuilder("computer")
+    b.box((-0.12, -0.08, 0), (0.12, 0.08, 0.02), M["black"], bevel=0.004)          # 底座
+    b.box((-0.02, -0.02, 0.02), (0.02, 0.02, 0.12), M["black"])                     # 頸
+    b.box((-w / 2, -0.02, 0.12), (w / 2, 0.03, h), M["black"], bevel=0.004)          # 外框
+    b.box((-w / 2 + 0.015, -0.025, 0.135), (w / 2 - 0.015, -0.02, h - 0.015), M["alu"])  # 螢幕面
+    return b, (w, d, h)
+
+
+def cup(M):
+    """馬克杯／杯子"""
+    w, d, h = 0.08, 0.08, 0.12
+    b = MeshBuilder("cup")
+    b.cyl((0, 0, 0.01), 0.035, 0.02, M["ceramic"], segs=16)
+    b.cyl((0, 0, 0.02), 0.032, h - 0.02, M["ceramic"], segs=16)
+    b.box((0.032, -0.008, 0.05), (0.055, 0.008, 0.09), M["ceramic"], bevel=0.002)  # 把手
+    return b, (w, d, h)
+
+
+def vase(M):
+    """花瓶"""
+    w, d, h = 0.12, 0.12, 0.35
+    b = MeshBuilder("vase")
+    b.cyl((0, 0, 0.02), 0.045, 0.04, M["ceramic"], segs=16)
+    b.cyl((0, 0, 0.06), 0.04, 0.18, M["ceramic"], segs=16)
+    b.cyl((0, 0, 0.24), 0.03, 0.11, M["ceramic"], segs=16)
+    return b, (w, d, h)
+
+
+def notebook(M):
+    """筆記本／書本（平放）"""
+    w, d, h = 0.22, 0.16, 0.03
+    b = MeshBuilder("notebook")
+    b.box((-w / 2, -d / 2, 0), (w / 2, d / 2, h * 0.85), M["white"], bevel=0.002)
+    b.box((-w / 2, -d / 2, h * 0.85), (w / 2, d / 2, h), M["greige"], bevel=0.001)  # 封面
+    return b, (w, d, h)
+
+
 KINDS = dict(sofa=sofa, bed=bed, table=table, chair=chair, desk=desk, wardrobe=wardrobe, cabinet=cabinet,
-             tv_stand=tv_stand, counter=counter, toilet=toilet, bathtub=bathtub, other=other)
+             tv_stand=tv_stand, counter=counter, toilet=toilet, bathtub=bathtub,
+             fan=fan, computer=computer, cup=cup, vase=vase, notebook=notebook, other=other)
 
 
 def main():

@@ -1,9 +1,11 @@
 # HANDOFF — 接手的 agent 需要知道的事
 
 > 寫給「完全沒有上下文的下一個 agent」。只保留**現在仍然成立**的內容。
-> 最後更新：2026-11-04｜子哲 × Claude Code（#161 前台 3D 房間交接）
+> 最後更新：2026-11-05｜Tina × Cursor（#218 KPI Dashboard）
 
 ## 目前狀態
+- **#222 MeowHQ 首頁（Tina × Cursor，審查中）**：PR #223、分支 `fix/222-hq-home-flicker-remove-actions`。移除「我最近的管理動作」；修 KPI 骨架一直閃（0023 未執行時不再遞迴掃 Storage；授權不變不重建 actor）。請 Tina merge。
+- **#218 MeowHQ KPI Dashboard（Tina × Cursor）**：已合併 #219。`/MeowHQ` 營運總覽；`GET /api/hq/dashboard`；`docs/hq/06_kpi-dashboard.md`。`0023_meow_dashboard_stats.sql` **尚未執行**（執行前須 Tina 確認）。付費貓咪欄位未啟用；Vercel Observability 未接時不顯示假數字。需 `SUPABASE_SERVICE_ROLE_KEY`。
 - **#186 皇家食物元件（Tina × Codex）**：`/MeowHQ/assets?tab=food`，官方 sitemap 86 款、照片落地，分類與官方產品外連已接好。`src/lib/hq/food/` 共用目錄供之後虛擬購買；72 款有參考價、14 款待查。尚未接錢包／訂單／餵食庫存，未改 Supabase。參考價可用 `node scripts/update-food-reference-prices.mjs` 更新人工觀察值；完整官方再匯入用 `node scripts/import-royalcanin-food.mjs`（需網路）。
 - **前台貓咪 3D 接 MeowHQ（#182 → #187 → #188 依序合併）**：#188 讓新增貓咪收側面／正面／背面、建立後自動跑 AI 三視角（需 Vercel 的 `SUPABASE_SERVICE_ROLE_KEY` 與 Azure 影像設定），前台貓咪頁可預覽；Step 03、04 仍在 MeowHQ 手動。下一步：三視角完成後通知 MeowHQ 管理員（之後改自動）。
 - **MeowHQ 貓戶管理（#179，PR #180）**：新模組 `households`。`0020_meow_households_module.sql` **尚未執行**；執行前，系統管理員看得到頁面但只讀得到公開貓咪，其他管理員看不到選單。
@@ -37,7 +39,11 @@
 
 - **#57／#72 建檔對話引擎（分支 `feat/57-household-cat-profile`）**：`src/lib/onboarding/conversation.ts`（純邏輯）＋ `src/lib/ai/intake.ts`（LLM 鏈），已有測試，**尚未接畫面**；`/onboarding` 目前仍是舊的一問一答流程。migration 0004 已寫好（**尚未執行，要跟新版 `/onboarding` 一起上線**，舊流程不送年齡層會建貓失敗）。儲存介面 `src/lib/storage/`（Azure 版＋記憶體版）與影片判讀已完成；Azure 儲存帳號尚未建立（設定文件第 8 節）。下一步：畫面。
 
+<<<<<<< HEAD
 - **房間影片轉換（#93，分支 `feat/93-room-viewer`）**：`0014_meow_room_models.sql` 未執行前，上傳會失敗。worker 在本 repo 的 `workers/room-convert`（正本，2026-11-05 起；珮瑜的 3Dtest 只做實驗，改好要搬回這裡），啟動方式看該資料夾 README；目前在珮瑜的 Mac 上跑，Mac 沒開時工作會排隊。本機測試設 `ROOM_LOCAL_ROOT`、`NEXT_PUBLIC_ROOM_LOCAL=1`，不連 Supabase。
+=======
+- **房間影片轉換（#93）**：已上線，`0014` 已執行，2026-11-03 正式站實測轉換成功（快速模式約 15 分鐘；之後 worker 改跑完整品質，預估約 20 分鐘）。worker 不在本 repo，在珮瑜電腦的影片轉 3D 專案 `pipeline/room_worker.py --supabase`；Mac 沒開時工作會排隊，後台排隊超過 2 分鐘會提醒。列表的進度用 `roomStage` 依 worker 回報的步驟文字判斷，worker 改步驟名稱時要一起改 `STAGE_KEYWORDS`。備註和縮圖存在 `meta`（`note`、`thumb`）。本機測試設 `ROOM_LOCAL_ROOT`、`NEXT_PUBLIC_ROOM_LOCAL=1`，不連 Supabase。
+>>>>>>> origin/main
 
 ## 下一步（建議第一個動作）
 0. Issue #33：程式與四項檢查已完成，待建立 PR；正式站 `/onboarding` 停在「載入中…」，未完成登入後實際流程，PR 需保留此限制。
