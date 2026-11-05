@@ -229,12 +229,23 @@ export function ExperienceTab() {
               : (
                 <>
                   <div className="hq-row" style={{ gap: "0.5rem", flexWrap: "wrap", marginBottom: "0.75rem", alignItems: "center" }} role="group" aria-label="互動模式">
-                    <button type="button" className={`hq-btn ghost${interactMode === "point" ? " on" : ""}`}
-                      aria-pressed={interactMode === "point"} onClick={() => setInteractMode("point")}
-                      title="點地板叫貓走，點床／沙發跳上去">點</button>
-                    <button type="button" className={`hq-btn ghost${interactMode === "hand" ? " on" : ""}`}
-                      aria-pressed={interactMode === "hand"} onClick={() => setInteractMode("hand")}
-                      title="拖移用品與落地家具、移除讀圖家具">手掌</button>
+                    <button type="button" className={`hq-btn ghost hq-exp-mode${interactMode === "point" ? " on" : ""}`}
+                      aria-label="點" aria-pressed={interactMode === "point"} onClick={() => setInteractMode("point")}
+                      title="點地板叫貓走，點床／沙發跳上去">
+                      <svg width={20} height={20} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                        <path d="M4 3.2 19.2 12l-6.4 1.5L10.2 21.5 4 3.2Z" />
+                      </svg>
+                    </button>
+                    <button type="button" className={`hq-btn ghost hq-exp-mode${interactMode === "hand" ? " on" : ""}`}
+                      aria-label="手掌" aria-pressed={interactMode === "hand"} onClick={() => setInteractMode("hand")}
+                      title="拖移用品與落地家具、移除讀圖家具">
+                      <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <path d="M8 11V6.5a1.5 1.5 0 0 1 3 0V11" />
+                        <path d="M11 10.5V5.5a1.5 1.5 0 0 1 3 0V11" />
+                        <path d="M14 10.5V6.8a1.5 1.5 0 0 1 3 0V12" />
+                        <path d="M17 11.5v-.7a1.5 1.5 0 0 1 3 0V14a6 6 0 0 1-6 6h-1.2a6 6 0 0 1-5.3-3.2L5.2 12A1.8 1.8 0 0 1 8 9.7" />
+                      </svg>
+                    </button>
                     {placed.length > 0 && <button type="button" className="hq-btn ghost" onClick={() => setPlaced([])}>清空用品</button>}
                     {furnitureDirty && (
                       <button type="button" className="hq-btn ghost" onClick={restoreFurniture}>還原家具</button>
