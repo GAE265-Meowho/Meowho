@@ -5,7 +5,7 @@ function formatHqVersionDate(at = new Date()): string {
   return at.toLocaleString("sv-SE", { timeZone: "Asia/Taipei" }).replace(/-/g, "/");
 }
 
-/** 建置當下寫入頁尾用的 version／update by（Vercel git 作者優先） */
+/** 頁尾主要來自 page-meta.generated.json；此處僅作缺 key／本機無 git 時的 fallback */
 const hqVersion = process.env.NEXT_PUBLIC_HQ_VERSION || formatHqVersionDate();
 const hqUpdatedBy =
   process.env.NEXT_PUBLIC_HQ_UPDATED_BY

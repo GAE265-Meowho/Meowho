@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Fragment, Suspense, useEffect, useState } from "react";
-import { hqUpdatedBy, hqVersionDate } from "@/lib/hq/build-meta";
+import { hqPageMeta } from "@/lib/hq/build-meta";
 import { ADMIN_MODULE_LABELS, type SidebarItem } from "@/lib/hq/types";
 import { LOGOS } from "@/lib/mock-data";
 import { HQ_HOME, HQ_MODULE_PATH, isModule } from "./access";
@@ -93,6 +93,18 @@ function AssetsGroup({ activePath, onPick, tab }: { activePath: string; onPick: 
 function AssetsGroupWithQuery(props: { activePath: string; onPick: () => void }) {
   const tab = useSearchParams()?.get("tab") ?? null;
   return <AssetsGroup {...props} tab={tab} />;
+}
+
+/** 頁尾依目前 path／?tab= 顯示該功能最後修改人與時間 */
+function HqPageFoot({ activePath }: { activePath: string }) {
+  const search = useSearchParams()?.toString() ?? "";
+  const meta = hqPageMeta(activePath, search);
+  return (
+    <footer className="hq-pagefoot" aria-label="頁面建置資訊">
+      <span className="hq-pagefoot-by">update by : {meta.updatedBy}</span>
+      <span className="hq-pagefoot-ver" title="該功能／tab 原始碼最後修改時間（Asia/Taipei）">version date: {meta.versionDate}</span>
+    </footer>
+  );
 }
 
 const COLLAPSE_KEY = "meowhq:sidebar-collapsed";
@@ -200,10 +212,14 @@ export function HqShell({ items, user, unread, onLogout, activePath, children, u
         {navOpen && <div className="hq-scrim" onClick={() => setNavOpen(false)} aria-hidden="true" />}
         <main className="hq-main">
           {children}
-          <footer className="hq-pagefoot" aria-label="頁面建置資訊">
-            <span className="hq-pagefoot-by">update by : {hqUpdatedBy()}</span>
-            <span className="hq-pagefoot-ver" title="建置時間（Asia/Taipei）">version date: {hqVersionDate()}</span>
-          </footer>
+          <Suspense fallback={
+            <footer className="hq-pagefoot" aria-label="頁面建置資訊">
+              <span className="hq-pagefoot-by">update by : {hqPageMeta(activePath).updatedBy}</span>
+              <span className="hq-pagefoot-ver" title="該功能／tab 原始碼最後修改時間（Asia/Taipei）">version date: {hqPageMeta(activePath).versionDate}</span>
+            </footer>
+          }>
+            <HqPageFoot activePath={activePath} />
+          </Suspense>
         </main>
       </div>
     </div>
