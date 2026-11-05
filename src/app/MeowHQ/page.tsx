@@ -1,5 +1,6 @@
 "use client";
-// MeowHQ 首頁：KPI Dashboard（#218）＋待辦總覽（T-HQ-07）；#222 移除「我最近的管理動作」、修正 KPI 載入閃爍
+// MeowHQ 首頁：KPI Dashboard（#218）＋待辦總覽（T-HQ-07）
+// #222 移除「我最近的管理動作」；#224 進頁只載一次，不隨 actor／auth 事件自動重抓
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { DashboardView } from "@/components/hq/dashboard/DashboardView";
@@ -7,7 +8,7 @@ import { useHqActor } from "@/components/hq/HqActor";
 import { HqLoadError, HqSkeleton } from "@/components/hq/HqStates";
 import { describeAudit, formatTaipei, type AuditLog } from "@/lib/hq/audit";
 import type { DashboardPayload } from "@/lib/hq/dashboard/types";
-import { hasModule } from "@/lib/hq/permissions";
+import { hasModule, type HqActor } from "@/lib/hq/permissions";
 import { countTexturePending, textureInfo } from "@/lib/hq/cat-models/types";
 import { buildTodoCards, type TodoCounts } from "@/lib/hq/todos";
 import { getBrowserSupabase } from "@/lib/supabase/client";
@@ -21,13 +22,21 @@ export default function HqHomePage() {
   const [counts, setCounts] = useState<TodoCounts>({});
   const [grantLog, setGrantLog] = useState<AuditLog[]>([]);
   const [todoState, setTodoState] = useState<"loading" | "ok" | "error">("loading");
-  // 已有 KPI 時重新整理不換成骨架（避免掌印／shimmer 一直閃）
+  // 以 ref 讀最新 actor／userId，讓「只載一次」的 effect 不必依賴會變的物件身分
+  const actorRef = useRef<HqActor | null>(actor);
+  const userIdRef = useRef(userId);
+  const previewRef = useRef(preview);
+  actorRef.current = actor;
+  userIdRef.current = userId;
+  previewRef.current = preview;
   const hasDash = useRef(false);
   hasDash.current = Boolean(dash);
+  const booted = useRef(false);
 
   const loadDash = useCallback(async () => {
-    if (!actor) return;
-    if (preview) {
+    const a = actorRef.current;
+    if (!a) return;
+    if (previewRef.current) {
       setDashState("ok");
       setDash(null);
       return;
@@ -42,21 +51,23 @@ export default function HqHomePage() {
     } catch {
       if (!hasDash.current) setDashState("error");
     }
-  }, [actor, preview]);
+  }, []);
 
   const loadTodos = useCallback(async () => {
-    if (!actor) return;
+    const a = actorRef.current;
+    const uid = userIdRef.current;
+    if (!a) return;
     const sb = getBrowserSupabase();
-    if (preview || !sb || !userId) { setTodoState("ok"); return; }
+    if (previewRef.current || !sb || !uid) { setTodoState("ok"); return; }
     setTodoState(s => (s === "ok" ? "ok" : "loading"));
     try {
       const next: TodoCounts = {};
-      if (hasModule(actor, "user_management")) {
+      if (hasModule(a, "user_management")) {
         const r = await sb.from("meow_shelter_verifications").select("id", { count: "exact", head: true }).eq("status", "pending");
         if (r.error) throw r.error;
         next.verifications_pending = r.count ?? 0;
       }
-      if (hasModule(actor, "virtual_assets")) {
+      if (hasModule(a, "virtual_assets")) {
         const r = await sb.from("meow_cat_models").select("albedo_path,prev_albedo_path,base_version,meta,profile");
         if (!r.error) {
           next.textures_pending = countTexturePending((r.data ?? []).map(row => ({
@@ -68,7 +79,7 @@ export default function HqHomePage() {
           })));
         }
       }
-      if (actor.role === "system_admin") {
+      if (a.role === "system_admin") {
         const g = await sb.from("meow_audit_logs").select(LOG_COLS).in("action", ["grant_module", "revoke_grant", "set_role"]).order("created_at", { ascending: false }).limit(3);
         if (g.error) throw g.error;
         setGrantLog((g.data ?? []) as AuditLog[]);
@@ -78,11 +89,17 @@ export default function HqHomePage() {
     } catch {
       setTodoState(s => (s === "ok" ? "ok" : "error"));
     }
-  }, [actor, userId, preview]);
+  }, []);
 
   const reload = useCallback(() => { void loadDash(); void loadTodos(); }, [loadDash, loadTodos]);
-  useEffect(() => { void loadDash(); }, [loadDash]);
-  useEffect(() => { void loadTodos(); }, [loadTodos]);
+
+  // #224：進頁取得 actor 後只載一次；之後不自動重抓（按「重新整理」才更新）
+  useEffect(() => {
+    if (!actor || booted.current) return;
+    booted.current = true;
+    void loadDash();
+    void loadTodos();
+  }, [actor, loadDash, loadTodos]);
 
   if (!actor || (dashState === "loading" && todoState === "loading" && !dash)) {
     return (<><h1 className="hq-h1">營運總覽</h1><HqSkeleton rows={4} /></>);
