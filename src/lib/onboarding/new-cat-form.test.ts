@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { emptyIntake } from "./conversation";
 import {
-  aiStoryOf, ageMonthsOf, applyExtracted, completeness, emptyForm, mottos, skippedParts, storyExtras, tagsOf, toNewCatRow, weekLines, withAge,
+  aiStoryOf, ageMonthsOf, applyExtracted, completeness, emptyForm, fromCatRow, toCatUpdateRow, type NewCatForm, mottos, skippedParts, storyExtras, tagsOf, toNewCatRow, weekLines, withAge,
 } from "./new-cat-form";
 
 const base = emptyIntake().cat;
@@ -97,5 +97,39 @@ describe("MT-02-03：只填必填也能建立，其他欄位之後再補", () =>
   it("相處說明只存有寫的", () => {
     const f = { ...emptyForm(), compat: { ...emptyForm().compat, cats: "maybe" as const, notes: { cats: "要隔離", dogs: " " } } };
     expect(toNewCatRow(f, { id: "c1", householdId: "h1", coverUrl: null }).compat.notes).toEqual({ cats: "要隔離" });
+  });
+});
+
+describe("重新打開這隻貓：每一頁都顯示原本填的內容（#206）", () => {
+  const filled: NewCatForm = {
+    ...emptyForm(),
+    angles: { front: "u/f.jpg", left: "u/l.jpg", back: "u/b.jpg" }, others: ["u/o1.jpg", "u/o2.jpg"], cover: "o:1",
+    story: "小米是在公園撿到的", name: "小米", sex: "female", ageNum: "3", ageUnit: "month", lifeStage: "kitten", coat: "橘白", breed: "米克斯",
+    medical: { ...emptyForm().medical, neutered: "done", vaccineDoses: 2, dewormInternal: "done", fivFelv: "negative", microchip: "yes", history: "右後腳受過傷", medication: "" },
+    healthTags: ["口炎"], scale: { energy: 4, bond: 5, brave: 2, adapt: null }, scaleNotes: { bond: "會一直跟著" }, extraTags: ["愛踏踏"],
+    behavior: { pee: { level: "none", note: null }, bite: { level: "sometimes", note: "玩到興奮" } }, habits: ["會用貓砂", "半夜跑酷"],
+    compat: { ...emptyForm().compat, cats: "maybe", kids: "yes", notes: { cats: "要隔離一週" } },
+    care: { handling: { nail: "tricky" }, arrival: { hide: "1_3_days" }, touch: { chin: "love", belly: "no" }, touchLimit: "1_2_min", touchSigns: ["tail"],
+      origin: "street", since: "2026-08-01", weightKg: 1.8, favoriteSnack: "肉泥", cautionNote: null, otherNote: "最愛紙箱" },
+    intro: "一日不見，如隔三餐。", consent: true,
+  };
+  it("存進去再讀出來，每一頁的內容都一樣", () => {
+    const row = toNewCatRow(filled, { id: "c1", householdId: "h1", coverUrl: null });
+    const back = fromCatRow(row);
+    expect({ ...back, said: [], guessed: [] }).toEqual({ ...filled, said: [], guessed: [] });
+  });
+  it("修改時不動 id、喵戶、狀態", () => {
+    const row = toCatUpdateRow(filled, null);
+    expect(row).not.toHaveProperty("id");
+    expect(row).not.toHaveProperty("status");
+    expect(row).toMatchObject({ name: "小米", cover: "o:1", photo_paths: ["u/o1.jpg", "u/o2.jpg"] });
+  });
+  it("0024 以前建的貓：用個性標籤推回拉桿，照片當生活照，缺的欄位用預設", () => {
+    const f = fromCatRow({ name: "舊貓", sex: "male", life_stage: "adult", est_age_months: 30, personality_tags: ["親人", "黏人", "貪吃"], photo_paths: ["a", "b"], medical: { neutered: "done" } });
+    expect(f.scale).toEqual({ energy: null, bond: 4, brave: 4, adapt: null });
+    expect(f.extraTags).toEqual(["貪吃"]);
+    expect(f).toMatchObject({ ageNum: "3", ageUnit: "year", others: ["a", "b"], cover: null, consent: true });
+    expect(f.medical).toMatchObject({ neutered: "done", fivFelv: "untested" });
+    expect(f.compat).toMatchObject({ cats: "unknown", guest: "unknown", notes: {} });
   });
 });

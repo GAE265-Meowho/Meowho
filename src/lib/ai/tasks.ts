@@ -12,6 +12,8 @@ type Runner = Runnable<BaseMessage[], unknown>;
 export interface TaskCatContext {
   name: string; lifeStage: string | null; personality: string[]; health: string[]; habits: string[];
   description: string | null; timeline: string[]; videoNotes: string[];
+  /** meow_cats.ai_story（#206）：試養遊戲沒有寫好劇情的健康標籤＋中途自己填的身體狀況，請 AI 安排照顧劇情（不可寫成診斷） */
+  healthStory?: { tags: string[]; text: string | null } | null;
 }
 
 const STAGE: Record<string, string> = { kitten: "幼貓", adult: "成貓", senior: "老貓" };
@@ -25,6 +27,8 @@ export const taskDraftInput = (c: TaskCatContext) => ({
     `年齡層：${(c.lifeStage && STAGE[c.lifeStage]) || "不確定"}`,
     c.personality.length ? `個性：${c.personality.slice(0, 12).join("、")}` : "個性：沒有填寫",
     c.health.length ? `健康：${c.health.slice(0, 8).join("、")}` : "",
+    c.healthStory?.tags.length ? `需要安排照顧劇情的身體狀況：${c.healthStory.tags.slice(0, 8).join("、")}` : "",
+    c.healthStory?.text ? `中途寫的身體狀況：${c.healthStory.text.slice(0, 200)}` : "",
     c.habits.length ? `生活習慣：${c.habits.slice(0, 12).join("、")}` : "",
     c.description ? `中途的描述：${c.description.slice(0, 600)}` : "",
     c.timeline.length ? `故事：${c.timeline.slice(-10).map(e => e.slice(0, 80)).join("；")}` : "",
