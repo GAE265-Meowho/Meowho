@@ -63,4 +63,9 @@
 ## Migration
 
 - `0023_meow_dashboard_stats.sql`：`meow_dashboard_resource_stats()`（DB 容量＋bucket 加總）
-- **尚未執行時**：業務 KPI 與 Storage 備援列表仍可用；DB 容量顯示「尚未啟用」
+- **尚未執行時**：業務 KPI 仍可用；DB 容量／Storage 用量顯示「尚未啟用」（#222：不再遞迴掃 bucket，避免 Dashboard 逾時、首頁骨架一直閃）
+
+## 首頁區塊（#222）
+
+- 顯示：營運 KPI ＋ 待辦總覽
+- 不顯示：「我最近的管理動作」（完整稽核仍在 Admin 授權 → 稽核日誌）

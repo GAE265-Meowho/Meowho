@@ -36,7 +36,9 @@ export function HqGate({ children }: { children: React.ReactNode }) {
     const sb = getBrowserSupabase();
     if (state !== "ok" || !sb || !user) return;
     sb.from("meow_admin_module_grants").select("module").eq("admin_id", user.id).then(({ data, error }) => {
-      setGrants(error || !data ? [] : data.map(r => r.module).filter((m): m is AdminModule => (ADMIN_MODULES as readonly string[]).includes(m)));
+      const next = error || !data ? [] : data.map(r => r.module).filter((m): m is AdminModule => (ADMIN_MODULES as readonly string[]).includes(m));
+      // 內容相同就沿用舊陣列，避免 actor 換身分觸發首頁 KPI 重載閃爍（#222）
+      setGrants(prev => (prev && prev.length === next.length && prev.every((m, i) => m === next[i]) ? prev : next));
     });
     sb.from("meow_notifications").select("id", { count: "exact", head: true }).eq("user_id", user.id).is("read_at", null).then(({ count }) => setUnread(count ?? 0));
   }, [state, user, preview, tick]);

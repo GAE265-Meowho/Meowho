@@ -1,7 +1,7 @@
 "use client";
-// MeowHQ 首頁：KPI Dashboard（#218）＋待辦總覽（T-HQ-07）
+// MeowHQ 首頁：KPI Dashboard（#218）＋待辦總覽（T-HQ-07）；#222 移除「我最近的管理動作」、修正 KPI 載入閃爍
 import Link from "next/link";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { DashboardView } from "@/components/hq/dashboard/DashboardView";
 import { useHqActor } from "@/components/hq/HqActor";
 import { HqLoadError, HqSkeleton } from "@/components/hq/HqStates";
@@ -9,7 +9,7 @@ import { describeAudit, formatTaipei, type AuditLog } from "@/lib/hq/audit";
 import type { DashboardPayload } from "@/lib/hq/dashboard/types";
 import { hasModule } from "@/lib/hq/permissions";
 import { countTexturePending, textureInfo } from "@/lib/hq/cat-models/types";
-import { buildTodoCards, recentOwnActions, type TodoCounts } from "@/lib/hq/todos";
+import { buildTodoCards, type TodoCounts } from "@/lib/hq/todos";
 import { getBrowserSupabase } from "@/lib/supabase/client";
 
 const LOG_COLS = "id, actor_id, action, target_type, target_id, reason, detail, created_at";
@@ -19,9 +19,11 @@ export default function HqHomePage() {
   const [dash, setDash] = useState<DashboardPayload | null>(null);
   const [dashState, setDashState] = useState<"loading" | "ok" | "error" | "forbidden">("loading");
   const [counts, setCounts] = useState<TodoCounts>({});
-  const [mine, setMine] = useState<AuditLog[]>([]);
   const [grantLog, setGrantLog] = useState<AuditLog[]>([]);
   const [todoState, setTodoState] = useState<"loading" | "ok" | "error">("loading");
+  // 已有 KPI 時重新整理不換成骨架（避免掌印／shimmer 一直閃）
+  const hasDash = useRef(false);
+  hasDash.current = Boolean(dash);
 
   const loadDash = useCallback(async () => {
     if (!actor) return;
@@ -30,7 +32,7 @@ export default function HqHomePage() {
       setDash(null);
       return;
     }
-    setDashState("loading");
+    if (!hasDash.current) setDashState("loading");
     try {
       const res = await fetch("/api/hq/dashboard", { cache: "no-store" });
       if (res.status === 401 || res.status === 403) { setDashState("forbidden"); return; }
@@ -38,7 +40,7 @@ export default function HqHomePage() {
       setDash(await res.json() as DashboardPayload);
       setDashState("ok");
     } catch {
-      setDashState("error");
+      if (!hasDash.current) setDashState("error");
     }
   }, [actor, preview]);
 
@@ -46,7 +48,7 @@ export default function HqHomePage() {
     if (!actor) return;
     const sb = getBrowserSupabase();
     if (preview || !sb || !userId) { setTodoState("ok"); return; }
-    setTodoState("loading");
+    setTodoState(s => (s === "ok" ? "ok" : "loading"));
     try {
       const next: TodoCounts = {};
       if (hasModule(actor, "user_management")) {
@@ -66,18 +68,15 @@ export default function HqHomePage() {
           })));
         }
       }
-      const own = await sb.from("meow_audit_logs").select(LOG_COLS).eq("actor_id", userId).order("created_at", { ascending: false }).limit(5);
-      if (own.error) throw own.error;
       if (actor.role === "system_admin") {
         const g = await sb.from("meow_audit_logs").select(LOG_COLS).in("action", ["grant_module", "revoke_grant", "set_role"]).order("created_at", { ascending: false }).limit(3);
         if (g.error) throw g.error;
         setGrantLog((g.data ?? []) as AuditLog[]);
       }
       setCounts(next);
-      setMine(recentOwnActions((own.data ?? []) as AuditLog[], userId));
       setTodoState("ok");
     } catch {
-      setTodoState("error");
+      setTodoState(s => (s === "ok" ? "ok" : "error"));
     }
   }, [actor, userId, preview]);
 
@@ -85,7 +84,7 @@ export default function HqHomePage() {
   useEffect(() => { void loadDash(); }, [loadDash]);
   useEffect(() => { void loadTodos(); }, [loadTodos]);
 
-  if (!actor || (dashState === "loading" && todoState === "loading")) {
+  if (!actor || (dashState === "loading" && todoState === "loading" && !dash)) {
     return (<><h1 className="hq-h1">營運總覽</h1><HqSkeleton rows={4} /></>);
   }
 
@@ -93,12 +92,15 @@ export default function HqHomePage() {
   return (
     <>
       <h1 className="hq-h1">營運總覽</h1>
-      <p className="hq-sub" style={{ marginTop: 0 }}>業務、Supabase 資源與系統健康 KPI；下方保留你的待辦與最近動作。</p>
+      <p className="hq-sub" style={{ marginTop: 0 }}>
+        業務、Supabase 資源與系統健康 KPI；下方為你的待辦。
+        <button type="button" className="hq-btn ghost small" style={{ marginLeft: ".5rem" }} onClick={reload}>重新整理</button>
+      </p>
 
-      {dashState === "loading" && <HqSkeleton rows={3} />}
-      {dashState === "error" && <HqLoadError onRetry={() => void loadDash()} />}
+      {dashState === "loading" && !dash && <HqSkeleton rows={3} />}
+      {dashState === "error" && !dash && <HqLoadError onRetry={() => void loadDash()} />}
       {dashState === "forbidden" && <p className="hq-hint" role="alert">沒有權限讀取 KPI（需為管理員）。</p>}
-      {dashState === "ok" && dash && <DashboardView data={dash} />}
+      {dash && <DashboardView data={dash} />}
       {dashState === "ok" && preview && !dash && (
         <p className="hq-banner" role="status">本機預覽模式：KPI 需連線並以管理員身分呼叫 /api/hq/dashboard。</p>
       )}
@@ -127,20 +129,6 @@ export default function HqHomePage() {
             ))}
           </div>
         )}
-      </section>
-
-      <section className="hq-section" aria-label="我最近的管理動作">
-        <h2>我最近的管理動作</h2>
-        {mine.length === 0 ? <p className="hq-hint">還沒有管理動作。</p> : (
-          <ul className="hq-log">
-            {mine.map(l => (
-              <li key={l.id}><strong>{describeAudit(l)}</strong><span className="hq-hint">原因：{l.reason}</span><time className="hq-hint">{formatTaipei(l.created_at)}</time></li>
-            ))}
-          </ul>
-        )}
-        <p className="hq-hint" style={{ marginTop: ".75rem" }}>
-          <button type="button" className="hq-btn ghost" onClick={reload}>重新整理 KPI</button>
-        </p>
       </section>
     </>
   );

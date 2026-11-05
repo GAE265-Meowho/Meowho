@@ -113,7 +113,6 @@ async function loadStorage(admin: SupabaseClient, at: string) {
   }
 
   let dbBytes: number | null = null;
-  let dbError: string | undefined;
   const rpc = await admin.rpc("meow_dashboard_resource_stats");
   if (!rpc.error && rpc.data && typeof rpc.data === "object") {
     const d = rpc.data as { db_bytes?: number; buckets?: { bucket: string; bytes: number; files: number }[] };
@@ -124,48 +123,13 @@ async function loadStorage(admin: SupabaseClient, at: string) {
         tableCount, rowTotal, dbBytes, at, tableError,
       });
     }
-  } else {
-    dbError = "尚未執行 migration 0023（或 RPC 不可用）";
   }
-
-  let buckets: StorageBucketStat[] = [];
-  let storageError: string | undefined;
-  try {
-    const { data: bucketList, error: bErr } = await admin.storage.listBuckets();
-    if (bErr) throw bErr;
-    const collected: { bucket: string; bytes: number; files: number }[] = [];
-    for (const b of (bucketList ?? []).filter(x => x.name.startsWith("meow-"))) {
-      collected.push({ bucket: b.name, ...(await sumBucket(admin, b.name)) });
-    }
-    buckets = mergeBucketStats(collected);
-  } catch (e) {
-    storageError = e instanceof Error ? e.message : "無法讀取 Storage";
-  }
-
+  // #222：0023 未執行時不要遞迴 list Storage（會拖很久，首頁骨架掌印一直閃）
+  const dbError = "尚未執行 migration 0023（或 RPC 不可用）";
+  const storageError = "需執行 migration 0023 才有 Storage 用量（暫不掃 bucket，避免 Dashboard 逾時）";
   return buildSupabaseResourceKpis({
-    buckets, tableCount, rowTotal, dbBytes, at, tableError, storageError, dbError,
+    buckets: [] as StorageBucketStat[], tableCount, rowTotal, dbBytes, at, tableError, storageError, dbError,
   });
-}
-
-async function sumBucket(admin: SupabaseClient, bucket: string, prefix = "", depth = 0): Promise<{ bytes: number; files: number }> {
-  if (depth > 6) return { bytes: 0, files: 0 };
-  const { data, error } = await admin.storage.from(bucket).list(prefix, { limit: 1000, offset: 0 });
-  if (error || !data) return { bytes: 0, files: 0 };
-  let bytes = 0;
-  let files = 0;
-  for (const item of data) {
-    const path = prefix ? `${prefix}/${item.name}` : item.name;
-    const size = Number((item.metadata as { size?: number } | null)?.size ?? 0);
-    if (item.metadata && size > 0) {
-      bytes += size;
-      files += 1;
-    } else if (!item.id) {
-      const sub = await sumBucket(admin, bucket, path, depth + 1);
-      bytes += sub.bytes;
-      files += sub.files;
-    }
-  }
-  return { bytes, files };
 }
 
 async function probeHealth(admin: SupabaseClient | null): Promise<{ ok: boolean | null; at: string }> {
