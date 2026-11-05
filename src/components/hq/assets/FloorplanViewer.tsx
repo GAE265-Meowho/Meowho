@@ -10,6 +10,7 @@ import * as THREE from "three";
 import { FLOOR_TEXTURE, kitScale, kitUrl } from "@/lib/hq/floorplans/kit";
 import { goalForBox, idleAction, stepActor, worldOf, type Actor, type Goal } from "@/lib/hq/floorplans/catjump";
 import { CAT_SCALE, freeSpot, obstacles, type Obstacle } from "@/lib/hq/floorplans/catwalk";
+import type { FurnitureMove } from "@/lib/hq/floorplans/experience-furniture";
 import { focusScenes, houseScene, sceneBounds, type RoomScene, type SceneBox } from "@/lib/hq/floorplans/scene";
 import type { BodyType } from "@/lib/hq/cat-models/types";
 import { CatModel } from "./CatPreview";
@@ -88,20 +89,30 @@ function Block({ b, color }: { b: SceneBox; color: string }) {
   );
 }
 
-/** 家具：模型庫的 glb；透明碰撞盒點床／沙發；手掌模式上方 × 可暫時移除 */
-function Furniture({ b, roomId, boxIndex, onClick, onRemove }: {
+/** 家具：模型庫的 glb；透明碰撞盒點床／沙發；手掌模式可拖落地家具、上方 × 可暫時移除 */
+function Furniture({ b, roomId, boxIndex, onClick, onRemove, dragEnabled, onMove }: {
   b: SceneBox; roomId: string; boxIndex: number;
   onClick?: (e: ThreeEvent<MouseEvent>) => void;
   onRemove?: (roomId: string, furnitureIndex: number) => void;
+  dragEnabled?: boolean;
+  onMove?: (roomId: string, furnitureIndex: number, next: FurnitureMove, prev: FurnitureMove) => void;
 }) {
   const { scene } = useGLTF(kitUrl(b.furniture ?? "other"));
+  const group = useRef<THREE.Group>(null);
+  const dragging = useRef(false);
+  const start = useRef<FurnitureMove>({ x: b.x, z: b.z });
+  const draft = useRef<FurnitureMove>({ x: b.x, z: b.z });
+  const controls = useThree(s => s.controls) as { enabled: boolean } | null;
+  const { camera, pointer, raycaster, scene: threeScene } = useThree();
   const model = useMemo(() => {
     const m = scene.clone(true);
     m.traverse(o => { if ((o as THREE.Mesh).isMesh) { o.castShadow = true; o.receiveShadow = true; } });
     return m;
   }, [scene]);
   const planIndex = b.furnitureIndex ?? boxIndex;
+  const canDrag = !!(dragEnabled && onMove && b.movable && b.furnitureIndex !== undefined);
   const support = isSupportBox(b);
+  // 承載中心跟 b.x／b.z（commit 後才更新）；拖移中 group 平移，結束後 scene 重建
   const supportData = support ? {
     meowSupportRoomId: roomId,
     meowSupportIndex: planIndex,
@@ -110,24 +121,90 @@ function Furniture({ b, roomId, boxIndex, onClick, onRemove }: {
     meowSupportCz: b.z,
   } : undefined;
   const label = b.furniture ?? "家具";
-  // y＝方塊中心；模型底部貼在 y − h/2（桌上物 elev＞0）
+
+  useEffect(() => {
+    if (dragging.current) return;
+    group.current?.position.set(b.x, 0, b.z);
+    start.current = { x: b.x, z: b.z };
+    draft.current = { x: b.x, z: b.z };
+  }, [b.x, b.z]);
+
+  useEffect(() => {
+    const end = () => {
+      if (!dragging.current) return;
+      dragging.current = false;
+      if (controls) controls.enabled = true;
+      document.body.style.cursor = "";
+      if (onMove && b.furnitureIndex !== undefined) {
+        onMove(roomId, b.furnitureIndex, { ...draft.current }, { ...start.current });
+      }
+    };
+    window.addEventListener("pointerup", end);
+    window.addEventListener("pointercancel", end);
+    return () => {
+      window.removeEventListener("pointerup", end);
+      window.removeEventListener("pointercancel", end);
+    };
+  }, [controls, onMove, roomId, b.furnitureIndex]);
+
+  useFrame(() => {
+    if (!dragging.current || !group.current?.parent) return;
+    raycaster.setFromCamera(pointer, camera);
+    for (const h of raycaster.intersectObjects(threeScene.children, true)) {
+      let o: THREE.Object3D | null = h.object;
+      while (o) {
+        if (o.userData?.meowFloorRoomId === roomId) {
+          const parent = o.parent;
+          if (!parent) return;
+          const p = parent.worldToLocal(h.point.clone());
+          draft.current = { x: p.x, z: p.z };
+          group.current.position.set(p.x, 0, p.z);
+          group.current.traverse(node => {
+            if (node.userData?.meowSupportRoomId === roomId) {
+              node.userData.meowSupportCx = p.x;
+              node.userData.meowSupportCz = p.z;
+            }
+          });
+          return;
+        }
+        o = o.parent;
+      }
+    }
+  });
+
+  // y＝方塊中心；模型底部貼在 y − h/2（桌上物 elev＞0）；group 只平移 x／z
   return (
-    <group>
+    <group
+      ref={group}
+      position={[b.x, 0, b.z]}
+      onPointerDown={(e: ThreeEvent<PointerEvent>) => {
+        if (!canDrag) return;
+        e.stopPropagation();
+        dragging.current = true;
+        start.current = { x: b.x, z: b.z };
+        draft.current = { x: b.x, z: b.z };
+        if (controls) controls.enabled = false;
+        document.body.style.cursor = "grabbing";
+      }}
+      onClick={(e: ThreeEvent<MouseEvent>) => {
+        if (canDrag) e.stopPropagation();
+      }}
+    >
       <primitive
         object={model}
-        position={[b.x, b.y - b.sy / 2, b.z]}
+        position={[0, b.y - b.sy / 2, 0]}
         rotation={[0, b.rotY, 0]}
         scale={kitScale(b.furniture ?? "other", { w: b.sx, h: b.sy, d: b.sz })}
         userData={supportData}
       />
       {onClick && (
-        <mesh position={[b.x, b.y, b.z]} rotation={[0, b.rotY, 0]} onClick={onClick} userData={supportData}>
+        <mesh position={[0, b.y, 0]} rotation={[0, b.rotY, 0]} onClick={onClick} userData={supportData}>
           <boxGeometry args={[b.sx, b.sy, b.sz]} />
           <meshBasicMaterial transparent opacity={0} depthWrite={false} />
         </mesh>
       )}
       {onRemove && b.furnitureIndex !== undefined && (
-        <Html position={[b.x, b.y + b.sy / 2 + 0.12, b.z]} center zIndexRange={[30, 20]} style={{ pointerEvents: "none" }}>
+        <Html position={[0, b.y + b.sy / 2 + 0.12, 0]} center zIndexRange={[30, 20]} style={{ pointerEvents: "none" }}>
           <button
             type="button"
             className="hq-fp-item-x"
@@ -338,9 +415,11 @@ function Floor({ b, roomId, onClick }: { b: SceneBox; roomId: string; onClick: (
 /** 點到的東西：地板，或第 box 個方塊（家具）；x、z 是這間房的座標（公尺） */
 export type RoomClick = { box: number | null; x: number; z: number };
 
-function Room({ s, onClick, onRemoveFurniture, children }: {
+function Room({ s, onClick, onRemoveFurniture, furnitureDrag, onMoveFurniture, children }: {
   s: RoomScene; onClick: (c: RoomClick) => void;
   onRemoveFurniture?: (roomId: string, furnitureIndex: number) => void;
+  furnitureDrag?: boolean;
+  onMoveFurniture?: (roomId: string, furnitureIndex: number, next: FurnitureMove, prev: FurnitureMove) => void;
   children?: React.ReactNode;
 }) {
   const ref = useRef<THREE.Group>(null);
@@ -357,8 +436,13 @@ function Room({ s, onClick, onRemoveFurniture, children }: {
         b.kind === "floor" ? (
           <Suspense key={i} fallback={<Block b={b} color="#D9CCB4" />}><Floor b={b} roomId={s.id} onClick={handle(null)} /></Suspense>
         ) : b.kind === "furniture" ? (
-          <Suspense key={i} fallback={<Block b={b} color="#D8D2C8" />}>
-            <Furniture b={b} roomId={s.id} boxIndex={i} onClick={handle(i)} onRemove={onRemoveFurniture} />
+          <Suspense key={`${s.id}:f:${b.furnitureIndex ?? i}`} fallback={<Block b={b} color="#D8D2C8" />}>
+            <Furniture
+              b={b} roomId={s.id} boxIndex={i} onClick={handle(i)}
+              onRemove={onRemoveFurniture}
+              dragEnabled={furnitureDrag}
+              onMove={onMoveFurniture}
+            />
           </Suspense>
         ) : (
           <WallPiece key={i} b={b} center={[s.size[0] / 2, s.size[1] / 2]} />
@@ -468,25 +552,29 @@ function CameraRig({ position, view }: { position: [number, number, number]; vie
  * 上方膠囊：「全部」＝讀圖完成的房間並排；點某間＝3D 只顯示那一間並重新取景，同時切換下方的原圖預覽（onPick）。
  */
 export type PlaceAt = { roomId: string; x: number; z: number; y: number; support: ItemSupport };
-/** point＝點地板／床叫貓；hand＝拖移已放用品（不叫貓） */
+/** point＝點地板／床叫貓；hand＝拖移已放用品／落地家具（不叫貓） */
 export type InteractMode = "point" | "hand";
 
-export default function FloorplanViewer({ rooms, selected, onPick, cat, placedItems = [], interactMode = "point", removedFurniture, onMoveItem, onRemoveItem, onRemoveFurniture, onFloorDrop }: {
+export default function FloorplanViewer({ rooms, selected, onPick, cat, placedItems = [], interactMode = "point", removedFurniture, furnitureMoves, onMoveItem, onRemoveItem, onRemoveFurniture, onMoveFurniture, onFloorDrop }: {
   rooms: PlanRoom[]; selected: string | null; onPick: (id: string) => void;
   /** 虛擬體驗（#150）：放一隻貓進去；有貓時只顯示單間（沒有「全部」），點地板叫貓走過去 */
   cat?: ViewerCat | null;
   /** 虛擬體驗（#197）：已放進房間的生活用品；只能從右側選單拖放進來，點地板不會新增 */
   placedItems?: PlacedHouseholdItem[];
-  /** 點／手掌：點＝叫貓；手掌＝拖移用品／移除家具 */
+  /** 點／手掌：點＝叫貓；手掌＝拖移用品／家具、移除家具 */
   interactMode?: InteractMode;
   /** 本次體驗暫時拿掉的讀圖家具（`roomId:index`） */
   removedFurniture?: Iterable<string>;
+  /** 本次體驗家具拖移姿態（`roomId:index` → 房間座標） */
+  furnitureMoves?: Record<string, FurnitureMove>;
   /** 拖移已放置的用品（可改到桌面或地板） */
   onMoveItem?: (key: string, at: MovePayload) => void;
   /** 移除已放置的用品（元件上方 ×） */
   onRemoveItem?: (key: string) => void;
   /** 暫時移除讀圖家具（手掌模式 ×） */
   onRemoveFurniture?: (roomId: string, furnitureIndex: number) => void;
+  /** 拖移落地讀圖家具（手掌模式） */
+  onMoveFurniture?: (roomId: string, furnitureIndex: number, next: FurnitureMove, prev: FurnitureMove) => void;
   /** 從右側選單拖放到地板或桌面 */
   onFloorDrop?: (itemId: string, at: PlaceAt) => void;
 }) {
@@ -494,7 +582,10 @@ export default function FloorplanViewer({ rooms, selected, onPick, cat, placedIt
     () => (removedFurniture ? [...removedFurniture] : []),
     [removedFurniture],
   );
-  const scenes = useMemo(() => houseScene(rooms, removedList), [rooms, removedList]);
+  const scenes = useMemo(
+    () => houseScene(rooms, removedList, furnitureMoves),
+    [rooms, removedList, furnitureMoves],
+  );
   const [focus, setFocus] = useState<string | null>(cat ? selected ?? scenes[0]?.id ?? null : null);
   const [click, setClick] = useState<(RoomClick & { at: number }) | null>(null);
   const catPos = useRef(new THREE.Vector3());
@@ -551,6 +642,8 @@ export default function FloorplanViewer({ rooms, selected, onPick, cat, placedIt
                   key={s.id}
                   s={s}
                   onRemoveFurniture={interactMode === "hand" && cat ? onRemoveFurniture : undefined}
+                  furnitureDrag={interactMode === "hand" && !!cat}
+                  onMoveFurniture={interactMode === "hand" && cat ? onMoveFurniture : undefined}
                   onClick={c => {
                     if (!cat) { pick(s.id); return; }
                     if (interactMode !== "point") return;
