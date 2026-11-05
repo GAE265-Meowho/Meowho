@@ -4,7 +4,8 @@
 > 最後更新：2026-11-05｜Tina × Cursor（#218 KPI Dashboard）
 
 ## 目前狀態
-- **#222 MeowHQ 首頁（Tina × Cursor，審查中）**：PR #223、分支 `fix/222-hq-home-flicker-remove-actions`。移除「我最近的管理動作」；修 KPI 骨架一直閃（0023 未執行時不再遞迴掃 Storage；授權不變不重建 actor）。請 Tina merge。
+- **#226 MeowHQ Dashboard UI（Tina × Cursor，審查中）**：PR #227、分支 `ui/226-hq-dashboard-ui`（含 #224；舊 #225 已關閉）。卡片去來源／時間雜訊、頂部全域抓取時間、主數值放大。請 Tina **merge PR #227**。
+- **#222 MeowHQ 首頁（Tina × Cursor）**：已合併 #223。移除「我最近的管理動作」；0023 未執行時不掃 Storage。
 - **#218 MeowHQ KPI Dashboard（Tina × Cursor）**：已合併 #219。`/MeowHQ` 營運總覽；`GET /api/hq/dashboard`；`docs/hq/06_kpi-dashboard.md`。`0023_meow_dashboard_stats.sql` **尚未執行**（執行前須 Tina 確認）。付費貓咪欄位未啟用；Vercel Observability 未接時不顯示假數字。需 `SUPABASE_SERVICE_ROLE_KEY`。
 - **#186 皇家食物元件（Tina × Codex）**：`/MeowHQ/assets?tab=food`，官方 sitemap 86 款、照片落地，分類與官方產品外連已接好。`src/lib/hq/food/` 共用目錄供之後虛擬購買；72 款有參考價、14 款待查。尚未接錢包／訂單／餵食庫存，未改 Supabase。參考價可用 `node scripts/update-food-reference-prices.mjs` 更新人工觀察值；完整官方再匯入用 `node scripts/import-royalcanin-food.mjs`（需網路）。
 - **前台貓咪 3D 接 MeowHQ（#182 → #187 → #188 依序合併）**：#188 讓新增貓咪收側面／正面／背面、建立後自動跑 AI 三視角（需 Vercel 的 `SUPABASE_SERVICE_ROLE_KEY` 與 Azure 影像設定），前台貓咪頁可預覽；Step 03、04 仍在 MeowHQ 手動。下一步：三視角完成後通知 MeowHQ 管理員（之後改自動）。

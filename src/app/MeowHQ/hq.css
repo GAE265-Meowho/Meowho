@@ -578,21 +578,41 @@
 .hq-catcard-meta { display: flex; flex-wrap: wrap; align-items: center; gap: .35rem; font-size: .85rem; }
 @media (prefers-reduced-motion: reduce) { .hq-catcard { transition: none; } }
 
-/* KPI Dashboard¡]#218¡^ */
+/* KPI Dashboardï¼ˆ#218ï¼#226ï¼‰ */
+.hq-dash-top { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: .75rem 1.25rem; margin-bottom: .85rem; }
+.hq-dash-top-text { min-width: min(100%, 16rem); flex: 1; }
+.hq-dash-top-meta { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem .75rem; margin-left: auto; }
+.hq-dash-fetched { margin: 0; color: var(--hq-sub); font-size: .88rem; font-variant-numeric: tabular-nums; }
 .hq-dash { display: flex; flex-direction: column; gap: .25rem; }
-.hq-dash-h { font-size: 1.1rem; margin: 0 0 .35rem; }
-.hq-dash-sec { margin-top: 1.25rem; }
-.hq-kpi-foot { display: flex; flex-wrap: wrap; gap: .35rem .75rem; align-items: center; margin-top: .25rem; }
-.hq-kpi-break { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .25rem; }
-.hq-kpi-break a, .hq-kpi-break span { display: flex; justify-content: space-between; gap: .5rem; padding: .35rem .4rem; border-radius: 8px; min-height: 36px; align-items: center; font-size: .9rem; }
+.hq-dash-h { font-size: 1.05rem; margin: 0 0 .2rem; }
+.hq-dash-lead { margin: 0 0 .65rem; font-size: .88rem; line-height: 1.45; }
+.hq-dash-sec { margin-top: 1.1rem; }
+.hq-kpi { position: relative; gap: .35rem; padding: .85rem 1rem; min-height: 0; }
+.hq-kpi-head { display: flex; align-items: flex-start; justify-content: space-between; gap: .5rem; }
+.hq-kpi h2 { font-size: .9rem; font-weight: 600; color: var(--hq-sub); line-height: 1.35; }
+.hq-kpi .hq-total { font-size: 1.85rem; font-weight: 700; color: var(--hq-caramel); line-height: 1.15; margin-top: .15rem; font-variant-numeric: tabular-nums; }
+.hq-kpi .hq-total.zero { color: var(--hq-sub); font-size: 1.25rem; font-weight: 600; }
+.hq-kpi-mute { background: #FCFAF5; }
+.hq-kpi-mute .hq-total { color: var(--hq-sub); }
+.hq-kpi-status { margin: 0; font-size: .78rem; color: var(--hq-sub); }
+.hq-kpi-status.danger { color: var(--hq-danger); }
+.hq-kpi-note { margin: 0; font-size: .82rem; line-height: 1.4; }
+.hq-kpi-info {
+  flex: none; display: inline-grid; place-items: center; width: 36px; height: 36px; margin: -.35rem -.35rem 0 0;
+  border: 0; border-radius: 8px; background: transparent; color: var(--hq-sub); cursor: help;
+}
+.hq-kpi-info:hover, .hq-kpi-info:focus-visible { background: var(--hq-sage-soft); color: var(--hq-text); outline: none; }
+.hq-kpi-break { list-style: none; margin: .15rem 0 0; padding: 0; display: flex; flex-direction: column; gap: .15rem; }
+.hq-kpi-break a, .hq-kpi-break span { display: flex; justify-content: space-between; gap: .5rem; padding: .3rem .35rem; border-radius: 8px; min-height: 36px; align-items: center; font-size: .88rem; }
 .hq-kpi-break a:hover { background: var(--hq-sage-soft); }
 .hq-kpi-break b { color: var(--hq-caramel); }
-.hq-dash-bars { margin-top: 1rem; display: flex; flex-direction: column; gap: .65rem; background: var(--hq-card); border: 1px solid var(--hq-line); border-radius: 12px; padding: .9rem 1rem; }
-.hq-dash-bar-label { display: flex; justify-content: space-between; gap: .5rem; font-size: .88rem; margin-bottom: .25rem; }
+.hq-dash-bars { margin-top: .85rem; display: flex; flex-direction: column; gap: .55rem; background: var(--hq-card); border: 1px solid var(--hq-line); border-radius: 12px; padding: .75rem .9rem; }
+.hq-dash-bar-label { display: flex; justify-content: space-between; gap: .5rem; font-size: .86rem; margin-bottom: .2rem; }
 .hq-dash-bar .hq-progress-bar { height: 8px; background: #EFEAE0; border-radius: 999px; overflow: hidden; display: block; }
 .hq-dash-bar .hq-progress-bar > span.on { display: block; height: 100%; background: var(--hq-caramel); border-radius: 999px; }
 .hq-banner { margin: 0 0 1rem; padding: .65rem .9rem; border-radius: 10px; background: var(--hq-caramel-soft); color: var(--hq-caramel-ink); font-size: .9rem; }
 .hq-table-wrap { overflow-x: auto; }
 @media (max-width: 767px) {
   .hq-cards { grid-template-columns: 1fr; }
+  .hq-dash-top-meta { width: 100%; margin-left: 0; }
 }
