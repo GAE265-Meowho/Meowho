@@ -11,6 +11,6 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
   if (!target) return new Response(null, { status: 404 });
   const data = await readFile(target).catch(() => null);
   if (!data) return new Response(null, { status: 404 });
-  const type = target.endsWith(".json") ? "application/json" : "application/octet-stream";
+  const type = target.endsWith(".json") ? "application/json" : target.endsWith(".jpg") ? "image/jpeg" : "application/octet-stream";
   return new Response(new Uint8Array(data), { headers: { "Content-Type": type } });
 }

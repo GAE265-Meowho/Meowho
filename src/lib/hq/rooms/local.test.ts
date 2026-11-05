@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, readdir, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -22,7 +22,22 @@ describe("房間本機模式", () => {
     expect(r).toEqual({ ok: true, id: "room_20261102_090000" });
     expect(await readdir(path.join(root, "room_20261102_090000"))).toEqual(["room.json", "source.mp4"]);
     expect(await readFile(path.join(root, "room_20261102_090000", "source.mp4"))).toHaveLength(3);
-    expect(await listLocalRooms(root)).toMatchObject([{ name: "我的房間", status: "queued" }]);
+    expect(await listLocalRooms(root)).toMatchObject([{ name: "我的房間", status: "queued", note: null, thumbUrl: null }]);
+  });
+
+  it("存備註，太長不建立", async () => {
+    await createLocalRoom(root, { ...video, note: " 有拍到沙發 " });
+    expect(await listLocalRooms(root)).toMatchObject([{ note: "有拍到沙發" }]);
+    expect(await createLocalRoom(root, { ...video, note: "x".repeat(201) })).toEqual({ ok: false, code: "note_too_long" });
+  });
+
+  it("完成且有縮圖時給縮圖網址", async () => {
+    const { id } = await createLocalRoom(root, video) as { id: string };
+    const state = path.join(root, id, "room.json");
+    await writeFile(state, JSON.stringify({ ...JSON.parse(await readFile(state, "utf8")), status: "ready" }));
+    await mkdir(path.join(root, id, "result"));
+    await writeFile(path.join(root, id, "result", "thumb.jpg"), "x");
+    expect(await listLocalRooms(root)).toMatchObject([{ resultBase: `/api/hq/rooms/local/${id}`, thumbUrl: `/api/hq/rooms/local/${id}/thumb.jpg` }]);
   });
 
   it("名稱空白或影片不合格時不建立", async () => {
