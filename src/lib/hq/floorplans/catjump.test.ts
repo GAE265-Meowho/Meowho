@@ -13,10 +13,10 @@ const world = (): World => {
     walls: [{ ax: 0, ay: 0, bx: 3.2, by: 0, t: .15 }, { ax: 3.2, ay: 0, bx: 3.2, by: 4, t: .15 }, { ax: 3.2, ay: 4, bx: 0, by: 4, t: .15 }, { ax: 0, ay: 4, bx: 0, by: 0, t: .15 }],
     openings: [],
     furniture: [
-      { kind: "bed", label: "床", wall: 0, x: 1.6, y: 1.0, w: 1.5, d: 2.0, rot: 0 },
-      { kind: "desk", label: "書桌", wall: 3, x: 0.4, y: 2.6, w: 1.2, d: .6, rot: 0 },
-      { kind: "wardrobe", label: "衣櫃", wall: 1, x: 3.0, y: 2.3, w: 1.0, d: .6, rot: 0 },
-      { kind: "sofa", label: "沙發", wall: 2, x: 1.8, y: 3.5, w: 1.8, d: .85, rot: 0 },
+      { kind: "bed", label: "床", wall: 0, parent: null, x: 1.6, y: 1.0, w: 1.5, d: 2.0, rot: 0 },
+      { kind: "desk", label: "書桌", wall: 3, parent: null, x: 0.4, y: 2.6, w: 1.2, d: .6, rot: 0 },
+      { kind: "wardrobe", label: "衣櫃", wall: 1, parent: null, x: 3.0, y: 2.3, w: 1.0, d: .6, rot: 0 },
+      { kind: "sofa", label: "沙發", wall: 2, parent: null, x: 1.8, y: 3.5, w: 1.8, d: .85, rot: 0 },
     ],
   });
   if (!r.ok) throw new Error(r.error);

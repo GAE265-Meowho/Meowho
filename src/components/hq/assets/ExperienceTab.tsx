@@ -3,14 +3,19 @@
 // 貓＝共用母體 base_clips.glb＋這隻貓已確認的貼圖（同貓咪頁，catLook.ts）；房間＝平面圖轉換讀圖完成的房間。
 // 選擇寫進網址（?tab=experience&cat=&house=），複製連結給其他管理員看到同一個畫面。
 // 生活用品（#197）：右側選單類別篩選＋小圖示，只能拖進房間放置；已放用品可拖移，上方 × 可刪除。點地板只叫貓走。
-// 讀圖家具：手掌模式可拖移落地家具、上方 × 可暫時移除（session；換喵戶／重整會回來）。
+// 讀圖家具：手掌模式可拖移／承載／右轉、× 移除（session；換喵戶／重整會回來）。
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import type { HouseholdItem, ItemCategory } from "@/lib/hq/items/types";
-import { expandRemovedIndices, furnitureKey, resolveFurniturePose, type FurnitureMove } from "@/lib/hq/floorplans/experience-furniture";
-import type { FloorplanHouse, FloorplanSummary, Point } from "@/lib/hq/floorplans/types";
+import {
+  expandRemovedIndices, followFurnitureIndices, furnitureKey, movesByRoom, normalizeMove,
+  parseFurnitureKey, resolveFurniturePose, type FurnitureMove,
+} from "@/lib/hq/floorplans/experience-furniture";
+import { boxToSolid, clampFurniturePose, rotatedHalfExtents } from "@/lib/hq/floorplans/experience-physics";
+import { houseScene } from "@/lib/hq/floorplans/scene";
+import type { FloorplanHouse, FloorplanSummary, PlanRoom, Point } from "@/lib/hq/floorplans/types";
 import { HqLoadError, HqSkeleton } from "../HqStates";
 import { catLook } from "./catLook";
 import { ExperienceItemPalette } from "./ExperienceItemPalette";
@@ -83,6 +88,21 @@ function placeFromItem(item: HouseholdItem, at: PlaceAt, list: PlacedHouseholdIt
     heightM: item.heightM ?? 0.4,
     support: at.support,
   };
+}
+
+function roomShift(walls: PlanRoom["walls"]): Point {
+  if (!walls?.length) return [0, 0];
+  const xs = walls.flatMap(w => [w.a[0], w.b[0]]);
+  const ys = walls.flatMap(w => [w.a[1], w.b[1]]);
+  return [Math.min(...xs), Math.min(...ys)];
+}
+
+function roomSize(walls: PlanRoom["walls"]): [number, number] {
+  if (!walls?.length) return [12, 12];
+  const xs = walls.flatMap(w => [w.a[0], w.b[0]]);
+  const ys = walls.flatMap(w => [w.a[1], w.b[1]]);
+  const shift = roomShift(walls);
+  return [Math.max(...xs) - shift[0], Math.max(...ys) - shift[1]];
 }
 
 export function ExperienceTab() {
@@ -162,18 +182,76 @@ export function ExperienceTab() {
   };
 
   const moveFurniture = (roomId: string, furnitureIndex: number, next: FurnitureMove, prev: FurnitureMove) => {
-    const dx = next.x - prev.x;
-    const dz = next.z - prev.z;
+    const room = house?.state === "ready" ? house.data.rooms.find(r => r.id === roomId) : undefined;
+    const roomFurniture = room?.furniture ?? [];
+    const f = roomFurniture[furnitureIndex];
+    const pose = normalizeMove(next, f?.rot ?? prev.rot ?? 0);
+    const dx = pose.x - prev.x;
+    const dz = pose.z - prev.z;
+    const key = furnitureKey(roomId, furnitureIndex);
+    const prevMap = movesByRoom(furnitureMoves).get(roomId);
+
+    setFurnitureMoves(m => {
+      const out: Record<string, FurnitureMove> = { ...m, [key]: pose };
+      if (dx === 0 && dz === 0) return out;
+      for (const [k, p] of Object.entries(m)) {
+        if (k === key) continue;
+        const parsed = parseFurnitureKey(k);
+        if (parsed?.roomId !== roomId || p.support?.furnitureIndex !== furnitureIndex) continue;
+        out[k] = normalizeMove({ ...p, x: p.x + dx, z: p.z + dz }, p.rot);
+      }
+      return out;
+    });
+
     if (dx === 0 && dz === 0) return;
-    setFurnitureMoves(m => ({ ...m, [furnitureKey(roomId, furnitureIndex)]: next }));
-    const roomFurniture = house?.state === "ready"
-      ? house.data.rooms.find(r => r.id === roomId)?.furniture ?? []
-      : [];
-    const follow = expandRemovedIndices(roomFurniture, new Set([furnitureIndex]));
+    const follow = followFurnitureIndices(roomFurniture, furnitureIndex, prevMap);
+    const shifted = new Set(follow);
+    for (const [k, p] of Object.entries(furnitureMoves)) {
+      const parsed = parseFurnitureKey(k);
+      if (parsed?.roomId === roomId && p.support?.furnitureIndex === furnitureIndex) shifted.add(parsed.index);
+    }
     setPlaced(list => list.map(it => {
-      if (it.roomId !== roomId || !it.support || !follow.has(it.support.furnitureIndex)) return it;
+      if (it.roomId !== roomId || !it.support || !shifted.has(it.support.furnitureIndex)) return it;
       return { ...it, x: it.x + dx, z: it.z + dz };
     }));
+  };
+
+  const rotateFurniture = (roomId: string, furnitureIndex: number) => {
+    const room = house?.state === "ready" ? house.data.rooms.find(r => r.id === roomId) : undefined;
+    const furniture = room?.furniture ?? [];
+    const f = furniture[furnitureIndex];
+    if (!f) return;
+    const shift = roomShift(room?.walls);
+    const moveMap = movesByRoom(furnitureMoves).get(roomId);
+    const cur = resolveFurniturePose(furniture, furnitureIndex, shift, moveMap);
+    const nextRot = (cur.rot + 90) % 360;
+    let support = moveMap?.get(furnitureIndex)?.support ?? null;
+    if (!moveMap?.has(furnitureIndex) && typeof f.parent === "number" && furniture[f.parent]) {
+      const parent = resolveFurniturePose(furniture, f.parent, shift, moveMap);
+      support = { furnitureIndex: f.parent, localX: cur.x - parent.x, localZ: cur.z - parent.z };
+    }
+    const half = rotatedHalfExtents(f.w, f.d, nextRot);
+    const exclude = expandRemovedIndices(furniture, new Set([furnitureIndex]));
+    const onSupport = cur.elev > 0.08 || !!support;
+    const scene = room ? houseScene([room], removedFurniture, furnitureMoves).find(s => s.id === roomId) : undefined;
+    const wallObs = (scene?.boxes ?? []).filter(b => b.kind === "wall" || b.kind === "sill").map(boxToSolid);
+    const furnitureObs = onSupport ? [] : furniture.flatMap((other, i) => {
+      if (exclude.has(i)) return [];
+      const pose = resolveFurniturePose(furniture, i, shift, moveMap);
+      if (pose.elev > 0.08) return [];
+      const h = rotatedHalfExtents(other.w, other.d, pose.rot);
+      return [{ x: pose.x, z: pose.z, hx: h.hx, hz: h.hz }];
+    });
+    const clamped = clampFurniturePose(
+      { x: cur.x, z: cur.z }, half, scene?.size ?? roomSize(room?.walls),
+      [...wallObs, ...furnitureObs],
+      { inset: 0.02 },
+    );
+    moveFurniture(
+      roomId, furnitureIndex,
+      normalizeMove({ x: clamped.x, z: clamped.z, rot: nextRot, support }),
+      normalizeMove({ x: cur.x, z: cur.z, rot: cur.rot, support }),
+    );
   };
 
   const restoreFurniture = () => {
@@ -186,14 +264,11 @@ export function ExperienceTab() {
       if (!it.support) return it;
       const room = rooms.find(r => r.id === it.roomId);
       const furniture = room?.furniture;
-      if (!furniture?.length || !room?.walls?.length) return it;
+      if (!furniture?.length) return it;
       const f = furniture[it.support.furnitureIndex];
       if (!f) return it;
-      const xs = room.walls.flatMap(w => [w.a[0], w.b[0]]);
-      const ys = room.walls.flatMap(w => [w.a[1], w.b[1]]);
-      const shift: Point = [Math.min(...xs), Math.min(...ys)];
-      const pose = resolveFurniturePose(furniture, it.support.furnitureIndex, shift);
-      return { ...it, x: pose.x + it.support.localX, z: pose.z + it.support.localZ };
+      const pose = resolveFurniturePose(furniture, it.support.furnitureIndex, roomShift(room?.walls));
+      return { ...it, x: pose.x + it.support.localX, z: pose.z + it.support.localZ, y: pose.elev + f.h };
     }));
   };
 
@@ -238,7 +313,7 @@ export function ExperienceTab() {
                     </button>
                     <button type="button" className={`hq-btn ghost hq-exp-mode${interactMode === "hand" ? " on" : ""}`}
                       aria-label="手掌" aria-pressed={interactMode === "hand"} onClick={() => setInteractMode("hand")}
-                      title="拖移用品與落地家具、移除讀圖家具">
+                      title="拖移用品與家具、承載拆合、右轉、移除">
                       <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                         <path d="M8 11V6.5a1.5 1.5 0 0 1 3 0V11" />
                         <path d="M11 10.5V5.5a1.5 1.5 0 0 1 3 0V11" />
@@ -254,7 +329,7 @@ export function ExperienceTab() {
                   <p className="hq-hint">
                     {interactMode === "point"
                       ? "點模式：點地板叫貓走；點床、沙發、桌子會跳上去。右側用品仍可拖進房間放置。"
-                      : "手掌模式：拖移用品與落地家具；桌上物跟父家具走；上方 × 可移除（只在這次體驗生效，重整會回來）。"}
+                      : "手掌模式：拖家具（不穿牆）；桌上物可拆到地板或其他家具；↻ 右轉 90°；× 暫時移除。"}
                   </p>
                   <div className="hq-exp-stage">
                     <FloorplanViewer key={`${houseId}:${cat?.id}`} rooms={house.data.rooms} selected={room} onPick={setRoom}
@@ -262,6 +337,7 @@ export function ExperienceTab() {
                       removedFurniture={removedFurniture} furnitureMoves={furnitureMoves}
                       onMoveItem={moveItem} onRemoveItem={removeItem}
                       onRemoveFurniture={removeFurniture} onMoveFurniture={moveFurniture}
+                      onRotateFurniture={rotateFurniture}
                       onFloorDrop={dropItem} />
                     {catalog.state === "loading" ? <HqSkeleton rows={3} />
                       : catalog.state === "error" ? <p className="hq-hint" role="alert">生活用品選單載入失敗。</p>

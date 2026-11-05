@@ -10,7 +10,8 @@ import * as THREE from "three";
 import { FLOOR_TEXTURE, kitScale, kitUrl } from "@/lib/hq/floorplans/kit";
 import { goalForBox, idleAction, stepActor, worldOf, type Actor, type Goal } from "@/lib/hq/floorplans/catjump";
 import { CAT_SCALE, freeSpot, obstacles, type Obstacle } from "@/lib/hq/floorplans/catwalk";
-import type { FurnitureMove } from "@/lib/hq/floorplans/experience-furniture";
+import { expandRemovedIndices, type FurnitureMove, type FurnitureSupport } from "@/lib/hq/floorplans/experience-furniture";
+import { boxToSolid, clampFurniturePose, rotatedHalfExtents, type SolidBody } from "@/lib/hq/floorplans/experience-physics";
 import { focusScenes, houseScene, sceneBounds, type RoomScene, type SceneBox } from "@/lib/hq/floorplans/scene";
 import type { BodyType } from "@/lib/hq/cat-models/types";
 import { CatModel } from "./CatPreview";
@@ -39,9 +40,31 @@ export interface PlacedHouseholdItem {
   support?: ItemSupport;
 }
 
-/** 書桌／桌子／可跳上家具頂面可放生活用品（拖放 raycast 用） */
+/** 可承載頂面：桌／床／櫃等（用品與可拆家具拖放用） */
+const SUPPORT_KINDS = new Set(["desk", "table", "bed", "sofa", "wardrobe", "cabinet", "counter", "tv_stand"]);
 function isSupportBox(b: SceneBox | undefined): b is SceneBox {
-  return !!b && b.kind === "furniture" && (b.furniture === "desk" || b.furniture === "table" || !!b.walkable);
+  return !!b && b.kind === "furniture" && (SUPPORT_KINDS.has(b.furniture ?? "") || !!b.walkable);
+}
+
+/** 命中點轉成房間座標（家具 drag group 會平移，不能只用 o.parent） */
+function roomLocalPoint(from: THREE.Object3D, worldPoint: THREE.Vector3): THREE.Vector3 | null {
+  let o: THREE.Object3D | null = from;
+  while (o) {
+    if (o.userData?.meowRoomRoot) return o.worldToLocal(worldPoint.clone());
+    o = o.parent;
+  }
+  return from.parent ? from.parent.worldToLocal(worldPoint.clone()) : null;
+}
+
+/** 牆／窗台＋落地家具固態障礙；exclude＝自己與跟隨子孫；onSupport 時只擋牆不擋他家具 */
+function solidObstacles(s: RoomScene, exclude: Set<number>, onSupport: boolean): SolidBody[] {
+  return s.boxes.flatMap(b => {
+    if (b.kind === "wall" || b.kind === "sill") return [boxToSolid(b)];
+    if (onSupport) return [];
+    if (b.kind !== "furniture" || b.furnitureIndex === undefined || exclude.has(b.furnitureIndex)) return [];
+    if (b.y - b.sy / 2 > 0.08) return [];
+    return [boxToSolid(b)];
+  });
 }
 
 // 牆用 meowho_3d_room 的牆面漆色
@@ -89,19 +112,25 @@ function Block({ b, color }: { b: SceneBox; color: string }) {
   );
 }
 
-/** 家具：模型庫的 glb；透明碰撞盒點床／沙發；手掌模式可拖落地家具、上方 × 可暫時移除 */
-function Furniture({ b, roomId, boxIndex, onClick, onRemove, dragEnabled, onMove }: {
-  b: SceneBox; roomId: string; boxIndex: number;
+type FurnitureDraft = { x: number; z: number; elev: number; rot: number; support: FurnitureSupport | null };
+
+/** 家具：glb；手掌模式可拖（地板／他家具頂）、固態夾制；操作列 ×／右轉 90° */
+function Furniture({ b, room, roomId, boxIndex, planFurniture, onClick, onRemove, onRotate, dragEnabled, onMove }: {
+  b: SceneBox; room: RoomScene; roomId: string; boxIndex: number;
+  planFurniture: { parent?: number }[];
   onClick?: (e: ThreeEvent<MouseEvent>) => void;
   onRemove?: (roomId: string, furnitureIndex: number) => void;
+  onRotate?: (roomId: string, furnitureIndex: number) => void;
   dragEnabled?: boolean;
   onMove?: (roomId: string, furnitureIndex: number, next: FurnitureMove, prev: FurnitureMove) => void;
 }) {
   const { scene } = useGLTF(kitUrl(b.furniture ?? "other"));
   const group = useRef<THREE.Group>(null);
+  const elevRef = useRef(b.y - b.sy / 2);
   const dragging = useRef(false);
-  const start = useRef<FurnitureMove>({ x: b.x, z: b.z });
-  const draft = useRef<FurnitureMove>({ x: b.x, z: b.z });
+  const rotDeg = (-b.rotY * 180) / Math.PI;
+  const start = useRef<FurnitureMove>({ x: b.x, z: b.z, rot: rotDeg, support: null });
+  const draft = useRef<FurnitureDraft>({ x: b.x, z: b.z, elev: b.y - b.sy / 2, rot: rotDeg, support: null });
   const controls = useThree(s => s.controls) as { enabled: boolean } | null;
   const { camera, pointer, raycaster, scene: threeScene } = useThree();
   const model = useMemo(() => {
@@ -111,8 +140,11 @@ function Furniture({ b, roomId, boxIndex, onClick, onRemove, dragEnabled, onMove
   }, [scene]);
   const planIndex = b.furnitureIndex ?? boxIndex;
   const canDrag = !!(dragEnabled && onMove && b.movable && b.furnitureIndex !== undefined);
+  const forbid = useMemo(
+    () => (b.furnitureIndex === undefined ? new Set<number>() : expandRemovedIndices(planFurniture, new Set([b.furnitureIndex]))),
+    [planFurniture, b.furnitureIndex],
+  );
   const support = isSupportBox(b);
-  // 承載中心跟 b.x／b.z（commit 後才更新）；拖移中 group 平移，結束後 scene 重建
   const supportData = support ? {
     meowSupportRoomId: roomId,
     meowSupportIndex: planIndex,
@@ -122,12 +154,26 @@ function Furniture({ b, roomId, boxIndex, onClick, onRemove, dragEnabled, onMove
   } : undefined;
   const label = b.furniture ?? "家具";
 
+  const applyClamp = (x: number, z: number, rot: number, onSupport: boolean) => {
+    const half = rotatedHalfExtents(b.sx, b.sz, rot);
+    // 牆永遠擋；onSupport 時不與其他落地家具互斥（仍不可穿牆）
+    const obstacles = solidObstacles(room, forbid, onSupport);
+    return clampFurniturePose({ x, z }, half, room.size, obstacles, { inset: 0.02 });
+  };
+
+  const toMove = (d: FurnitureDraft): FurnitureMove => ({
+    x: d.x, z: d.z, rot: d.rot, support: d.support,
+  });
+
   useEffect(() => {
     if (dragging.current) return;
-    group.current?.position.set(b.x, 0, b.z);
-    start.current = { x: b.x, z: b.z };
-    draft.current = { x: b.x, z: b.z };
-  }, [b.x, b.z]);
+    const elev = b.y - b.sy / 2;
+    elevRef.current = elev;
+    group.current?.position.set(b.x, elev, b.z);
+    const pose: FurnitureDraft = { x: b.x, z: b.z, elev, rot: (-b.rotY * 180) / Math.PI, support: null };
+    start.current = toMove(pose);
+    draft.current = pose;
+  }, [b.x, b.z, b.y, b.sy, b.rotY]);
 
   useEffect(() => {
     const end = () => {
@@ -136,7 +182,9 @@ function Furniture({ b, roomId, boxIndex, onClick, onRemove, dragEnabled, onMove
       if (controls) controls.enabled = true;
       document.body.style.cursor = "";
       if (onMove && b.furnitureIndex !== undefined) {
-        onMove(roomId, b.furnitureIndex, { ...draft.current }, { ...start.current });
+        const clamped = applyClamp(draft.current.x, draft.current.z, draft.current.rot, !!draft.current.support);
+        draft.current = { ...draft.current, ...clamped };
+        onMove(roomId, b.furnitureIndex, toMove(draft.current), start.current);
       }
     };
     window.addEventListener("pointerup", end);
@@ -145,7 +193,7 @@ function Furniture({ b, roomId, boxIndex, onClick, onRemove, dragEnabled, onMove
       window.removeEventListener("pointerup", end);
       window.removeEventListener("pointercancel", end);
     };
-  }, [controls, onMove, roomId, b.furnitureIndex]);
+  }, [controls, onMove, roomId, b.furnitureIndex, b.sx, b.sz, room, forbid]);
 
   useFrame(() => {
     if (!dragging.current || !group.current?.parent) return;
@@ -153,16 +201,35 @@ function Furniture({ b, roomId, boxIndex, onClick, onRemove, dragEnabled, onMove
     for (const h of raycaster.intersectObjects(threeScene.children, true)) {
       let o: THREE.Object3D | null = h.object;
       while (o) {
+        const supportRoom = o.userData?.meowSupportRoomId as string | undefined;
+        const supportIndex = o.userData?.meowSupportIndex as number | undefined;
+        if (supportRoom === roomId && typeof supportIndex === "number" && !forbid.has(supportIndex)) {
+          const p = roomLocalPoint(o, h.point);
+          if (!p) return;
+          const topY = o.userData.meowSupportTopY as number;
+          const cx = (o.userData.meowSupportCx as number) ?? p.x;
+          const cz = (o.userData.meowSupportCz as number) ?? p.z;
+          const clamped = applyClamp(p.x, p.z, draft.current.rot, true);
+          draft.current = {
+            x: clamped.x, z: clamped.z, elev: topY, rot: draft.current.rot,
+            support: { furnitureIndex: supportIndex, localX: clamped.x - cx, localZ: clamped.z - cz },
+          };
+          elevRef.current = topY;
+          group.current.position.set(clamped.x, topY, clamped.z);
+          return;
+        }
         if (o.userData?.meowFloorRoomId === roomId) {
-          const parent = o.parent;
-          if (!parent) return;
-          const p = parent.worldToLocal(h.point.clone());
-          draft.current = { x: p.x, z: p.z };
-          group.current.position.set(p.x, 0, p.z);
+          const p = roomLocalPoint(o, h.point);
+          if (!p) return;
+          const clamped = applyClamp(p.x, p.z, draft.current.rot, false);
+          draft.current = { x: clamped.x, z: clamped.z, elev: 0, rot: draft.current.rot, support: null };
+          elevRef.current = 0;
+          group.current.position.set(clamped.x, 0, clamped.z);
           group.current.traverse(node => {
             if (node.userData?.meowSupportRoomId === roomId) {
-              node.userData.meowSupportCx = p.x;
-              node.userData.meowSupportCz = p.z;
+              node.userData.meowSupportCx = clamped.x;
+              node.userData.meowSupportCz = clamped.z;
+              node.userData.meowSupportTopY = b.sy;
             }
           });
           return;
@@ -172,17 +239,23 @@ function Furniture({ b, roomId, boxIndex, onClick, onRemove, dragEnabled, onMove
     }
   });
 
-  // y＝方塊中心；模型底部貼在 y − h/2（桌上物 elev＞0）；group 只平移 x／z
+  const showOps = !!(onRemove || onRotate) && b.furnitureIndex !== undefined;
+  const baseElev = b.y - b.sy / 2;
+
   return (
     <group
       ref={group}
-      position={[b.x, 0, b.z]}
+      position={[b.x, baseElev, b.z]}
       onPointerDown={(e: ThreeEvent<PointerEvent>) => {
         if (!canDrag) return;
         e.stopPropagation();
         dragging.current = true;
-        start.current = { x: b.x, z: b.z };
-        draft.current = { x: b.x, z: b.z };
+        const pose: FurnitureDraft = {
+          x: b.x, z: b.z, elev: baseElev, rot: (-b.rotY * 180) / Math.PI, support: null,
+        };
+        start.current = toMove(pose);
+        draft.current = pose;
+        elevRef.current = pose.elev;
         if (controls) controls.enabled = false;
         document.body.style.cursor = "grabbing";
       }}
@@ -192,27 +265,39 @@ function Furniture({ b, roomId, boxIndex, onClick, onRemove, dragEnabled, onMove
     >
       <primitive
         object={model}
-        position={[0, b.y - b.sy / 2, 0]}
+        position={[0, 0, 0]}
         rotation={[0, b.rotY, 0]}
         scale={kitScale(b.furniture ?? "other", { w: b.sx, h: b.sy, d: b.sz })}
         userData={supportData}
       />
       {onClick && (
-        <mesh position={[0, b.y, 0]} rotation={[0, b.rotY, 0]} onClick={onClick} userData={supportData}>
+        <mesh position={[0, b.sy / 2, 0]} rotation={[0, b.rotY, 0]} onClick={onClick} userData={supportData}>
           <boxGeometry args={[b.sx, b.sy, b.sz]} />
           <meshBasicMaterial transparent opacity={0} depthWrite={false} />
         </mesh>
       )}
-      {onRemove && b.furnitureIndex !== undefined && (
-        <Html position={[0, b.y + b.sy / 2 + 0.12, 0]} center zIndexRange={[30, 20]} style={{ pointerEvents: "none" }}>
-          <button
-            type="button"
-            className="hq-fp-item-x"
-            aria-label={`移除 ${label}`}
-            style={{ pointerEvents: "auto" }}
-            onPointerDown={e => { e.stopPropagation(); e.preventDefault(); }}
-            onClick={e => { e.stopPropagation(); onRemove(roomId, b.furnitureIndex!); }}
-          >×</button>
+      {showOps && (
+        <Html position={[0, b.sy + 0.12, 0]} center zIndexRange={[30, 20]} style={{ pointerEvents: "none" }}>
+          <div className="hq-fp-item-ops" style={{ pointerEvents: "auto" }}>
+            {onRotate && (
+              <button
+                type="button"
+                className="hq-fp-item-x"
+                aria-label="右轉 90 度"
+                onPointerDown={e => { e.stopPropagation(); e.preventDefault(); }}
+                onClick={e => { e.stopPropagation(); onRotate(roomId, b.furnitureIndex!); }}
+              >↻</button>
+            )}
+            {onRemove && (
+              <button
+                type="button"
+                className="hq-fp-item-x"
+                aria-label={`移除 ${label}`}
+                onPointerDown={e => { e.stopPropagation(); e.preventDefault(); }}
+                onClick={e => { e.stopPropagation(); onRemove(roomId, b.furnitureIndex!); }}
+              >×</button>
+            )}
+          </div>
         </Html>
       )}
     </group>
@@ -280,9 +365,8 @@ function PlacedItemModel({ item, room, dragEnabled, onMove, onRemove }: {
         const supportRoom = o.userData?.meowSupportRoomId as string | undefined;
         const floorRoom = o.userData?.meowFloorRoomId as string | undefined;
         if (supportRoom === item.roomId) {
-          const parent = o.parent;
-          if (!parent) return;
-          const p = parent.worldToLocal(h.point.clone());
+          const p = roomLocalPoint(o, h.point);
+          if (!p) return;
           const idx = o.userData.meowSupportIndex as number;
           const topY = o.userData.meowSupportTopY as number;
           const cx = (o.userData.meowSupportCx as number) ?? p.x;
@@ -295,9 +379,8 @@ function PlacedItemModel({ item, room, dragEnabled, onMove, onRemove }: {
           return;
         }
         if (floorRoom === item.roomId) {
-          const parent = o.parent;
-          if (!parent) return;
-          const p = parent.worldToLocal(h.point.clone());
+          const p = roomLocalPoint(o, h.point);
+          if (!p) return;
           draft.current = { x: p.x, z: p.z, y: 0, support: null };
           group.current.position.set(p.x, worldY(0), p.z);
           return;
@@ -356,9 +439,8 @@ function FloorRayBridge({ api }: { api: MutableRefObject<FloorRayApi | null> }) 
           while (o) {
             const supportRoom = o.userData?.meowSupportRoomId as string | undefined;
             if (supportRoom) {
-              const parent = o.parent;
-              if (!parent) return null;
-              const p = parent.worldToLocal(h.point.clone());
+              const p = roomLocalPoint(o, h.point);
+              if (!p) return null;
               const idx = o.userData.meowSupportIndex as number;
               const cx = o.userData.meowSupportCx as number;
               const cz = o.userData.meowSupportCz as number;
@@ -369,9 +451,8 @@ function FloorRayBridge({ api }: { api: MutableRefObject<FloorRayApi | null> }) 
             }
             const roomId = o.userData?.meowFloorRoomId as string | undefined;
             if (roomId) {
-              const parent = o.parent;
-              if (!parent) return null;
-              const p = parent.worldToLocal(h.point.clone());
+              const p = roomLocalPoint(o, h.point);
+              if (!p) return null;
               return { roomId, x: p.x, z: p.z, y: 0, support: null };
             }
             o = o.parent;
@@ -415,9 +496,12 @@ function Floor({ b, roomId, onClick }: { b: SceneBox; roomId: string; onClick: (
 /** 點到的東西：地板，或第 box 個方塊（家具）；x、z 是這間房的座標（公尺） */
 export type RoomClick = { box: number | null; x: number; z: number };
 
-function Room({ s, onClick, onRemoveFurniture, furnitureDrag, onMoveFurniture, children }: {
-  s: RoomScene; onClick: (c: RoomClick) => void;
+function Room({ s, planFurniture, onClick, onRemoveFurniture, onRotateFurniture, furnitureDrag, onMoveFurniture, children }: {
+  s: RoomScene;
+  planFurniture: { parent?: number }[];
+  onClick: (c: RoomClick) => void;
   onRemoveFurniture?: (roomId: string, furnitureIndex: number) => void;
+  onRotateFurniture?: (roomId: string, furnitureIndex: number) => void;
   furnitureDrag?: boolean;
   onMoveFurniture?: (roomId: string, furnitureIndex: number, next: FurnitureMove, prev: FurnitureMove) => void;
   children?: React.ReactNode;
@@ -430,7 +514,7 @@ function Room({ s, onClick, onRemoveFurniture, furnitureDrag, onMoveFurniture, c
     onClick({ box, x: p.x, z: p.z });
   };
   return (
-    <group ref={ref} position={[s.offset[0], 0, s.offset[1]]}>
+    <group ref={ref} position={[s.offset[0], 0, s.offset[1]]} userData={{ meowRoomRoot: true, meowRoomId: s.id }}>
       {children}
       {s.boxes.map((b, i) =>
         b.kind === "floor" ? (
@@ -438,8 +522,10 @@ function Room({ s, onClick, onRemoveFurniture, furnitureDrag, onMoveFurniture, c
         ) : b.kind === "furniture" ? (
           <Suspense key={`${s.id}:f:${b.furnitureIndex ?? i}`} fallback={<Block b={b} color="#D8D2C8" />}>
             <Furniture
-              b={b} roomId={s.id} boxIndex={i} onClick={handle(i)}
+              b={b} room={s} roomId={s.id} boxIndex={i} planFurniture={planFurniture}
+              onClick={handle(i)}
               onRemove={onRemoveFurniture}
+              onRotate={onRotateFurniture}
               dragEnabled={furnitureDrag}
               onMove={onMoveFurniture}
             />
@@ -555,7 +641,7 @@ export type PlaceAt = { roomId: string; x: number; z: number; y: number; support
 /** point＝點地板／床叫貓；hand＝拖移已放用品／落地家具（不叫貓） */
 export type InteractMode = "point" | "hand";
 
-export default function FloorplanViewer({ rooms, selected, onPick, cat, placedItems = [], interactMode = "point", removedFurniture, furnitureMoves, onMoveItem, onRemoveItem, onRemoveFurniture, onMoveFurniture, onFloorDrop }: {
+export default function FloorplanViewer({ rooms, selected, onPick, cat, placedItems = [], interactMode = "point", removedFurniture, furnitureMoves, onMoveItem, onRemoveItem, onRemoveFurniture, onMoveFurniture, onRotateFurniture, onFloorDrop }: {
   rooms: PlanRoom[]; selected: string | null; onPick: (id: string) => void;
   /** 虛擬體驗（#150）：放一隻貓進去；有貓時只顯示單間（沒有「全部」），點地板叫貓走過去 */
   cat?: ViewerCat | null;
@@ -573,8 +659,10 @@ export default function FloorplanViewer({ rooms, selected, onPick, cat, placedIt
   onRemoveItem?: (key: string) => void;
   /** 暫時移除讀圖家具（手掌模式 ×） */
   onRemoveFurniture?: (roomId: string, furnitureIndex: number) => void;
-  /** 拖移落地讀圖家具（手掌模式） */
+  /** 拖移讀圖家具（地板或他家具頂面） */
   onMoveFurniture?: (roomId: string, furnitureIndex: number, next: FurnitureMove, prev: FurnitureMove) => void;
+  /** 讀圖家具右轉 90° */
+  onRotateFurniture?: (roomId: string, furnitureIndex: number) => void;
   /** 從右側選單拖放到地板或桌面 */
   onFloorDrop?: (itemId: string, at: PlaceAt) => void;
 }) {
@@ -637,11 +725,14 @@ export default function FloorplanViewer({ rooms, selected, onPick, cat, placedIt
           <group position={[-width / 2, 0, -depth / 2]}>
             {shown.map(s => {
               const roomItems = placedItems.filter(i => i.roomId === s.id);
+              const planFurniture = rooms.find(r => r.id === s.id)?.furniture ?? [];
               return (
                 <Room
                   key={s.id}
                   s={s}
+                  planFurniture={planFurniture}
                   onRemoveFurniture={interactMode === "hand" && cat ? onRemoveFurniture : undefined}
+                  onRotateFurniture={interactMode === "hand" && cat ? onRotateFurniture : undefined}
                   furnitureDrag={interactMode === "hand" && !!cat}
                   onMoveFurniture={interactMode === "hand" && cat ? onMoveFurniture : undefined}
                   onClick={c => {

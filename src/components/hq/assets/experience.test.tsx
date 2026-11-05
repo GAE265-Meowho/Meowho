@@ -14,11 +14,14 @@ const viewer = vi.hoisted(() => ({
   last: null as null | {
     rooms: { id: string; furniture?: { kind: string; parent?: number }[] }[];
     cat: { body: string; albedoUrl: string; baseUrl: string } | null;
-    onFloorDrop?: (itemId: string, at: { roomId: string; x: number; z: number; y: number; support: null }) => void;
-    onMoveItem?: (key: string, at: { x: number; z: number; y: number; support: null }) => void;
+    onFloorDrop?: (itemId: string, at: { roomId: string; x: number; z: number; y: number; support: { furnitureIndex: number; localX: number; localZ: number } | null }) => void;
+    onMoveItem?: (key: string, at: { x: number; z: number; y: number; support: { furnitureIndex: number; localX: number; localZ: number } | null }) => void;
     onRemoveItem?: (key: string) => void;
     onRemoveFurniture?: (roomId: string, furnitureIndex: number) => void;
+    onMoveFurniture?: (roomId: string, furnitureIndex: number, next: { x: number; z: number; rot?: number; support?: unknown }, prev: { x: number; z: number }) => void;
+    onRotateFurniture?: (roomId: string, furnitureIndex: number) => void;
     removedFurniture?: string[];
+    furnitureMoves?: Record<string, { x: number; z: number; rot?: number }>;
     onPlace?: unknown;
     placeMode?: boolean;
     interactMode?: "point" | "hand";
@@ -159,5 +162,27 @@ describe("虛擬體驗（#150）", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "還原家具" }));
     await waitFor(() => expect(viewer.last?.removedFurniture).toEqual([]));
+  });
+
+  it("手掌模式可旋轉家具；拖移 callback 寫入 furnitureMoves", async () => {
+    mockFetch([cat("cat_1", "橘寶 Mango")], [summary(H1, "子哲的家")]);
+    render(<ExperienceTab />);
+    await screen.findByTestId("fake-viewer");
+    fireEvent.click(await screen.findByRole("button", { name: "手掌" }));
+    await waitFor(() => expect(viewer.last?.onRotateFurniture).toBeTypeOf("function"));
+    expect(viewer.last?.onMoveFurniture).toBeTypeOf("function");
+    viewer.last!.onRotateFurniture!("r1", 2);
+    await waitFor(() => {
+      const move = viewer.last?.furnitureMoves?.["r1:2"];
+      expect(move?.rot).toBe(90);
+    });
+    viewer.last!.onMoveFurniture!(
+      "r1", 1,
+      { x: 0.8, z: 1.2, rot: 0, support: null },
+      { x: 1, z: 0.4 },
+    );
+    await waitFor(() => {
+      expect(viewer.last?.furnitureMoves?.["r1:1"]).toMatchObject({ x: 0.8, z: 1.2, support: null });
+    });
   });
 });

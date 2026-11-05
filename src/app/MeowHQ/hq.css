@@ -62,7 +62,18 @@
 .hq-side .hq-navtree { margin: 2px 0 0 23px; padding-left: 8px; border-left: 1px solid var(--hq-line); }
 .hq-side .hq-navtree a { padding-left: 10px; }
 @media (prefers-reduced-motion: reduce) { .hq-navtoggle .hq-navchev { transition: none; } }
-.hq-main { flex: 1; min-width: 0; padding: 1.5rem; }
+.hq-main {
+  flex: 1; min-width: 0; padding: 1.5rem;
+  display: flex; flex-direction: column; min-height: calc(100dvh - 56px);
+}
+.hq-pagefoot {
+  display: flex; justify-content: space-between; align-items: baseline; gap: .75rem 1.25rem;
+  flex-wrap: wrap; flex: none; margin-top: auto; padding-top: .85rem;
+  border-top: 1px solid var(--hq-line);
+  color: var(--hq-sub); font-size: .75rem; font-variant-numeric: tabular-nums; line-height: 1.35;
+}
+.hq-pagefoot-by { justify-self: start; }
+.hq-pagefoot-ver { margin-left: auto; text-align: right; }
 /* #193：「☰」所有寬度都顯示；平板以上按下收起整個側欄 */
 .hq-burger { display: inline-flex; }
 @media (min-width: 768px) { .hq-body.collapsed .hq-side { display: none; } }
@@ -280,9 +291,10 @@
 .hq-thumb-empty { display: inline-flex; align-items: center; justify-content: center; color: var(--hq-sub); }
 /* 3D 編輯器工作區（#96）：桌機左 70% 預覽固定、右 30% 參數面板獨立捲動；主區塊剛好是視窗高度，標題、上架面板以下全部給工作區，整頁不捲動。
    版面只用 CSS 切換，預覽在元件樹中的位置不變，所以展開收合、resize 都不會讓 3D 預覽重新初始化。 */
-.hq-main:has(> .hq-catpage) { display: flex; flex-direction: column; height: calc(100dvh - 56px); }
-.hq-main:has(> .hq-catpage) > * { flex: none; }
-.hq-main > .hq-catpage { flex: 1; }
+.hq-main:has(> .hq-catpage) { height: calc(100dvh - 56px); }
+.hq-main:has(> .hq-catpage) > :not(.hq-pagefoot) { flex: none; }
+.hq-main > .hq-catpage { flex: 1; min-height: 0; }
+.hq-main:has(> .hq-catpage) > .hq-pagefoot { flex: none; }
 .hq-catpage { display: grid; grid-template-columns: minmax(0, 7fr) minmax(300px, 3fr); gap: 1rem; min-height: 420px; }
 .hq-catstage { display: flex; flex-direction: column; gap: .6rem; min-width: 0; min-height: 0; }
 .hq-catstage .hq-canvas { flex: 1; height: auto; min-height: 0; }
@@ -531,6 +543,7 @@
 @media (max-width: 1023px) { .hq-fp-3d { height: 320px; } }
 .hq-fp-3dlabel { font: inherit; font-size: .85rem; padding: .15rem .6rem; border-radius: 999px; border: 1px solid var(--hq-line); background: var(--hq-card); color: var(--hq-text); cursor: pointer; white-space: nowrap; }
 .hq-fp-3dlabel.on { background: var(--hq-sage); border-color: var(--hq-sage); color: #fff; }
+.hq-fp-item-ops { display: flex; gap: .25rem; align-items: center; }
 .hq-fp-item-x {
   width: 1.35rem; height: 1.35rem; padding: 0; margin: 0;
   border-radius: 999px; border: 1px solid var(--hq-line);
