@@ -157,6 +157,11 @@ export function HqShell({ items, user, unread, onLogout, activePath, children, u
         </button>
         <HqLogo />
         <div className="hq-grow" />
+        {process.env.NEXT_PUBLIC_HQ_VERSION && (
+          <span className="hq-version" title="本次建置時間（Asia/Taipei）">
+            version : {process.env.NEXT_PUBLIC_HQ_VERSION}
+          </span>
+        )}
         {/* #191：到前台的入口，新分頁開啟，後台停在原處；手機只顯示圖示 */}
         <a className="hq-frontlink" href="/" target="_blank" rel="noopener" aria-label="前往前台（另開新分頁）">
           <svg {...icon}><path d="M14 4h6v6" /><path d="M20 4l-9 9" /><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" /></svg>

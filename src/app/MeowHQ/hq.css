@@ -21,6 +21,12 @@
 /* 版面 */
 .hq-top { position: sticky; top: 0; z-index: 20; display: flex; align-items: center; gap: .5rem; height: 56px; padding: 0 1rem; background: var(--hq-card); border-bottom: 1px solid var(--hq-line); }
 .hq-grow { flex: 1; }
+.hq-version {
+  flex: none; margin-right: .25rem; padding: 0 .35rem;
+  color: var(--hq-sub); font-size: .72rem; font-variant-numeric: tabular-nums;
+  white-space: nowrap; line-height: 1.2;
+}
+@media (max-width: 720px) { .hq-version { display: none; } }
 .hq-logo { display: inline-flex; flex-direction: row; align-items: center; gap: .65rem; min-width: 0; color: var(--hq-sage-ink); line-height: 1.15; }
 .hq-logo-mark { height: 36px; width: auto; max-width: min(180px, 42vw); object-fit: contain; display: block; flex: none; }
 .hq-logo-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
