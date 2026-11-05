@@ -39,7 +39,7 @@ function AssetsPage() {
         : tab === "food" ? <FoodTab />
         : tab === "items" ? <ItemsTab />
         : tab === "rooms" ? <RoomsTab />
-        : tab === "rooms-video" ? <RoomVideoTab />
+        : tab === "rooms-video" ? <RoomVideoTab query={query} update={update} />
         : tab === "rooms-floorplan" ? <FloorplanTab />
         : tab === "experience" ? <ExperienceTab />
         : <PlannedTab label={section.label} examples={PLANNED[tab]} />}

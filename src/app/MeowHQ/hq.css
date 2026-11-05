@@ -73,8 +73,6 @@
 /* 登入頁、找不到頁面 */
 /* 室內空間：大卡片進入寶麗來轉換、平面圖轉換（#113） */
 .hq-roomvideo { display: flex; flex-direction: column; gap: 1rem; }
-.hq-roomjobs { list-style: none; margin: .75rem 0 0; padding: 0; display: flex; flex-direction: column; gap: .5rem; }
-.hq-roomjobs li { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; }
 .hq-roomviewer { display: flex; flex-direction: column; gap: .75rem; }
 .hq-roomviewer-host { position: relative; height: min(70vh, 640px); border: 1px solid var(--hq-line); border-radius: 24px; overflow: hidden; background: var(--hq-card); }
 .hq-roomviewer-stage { position: absolute; inset: 0; }
@@ -279,6 +277,7 @@
 
 /* #75 虛擬體驗元件管理｜貓咪：列表縮圖、貓咪頁（預覽＋動作清單） */
 .hq-thumb { width: 44px; height: 44px; object-fit: cover; border-radius: 8px; border: 1px solid var(--hq-line); background: var(--hq-card); }
+.hq-thumb-empty { display: inline-flex; align-items: center; justify-content: center; color: var(--hq-sub); }
 /* 3D 編輯器工作區（#96）：桌機左 70% 預覽固定、右 30% 參數面板獨立捲動；主區塊剛好是視窗高度，標題、上架面板以下全部給工作區，整頁不捲動。
    版面只用 CSS 切換，預覽在元件樹中的位置不變，所以展開收合、resize 都不會讓 3D 預覽重新初始化。 */
 .hq-main:has(> .hq-catpage) { display: flex; flex-direction: column; height: calc(100dvh - 56px); }
