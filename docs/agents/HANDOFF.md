@@ -4,7 +4,7 @@
 > 最後更新：2026-11-05｜Tina × Cursor（#218 KPI Dashboard）
 
 ## 目前狀態
-- **#224 MeowHQ 首頁不要自動重抓（Tina × Cursor，進行中）**：分支 `fix/224-hq-home-no-autorefresh`。進頁只載一次 KPI／待辦；Auth `TOKEN_REFRESHED` 不重載 profile；HqGate 用 `userId`＋排序後授權比對。
+- **#224 MeowHQ 首頁不要自動重抓（Tina × Cursor，審查中）**：PR #225、分支 `fix/224-hq-home-no-autorefresh`。進頁只載一次 KPI／待辦；Auth `TOKEN_REFRESHED` 不重載 profile；HqGate 用 `userId`＋排序後授權比對。請 Tina **merge PR**。
 - **#222 MeowHQ 首頁（Tina × Cursor）**：已合併 #223。移除「我最近的管理動作」；0023 未執行時不掃 Storage。
 - **#218 MeowHQ KPI Dashboard（Tina × Cursor）**：已合併 #219。`/MeowHQ` 營運總覽；`GET /api/hq/dashboard`；`docs/hq/06_kpi-dashboard.md`。`0023_meow_dashboard_stats.sql` **尚未執行**（執行前須 Tina 確認）。付費貓咪欄位未啟用；Vercel Observability 未接時不顯示假數字。需 `SUPABASE_SERVICE_ROLE_KEY`。
 - **#186 皇家食物元件（Tina × Codex）**：`/MeowHQ/assets?tab=food`，官方 sitemap 86 款、照片落地，分類與官方產品外連已接好。`src/lib/hq/food/` 共用目錄供之後虛擬購買；72 款有參考價、14 款待查。尚未接錢包／訂單／餵食庫存，未改 Supabase。參考價可用 `node scripts/update-food-reference-prices.mjs` 更新人工觀察值；完整官方再匯入用 `node scripts/import-royalcanin-food.mjs`（需網路）。
