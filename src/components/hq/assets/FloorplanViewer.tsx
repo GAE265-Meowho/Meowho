@@ -16,7 +16,7 @@ import { CatModel } from "./CatPreview";
 import { readItemDragId } from "./itemDrag";
 import type { PlanRoom } from "@/lib/hq/floorplans/types";
 
-/** 生活用品放在哪：null＝地板；有值＝家具頂面（scene.boxes 索引） */
+/** 生活用品放在哪：null＝地板；有值＝家具頂面（PlanRoom.furniture 原始索引） */
 export type ItemSupport = { furnitureIndex: number; localX: number; localZ: number } | null;
 
 /** 把螢幕座標打到地板或可承載桌面，回傳該房間座標（給 HTML5 拖放用） */
@@ -88,9 +88,11 @@ function Block({ b, color }: { b: SceneBox; color: string }) {
   );
 }
 
-/** 家具：模型庫的 glb，縮放成讀圖結果的寬、高、深；載入中先用方塊；透明碰撞盒確保點床／沙發可叫貓 */
-function Furniture({ b, roomId, boxIndex, onClick }: {
-  b: SceneBox; roomId: string; boxIndex: number; onClick?: (e: ThreeEvent<MouseEvent>) => void;
+/** 家具：模型庫的 glb；透明碰撞盒點床／沙發；手掌模式上方 × 可暫時移除 */
+function Furniture({ b, roomId, boxIndex, onClick, onRemove }: {
+  b: SceneBox; roomId: string; boxIndex: number;
+  onClick?: (e: ThreeEvent<MouseEvent>) => void;
+  onRemove?: (roomId: string, furnitureIndex: number) => void;
 }) {
   const { scene } = useGLTF(kitUrl(b.furniture ?? "other"));
   const model = useMemo(() => {
@@ -98,14 +100,16 @@ function Furniture({ b, roomId, boxIndex, onClick }: {
     m.traverse(o => { if ((o as THREE.Mesh).isMesh) { o.castShadow = true; o.receiveShadow = true; } });
     return m;
   }, [scene]);
+  const planIndex = b.furnitureIndex ?? boxIndex;
   const support = isSupportBox(b);
   const supportData = support ? {
     meowSupportRoomId: roomId,
-    meowSupportIndex: boxIndex,
+    meowSupportIndex: planIndex,
     meowSupportTopY: b.y + b.sy / 2,
     meowSupportCx: b.x,
     meowSupportCz: b.z,
   } : undefined;
+  const label = b.furniture ?? "家具";
   // y＝方塊中心；模型底部貼在 y − h/2（桌上物 elev＞0）
   return (
     <group>
@@ -121,6 +125,18 @@ function Furniture({ b, roomId, boxIndex, onClick }: {
           <boxGeometry args={[b.sx, b.sy, b.sz]} />
           <meshBasicMaterial transparent opacity={0} depthWrite={false} />
         </mesh>
+      )}
+      {onRemove && b.furnitureIndex !== undefined && (
+        <Html position={[b.x, b.y + b.sy / 2 + 0.12, b.z]} center zIndexRange={[30, 20]} style={{ pointerEvents: "none" }}>
+          <button
+            type="button"
+            className="hq-fp-item-x"
+            aria-label={`移除 ${label}`}
+            style={{ pointerEvents: "auto" }}
+            onPointerDown={e => { e.stopPropagation(); e.preventDefault(); }}
+            onClick={e => { e.stopPropagation(); onRemove(roomId, b.furnitureIndex!); }}
+          >×</button>
+        </Html>
       )}
     </group>
   );
@@ -192,8 +208,8 @@ function PlacedItemModel({ item, room, dragEnabled, onMove, onRemove }: {
           const p = parent.worldToLocal(h.point.clone());
           const idx = o.userData.meowSupportIndex as number;
           const topY = o.userData.meowSupportTopY as number;
-          const cx = (o.userData.meowSupportCx as number) ?? room.boxes[idx]?.x ?? p.x;
-          const cz = (o.userData.meowSupportCz as number) ?? room.boxes[idx]?.z ?? p.z;
+          const cx = (o.userData.meowSupportCx as number) ?? p.x;
+          const cz = (o.userData.meowSupportCz as number) ?? p.z;
           draft.current = {
             x: p.x, z: p.z, y: topY,
             support: { furnitureIndex: idx, localX: p.x - cx, localZ: p.z - cz },
@@ -322,7 +338,11 @@ function Floor({ b, roomId, onClick }: { b: SceneBox; roomId: string; onClick: (
 /** 點到的東西：地板，或第 box 個方塊（家具）；x、z 是這間房的座標（公尺） */
 export type RoomClick = { box: number | null; x: number; z: number };
 
-function Room({ s, onClick, children }: { s: RoomScene; onClick: (c: RoomClick) => void; children?: React.ReactNode }) {
+function Room({ s, onClick, onRemoveFurniture, children }: {
+  s: RoomScene; onClick: (c: RoomClick) => void;
+  onRemoveFurniture?: (roomId: string, furnitureIndex: number) => void;
+  children?: React.ReactNode;
+}) {
   const ref = useRef<THREE.Group>(null);
   // 世界座標 → 這間房的座標；同一次點擊只處理最前面那個（家具擋在地板前面時算家具）
   const handle = (box: number | null) => (e: ThreeEvent<MouseEvent>) => {
@@ -337,7 +357,9 @@ function Room({ s, onClick, children }: { s: RoomScene; onClick: (c: RoomClick) 
         b.kind === "floor" ? (
           <Suspense key={i} fallback={<Block b={b} color="#D9CCB4" />}><Floor b={b} roomId={s.id} onClick={handle(null)} /></Suspense>
         ) : b.kind === "furniture" ? (
-          <Suspense key={i} fallback={<Block b={b} color="#D8D2C8" />}><Furniture b={b} roomId={s.id} boxIndex={i} onClick={handle(i)} /></Suspense>
+          <Suspense key={i} fallback={<Block b={b} color="#D8D2C8" />}>
+            <Furniture b={b} roomId={s.id} boxIndex={i} onClick={handle(i)} onRemove={onRemoveFurniture} />
+          </Suspense>
         ) : (
           <WallPiece key={i} b={b} center={[s.size[0] / 2, s.size[1] / 2]} />
         ))}
@@ -449,22 +471,30 @@ export type PlaceAt = { roomId: string; x: number; z: number; y: number; support
 /** point＝點地板／床叫貓；hand＝拖移已放用品（不叫貓） */
 export type InteractMode = "point" | "hand";
 
-export default function FloorplanViewer({ rooms, selected, onPick, cat, placedItems = [], interactMode = "point", onMoveItem, onRemoveItem, onFloorDrop }: {
+export default function FloorplanViewer({ rooms, selected, onPick, cat, placedItems = [], interactMode = "point", removedFurniture, onMoveItem, onRemoveItem, onRemoveFurniture, onFloorDrop }: {
   rooms: PlanRoom[]; selected: string | null; onPick: (id: string) => void;
   /** 虛擬體驗（#150）：放一隻貓進去；有貓時只顯示單間（沒有「全部」），點地板叫貓走過去 */
   cat?: ViewerCat | null;
   /** 虛擬體驗（#197）：已放進房間的生活用品；只能從右側選單拖放進來，點地板不會新增 */
   placedItems?: PlacedHouseholdItem[];
-  /** 點／手掌：點＝叫貓；手掌＝拖移用品 */
+  /** 點／手掌：點＝叫貓；手掌＝拖移用品／移除家具 */
   interactMode?: InteractMode;
+  /** 本次體驗暫時拿掉的讀圖家具（`roomId:index`） */
+  removedFurniture?: Iterable<string>;
   /** 拖移已放置的用品（可改到桌面或地板） */
   onMoveItem?: (key: string, at: MovePayload) => void;
   /** 移除已放置的用品（元件上方 ×） */
   onRemoveItem?: (key: string) => void;
+  /** 暫時移除讀圖家具（手掌模式 ×） */
+  onRemoveFurniture?: (roomId: string, furnitureIndex: number) => void;
   /** 從右側選單拖放到地板或桌面 */
   onFloorDrop?: (itemId: string, at: PlaceAt) => void;
 }) {
-  const scenes = useMemo(() => houseScene(rooms), [rooms]);
+  const removedList = useMemo(
+    () => (removedFurniture ? [...removedFurniture] : []),
+    [removedFurniture],
+  );
+  const scenes = useMemo(() => houseScene(rooms, removedList), [rooms, removedList]);
   const [focus, setFocus] = useState<string | null>(cat ? selected ?? scenes[0]?.id ?? null : null);
   const [click, setClick] = useState<(RoomClick & { at: number }) | null>(null);
   const catPos = useRef(new THREE.Vector3());
@@ -517,11 +547,16 @@ export default function FloorplanViewer({ rooms, selected, onPick, cat, placedIt
             {shown.map(s => {
               const roomItems = placedItems.filter(i => i.roomId === s.id);
               return (
-                <Room key={s.id} s={s} onClick={c => {
-                  if (!cat) { pick(s.id); return; }
-                  if (interactMode !== "point") return;
-                  setClick({ ...c, at: Date.now() });
-                }}>
+                <Room
+                  key={s.id}
+                  s={s}
+                  onRemoveFurniture={interactMode === "hand" && cat ? onRemoveFurniture : undefined}
+                  onClick={c => {
+                    if (!cat) { pick(s.id); return; }
+                    if (interactMode !== "point") return;
+                    setClick({ ...c, at: Date.now() });
+                  }}
+                >
                   {roomItems.map(item => (
                     <Suspense key={item.key} fallback={null}>
                       <PlacedItemModel

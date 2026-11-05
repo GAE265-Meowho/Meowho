@@ -3,11 +3,13 @@
 // 貓＝共用母體 base_clips.glb＋這隻貓已確認的貼圖（同貓咪頁，catLook.ts）；房間＝平面圖轉換讀圖完成的房間。
 // 選擇寫進網址（?tab=experience&cat=&house=），複製連結給其他管理員看到同一個畫面。
 // 生活用品（#197）：右側選單類別篩選＋小圖示，只能拖進房間放置；已放用品可拖移，上方 × 可刪除。點地板只叫貓走。
+// 讀圖家具：手掌模式上方 × 可暫時移除（session；換喵戶／重整會回來）。
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import type { HouseholdItem, ItemCategory } from "@/lib/hq/items/types";
+import { expandRemovedIndices, furnitureKey } from "@/lib/hq/floorplans/experience-furniture";
 import type { FloorplanHouse, FloorplanSummary } from "@/lib/hq/floorplans/types";
 import { HqLoadError, HqSkeleton } from "../HqStates";
 import { catLook } from "./catLook";
@@ -94,6 +96,7 @@ export function ExperienceTab() {
   const [itemId, setItemId] = useState<string>("");
   const [interactMode, setInteractMode] = useState<InteractMode>("point");
   const [placed, setPlaced] = useState<PlacedHouseholdItem[]>([]);
+  const [removedFurniture, setRemovedFurniture] = useState<string[]>([]);
 
   // 只列出有確認貼圖的貓、有讀圖完成房間的喵戶
   const catOptions = useMemo(() => (cats.state === "ready" ? cats.data.filter(c => catLook(c)) : []), [cats]);
@@ -111,7 +114,7 @@ export function ExperienceTab() {
     if (!itemId && itemOptions[0]) setItemId(itemOptions[0].id);
   }, [itemId, itemOptions]);
 
-  useEffect(() => { setPlaced([]); setInteractMode("point"); }, [houseId]);
+  useEffect(() => { setPlaced([]); setRemovedFurniture([]); setInteractMode("point"); }, [houseId]);
 
   const choose = (key: "cat" | "house", value: string) => {
     const next = new URLSearchParams(params.toString());
@@ -134,6 +137,20 @@ export function ExperienceTab() {
 
   const removeItem = (key: string) => {
     setPlaced(list => list.filter(it => it.key !== key));
+  };
+
+  const removeFurniture = (roomId: string, furnitureIndex: number) => {
+    const key = furnitureKey(roomId, furnitureIndex);
+    setRemovedFurniture(list => (list.includes(key) ? list : [...list, key]));
+    // 壓在這件或連動移除的子家具上的生活用品改落地
+    const roomFurniture = house?.state === "ready"
+      ? house.data.rooms.find(r => r.id === roomId)?.furniture ?? []
+      : [];
+    const dropIdx = expandRemovedIndices(roomFurniture, new Set([furnitureIndex]));
+    setPlaced(list => list.map(it => {
+      if (it.roomId !== roomId || !it.support || !dropIdx.has(it.support.furnitureIndex)) return it;
+      return { ...it, y: 0, support: null };
+    }));
   };
 
   if (cats.state === "loading" || houses.state === "loading") return <HqSkeleton rows={4} />;
@@ -173,18 +190,23 @@ export function ExperienceTab() {
                       title="點地板叫貓走，點床／沙發跳上去">點</button>
                     <button type="button" className={`hq-btn ghost${interactMode === "hand" ? " on" : ""}`}
                       aria-pressed={interactMode === "hand"} onClick={() => setInteractMode("hand")}
-                      title="拖移已放的生活用品">手掌</button>
+                      title="拖移用品、移除讀圖家具">手掌</button>
                     {placed.length > 0 && <button type="button" className="hq-btn ghost" onClick={() => setPlaced([])}>清空用品</button>}
+                    {removedFurniture.length > 0 && (
+                      <button type="button" className="hq-btn ghost" onClick={() => setRemovedFurniture([])}>還原家具</button>
+                    )}
                   </div>
                   <p className="hq-hint">
                     {interactMode === "point"
                       ? "點模式：點地板叫貓走；點床、沙發、桌子會跳上去。右側用品仍可拖進房間放置。"
-                      : "手掌模式：拖移已放的用品；上方 × 可刪除。點地板不會叫貓。"}
+                      : "手掌模式：拖移用品；家具與用品上方 × 可移除（家具只在這次體驗拿掉，重整會回來）。"}
                   </p>
                   <div className="hq-exp-stage">
                     <FloorplanViewer key={`${houseId}:${cat?.id}`} rooms={house.data.rooms} selected={room} onPick={setRoom}
                       cat={look} placedItems={placed} interactMode={interactMode}
-                      onMoveItem={moveItem} onRemoveItem={removeItem} onFloorDrop={dropItem} />
+                      removedFurniture={removedFurniture}
+                      onMoveItem={moveItem} onRemoveItem={removeItem} onRemoveFurniture={removeFurniture}
+                      onFloorDrop={dropItem} />
                     {catalog.state === "loading" ? <HqSkeleton rows={3} />
                       : catalog.state === "error" ? <p className="hq-hint" role="alert">生活用品選單載入失敗。</p>
                         : (

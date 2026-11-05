@@ -12,15 +12,17 @@ vi.mock("next/navigation", () => ({
 }));
 const viewer = vi.hoisted(() => ({
   last: null as null | {
-    rooms: { id: string }[];
+    rooms: { id: string; furniture?: { kind: string; parent?: number }[] }[];
     cat: { body: string; albedoUrl: string; baseUrl: string } | null;
     onFloorDrop?: (itemId: string, at: { roomId: string; x: number; z: number; y: number; support: null }) => void;
     onMoveItem?: (key: string, at: { x: number; z: number; y: number; support: null }) => void;
     onRemoveItem?: (key: string) => void;
+    onRemoveFurniture?: (roomId: string, furnitureIndex: number) => void;
+    removedFurniture?: string[];
     onPlace?: unknown;
     placeMode?: boolean;
     interactMode?: "point" | "hand";
-    placedItems?: { key: string; name: string; x: number; z: number; y: number }[];
+    placedItems?: { key: string; name: string; x: number; z: number; y: number; support?: { furnitureIndex: number; localX: number; localZ: number } | null }[];
   },
 }));
 vi.mock("./FloorplanViewer", () => ({
@@ -34,7 +36,18 @@ const confirmed = { state: "confirmed", preview: "albedo", previewBody: "adult" 
 const cat = (id: string, name: string, texture: unknown = confirmed) => ({ id, name, body: "adult", texture, hasAlbedo: true, albedoVersion: "v1", variantStorage: false });
 const H1 = "room_20261102_220000", H2 = "room_20261103_010000";
 const summary = (id: string, name: string, status = "ready") => ({ id, name, roomCount: 1, updatedAt: "x", createdBy: "子哲", rooms: [{ id: "r1", name: "客廳", status, imageUrl: null }] });
-const house = (id: string, name: string) => ({ id, name, updatedAt: "x", rooms: [{ id: "r1", name: "客廳", image_path: "x", status: "ready", created_at: "x", imageUrl: null, photoUrls: [], walls: [] }] });
+const house = (id: string, name: string) => ({
+  id, name, updatedAt: "x",
+  rooms: [{
+    id: "r1", name: "客廳", image_path: "x", status: "ready", created_at: "x",
+    imageUrl: null, photoUrls: [], walls: [],
+    furniture: [
+      { kind: "desk", label: "書桌", x: 1, y: 0.4, w: 1.2, d: 0.6, h: 0.75, rot: 0 },
+      { kind: "computer", label: "螢幕", x: 1, y: 0.4, w: 0.5, d: 0.2, h: 0.45, rot: 0, parent: 0, elev: 0.75 },
+      { kind: "fan", label: "風扇", x: 2, y: 2, w: 0.4, d: 0.4, h: 1, rot: 0 },
+    ],
+  }],
+});
 const categories = [{ id: "litter_box", name: "貓砂盆", sortOrder: 1 }, { id: "toys", name: "玩具", sortOrder: 2 }];
 const items = [
   {
@@ -125,5 +138,26 @@ describe("虛擬體驗（#150）", () => {
     expect(viewer.last?.onRemoveItem).toBeTypeOf("function");
     viewer.last!.onRemoveItem!(key);
     await waitFor(() => expect(viewer.last?.placedItems?.some(p => p.key === key)).toBe(false));
+  });
+
+  it("手掌模式可暫時移除讀圖家具；壓在上面的用品改落地；還原家具清空清單", async () => {
+    mockFetch([cat("cat_1", "橘寶 Mango")], [summary(H1, "子哲的家")]);
+    render(<ExperienceTab />);
+    await screen.findByTestId("fake-viewer");
+    fireEvent.click(await screen.findByRole("button", { name: "手掌" }));
+    await waitFor(() => expect(viewer.last?.onRemoveFurniture).toBeTypeOf("function"));
+    viewer.last!.onFloorDrop!("i2", {
+      roomId: "r1", x: 1, z: 0.4, y: 0.75,
+      support: { furnitureIndex: 0, localX: 0, localZ: 0 },
+    });
+    await waitFor(() => expect(viewer.last?.placedItems?.some(p => p.name === "逗貓棒" && p.support?.furnitureIndex === 0)).toBe(true));
+    viewer.last!.onRemoveFurniture!("r1", 0);
+    await waitFor(() => {
+      expect(viewer.last?.removedFurniture).toEqual(["r1:0"]);
+      const stick = viewer.last?.placedItems?.find(p => p.name === "逗貓棒");
+      expect(stick).toMatchObject({ y: 0, support: null });
+    });
+    fireEvent.click(screen.getByRole("button", { name: "還原家具" }));
+    await waitFor(() => expect(viewer.last?.removedFurniture).toEqual([]));
   });
 });
