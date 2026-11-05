@@ -1,14 +1,23 @@
 import type { NextConfig } from "next";
 
-/** 建置當下（Asia/Taipei）→ yyyy/mm/dd hh24:mi:ss，給 MeowHQ 頂列 version */
-function hqBuildVersion(at = new Date()): string {
-  const s = at.toLocaleString("sv-SE", { timeZone: "Asia/Taipei" }); // YYYY-MM-DD HH:mm:ss
-  return s.replace(/-/g, "/");
+/** Asia/Taipei → yyyy/mm/dd hh24:mi:ss（與 src/lib/hq/build-meta.ts 同格式） */
+function formatHqVersionDate(at = new Date()): string {
+  return at.toLocaleString("sv-SE", { timeZone: "Asia/Taipei" }).replace(/-/g, "/");
 }
+
+/** 建置當下寫入頁尾用的 version／update by（Vercel git 作者優先） */
+const hqVersion = process.env.NEXT_PUBLIC_HQ_VERSION || formatHqVersionDate();
+const hqUpdatedBy =
+  process.env.NEXT_PUBLIC_HQ_UPDATED_BY
+  || process.env.VERCEL_GIT_COMMIT_AUTHOR_NAME
+  || process.env.VERCEL_GIT_COMMIT_AUTHOR_LOGIN
+  || process.env.GITHUB_ACTOR
+  || "unknown";
 
 const nextConfig: NextConfig = {
   env: {
-    NEXT_PUBLIC_HQ_VERSION: process.env.NEXT_PUBLIC_HQ_VERSION || hqBuildVersion(),
+    NEXT_PUBLIC_HQ_VERSION: hqVersion,
+    NEXT_PUBLIC_HQ_UPDATED_BY: hqUpdatedBy,
   },
   images: {
     // 首頁照片（Unsplash License）直接用 Unsplash CDN，清單在 src/lib/home-photos.ts

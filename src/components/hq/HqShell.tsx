@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Fragment, Suspense, useEffect, useState } from "react";
+import { hqUpdatedBy, hqVersionDate } from "@/lib/hq/build-meta";
 import { ADMIN_MODULE_LABELS, type SidebarItem } from "@/lib/hq/types";
 import { LOGOS } from "@/lib/mock-data";
 import { HQ_HOME, HQ_MODULE_PATH, isModule } from "./access";
@@ -157,11 +158,6 @@ export function HqShell({ items, user, unread, onLogout, activePath, children, u
         </button>
         <HqLogo />
         <div className="hq-grow" />
-        {process.env.NEXT_PUBLIC_HQ_VERSION && (
-          <span className="hq-version" title="本次建置時間（Asia/Taipei）">
-            version : {process.env.NEXT_PUBLIC_HQ_VERSION}
-          </span>
-        )}
         {/* #191：到前台的入口，新分頁開啟，後台停在原處；手機只顯示圖示 */}
         <a className="hq-frontlink" href="/" target="_blank" rel="noopener" aria-label="前往前台（另開新分頁）">
           <svg {...icon}><path d="M14 4h6v6" /><path d="M20 4l-9 9" /><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" /></svg>
@@ -202,7 +198,13 @@ export function HqShell({ items, user, unread, onLogout, activePath, children, u
           {assetsAt < 0 && assetsGroup}
         </nav>
         {navOpen && <div className="hq-scrim" onClick={() => setNavOpen(false)} aria-hidden="true" />}
-        <main className="hq-main">{children}</main>
+        <main className="hq-main">
+          {children}
+          <footer className="hq-pagefoot" aria-label="頁面建置資訊">
+            <span className="hq-pagefoot-by">update by : {hqUpdatedBy()}</span>
+            <span className="hq-pagefoot-ver" title="建置時間（Asia/Taipei）">version date: {hqVersionDate()}</span>
+          </footer>
+        </main>
       </div>
     </div>
   );
