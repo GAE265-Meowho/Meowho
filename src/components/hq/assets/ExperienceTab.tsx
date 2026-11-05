@@ -13,7 +13,8 @@ import {
   expandRemovedIndices, followFurnitureIndices, furnitureKey, movesByRoom, normalizeMove,
   parseFurnitureKey, resolveFurniturePose, type FurnitureMove,
 } from "@/lib/hq/floorplans/experience-furniture";
-import { clampFurniturePose, rotatedHalfExtents } from "@/lib/hq/floorplans/experience-physics";
+import { boxToSolid, clampFurniturePose, rotatedHalfExtents } from "@/lib/hq/floorplans/experience-physics";
+import { houseScene } from "@/lib/hq/floorplans/scene";
 import type { FloorplanHouse, FloorplanSummary, PlanRoom, Point } from "@/lib/hq/floorplans/types";
 import { HqLoadError, HqSkeleton } from "../HqStates";
 import { catLook } from "./catLook";
@@ -231,7 +232,10 @@ export function ExperienceTab() {
     }
     const half = rotatedHalfExtents(f.w, f.d, nextRot);
     const exclude = expandRemovedIndices(furniture, new Set([furnitureIndex]));
-    const obstacles = furniture.flatMap((other, i) => {
+    const onSupport = cur.elev > 0.08 || !!support;
+    const scene = room ? houseScene([room], removedFurniture, furnitureMoves).find(s => s.id === roomId) : undefined;
+    const wallObs = (scene?.boxes ?? []).filter(b => b.kind === "wall" || b.kind === "sill").map(boxToSolid);
+    const furnitureObs = onSupport ? [] : furniture.flatMap((other, i) => {
       if (exclude.has(i)) return [];
       const pose = resolveFurniturePose(furniture, i, shift, moveMap);
       if (pose.elev > 0.08) return [];
@@ -239,8 +243,9 @@ export function ExperienceTab() {
       return [{ x: pose.x, z: pose.z, hx: h.hx, hz: h.hz }];
     });
     const clamped = clampFurniturePose(
-      { x: cur.x, z: cur.z }, half, roomSize(room?.walls), obstacles,
-      { onSupport: cur.elev > 0.08 || !!support },
+      { x: cur.x, z: cur.z }, half, scene?.size ?? roomSize(room?.walls),
+      [...wallObs, ...furnitureObs],
+      { inset: 0.02 },
     );
     moveFurniture(
       roomId, furnitureIndex,

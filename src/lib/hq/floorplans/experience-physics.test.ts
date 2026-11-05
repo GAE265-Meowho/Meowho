@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { clampFurniturePose, rotatedHalfExtents } from "./experience-physics";
+import { boxToSolid, clampFurniturePose, rotatedHalfExtents } from "./experience-physics";
 
 describe("experience-physics", () => {
   it("rotatedHalfExtents：0°／90° 對調寬深", () => {
@@ -21,13 +21,20 @@ describe("experience-physics", () => {
     expect(Math.abs(out.x - 1) >= 0.999 || Math.abs(out.z - 1) >= 0.999).toBe(true);
   });
 
-  it("onSupport 時不與落地障礙互斥，仍夾房間", () => {
+  it("clampFurniturePose：撞牆時推離牆段（不可穿牆）", () => {
+    const half = { hx: 0.4, hz: 0.4 };
+    // 房間左側牆：中心 x=0.05、厚 0.1、沿 z 長 4（rotY=π/2 → 厚在 x）
+    const wall = boxToSolid({ x: 0.05, z: 2, sx: 4, sz: 0.1, rotY: Math.PI / 2 });
+    expect(wall.hx).toBeCloseTo(0.05, 5);
+    const out = clampFurniturePose({ x: 0.2, z: 2 }, half, [4, 4], [wall], { inset: 0.02 });
+    // 家具左緣不可進入牆：中心 ≥ wall.x + wall.hx + half.hx
+    expect(out.x).toBeGreaterThanOrEqual(0.05 + wall.hx + half.hx - 0.001);
+  });
+
+  it("onSupport 時呼叫端可不傳家具障礙；仍可被牆推開", () => {
     const half = { hx: 0.3, hz: 0.3 };
-    const out = clampFurniturePose(
-      { x: 1.05, z: 1 }, half, [6, 6],
-      [{ x: 1, z: 1, hx: 0.5, hz: 0.5 }],
-      { onSupport: true },
-    );
-    expect(out).toEqual({ x: 1.05, z: 1 });
+    const wall = { x: 0.05, z: 1, hx: 0.05, hz: 2 };
+    const out = clampFurniturePose({ x: 0.2, z: 1 }, half, [6, 6], [wall], { inset: 0.02 });
+    expect(out.x).toBeGreaterThanOrEqual(0.05 + 0.05 + 0.3 - 0.001);
   });
 });

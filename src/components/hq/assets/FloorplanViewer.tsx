@@ -11,7 +11,7 @@ import { FLOOR_TEXTURE, kitScale, kitUrl } from "@/lib/hq/floorplans/kit";
 import { goalForBox, idleAction, stepActor, worldOf, type Actor, type Goal } from "@/lib/hq/floorplans/catjump";
 import { CAT_SCALE, freeSpot, obstacles, type Obstacle } from "@/lib/hq/floorplans/catwalk";
 import { expandRemovedIndices, type FurnitureMove, type FurnitureSupport } from "@/lib/hq/floorplans/experience-furniture";
-import { clampFurniturePose, rotatedHalfExtents, type SolidBody } from "@/lib/hq/floorplans/experience-physics";
+import { boxToSolid, clampFurniturePose, rotatedHalfExtents, type SolidBody } from "@/lib/hq/floorplans/experience-physics";
 import { focusScenes, houseScene, sceneBounds, type RoomScene, type SceneBox } from "@/lib/hq/floorplans/scene";
 import type { BodyType } from "@/lib/hq/cat-models/types";
 import { CatModel } from "./CatPreview";
@@ -56,14 +56,14 @@ function roomLocalPoint(from: THREE.Object3D, worldPoint: THREE.Vector3): THREE.
   return from.parent ? from.parent.worldToLocal(worldPoint.clone()) : null;
 }
 
-/** 落地家具障礙（底部貼近地板）；exclude＝自己與跟隨子孫 */
-function floorObstacles(s: RoomScene, exclude: Set<number>): SolidBody[] {
+/** 牆／窗台＋落地家具固態障礙；exclude＝自己與跟隨子孫；onSupport 時只擋牆不擋他家具 */
+function solidObstacles(s: RoomScene, exclude: Set<number>, onSupport: boolean): SolidBody[] {
   return s.boxes.flatMap(b => {
+    if (b.kind === "wall" || b.kind === "sill") return [boxToSolid(b)];
+    if (onSupport) return [];
     if (b.kind !== "furniture" || b.furnitureIndex === undefined || exclude.has(b.furnitureIndex)) return [];
     if (b.y - b.sy / 2 > 0.08) return [];
-    const rotDeg = (-b.rotY * 180) / Math.PI;
-    const half = rotatedHalfExtents(b.sx, b.sz, rotDeg);
-    return [{ x: b.x, z: b.z, hx: half.hx, hz: half.hz }];
+    return [boxToSolid(b)];
   });
 }
 
@@ -156,8 +156,9 @@ function Furniture({ b, room, roomId, boxIndex, planFurniture, onClick, onRemove
 
   const applyClamp = (x: number, z: number, rot: number, onSupport: boolean) => {
     const half = rotatedHalfExtents(b.sx, b.sz, rot);
-    const obstacles = floorObstacles(room, forbid);
-    return clampFurniturePose({ x, z }, half, room.size, obstacles, { onSupport });
+    // 牆永遠擋；onSupport 時不與其他落地家具互斥（仍不可穿牆）
+    const obstacles = solidObstacles(room, forbid, onSupport);
+    return clampFurniturePose({ x, z }, half, room.size, obstacles, { inset: 0.02 });
   };
 
   const toMove = (d: FurnitureDraft): FurnitureMove => ({

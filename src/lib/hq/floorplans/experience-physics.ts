@@ -19,6 +19,13 @@ export function rotatedHalfExtents(w: number, d: number, rotDeg: number): { hx: 
   return { hx: r3((w * c + d * s) / 2), hz: r3((w * s + d * c) / 2) };
 }
 
+/** SceneBox（牆／家具）→ 地面投影 AABB */
+export function boxToSolid(b: { x: number; z: number; sx: number; sz: number; rotY: number }): SolidBody {
+  const rotDeg = (-b.rotY * 180) / Math.PI;
+  const half = rotatedHalfExtents(b.sx, b.sz, rotDeg);
+  return { x: b.x, z: b.z, hx: half.hx, hz: half.hz };
+}
+
 function overlap(a: SolidBody, b: SolidBody): boolean {
   return Math.abs(a.x - b.x) < a.hx + b.hx && Math.abs(a.z - b.z) < a.hz + b.hz;
 }
