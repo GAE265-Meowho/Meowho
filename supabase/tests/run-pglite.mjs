@@ -485,6 +485,46 @@ try {
   }
 }
 
+// 0022（前台 3D 房間 storage 權限，#161）：0001→0020 後（0021 要 storage.extension，模擬環境沒有，也和這裡無關），0017 的規則擋住喵戶長；跑 0022 兩次後喵戶長能傳、別人不能傳
+{
+  const m = new PGlite();
+  const base = read("./stub_supabase.sql") + ["0001_meow", "0002_meow_hq", "0003_meow_site_assets", "0004_meow_cat_profile", "0005_meow_cat_models", "0006_meow_household_roles", "0007_meow_adoption_forms", "0008_meow_cat_favorites", "0009_meow_cat_returns", "0010_meow_adoption_notify", "0011_meow_threads", "0012_meow_thread_homed", "0013_meow_decline_reason_transfer", "0014_meow_room_models", "0014_meow_returns_in_threads", "0015_meow_room_floorplan", "0016_meow_cat_model_variants", "0017_meow_adoption_tasks", "0018_meow_task_templates_seed", "0019_meow_household_avatar", "0020_meow_households_module"]
+    .map((f) => read(`../migrations/${f}.sql`)).join("");
+  const id = (n) => `00000000-0000-0000-0000-0000000022${n}`;
+  const eq = (name, expected, actual) =>
+    results.push({ name, status: String(actual) === String(expected) ? "PASS" : "FAIL", detail: String(actual) === String(expected) ? null : `預期 ${expected}，實際 ${actual}` });
+  // 用某人的身分新增一個 storage 物件，被 RLS 擋下回 false
+  const can = async (who, bucket, path) => {
+    await m.exec(`begin; select set_config('request.jwt.claim.sub', '${id(who)}', true); set local role authenticated;`);
+    try { await m.exec(`insert into storage.objects (bucket_id, name) values ('${bucket}', '${path}')`); return true; }
+    catch { return false; }
+    finally { await m.exec("rollback;"); }
+  };
+  try {
+    await m.exec(base);
+    await m.exec(`insert into auth.users (id, email) values ('${id("a1")}', 'o1@h22.example'), ('${id("b1")}', 'x1@h22.example');
+      insert into public.meow_profiles (id, email, display_name) values ('${id("a1")}', 'o1@h22.example', 'o1'), ('${id("b1")}', 'x1@h22.example', 'x1');
+      insert into public.meow_households (id, owner_id, name, caretaker_type, city, district) values ('${id("d0")}', '${id("a1")}', '我家', 'cat_owner', '桃園市', '中壢區');`);
+    const video = `${id("d0")}/a.mp4`;
+    eq("HS-0 0022 前：0017 的規則擋住喵戶長上傳影片（name 對到喵戶名稱）", "false", await can("a1", "meow-home-videos", video));
+    await m.exec(read("../migrations/0022_meow_home_storage_fix.sql"));
+    await m.exec(read("../migrations/0022_meow_home_storage_fix.sql"));
+    eq("HS-1 喵戶長能把影片傳到自己喵戶的資料夾", "true", await can("a1", "meow-home-videos", video));
+    eq("HS-2 別人不能傳到這個喵戶的資料夾", "false", await can("b1", "meow-home-videos", video));
+    await m.exec(`insert into storage.objects (bucket_id, name) values ('meow-home-scenes', '${id("d0")}/room_1/scene.json')`);
+    const sees = async (who) => {
+      await m.exec(`begin; select set_config('request.jwt.claim.sub', '${id(who)}', true); set local role authenticated;`);
+      try { return (await m.query("select count(*)::int as n from storage.objects where bucket_id = 'meow-home-scenes'")).rows[0].n; }
+      finally { await m.exec("rollback;"); }
+    };
+    eq("HS-3 喵戶長讀得到自己的 3D 房間成果", "1", await sees("a1"));
+    eq("HS-4 別人讀不到", "0", await sees("b1"));
+  } catch (e) {
+    console.error(`✗ 0022 測試中斷：${e.message}`);
+    process.exit(1);
+  }
+}
+
 let failed = 0;
 for (const r of results) {
   if (r.status === "FAIL") failed++;

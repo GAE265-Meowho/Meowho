@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import * as homeRoom from "./home-room";
-import { homeTools, safetyRecords, UPLOAD_PRIVACY, demoReportRow } from "./home-room";
+import { homeTools, isHomeVideoPath, safetyRecords, UPLOAD_PRIVACY, demoReportRow } from "./home-room";
 
 const room = (status: string, completed_at: string | null = null) => ({ status, completed_at });
 const report = (status: string, room_model_id: string | null = null, created_at = "2026-11-04T00:00:00Z", items: unknown[] = []) =>
@@ -93,5 +93,18 @@ describe("示範報告（AI 環境安全檢查接上前）", () => {
     const recs = safetyRecords([{ id: "a", ...alone }, { id: "b", ...room }]);
     expect(recs.map(r => `${r.id}:${r.source}:${r.riskCount}`)).toEqual(["b:建立 3D 房間時:5", "a:單獨檢測:5"]);
     expect(homeTools([], [alone]).safety.label).toBe("查看報告");
+  });
+});
+
+describe("飼主上傳的影片路徑", () => {
+  const home = "11111111-2222-3333-4444-555555555555";
+  const uuid = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee";
+  it("只接受這個喵戶底下的 uuid.mp4／mov", () => {
+    expect(isHomeVideoPath(home, `${home}/${uuid}.mp4`)).toBe(true);
+    expect(isHomeVideoPath(home, `${home}/${uuid}.mov`)).toBe(true);
+    expect(isHomeVideoPath(home, `other/${uuid}.mp4`)).toBe(false);
+    expect(isHomeVideoPath(home, `${home}/../x/${uuid}.mp4`)).toBe(false);
+    expect(isHomeVideoPath(home, `${home}/${uuid}.webm`)).toBe(false);
+    expect(isHomeVideoPath(home, null)).toBe(false);
   });
 });

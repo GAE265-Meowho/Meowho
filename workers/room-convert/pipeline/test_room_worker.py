@@ -83,5 +83,73 @@ class ConvertErrors(unittest.TestCase):
         self.assertFalse(alive(child), "轉換的子程式還在跑，會和下一個工作共用 input_frames")
 
 
+class FakeSupabase:
+    """記下 worker 打了哪些 API；GET 依路徑開頭回假資料。"""
+    def __init__(self, rows):
+        self.rows, self.calls = rows, []
+
+    def rest(self, method, path, body=None, prefer=None):
+        self.calls.append((method, path, body))
+        if method == "GET":
+            return next((v for k, v in self.rows.items() if path.startswith(k)), [])
+        return [{}] if prefer else None
+
+    def download(self, bucket, path, target):
+        self.calls.append(("download", bucket, path))
+        target.write_bytes(b"video")
+
+    def upload(self, bucket, path, source):
+        self.calls.append(("upload", bucket, path))
+
+    def remove(self, bucket, path):
+        self.calls.append(("remove", bucket, path))
+
+
+class HomeRooms(unittest.TestCase):
+    """前台我的 3D 房間：私有 bucket、通知喵戶長、環境報告好了才刪影片。"""
+    HOME = "11111111-2222-3333-4444-555555555555"
+
+    def run_job(self, ok, report_pending):
+        sb = FakeSupabase({
+            "meow_room_jobs?status=eq.queued": [{"id": "j1", "room_id": "room_20261104_120000"}],
+            "meow_room_models?id=eq.room_20261104_120000&select": [{"video_path": f"{self.HOME}/v.mp4", "meta": {}, "owner_household_id": self.HOME}],
+            "meow_households": [{"owner_id": "u1"}],
+            "meow_env_reports": [{"id": "r1"}] if report_pending else [],
+        })
+
+        def fake_convert(video, room_id, on_step, result, log_path):
+            if not ok:
+                raise RuntimeError("重建失敗")
+            result.mkdir(parents=True)
+            (result / "scene.json").write_text('{"objects": [{"label": "bed"}, {"label": "bed"}, {"label": "lamp"}]}')
+
+        old = room_worker.convert
+        room_worker.convert = fake_convert
+        try:
+            room_worker.run_next_supabase(sb)
+        finally:
+            room_worker.convert = old
+        return sb.calls
+
+    def test_ready_uploads_privately_and_waits_for_report(self):
+        calls = self.run_job(ok=True, report_pending=True)
+        self.assertIn(("download", "meow-home-videos", f"{self.HOME}/v.mp4"), calls)
+        self.assertIn(("upload", "meow-home-scenes", f"{self.HOME}/room_20261104_120000/scene.json"), calls)
+        ready = next(b for m, p, b in calls if m == "PATCH" and b and b.get("status") == "ready")
+        self.assertEqual(ready["result_path"], f"{self.HOME}/room_20261104_120000")
+        self.assertEqual(ready["meta"]["objects"], [{"label": "床"}, {"label": "lamp"}])
+        self.assertNotIn("video_path", ready)
+        note = next(b for m, p, b in calls if m == "POST" and p == "meow_notifications")
+        self.assertEqual((note["user_id"], note["link"]), ("u1", f"/homes/{self.HOME}/scene"))
+        self.assertFalse([c for c in calls if c[0] == "remove"])  # 報告還沒好，影片留著
+
+    def test_failed_deletes_video_when_report_done(self):
+        calls = self.run_job(ok=False, report_pending=False)
+        self.assertIn(("remove", "meow-home-videos", f"{self.HOME}/v.mp4"), calls)
+        self.assertTrue(any(m == "PATCH" and b and b.get("raw_deleted_at") for m, p, b in calls))
+        note = next(b for m, p, b in calls if m == "POST" and p == "meow_notifications")
+        self.assertEqual(note["type"], "home_room_failed")
+
+
 if __name__ == "__main__":
     unittest.main()

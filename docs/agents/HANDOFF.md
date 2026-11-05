@@ -40,12 +40,7 @@
 
 - **#57／#72 建檔對話引擎（分支 `feat/57-household-cat-profile`）**：`src/lib/onboarding/conversation.ts`（純邏輯）＋ `src/lib/ai/intake.ts`（LLM 鏈），已有測試，**尚未接畫面**；`/onboarding` 目前仍是舊的一問一答流程。migration 0004 已寫好（**尚未執行，要跟新版 `/onboarding` 一起上線**，舊流程不送年齡層會建貓失敗）。儲存介面 `src/lib/storage/`（Azure 版＋記憶體版）與影片判讀已完成；Azure 儲存帳號尚未建立（設定文件第 8 節）。下一步：畫面。
 
-<<<<<<< HEAD
-- **房間影片轉換（#93，分支 `feat/93-room-viewer`）**：`0014_meow_room_models.sql` 未執行前，上傳會失敗。worker 在本 repo 的 `workers/room-convert`（正本，2026-11-05 起；珮瑜的 3Dtest 只做實驗，改好要搬回這裡），啟動方式看該資料夾 README；目前在珮瑜的 Mac 上跑，Mac 沒開時工作會排隊。本機測試設 `ROOM_LOCAL_ROOT`、`NEXT_PUBLIC_ROOM_LOCAL=1`，不連 Supabase。
-=======
-- **房間影片轉換（#93）**：已上線，`0014` 已執行，2026-11-03 正式站實測轉換成功（快速模式約 15 分鐘；之後 worker 改跑完整品質，預估約 20 分鐘）。worker 不在本 repo，在珮瑜電腦的影片轉 3D 專案 `pipeline/room_worker.py --supabase`；Mac 沒開時工作會排隊，後台排隊超過 2 分鐘會提醒。列表的進度用 `roomStage` 依 worker 回報的步驟文字判斷，worker 改步驟名稱時要一起改 `STAGE_KEYWORDS`。備註和縮圖存在 `meta`（`note`、`thumb`）。本機測試設 `ROOM_LOCAL_ROOT`、`NEXT_PUBLIC_ROOM_LOCAL=1`，不連 Supabase。
->>>>>>> origin/main
-
+- **房間影片轉換（#93，#177／#178 已合；#161／#198 審查中）**：已上線，`0014` 已執行。worker 正本在 `workers/room-convert`（目前珮瑜 Mac 跑）；後台成果公開 bucket、前台我的 3D 房間走私有 `meow-home-videos`／`meow-home-scenes` 並通知喵戶長（#198）。列表進度用 `roomStage`／`STAGE_KEYWORDS`；備註與縮圖在 `meta`。本機測試設 `ROOM_LOCAL_ROOT`、`NEXT_PUBLIC_ROOM_LOCAL=1`。
 ## 下一步（建議第一個動作）
 0. Issue #33：程式與四項檢查已完成，待建立 PR；正式站 `/onboarding` 停在「載入中…」，未完成登入後實際流程，PR 需保留此限制。
 1. #18 合併後，平行開工階段 1：#19（db）、#20（logic）、#21（shell）；階段 2 為 #22（lists-home）、#23（admin-auth）、#24（users），等階段 1 合併後開始。Issue 都已建立，不用再建。

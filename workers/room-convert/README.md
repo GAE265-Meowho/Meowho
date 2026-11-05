@@ -41,7 +41,8 @@ caffeinate -i python3 pipeline/room_worker.py --supabase    # 開著終端機分
 ```
 - M4 一支 80 秒影片約 17～20 分鐘；轉換時 CPU／GPU 吃滿，電腦睡眠會暫停。
 - 成功後刪除原始影片、影格與中間檔；失敗時保留雲端影片，可把狀態改回 `queued` 重試。
-- 成果路徑用隨機名稱（bucket 是公開的）。
+- 後台房間：成果路徑用隨機名稱（bucket 是公開的）。
+- 前台我的 3D 房間（`owner_household_id` 有值）：影片從 `meow-home-videos` 讀、成果寫私有 `meow-home-scenes/<喵戶>/<房間>/`，完成或失敗都通知喵戶長；環境報告還沒好時影片留給報告那邊刪。
 
 ## 只在本機轉一支影片
 ```bash
