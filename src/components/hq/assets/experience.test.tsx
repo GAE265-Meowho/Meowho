@@ -14,8 +14,8 @@ const viewer = vi.hoisted(() => ({
   last: null as null | {
     rooms: { id: string; furniture?: { kind: string; parent?: number }[] }[];
     cat: { body: string; albedoUrl: string; baseUrl: string } | null;
-    onFloorDrop?: (itemId: string, at: { roomId: string; x: number; z: number; y: number; support: null }) => void;
-    onMoveItem?: (key: string, at: { x: number; z: number; y: number; support: null }) => void;
+    onFloorDrop?: (itemId: string, at: { roomId: string; x: number; z: number; y: number; support: { furnitureIndex: number; localX: number; localZ: number } | null }) => void;
+    onMoveItem?: (key: string, at: { x: number; z: number; y: number; support: { furnitureIndex: number; localX: number; localZ: number } | null }) => void;
     onRemoveItem?: (key: string) => void;
     onRemoveFurniture?: (roomId: string, furnitureIndex: number) => void;
     onMoveFurniture?: (roomId: string, furnitureIndex: number, next: { x: number; z: number; rot?: number; support?: unknown }, prev: { x: number; z: number }) => void;
