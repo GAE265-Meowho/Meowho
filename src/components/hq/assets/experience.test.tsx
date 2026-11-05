@@ -103,6 +103,9 @@ describe("虛擬體驗（#150）", () => {
     expect(within(palette).getByText("開放式貓砂盆")).toBeInTheDocument();
     expect(within(palette).getByText("逗貓棒")).toBeInTheDocument();
     expect(within(palette).getAllByTestId("item-thumb")).toHaveLength(2);
+    // 只有左邊道具格可拖；文字按鈕不可拖
+    expect(within(palette).getByLabelText("拖曳 逗貓棒")).toHaveAttribute("draggable", "true");
+    expect(within(palette).getByRole("button", { name: /逗貓棒/ })).not.toHaveAttribute("draggable");
     fireEvent.click(screen.getByRole("button", { name: "玩具" }));
     expect(within(palette).queryByText("開放式貓砂盆")).toBeNull();
     expect(within(palette).getByText("逗貓棒")).toBeInTheDocument();
