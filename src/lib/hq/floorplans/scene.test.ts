@@ -78,6 +78,20 @@ describe("roomBoxes", () => {
     g.furniture = g.furniture.map(f => ({ ...f, x: f.x + 5, y: f.y + 2 }));
     expect(roomBoxes(g).boxes.find(b => b.furniture === "sofa")).toMatchObject({ x: 1.5, z: 3.065 });
   });
+
+  it("session moves 套用到家具座標；落地 movable、nested 跟隨", () => {
+    const g = geo();
+    g.furniture = [
+      { kind: "desk", label: "書桌", x: 2, y: 2, w: 1.2, d: 0.6, h: 0.75, rot: 0 },
+      { kind: "computer", label: "螢幕", x: 2.1, y: 2.05, w: 0.4, d: 0.2, h: 0.35, rot: 0, parent: 0, elev: 0.75 },
+    ];
+    const { boxes } = roomBoxes(g, undefined, new Map([[0, { x: 3, z: 2.5 }]]));
+    const desk = boxes.find(b => b.furniture === "desk");
+    const mon = boxes.find(b => b.furniture === "computer");
+    expect(desk).toMatchObject({ x: 3, z: 2.5, movable: true, furnitureIndex: 0 });
+    expect(mon).toMatchObject({ x: 3.1, z: 2.55, furnitureIndex: 1 });
+    expect(mon?.movable).toBeUndefined();
+  });
 });
 
 describe("houseScene（Q10：不拼接，並排）", () => {

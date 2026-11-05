@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import type { PlanFurniture, PlanRoom } from "./types";
 import {
-  expandRemovedIndices, furnitureKey, omittedByRoom, parseFurnitureKey, roomsWithoutFurniture,
+  expandRemovedIndices, furnitureKey, movesByRoom, omittedByRoom, parseFurnitureKey,
+  resolveFurniturePose, roomsWithoutFurniture,
 } from "./experience-furniture";
 
 const f = (partial: Partial<PlanFurniture> & Pick<PlanFurniture, "kind" | "label">): PlanFurniture => ({
@@ -51,5 +52,29 @@ describe("experience-furniture", () => {
     const map = omittedByRoom(rooms, [furnitureKey("a", 0)]);
     expect(map.get("a")).toEqual(new Set([0]));
     expect(map.get("b")).toBeUndefined();
+  });
+
+  it("resolveFurniturePose：自己有 move 用自己的；nested 跟父平移", () => {
+    const list = [
+      f({ kind: "desk", label: "書桌", x: 2, y: 3 }),
+      f({ kind: "computer", label: "螢幕", x: 2.2, y: 3.1, parent: 0 }),
+    ];
+    const shift: [number, number] = [1, 1];
+    expect(resolveFurniturePose(list, 0, shift)).toEqual({ x: 1, z: 2 });
+    expect(resolveFurniturePose(list, 1, shift)).toEqual({ x: 1.2, z: 2.1 });
+    const moves = new Map([[0, { x: 4, z: 5 }]]);
+    expect(resolveFurniturePose(list, 0, shift, moves)).toEqual({ x: 4, z: 5 });
+    expect(resolveFurniturePose(list, 1, shift, moves)).toEqual({ x: 4.2, z: 5.1 });
+  });
+
+  it("movesByRoom 依房與索引分組", () => {
+    const map = movesByRoom({
+      [furnitureKey("a", 0)]: { x: 1, z: 2 },
+      [furnitureKey("a", 2)]: { x: 3, z: 4 },
+      [furnitureKey("b", 1)]: { x: 5, z: 6 },
+    });
+    expect(map.get("a")?.get(0)).toEqual({ x: 1, z: 2 });
+    expect(map.get("a")?.get(2)).toEqual({ x: 3, z: 4 });
+    expect(map.get("b")?.get(1)).toEqual({ x: 5, z: 6 });
   });
 });
