@@ -1,5 +1,5 @@
 "use client";
-// 建立我家的 3D 房間（規格 09 v0.6 §7.2、§8；#60、#61）：拍攝須知＋隱私說明 →「開始製作」或「上傳影片」→ 背景建房間，同時做環境安全檢查。
+// 建立我家的 3D 房間（規格 09 v0.6 §7.2、§8；#60、#61）：房間掃描教練（ScanCoach）＋隱私說明 →「開始製作」或「上傳影片」→ 背景建房間，同時做環境安全檢查。
 // 環境檢查一律做、不再詢問（子哲 2026-11-04）；3D 房間和環境報告處理完（成功或失敗）立即刪除居家原始影片和照片（決策 007）。
 // 「開始製作」用手機錄影、「上傳影片」選檔 → 瀏覽器直傳私有 bucket meow-home-videos → /api/homes/[id]/room 建 queued 的房間和環境報告
 //   → workers/room-convert 轉成 3D（約 20 分鐘，好了會通知）→ 這頁預覽，按「完成」呼叫 meow_finish_home_room，之後才能開始領養任務。
@@ -14,9 +14,10 @@ import f from "@/components/onboarding/intake.module.css";
 import CatButton from "@/components/ui/CatButton";
 import Icon from "@/components/ui/Icon";
 import { safeNext } from "@/lib/household-gate";
-import { HOME_VIDEO_BUCKET, homeSceneBase, SHOOTING_TIPS, UPLOAD_PRIVACY } from "@/lib/home-room";
+import { HOME_VIDEO_BUCKET, homeSceneBase, UPLOAD_PRIVACY } from "@/lib/home-room";
 import { checkVideo, MAX_VIDEO_BYTES, videoExt } from "@/lib/hq/rooms/types";
 import { getBrowserSupabase } from "@/lib/supabase/client";
+import ScanCoach from "./ScanCoach";
 import r from "./scene.module.css";
 
 // 檢視器碰 WebGL，只能在瀏覽器載入
@@ -135,30 +136,16 @@ export default function ScenePage() {
     </section>
   );
   else body = (
-    <>
-      <section className={f.card} aria-labelledby="tips-title">
-        <h2 id="tips-title">拍攝須知</h2>
-        <ol className={r.tips}>
-          {SHOOTING_TIPS.map((t, i) => (
-            <li key={t.title}>
-              <span className={r.num} aria-hidden="true">{i + 1}</span>
-              <div><b>{t.title}</b><p>{t.body}</p></div>
-            </li>
-          ))}
-        </ol>
-      </section>
-
+    <ScanCoach onPick={() => picker.current?.click()} actions={<>
       {/* 隱私說明是業務規則要求的聲明（決策 007），用一般內文字級，放在按鈕正上方 */}
       <p className={f.lead}>{UPLOAD_PRIVACY}</p>
-      {room?.status === "failed" && !error && <p className={f.error} role="alert">上一支影片沒有轉換成功，請照拍攝須知重新拍一次。</p>}
+      {room?.status === "failed" && !error && <p className={f.error} role="alert">上一支影片沒有轉換成功，請照上面的規則重新拍一次。</p>}
       {error && <p className={f.error} role="alert">{error}</p>}
-      <input ref={camera} type="file" accept="video/*" capture="environment" hidden onChange={e => { upload(e.target.files?.[0]); e.target.value = ""; }} />
-      <input ref={picker} type="file" accept="video/mp4,video/quicktime" hidden onChange={e => { upload(e.target.files?.[0]); e.target.value = ""; }} />
       <div className={f.actions}>
         <CatButton onClick={() => camera.current?.click()}><Icon name="video" size={18} />開始製作</CatButton>
         <CatButton variant="ghost" onClick={() => picker.current?.click()}><Icon name="plus" size={18} />上傳影片</CatButton>
       </div>
-    </>
+    </>} />
   );
 
   return (
@@ -168,6 +155,8 @@ export default function ScenePage() {
         <h1 className={f.title}>我家的 3D 房間</h1>
         {!sb && <p className={f.warn}>示範模式：還沒連接資料庫，房間不會儲存。</p>}
         {body}
+        <input ref={camera} type="file" accept="video/*" capture="environment" hidden onChange={e => { upload(e.target.files?.[0]); e.target.value = ""; }} />
+        <input ref={picker} type="file" accept="video/mp4,video/quicktime" hidden onChange={e => { upload(e.target.files?.[0]); e.target.value = ""; }} />
       </main>
       <TabBar />
     </>
