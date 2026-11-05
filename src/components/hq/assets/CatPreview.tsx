@@ -19,13 +19,23 @@ export const MAX_GAZE = THREE.MathUtils.degToRad(28);
 // 比 cat_studio（相機 0.75,0.35,0.75、目標 0,0.18,0）拉遠、抬高：後台預覽框較寬扁，貓連頭約 0.5 m，原本會切到頭
 export const DEFAULT_CAMERA: [number, number, number] = [0.95, 0.45, 0.95];
 export const DEFAULT_TARGET: [number, number, number] = [0, 0.23, 0];
+/** 睡姿貼地：中心低於站姿，沿用站姿目標會把貓切到畫面下方 */
+// 對齊 cat_base/stepC_clips.py 預覽：target≈(0,0.06,-0.02)、斜前相機
+export const SLEEP_CAMERA: [number, number, number] = [1.05, 0.45, 0.7];
+export const SLEEP_TARGET: [number, number, number] = [0, 0.08, 0];
 
 /** 幼貓母體體長約 0.22 m（成貓約 0.45 m）：相機、目標照比例縮小，不然幼貓縮在畫面下方 */
 const KITTEN_SCALE = 0.5;
-export function framing(body: BodyType) {
+export function framing(body: BodyType, clip?: string | null) {
   const s = body === "kitten" ? KITTEN_SCALE : 1;
   const scale = (v: [number, number, number]) => v.map(x => x * s) as [number, number, number];
-  return { camera: scale(DEFAULT_CAMERA), target: scale(DEFAULT_TARGET), minDistance: 0.3 * s, maxDistance: 3 * s };
+  const sleep = clip === "sleep";
+  return {
+    camera: scale(sleep ? SLEEP_CAMERA : DEFAULT_CAMERA),
+    target: scale(sleep ? SLEEP_TARGET : DEFAULT_TARGET),
+    minDistance: 0.3 * s,
+    maxDistance: 3 * s,
+  };
 }
 
 export interface PreviewInfo { clips: string[]; eyes: number; bones: number; morphs: string[] }
@@ -203,10 +213,12 @@ function Exposure({ light }: { light: number }) {
 }
 
 export default function CatPreview(props: CatPreviewProps & { onError?: (e: Error) => void }) {
-  const { light = 1, onError, body = "adult", ...rest } = props;
-  const view = framing(body);
+  const { light = 1, onError, body = "adult", clip = null, ...rest } = props;
+  const view = framing(body, clip);
+  // clip 改變時重建 Canvas，才能套用 sleep／站姿不同的預設取景
   return (
     <Canvas
+      key={`${body}-${clip ?? "none"}`}
       camera={{ position: view.camera, fov: 30, near: 0.01, far: 50 }}
       gl={{ antialias: true, toneMapping: THREE.ACESFilmicToneMapping }}
       onCreated={({ camera }) => camera.lookAt(...view.target)}
@@ -218,7 +230,7 @@ export default function CatPreview(props: CatPreviewProps & { onError?: (e: Erro
       <directionalLight position={[3, 4, 5]} intensity={1.5} />
       <PreviewBoundary onError={e => onError?.(e)}>
         <Suspense fallback={null}>
-          <CatModel {...rest} />
+          <CatModel {...rest} body={body} clip={clip} />
         </Suspense>
       </PreviewBoundary>
       <OrbitControls target={view.target} enableDamping minDistance={view.minDistance} maxDistance={view.maxDistance} />
