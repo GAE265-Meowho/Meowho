@@ -3,7 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "predev": "node scripts/gen-hq-page-meta.mjs",
     "dev": "next dev",
+    "prebuild": "node scripts/gen-hq-page-meta.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
@@ -11,6 +13,7 @@
     "test:watch": "vitest",
     "test:db": "node supabase/tests/run-pglite.mjs",
     "typecheck": "tsc --noEmit",
+    "hq:page-meta": "node scripts/gen-hq-page-meta.mjs",
     "photos:download": "node scripts/download-photos.mjs",
     "log": "node scripts/daily-log.mjs",
     "media:promote": "npx -y tsx@4.19.2 --conditions=react-server scripts/promote-media.mts",
