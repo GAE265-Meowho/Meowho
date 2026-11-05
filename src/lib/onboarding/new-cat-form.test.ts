@@ -111,7 +111,7 @@ describe("重新打開這隻貓：每一頁都顯示原本填的內容（#206）
     compat: { ...emptyForm().compat, cats: "maybe", kids: "yes", notes: { cats: "要隔離一週" } },
     care: { handling: { nail: "tricky" }, arrival: { hide: "1_3_days" }, touch: { chin: "love", belly: "no" }, touchLimit: "1_2_min", touchSigns: ["tail"],
       origin: "street", since: "2026-08-01", weightKg: 1.8, favoriteSnack: "肉泥", cautionNote: null, otherNote: "最愛紙箱" },
-    intro: "一日不見，如隔三餐。", consent: true,
+    intro: "一日不見，如隔三餐。", handover: ["疫苗卡或病歷", "慣用飼料"], consent: true,
   };
   it("存進去再讀出來，每一頁的內容都一樣", () => {
     const row = toNewCatRow(filled, { id: "c1", householdId: "h1", coverUrl: null });

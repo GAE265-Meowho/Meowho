@@ -15,15 +15,22 @@ export const MAX_LIFE_PHOTOS = 6;
 
 export interface NewCatRequired { name: string; lifeStage: LifeStage | null; angles: PhotoAngles; consent: boolean }
 
-/** UT-02-07：必填只有名字、年齡層、側面照片、同意授權；回傳還沒填的（畫面顯示「還沒填：…」） */
-export function newCatMissing(d: NewCatRequired): string[] {
+/**
+ * UT-02-07：必填只有名字、年齡（存成年齡層）、正面／側面／背面三張照片（建 3D 模型至少要三張，子哲 2026-11-05）、同意授權；
+ * 回傳還沒填的（畫面顯示「還沒填：…」）。修改既有的貓（angles: false）不要求角度照：0024 以前的貓沒有另外存角度照。
+ */
+export function newCatMissing(d: NewCatRequired, opts: { angles?: boolean } = {}): string[] {
+  const angles = opts.angles ?? true;
   return [
     !d.name.trim() && "名字",
-    !d.lifeStage && "年齡層",
-    !d.angles.left && "側面照片",
+    !d.lifeStage && "大概幾歲",
+    ...(angles ? ANGLE_KEYS.filter(k => !d.angles[k]).map(k => `${ANGLE_NAME[k]}照片`) : []),
     !d.consent && "同意授權",
   ].filter((x): x is string => Boolean(x));
 }
+
+/** 拍照這一步還差哪幾張角度照 */
+export const anglesMissing = (angles: PhotoAngles) => ANGLE_KEYS.filter(k => !angles[k]).map(k => `${ANGLE_NAME[k]}照片`);
 
 /** 封面：a:正面／a:側面／a:背面，或 o:生活照第幾張（從 0 開始）；null＝用預設那張 */
 export type Cover = `a:${AngleKey}` | `o:${number}` | null;

@@ -3,7 +3,7 @@
 // 口述：先走 /api/onboarding/turn（LLM，失敗時規則式），結果用 applyExtracted 填進表單；
 //   LLM 沒有的欄位（個性量表、小小壞習慣、適應速度、最愛的東西）由 storyExtras 用規則補。填到的欄位標「你說過」，中途可以直接改。
 import {
-  BehaviorSchema, CareSchema, CompatSchema, HABITS, MedicalSchema, bitesOf, emptyCompat, emptyMedical,
+  BehaviorSchema, CareSchema, CompatSchema, HABITS, HANDOVER_ITEMS, MedicalSchema, bitesOf, emptyCompat, emptyMedical,
   type Behavior, type BehaviorKey, type Care, type Compat, type Medical,
 } from "../cat-profile/adoption";
 import { lifeStageOf, type LifeStage } from "../cat-profile/life-stage";
@@ -43,6 +43,8 @@ export interface NewCatForm {
   compat: Compat;
   care: Care;
   intro: string;
+  /** 交接時會附上的東西（HANDOVER_ITEMS） */
+  handover: string[];
   consent: boolean;
   /** 從口述填的欄位（顯示「你說過」）、從照片猜的欄位（顯示「照片猜的」） */
   said: string[];
@@ -54,7 +56,7 @@ export const emptyForm = (): NewCatForm => ({
   name: "", sex: null, ageNum: "", ageUnit: "year", lifeStage: null, coat: "", breed: "",
   medical: emptyMedical(), healthTags: [], scale: emptyScale(), scaleNotes: {}, extraTags: [],
   behavior: {}, habits: [], compat: emptyCompat(), care: { handling: {}, arrival: {}, touch: {}, touchSigns: [] },
-  intro: "", consent: false, said: [], guessed: [],
+  intro: "", handover: [], consent: false, said: [], guessed: [],
 });
 
 /** 大約年紀換成月齡；沒填或不合理回傳 null */
@@ -297,6 +299,7 @@ export function toNewCatRow(f: NewCatForm, ids: { id: string; householdId: strin
     care: f.care,
     description: f.story.trim() || null,
     intro: f.intro.trim() || null,
+    handover: f.handover,
     photo_paths: f.others,
     photo_angles: f.angles,
     cover: f.cover,
@@ -379,6 +382,7 @@ export function fromCatRow(r: CatRow): NewCatForm {
     compat: { ...emptyCompat(), ...parse(CompatSchema.partial(), r.compat ?? {}, {}) },
     care: { ...base.care, ...care },
     intro: r.intro ?? "",
+    handover: pickTags(r.handover ?? [], HANDOVER_ITEMS),
     consent: true,
   };
 }

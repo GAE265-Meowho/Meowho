@@ -2,12 +2,13 @@
 // 中途新增送養貓（設計稿 docs/design/new-cat-flow.html，#206；取代 IntakeChat 的建貓對話）：
 // 拍照 → 說說牠 → 快問快答（6 頁＋摸摸牠）→ 確認名片 → 完成。規則在 lib/onboarding/new-cat-form.ts 與 lib/cat-profile/new-cat.ts。
 // 照片：先判讀（不是貓、不適當就不收），通過才上傳到 meow-cat-photos；角度照存 photo_angles，生活照存 photo_paths。
+//   每張照片各自在背景處理（縮圖 → AI 判讀 → 上傳），可以一次選很多張、邊處理邊拍下一張；格子上顯示「處理中」。
 // 口述：送 /api/onboarding/turn（LLM，失敗時規則式），再用規則補 LLM 沒有的欄位；填到的標「你說過」，中途可以直接改。
 // 建好後背景建立 3D 貓（/api/cats/[id]/model，帶三張角度照）。示範模式（沒有 Supabase）可以完整操作，但不存檔、不上傳。
 // 修改既有的貓（edit）：同一套畫面，每一頁帶回原本的內容（lib 的 fromCatRow）；最後一步改成「儲存修改」，
 //   上面的步驟可以直接點過去；換掉或移除的原本照片在存檔成功後才從雲端刪掉。
 import { useEffect, useRef, useState } from "react";
-import { coverAfterRemoveOther, MAX_LIFE_PHOTOS, newCatMissing, type AngleKey, type Cover } from "@/lib/cat-profile/new-cat";
+import { anglesMissing, coverAfterRemoveOther, MAX_LIFE_PHOTOS, newCatMissing, type AngleKey, type Cover } from "@/lib/cat-profile/new-cat";
 import { beginCat, emptyIntake, type IntakeState } from "@/lib/onboarding/conversation";
 import {
   applyExtracted, coverOf, emptyForm, mottos, storyExtras, toCatUpdateRow, toDraftCat, toNewCatRow, type NewCatForm,
@@ -50,7 +51,10 @@ export function NewCatFlow({ userId, home, edit }: { userId: string | null; home
   const [previews, setPreviews] = useState<Record<string, string>>(() => edit?.previews ?? {});
   const [missing, setMissing] = useState<string[]>([]);
   const [status, setStatus] = useState("");
-  const [busy, setBusy] = useState(false);
+  // 背景處理中的照片：角度照用格子代號，生活照用張數
+  const [pendingAngles, setPendingAngles] = useState<AngleKey[]>([]);
+  const [pendingOthers, setPendingOthers] = useState(0);
+  const busy = pendingAngles.length > 0 || pendingOthers > 0;
   const [sending, setSending] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -111,25 +115,29 @@ export function NewCatFlow({ userId, home, edit }: { userId: string | null; home
   }
 
   async function onAngle(k: AngleKey, file: File) {
-    setBusy(true); setError(null);
+    setError(null);
+    setPendingAngles(p => [...p, k]);
     const path = await takePhoto(file);
+    setPendingAngles(p => p.filter(x => x !== k));
     if (path) {
       const old = form.angles[k];
       // 重拍同一格：封面還是指著這一格，換成新照片
       set(f => ({ ...f, angles: { ...f.angles, [k]: path } }));
       removeFile(old);
-      setMissing(m => m.filter(x => !(k === "left" && x === "側面照片")));
+      setMissing(m => m.filter(x => !x.startsWith(k === "left" ? "側面" : k === "front" ? "正面" : "背面")));
     }
-    setBusy(false);
   }
 
+  // 一次選很多張：同時處理，好了就依序放進來
   async function onOthers(files: File[]) {
-    setBusy(true); setError(null);
-    for (const file of files.slice(0, MAX_LIFE_PHOTOS - form.others.length)) {
+    setError(null);
+    const list = files.slice(0, MAX_LIFE_PHOTOS - form.others.length - pendingOthers);
+    setPendingOthers(n => n + list.length);
+    await Promise.all(list.map(async file => {
       const path = await takePhoto(file);
+      setPendingOthers(n => n - 1);
       if (path) set(f => (f.others.length < MAX_LIFE_PHOTOS ? { ...f, others: [...f.others, path] } : f));
-    }
-    setBusy(false);
+    }));
   }
 
   function onRemoveOther(i: number) {
@@ -171,7 +179,7 @@ export function NewCatFlow({ userId, home, edit }: { userId: string | null; home
   }
 
   async function create() {
-    const miss = newCatMissing(form);
+    const miss = newCatMissing(form, { angles: !edit });
     if (miss.length) { setMissing(miss); return; }
     setSaving(true); setError(null);
     if (edit) { await saveEdit(); return; }
@@ -228,9 +236,18 @@ export function NewCatFlow({ userId, home, edit }: { userId: string | null; home
     else if (step === "review") go("touch");
   }
   const needBasics = () => {
-    const miss = [!form.name.trim() && "名字", !form.lifeStage && "年齡層"].filter((x): x is string => Boolean(x));
+    const miss = [!form.name.trim() && "名字", !form.lifeStage && "大概幾歲"].filter((x): x is string => Boolean(x));
     setMissing(miss);
     return miss.length === 0;
+  };
+  // 名片上各區塊的「編輯」：直接回到那一頁
+  const jump = (to: "photo" | "talk" | "touch" | number) => {
+    if (typeof to === "number") { setQp(to); go("quick"); } else go(to);
+  };
+  const photoNext = () => {
+    if (busy) { setMissing(["照片還在處理中，等一下再按"]); return; }
+    const miss = edit ? [] : anglesMissing(form.angles);
+    if (miss.length) setMissing(miss); else go("talk");
   };
   const qNext = () => { if (qp < QUICK_PAGES.length - 1) { setQp(qp + 1); window.scrollTo(0, 0); } else go("touch"); };
 
@@ -267,17 +284,17 @@ export function NewCatFlow({ userId, home, edit }: { userId: string | null; home
         </div>
       )}
 
-      {step === "photo" && <PhotoStep form={form} previews={previews} busy={busy} onAngle={onAngle} onOthers={onOthers} onRemoveOther={onRemoveOther} onCover={(c: Cover) => set(f => ({ ...f, cover: c }))} />}
+      {step === "photo" && <PhotoStep form={form} previews={previews} pendingAngles={pendingAngles} pendingOthers={pendingOthers} onAngle={onAngle} onOthers={onOthers} onRemoveOther={onRemoveOther} onCover={(c: Cover) => set(f => ({ ...f, cover: c }))} />}
       {step === "talk" && <TalkStep form={form} set={set} status={status} setStatus={setStatus} sending={sending} onSend={sendStory} />}
       {step === "quick" && <QuickPage page={qp} form={form} set={set} />}
       {step === "touch" && <TouchPage form={form} set={set} />}
-      {step === "review" && <ReviewStep form={form} set={set} previews={previews} onMotto={nextMotto} onEditTraits={() => { setQp(0); go("quick"); }} />}
+      {step === "review" && <ReviewStep form={form} set={set} previews={previews} home={home} onMotto={nextMotto} onJump={jump} />}
       {step === "done" && <DoneStep form={form} catId={catId} coverSrc={cover ? previews[cover] ?? null : null} demo={!live} onAnother={another} />}
 
       {step !== "done" && (
         <div className={s.cta}>
           {missBox}{errBox}
-          {step === "photo" && <CatButton disabled={busy} onClick={() => (form.angles.left ? go("talk") : setMissing(["側面照片"]))}>{busy ? "照片處理中…" : "下一步：說說牠"}</CatButton>}
+          {step === "photo" && <CatButton onClick={photoNext}>{busy ? "照片處理中…" : "下一步：說說牠的故事"}</CatButton>}
           {step === "talk" && (
             <>
               <button type="button" className={s.linkBtn} onClick={() => { if (needBasics()) toReview(); }}>先這樣，直接看名片</button>
