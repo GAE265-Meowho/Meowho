@@ -1,9 +1,11 @@
 "use client";
 // 上傳房間影片、建立轉換工作、顯示進度（#93）。轉換由本機 worker 執行，所以這裡只看 meow_room_jobs 的狀態。
+import { zip } from "fflate";
 import { useCallback, useEffect, useState } from "react";
 import { HqSaveButton } from "@/components/hq/HqStates";
 import { getBrowserSupabase } from "@/lib/supabase/client";
 import { MAX_VIDEO_BYTES, ROOM_STATUS_LABELS, checkVideo, type RoomView } from "@/lib/hq/rooms/types";
+import { resultFiles, type RoomScene } from "@/lib/hq/rooms/demo";
 import { hintError, postJson } from "./useCatModels";
 
 const API = "/api/hq/rooms";
@@ -30,6 +32,28 @@ async function uploadSupabase(name: string, file: File) {
   const { error } = await sb.storage.from(ticket.bucket).uploadToSignedUrl(ticket.path, ticket.token, file, { contentType: file.type });
   if (error) throw hintError("影片上傳失敗，請檢查網路後再試一次");
   await postJson(API, { id: ticket.id, name, path: ticket.path }, ERRORS);
+}
+
+// 成果檔打包成 zip 給組員下載（測試其他功能用）；縮圖這類沒有的檔案略過。splat 已經很難再壓，用 level 0 只打包
+async function downloadRoom(room: RoomView) {
+  const base = room.resultBase!.replace(/\/$/, "");
+  const get = async (f: string) => {
+    const res = await fetch(`${base}/${f}`);
+    return res.ok ? new Uint8Array(await res.arrayBuffer()) : null;
+  };
+  const sceneBytes = await get("scene.json");
+  if (!sceneBytes) throw hintError("讀不到這間房間的成果檔，請再試一次");
+  const scene = JSON.parse(new TextDecoder().decode(sceneBytes)) as RoomScene;
+  const files: Record<string, Uint8Array> = {};
+  for (const f of resultFiles(scene)) {
+    const data = f === "scene.json" ? sceneBytes : await get(f);
+    if (data) files[f] = data;
+  }
+  const bytes = await new Promise<Uint8Array>((ok, fail) => zip(files, { level: 0 }, (err, out) => (err ? fail(err) : ok(out))));
+  const url = URL.createObjectURL(new Blob([bytes as BlobPart], { type: "application/zip" }));
+  const a = Object.assign(document.createElement("a"), { href: url, download: `${room.name}.zip` });
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 export function RoomUpload({ onView }: { onView: (base: string) => void }) {
@@ -84,7 +108,10 @@ export function RoomUpload({ onView }: { onView: (base: string) => void }) {
               {r.status === "running" && r.step && <span className="hq-hint">{r.step}</span>}
               {r.status === "failed" && r.error && <span className="hq-error">{r.error}</span>}
               {r.resultBase && (
-                <button type="button" className="hq-btn small ghost" onClick={() => onView(r.resultBase!)}>查看房間</button>
+                <>
+                  <button type="button" className="hq-btn small ghost" onClick={() => onView(r.resultBase!)}>查看房間</button>
+                  <HqSaveButton onSave={() => downloadRoom(r)}>下載</HqSaveButton>
+                </>
               )}
             </li>
           ))}
