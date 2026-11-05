@@ -27,10 +27,8 @@ describe("醫療細項", () => {
     expect(MedicalSchema.parse(emptyMedical())).toEqual(emptyMedical());
   });
 
-  it("醫療細項帶出對應的健康標籤；只打第一劑不算疫苗已完成", () => {
-    expect(healthTagsFromMedical({ ...emptyMedical(), vaccineDoses: 1, neutered: "done", fivFelv: "fiv_positive" }))
-      .toEqual(["已結紮", "FIV 陽性"]);
-    expect(healthTagsFromMedical({ ...emptyMedical(), vaccineDoses: 3, dewormInternal: "done", dewormExternal: "done", fivFelv: "both_positive" }))
-      .toEqual(["疫苗已完成", "已驅蟲", "FIV 陽性", "FeLV 陽性"]);
+  it("健康標籤是身體狀況：結紮、疫苗、驅蟲、FIV／FeLV 留在醫療細項；有寫目前用藥才帶出「每天吃藥」（#206）", () => {
+    expect(healthTagsFromMedical({ ...emptyMedical(), vaccineDoses: 3, neutered: "done", fivFelv: "fiv_positive" })).toEqual([]);
+    expect(healthTagsFromMedical({ ...emptyMedical(), medication: "腎貓處方飼料、每天吃藥" })).toEqual(["每天吃藥"]);
   });
 });

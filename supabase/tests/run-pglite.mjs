@@ -525,6 +525,53 @@ try {
   }
 }
 
+// 0024（中途建貓資料的新流程，#206）：0001→0020 後先放一隻有舊標籤的貓，跑 0024 兩次，檢查舊資料轉換、新欄位與限制
+{
+  const m = new PGlite();
+  const base = read("./stub_supabase.sql") + ["0001_meow", "0002_meow_hq", "0003_meow_site_assets", "0004_meow_cat_profile", "0005_meow_cat_models", "0006_meow_household_roles", "0007_meow_adoption_forms", "0008_meow_cat_favorites", "0009_meow_cat_returns", "0010_meow_adoption_notify", "0011_meow_threads", "0012_meow_thread_homed", "0013_meow_decline_reason_transfer", "0014_meow_room_models", "0014_meow_returns_in_threads", "0015_meow_room_floorplan", "0016_meow_cat_model_variants", "0017_meow_adoption_tasks", "0018_meow_task_templates_seed", "0019_meow_household_avatar", "0020_meow_households_module"]
+    .map((f) => read(`../migrations/${f}.sql`)).join("");
+  const id = (n) => `00000000-0000-0000-0000-0000000024${n}`;
+  const one = async (sql) => Object.values((await m.query(sql)).rows[0] ?? {})[0];
+  const eq = (name, expected, actual) =>
+    results.push({ name, status: String(actual) === String(expected) ? "PASS" : "FAIL", detail: String(actual) === String(expected) ? null : `預期 ${expected}，實際 ${actual}` });
+  const fails = async (sql) => { try { await m.exec(sql); return "ok"; } catch { return "rejected"; } };
+  try {
+    await m.exec(base);
+    await m.exec(`insert into auth.users (id, email) values ('${id("a0")}', 'f@c24.example');
+      insert into public.meow_profiles (id, email, display_name) values ('${id("a0")}', 'f@c24.example', 'f');
+      insert into public.meow_households (id, owner_id, name, caretaker_type, city, district) values ('${id("d0")}', '${id("a0")}', '中途', 'personal_foster', '桃園市', '龍潭區');
+      insert into public.meow_cats (id, household_id, name, sex, life_stage, status, health_tags, personality_tags, habits, medical, compat) values
+        ('${id("c0")}', '${id("d0")}', '舊貓', 'male', 'adult', 'adoptable',
+         array['已結紮', '疫苗已完成', 'FIV 陽性', '需每日用藥', '特殊飲食'], array['安靜', '親其他貓', '親人'], array['護食', '夜間活躍', '會用貓砂'],
+         '{"neutered": "unknown", "history": "曾經感冒"}', '{"cats": "unknown", "dogs": "no", "kids": "unknown"}'),
+        ('${id("c1")}', '${id("d0")}', '新貓', 'unknown', 'kitten', 'adoptable', '{}', array['親人'], '{}', '{}', '{}');`);
+    await m.exec(read("../migrations/0024_meow_cat_new_flow.sql"));
+    await m.exec(read("../migrations/0024_meow_cat_new_flow.sql"));
+    const c0 = (col) => one(`select ${col} from public.meow_cats where id = '${id("c0")}'`);
+    eq("CAT24-1 舊健康標籤移到醫療細項；需每日用藥改名每天吃藥", "每天吃藥", await c0("array_to_string(health_tags, ',')"));
+    eq("CAT24-2 結紮、疫苗、FIV 寫進醫療細項，特殊飲食併進病史", "done|3|fiv_positive|曾經感冒；特殊飲食",
+      await c0("concat_ws('|', medical ->> 'neutered', medical ->> 'vaccineDoses', medical ->> 'fivFelv', medical ->> 'history')"));
+    eq("CAT24-3 個性：安靜改成慵懶，親其他貓改成跟其他貓處得來（不蓋掉已經填的）", "慵懶,親人|yes|no",
+      await c0("concat_ws('|', (select string_agg(t, ',' order by t) from unnest(personality_tags) t), compat ->> 'cats', compat ->> 'dogs')"));
+    eq("CAT24-4 生活習慣：護食移到小小壞習慣，夜間活躍改名半夜跑酷", "半夜跑酷,會用貓砂|sometimes",
+      await c0("concat_ws('|', (select string_agg(t, ',' order by t) from unnest(habits) t), behavior -> 'guard' ->> 'level')"));
+    eq("CAT24-5 沒有舊標籤的貓不動", "親人|{}", await one(`select array_to_string(personality_tags, ',') || '|' || behavior::text from public.meow_cats where id = '${id("c1")}'`));
+    eq("CAT24-6 新欄位可以存設計稿的資料", "ok", await fails(`update public.meow_cats set personality_scale = '{"energy": 1, "bond": 5, "brave": null, "adapt": 3}',
+      photo_angles = '{"front": "u/f.jpg", "left": "u/l.jpg", "back": null}', cover = 'o:2', intro = '吃飽睡、睡飽吃', ai_story = '{"tags": ["心臟病"], "text": null}',
+      care = '{"handling": {"nail": "tricky"}, "weightKg": 4.2}', compat = '{"cats": "maybe", "dogs": "unknown", "kids": "unknown", "guest": "no", "notes": {"cats": "要隔離一週"}}'
+      where id = '${id("c1")}'`));
+    eq("CAT24-7 個性量表超出 1–5 會被擋", "rejected", await fails(`update public.meow_cats set personality_scale = '{"energy": 6}' where id = '${id("c1")}'`));
+    eq("CAT24-8 封面格式不對會被擋", "rejected", await fails(`update public.meow_cats set cover = 'https://x/a.jpg' where id = '${id("c1")}'`));
+    eq("CAT24-9 生活照最多 6 張", "ok|rejected", [
+      await fails(`update public.meow_cats set photo_paths = array['1', '2', '3', '4', '5', '6'] where id = '${id("c1")}'`),
+      await fails(`update public.meow_cats set photo_paths = array['1', '2', '3', '4', '5', '6', '7'] where id = '${id("c1")}'`),
+    ].join("|"));
+  } catch (e) {
+    console.error(`✗ 0024 測試中斷：${e.message}`);
+    process.exit(1);
+  }
+}
+
 let failed = 0;
 for (const r of results) {
   if (r.status === "FAIL") failed++;

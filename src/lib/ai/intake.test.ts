@@ -13,7 +13,7 @@ const catOut = {
     neutered: null, neuterNote: null, vaccineDoses: 1, lastVaccineDate: null, dewormInternal: null, dewormExternal: null,
     fivFelv: null, testDate: null, microchip: null, history: null, medication: null,
   },
-  compat: { cats: null, dogs: null, kids: null }, habits: [], adoptionTerms: ["家訪"], adoptionNote: null, handover: [],
+  compat: { cats: null, dogs: null, kids: null, guest: null }, habits: [], adoptionTerms: ["家訪"], adoptionNote: null, handover: [],
   wantsReview: false, reply: "好可愛",
 };
 
@@ -27,10 +27,10 @@ describe("建檔對話的 LLM 鏈（假模型，不連網）", () => {
   it("貓咪的系統指示列出固定標籤清單", async () => {
     const seen: BaseMessage[][] = [];
     await catTurnChain(fake(catOut, seen)).invoke(intakeTurnInput("name", "叫橘子"));
-    expect(String(seen[0][0].content)).toContain("親其他貓");
-    expect(String(seen[0][0].content)).toContain("需每日用藥");
+    expect(String(seen[0][0].content)).toContain("適應力好");
+    expect(String(seen[0][0].content)).toContain("每天吃藥");
     expect(String(seen[0][0].content)).toContain("簽切結書");
-    expect(String(seen[0][0].content)).toContain("護食");
+    expect(String(seen[0][0].content)).toContain("半夜跑酷");
   });
 
   it("依階段選喵戶或貓咪的鏈", async () => {
@@ -72,7 +72,7 @@ describe("建檔對話的 LLM 鏈（假模型，不連網）", () => {
     expect(r.personalityTags).toEqual(["活潑", "好奇"]);
     const content = seen[0][1].content as { type: string; mimeType?: string; data?: string }[];
     expect(content[1]).toEqual({ type: "media", mimeType: "video/mp4", data: "AAAA" });
-    expect(String(seen[0][0].content)).toContain("親其他貓");
+    expect(String(seen[0][0].content)).toContain("適應力好");
   });
 
   it("影片判讀只支援 Gemini，且檔案要小於直接送出的上限", () => {

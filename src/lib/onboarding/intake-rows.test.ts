@@ -8,7 +8,7 @@ const ready = (): IntakeState => {
     ...s,
     cat: {
       ...s.cat, name: "橘子", estAgeMonths: 30, lifeStage: "adult", coat: "橘白", personalityTags: ["親人"],
-      healthTags: ["已結紮"], description: "很黏人", photos: ["u/a.jpg", "u/b.jpg"], videos: ["cats/c1/videos/v.mp4"],
+      healthTags: ["口炎"], description: "很黏人", photos: ["u/a.jpg", "u/b.jpg"], videos: ["cats/c1/videos/v.mp4"],
     },
   };
 };
@@ -25,7 +25,7 @@ describe("寫入資料庫的格式", () => {
     const row = toCatInsert(ready().cat, { id: "c1", householdId: "h1", coverUrl: "https://x/a.jpg" });
     expect(row).toMatchObject({
       id: "c1", household_id: "h1", name: "橘子", sex: "unknown", birthday: null, est_age_months: 30, life_stage: "adult",
-      coat: "橘白", breed: null, personality_tags: ["親人"], health_tags: ["已結紮"], neutered: true,
+      coat: "橘白", breed: null, personality_tags: ["親人"], health_tags: ["口炎"], neutered: null,
       description: "很黏人", photo_paths: ["u/a.jpg", "u/b.jpg"], photo_url: "https://x/a.jpg",
       status: "preparing", visibility: "public",
     });

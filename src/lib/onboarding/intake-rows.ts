@@ -32,7 +32,7 @@ export function toCatInsert(c: CatFields, ids: { id: string; householdId: string
     personality_tags: c.personalityTags,
     health_tags: c.healthTags,
     // 舊欄位 neutered 給「我的喵戶」等既有畫面用
-    neutered: c.medical.neutered === "unknown" ? (c.healthTags.includes("已結紮") ? true : null) : c.medical.neutered === "done",
+    neutered: c.medical.neutered === "unknown" ? null : c.medical.neutered === "done",
     description: c.description,
     timeline: c.timeline,
     medical: c.medical,

@@ -1,7 +1,7 @@
 "use client";
 /* eslint-disable @next/next/no-img-element */
 // 貓咪頁（#70）：給想領養的人看的公開名片，可以收藏、填寫領養問卷。看不看得到交給 meow_cats 的 RLS。
-// 年齡只顯示幼貓／壯貓／老貓（#109），不顯示年齡數字。從中途領養來的貓，飼主在這裡提出退養請求（#109）。
+// 年齡顯示年齡層＋大約年紀，例如「幼貓（約 3 個月）」（#206）。從中途領養來的貓，飼主在這裡提出退養請求（#109）。
 // 待領養貓可以「傳訊息給喵戶長」（#70，#128），對話在「領養管理」。
 // 準備中的貓只有中途看得到（0017 RLS）；中途在這裡確認 3D 模型、按「準備出發找新主人」（規格 09 §5）。
 import { useParams } from "next/navigation";
@@ -18,7 +18,7 @@ import CatButton from "@/components/ui/CatButton";
 import Icon from "@/components/ui/Icon";
 import { effectiveTerms, type AdoptionTerms } from "@/lib/cat-profile/adoption";
 import { compatLines, medicalLines } from "@/lib/cat-profile/display";
-import { BODY_TYPE_LABEL, bodyTypeOf } from "@/lib/cat-profile/life-stage";
+import { ageLabel } from "@/lib/cat-profile/life-stage";
 import { fromCatRow } from "@/lib/onboarding/intake-rows";
 import type { CatFields } from "@/lib/onboarding/conversation";
 import { getBrowserSupabase } from "@/lib/supabase/client";
@@ -104,7 +104,7 @@ export default function CatPage() {
             <span className={`${s.tag} ${adoptable ? s.adoptable : ""}`}>{STATUS[cat.rawStatus as keyof typeof STATUS] ?? cat.rawStatus}</span>
             <h1 className={s.name}>{cat.name}</h1>
             <p className={s.meta}>
-              {[cat.lifeStage && BODY_TYPE_LABEL[bodyTypeOf(cat.lifeStage)], cat.sex && SEX[cat.sex], cat.coat, cat.breed].filter(Boolean).join("・")}
+              {[ageLabel(cat.lifeStage, cat.estAgeMonths), cat.sex && SEX[cat.sex], cat.coat, cat.breed].filter(Boolean).join("・")}
             </p>
             {home && (
               <p className={s.home}><Icon name="house" size={18} />{home.name}<span>{home.city}{home.district}</span></p>
@@ -134,7 +134,7 @@ export default function CatPage() {
             {cat.healthTags.length > 0 && <div className={s.tags}>{cat.healthTags.map(t => <span key={t} className={s.tag}>{t}</span>)}</div>}
             {med.length > 0 && <ul className={s.list}>{med.map(l => <li key={l}>{l}</li>)}</ul>}
             {/* AGENTS.md §6：醫療相關內容要附聲明，一般字級、放在旁邊 */}
-            <p className={f.lead}>僅供參考，非醫療建議。</p>
+            <p className={f.lead}>健康資訊僅供參考，非醫療建議。</p>
           </section>
         )}
 

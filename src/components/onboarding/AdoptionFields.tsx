@@ -1,6 +1,6 @@
 "use client";
 // 送養文常見欄位的輸入元件（#82）：送養條件、醫療細項、相處、多選清單。喵戶表單與貓咪名片共用。
-import { ADOPTION_TERMS, type AdoptionTerms, type Compat, type Medical } from "@/lib/cat-profile/adoption";
+import { ADOPTION_TERMS, COMPAT_KEYS, COMPAT_LABEL, type AdoptionTerms, type Compat, type Medical } from "@/lib/cat-profile/adoption";
 import s from "./intake.module.css";
 
 export function MultiPick<T extends string>({ label, options, value, onChange }: {
@@ -39,7 +39,7 @@ export function TermsFields({ id, value, onChange }: { id: string; value: Adopti
 }
 
 const DONE = { done: "已完成", not_done: "還沒", unknown: "不確定" } as const;
-const OK = { yes: "可以", no: "不行", unknown: "不確定" } as const;
+const OK = { yes: "可以", maybe: "看情況", no: "不行", unknown: "沒遇過" } as const;
 const FIV = { negative: "陰性", fiv_positive: "FIV 陽性", felv_positive: "FeLV 陽性", both_positive: "兩者皆陽性", untested: "未檢測" } as const;
 const CHIP = { yes: "已植入", no: "沒有", unknown: "不確定" } as const;
 
@@ -77,13 +77,17 @@ export function MedicalFields({ value, onChange }: { value: Medical; onChange: (
 }
 
 export function CompatFields({ value, onChange }: { value: Compat; onChange: (next: Compat) => void }) {
-  const rows: [keyof Compat, string][] = [["cats", "其他貓"], ["dogs", "狗"], ["kids", "小孩"]];
+  // 選「看情況」或「不行」時補一句說明（#206）
   return (
     <>
-      {rows.map(([k, l]) => (
+      {COMPAT_KEYS.map(k => (
         <div key={k} className={s.field}>
-          <span className={s.label}>能和{l}相處嗎</span>
-          <OnePick label={`能和${l}相處嗎`} options={OK} value={value[k]} onChange={v => onChange({ ...value, [k]: v })} />
+          <span className={s.label}>能和{COMPAT_LABEL[k]}相處嗎</span>
+          <OnePick label={`能和${COMPAT_LABEL[k]}相處嗎`} options={OK} value={value[k]} onChange={v => onChange({ ...value, [k]: v })} />
+          {(value[k] === "maybe" || value[k] === "no") && (
+            <input aria-label={`和${COMPAT_LABEL[k]}相處的說明`} value={value.notes[k] ?? ""} maxLength={100} placeholder="例如：要隔離一週慢慢介紹"
+              onChange={e => onChange({ ...value, notes: { ...value.notes, [k]: e.target.value } })} />
+          )}
         </div>
       ))}
     </>

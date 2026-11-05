@@ -17,6 +17,10 @@ describe("貓咪頁：醫療細項轉成文字", () => {
 describe("貓咪頁：相處", () => {
   it("只列確定的", () => {
     expect(compatLines(emptyCompat())).toEqual([]);
-    expect(compatLines({ cats: "yes", dogs: "no", kids: "unknown" })).toEqual(["可以和其他貓相處", "不適合和狗同住"]);
+    expect(compatLines({ cats: "yes", dogs: "no", kids: "unknown", guest: "unknown", notes: {} })).toEqual(["可以和其他貓相處", "不適合和狗同住"]);
+  });
+  it("看情況、不行接上中途的說明；陌生人也列出來（#206）", () => {
+    expect(compatLines({ ...emptyCompat(), cats: "maybe", guest: "no", notes: { cats: "要隔離一週慢慢介紹", guest: "會躲" } }))
+      .toEqual(["和其他貓相處要看情況（要隔離一週慢慢介紹）", "不適合和陌生人接觸（會躲）"]);
   });
 });

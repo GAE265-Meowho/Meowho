@@ -10,7 +10,7 @@ import { HEALTH_TAGS, PERSONALITY_TAGS, pickTags, type HealthTag, type Personali
 import { lifeStageFromWords, lifeStageOf, type LifeStage } from "../cat-profile/life-stage";
 import {
   HABITS, HANDOVER_ITEMS, emptyCompat, emptyMedical, healthTagsFromMedical, pickTerms,
-  type AdoptionTerms, type Compat, type Medical,
+  type AdoptionTerms, type Compat, type CompatKey, type Medical,
 } from "../cat-profile/adoption";
 import { ageMonths, parseAge, parseSex, type Sex } from "./cat";
 import { cleanName, parseCaretaker, parseCity, parseDistrict, type CaretakerType } from "./household";
@@ -120,7 +120,7 @@ export interface CatTurn {
   timeline: TimelineEntry[];
   /** 每個欄位沒提到就是 null */
   medical: { [K in keyof Medical]: Medical[K] | null };
-  compat: { [K in keyof Compat]: Compat[K] | null };
+  compat: { [K in CompatKey]: Compat[K] | null };
   habits: string[];
   adoptionTerms: string[];
   adoptionNote: string | null;
@@ -273,7 +273,8 @@ function mergeCat(s: IntakeState, t: CatTurn, today: Date): IntakeState {
     c.healthTags = reconcileHealth(pickTags([...c.healthTags, ...health], HEALTH_TAGS), medical);
     toConfirm.add("health");
   }
-  c.compat = mergeKnown(c.compat, t.compat);
+  const { notes, ...levels } = c.compat;
+  c.compat = { ...mergeKnown(levels, t.compat), notes };
   const habits = pickTags(t.habits, HABITS);
   if (habits.length) c.habits = pickTags([...c.habits, ...habits], HABITS);
   const handover = pickTags(t.handover, HANDOVER_ITEMS);
@@ -377,18 +378,9 @@ function mergeKnown<T extends object>(cur: T, patch: { [K in keyof T]: T[K] | nu
   return known.length ? { ...cur, ...Object.fromEntries(known) } : cur;
 }
 
-/** 醫療細項有寫的部分以它為準（例如只打一劑時去掉「疫苗已完成」），其他標籤照留 */
+/** 健康標籤是身體狀況（#206）；醫療細項寫了目前用藥就加上「每天吃藥」 */
 function reconcileHealth(tags: HealthTag[], m: Medical): HealthTag[] {
-  const derived = healthTagsFromMedical(m);
-  const known: Partial<Record<HealthTag, boolean>> = {
-    "已結紮": m.neutered !== "unknown",
-    "疫苗已完成": m.vaccineDoses !== null,
-    "已驅蟲": m.dewormInternal !== "unknown" && m.dewormExternal !== "unknown",
-    "FIV 陽性": m.fivFelv !== "untested",
-    "FeLV 陽性": m.fivFelv !== "untested",
-  };
-  const kept = tags.filter((t) => !known[t]);
-  return pickTags([...kept, ...derived], HEALTH_TAGS);
+  return pickTags([...tags, ...healthTagsFromMedical(m)], HEALTH_TAGS);
 }
 
 // ---------- 時間軸 ----------
@@ -438,15 +430,11 @@ function mergeTimeline(a: TimelineEntry[], b: TimelineEntry[]): TimelineEntry[] 
 
 const WANTS_REVIEW = /先這樣|就這樣|先到這|沒有了/;
 
+// 結紮、疫苗、驅蟲、FIV／FeLV 由 medicalByRules 填進醫療細項（#206）
 const HEALTH_RULES: [HealthTag, RegExp][] = [
-  ["已結紮", /已結紮|結紮過|有結紮/],
-  ["疫苗已完成", /疫苗(都|已經?)?(打完|完成)/],
-  ["已驅蟲", /已驅蟲|驅蟲過|有驅蟲/],
-  ["FIV 陽性", /FIV|貓愛滋/i],
-  ["FeLV 陽性", /FeLV|白血病/i],
-  ["需每日用藥", /每天.{0,4}(吃藥|餵藥)|每日用藥/],
-  ["特殊飲食", /處方|特殊飲食/],
-  ["慢性病", /慢性|腎病|糖尿病|甲狀腺/],
+  ["慢性腎病", /腎/], ["口炎", /口炎/], ["皮膚病", /皮膚病|皮膚炎|黴菌/], ["視力不好", /看不太到|視力不好|失明/],
+  ["聽力不好", /聽不到|聽力不好|耳聾/], ["心臟病", /心臟/], ["糖尿病", /糖尿病/], ["泌尿道問題", /泌尿|尿道|膀胱/],
+  ["食物過敏", /過敏/], ["以前骨折過", /骨折/], ["每天吃藥", /每天.{0,4}(吃藥|餵藥)|每日用藥/],
 ];
 
 /** 「叫小橘之家」「名字是…」：沒在問名稱時，從整句話裡找 */
@@ -475,8 +463,8 @@ const TERM_RULES: [string, RegExp][] = [
   ["租屋須房東同意", /房東同意/],
 ];
 const HABIT_RULES: [string, RegExp][] = [
-  ["會用貓砂", /會用貓砂|會上廁所/], ["護食", /護食/], ["抓家具", /抓(沙發|家具)/], ["夜間活躍", /半夜|夜衝|跑酷/],
-  ["怕吸塵器", /怕吸塵器/], ["愛咬手", /咬手/], ["會開門", /會開門/],
+  ["會用貓砂", /會用貓砂|會上廁所/], ["半夜跑酷", /半夜|夜衝|跑酷/], ["逗貓棒", /逗貓棒/],
+  ["怕吸塵器", /怕吸塵器/], ["會開門", /會開門/], ["怕打雷", /怕打雷/], ["挑食", /挑食/],
 ];
 
 function medicalByRules(text: string): CatTurn["medical"] {
@@ -513,7 +501,7 @@ function catByRules(text: string, asking: AskField | null, today: Date): CatTurn
     description: personality.length || health.length || asking === "description" ? text.trim().slice(0, 2000) : null,
     timeline: [],
     medical: medicalByRules(text),
-    compat: { cats: /親其他貓|會跟其他貓|和其他貓相處/.test(text) ? "yes" : null, dogs: null, kids: null },
+    compat: { cats: /親其他貓|會跟其他貓|和其他貓相處/.test(text) ? "yes" : null, dogs: null, kids: null, guest: null },
     habits: HABIT_RULES.filter(([, re]) => re.test(text)).map(([h]) => h),
     adoptionTerms: TERM_RULES.filter(([, re]) => re.test(text)).map(([t]) => t),
     adoptionNote: null,

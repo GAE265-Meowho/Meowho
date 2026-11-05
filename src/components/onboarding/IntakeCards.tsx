@@ -165,7 +165,7 @@ export function CatCard({ state, onChange, onCreate, saving, error, aiUsed, home
         <span className={s.label}>健康狀況 <Confirm state={state} field="health" onChange={onChange} /></span>
         <TagPicker legend="健康狀況" options={HEALTH_TAGS} value={c.healthTags} onPick={v => onChange(setCatField(state, "healthTags", v))} />
         {/* AGENTS.md §6：醫療相關內容要附聲明，一般字級、放在旁邊 */}
-        <p className={s.lead}>僅供參考，非醫療建議。</p>
+        <p className={s.lead}>健康資訊僅供參考，非醫療建議。</p>
       </div>
 
       <details className={s.more}>
