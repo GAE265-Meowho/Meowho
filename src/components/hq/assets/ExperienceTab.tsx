@@ -176,8 +176,8 @@ export function ExperienceTab() {
                   </div>
                   <p className="hq-hint">
                     {placeMode
-                      ? `放置模式：從右側拖「${selectedItem?.name ?? "用品"}」進房間，或點地板放置。已放的用品可直接拖移。`
-                      : "點地板，貓會走過去；點床、沙發、桌子，貓會跳上去。也可從右側拖生活用品進房間。"}
+                      ? `放置模式：把右側「${selectedItem?.name ?? "用品"}」拖進房間，或點地板放置；放好的還能拖移。`
+                      : "點地板叫貓走；點床、沙發、桌子會跳上去。右側用品直接拖進房間最直覺。"}
                   </p>
                   <div className="hq-exp-stage">
                     <FloorplanViewer key={`${houseId}:${cat?.id}`} rooms={house.data.rooms} selected={room} onPick={setRoom}

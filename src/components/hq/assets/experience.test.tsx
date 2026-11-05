@@ -22,6 +22,9 @@ const viewer = vi.hoisted(() => ({
 vi.mock("./FloorplanViewer", () => ({
   default: function FakeViewer(props: typeof viewer.last & object) { viewer.last = props; return <div data-testid="fake-viewer" />; },
 }));
+vi.mock("./ItemGlbThumb", () => ({
+  ItemGlbThumb: () => <span data-testid="item-thumb" />,
+}));
 
 const confirmed = { state: "confirmed", preview: "albedo", previewBody: "adult" };
 const cat = (id: string, name: string, texture: unknown = confirmed) => ({ id, name, body: "adult", texture, hasAlbedo: true, albedoVersion: "v1", variantStorage: false });
@@ -96,12 +99,13 @@ describe("虛擬體驗（#150）", () => {
   it("右側有用品選單，可依類別篩選；拖放會把用品放進場景", async () => {
     mockFetch([cat("cat_1", "橘寶 Mango")], [summary(H1, "子哲的家")]);
     render(<ExperienceTab />);
-    expect(await screen.findByRole("complementary", { name: "生活用品選單" })).toBeInTheDocument();
-    expect(screen.getByText("開放式貓砂盆")).toBeInTheDocument();
-    expect(screen.getByText("逗貓棒")).toBeInTheDocument();
+    const palette = await screen.findByRole("complementary", { name: "生活用品選單" });
+    expect(within(palette).getByText("開放式貓砂盆")).toBeInTheDocument();
+    expect(within(palette).getByText("逗貓棒")).toBeInTheDocument();
+    expect(within(palette).getAllByTestId("item-thumb")).toHaveLength(2);
     fireEvent.click(screen.getByRole("button", { name: "玩具" }));
-    expect(screen.queryByText("開放式貓砂盆")).toBeNull();
-    expect(screen.getByText("逗貓棒")).toBeInTheDocument();
+    expect(within(palette).queryByText("開放式貓砂盆")).toBeNull();
+    expect(within(palette).getByText("逗貓棒")).toBeInTheDocument();
     await waitFor(() => expect(viewer.last?.onFloorDrop).toBeTypeOf("function"));
     viewer.last!.onFloorDrop!("i2", "r1", 1.2, 0.8);
     await waitFor(() => expect(viewer.last?.placedItems?.some(p => p.name === "逗貓棒" && p.x === 1.2 && p.z === 0.8)).toBe(true));
