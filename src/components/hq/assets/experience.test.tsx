@@ -10,7 +10,15 @@ vi.mock("next/navigation", () => ({
   useSearchParams: () => nav.params,
   usePathname: () => "/MeowHQ/assets",
 }));
-const viewer = vi.hoisted(() => ({ last: null as null | { rooms: { id: string }[]; cat: { body: string; albedoUrl: string; baseUrl: string } | null } }));
+const viewer = vi.hoisted(() => ({
+  last: null as null | {
+    rooms: { id: string }[];
+    cat: { body: string; albedoUrl: string; baseUrl: string } | null;
+    onFloorDrop?: (itemId: string, roomId: string, x: number, z: number) => void;
+    onMoveItem?: (key: string, x: number, z: number) => void;
+    placedItems?: { key: string; name: string; x: number; z: number }[];
+  },
+}));
 vi.mock("./FloorplanViewer", () => ({
   default: function FakeViewer(props: typeof viewer.last & object) { viewer.last = props; return <div data-testid="fake-viewer" />; },
 }));
@@ -20,16 +28,30 @@ const cat = (id: string, name: string, texture: unknown = confirmed) => ({ id, n
 const H1 = "room_20261102_220000", H2 = "room_20261103_010000";
 const summary = (id: string, name: string, status = "ready") => ({ id, name, roomCount: 1, updatedAt: "x", createdBy: "子哲", rooms: [{ id: "r1", name: "客廳", status, imageUrl: null }] });
 const house = (id: string, name: string) => ({ id, name, updatedAt: "x", rooms: [{ id: "r1", name: "客廳", image_path: "x", status: "ready", created_at: "x", imageUrl: null, photoUrls: [], walls: [] }] });
+const categories = [{ id: "litter_box", name: "貓砂盆", sortOrder: 1 }, { id: "toys", name: "玩具", sortOrder: 2 }];
+const items = [
+  {
+    id: "i1", name: "開放式貓砂盆", nameEn: null, categoryId: "litter_box", categoryName: "貓砂盆",
+    priceTwd: 100, instructions: null, modelPath: "a/model.glb", modelUrl: "https://example/a.glb",
+    widthM: 0.5, depthM: 0.4, heightM: 0.3, createdAt: "2026-11-04T00:00:00Z",
+  },
+  {
+    id: "i2", name: "逗貓棒", nameEn: null, categoryId: "toys", categoryName: "玩具",
+    priceTwd: 50, instructions: null, modelPath: "b/model.glb", modelUrl: "https://example/b.glb",
+    widthM: 0.2, depthM: 0.2, heightM: 0.4, createdAt: "2026-11-04T00:00:00Z",
+  },
+];
 
 let calls: string[];
 function mockFetch(cats: unknown[], houses: unknown[]) {
   calls = [];
   vi.stubGlobal("fetch", vi.fn(async (url: string) => {
     calls.push(url);
-    const body = url.startsWith("/api/hq/cat-models") ? { cats }
-      : url === "/api/hq/floorplans" ? { houses, storage: true }
-        : { house: house(url.split("/").pop()!, url.endsWith(H2) ? "測試之家" : "子哲的家") };
-    return { ok: true, status: 200, json: async () => body };
+    if (url.startsWith("/api/hq/cat-models")) return { ok: true, status: 200, json: async () => ({ cats }) };
+    if (url === "/api/hq/floorplans") return { ok: true, status: 200, json: async () => ({ houses, storage: true }) };
+    if (url === "/api/hq/items/categories") return { ok: true, status: 200, json: async () => ({ categories }) };
+    if (url === "/api/hq/items") return { ok: true, status: 200, json: async () => ({ items }) };
+    return { ok: true, status: 200, json: async () => ({ house: house(url.split("/").pop()!, url.endsWith(H2) ? "測試之家" : "子哲的家") }) };
   }));
 }
 
@@ -69,5 +91,19 @@ describe("虛擬體驗（#150）", () => {
     expect(await screen.findByRole("link", { name: "到貓咪製作" })).toHaveAttribute("href", "/MeowHQ/assets");
     expect(screen.getByRole("link", { name: "到平面圖轉換" })).toHaveAttribute("href", "/MeowHQ/assets?tab=rooms-floorplan");
     expect(screen.getByText("選好虛擬貓和喵戶後，貓會出現在房間裡")).toBeInTheDocument();
+  });
+
+  it("右側有用品選單，可依類別篩選；拖放會把用品放進場景", async () => {
+    mockFetch([cat("cat_1", "橘寶 Mango")], [summary(H1, "子哲的家")]);
+    render(<ExperienceTab />);
+    expect(await screen.findByRole("complementary", { name: "生活用品選單" })).toBeInTheDocument();
+    expect(screen.getByText("開放式貓砂盆")).toBeInTheDocument();
+    expect(screen.getByText("逗貓棒")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "玩具" }));
+    expect(screen.queryByText("開放式貓砂盆")).toBeNull();
+    expect(screen.getByText("逗貓棒")).toBeInTheDocument();
+    await waitFor(() => expect(viewer.last?.onFloorDrop).toBeTypeOf("function"));
+    viewer.last!.onFloorDrop!("i2", "r1", 1.2, 0.8);
+    await waitFor(() => expect(viewer.last?.placedItems?.some(p => p.name === "逗貓棒" && p.x === 1.2 && p.z === 0.8)).toBe(true));
   });
 });
