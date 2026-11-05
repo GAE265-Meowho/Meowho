@@ -34,12 +34,12 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     return NextResponse.json({ modelId: existing.id, created: false });
   }
 
-  const { data: cat } = await admin.from("meow_cats").select("id, name, life_stage, photo_paths, est_age_months").eq("id", id).maybeSingle();
+  const { data: cat } = await admin.from("meow_cats").select("id, name, life_stage, photo_paths, photo_angles, est_age_months").eq("id", id).maybeSingle();
   if (!cat) return NextResponse.json({ error: "cat_not_found" }, { status: 404 });
 
   // 建立預設 3D 貓。id 用秒數，同一秒撞到就加序號
   const base = modelIdAt(new Date());
-  const angles = pickAngles(body, cat.photo_paths ?? []);
+  const angles = pickAngles(body, cat.photo_paths ?? [], cat.photo_angles);
   for (let n = 0; n < 5; n++) {
     const rows = defaultModelRows(cat, auth.user.id, n ? `${base}_${n}` : base);
     const mid = rows.model.id;

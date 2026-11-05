@@ -15,7 +15,7 @@
 - PLAN 任務：6、7
 
 ## 目前狀態
-中途之家／愛貓人士 onboarding 已完成（Issue #1）：首頁「我想建立貓戶」→ `/onboarding` 聊天建立貓戶 → 拍照＋問答＋自由口述建立貓咪名片。Issue #33 進行真實流程走查與修正；領養人 onboarding 尚未開始（任務 7）。
+中途之家／愛貓人士 onboarding 已完成（Issue #1）：首頁「我想建立貓戶」→ `/onboarding` 聊天建立貓戶 → 拍照＋問答＋自由口述建立貓咪名片。2026-11-05（#206）新增貓咪改成設計稿 `docs/design/new-cat-flow.html` 的五步表單（`src/components/new-cat/`）：拍照 → 說說牠（口述經 `/api/onboarding/turn` 填進表格並標「你說過」，`lib/onboarding/new-cat-form.ts` 的 `storyExtras` 用規則補個性量表等 LLM 沒有的欄位）→ 快問快答 → 名片 → 完成，取代建貓對話 `IntakeChat`。Issue #33 進行真實流程走查與修正；領養人 onboarding 尚未開始（任務 7）。
 
 ## 資料表（Supabase）
 - 寫入 `meow_households`、`meow_cats`（前端以使用者身分直接寫入，由 RLS 保護）

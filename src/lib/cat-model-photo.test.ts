@@ -37,5 +37,9 @@ describe("#188 角度照片", () => {
     expect(pickAngles({ angles: { side: "evil/x.jpg", front: "u1/b.jpg" } }, paths)).toEqual({ side: "u1/a.jpg", front: "u1/b.jpg", back: null });
     expect(pickAngles(null, paths)).toEqual({ side: "u1/a.jpg", front: null, back: null });
     expect(pickAngles({}, [])).toEqual({ side: null, front: null, back: null });
+    // #206 新流程：角度照存在 photo_angles，不在 photo_paths
+    const saved = { front: "u1/f.jpg", left: "u1/l.jpg", back: null };
+    expect(pickAngles(null, ["u1/life.jpg"], saved)).toEqual({ side: "u1/l.jpg", front: "u1/f.jpg", back: null });
+    expect(pickAngles({ angles: { side: "u1/l.jpg", front: "evil/x.jpg" } }, [], saved)).toEqual({ side: "u1/l.jpg", front: "u1/f.jpg", back: null });
   });
 });

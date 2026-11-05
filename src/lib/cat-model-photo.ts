@@ -47,9 +47,16 @@ export async function ensureModelPhoto(admin: SupabaseClient, modelId: string, p
   return copied;
 }
 
-/** 前台送來的三個角度（#188）：只收這隻貓自己的照片；沒送或不合法時側面用封面、正面背面留空 */
-export function pickAngles(body: unknown, photoPaths: readonly string[]): { side: string | null; front: string | null; back: string | null } {
+/**
+ * 前台送來的三個角度（#188）：只收這隻貓自己的照片；沒送或不合法時用 meow_cats.photo_angles（#206 新流程，側面＝left），
+ * 再沒有就側面用封面、正面背面留空
+ */
+export function pickAngles(
+  body: unknown, photoPaths: readonly string[], saved: { front?: unknown; left?: unknown; back?: unknown } | null = null,
+): { side: string | null; front: string | null; back: string | null } {
   const a = (body && typeof body === "object" ? (body as { angles?: Record<string, unknown> }).angles : null) ?? {};
-  const own = (v: unknown) => (typeof v === "string" && photoPaths.includes(v) ? v : null);
-  return { side: own(a.side) ?? photoPaths[0] ?? null, front: own(a.front), back: own(a.back) };
+  const s = saved ?? {};
+  const mine = [...photoPaths, ...[s.front, s.left, s.back].filter((v): v is string => typeof v === "string")];
+  const own = (v: unknown) => (typeof v === "string" && mine.includes(v) ? v : null);
+  return { side: own(a.side) ?? own(s.left) ?? photoPaths[0] ?? null, front: own(a.front) ?? own(s.front), back: own(a.back) ?? own(s.back) };
 }

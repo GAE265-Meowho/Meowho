@@ -21,18 +21,18 @@
 
 **現在的做法（2026-11-04，#161）**
 - 中途新增貓時，貓是「準備中」（`meow_cats.status = 'preparing'`），前台看不到。
-- 建立 profile 後，`IntakeChat` 呼叫 `POST /api/cats/[id]/model`；貓咪頁的 `PublishPanel` 發現還沒有 3D 貓時也會再呼叫一次（同一隻貓只建一筆）。
+- 建立 profile 後，`NewCatFlow`（#206 起取代 `IntakeChat`）呼叫 `POST /api/cats/[id]/model`；貓咪頁的 `PublishPanel` 發現還沒有 3D 貓時也會再呼叫一次（同一隻貓只建一筆）。
 - 這個 API 只建「預設 3D 貓」：`meow_cat_models` 一筆（`owner_type = 'member'`、`cat_id`＝這隻貓、`status = 'ready'`、`meta.source = 'default'`）＋ `meow_cat_model_variants` 一筆（體型依年齡層，`albedo_path = 'default'`）。
 - 預覽用母體 `public/hq-cat-models/base/` 加母體自己的貼圖（`albedo_path = 'default'` 時 `CatPreview` 收到 `albedoUrl = null`）。
 - **照片（#181，2026-11-04）**：建模型時把封面照片從 `meow-cat-photos` 複製到 `meow-cat-model-photos/<模型ID>/photo.<副檔名>`，`photo_path` 指向複製後的檔案（`src/lib/cat-model-photo.ts`）。之前建的舊模型 `photo_path` 還是前台路徑，MeowHQ 製作頁讀照片時（`sbFileRedirect`）或中途再呼叫 API 時會自動補複製。MeowHQ 貓咪模型列表、貓咪頁、製作glb工作區顯示所屬喵戶。目前 Step 02～04 由管理員在 MeowHQ 手動觸發，之後改自動。
-- **三個角度＋自動 AI 三視角（#188，2026-11-04）**：新增貓咪時依序上傳側面、正面、背面（`CatFields.angles`，必填；之後可再加生活照到 5 張）。建立後 `IntakeChat` 帶 `{ angles }` 呼叫 `POST /api/cats/[id]/model`：三張複製成 `<模型ID>/photo.*`、`photo_front.*`、`photo_back.*`（`profile.extra_photos`），三張都有就用 service role 呼叫 `sbStartViews(..., { client })` 在 `after()` 自動產生 AI 三視角（Step 02）。前台貓咪頁的「AI 三視角」（`AiViewsPreview`，`GET /api/cats/[id]/model/views`，只給中途、短時效網址）顯示進度與結果；MeowHQ 製作頁讀同一份 `profile.generated`。Step 03、04 仍由管理員在 MeowHQ 手動觸發。修改既有的貓（`angles = null`）只需要有照片，不要求三個角度。
+- **三個角度＋自動 AI 三視角（#188，2026-11-04）**：新增貓咪時依序上傳側面、正面、背面（`CatFields.angles`，必填；之後可再加生活照到 5 張）。建立後 `NewCatFlow` 帶 `{ angles }` 呼叫（#206 起角度照存 `meow_cats.photo_angles`，`pickAngles` 也會讀它） `POST /api/cats/[id]/model`：三張複製成 `<模型ID>/photo.*`、`photo_front.*`、`photo_back.*`（`profile.extra_photos`），三張都有就用 service role 呼叫 `sbStartViews(..., { client })` 在 `after()` 自動產生 AI 三視角（Step 02）。前台貓咪頁的「AI 三視角」（`AiViewsPreview`，`GET /api/cats/[id]/model/views`，只給中途、短時效網址）顯示進度與結果；MeowHQ 製作頁讀同一份 `profile.generated`。Step 03、04 仍由管理員在 MeowHQ 手動觸發。修改既有的貓（`angles = null`）只需要有照片，不要求三個角度。
 - 中途按「確認使用」→ `meow_confirm_cat_model()` 把 `albedo_path` 複製到 `confirmed_albedo`，「準備出發找新主人」的 3D 檢查就通過。
 
 **之後要接的流程與位置**（照規格 09 §5.1 的流程圖）
 
 | 步驟 | 要改的地方 | 說明 |
 |---|---|---|
-| 1. 照片規則 | `src/lib/onboarding/conversation.ts`（照片步驟）、`IntakeChat` | 規格要「只有這隻貓的獨立照片 1 張必填＋其他角度 2 張選填」；現在是一般照片（最多 5 張，第 1 張當封面）。3D 用的照片要另外上傳到 `meow-cat-model-photos/member/<中途的 id>/`（0017 已開 policy） |
+| 1. 照片規則 | `src/components/new-cat/PhotoTalk.tsx`（#206：正面、側面＊、背面＋生活照 6 張） | 規格要「只有這隻貓的獨立照片 1 張必填＋其他角度 2 張選填」；現在是一般照片（最多 5 張，第 1 張當封面）。3D 用的照片要另外上傳到 `meow-cat-model-photos/member/<中途的 id>/`（0017 已開 policy） |
 | 2. 建立模型改成排工作 | `src/app/api/cats/[id]/model/route.ts` 的「建立預設 3D 貓」那段 | 改成建 `status = 'queued'` 的模型，`photo_path` 指向步驟 1 的照片，再排入 MeowHQ 的 AI 檢查（是不是貓、年齡層：`src/lib/hq/cat-models/ai-analyze.ts`）與三視角（`ai-views.ts`） |
 | 3. 產生紋理貼圖 | `paint_worker`（目前只在 Tina 的電腦，見 HANDOFF） | 完成時把貼圖路徑寫進 `meow_cat_model_variants.albedo_path`、模型改 `status = 'ready'`；失敗寫 `status = 'failed'` 和原因 |
 | 4. 通知中途 | 同上完成的地方 | 寫 `meow_notifications`：「{貓名}的 3D 模型做好了，看看像不像牠。」連到 `/cats/<id>#model`；失敗時附原因和怎麼拍 |
@@ -87,3 +87,4 @@
 | 2026-10-29 | Tina × Codex | Issue #33 走查 `/onboarding` → `/me` 流程；未修改資料表或 `/me` 查詢 | #33 |
 | 2026-10-31 | 子哲 × Claude Code | #57 範圍定案（年齡層、標籤、必填、移轉後唯讀）；只改文件 | 待建立 |
 | 2026-11-05 | 子哲 × Claude Code | 中途建貓新流程 PR 1（資料與規則，#206）：0024、標籤清單、年齡層 7 個月與成貓、相處加看情況與陌生人、小小壞習慣、必填與封面規則 | （見 PR） |
+| 2026-11-05 | 子哲 × Claude Code | 中途建貓新流程 PR 2（畫面，#206）：`/onboarding` 新增貓咪改成拍照 → 說說牠 → 快問快答 → 名片 → 完成（`src/components/new-cat/`），取代 `IntakeChat` | （見 PR） |
