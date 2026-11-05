@@ -14,9 +14,9 @@ const viewer = vi.hoisted(() => ({
   last: null as null | {
     rooms: { id: string }[];
     cat: { body: string; albedoUrl: string; baseUrl: string } | null;
-    onFloorDrop?: (itemId: string, roomId: string, x: number, z: number) => void;
-    onMoveItem?: (key: string, x: number, z: number) => void;
-    placedItems?: { key: string; name: string; x: number; z: number }[];
+    onFloorDrop?: (itemId: string, at: { roomId: string; x: number; z: number; y: number; support: null }) => void;
+    onMoveItem?: (key: string, at: { x: number; z: number; y: number; support: null }) => void;
+    placedItems?: { key: string; name: string; x: number; z: number; y: number }[];
   },
 }));
 vi.mock("./FloorplanViewer", () => ({
@@ -107,7 +107,7 @@ describe("虛擬體驗（#150）", () => {
     expect(within(palette).queryByText("開放式貓砂盆")).toBeNull();
     expect(within(palette).getByText("逗貓棒")).toBeInTheDocument();
     await waitFor(() => expect(viewer.last?.onFloorDrop).toBeTypeOf("function"));
-    viewer.last!.onFloorDrop!("i2", "r1", 1.2, 0.8);
-    await waitFor(() => expect(viewer.last?.placedItems?.some(p => p.name === "逗貓棒" && p.x === 1.2 && p.z === 0.8)).toBe(true));
+    viewer.last!.onFloorDrop!("i2", { roomId: "r1", x: 1.2, z: 0.8, y: 0, support: null });
+    await waitFor(() => expect(viewer.last?.placedItems?.some(p => p.name === "逗貓棒" && p.x === 1.2 && p.z === 0.8 && p.y === 0)).toBe(true));
   });
 });

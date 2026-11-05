@@ -2,7 +2,7 @@
 import { describe, expect, it } from "vitest";
 import { floorplanRoomSchema, type FloorplanRoomOut } from "@/lib/ai/schemas";
 import living from "./fixtures/living-room.json";
-import { DEFAULT_WALL_HEIGHT_M, normalizeReading, snapToWall } from "./read";
+import { DEFAULT_WALL_HEIGHT_M, normalizeReading, snapToParent, snapToWall } from "./read";
 
 const fixture = () => floorplanRoomSchema.parse(structuredClone(living)) as FloorplanRoomOut;
 const with_ = (patch: Partial<FloorplanRoomOut>) => ({ ...fixture(), ...patch });
@@ -79,6 +79,60 @@ describe("normalizeReading", () => {
     expect(r.ok && r.geometry.scale).toEqual({ m_per_px: null, source: "estimate" });
     const tall = normalizeReading(with_({ wallHeightM: 12 }));
     expect(tall.ok && tall.geometry.wall_height_m).toBe(DEFAULT_WALL_HEIGHT_M);
+  });
+
+  it("落地電風扇：高度 1 m、不可跳上、忽略 parent", () => {
+    const r = normalizeReading(with_({ furniture: [
+      { kind: "fan", label: "電風扇", wall: null, parent: 0, x: 2, y: 2, w: 0.4, d: 0.4, rot: 0 },
+    ] }));
+    expect(r.ok && r.geometry.furniture).toEqual([
+      { kind: "fan", label: "電風扇", x: 2, y: 2, w: 0.4, d: 0.4, h: 1, rot: 0 },
+    ]);
+  });
+
+  it("電腦有合法 desk parent：貼在桌面、elev＝桌高、parent 指到整理後的索引", () => {
+    const r = normalizeReading(with_({ furniture: [
+      { kind: "desk", label: "書桌", wall: 0, parent: null, x: 2.1, y: 0.5, w: 1.2, d: 0.6, rot: 0 },
+      { kind: "computer", label: "螢幕", wall: null, parent: 0, x: 2.1, y: 0.5, w: 0.5, d: 0.2, rot: 0 },
+    ] }));
+    if (!r.ok) throw new Error(r.error);
+    expect(r.geometry.furniture[0]).toMatchObject({ kind: "desk", surface: "walkable", h: 0.75 });
+    expect(r.geometry.furniture[1]).toMatchObject({
+      kind: "computer", label: "螢幕", parent: 0, elev: 0.75, h: 0.45, w: 0.5, d: 0.2,
+    });
+    expect(r.geometry.furniture[1].surface).toBeUndefined();
+  });
+
+  it("電腦 parent 不是 desk／table／cabinet／counter：改落地、不寫 parent", () => {
+    const r = normalizeReading(with_({ furniture: [
+      { kind: "sofa", label: "沙發", wall: 2, parent: null, x: 1.5, y: 3.0, w: 2.1, d: 0.9, rot: 0 },
+      { kind: "computer", label: "螢幕", wall: null, parent: 0, x: 2, y: 2, w: 0.5, d: 0.2, rot: 45 },
+    ] }));
+    expect(r.ok && r.geometry.furniture.find(f => f.kind === "computer")).toEqual({
+      kind: "computer", label: "螢幕", x: 2, y: 2, w: 0.5, d: 0.2, h: 0.45, rot: 45,
+    });
+  });
+
+  it("杯子、花瓶、筆記本：可貼在 desk／table 上；小尺寸可低於 0.1 m", () => {
+    const r = normalizeReading(with_({ furniture: [
+      { kind: "desk", label: "書桌", wall: 0, parent: null, x: 2.1, y: 0.5, w: 1.2, d: 0.6, rot: 0 },
+      { kind: "cup", label: "杯子", wall: null, parent: 0, x: 2.0, y: 0.5, w: 0.08, d: 0.08, rot: 0 },
+      { kind: "vase", label: "花瓶", wall: null, parent: 0, x: 2.3, y: 0.45, w: 0.12, d: 0.12, rot: 0 },
+      { kind: "notebook", label: "筆記本", wall: null, parent: 0, x: 1.9, y: 0.55, w: 0.22, d: 0.16, rot: 15 },
+    ] }));
+    if (!r.ok) throw new Error(r.error);
+    const by = Object.fromEntries(r.geometry.furniture.map(f => [f.kind, f]));
+    expect(by.cup).toMatchObject({ parent: 0, elev: 0.75, h: 0.12, w: 0.08 });
+    expect(by.vase).toMatchObject({ parent: 0, elev: 0.75, h: 0.35 });
+    expect(by.notebook).toMatchObject({ parent: 0, elev: 0.75, h: 0.03, w: 0.22 });
+  });
+});
+
+describe("snapToParent", () => {
+  it("中心限制在父家具頂面內，elev 用父高", () => {
+    const parent = { kind: "desk", label: "書桌", x: 2, y: 1, w: 1.2, d: 0.6, h: 0.75, rot: 0 };
+    expect(snapToParent(parent, { x: 2, y: 1, w: 0.4, d: 0.2 })).toEqual({ x: 2, y: 1, elev: 0.75, rot: 0 });
+    expect(snapToParent(parent, { x: 9, y: -3, w: 0.4, d: 0.2 }).x).toBeCloseTo(2.4);
   });
 });
 

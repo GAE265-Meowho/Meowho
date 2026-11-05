@@ -30,7 +30,11 @@ export type Point = [number, number];
 export interface PlanWall { a: Point; b: Point; t: number }
 export interface PlanOpening { kind: "door" | "window"; wall: number; at: number; w: number; h: number; sill?: number }
 /** wall：背面靠著的牆（索引）；靠牆時 w 沿牆、d 離牆，x／y／rot 已由系統貼齊（read.ts 的 snapToWall） */
-export interface PlanFurniture { kind: string; label: string; x: number; y: number; w: number; d: number; h: number; rot: number; wall?: number; surface?: "walkable" }
+/** parent：放在另一件家具頂面（furniture 陣列索引）；elev：底部離地高度（公尺），桌上物＝父家具高 */
+export interface PlanFurniture {
+  kind: string; label: string; x: number; y: number; w: number; d: number; h: number; rot: number;
+  wall?: number; parent?: number; elev?: number; surface?: "walkable";
+}
 export interface PlanGeometry {
   /** AI 讀的是平面圖還是實景照片（#144）；實景照片的比例一律是推估 */
   input: "floorplan" | "photo";

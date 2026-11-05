@@ -2,7 +2,7 @@
 // 虛擬體驗（#150，Tina 2026-11-03）：選一隻虛擬貓、選一戶喵戶，把貓放進那戶的 3D 室內空間。之後做互動遊戲的基礎。
 // 貓＝共用母體 base_clips.glb＋這隻貓已確認的貼圖（同貓咪頁，catLook.ts）；房間＝平面圖轉換讀圖完成的房間。
 // 選擇寫進網址（?tab=experience&cat=&house=），複製連結給其他管理員看到同一個畫面。
-// 生活用品（#197）：右側選單類別篩選＋小圖示，可拖拉進空間；已放用品可再拖移；也可點選後點地板放置。
+// 生活用品（#197）：右側選單類別篩選＋小圖示，可拖拉進空間；已放用品可再拖移；也可點選後點地板／桌面放置。
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -13,7 +13,7 @@ import { HqLoadError, HqSkeleton } from "../HqStates";
 import { catLook } from "./catLook";
 import { ExperienceItemPalette } from "./ExperienceItemPalette";
 import { FLOORPLAN_API } from "./floorplanApi";
-import type { PlacedHouseholdItem } from "./FloorplanViewer";
+import type { PlaceAt, PlacedHouseholdItem } from "./FloorplanViewer";
 import { assetSectionHref } from "./hrefs";
 import { useCatList } from "./useCatModels";
 
@@ -69,16 +69,17 @@ function useItemsCatalog() {
   return value;
 }
 
-function placeFromItem(item: HouseholdItem, roomId: string, x: number, z: number, list: PlacedHouseholdItem[]): PlacedHouseholdItem {
+function placeFromItem(item: HouseholdItem, at: PlaceAt, list: PlacedHouseholdItem[]): PlacedHouseholdItem {
   return {
     key: `${item.id}-${list.length + 1}-${Date.now()}`,
-    roomId,
+    roomId: at.roomId,
     url: item.modelUrl,
     name: item.name,
-    x, z,
+    x: at.x, z: at.z, y: at.y,
     widthM: item.widthM ?? 0.5,
     depthM: item.depthM ?? 0.5,
     heightM: item.heightM ?? 0.4,
+    support: at.support,
   };
 }
 
@@ -120,21 +121,21 @@ export function ExperienceTab() {
     router.replace(`${pathname}?${next.toString()}`, { scroll: false });
   };
 
-  const place = (roomId: string, x: number, z: number) => {
+  const place = (at: PlaceAt) => {
     if (!selectedItem) return;
-    setPlaced(list => [...list, placeFromItem(selectedItem, roomId, x, z, list)]);
+    setPlaced(list => [...list, placeFromItem(selectedItem, at, list)]);
   };
 
-  const dropItem = (id: string, roomId: string, x: number, z: number) => {
+  const dropItem = (id: string, at: PlaceAt) => {
     const item = itemOptions.find(i => i.id === id);
     if (!item) return;
     setItemId(id);
     setPlaceMode(true);
-    setPlaced(list => [...list, placeFromItem(item, roomId, x, z, list)]);
+    setPlaced(list => [...list, placeFromItem(item, at, list)]);
   };
 
-  const moveItem = (key: string, x: number, z: number) => {
-    setPlaced(list => list.map(it => (it.key === key ? { ...it, x, z } : it)));
+  const moveItem = (key: string, at: { x: number; z: number; y: number; support: PlacedHouseholdItem["support"] }) => {
+    setPlaced(list => list.map(it => (it.key === key ? { ...it, x: at.x, z: at.z, y: at.y, support: at.support ?? null } : it)));
   };
 
   if (cats.state === "loading" || houses.state === "loading") return <HqSkeleton rows={4} />;
@@ -176,7 +177,7 @@ export function ExperienceTab() {
                   </div>
                   <p className="hq-hint">
                     {placeMode
-                      ? `放置模式：把右側「${selectedItem?.name ?? "用品"}」拖進房間，或點地板放置；放好的還能拖移。`
+                      ? `放置模式：把右側「${selectedItem?.name ?? "用品"}」拖進房間，或點地板／書桌桌面放置；鍵盤、杯子、花瓶、筆記本等小物可放在桌上。`
                       : "點地板叫貓走；點床、沙發、桌子會跳上去。右側用品直接拖進房間最直覺。"}
                   </p>
                   <div className="hq-exp-stage">

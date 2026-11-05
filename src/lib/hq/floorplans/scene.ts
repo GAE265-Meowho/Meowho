@@ -95,9 +95,10 @@ export function roomBoxes(geo: PlanGeometry): { boxes: SceneBox[]; size: [number
   const center: Point = [size[0] / 2, size[1] / 2];
   geo.walls.forEach((_, i) => boxes.push(...wallBoxes(geo, i, shift, center)));
   for (const f of geo.furniture) {
+    const elev = f.elev ?? 0;
     boxes.push({
       kind: "furniture", furniture: f.kind, walkable: f.surface === "walkable" || undefined,
-      x: r3(f.x - shift[0]), y: r3(f.h / 2), z: r3(f.y - shift[1]), sx: f.w, sy: f.h, sz: f.d,
+      x: r3(f.x - shift[0]), y: r3(elev + f.h / 2), z: r3(f.y - shift[1]), sx: f.w, sy: f.h, sz: f.d,
       rotY: r3(-(f.rot * Math.PI) / 180),
     });
   }

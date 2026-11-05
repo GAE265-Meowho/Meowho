@@ -26,6 +26,17 @@ describe("roomBoxes", () => {
     expect(boxes.find(b => b.furniture === "chair")?.walkable).toBeUndefined();
   });
 
+  it("桌上電腦：elev 抬高，中心 y＝桌高＋半個螢幕高，不可跳上", () => {
+    const g = geo();
+    g.furniture = [
+      { kind: "desk", label: "書桌", x: 2, y: 1, w: 1.2, d: 0.6, h: 0.75, rot: 0, surface: "walkable" },
+      { kind: "computer", label: "螢幕", x: 2, y: 1, w: 0.5, d: 0.2, h: 0.45, rot: 0, parent: 0, elev: 0.75 },
+    ];
+    const { boxes } = roomBoxes(g);
+    expect(boxes.find(b => b.furniture === "desk")).toMatchObject({ y: 0.375, walkable: true });
+    expect(boxes.find(b => b.furniture === "computer")).toMatchObject({ y: 0.75 + 0.225, sy: 0.45, walkable: undefined });
+  });
+
   it("門：牆斷開，門上方留門楣；牆兩端各延伸半個牆厚，轉角不留縫", () => {
     const top = roomBoxes(geo()).boxes.filter(b => b.z === 0 && b.kind !== "floor" && b.kind !== "furniture");
     // 4.2 長的牆，門在 1.2～2.1：左段＋門楣＋右段
