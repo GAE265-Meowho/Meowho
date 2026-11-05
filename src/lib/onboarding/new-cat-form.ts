@@ -3,12 +3,13 @@
 // 口述：先走 /api/onboarding/turn（LLM，失敗時規則式），結果用 applyExtracted 填進表單；
 //   LLM 沒有的欄位（個性量表、小小壞習慣、適應速度、最愛的東西）由 storyExtras 用規則補。填到的欄位標「你說過」，中途可以直接改。
 import {
-  bitesOf, emptyCompat, emptyMedical, type Behavior, type BehaviorKey, type Care, type Compat, type Medical,
+  BehaviorSchema, CareSchema, CompatSchema, HABITS, MedicalSchema, bitesOf, emptyCompat, emptyMedical,
+  type Behavior, type BehaviorKey, type Care, type Compat, type Medical,
 } from "../cat-profile/adoption";
 import { lifeStageOf, type LifeStage } from "../cat-profile/life-stage";
-import { coverPath, emptyAngles, type Cover, type PhotoAngles } from "../cat-profile/new-cat";
+import { ANGLE_KEYS, MAX_LIFE_PHOTOS, coverPath, emptyAngles, type Cover, type PhotoAngles } from "../cat-profile/new-cat";
 import {
-  EXTRA_PERSONALITY_TAGS, GAME_HEALTH_TAGS, HEALTH_TAGS, emptyScale, personalityTags, pickTags,
+  EXTRA_PERSONALITY_TAGS, GAME_HEALTH_TAGS, HEALTH_TAGS, TRAITS, emptyScale, personalityTags, pickTags,
   type HealthTag, type PersonalityScale, type TraitKey,
 } from "../cat-profile/tags";
 import type { Sex } from "./cat";
@@ -309,3 +310,75 @@ export function toNewCatRow(f: NewCatForm, ids: { id: string; householdId: strin
 
 /** 封面的儲存路徑（名片、完成頁、舊欄位 photo_url 用） */
 export const coverOf = (f: NewCatForm) => coverPath(f.cover, f.angles, f.others);
+
+/** 修改既有的貓：表單 → 要更新的欄位（id、喵戶、狀態不動；狀態只能走出發、移轉與退養） */
+export function toCatUpdateRow(f: NewCatForm, coverUrl: string | null) {
+  const row: Partial<ReturnType<typeof toNewCatRow>> = toNewCatRow(f, { id: "", householdId: "", coverUrl });
+  delete row.id;
+  delete row.household_id;
+  delete row.status;
+  delete row.visibility;
+  return row;
+}
+
+type Loose = "name" | "sex" | "est_age_months" | "personality_tags" | "medical" | "compat" | "behavior" | "care" | "personality_scale" | "personality_notes" | "photo_angles" | "photo_paths" | "cover";
+/** 資料庫讀出來的一筆：jsonb 欄位可能是舊格式，讀的時候再檢查 */
+export type CatRow = Omit<Partial<ReturnType<typeof toNewCatRow>>, Loose> & {
+  name: string; sex?: string | null; est_age_months?: number | null; personality_tags?: string[] | null;
+  medical?: unknown; compat?: unknown; behavior?: unknown; care?: unknown; personality_scale?: unknown; personality_notes?: unknown;
+  photo_angles?: unknown; photo_paths?: string[] | null; cover?: string | null;
+};
+
+const parse = <T>(schema: { safeParse: (v: unknown) => { success: true; data: T } | { success: false } }, v: unknown, fallback: T): T => {
+  const r = schema.safeParse(v);
+  return r.success ? r.data : fallback;
+};
+
+/**
+ * 重新打開一隻貓（修改頁）：資料庫一筆 → 表單，每一頁顯示原本填的內容。
+ * 0024 以前建的貓沒有個性量表：用個性標籤推回拉桿位置（親人→膽量偏大膽…），其他標籤放進加點標籤；
+ * 角度照沒有另外存，就把 photo_paths 當生活照（最多 6 張）。修改時同意授權視為已經同意過。
+ */
+export function fromCatRow(r: CatRow): NewCatForm {
+  const base = emptyForm();
+  const months = typeof r.est_age_months === "number" ? r.est_age_months : null;
+  const savedScale = (r.personality_scale && typeof r.personality_scale === "object" ? r.personality_scale : null) as Record<string, unknown> | null;
+  const scale = emptyScale();
+  for (const t of TRAITS) {
+    const v = savedScale?.[t.key];
+    scale[t.key] = typeof v === "number" && v >= 1 && v <= 5 ? v : null;
+  }
+  const tags = r.personality_tags ?? [];
+  if (!savedScale) for (const t of tags) { const hit = TAG_TO_SCALE[t]; if (hit && scale[hit[0]] === null) scale[hit[0]] = hit[1]; }
+  const a = (r.photo_angles && typeof r.photo_angles === "object" ? r.photo_angles : {}) as Record<string, unknown>;
+  const angles = { ...emptyAngles() };
+  for (const k of ANGLE_KEYS) angles[k] = typeof a[k] === "string" ? (a[k] as string) : null;
+  const notes = (r.personality_notes && typeof r.personality_notes === "object" ? r.personality_notes : {}) as Record<string, unknown>;
+  const cover = typeof r.cover === "string" && /^(a:(front|left|back)|o:\d)$/.test(r.cover) ? (r.cover as Cover) : null;
+  const care = parse(CareSchema, r.care ?? {}, {});
+  return {
+    ...base,
+    angles,
+    others: (r.photo_paths ?? []).slice(0, MAX_LIFE_PHOTOS),
+    cover,
+    story: r.description ?? "",
+    name: r.name,
+    sex: r.sex === "male" || r.sex === "female" || r.sex === "unknown" ? r.sex : null,
+    ageNum: months === null ? "" : months < 12 ? String(months) : String(Math.round(months / 12)),
+    ageUnit: months !== null && months < 12 ? "month" : "year",
+    lifeStage: r.life_stage ?? lifeStageOf(months),
+    coat: r.coat ?? "",
+    breed: r.breed ?? "",
+    medical: { ...emptyMedical(), ...parse(MedicalSchema.partial(), r.medical ?? {}, {}) },
+    healthTags: pickTags(r.health_tags ?? [], HEALTH_TAGS),
+    scale,
+    scaleNotes: Object.fromEntries(TRAITS.map(t => [t.key, notes[t.key]]).filter(([, v]) => typeof v === "string")),
+    extraTags: pickTags(tags, EXTRA_PERSONALITY_TAGS),
+    behavior: parse(BehaviorSchema, r.behavior ?? {}, {}),
+    habits: pickTags(r.habits ?? [], HABITS),
+    compat: { ...emptyCompat(), ...parse(CompatSchema.partial(), r.compat ?? {}, {}) },
+    care: { ...base.care, ...care },
+    intro: r.intro ?? "",
+    consent: true,
+  };
+}

@@ -4,11 +4,13 @@
 // 照片：先判讀（不是貓、不適當就不收），通過才上傳到 meow-cat-photos；角度照存 photo_angles，生活照存 photo_paths。
 // 口述：送 /api/onboarding/turn（LLM，失敗時規則式），再用規則補 LLM 沒有的欄位；填到的標「你說過」，中途可以直接改。
 // 建好後背景建立 3D 貓（/api/cats/[id]/model，帶三張角度照）。示範模式（沒有 Supabase）可以完整操作，但不存檔、不上傳。
+// 修改既有的貓（edit）：同一套畫面，每一頁帶回原本的內容（lib 的 fromCatRow）；最後一步改成「儲存修改」，
+//   上面的步驟可以直接點過去；換掉或移除的原本照片在存檔成功後才從雲端刪掉。
 import { useEffect, useRef, useState } from "react";
 import { coverAfterRemoveOther, MAX_LIFE_PHOTOS, newCatMissing, type AngleKey, type Cover } from "@/lib/cat-profile/new-cat";
 import { beginCat, emptyIntake, type IntakeState } from "@/lib/onboarding/conversation";
 import {
-  applyExtracted, coverOf, emptyForm, mottos, storyExtras, toDraftCat, toNewCatRow, type NewCatForm,
+  applyExtracted, coverOf, emptyForm, mottos, storyExtras, toCatUpdateRow, toDraftCat, toNewCatRow, type NewCatForm,
 } from "@/lib/onboarding/new-cat-form";
 import type { AdoptionTerms } from "@/lib/cat-profile/adoption";
 import type { CaretakerType } from "@/lib/onboarding/household";
@@ -31,15 +33,21 @@ const STEP_LABEL = ["拍照", "說說牠", "快問", "確認", "完成"];
 const STEP_OF: Record<Step, number> = { photo: 0, talk: 1, quick: 2, touch: 2, review: 3, done: 4 };
 type PhotoAi = { result: { isCat: boolean; inappropriate: boolean; coat: string | null; breed: string | null; confidence: number } | null };
 
-export function NewCatFlow({ userId, home }: { userId: string | null; home: ExistingHome }) {
+/** 修改既有的貓：原本的表單、照片預覽網址、存好後要做的事 */
+export interface EditCat { catId: string; form: NewCatForm; previews: Record<string, string>; onSaved: () => void }
+
+export function NewCatFlow({ userId, home, edit }: { userId: string | null; home: ExistingHome; edit?: EditCat }) {
   const sb = getBrowserSupabase();
   const live = Boolean(sb && userId);
-  const [form, setForm] = useState<NewCatForm>(emptyForm);
+  const [form, setForm] = useState<NewCatForm>(() => edit?.form ?? emptyForm());
+  // 原本就有的照片：移除或換掉時等存檔成功才刪
+  const original = useRef(new Set(edit ? [...edit.form.others, ...Object.values(edit.form.angles).filter((x): x is string => Boolean(x))] : []));
+  const removedOriginal = useRef(new Set<string>());
   const set = (fn: (f: NewCatForm) => NewCatForm) => setForm(fn);
   const [step, setStep] = useState<Step>("photo");
   const [qp, setQp] = useState(0);
-  const [catId, setCatId] = useState(() => crypto.randomUUID());
-  const [previews, setPreviews] = useState<Record<string, string>>({});
+  const [catId, setCatId] = useState(() => edit?.catId ?? crypto.randomUUID());
+  const [previews, setPreviews] = useState<Record<string, string>>(() => edit?.previews ?? {});
   const [missing, setMissing] = useState<string[]>([]);
   const [status, setStatus] = useState("");
   const [busy, setBusy] = useState(false);
@@ -47,7 +55,7 @@ export function NewCatFlow({ userId, home }: { userId: string | null; home: Exis
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [duplicate, setDuplicate] = useState(false);
-  const motto = useRef({ i: 0, set: false });
+  const motto = useRef({ i: 0, set: Boolean(edit) });
 
   // 已上傳但還沒建成貓的照片；離開頁面、再新增一隻時清掉，不留下沒有主人的檔案
   const unsaved = useRef(new Set<string>());
@@ -97,6 +105,7 @@ export function NewCatFlow({ userId, home }: { userId: string | null; home: Exis
 
   async function removeFile(path: string | null) {
     if (!path) return;
+    if (original.current.has(path)) { removedOriginal.current.add(path); return; }
     unsaved.current.delete(path);
     if (live && sb && !path.startsWith("demo/")) await sb.storage.from(PHOTO_BUCKET).remove([path]);
   }
@@ -165,6 +174,7 @@ export function NewCatFlow({ userId, home }: { userId: string | null; home: Exis
     const miss = newCatMissing(form);
     if (miss.length) { setMissing(miss); return; }
     setSaving(true); setError(null);
+    if (edit) { await saveEdit(); return; }
     if (live && sb) {
       if (!duplicate) {
         const { data: same } = await sb.from("meow_cats").select("id").eq("household_id", home.id).eq("name", form.name.trim()).limit(1);
@@ -185,6 +195,22 @@ export function NewCatFlow({ userId, home }: { userId: string | null; home: Exis
     }
     setSaving(false);
     go("done");
+  }
+
+  async function saveEdit() {
+    if (!edit) return;
+    if (live && sb) {
+      const cover = coverOf(form);
+      const coverUrl = cover ? sb.storage.from(PHOTO_BUCKET).getPublicUrl(cover).data.publicUrl : null;
+      const { error: err } = await sb.from("meow_cats").update(toCatUpdateRow(form, coverUrl)).eq("id", catId);
+      if (err) { setSaving(false); setError(`儲存失敗：${err.message}`); return; }
+      unsaved.current = new Set();
+      // 存檔成功後才刪掉換掉或移除的原本照片（網址形式的舊資料不刪）
+      const gone = [...removedOriginal.current].filter(p => !/^https?:/.test(p) && !form.others.includes(p) && !Object.values(form.angles).includes(p));
+      if (gone.length) await sb.storage.from(PHOTO_BUCKET).remove(gone);
+    }
+    setSaving(false);
+    edit.onSaved();
   }
 
   function another() {
@@ -220,7 +246,18 @@ export function NewCatFlow({ userId, home }: { userId: string | null; home: Exis
         <span className={s.homeChip}>{home.name}</span>
       </header>
       <ol className={s.steps} aria-label={`進度：第 ${idx + 1} 步，共 5 步`}>
-        {STEP_LABEL.map((l, i) => <li key={l} className={i < idx ? s.done : i === idx ? s.now : ""}><i />{l}</li>)}
+        {STEP_LABEL.map((l, i) => {
+          const cls = i < idx ? s.done : i === idx ? s.now : "";
+          // 修改時可以直接跳到任一步（完成那一步除外）
+          const to: Step[] = ["photo", "talk", "quick", "review"];
+          if (!edit || i > 3) return <li key={l} className={cls}><i />{l}</li>;
+          return (
+            <li key={l} className={cls}>
+              <button type="button" className={s.stepBtn} aria-current={i === idx ? "step" : undefined}
+                onClick={() => { if (to[i] === "quick") setQp(0); if (to[i] === "review") toReview(); else go(to[i]); }}><i />{l}</button>
+            </li>
+          );
+        })}
       </ol>
 
       {(step === "quick" || step === "touch") && (
@@ -249,7 +286,8 @@ export function NewCatFlow({ userId, home }: { userId: string | null; home: Exis
           )}
           {step === "quick" && <CatButton onClick={qNext}>{qp === QUICK_PAGES.length - 1 ? "最後一頁：摸摸牠" : "下一頁"}</CatButton>}
           {step === "touch" && <CatButton onClick={toReview}>下一步：看名片</CatButton>}
-          {step === "review" && <CatButton disabled={saving} onClick={create}>{saving ? "建立中…" : `建立${form.name.trim() || "這隻貓"}的名片`}</CatButton>}
+          {step === "review" && <CatButton disabled={saving} onClick={create}>{saving ? (edit ? "儲存中…" : "建立中…") : edit ? "儲存修改" : `建立${form.name.trim() || "這隻貓"}的名片`}</CatButton>}
+          {edit && step !== "review" && <button type="button" className={s.linkBtn} disabled={saving} onClick={toReview}>直接看名片並儲存</button>}
         </div>
       )}
     </div>

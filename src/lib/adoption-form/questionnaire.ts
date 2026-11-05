@@ -74,7 +74,8 @@ const strip = (b: Question & { base: boolean }): Question => ({
 /** 一鍵產生基本問卷（每次都是新的一份） */
 export const baseQuestionnaire = (): Question[] => BANK.filter(b => b.base).map(strip);
 
-export const canOpenForm = (catStatus: string) => catStatus === "adoptable";
+// 準備中的貓可以先把問卷設好，出發後才有人填得到（0017 的 meow_adoption_form_guard）
+export const canOpenForm = (catStatus: string) => catStatus === "adoptable" || catStatus === "preparing";
 
 export const removeQuestion = (qs: Question[], id: string) => qs.filter(x => x.id !== id);
 

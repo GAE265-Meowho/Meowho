@@ -102,6 +102,7 @@ describe("領養人填寫", () => {
 describe("只有待領養的貓能開放問卷", () => {
   it("待領養才可以", () => {
     expect(canOpenForm("adoptable")).toBe(true);
+    expect(canOpenForm("preparing")).toBe(true);
     expect(canOpenForm("own")).toBe(false);
     expect(canOpenForm("adopted")).toBe(false);
   });

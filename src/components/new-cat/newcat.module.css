@@ -10,6 +10,9 @@
 .steps li i { height: 6px; border-radius: 3px; background: var(--line); }
 .steps li.done i, .steps li.now i { background: var(--caramel); }
 .steps li.now { color: var(--ink); font-weight: 700; }
+.stepBtn { display: flex; flex-direction: column; gap: 6px; width: 100%; min-height: 36px; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.stepBtn i { height: 6px; border-radius: 3px; background: var(--line); display: block; }
+.done .stepBtn i, .now .stepBtn i { background: var(--caramel); }
 
 .h1 { margin: 0 0 8px; font-size: 26px; line-height: 1.45; letter-spacing: .04em; color: var(--ink); }
 .lead { margin: 0 0 18px; font-size: 15px; line-height: 1.7; color: var(--ink-soft); }
