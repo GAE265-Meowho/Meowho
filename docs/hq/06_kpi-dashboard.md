@@ -65,7 +65,8 @@
 - `0023_meow_dashboard_stats.sql`：`meow_dashboard_resource_stats()`（DB 容量＋bucket 加總）
 - **尚未執行時**：業務 KPI 仍可用；DB 容量／Storage 用量顯示「尚未啟用」（#222：不再遞迴掃 bucket，避免 Dashboard 逾時、首頁骨架一直閃）
 
-## 首頁區塊（#222）
+## 首頁區塊（#222／#226）
 
 - 顯示：營運 KPI ＋ 待辦總覽
 - 不顯示：「我最近的管理動作」（完整稽核仍在 Admin 授權 → 稽核日誌）
+- **#226 UI**：卡片內不顯示「來源：…」與各自時間；來源改卡片右上 ℹ️ tooltip；標題列右側統一「資料抓取時間」＋重新整理（時間＝`generatedAt`）；空狀態／尚未啟用卡視覺降權；主數值放大

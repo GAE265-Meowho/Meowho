@@ -16,7 +16,7 @@
 - MeowHQ 規格：`docs/hq/01～03`
 
 ## 目前狀態
-- **#218／#222 KPI Dashboard**：`/MeowHQ` 首頁為「營運總覽」（業務／Supabase 資源／Vercel 健康 KPI）＋待辦總覽；#222 已移除「我最近的管理動作」，並修正 KPI 載入時骨架掌印一直閃（0023 未執行時不再遞迴掃 Storage；授權陣列內容相同不重建 actor）。API `GET /api/hq/dashboard`。定義見 `docs/hq/06_kpi-dashboard.md`。Migration `0023_meow_dashboard_stats.sql` **尚未執行**（執行前須 Tina 確認）；未執行時 DB／Storage 用量顯示尚未啟用。付費貓咪欄位尚未啟用；Vercel Observability 未接時不顯示假數字。
+- **#218／#222／#224／#226 KPI Dashboard**：`/MeowHQ` 營運總覽＋待辦；#222 去最近動作、0023 未執行不掃 Storage；#224 進頁只載一次；#226 卡片去雜訊、頂部全域抓取時間、主數值放大。API `GET /api/hq/dashboard`。定義見 `docs/hq/06_kpi-dashboard.md`。`0023` **尚未執行**。付費貓咪／Vercel Observability 尚未啟用。
 隱藏後台 `/mh-console-8k2p` 已完成（Issue #3）：中途認證審核、管理員授權／移除、網站標誌（存 `site_settings`）。頁尾的管理者設定入口已移除。檢舉與內容審核尚未開始。
 MeowHQ（`/MeowHQ`，取代舊隱藏後台）開發中：階段 0（#18）、db（#19，`0002_meow_hq.sql`）、logic（#20）已合併；外殼（#21）：路由／大小寫導向／登入閘門／Nordic Meow 樣式／頂列／側欄／toast／空白、載入、錯誤、離線元件；側欄改接 `permissions.ts`。舊後台 `/mh-console-8k2p` 已移除（Tina 2026-10-29 決定），功能移到 #23（管理員授權、網站外觀）、#24（中途認證）。`Auth.tsx` 的 `isAdmin` 為 admin 或 system_admin（`src/lib/auth-role.ts`）。T-HQ-11（虛擬體驗元件管理—貓咪模型）由 Issue #75 進行：規格 `docs/hq/04_assets-cat-models規格書.md`，儲存位置定為 Supabase Storage（解決 #15）；PR 2a、2b 已有 `/MeowHQ/assets` 四個分頁、貓咪列表、新增貓咪 `/cats/new`、貓咪頁 `/cats/<id>`、貼圖工作頁 `/cats/<id>/studio`（本機檔案來源，需設 `CAT_STUDIO_ROOT`，見 `.env.example`）。
 2026-10-29：`0002_meow_hq.sql` 已在 Supabase 執行。#22：待辦總覽（`/MeowHQ`）、列表共用元件（`src/components/hq/list/HqList.tsx`）、模組守門（`HqModuleGuard`）、側欄改接 `permissions.ts`（授權讀取中只顯示首頁，不再退回全部可見）、資料庫錯誤轉白話（`hqErrorMessage`，優先顯示函式 hint）。
