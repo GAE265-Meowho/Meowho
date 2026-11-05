@@ -1,5 +1,5 @@
 "use client";
-// 虛擬體驗右側用品選單（#197）：類別篩選；左去背縮圖、右文字；拖進房間或點選後點地板。
+// 虛擬體驗右側用品選單（#197）：類別篩選；左去背縮圖、右文字；只能拖進房間放置（點地板不會新增）。
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useMemo, useState } from "react";
@@ -36,7 +36,7 @@ export function ExperienceItemPalette({
     <aside className={styles.panel} aria-label="生活用品選單">
       <div className={styles.head}>
         <h3>生活用品</h3>
-        <p className="hq-hint">拖進房間就放好；點一下再點地板也可以。放好的還能拖來拖去。</p>
+        <p className="hq-hint">拖進房間才會放置；點地板不會新增。放好的可拖移，上方 × 可刪除。</p>
       </div>
 
       {categories.length > 0 && (
@@ -91,7 +91,7 @@ export function ExperienceItemPalette({
               <div className={styles.copy}>
                 <span className={styles.name}>{it.name}</span>
                 <span className={styles.cat}>{it.categoryName}</span>
-                <span className={styles.hint}>{selectedId === it.id ? "已選 · 拖進房間或點地板" : "按住拖進房間"}</span>
+                <span className={styles.hint}>{selectedId === it.id ? "已選 · 拖進房間放置" : "按住拖進房間"}</span>
               </div>
             </div>
           ))}

@@ -3,7 +3,7 @@
 // 場景資料在 src/lib/hq/floorplans/scene.ts（純函式、可測）；家具換成模型庫的 glb（kit.ts，Tina 2026-11-03：
 // 效果比照 Meow/meowho_3d_room），地板用同一套橡木貼圖。點地板或上方房名＝選那間房（選中的房間在房名按鈕標示）。
 // 用 next/dynamic（ssr: false）載入；不改動 Gaussian Splat 用的 RoomViewer。
-import { OrbitControls, useGLTF, useTexture } from "@react-three/drei";
+import { Html, OrbitControls, useGLTF, useTexture } from "@react-three/drei";
 import { Canvas, useFrame, useThree, type ThreeEvent } from "@react-three/fiber";
 import { Suspense, useEffect, useMemo, useRef, useState, type DragEvent, type MutableRefObject } from "react";
 import * as THREE from "three";
@@ -38,16 +38,9 @@ export interface PlacedHouseholdItem {
   support?: ItemSupport;
 }
 
-/** 書桌／桌子／可跳上家具頂面可放生活用品 */
+/** 書桌／桌子／可跳上家具頂面可放生活用品（拖放 raycast 用） */
 function isSupportBox(b: SceneBox | undefined): b is SceneBox {
   return !!b && b.kind === "furniture" && (b.furniture === "desk" || b.furniture === "table" || !!b.walkable);
-}
-
-function supportFromBox(b: SceneBox, boxIndex: number, x: number, z: number): { y: number; support: NonNullable<ItemSupport> } {
-  return {
-    y: b.y + b.sy / 2,
-    support: { furnitureIndex: boxIndex, localX: x - b.x, localZ: z - b.z },
-  };
 }
 
 // 牆用 meowho_3d_room 的牆面漆色
@@ -127,11 +120,12 @@ function Furniture({ b, roomId, boxIndex, onClick }: {
 
 type MovePayload = { x: number; z: number; y: number; support: ItemSupport };
 
-/** 生活用品：依量到的公尺尺寸縮放；可放地板或桌面；可拖移；落地物貓會繞過 */
-function PlacedItemModel({ item, room, onMove }: {
+/** 生活用品：依量到的公尺尺寸縮放；可放地板或桌面；可拖移／刪除；落地物貓會繞過 */
+function PlacedItemModel({ item, room, onMove, onRemove }: {
   item: PlacedHouseholdItem;
   room: RoomScene;
   onMove?: (key: string, place: MovePayload) => void;
+  onRemove?: (key: string) => void;
 }) {
   const { scene } = useGLTF(item.url);
   const group = useRef<THREE.Group>(null);
@@ -225,6 +219,17 @@ function PlacedItemModel({ item, room, onMove }: {
       onClick={(e: ThreeEvent<MouseEvent>) => e.stopPropagation()}
     >
       <primitive object={prepared.m} scale={prepared.scale} />
+      {onRemove && (
+        <Html position={[0, item.heightM + 0.12, 0]} center zIndexRange={[30, 20]} style={{ pointerEvents: "auto" }}>
+          <button
+            type="button"
+            className="hq-fp-item-x"
+            aria-label={`移除 ${item.name}`}
+            onPointerDown={e => { e.stopPropagation(); e.preventDefault(); }}
+            onClick={e => { e.stopPropagation(); onRemove(item.key); }}
+          >×</button>
+        </Html>
+      )}
     </group>
   );
 }
@@ -430,17 +435,16 @@ function CameraRig({ position, view }: { position: [number, number, number]; vie
  */
 export type PlaceAt = { roomId: string; x: number; z: number; y: number; support: ItemSupport };
 
-export default function FloorplanViewer({ rooms, selected, onPick, cat, placedItems = [], placeMode = false, onPlace, onMoveItem, onFloorDrop }: {
+export default function FloorplanViewer({ rooms, selected, onPick, cat, placedItems = [], onMoveItem, onRemoveItem, onFloorDrop }: {
   rooms: PlanRoom[]; selected: string | null; onPick: (id: string) => void;
   /** 虛擬體驗（#150）：放一隻貓進去；有貓時只顯示單間（沒有「全部」），點地板叫貓走過去 */
   cat?: ViewerCat | null;
-  /** 虛擬體驗（#197）：已放進房間的生活用品 */
+  /** 虛擬體驗（#197）：已放進房間的生活用品；只能從右側選單拖放進來，點地板不會新增 */
   placedItems?: PlacedHouseholdItem[];
-  /** 放置模式：點地板或書桌／桌面改放用品，不叫貓走 */
-  placeMode?: boolean;
-  onPlace?: (at: PlaceAt) => void;
   /** 拖移已放置的用品（可改到桌面或地板） */
   onMoveItem?: (key: string, at: MovePayload) => void;
+  /** 移除已放置的用品（元件上方 ×） */
+  onRemoveItem?: (key: string) => void;
   /** 從右側選單拖放到地板或桌面 */
   onFloorDrop?: (itemId: string, at: PlaceAt) => void;
 }) {
@@ -499,23 +503,11 @@ export default function FloorplanViewer({ rooms, selected, onPick, cat, placedIt
               return (
                 <Room key={s.id} s={s} onClick={c => {
                   if (!cat) { pick(s.id); return; }
-                  if (placeMode && onPlace) {
-                    if (c.box === null) {
-                      onPlace({ roomId: s.id, x: c.x, z: c.z, y: 0, support: null });
-                      return;
-                    }
-                    const b = s.boxes[c.box];
-                    if (isSupportBox(b)) {
-                      const { y, support } = supportFromBox(b, c.box, c.x, c.z);
-                      onPlace({ roomId: s.id, x: c.x, z: c.z, y, support });
-                      return;
-                    }
-                  }
                   setClick({ ...c, at: Date.now() });
                 }}>
                   {roomItems.map(item => (
                     <Suspense key={item.key} fallback={null}>
-                      <PlacedItemModel item={item} room={s} onMove={onMoveItem} />
+                      <PlacedItemModel item={item} room={s} onMove={onMoveItem} onRemove={onRemoveItem} />
                     </Suspense>
                   ))}
                   {cat && <CatActor key={`${s.id}:${cat.albedoUrl}`} s={s} look={cat} click={click} pos={catPos} extraObs={itemObstacles(roomItems)} />}

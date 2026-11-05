@@ -529,6 +529,14 @@
 @media (max-width: 1023px) { .hq-fp-3d { height: 320px; } }
 .hq-fp-3dlabel { font: inherit; font-size: .85rem; padding: .15rem .6rem; border-radius: 999px; border: 1px solid var(--hq-line); background: var(--hq-card); color: var(--hq-text); cursor: pointer; white-space: nowrap; }
 .hq-fp-3dlabel.on { background: var(--hq-sage); border-color: var(--hq-sage); color: #fff; }
+.hq-fp-item-x {
+  width: 1.35rem; height: 1.35rem; padding: 0; margin: 0;
+  border-radius: 999px; border: 1px solid var(--hq-line);
+  background: #fff; color: var(--hq-text); font: 600 1rem/1 inherit;
+  cursor: pointer; display: grid; place-items: center;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 12%);
+}
+.hq-fp-item-x:hover, .hq-fp-item-x:focus-visible { background: #f4e8e6; border-color: #c08078; color: #8a3a32; outline: none; }
 .hq-fp-add { border-top: 1px solid var(--hq-line); padding-top: .75rem; }
 .hq-fp-add h4 { margin: 0 0 .5rem; font-size: .95rem; font-weight: 500; }
 /* 平面圖：新增一戶時已選的檔案、每一戶的預覽卡片（#138 改一頁完成） */
