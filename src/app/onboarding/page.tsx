@@ -4,7 +4,7 @@ import { useAuth } from "@/components/Auth";
 import { SiteHeader } from "@/components/Chrome";
 import { TermsGate } from "@/components/TermsGate";
 import { HouseholdForm } from "@/components/onboarding/HouseholdForm";
-import { IntakeChat, type ExistingHome } from "@/components/onboarding/IntakeChat";
+import { NewCatFlow, type ExistingHome } from "@/components/new-cat/NewCatFlow";
 import s from "@/components/onboarding/intake.module.css";
 import CatButton from "@/components/ui/CatButton";
 import { afterHousehold, safeNext } from "@/lib/household-gate";
@@ -133,7 +133,7 @@ export default function OnboardingPage() {
       </section>
     );
   } else if (phase === "cat" && home) {
-    body = <IntakeChat key={home.id} userId={user?.id ?? null} home={home} />;
+    body = <NewCatFlow key={home.id} userId={user?.id ?? null} home={home} />;
   } else {
     // 示範模式沒有「我的喵戶」可以回去，建好後直接在這裡新增貓
     body = <HouseholdForm userId={user?.id ?? null} existingNames={homes.map(h => h.name)}
