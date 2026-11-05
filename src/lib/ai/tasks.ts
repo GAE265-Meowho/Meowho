@@ -14,7 +14,7 @@ export interface TaskCatContext {
   description: string | null; timeline: string[]; videoNotes: string[];
 }
 
-const STAGE: Record<string, string> = { kitten: "幼貓", adult: "壯貓", senior: "老貓" };
+const STAGE: Record<string, string> = { kitten: "幼貓", adult: "成貓", senior: "老貓" };
 
 export const taskDraftChain = (runner: Runner) => createStructuredChain(TASK_DRAFT.system, TaskDraftSchema, runner);
 

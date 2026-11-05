@@ -9,7 +9,7 @@ const noMed: CatTurn["medical"] = {
   neutered: null, neuterNote: null, vaccineDoses: null, lastVaccineDate: null, dewormInternal: null, dewormExternal: null,
   fivFelv: null, testDate: null, microchip: null, history: null, medication: null,
 };
-const noCompat: CatTurn["compat"] = { cats: null, dogs: null, kids: null };
+const noCompat: CatTurn["compat"] = { cats: null, dogs: null, kids: null, guest: null };
 const hh = (o: Partial<HouseholdTurn>): HouseholdTurn => ({ caretakerType: null, name: null, city: null, district: null, intro: null, reply: "", ...o });
 const ct = (o: Partial<CatTurn>): CatTurn => ({
   name: null, sex: null, birthday: null, estAgeMonths: null, lifeStage: null, coat: null, breed: null,
@@ -221,16 +221,18 @@ describe("建立貓咪：先看照片影片，再補問", () => {
 
   it("描述會保留原文，標籤只留清單內的", async () => {
     const text = "很親人，愛玩逗貓棒，已經結紮，每天要吃藥";
-    const r = await takeTurn(catPhase(), text, llm(ct({ personalityTags: ["親人", "愛玩", "可愛"], healthTags: ["已結紮", "需每日用藥", "健康"], description: text })), today);
+    const r = await takeTurn(catPhase(), text, llm(ct({ personalityTags: ["親人", "愛玩", "可愛"], healthTags: ["已結紮", "每天吃藥", "健康"], description: text })), today);
     expect(r.state.cat.personalityTags).toEqual(["親人", "愛玩"]);
-    expect(r.state.cat.healthTags).toEqual(["已結紮", "需每日用藥"]);
+    // 結紮改放醫療細項，不在健康標籤（#206）
+    expect(r.state.cat.healthTags).toEqual(["每天吃藥"]);
     expect(r.state.cat.description).toBe(text);
   });
 
   it("沒有 AI 時，規則式也能整理描述與標籤", async () => {
-    const r = await takeTurn(catPhase(), "很親人又好奇，已結紮", noAI, today);
+    const r = await takeTurn(catPhase(), "很親人又好奇，已結紮，有口炎", noAI, today);
     expect(r.state.cat.personalityTags).toEqual(["親人", "好奇"]);
-    expect(r.state.cat.healthTags).toEqual(["已結紮"]);
+    expect(r.state.cat.healthTags).toEqual(["口炎"]);
+    expect(r.state.cat.medical.neutered).toBe("done");
   });
 
   it("先上傳照片、描述牠，再依序補問名字 → 年齡層", async () => {
@@ -380,12 +382,12 @@ describe("送養文欄位（#82）", () => {
   it("擷取醫療細項、相處、習慣、交接物品", async () => {
     const r = await takeTurn(withPhoto(), "貼文", llm(ct({
       medical: { ...noMed, vaccineDoses: 1, fivFelv: "negative", microchip: "yes" },
-      compat: { cats: "yes", dogs: null, kids: "no" },
-      habits: ["護食", "會飛"], handover: ["疫苗卡或病歷", "罐罐"],
+      compat: { cats: "yes", dogs: null, kids: "no", guest: "maybe" },
+      habits: ["怕打雷", "會飛"], handover: ["疫苗卡或病歷", "罐罐"],
     })), today);
     expect(r.state.cat.medical).toMatchObject({ vaccineDoses: 1, fivFelv: "negative", microchip: "yes", neutered: "unknown" });
-    expect(r.state.cat.compat).toEqual({ cats: "yes", dogs: "unknown", kids: "no" });
-    expect(r.state.cat.habits).toEqual(["護食"]);
+    expect(r.state.cat.compat).toEqual({ cats: "yes", dogs: "unknown", kids: "no", guest: "maybe", notes: {} });
+    expect(r.state.cat.habits).toEqual(["怕打雷"]);
     expect(r.state.cat.handover).toEqual(["疫苗卡或病歷"]);
   });
 
@@ -400,16 +402,17 @@ describe("送養文欄位（#82）", () => {
     expect(canCreateCat({ ...r.state, cat: { ...r.state.cat, name: "麥麥", lifeStage: "adult" } })).toBe(false);
   });
 
-  it("醫療細項帶出健康標籤；只打第一劑不會變成「疫苗已完成」", async () => {
-    const r = await takeTurn(withPhoto(), "貼文", llm(ct({ healthTags: ["疫苗已完成"], medical: { ...noMed, neutered: "done", vaccineDoses: 1 } })), today);
-    expect(r.state.cat.healthTags).toEqual(["已結紮"]);
+  it("醫療細項不會變成健康標籤，只有目前用藥帶出「每天吃藥」（#206）", async () => {
+    const r = await takeTurn(withPhoto(), "貼文", llm(ct({ healthTags: ["疫苗已完成"], medical: { ...noMed, neutered: "done", vaccineDoses: 1, medication: "腎臟藥" } })), today);
+    expect(r.state.cat.healthTags).toEqual(["每天吃藥"]);
+    expect(r.state.cat.medical).toMatchObject({ neutered: "done", vaccineDoses: 1 });
   });
 
   it("沒有 AI 時，規則式也能抓到常見的醫療與送養條件", async () => {
-    const r = await takeTurn(withPhoto(), "已結紮，打了第二劑疫苗，快篩陰性，有晶片。不放養、需家訪、要簽切結書，會護食", noAI, today);
+    const r = await takeTurn(withPhoto(), "已結紮，打了第二劑疫苗，快篩陰性，有晶片。不放養、需家訪、要簽切結書，怕打雷", noAI, today);
     expect(r.state.cat.medical).toMatchObject({ neutered: "done", vaccineDoses: 2, fivFelv: "negative", microchip: "yes" });
     expect(r.state.cat.adoptionTerms?.items).toEqual(["不放養", "家訪", "簽切結書"]);
-    expect(r.state.cat.habits).toEqual(["護食"]);
+    expect(r.state.cat.habits).toEqual(["怕打雷"]);
   });
 
   it("直接在名片上改，就算確認", () => {

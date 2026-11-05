@@ -56,14 +56,14 @@ export const INTAKE_CAT = {
 - 只根據使用者說的話填寫，沒提到的欄位填 null 或空陣列，不要猜。
 - 「目前在問」只是參考：使用者回答的若是別的欄位，照實填那個欄位。
 - 性別只在使用者明說時填；說不確定填 "unknown"。
-- 年齡：只分幼貓、壯貓、老貓。說「大約 2 歲」填 estAgeMonths=24、「剛滿月」填 1；說確切生日填 birthday；直接說「小貓」「成貓」「老貓」填 lifeStage（kitten／adult／senior）。
+- 年齡：只分幼貓（未滿 7 個月）、成貓、老貓（10 歲以上）。說「大約 2 歲」填 estAgeMonths=24、「剛滿月」填 1；說確切生日填 birthday；直接說「小貓」「成貓」「老貓」填 lifeStage（kitten／adult／senior）。
 - personalityTags 只能從這份清單挑：{{PERSONALITY_TAGS}}。
-- healthTags 只能從這份清單挑：{{HEALTH_TAGS}}。只有使用者明確說了才標；例如只打了第一劑預防針不算「疫苗已完成」，「要帶去結紮」不算「已結紮」。
+- healthTags 是身體狀況，只能從這份清單挑：{{HEALTH_TAGS}}。只有使用者明確說了才標，不要從症狀推測病名；結紮、疫苗、驅蟲、FIV／FeLV、晶片填在 medical，不要放進 healthTags。
 - description：保留使用者描述個性、習慣、健康的內容，整理成通順句子，不增加使用者沒說的事實。
 - timeline：中途常用日期記錄（例如「8/01 在永寧站接麥麥」「8/31 打第一劑預防針」）。每個有寫日期的事件一筆，date 照原文寫法，event 保留原文重點；沒寫日期的不要放。
 - 名字：「我的中途貓：麥麥」這類寫法也是名字。
 - medical：只填明確寫出的醫療資訊。「打了第一劑」是 vaccineDoses=1，不代表疫苗完成；快篩寫「雙陰」是 negative。
-- compat：只有明確寫出能不能和其他貓、狗、小孩相處時才填。
+- compat：只有明確寫出能不能和其他貓、狗、小孩、陌生人相處時才填；「要看情況」「慢慢介紹就可以」填 maybe。
 - habits 只能從這份清單挑：{{HABITS}}。handover 只能從這份清單挑：{{HANDOVER}}。
 - adoptionTerms：送養條件，盡量用這份清單的寫法：{{ADOPTION_TERMS}}；清單以外的寫進 adoptionNote。
 - 嚴禁推論疾病或給醫療建議。
