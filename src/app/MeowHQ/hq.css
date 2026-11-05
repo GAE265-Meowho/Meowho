@@ -519,7 +519,7 @@
 .hq-fp-3dbox { margin-bottom: 1rem; }
 .hq-exp-pick { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1rem; margin-bottom: 1rem; }
 @media (max-width: 639px) { .hq-exp-pick { grid-template-columns: minmax(0, 1fr); } }
-.hq-exp-stage { display: grid; grid-template-columns: minmax(0, 1fr) minmax(220px, 280px); gap: 1rem; align-items: start; }
+.hq-exp-stage { display: grid; grid-template-columns: minmax(0, 1fr) minmax(260px, 320px); gap: 1rem; align-items: start; }
 .hq-exp-stage .hq-fp-3d { height: 520px; }
 @media (max-width: 1023px) {
   .hq-exp-stage { grid-template-columns: minmax(0, 1fr); }
