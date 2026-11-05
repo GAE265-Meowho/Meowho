@@ -7,6 +7,7 @@ import {
   BEHAVIOR_ITEMS, BEHAVIOR_LEVEL_LABEL, CARE_ITEMS, COMPAT_KEYS, COMPAT_LABEL, HANDOVER_ITEMS, TOUCH_SIGNS, TOUCH_ZONES,
 } from "@/lib/cat-profile/adoption";
 import { ageLabel } from "@/lib/cat-profile/life-stage";
+import { ANGLE_KEYS, ANGLE_NAME, type Cover as CoverKey } from "@/lib/cat-profile/new-cat";
 import { TRAITS } from "@/lib/cat-profile/tags";
 import { ORIGIN_LABEL, ageMonthsOf, completeness, coverOf, skippedParts, tagsOf, weekLines, type NewCatForm } from "@/lib/onboarding/new-cat-form";
 import CatButton from "../ui/CatButton";
@@ -17,7 +18,7 @@ import { EditIcon, Toggles } from "./parts";
 import s from "./newcat.module.css";
 
 type Set = (fn: (f: NewCatForm) => NewCatForm) => void;
-const SEX = { male: "公", female: "母", unknown: "性別不確定" } as const;
+const SEX = { male: "公", female: "母", unknown: "" } as const;
 const HANDLING = { easy: "順利", tricky: "要技巧", hard: "很難", untried: "沒試過" } as const;
 const HANDLING_CLS = { easy: s.ok, tricky: s.mid, hard: s.warn, untried: s.plain } as const;
 const LEVEL_CLS = { none: s.ok, sometimes: s.mid, often: s.warn, unknown: s.plain } as const;
@@ -71,6 +72,10 @@ export function ReviewStep({ form, set, previews, home, onMotto, onJump }: {
     ...form.healthTags.map(t => ({ t, c: s.mid })),
   ].filter((x): x is { t: string; c: string } => Boolean(x));
   const later = "之後再補";
+  const photos: { key: CoverKey; path: string; label: string }[] = [
+    ...ANGLE_KEYS.filter(k => form.angles[k]).map(k => ({ key: `a:${k}` as CoverKey, path: form.angles[k]!, label: ANGLE_NAME[k] })),
+    ...form.others.map((p, i) => ({ key: `o:${i}` as CoverKey, path: p, label: `照片 ${i + 1}` })),
+  ];
   return (
     <>
       <h2 className={s.h1}>領養人會看到這張名片</h2>
@@ -97,6 +102,21 @@ export function ReviewStep({ form, set, previews, home, onMotto, onJump }: {
           {tags.length > 0 && <div className={s.pills}>{tags.map(t => <span key={t} className={s.pill}>{t}</span>)}</div>}
         </div>
       </article>
+
+      {/* 封面以外，也看得到其他上傳的照片；點一張就設為封面 */}
+      <div className={s.gap} />
+      <section className={s.card} aria-labelledby="sec-photos">
+        <Head id="sec-photos" title={`照片（${photos.length}）`} onEdit={() => onJump("photo")} />
+        <div className={s.gallery}>
+          {photos.map(p => (
+            <button key={p.key} type="button" className={s.galleryItem} aria-pressed={p.path === cover}
+              aria-label={`${p.label}${p.path === cover ? "，目前是封面" : "，設為封面"}`} onClick={() => set(f => ({ ...f, cover: p.key }))}>
+              <img src={previews[p.path] ?? ""} alt="" />
+              <span>{p.path === cover ? "封面" : p.label}</span>
+            </button>
+          ))}
+        </div>
+      </section>
 
       <div className={s.gap} />
       <section className={s.storyCard} aria-labelledby="story-h">
