@@ -14,9 +14,13 @@ const viewer = vi.hoisted(() => ({
   last: null as null | {
     rooms: { id: string }[];
     cat: { body: string; albedoUrl: string; baseUrl: string } | null;
-    onFloorDrop?: (itemId: string, roomId: string, x: number, z: number) => void;
-    onMoveItem?: (key: string, x: number, z: number) => void;
-    placedItems?: { key: string; name: string; x: number; z: number }[];
+    onFloorDrop?: (itemId: string, at: { roomId: string; x: number; z: number; y: number; support: null }) => void;
+    onMoveItem?: (key: string, at: { x: number; z: number; y: number; support: null }) => void;
+    onRemoveItem?: (key: string) => void;
+    onPlace?: unknown;
+    placeMode?: boolean;
+    interactMode?: "point" | "hand";
+    placedItems?: { key: string; name: string; x: number; z: number; y: number }[];
   },
 }));
 vi.mock("./FloorplanViewer", () => ({
@@ -96,7 +100,7 @@ describe("虛擬體驗（#150）", () => {
     expect(screen.getByText("選好虛擬貓和喵戶後，貓會出現在房間裡")).toBeInTheDocument();
   });
 
-  it("右側有用品選單，可依類別篩選；拖放會把用品放進場景", async () => {
+  it("右側有用品選單，可依類別篩選；拖放會把用品放進場景；點選不會開放置模式", async () => {
     mockFetch([cat("cat_1", "橘寶 Mango")], [summary(H1, "子哲的家")]);
     render(<ExperienceTab />);
     const palette = await screen.findByRole("complementary", { name: "生活用品選單" });
@@ -110,7 +114,16 @@ describe("虛擬體驗（#150）", () => {
     expect(within(palette).queryByText("開放式貓砂盆")).toBeNull();
     expect(within(palette).getByText("逗貓棒")).toBeInTheDocument();
     await waitFor(() => expect(viewer.last?.onFloorDrop).toBeTypeOf("function"));
-    viewer.last!.onFloorDrop!("i2", "r1", 1.2, 0.8);
-    await waitFor(() => expect(viewer.last?.placedItems?.some(p => p.name === "逗貓棒" && p.x === 1.2 && p.z === 0.8)).toBe(true));
+    expect(viewer.last?.onPlace).toBeUndefined();
+    expect(viewer.last?.interactMode).toBe("point");
+    expect(screen.getByRole("button", { name: "點" })).toHaveAttribute("aria-pressed", "true");
+    fireEvent.click(screen.getByRole("button", { name: "手掌" }));
+    await waitFor(() => expect(viewer.last?.interactMode).toBe("hand"));
+    viewer.last!.onFloorDrop!("i2", { roomId: "r1", x: 1.2, z: 0.8, y: 0, support: null });
+    await waitFor(() => expect(viewer.last?.placedItems?.some(p => p.name === "逗貓棒" && p.x === 1.2 && p.z === 0.8 && p.y === 0)).toBe(true));
+    const key = viewer.last!.placedItems!.find(p => p.name === "逗貓棒")!.key;
+    expect(viewer.last?.onRemoveItem).toBeTypeOf("function");
+    viewer.last!.onRemoveItem!(key);
+    await waitFor(() => expect(viewer.last?.placedItems?.some(p => p.key === key)).toBe(false));
   });
 });

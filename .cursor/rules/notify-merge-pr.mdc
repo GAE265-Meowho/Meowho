@@ -1,0 +1,12 @@
+---
+description: 完成修改後要通知 Tina 去 merge PR
+alwaysApply: true
+---
+
+# 完成修改 → 通知 merge PR
+
+每次完成一輪可交付的程式／規格修改後：
+
+1. 若尚未 commit／開 PR：先問 Tina 是否要 commit 並開 PR（未明確要求前不要自行 commit／push）。
+2. 若已開好 PR：在回覆結尾明確通知 Tina **去 merge PR**，並附上 PR 網址。
+3. 不要只說「改完了」就結束；一定要提醒 merge 這一步。

@@ -16,9 +16,16 @@ const FURNITURE_TOL_M = 0.3;
 /** 方塊家具的預設高度（公尺）；可以讓貓跳上去的家具頂面標 walkable */
 export const FURNITURE_HEIGHT_M: Record<(typeof FLOORPLAN_FURNITURE_KINDS)[number], number> = {
   sofa: 0.8, bed: 0.5, table: 0.75, chair: 0.9, desk: 0.75, wardrobe: 2.0, cabinet: 0.9,
-  tv_stand: 0.5, counter: 0.9, toilet: 0.4, bathtub: 0.6, other: 0.8,
+  tv_stand: 0.5, counter: 0.9, toilet: 0.4, bathtub: 0.6,
+  fan: 1.0, computer: 0.45, cup: 0.12, vase: 0.35, notebook: 0.03, other: 0.8,
 };
 const WALKABLE = new Set(["sofa", "bed", "table", "desk", "cabinet", "tv_stand", "counter"]);
+/** 可承載桌上／檯面小物的父家具 */
+const SURFACE_PARENTS = new Set(["desk", "table", "cabinet", "counter"]);
+/** 最小平面尺寸（杯子等小物可小於 0.1 m） */
+const FURNITURE_MIN_M = 0.04;
+/** 永不 nested 的 kind（即使 AI 填了 parent） */
+const FLOOR_ONLY = new Set(["fan"]);
 const DOOR_H_M = 2.1;
 const WINDOW_H_M = 1.2;
 const WINDOW_SILL_M = 0.9;
@@ -28,6 +35,7 @@ export type ReadResult = { ok: true; name: string | null; geometry: PlanGeometry
 const round = (n: number) => Math.round(n * 1000) / 1000;
 const finite = (n: unknown): n is number => typeof n === "number" && Number.isFinite(n);
 const dist = (p: Point, q: Point) => Math.hypot(p[0] - q[0], p[1] - q[1]);
+const clamp = (n: number, lo: number, hi: number) => Math.min(Math.max(n, lo), hi);
 
 /**
  * 靠牆家具（Tina 2026-11-03：照片推估的家具位置偏差大）：AI 只要說靠哪面牆、大概在牆的哪一段，
@@ -51,6 +59,38 @@ export function snapToWall(wall: PlanWall, walls: PlanWall[], f: { x: number; y:
   // 背面朝牆外：rot=0 背面朝 (0, -1)；轉 rot 度後背面＝(sin, -cos)…以 rotY=-rot 的 three.js 慣例換算
   const rot = (Math.atan2(nx, -ny) * 180) / Math.PI;
   return { x: round(x), y: round(y), rot: round(((rot % 360) + 360) % 360) };
+}
+
+/** 把桌上物中心限制在父家具頂面內（軸對齊近似；父家具已貼齊牆後通常接近軸對齊） */
+export function snapToParent(parent: PlanFurniture, f: { x: number; y: number; w: number; d: number }): { x: number; y: number; elev: number; rot: number } {
+  const marginX = Math.min(f.w / 2, parent.w / 2);
+  const marginY = Math.min(f.d / 2, parent.d / 2);
+  return {
+    x: round(clamp(f.x, parent.x - parent.w / 2 + marginX, parent.x + parent.w / 2 - marginX)),
+    y: round(clamp(f.y, parent.y - parent.d / 2 + marginY, parent.y + parent.d / 2 - marginY)),
+    elev: parent.h,
+    rot: parent.rot,
+  };
+}
+
+type AiFurniture = FloorplanRoomOut["furniture"][number];
+
+function floorFurniture(
+  f: AiFurniture,
+  walls: PlanWall[],
+  wallIndex: Map<number, number>,
+  inside: (x: number, y: number) => boolean,
+): PlanFurniture | null {
+  if (![f.x, f.y, f.w, f.d].every(finite) || f.w <= FURNITURE_MIN_M || f.d <= FURNITURE_MIN_M || f.w > ROOM_SIDE_MAX_M || f.d > ROOM_SIDE_MAX_M || !inside(f.x, f.y)) return null;
+  const wi = f.wall === null || f.wall === undefined ? undefined : wallIndex.get(f.wall);
+  const snapped = wi === undefined ? null : snapToWall(walls[wi], walls, { x: f.x, y: f.y, w: f.w, d: f.d });
+  const item: PlanFurniture = {
+    kind: f.kind, label: f.label.trim().slice(0, 20) || f.kind,
+    ...(snapped ?? { x: round(f.x), y: round(f.y), rot: finite(f.rot) ? round(f.rot) : 0 }),
+    w: round(f.w), d: round(f.d), h: FURNITURE_HEIGHT_M[f.kind],
+    ...(wi !== undefined && snapped ? { wall: wi } : {}),
+  };
+  return WALKABLE.has(f.kind) ? { ...item, surface: "walkable" } : item;
 }
 
 export function normalizeReading(out: FloorplanRoomOut): ReadResult {
@@ -100,21 +140,49 @@ export function normalizeReading(out: FloorplanRoomOut): ReadResult {
       : { kind: "window" as const, wall: wi, at: round(at), w: round(w), h: WINDOW_H_M, sill: WINDOW_SILL_M }];
   });
 
-  // 家具：尺寸要合理、中心要在房間內（容許畫圖誤差）
   const inside = (x: number, y: number) =>
     x >= box.minX - FURNITURE_TOL_M && x <= box.maxX + FURNITURE_TOL_M && y >= box.minY - FURNITURE_TOL_M && y <= box.maxY + FURNITURE_TOL_M;
-  const furniture: PlanFurniture[] = out.furniture.flatMap(f => {
-    if (![f.x, f.y, f.w, f.d].every(finite) || f.w <= 0.1 || f.d <= 0.1 || f.w > ROOM_SIDE_MAX_M || f.d > ROOM_SIDE_MAX_M || !inside(f.x, f.y)) return [];
-    const wi = f.wall === null ? undefined : index.get(f.wall);
-    const snapped = wi === undefined ? null : snapToWall(walls[wi], walls, { x: f.x, y: f.y, w: f.w, d: f.d });
-    const item: PlanFurniture = {
-      kind: f.kind, label: f.label.trim().slice(0, 20) || f.kind,
-      ...(snapped ?? { x: round(f.x), y: round(f.y), rot: finite(f.rot) ? round(f.rot) : 0 }),
-      w: round(f.w), d: round(f.d), h: FURNITURE_HEIGHT_M[f.kind],
-      ...(wi !== undefined && snapped ? { wall: wi } : {}),
-    };
-    return [WALKABLE.has(f.kind) ? { ...item, surface: "walkable" as const } : item];
+
+  // 先落地家具（含風扇），再 nested（電腦貼桌）；parent 索引對 AI 的 furniture 陣列
+  const furniture: PlanFurniture[] = [];
+  const aiToOut = new Map<number, number>();
+  const nested: { aiIndex: number; f: AiFurniture; parentAi: number }[] = [];
+
+  out.furniture.forEach((f, aiIndex) => {
+    const parentAi = f.parent;
+    const wantsNest = typeof parentAi === "number" && Number.isInteger(parentAi) && parentAi !== aiIndex && !FLOOR_ONLY.has(f.kind);
+    if (wantsNest) {
+      nested.push({ aiIndex, f, parentAi: parentAi as number });
+      return;
+    }
+    const item = floorFurniture(f, walls, index, inside);
+    if (!item) return;
+    aiToOut.set(aiIndex, furniture.length);
+    furniture.push(item);
   });
+
+  for (const { aiIndex, f, parentAi } of nested) {
+    if (![f.x, f.y, f.w, f.d].every(finite) || f.w <= FURNITURE_MIN_M || f.d <= FURNITURE_MIN_M || f.w > ROOM_SIDE_MAX_M || f.d > ROOM_SIDE_MAX_M || !inside(f.x, f.y)) continue;
+    const parentOut = aiToOut.get(parentAi);
+    const parent = parentOut === undefined ? undefined : furniture[parentOut];
+    if (parent && SURFACE_PARENTS.has(parent.kind)) {
+      const snapped = snapToParent(parent, { x: f.x, y: f.y, w: f.w, d: f.d });
+      const item: PlanFurniture = {
+        kind: f.kind, label: f.label.trim().slice(0, 20) || f.kind,
+        x: snapped.x, y: snapped.y, rot: snapped.rot,
+        w: round(f.w), d: round(f.d), h: FURNITURE_HEIGHT_M[f.kind],
+        parent: parentOut, elev: snapped.elev,
+      };
+      aiToOut.set(aiIndex, furniture.length);
+      furniture.push(item);
+      continue;
+    }
+    // parent 不合法：改當落地（螢幕沒桌子時仍顯示）
+    const item = floorFurniture(f, walls, index, inside);
+    if (!item) continue;
+    aiToOut.set(aiIndex, furniture.length);
+    furniture.push(item);
+  }
 
   const height = finite(out.wallHeightM) && out.wallHeightM >= 2 && out.wallHeightM <= 5 ? round(out.wallHeightM) : DEFAULT_WALL_HEIGHT_M;
   // 實景照片沒有固定比例尺：一律記為推估（#144）

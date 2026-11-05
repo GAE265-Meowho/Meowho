@@ -1,5 +1,5 @@
 "use client";
-// 虛擬體驗右側用品選單（#197）：左道具格可拖、右文字只是提示；圖完整入框像一般遊戲道具。
+// 虛擬體驗右側用品選單（#197）：左道具格可拖、右文字只是提示；只能拖進房間放置（點地板不會新增）。
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useMemo, useState, type DragEvent } from "react";
@@ -43,7 +43,7 @@ export function ExperienceItemPalette({
     <aside className={styles.panel} aria-label="生活用品選單">
       <div className={styles.head}>
         <h3>生活用品</h3>
-        <p className="hq-hint">拖左邊圖進房間；點文字也可以選，再點地板放置。</p>
+        <p className="hq-hint">拖左邊圖進房間才會放置；點地板不會新增。放好的可用手掌模式拖移，上方 × 可刪除。</p>
       </div>
 
       {categories.length > 0 && (
@@ -96,7 +96,7 @@ export function ExperienceItemPalette({
                 >
                   <span className={styles.name}>{it.name}</span>
                   <span className={styles.cat}>{it.categoryName}</span>
-                  <span className={styles.hint}>{on ? "已選 · 拖左邊圖或點地板" : "拖左邊圖進房間"}</span>
+                  <span className={styles.hint}>{on ? "已選 · 拖左邊圖進房間" : "拖左邊圖進房間"}</span>
                 </button>
               </div>
             );

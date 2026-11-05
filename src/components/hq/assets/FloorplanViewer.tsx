@@ -3,7 +3,7 @@
 // 場景資料在 src/lib/hq/floorplans/scene.ts（純函式、可測）；家具換成模型庫的 glb（kit.ts，Tina 2026-11-03：
 // 效果比照 Meow/meowho_3d_room），地板用同一套橡木貼圖。點地板或上方房名＝選那間房（選中的房間在房名按鈕標示）。
 // 用 next/dynamic（ssr: false）載入；不改動 Gaussian Splat 用的 RoomViewer。
-import { OrbitControls, useGLTF, useTexture } from "@react-three/drei";
+import { Html, OrbitControls, useGLTF, useTexture } from "@react-three/drei";
 import { Canvas, useFrame, useThree, type ThreeEvent } from "@react-three/fiber";
 import { Suspense, useEffect, useMemo, useRef, useState, type DragEvent, type MutableRefObject } from "react";
 import * as THREE from "three";
@@ -16,11 +16,14 @@ import { CatModel } from "./CatPreview";
 import { readItemDragId } from "./itemDrag";
 import type { PlanRoom } from "@/lib/hq/floorplans/types";
 
-/** 把螢幕座標打到地板，回傳該房間座標（給 HTML5 拖放用） */
-export type FloorHit = { roomId: string; x: number; z: number };
+/** 生活用品放在哪：null＝地板；有值＝家具頂面（scene.boxes 索引） */
+export type ItemSupport = { furnitureIndex: number; localX: number; localZ: number } | null;
+
+/** 把螢幕座標打到地板或可承載桌面，回傳該房間座標（給 HTML5 拖放用） */
+export type FloorHit = { roomId: string; x: number; z: number; y: number; support: ItemSupport };
 export type FloorRayApi = { hit: (clientX: number, clientY: number) => FloorHit | null };
 
-/** 虛擬體驗放置的生活用品（#197）：位置在該房間座標，尺寸為公尺 */
+/** 虛擬體驗放置的生活用品（#197）：位置在該房間座標，尺寸為公尺；y＝底部離地 */
 export interface PlacedHouseholdItem {
   key: string;
   roomId: string;
@@ -28,9 +31,16 @@ export interface PlacedHouseholdItem {
   name: string;
   x: number;
   z: number;
+  y: number;
   widthM: number;
   depthM: number;
   heightM: number;
+  support?: ItemSupport;
+}
+
+/** 書桌／桌子／可跳上家具頂面可放生活用品（拖放 raycast 用） */
+function isSupportBox(b: SceneBox | undefined): b is SceneBox {
+  return !!b && b.kind === "furniture" && (b.furniture === "desk" || b.furniture === "table" || !!b.walkable);
 }
 
 // 牆用 meowho_3d_room 的牆面漆色
@@ -78,33 +88,60 @@ function Block({ b, color }: { b: SceneBox; color: string }) {
   );
 }
 
-/** 家具：模型庫的 glb，縮放成讀圖結果的寬、高、深；載入中先用方塊 */
-function Furniture({ b, onClick }: { b: SceneBox; onClick?: (e: ThreeEvent<MouseEvent>) => void }) {
+/** 家具：模型庫的 glb，縮放成讀圖結果的寬、高、深；載入中先用方塊；透明碰撞盒確保點床／沙發可叫貓 */
+function Furniture({ b, roomId, boxIndex, onClick }: {
+  b: SceneBox; roomId: string; boxIndex: number; onClick?: (e: ThreeEvent<MouseEvent>) => void;
+}) {
   const { scene } = useGLTF(kitUrl(b.furniture ?? "other"));
   const model = useMemo(() => {
     const m = scene.clone(true);
     m.traverse(o => { if ((o as THREE.Mesh).isMesh) { o.castShadow = true; o.receiveShadow = true; } });
     return m;
   }, [scene]);
+  const support = isSupportBox(b);
+  const supportData = support ? {
+    meowSupportRoomId: roomId,
+    meowSupportIndex: boxIndex,
+    meowSupportTopY: b.y + b.sy / 2,
+    meowSupportCx: b.x,
+    meowSupportCz: b.z,
+  } : undefined;
+  // y＝方塊中心；模型底部貼在 y − h/2（桌上物 elev＞0）
   return (
-    <primitive object={model} position={[b.x, 0, b.z]} rotation={[0, b.rotY, 0]}
-      scale={kitScale(b.furniture ?? "other", { w: b.sx, h: b.sy, d: b.sz })} onClick={onClick} />
+    <group>
+      <primitive
+        object={model}
+        position={[b.x, b.y - b.sy / 2, b.z]}
+        rotation={[0, b.rotY, 0]}
+        scale={kitScale(b.furniture ?? "other", { w: b.sx, h: b.sy, d: b.sz })}
+        userData={supportData}
+      />
+      {onClick && (
+        <mesh position={[b.x, b.y, b.z]} rotation={[0, b.rotY, 0]} onClick={onClick} userData={supportData}>
+          <boxGeometry args={[b.sx, b.sy, b.sz]} />
+          <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+        </mesh>
+      )}
+    </group>
   );
 }
 
-/** 生活用品：依量到的公尺尺寸縮放，底部貼地；可拖移（拖時關掉 OrbitControls）；貓會繞過（obstacle） */
-function PlacedItemModel({ item, onMove }: {
+type MovePayload = { x: number; z: number; y: number; support: ItemSupport };
+
+/** 生活用品：依量到的公尺尺寸縮放；可放地板或桌面；手掌模式可拖移；上方 × 可刪除；落地物貓會繞過 */
+function PlacedItemModel({ item, room, dragEnabled, onMove, onRemove }: {
   item: PlacedHouseholdItem;
-  onMove?: (key: string, x: number, z: number) => void;
+  room: RoomScene;
+  dragEnabled: boolean;
+  onMove?: (key: string, place: MovePayload) => void;
+  onRemove?: (key: string) => void;
 }) {
   const { scene } = useGLTF(item.url);
   const group = useRef<THREE.Group>(null);
   const dragging = useRef(false);
+  const draft = useRef<MovePayload>({ x: item.x, z: item.z, y: item.y, support: item.support ?? null });
   const controls = useThree(s => s.controls) as { enabled: boolean } | null;
-  const { camera, pointer, raycaster } = useThree();
-  const plane = useMemo(() => new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), []);
-  const hit = useMemo(() => new THREE.Vector3(), []);
-  const local = useMemo(() => new THREE.Vector3(), []);
+  const { camera, pointer, raycaster, scene: threeScene } = useThree();
   const prepared = useMemo(() => {
     const m = scene.clone(true);
     m.traverse(o => { if ((o as THREE.Mesh).isMesh) { o.castShadow = true; o.receiveShadow = true; } });
@@ -113,21 +150,23 @@ function PlacedItemModel({ item, onMove }: {
     const sx = item.widthM / Math.max(size.x, 1e-4);
     const sy = item.heightM / Math.max(size.y, 1e-4);
     const sz = item.depthM / Math.max(size.z, 1e-4);
-    return { m, scale: [sx, sy, sz] as [number, number, number], y: -box.min.y * sy };
+    return { m, scale: [sx, sy, sz] as [number, number, number], base: -box.min.y * sy };
   }, [scene, item.widthM, item.heightM, item.depthM]);
+
+  const worldY = (elev: number) => elev + prepared.base;
 
   useEffect(() => {
     if (dragging.current) return;
-    group.current?.position.set(item.x, prepared.y, item.z);
-  }, [item.x, item.z, prepared.y]);
+    group.current?.position.set(item.x, worldY(item.y), item.z);
+    draft.current = { x: item.x, z: item.z, y: item.y, support: item.support ?? null };
+  }, [item.x, item.z, item.y, item.support, prepared.base]);
 
   useEffect(() => {
     const end = () => {
       if (!dragging.current) return;
       dragging.current = false;
       if (controls) controls.enabled = true;
-      const g = group.current;
-      if (g && onMove) onMove(item.key, g.position.x, g.position.z);
+      if (onMove) onMove(item.key, draft.current);
       document.body.style.cursor = "";
     };
     window.addEventListener("pointerup", end);
@@ -141,31 +180,73 @@ function PlacedItemModel({ item, onMove }: {
   useFrame(() => {
     if (!dragging.current || !group.current?.parent) return;
     raycaster.setFromCamera(pointer, camera);
-    if (!raycaster.ray.intersectPlane(plane, hit)) return;
-    group.current.parent.worldToLocal(local.copy(hit));
-    group.current.position.x = local.x;
-    group.current.position.z = local.z;
+    const hits = raycaster.intersectObjects(threeScene.children, true);
+    for (const h of hits) {
+      let o: THREE.Object3D | null = h.object;
+      while (o) {
+        const supportRoom = o.userData?.meowSupportRoomId as string | undefined;
+        const floorRoom = o.userData?.meowFloorRoomId as string | undefined;
+        if (supportRoom === item.roomId) {
+          const parent = o.parent;
+          if (!parent) return;
+          const p = parent.worldToLocal(h.point.clone());
+          const idx = o.userData.meowSupportIndex as number;
+          const topY = o.userData.meowSupportTopY as number;
+          const cx = (o.userData.meowSupportCx as number) ?? room.boxes[idx]?.x ?? p.x;
+          const cz = (o.userData.meowSupportCz as number) ?? room.boxes[idx]?.z ?? p.z;
+          draft.current = {
+            x: p.x, z: p.z, y: topY,
+            support: { furnitureIndex: idx, localX: p.x - cx, localZ: p.z - cz },
+          };
+          group.current.position.set(p.x, worldY(topY), p.z);
+          return;
+        }
+        if (floorRoom === item.roomId) {
+          const parent = o.parent;
+          if (!parent) return;
+          const p = parent.worldToLocal(h.point.clone());
+          draft.current = { x: p.x, z: p.z, y: 0, support: null };
+          group.current.position.set(p.x, worldY(0), p.z);
+          return;
+        }
+        o = o.parent;
+      }
+    }
   });
 
   return (
     <group
       ref={group}
-      position={[item.x, prepared.y, item.z]}
+      position={[item.x, worldY(item.y), item.z]}
       onPointerDown={(e: ThreeEvent<PointerEvent>) => {
-        if (!onMove) return;
+        if (!dragEnabled || !onMove) return;
         e.stopPropagation();
         dragging.current = true;
         if (controls) controls.enabled = false;
         document.body.style.cursor = "grabbing";
       }}
-      onClick={(e: ThreeEvent<MouseEvent>) => e.stopPropagation()}
+      onClick={(e: ThreeEvent<MouseEvent>) => {
+        if (dragEnabled) e.stopPropagation();
+      }}
     >
       <primitive object={prepared.m} scale={prepared.scale} />
+      {onRemove && (
+        <Html position={[0, item.heightM + 0.12, 0]} center zIndexRange={[30, 20]} style={{ pointerEvents: "none" }}>
+          <button
+            type="button"
+            className="hq-fp-item-x"
+            aria-label={`移除 ${item.name}`}
+            style={{ pointerEvents: "auto" }}
+            onPointerDown={e => { e.stopPropagation(); e.preventDefault(); }}
+            onClick={e => { e.stopPropagation(); onRemove(item.key); }}
+          >×</button>
+        </Html>
+      )}
     </group>
   );
 }
 
-/** 把 HTML 拖放的螢幕座標轉成房間地板座標 */
+/** 把 HTML 拖放的螢幕座標轉成房間地板或桌面座標 */
 function FloorRayBridge({ api }: { api: MutableRefObject<FloorRayApi | null> }) {
   const { camera, gl, scene } = useThree();
   const raycaster = useMemo(() => new THREE.Raycaster(), []);
@@ -180,12 +261,25 @@ function FloorRayBridge({ api }: { api: MutableRefObject<FloorRayApi | null> }) 
         for (const h of raycaster.intersectObjects(scene.children, true)) {
           let o: THREE.Object3D | null = h.object;
           while (o) {
+            const supportRoom = o.userData?.meowSupportRoomId as string | undefined;
+            if (supportRoom) {
+              const parent = o.parent;
+              if (!parent) return null;
+              const p = parent.worldToLocal(h.point.clone());
+              const idx = o.userData.meowSupportIndex as number;
+              const cx = o.userData.meowSupportCx as number;
+              const cz = o.userData.meowSupportCz as number;
+              return {
+                roomId: supportRoom, x: p.x, z: p.z, y: o.userData.meowSupportTopY as number,
+                support: { furnitureIndex: idx, localX: p.x - cx, localZ: p.z - cz },
+              };
+            }
             const roomId = o.userData?.meowFloorRoomId as string | undefined;
             if (roomId) {
               const parent = o.parent;
               if (!parent) return null;
               const p = parent.worldToLocal(h.point.clone());
-              return { roomId, x: p.x, z: p.z };
+              return { roomId, x: p.x, z: p.z, y: 0, support: null };
             }
             o = o.parent;
           }
@@ -198,8 +292,11 @@ function FloorRayBridge({ api }: { api: MutableRefObject<FloorRayApi | null> }) 
   return null;
 }
 
+/** 桌上小物不另建障礙（已有家具碰撞）；落地物才繞行 */
 function itemObstacles(items: PlacedHouseholdItem[]): Obstacle[] {
-  return items.map(i => ({ x: i.x, z: i.z, hx: i.widthM / 2, hz: i.depthM / 2, rotY: 0 }));
+  return items
+    .filter(i => !i.support)
+    .map(i => ({ x: i.x, z: i.z, hx: Math.min(i.widthM, i.depthM) / 2, hz: Math.min(i.widthM, i.depthM) / 2, rotY: 0 }));
 }
 
 /** 地板：橡木貼圖，每 1.2 公尺重複一次；userData 供拖放 raycast 對到房間 */
@@ -240,7 +337,7 @@ function Room({ s, onClick, children }: { s: RoomScene; onClick: (c: RoomClick) 
         b.kind === "floor" ? (
           <Suspense key={i} fallback={<Block b={b} color="#D9CCB4" />}><Floor b={b} roomId={s.id} onClick={handle(null)} /></Suspense>
         ) : b.kind === "furniture" ? (
-          <Suspense key={i} fallback={<Block b={b} color="#D8D2C8" />}><Furniture b={b} onClick={handle(i)} /></Suspense>
+          <Suspense key={i} fallback={<Block b={b} color="#D8D2C8" />}><Furniture b={b} roomId={s.id} boxIndex={i} onClick={handle(i)} /></Suspense>
         ) : (
           <WallPiece key={i} b={b} center={[s.size[0] / 2, s.size[1] / 2]} />
         ))}
@@ -348,19 +445,24 @@ function CameraRig({ position, view }: { position: [number, number, number]; vie
 /**
  * 上方膠囊：「全部」＝讀圖完成的房間並排；點某間＝3D 只顯示那一間並重新取景，同時切換下方的原圖預覽（onPick）。
  */
-export default function FloorplanViewer({ rooms, selected, onPick, cat, placedItems = [], placeMode = false, onPlace, onMoveItem, onFloorDrop }: {
+export type PlaceAt = { roomId: string; x: number; z: number; y: number; support: ItemSupport };
+/** point＝點地板／床叫貓；hand＝拖移已放用品（不叫貓） */
+export type InteractMode = "point" | "hand";
+
+export default function FloorplanViewer({ rooms, selected, onPick, cat, placedItems = [], interactMode = "point", onMoveItem, onRemoveItem, onFloorDrop }: {
   rooms: PlanRoom[]; selected: string | null; onPick: (id: string) => void;
   /** 虛擬體驗（#150）：放一隻貓進去；有貓時只顯示單間（沒有「全部」），點地板叫貓走過去 */
   cat?: ViewerCat | null;
-  /** 虛擬體驗（#197）：已放進房間的生活用品 */
+  /** 虛擬體驗（#197）：已放進房間的生活用品；只能從右側選單拖放進來，點地板不會新增 */
   placedItems?: PlacedHouseholdItem[];
-  /** 放置模式：點地板改放用品，不叫貓走 */
-  placeMode?: boolean;
-  onPlace?: (roomId: string, x: number, z: number) => void;
-  /** 拖移已放置的用品 */
-  onMoveItem?: (key: string, x: number, z: number) => void;
-  /** 從右側選單拖放到地板 */
-  onFloorDrop?: (itemId: string, roomId: string, x: number, z: number) => void;
+  /** 點／手掌：點＝叫貓；手掌＝拖移用品 */
+  interactMode?: InteractMode;
+  /** 拖移已放置的用品（可改到桌面或地板） */
+  onMoveItem?: (key: string, at: MovePayload) => void;
+  /** 移除已放置的用品（元件上方 ×） */
+  onRemoveItem?: (key: string) => void;
+  /** 從右側選單拖放到地板或桌面 */
+  onFloorDrop?: (itemId: string, at: PlaceAt) => void;
 }) {
   const scenes = useMemo(() => houseScene(rooms), [rooms]);
   const [focus, setFocus] = useState<string | null>(cat ? selected ?? scenes[0]?.id ?? null : null);
@@ -383,7 +485,7 @@ export default function FloorplanViewer({ rooms, selected, onPick, cat, placedIt
     e.preventDefault();
     const itemId = readItemDragId(e.dataTransfer);
     const hit = floorRay.current?.hit(e.clientX, e.clientY);
-    if (itemId && hit) onFloorDrop(itemId, hit.roomId, hit.x, hit.z);
+    if (itemId && hit) onFloorDrop(itemId, { roomId: hit.roomId, x: hit.x, z: hit.z, y: hit.y, support: hit.support });
   };
 
   return (
@@ -417,12 +519,17 @@ export default function FloorplanViewer({ rooms, selected, onPick, cat, placedIt
               return (
                 <Room key={s.id} s={s} onClick={c => {
                   if (!cat) { pick(s.id); return; }
-                  if (placeMode && c.box === null && onPlace) { onPlace(s.id, c.x, c.z); return; }
+                  if (interactMode !== "point") return;
                   setClick({ ...c, at: Date.now() });
                 }}>
                   {roomItems.map(item => (
                     <Suspense key={item.key} fallback={null}>
-                      <PlacedItemModel item={item} onMove={onMoveItem} />
+                      <PlacedItemModel
+                        item={item} room={s}
+                        dragEnabled={interactMode === "hand"}
+                        onMove={onMoveItem}
+                        onRemove={onRemoveItem}
+                      />
                     </Suspense>
                   ))}
                   {cat && <CatActor key={`${s.id}:${cat.albedoUrl}`} s={s} look={cat} click={click} pos={catPos} extraObs={itemObstacles(roomItems)} />}
