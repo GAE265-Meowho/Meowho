@@ -39,6 +39,16 @@ describe("UT-HQ-13 登入頁", () => {
   });
 });
 
+describe("MeowHQ 頁尾建置資訊", () => {
+  it("每個頁面左下 update by、右下 version date", () => {
+    render(shell());
+    const foot = screen.getByRole("contentinfo", { name: "頁面建置資訊" });
+    expect(foot).toHaveTextContent(/update by :/);
+    expect(foot).toHaveTextContent(/version date:/);
+    expect(foot.textContent).toMatch(/\d{4}\/\d{2}\/\d{2} \d{2}:\d{2}:\d{2}/);
+  });
+});
+
 describe("UT-HQ-42 手機選單", () => {
   it("☰ 切換側欄與 aria-expanded", () => {
     render(shell());

@@ -145,6 +145,17 @@
 - 原型中尚未完成的按鈕加 `data-login` 或 `data-proto="功能名"`，會自動顯示提示。
 - 站台標誌由管理者設定選擇（`LOGOS`），不要自行更換 logo 檔案。2026-10-29 Tina 已將三款內建 Logo 換成 Meowho喵戶 新版（小屋摸摸款、圓形花貓款、橫式字標款）。
 
+### 6.1 MeowHQ 頁面建置資訊（所有 `/MeowHQ` 頁必守）
+
+凡變更會影響 `https://meowho.vercel.app/MeowHQ`（含子路徑）畫面並要發布上線時：
+
+- **每個 MeowHQ 頁**內容區底部必須有頁尾（由 `HqShell` 統一渲染，**不要**在各 tab 重複做）：
+  - **左下**：`update by : <whom>`（建置時的提交者／部署者）
+  - **右下**：`version date: yyyy/mm/dd hh24:mi:ss`（Asia/Taipei 建置時間）
+- 實作來源：`src/lib/hq/build-meta.ts`、`next.config.ts` 寫入 `NEXT_PUBLIC_HQ_UPDATED_BY`／`NEXT_PUBLIC_HQ_VERSION`；UI 在 `src/components/hq/HqShell.tsx` 的 `.hq-pagefoot`。
+- **禁止**把 version 藏在頂列、或只做在單一 tab；改殼層／頁尾樣式時要跑 `shell.test.tsx` 的頁尾斷言。
+- Cursor、Claude Code、Codex、Antigravity／Gemini 皆遵守本節（本檔為唯一共同規範）。
+
 ### 不可違反的業務規則
 - 費用數字只來自資料庫或公式，**LLM 不得產生數字**。
 - 醫療相關內容附「僅供參考，非醫療建議」；處方飼料只在有獸醫診斷紀錄時顯示。
