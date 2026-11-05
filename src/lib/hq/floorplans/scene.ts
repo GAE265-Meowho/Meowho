@@ -15,7 +15,7 @@ export interface SceneBox {
   furniture?: string;
   /** 對應 PlanRoom.furniture 原始陣列索引（僅 furniture；虛擬體驗移除／拖移用） */
   furnitureIndex?: number;
-  /** 落地家具（無 parent）可在虛擬體驗手掌模式拖移 */
+  /** 虛擬體驗手掌模式可拖移（所有未移除家具） */
   movable?: boolean;
   /** 貓可以跳上去的家具頂面 */
   walkable?: boolean;
@@ -101,14 +101,13 @@ export function roomBoxes(geo: PlanGeometry, omit?: Set<number>, moves?: Map<num
   geo.walls.forEach((_, i) => boxes.push(...wallBoxes(geo, i, shift, center)));
   geo.furniture.forEach((f, i) => {
     if (omit?.has(i)) return;
-    const elev = f.elev ?? 0;
     const pose = resolveFurniturePose(geo.furniture, i, shift, moves);
     boxes.push({
       kind: "furniture", furniture: f.kind, furnitureIndex: i,
-      movable: typeof f.parent !== "number" || undefined,
+      movable: true,
       walkable: f.surface === "walkable" || undefined,
-      x: pose.x, y: r3(elev + f.h / 2), z: pose.z, sx: f.w, sy: f.h, sz: f.d,
-      rotY: r3(-(f.rot * Math.PI) / 180),
+      x: pose.x, y: r3(pose.elev + f.h / 2), z: pose.z, sx: f.w, sy: f.h, sz: f.d,
+      rotY: r3(-(pose.rot * Math.PI) / 180),
     });
   });
   return { boxes, size };

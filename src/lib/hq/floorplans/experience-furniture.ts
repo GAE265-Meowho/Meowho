@@ -1,8 +1,21 @@
-// 虛擬體驗：讀圖家具可暫時移除／拖移（session，不寫回 meta）
+// 虛擬體驗：讀圖家具可暫時移除／拖移／旋轉／承載（session，不寫回 meta）
 import type { PlanFurniture, PlanRoom, Point } from "./types";
 
-/** 房間座標（已平移到左上角＝原點的 x／z，與 SceneBox 相同） */
-export type FurnitureMove = { x: number; z: number };
+/** 壓在另一件家具頂面（PlanRoom.furniture 原始索引） */
+export type FurnitureSupport = { furnitureIndex: number; localX: number; localZ: number };
+
+/** 房間座標姿態（已平移到左上角＝原點的 x／z，與 SceneBox 相同） */
+export type FurnitureMove = {
+  x: number;
+  z: number;
+  /** session 絕對角度（度）；寫入時必填；舊資料缺省＝讀圖 rot */
+  rot?: number;
+  /** null＝地板；物件＝承載；缺省＝視為地板絕對座標（相容舊 move） */
+  support?: FurnitureSupport | null;
+};
+
+/** resolve 後給 scene 用的完整姿態 */
+export type ResolvedFurniturePose = { x: number; z: number; rot: number; elev: number };
 
 export function furnitureKey(roomId: string, index: number): string {
   return `${roomId}:${index}`;
@@ -17,8 +30,8 @@ export function parseFurnitureKey(key: string): { roomId: string; index: number 
   return { roomId, index };
 }
 
-/** 父家具被移除時，子物（parent 指向父）一併移除；拖移時同集合＝跟隨的子孫 */
-export function expandRemovedIndices(furniture: PlanFurniture[], removed: Set<number>): Set<number> {
+/** 父家具被移除時，子物（parent 指向父）一併移除；拖移跟隨集合同邏輯 */
+export function expandRemovedIndices(furniture: { parent?: number }[], removed: Set<number>): Set<number> {
   const out = new Set(removed);
   let grew = true;
   while (grew) {
@@ -30,6 +43,23 @@ export function expandRemovedIndices(furniture: PlanFurniture[], removed: Set<nu
         grew = true;
       }
     });
+  }
+  return out;
+}
+
+/**
+ * 父件拖移時仍應跟隨的索引：自己＋無獨立 session move 的 plan-nested 子孫。
+ * 已有自己 move 的（拆開或獨立擺過）不跟。
+ */
+export function followFurnitureIndices(
+  furniture: { parent?: number }[],
+  root: number,
+  moves?: Map<number, FurnitureMove>,
+): Set<number> {
+  const out = expandRemovedIndices(furniture, new Set([root]));
+  for (const i of [...out]) {
+    if (i === root) continue;
+    if (moves?.has(i)) out.delete(i);
   }
   return out;
 }
@@ -54,6 +84,15 @@ export function omittedByRoom(rooms: PlanRoom[], removedKeys: Iterable<string>):
 
 const r3 = (n: number) => Math.round(n * 1000) / 1000 + 0;
 
+export function normalizeMove(pose: FurnitureMove, fallbackRot = 0): FurnitureMove {
+  return {
+    x: r3(pose.x),
+    z: r3(pose.z),
+    rot: r3(((pose.rot ?? fallbackRot) % 360 + 360) % 360),
+    support: pose.support === undefined ? null : pose.support,
+  };
+}
+
 /** 各房的家具位移（key＝furnitureKey）→ Map<roomId, Map<index, pose>> */
 export function movesByRoom(moves: Record<string, FurnitureMove> | Map<string, FurnitureMove>): Map<string, Map<number, FurnitureMove>> {
   const entries = moves instanceof Map ? moves.entries() : Object.entries(moves);
@@ -62,13 +101,13 @@ export function movesByRoom(moves: Record<string, FurnitureMove> | Map<string, F
     const p = parseFurnitureKey(key);
     if (!p) continue;
     if (!out.has(p.roomId)) out.set(p.roomId, new Map());
-    out.get(p.roomId)!.set(p.index, { x: r3(pose.x), z: r3(pose.z) });
+    out.get(p.roomId)!.set(p.index, normalizeMove(pose));
   }
   return out;
 }
 
 /**
- * 算出家具在房間座標的 x／z：有自己的 move 用自己的；nested 跟父姿態相對偏移。
+ * 算出家具在房間座標的姿態：有自己的 move 用自己的；仍掛 plan-parent 且無 move 則跟父。
  * shift＝房間左上角（與 roomBoxes 相同）。
  */
 export function resolveFurniturePose(
@@ -77,28 +116,50 @@ export function resolveFurniturePose(
   shift: Point,
   moves?: Map<number, FurnitureMove>,
   seen: Set<number> = new Set(),
-): FurnitureMove {
+): ResolvedFurniturePose {
   if (seen.has(index) || !furniture[index]) {
     const f = furniture[index];
-    if (!f) return { x: 0, z: 0 };
-    return { x: r3(f.x - shift[0]), z: r3(f.y - shift[1]) };
+    if (!f) return { x: 0, z: 0, rot: 0, elev: 0 };
+    return { x: r3(f.x - shift[0]), z: r3(f.y - shift[1]), rot: r3(f.rot), elev: r3(f.elev ?? 0) };
   }
   seen.add(index);
-  const own = moves?.get(index);
-  if (own) return { x: r3(own.x), z: r3(own.z) };
-
   const f = furniture[index];
-  const base = { x: r3(f.x - shift[0]), z: r3(f.y - shift[1]) };
+  const own = moves?.get(index);
+
+  if (own) {
+    const rot = r3(((own.rot ?? f.rot) % 360 + 360) % 360);
+    if (own.support && furniture[own.support.furnitureIndex] && own.support.furnitureIndex !== index) {
+      const parent = resolveFurniturePose(furniture, own.support.furnitureIndex, shift, moves, seen);
+      const elev = r3(parent.elev + furniture[own.support.furnitureIndex].h);
+      return { x: r3(own.x), z: r3(own.z), rot, elev };
+    }
+    return { x: r3(own.x), z: r3(own.z), rot, elev: 0 };
+  }
+
+  const base = {
+    x: r3(f.x - shift[0]),
+    z: r3(f.y - shift[1]),
+    rot: r3(f.rot),
+    elev: r3(f.elev ?? 0),
+  };
   if (typeof f.parent !== "number" || !furniture[f.parent]) return base;
 
   const parentPose = resolveFurniturePose(furniture, f.parent, shift, moves, seen);
   const origParent = {
     x: r3(furniture[f.parent].x - shift[0]),
     z: r3(furniture[f.parent].y - shift[1]),
+    rot: r3(furniture[f.parent].rot),
   };
+  const dx = base.x - origParent.x;
+  const dz = base.z - origParent.z;
+  const dRot = ((parentPose.rot - origParent.rot) * Math.PI) / 180;
+  const cos = Math.cos(dRot);
+  const sin = Math.sin(dRot);
   return {
-    x: r3(parentPose.x + (base.x - origParent.x)),
-    z: r3(parentPose.z + (base.z - origParent.z)),
+    x: r3(parentPose.x + dx * cos - dz * sin),
+    z: r3(parentPose.z + dx * sin + dz * cos),
+    rot: r3((((base.rot + (parentPose.rot - origParent.rot)) % 360) + 360) % 360),
+    elev: r3(parentPose.elev + furniture[f.parent].h),
   };
 }
 
