@@ -1,16 +1,19 @@
 "use client";
 // 影片轉換（#93）：上傳影片建立轉換工作；下方是已建立的房間列表（同貓咪列表：搜尋、分頁），
 // 點一列看該房間：完成的進 3D 檢視，處理中的看任務進度。沒選時自動顯示正在處理的那間。
+import { zip } from "fflate";
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { HqSkeleton } from "@/components/hq/HqStates";
+import { HqSaveButton, HqSkeleton } from "@/components/hq/HqStates";
 import { formatCatTime } from "@/lib/hq/cat-models/types";
 import { paginate, type ListQuery } from "@/lib/hq/listing";
+import { resultFiles, type RoomScene } from "@/lib/hq/rooms/demo";
 import { filterRooms, roomProgress, secondsBetween, type RoomView } from "@/lib/hq/rooms/types";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { HqListBody, HqPager, HqTable, HqToolbar, type Column } from "../list/HqList";
 import { RoomProgress } from "./RoomProgress";
 import { RoomUpload } from "./RoomUpload";
+import { hintError } from "./useCatModels";
 
 const RoomViewer = dynamic(() => import("./RoomViewer"), { ssr: false, loading: () => <HqSkeleton rows={3} /> });
 
@@ -35,6 +38,28 @@ function useRooms() {
     return () => clearInterval(t);
   }, [reload]);
   return { value, now, reload };
+}
+
+// 成果檔打包成 zip 給組員下載（測試其他功能用）；縮圖這類沒有的檔案略過。splat 已經很難再壓，用 level 0 只打包
+async function downloadRoom(room: RoomView) {
+  const base = room.resultBase!.replace(/\/$/, "");
+  const get = async (f: string) => {
+    const res = await fetch(`${base}/${f}`);
+    return res.ok ? new Uint8Array(await res.arrayBuffer()) : null;
+  };
+  const sceneBytes = await get("scene.json");
+  if (!sceneBytes) throw hintError("讀不到這間房間的成果檔，請再試一次");
+  const scene = JSON.parse(new TextDecoder().decode(sceneBytes)) as RoomScene;
+  const files: Record<string, Uint8Array> = {};
+  for (const f of resultFiles(scene)) {
+    const data = f === "scene.json" ? sceneBytes : await get(f);
+    if (data) files[f] = data;
+  }
+  const bytes = await new Promise<Uint8Array>((ok, fail) => zip(files, { level: 0 }, (err, out) => (err ? fail(err) : ok(out))));
+  const url = URL.createObjectURL(new Blob([bytes as BlobPart], { type: "application/zip" }));
+  const a = Object.assign(document.createElement("a"), { href: url, download: `${room.name}.zip` });
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 const duration = (s: number) => `${Math.floor(s / 60)} 分 ${s % 60} 秒`;
@@ -88,7 +113,10 @@ export function RoomVideoTab({ query, update }: { query: ListQuery & { page: num
       {picked && picked.status !== "ready" ? <RoomProgress room={picked} now={now} />
         : picked?.resultBase ? (
           <>
-            <p className="hq-hint">{picked.name}{spent !== null && <>｜轉換耗時 {duration(spent)}</>}</p>
+            <div className="hq-row">
+              <p className="hq-hint">{picked.name}{spent !== null && <>｜轉換耗時 {duration(spent)}</>}</p>
+              <HqSaveButton onSave={() => downloadRoom(picked)}>下載</HqSaveButton>
+            </div>
             <RoomViewer key={picked.resultBase} base={picked.resultBase} />
           </>
         )
