@@ -19,6 +19,7 @@ const viewer = vi.hoisted(() => ({
     onRemoveItem?: (key: string) => void;
     onPlace?: unknown;
     placeMode?: boolean;
+    interactMode?: "point" | "hand";
     placedItems?: { key: string; name: string; x: number; z: number; y: number }[];
   },
 }));
@@ -111,7 +112,10 @@ describe("虛擬體驗（#150）", () => {
     expect(within(palette).getByText("逗貓棒")).toBeInTheDocument();
     await waitFor(() => expect(viewer.last?.onFloorDrop).toBeTypeOf("function"));
     expect(viewer.last?.onPlace).toBeUndefined();
-    expect(viewer.last?.placeMode).toBeUndefined();
+    expect(viewer.last?.interactMode).toBe("point");
+    expect(screen.getByRole("button", { name: "點" })).toHaveAttribute("aria-pressed", "true");
+    fireEvent.click(screen.getByRole("button", { name: "手掌" }));
+    await waitFor(() => expect(viewer.last?.interactMode).toBe("hand"));
     viewer.last!.onFloorDrop!("i2", { roomId: "r1", x: 1.2, z: 0.8, y: 0, support: null });
     await waitFor(() => expect(viewer.last?.placedItems?.some(p => p.name === "逗貓棒" && p.x === 1.2 && p.z === 0.8 && p.y === 0)).toBe(true));
     const key = viewer.last!.placedItems!.find(p => p.name === "逗貓棒")!.key;

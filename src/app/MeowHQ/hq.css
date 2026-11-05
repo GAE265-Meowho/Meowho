@@ -15,6 +15,7 @@
 
 .hq-root .hq-btn { background: var(--hq-sage); color: #fff; border: 1px solid var(--hq-sage); border-radius: 8px; padding: .55rem 1.1rem; min-height: 44px; font-weight: 500; display: inline-flex; align-items: center; justify-content: center; }
 .hq-root .hq-btn.ghost { background: transparent; color: var(--hq-sage-ink); border-color: var(--hq-line); }
+.hq-root .hq-btn.ghost.on { background: var(--hq-sage-soft); border-color: var(--hq-sage); color: var(--hq-sage-ink); }
 .hq-root .hq-btn:disabled { opacity: .5; cursor: not-allowed; }
 
 /* 版面 */

@@ -13,7 +13,7 @@ import { HqLoadError, HqSkeleton } from "../HqStates";
 import { catLook } from "./catLook";
 import { ExperienceItemPalette } from "./ExperienceItemPalette";
 import { FLOORPLAN_API } from "./floorplanApi";
-import type { PlaceAt, PlacedHouseholdItem } from "./FloorplanViewer";
+import type { InteractMode, PlaceAt, PlacedHouseholdItem } from "./FloorplanViewer";
 import { assetSectionHref } from "./hrefs";
 import { useCatList } from "./useCatModels";
 
@@ -92,6 +92,7 @@ export function ExperienceTab() {
   const catalog = useItemsCatalog();
   const [room, setRoom] = useState<string | null>(null);
   const [itemId, setItemId] = useState<string>("");
+  const [interactMode, setInteractMode] = useState<InteractMode>("point");
   const [placed, setPlaced] = useState<PlacedHouseholdItem[]>([]);
 
   // 只列出有確認貼圖的貓、有讀圖完成房間的喵戶
@@ -110,7 +111,7 @@ export function ExperienceTab() {
     if (!itemId && itemOptions[0]) setItemId(itemOptions[0].id);
   }, [itemId, itemOptions]);
 
-  useEffect(() => { setPlaced([]); }, [houseId]);
+  useEffect(() => { setPlaced([]); setInteractMode("point"); }, [houseId]);
 
   const choose = (key: "cat" | "house", value: string) => {
     const next = new URLSearchParams(params.toString());
@@ -166,15 +167,23 @@ export function ExperienceTab() {
             : house.state === "error" ? <HqLoadError onRetry={() => choose("house", houseId)} />
               : (
                 <>
-                  <div className="hq-row" style={{ gap: "0.5rem", flexWrap: "wrap", marginBottom: "0.75rem" }}>
+                  <div className="hq-row" style={{ gap: "0.5rem", flexWrap: "wrap", marginBottom: "0.75rem", alignItems: "center" }} role="group" aria-label="互動模式">
+                    <button type="button" className={`hq-btn ghost${interactMode === "point" ? " on" : ""}`}
+                      aria-pressed={interactMode === "point"} onClick={() => setInteractMode("point")}
+                      title="點地板叫貓走，點床／沙發跳上去">點</button>
+                    <button type="button" className={`hq-btn ghost${interactMode === "hand" ? " on" : ""}`}
+                      aria-pressed={interactMode === "hand"} onClick={() => setInteractMode("hand")}
+                      title="拖移已放的生活用品">手掌</button>
                     {placed.length > 0 && <button type="button" className="hq-btn ghost" onClick={() => setPlaced([])}>清空用品</button>}
                   </div>
                   <p className="hq-hint">
-                    點地板叫貓走；點床、沙發、桌子會跳上去。右側用品<strong>拖進</strong>房間才會放置；點地板不會新增用品。放好的可拖移，上方 × 可刪除。
+                    {interactMode === "point"
+                      ? "點模式：點地板叫貓走；點床、沙發、桌子會跳上去。右側用品仍可拖進房間放置。"
+                      : "手掌模式：拖移已放的用品；上方 × 可刪除。點地板不會叫貓。"}
                   </p>
                   <div className="hq-exp-stage">
                     <FloorplanViewer key={`${houseId}:${cat?.id}`} rooms={house.data.rooms} selected={room} onPick={setRoom}
-                      cat={look} placedItems={placed}
+                      cat={look} placedItems={placed} interactMode={interactMode}
                       onMoveItem={moveItem} onRemoveItem={removeItem} onFloorDrop={dropItem} />
                     {catalog.state === "loading" ? <HqSkeleton rows={3} />
                       : catalog.state === "error" ? <p className="hq-hint" role="alert">生活用品選單載入失敗。</p>

@@ -88,7 +88,7 @@ function Block({ b, color }: { b: SceneBox; color: string }) {
   );
 }
 
-/** 家具：模型庫的 glb，縮放成讀圖結果的寬、高、深；載入中先用方塊 */
+/** 家具：模型庫的 glb，縮放成讀圖結果的寬、高、深；載入中先用方塊；透明碰撞盒確保點床／沙發可叫貓 */
 function Furniture({ b, roomId, boxIndex, onClick }: {
   b: SceneBox; roomId: string; boxIndex: number; onClick?: (e: ThreeEvent<MouseEvent>) => void;
 }) {
@@ -99,31 +99,40 @@ function Furniture({ b, roomId, boxIndex, onClick }: {
     return m;
   }, [scene]);
   const support = isSupportBox(b);
+  const supportData = support ? {
+    meowSupportRoomId: roomId,
+    meowSupportIndex: boxIndex,
+    meowSupportTopY: b.y + b.sy / 2,
+    meowSupportCx: b.x,
+    meowSupportCz: b.z,
+  } : undefined;
   // y＝方塊中心；模型底部貼在 y − h/2（桌上物 elev＞0）
   return (
-    <primitive
-      object={model}
-      position={[b.x, b.y - b.sy / 2, b.z]}
-      rotation={[0, b.rotY, 0]}
-      scale={kitScale(b.furniture ?? "other", { w: b.sx, h: b.sy, d: b.sz })}
-      onClick={onClick}
-      userData={support ? {
-        meowSupportRoomId: roomId,
-        meowSupportIndex: boxIndex,
-        meowSupportTopY: b.y + b.sy / 2,
-        meowSupportCx: b.x,
-        meowSupportCz: b.z,
-      } : undefined}
-    />
+    <group>
+      <primitive
+        object={model}
+        position={[b.x, b.y - b.sy / 2, b.z]}
+        rotation={[0, b.rotY, 0]}
+        scale={kitScale(b.furniture ?? "other", { w: b.sx, h: b.sy, d: b.sz })}
+        userData={supportData}
+      />
+      {onClick && (
+        <mesh position={[b.x, b.y, b.z]} rotation={[0, b.rotY, 0]} onClick={onClick} userData={supportData}>
+          <boxGeometry args={[b.sx, b.sy, b.sz]} />
+          <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+        </mesh>
+      )}
+    </group>
   );
 }
 
 type MovePayload = { x: number; z: number; y: number; support: ItemSupport };
 
-/** 生活用品：依量到的公尺尺寸縮放；可放地板或桌面；可拖移／刪除；落地物貓會繞過 */
-function PlacedItemModel({ item, room, onMove, onRemove }: {
+/** 生活用品：依量到的公尺尺寸縮放；可放地板或桌面；手掌模式可拖移；上方 × 可刪除；落地物貓會繞過 */
+function PlacedItemModel({ item, room, dragEnabled, onMove, onRemove }: {
   item: PlacedHouseholdItem;
   room: RoomScene;
+  dragEnabled: boolean;
   onMove?: (key: string, place: MovePayload) => void;
   onRemove?: (key: string) => void;
 }) {
@@ -210,21 +219,24 @@ function PlacedItemModel({ item, room, onMove, onRemove }: {
       ref={group}
       position={[item.x, worldY(item.y), item.z]}
       onPointerDown={(e: ThreeEvent<PointerEvent>) => {
-        if (!onMove) return;
+        if (!dragEnabled || !onMove) return;
         e.stopPropagation();
         dragging.current = true;
         if (controls) controls.enabled = false;
         document.body.style.cursor = "grabbing";
       }}
-      onClick={(e: ThreeEvent<MouseEvent>) => e.stopPropagation()}
+      onClick={(e: ThreeEvent<MouseEvent>) => {
+        if (dragEnabled) e.stopPropagation();
+      }}
     >
       <primitive object={prepared.m} scale={prepared.scale} />
       {onRemove && (
-        <Html position={[0, item.heightM + 0.12, 0]} center zIndexRange={[30, 20]} style={{ pointerEvents: "auto" }}>
+        <Html position={[0, item.heightM + 0.12, 0]} center zIndexRange={[30, 20]} style={{ pointerEvents: "none" }}>
           <button
             type="button"
             className="hq-fp-item-x"
             aria-label={`移除 ${item.name}`}
+            style={{ pointerEvents: "auto" }}
             onPointerDown={e => { e.stopPropagation(); e.preventDefault(); }}
             onClick={e => { e.stopPropagation(); onRemove(item.key); }}
           >×</button>
@@ -434,13 +446,17 @@ function CameraRig({ position, view }: { position: [number, number, number]; vie
  * 上方膠囊：「全部」＝讀圖完成的房間並排；點某間＝3D 只顯示那一間並重新取景，同時切換下方的原圖預覽（onPick）。
  */
 export type PlaceAt = { roomId: string; x: number; z: number; y: number; support: ItemSupport };
+/** point＝點地板／床叫貓；hand＝拖移已放用品（不叫貓） */
+export type InteractMode = "point" | "hand";
 
-export default function FloorplanViewer({ rooms, selected, onPick, cat, placedItems = [], onMoveItem, onRemoveItem, onFloorDrop }: {
+export default function FloorplanViewer({ rooms, selected, onPick, cat, placedItems = [], interactMode = "point", onMoveItem, onRemoveItem, onFloorDrop }: {
   rooms: PlanRoom[]; selected: string | null; onPick: (id: string) => void;
   /** 虛擬體驗（#150）：放一隻貓進去；有貓時只顯示單間（沒有「全部」），點地板叫貓走過去 */
   cat?: ViewerCat | null;
   /** 虛擬體驗（#197）：已放進房間的生活用品；只能從右側選單拖放進來，點地板不會新增 */
   placedItems?: PlacedHouseholdItem[];
+  /** 點／手掌：點＝叫貓；手掌＝拖移用品 */
+  interactMode?: InteractMode;
   /** 拖移已放置的用品（可改到桌面或地板） */
   onMoveItem?: (key: string, at: MovePayload) => void;
   /** 移除已放置的用品（元件上方 ×） */
@@ -503,11 +519,17 @@ export default function FloorplanViewer({ rooms, selected, onPick, cat, placedIt
               return (
                 <Room key={s.id} s={s} onClick={c => {
                   if (!cat) { pick(s.id); return; }
+                  if (interactMode !== "point") return;
                   setClick({ ...c, at: Date.now() });
                 }}>
                   {roomItems.map(item => (
                     <Suspense key={item.key} fallback={null}>
-                      <PlacedItemModel item={item} room={s} onMove={onMoveItem} onRemove={onRemoveItem} />
+                      <PlacedItemModel
+                        item={item} room={s}
+                        dragEnabled={interactMode === "hand"}
+                        onMove={onMoveItem}
+                        onRemove={onRemoveItem}
+                      />
                     </Suspense>
                   ))}
                   {cat && <CatActor key={`${s.id}:${cat.albedoUrl}`} s={s} look={cat} click={click} pos={catPos} extraObs={itemObstacles(roomItems)} />}
