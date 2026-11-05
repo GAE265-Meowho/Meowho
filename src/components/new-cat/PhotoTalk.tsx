@@ -26,7 +26,7 @@ export function PhotoStep({ form, previews, pendingAngles, pendingOthers, onAngl
   return (
     <>
       <h2 className={s.h1}>上傳貓咪的可愛照片</h2>
-      <p className={s.lead}>我們會用這三張做出牠的 3D 模樣；正面和背面沒拍的話，AI 會補。</p>
+      <p className={s.lead}>正面、側面、背面三張都要拍，我們會用這三張做出牠的 3D 模樣。讓牠站著，盡量拍到全身。</p>
       <div className={s.angles}>
         {ANGLE_KEYS.map(k => {
           const path = form.angles[k];
