@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { PlanFurniture, PlanRoom } from "./types";
 import {
-  expandRemovedIndices, furnitureKey, movesByRoom, omittedByRoom, parseFurnitureKey,
+  expandRemovedIndices, followFurnitureIndices, furnitureKey, movesByRoom, omittedByRoom, parseFurnitureKey,
   resolveFurniturePose, roomsWithoutFurniture,
 } from "./experience-furniture";
 
@@ -56,25 +56,48 @@ describe("experience-furniture", () => {
 
   it("resolveFurniturePose：自己有 move 用自己的；nested 跟父平移", () => {
     const list = [
-      f({ kind: "desk", label: "書桌", x: 2, y: 3 }),
-      f({ kind: "computer", label: "螢幕", x: 2.2, y: 3.1, parent: 0 }),
+      f({ kind: "desk", label: "書桌", x: 2, y: 3, h: 0.75 }),
+      f({ kind: "computer", label: "螢幕", x: 2.2, y: 3.1, parent: 0, elev: 0.75, h: 0.35 }),
     ];
     const shift: [number, number] = [1, 1];
-    expect(resolveFurniturePose(list, 0, shift)).toEqual({ x: 1, z: 2 });
-    expect(resolveFurniturePose(list, 1, shift)).toEqual({ x: 1.2, z: 2.1 });
-    const moves = new Map([[0, { x: 4, z: 5 }]]);
-    expect(resolveFurniturePose(list, 0, shift, moves)).toEqual({ x: 4, z: 5 });
-    expect(resolveFurniturePose(list, 1, shift, moves)).toEqual({ x: 4.2, z: 5.1 });
+    expect(resolveFurniturePose(list, 0, shift)).toMatchObject({ x: 1, z: 2, rot: 0, elev: 0 });
+    expect(resolveFurniturePose(list, 1, shift)).toMatchObject({ x: 1.2, z: 2.1, elev: 0.75 });
+    const moves = new Map([[0, { x: 4, z: 5, rot: 0, support: null }]]);
+    expect(resolveFurniturePose(list, 0, shift, moves)).toMatchObject({ x: 4, z: 5 });
+    expect(resolveFurniturePose(list, 1, shift, moves)).toMatchObject({ x: 4.2, z: 5.1, elev: 0.75 });
   });
 
-  it("movesByRoom 依房與索引分組", () => {
+  it("resolveFurniturePose：拆開到地板後不再跟父；掛 support 用父頂 elev", () => {
+    const list = [
+      f({ kind: "desk", label: "書桌", x: 2, y: 2, h: 0.75 }),
+      f({ kind: "computer", label: "螢幕", x: 2.2, y: 2.1, parent: 0, elev: 0.75, h: 0.35 }),
+    ];
+    const shift: [number, number] = [0, 0];
+    const detached = new Map([[1, { x: 0.5, z: 0.5, rot: 90, support: null }]]);
+    expect(resolveFurniturePose(list, 1, shift, detached)).toMatchObject({ x: 0.5, z: 0.5, rot: 90, elev: 0 });
+    const onDesk = new Map([[1, { x: 2.1, z: 2.0, rot: 0, support: { furnitureIndex: 0, localX: 0.1, localZ: 0 } }]]);
+    expect(resolveFurniturePose(list, 1, shift, onDesk)).toMatchObject({ x: 2.1, z: 2, elev: 0.75 });
+  });
+
+  it("followFurnitureIndices：有獨立 move 的子孫不跟", () => {
+    const list = [
+      f({ kind: "desk", label: "書桌" }),
+      f({ kind: "computer", label: "螢幕", parent: 0 }),
+      f({ kind: "cup", label: "杯", parent: 0 }),
+    ];
+    expect([...followFurnitureIndices(list, 0)].sort()).toEqual([0, 1, 2]);
+    const moves = new Map([[1, { x: 1, z: 1, rot: 0, support: null }]]);
+    expect([...followFurnitureIndices(list, 0, moves)].sort()).toEqual([0, 2]);
+  });
+
+  it("movesByRoom 依房與索引分組並正規化", () => {
     const map = movesByRoom({
       [furnitureKey("a", 0)]: { x: 1, z: 2 },
-      [furnitureKey("a", 2)]: { x: 3, z: 4 },
-      [furnitureKey("b", 1)]: { x: 5, z: 6 },
+      [furnitureKey("a", 2)]: { x: 3, z: 4, rot: 90 },
+      [furnitureKey("b", 1)]: { x: 5, z: 6, support: null },
     });
-    expect(map.get("a")?.get(0)).toEqual({ x: 1, z: 2 });
-    expect(map.get("a")?.get(2)).toEqual({ x: 3, z: 4 });
-    expect(map.get("b")?.get(1)).toEqual({ x: 5, z: 6 });
+    expect(map.get("a")?.get(0)).toEqual({ x: 1, z: 2, rot: 0, support: null });
+    expect(map.get("a")?.get(2)).toMatchObject({ x: 3, z: 4, rot: 90 });
+    expect(map.get("b")?.get(1)).toMatchObject({ x: 5, z: 6, support: null });
   });
 });

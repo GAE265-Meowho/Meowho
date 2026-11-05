@@ -9,7 +9,7 @@ import { floorplanReadChain, floorplanReadInput } from "./floorplan";
 
 describe("floorplanRoomSchema（Azure 嚴格模式）", () => {
   it("furniture.parent 必填（可 null），不能 optional，否則 structured output 整次失敗", () => {
-    const json = z.toJSONSchema(floorplanRoomSchema) as {
+    const json = z.toJSONSchema(floorplanRoomSchema) as unknown as {
       properties: { furniture: { items: { required?: string[] } } };
     };
     expect(json.properties.furniture.items.required).toEqual(
