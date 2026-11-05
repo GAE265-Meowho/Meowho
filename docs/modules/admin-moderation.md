@@ -1,6 +1,6 @@
 ﻿# 模組：後台與內容審核（admin-moderation）
 
-> 最後更新：2026-11-02｜珮瑜 × Claude Code
+> 最後更新：2026-11-05｜Tina × Cursor
 > 規則：本檔隨程式碼同一個 PR 更新；「決策」與「地雷」只增不刪（過時的標註［已失效］）。
 
 ## 目的
@@ -16,6 +16,7 @@
 - MeowHQ 規格：`docs/hq/01～03`
 
 ## 目前狀態
+- **#218 KPI Dashboard**：`/MeowHQ` 首頁改為「營運總覽」（業務／Supabase 資源／Vercel 健康 KPI），下方保留待辦總覽。API `GET /api/hq/dashboard`（管理員＋service role 聚合）。定義見 `docs/hq/06_kpi-dashboard.md`。Migration `0023_meow_dashboard_stats.sql` **尚未執行**（執行前須 Tina 確認）；未執行時 DB 容量顯示尚未啟用，Storage 走 list 備援。付費貓咪欄位尚未啟用；Vercel Observability 未接時不顯示假數字。
 隱藏後台 `/mh-console-8k2p` 已完成（Issue #3）：中途認證審核、管理員授權／移除、網站標誌（存 `site_settings`）。頁尾的管理者設定入口已移除。檢舉與內容審核尚未開始。
 MeowHQ（`/MeowHQ`，取代舊隱藏後台）開發中：階段 0（#18）、db（#19，`0002_meow_hq.sql`）、logic（#20）已合併；外殼（#21）：路由／大小寫導向／登入閘門／Nordic Meow 樣式／頂列／側欄／toast／空白、載入、錯誤、離線元件；側欄改接 `permissions.ts`。舊後台 `/mh-console-8k2p` 已移除（Tina 2026-10-29 決定），功能移到 #23（管理員授權、網站外觀）、#24（中途認證）。`Auth.tsx` 的 `isAdmin` 為 admin 或 system_admin（`src/lib/auth-role.ts`）。T-HQ-11（虛擬體驗元件管理—貓咪模型）由 Issue #75 進行：規格 `docs/hq/04_assets-cat-models規格書.md`，儲存位置定為 Supabase Storage（解決 #15）；PR 2a、2b 已有 `/MeowHQ/assets` 四個分頁、貓咪列表、新增貓咪 `/cats/new`、貓咪頁 `/cats/<id>`、貼圖工作頁 `/cats/<id>/studio`（本機檔案來源，需設 `CAT_STUDIO_ROOT`，見 `.env.example`）。
 2026-10-29：`0002_meow_hq.sql` 已在 Supabase 執行。#22：待辦總覽（`/MeowHQ`）、列表共用元件（`src/components/hq/list/HqList.tsx`）、模組守門（`HqModuleGuard`）、側欄改接 `permissions.ts`（授權讀取中只顯示首頁，不再退回全部可見）、資料庫錯誤轉白話（`hqErrorMessage`，優先顯示函式 hint）。
@@ -156,6 +157,7 @@ ole === "admin" 判斷管理員，而現有 admin 會升為 system_admin；舊�
 | 2026-11-03 | Tina × Claude Code | #154 排隊或生成中的貓也能刪除（Tina 決定）；已在跑的 worker 寫回時可能留下 Storage 孤兒檔 | #154 |
 | 2026-11-03 | Tina × Claude Code | #159 貓咪模型列表改版：欄位改為貓咪模型（縮圖＋名稱＋示範貓標籤）、進度（狀態＋n/4＋4 段進度條＋目前步驟）、備註說明（最多 2 行，空白顯示「尚未填寫」）、建立者／更新、操作；依進度篩選（全部／產生中／完成／示範貓，網址 `status=running|done|demo`，分組邏輯 `catListGroup`）；搜尋也比對建立者；刪除確認說明 3D 模型與貼圖一併刪除、無法復原，排隊或生成中時另註明任務一併取消；示範貓操作欄顯示「不可刪除」 | （見 PR） |
 | 2026-11-04 | Tina × Claude Code | #169 紋理貼圖 worker 放進 repo `workers/cat-paint/`（含 Azure VM 安裝腳本、systemd），預定跑在 Azure VM（T4） | #169 |
+| 2026-11-05 | Tina × Cursor | #218 KPI Dashboard：`/MeowHQ` 營運總覽、`GET /api/hq/dashboard`、`docs/hq/06_kpi-dashboard.md`、`0023_meow_dashboard_stats.sql`（待執行） | #218 |
 - 2026-10-29｜#24：前端呼叫 `meow_suspend_user`／`meow_unsuspend_user`／`meow_ban_email`／`meow_unban_email`／`meow_review_verification`／`meow_revoke_badge`；「要求補件」不另設狀態，用退回＋快選原因「退回並要求補件」；黑名單狀態只有系統管理員讀得到（RLS），其他管理員看不到黑名單欄與操作。
 
 - 2026-10-31｜#75：虛擬體驗元件分四個區塊（貓咪、室內空間、生活用品、其他），R3 已改寫；貓咪模型的貼圖由 cat_studio/paint_worker.py 產生，網頁只建任務與預覽（共用母體 ase_clips.glb 換 cat_fur 貼圖，不需每隻貓各一個 glb）；動作屬母體，補入新動作後所有貓自動擁有；本機模式（可新增／產生）只在非 production 且設了 CAT_STUDIO_ROOT 時啟用；正式站改讀 `public/hq-cat-models/` 示範貓（已完成的 bb）供預覽，寫入仍關閉。004_meow_cat_models.sql（資料表 meow_cat_models、meow_cat_model_jobs、bucket meow-cat-photos／meow-cat-models）在 PR 3，執行前須經 Tina 確認。

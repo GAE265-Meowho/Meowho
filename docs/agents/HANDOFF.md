@@ -1,9 +1,10 @@
 # HANDOFF — 接手的 agent 需要知道的事
 
 > 寫給「完全沒有上下文的下一個 agent」。只保留**現在仍然成立**的內容。
-> 最後更新：2026-11-04｜子哲 × Claude Code（#161 前台 3D 房間交接）
+> 最後更新：2026-11-05｜Tina × Cursor（#218 KPI Dashboard）
 
 ## 目前狀態
+- **#218 MeowHQ KPI Dashboard（Tina × Cursor）**：`/MeowHQ` 改營運總覽（業務／Supabase／Vercel 健康）；`GET /api/hq/dashboard`；定義 `docs/hq/06_kpi-dashboard.md`。`0023_meow_dashboard_stats.sql` **尚未執行**（執行前須 Tina 確認）。付費貓咪欄位未啟用；Vercel Observability 未接時不顯示假數字。需 `SUPABASE_SERVICE_ROLE_KEY`。
 - **#186 皇家食物元件（Tina × Codex）**：`/MeowHQ/assets?tab=food`，官方 sitemap 86 款、照片落地，分類與官方產品外連已接好。`src/lib/hq/food/` 共用目錄供之後虛擬購買；72 款有參考價、14 款待查。尚未接錢包／訂單／餵食庫存，未改 Supabase。參考價可用 `node scripts/update-food-reference-prices.mjs` 更新人工觀察值；完整官方再匯入用 `node scripts/import-royalcanin-food.mjs`（需網路）。
 - **前台貓咪 3D 接 MeowHQ（#182 → #187 → #188 依序合併）**：#188 讓新增貓咪收側面／正面／背面、建立後自動跑 AI 三視角（需 Vercel 的 `SUPABASE_SERVICE_ROLE_KEY` 與 Azure 影像設定），前台貓咪頁可預覽；Step 03、04 仍在 MeowHQ 手動。下一步：三視角完成後通知 MeowHQ 管理員（之後改自動）。
 - **MeowHQ 貓戶管理（#179，PR #180）**：新模組 `households`。`0020_meow_households_module.sql` **尚未執行**；執行前，系統管理員看得到頁面但只讀得到公開貓咪，其他管理員看不到選單。
