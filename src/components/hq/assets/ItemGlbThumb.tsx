@@ -1,11 +1,16 @@
 "use client";
-// 生活用品選單縮圖（#197）：把 .glb 拍成透明底 PNG，看起來像去背商品圖；拍完改顯示 img，省 WebGL。
+// 生活用品選單縮圖（#197）：把 .glb 拍成透明底 PNG；構圖讓整件道具 100% 落在格子裡（遊戲道具格）。
 import { Canvas, useThree } from "@react-three/fiber";
 import { useGLTF } from "@react-three/drei";
 import { Component, Suspense, useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import * as THREE from "three";
 
+/** key 加版本：構圖改了舊快取就不能再用 */
 const cache = new Map<string, string>();
+const CACHE_VER = "fit2";
+const cacheKey = (url: string) => `${CACHE_VER}:${url}`;
+/** 道具在畫面裡最多佔視角的比例，留邊距避免裁切 */
+const FIT = 0.72;
 
 function Model({ url, onReady }: { url: string; onReady: () => void }) {
   const { scene } = useGLTF(url);
@@ -18,13 +23,14 @@ function Model({ url, onReady }: { url: string; onReady: () => void }) {
     const size = box.getSize(new THREE.Vector3());
     const center = box.getCenter(new THREE.Vector3());
     const max = Math.max(size.x, size.y, size.z, 1e-4);
-    const scale = 1.35 / max;
-    m.position.set(-center.x * scale, -box.min.y * scale, -center.z * scale);
+    // 先縮到單位大小；真正入框由相機距離決定
+    const scale = 1 / max;
+    m.position.set(-center.x * scale, -center.y * scale, -center.z * scale);
     m.scale.setScalar(scale);
     return m;
   }, [scene]);
   useEffect(() => { readyRef.current(); }, [prepared]);
-  return <primitive object={prepared} />;
+  return <group userData={{ meowThumbModel: true }}><primitive object={prepared} /></group>;
 }
 
 function Snap({ ready, onShot }: { ready: boolean; onShot: (dataUrl: string) => void }) {
@@ -33,6 +39,24 @@ function Snap({ ready, onShot }: { ready: boolean; onShot: (dataUrl: string) => 
   shotRef.current = onShot;
   useEffect(() => {
     if (!ready) return;
+    // 只量模型外框，把相機拉到「整件入鏡」
+    let model: THREE.Object3D | null = null;
+    scene.traverse(o => { if (!model && o.userData?.meowThumbModel) model = o; });
+    const box = new THREE.Box3();
+    if (model) box.setFromObject(model);
+    if (!box.isEmpty()) {
+      const size = box.getSize(new THREE.Vector3());
+      const center = box.getCenter(new THREE.Vector3());
+      const fov = ((camera as THREE.PerspectiveCamera).fov * Math.PI) / 180;
+      const half = Math.max(size.x, size.y, size.z) / 2;
+      const dist = (half / Math.tan(fov / 2)) / FIT;
+      const dir = new THREE.Vector3(1, 0.85, 1.15).normalize();
+      camera.position.copy(center).addScaledVector(dir, dist);
+      camera.near = Math.max(0.01, dist / 100);
+      camera.far = dist * 20;
+      camera.lookAt(center);
+      camera.updateProjectionMatrix();
+    }
     let frames = 0;
     let id = 0;
     const tick = () => {
@@ -60,11 +84,11 @@ function initialOf(label: string): string {
   return t ? Array.from(t)[0]! : "用";
 }
 
-/** 左側去背縮圖：先用透明 Canvas 拍一張，之後快取成 PNG。 */
+/** 左側去背縮圖：拍透明 PNG，整件道具完整入框。 */
 export function ItemGlbThumb({ url, label }: { url: string; label: string }) {
   const root = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
-  const [shot, setShot] = useState<string | null>(() => cache.get(url) ?? null);
+  const [shot, setShot] = useState<string | null>(() => cache.get(cacheKey(url)) ?? null);
   const [ready, setReady] = useState(false);
   const fallback = <span className="hq-item-glb-fallback" aria-hidden="true">{initialOf(label)}</span>;
 
@@ -76,10 +100,10 @@ export function ItemGlbThumb({ url, label }: { url: string; label: string }) {
     return () => io.disconnect();
   }, []);
 
-  useEffect(() => { setShot(cache.get(url) ?? null); setReady(false); }, [url]);
+  useEffect(() => { setShot(cache.get(cacheKey(url)) ?? null); setReady(false); }, [url]);
 
   const onShot = useCallback((dataUrl: string) => {
-    cache.set(url, dataUrl);
+    cache.set(cacheKey(url), dataUrl);
     setShot(dataUrl);
   }, [url]);
   const markReady = useCallback(() => setReady(true), []);
@@ -94,7 +118,7 @@ export function ItemGlbThumb({ url, label }: { url: string; label: string }) {
           <Canvas
             frameloop="demand"
             dpr={1}
-            camera={{ position: [1.15, 0.95, 1.35], fov: 32, near: 0.1, far: 20 }}
+            camera={{ position: [1.2, 1, 1.4], fov: 35, near: 0.05, far: 40 }}
             gl={{ alpha: true, antialias: true, preserveDrawingBuffer: true, powerPreference: "low-power" }}
             style={{ background: "transparent" }}
           >
