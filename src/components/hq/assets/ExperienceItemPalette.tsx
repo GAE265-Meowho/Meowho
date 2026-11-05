@@ -1,5 +1,6 @@
 "use client";
-// 虛擬體驗右側用品選單（#197）：類別篩選、小圖示，可拖拉進 3D 或點選後點地板放置。
+// 虛擬體驗右側用品選單（#197）：類別篩選；左去背縮圖、右文字；拖進房間或點選後點地板。
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { filterItems, type HouseholdItem, type ItemCategory } from "@/lib/hq/items/types";
@@ -7,10 +8,10 @@ import { assetSectionHref } from "./hrefs";
 import { setItemDragData } from "./itemDrag";
 import styles from "./experienceItemPalette.module.css";
 
-function initialOf(name: string): string {
-  const t = name.trim();
-  return t ? Array.from(t)[0]! : "用";
-}
+const ItemGlbThumb = dynamic(() => import("./ItemGlbThumb").then(m => m.ItemGlbThumb), {
+  ssr: false,
+  loading: () => <span className="hq-item-glb-fallback" aria-hidden="true">…</span>,
+});
 
 export function ExperienceItemPalette({
   categories, items, selectedId, onSelect,
@@ -35,7 +36,7 @@ export function ExperienceItemPalette({
     <aside className={styles.panel} aria-label="生活用品選單">
       <div className={styles.head}>
         <h3>生活用品</h3>
-        <p className="hq-hint">拖進房間，或點選後點地板放置；已放的可再拖移。</p>
+        <p className="hq-hint">拖進房間就放好；點一下再點地板也可以。放好的還能拖來拖去。</p>
       </div>
 
       {categories.length > 0 && (
@@ -61,16 +62,16 @@ export function ExperienceItemPalette({
       ) : !visible.length ? (
         <p className={styles.empty} role="status">沒有符合篩選的用品。</p>
       ) : (
-        <div className={styles.grid} role="list">
+        <div className={styles.list} role="list">
           {visible.map(it => (
             <div
               key={it.id}
               role="listitem"
-              className={`${styles.thumb}${selectedId === it.id ? ` ${styles.on}` : ""}`}
+              className={`${styles.row}${selectedId === it.id ? ` ${styles.on}` : ""}`}
               aria-pressed={selectedId === it.id}
               tabIndex={0}
               draggable
-              title={`拖曳「${it.name}」到房間`}
+              title={`拖「${it.name}」進房間`}
               onClick={() => onSelect(it)}
               onKeyDown={e => {
                 if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSelect(it); }
@@ -78,11 +79,20 @@ export function ExperienceItemPalette({
               onDragStart={e => {
                 setItemDragData(e.dataTransfer, it.id);
                 onSelect(it);
+                const pic = e.currentTarget.querySelector(`.${styles.pic}`);
+                if (pic instanceof HTMLElement) {
+                  e.dataTransfer.setDragImage(pic, pic.clientWidth / 2, pic.clientHeight / 2);
+                }
               }}
             >
-              <span className={styles.icon} aria-hidden="true">{initialOf(it.name)}</span>
-              <span className={styles.name}>{it.name}</span>
-              <span className={styles.cat}>{it.categoryName}</span>
+              <div className={styles.pic}>
+                <ItemGlbThumb url={it.modelUrl} label={it.name} />
+              </div>
+              <div className={styles.copy}>
+                <span className={styles.name}>{it.name}</span>
+                <span className={styles.cat}>{it.categoryName}</span>
+                <span className={styles.hint}>{selectedId === it.id ? "已選 · 拖進房間或點地板" : "按住拖進房間"}</span>
+              </div>
             </div>
           ))}
         </div>
