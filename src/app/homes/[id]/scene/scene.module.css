@@ -53,3 +53,22 @@
 .spec div { display: grid; gap: 2px; padding: 10px; border: 1px solid var(--line); border-radius: 12px; min-width: 0; }
 .spec b { font-size: 17px; color: var(--ink); }
 .spec span { font-size: 12px; color: var(--ink-soft); }
+
+/* 上傳前檢查影片（VideoCheck.tsx） */
+.bar { height: 8px; border-radius: 4px; background: var(--line); overflow: hidden; }
+.bar > div { height: 100%; background: var(--orange); transition: width .2s; }
+.verdict { display: grid; grid-template-columns: auto 1fr; gap: 12px; align-items: center; }
+.verdict h2 { margin: 0; }
+.pill { padding: 6px 12px; border-radius: 999px; color: #fff; font-weight: 700; white-space: nowrap; }
+.pill.ok { background: #1d8657; } .pill.warn { background: #a36d00; } .pill.bad { background: #c3352b; }
+.i_ok, .i_warn, .i_bad { border-left: 4px solid; padding-left: 10px !important; }
+.i_ok { border-left-color: #1d8657; } .i_warn { border-left-color: #d9a300; } .i_bad { border-left-color: #c3352b; }
+.strip { position: relative; display: flex; height: 34px; border-radius: 8px; overflow: hidden; border: 1px solid var(--line); cursor: pointer; touch-action: none; }
+.strip span { flex: 1; min-width: 0; }
+.strip i { position: absolute; top: 0; bottom: 0; width: 3px; margin-left: -1px; background: var(--ink); box-shadow: 0 0 0 1px #fff; }
+.s_ok { background: #1d8657; opacity: .75; } .s_blur { background: #d9a300; } .s_dark { background: #7a6252; } .s_fast { background: #c3352b; }
+.keys { margin: 0; display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 13px; color: var(--ink-soft); }
+.keys i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
+.frame { width: 100%; border-radius: 12px; border: 1px solid var(--line); display: block; }
+.note { margin: 0; font-size: 13px; color: var(--ink-soft); }
+@media (prefers-reduced-motion: reduce) { .bar > div { transition: none; } }
