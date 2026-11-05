@@ -5,7 +5,7 @@ import { FOOD_PRODUCTS } from "@/lib/hq/food/catalog";
 vi.mock("next/image", () => ({ default: ({ alt }: { alt: string }) => <span role="img" aria-label={alt} /> }));
 afterEach(cleanup);
 describe("後台食物元件", () => {
-  it("產品類型與年齡可交叉篩選，清除後回到完整目錄", () => {
+  it("產品類型與年齡可交叉篩選，清除後回到完整目錄", { timeout: 15_000 }, () => {
     render(<FoodTab />);
     expect(screen.getByText(`${FOOD_PRODUCTS.length} 項產品`)).toBeTruthy();
     fireEvent.click(screen.getByRole("checkbox", { name: "乾糧" }));

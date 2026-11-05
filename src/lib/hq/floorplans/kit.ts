@@ -19,6 +19,11 @@ export const FURNITURE_KIT: Record<FurnitureKind, KitModel> = {
   counter: { w: 1.8, d: 0.6, ref_h: 0.9 },
   toilet: { w: 0.4, d: 0.7, ref_h: 0.4 },
   bathtub: { w: 0.75, d: 1.6, ref_h: 0.6 },
+  fan: { w: 0.4, d: 0.4, ref_h: 1.0 },
+  computer: { w: 0.5, d: 0.22, ref_h: 0.45 },
+  cup: { w: 0.08, d: 0.08, ref_h: 0.12 },
+  vase: { w: 0.12, d: 0.12, ref_h: 0.35 },
+  notebook: { w: 0.22, d: 0.16, ref_h: 0.03 },
   other: { w: 0.8, d: 0.5, ref_h: 0.8 },
 };
 

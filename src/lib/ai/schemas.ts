@@ -112,7 +112,8 @@ export type CatVideoOut = z.infer<typeof CatVideoSchema>;
 // 座標一律公尺、平面 (x, y)，原點在房間左上角；牆用中心線端點。陣列欄位不用 tuple（部分供應商的嚴格模式不支援），
 // 由 src/lib/hq/floorplans/read.ts 整理成 meta 的格式並檢查是否合理。
 export const FLOORPLAN_FURNITURE_KINDS = [
-  "sofa", "bed", "table", "chair", "desk", "wardrobe", "cabinet", "tv_stand", "counter", "toilet", "bathtub", "other",
+  "sofa", "bed", "table", "chair", "desk", "wardrobe", "cabinet", "tv_stand", "counter", "toilet", "bathtub",
+  "fan", "computer", "cup", "vase", "notebook", "other",
 ] as const;
 
 export const floorplanRoomSchema = z.object({
@@ -139,6 +140,8 @@ export const floorplanRoomSchema = z.object({
     kind: z.enum(FLOORPLAN_FURNITURE_KINDS),
     label: z.string().describe("圖上的家具名稱或中文名稱，例如 沙發"),
     wall: z.number().int().nullable().describe("背面靠著哪一面牆（walls 的索引）；床頭、沙發背、櫃子背、書桌靠牆那側；不靠牆填 null"),
+    // 跟 wall 一樣必填＋nullable：Azure 嚴格 structured output 不接受 optional 欄位（會整次讀圖失敗）
+    parent: z.number().int().nullable().describe("放在哪一件家具上（furniture 陣列索引）；computer／cup／vase／notebook 指向 desk／table／cabinet／counter；落地填 null"),
     x: z.number().describe("家具中心 x（公尺）"),
     y: z.number().describe("家具中心 y（公尺）"),
     w: z.number().describe("寬（公尺）：靠牆時是沿著牆的長度；不靠牆時沿 x"),

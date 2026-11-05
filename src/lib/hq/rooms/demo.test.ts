@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cameraForward, dropTarget, placeObjects, roomSplats, roomUnit, sortCameras, type RoomCamera, type RoomObject, type RoomScene } from "./demo";
+import { cameraForward, dropTarget, placeObjects, resultFiles, roomSplats, roomUnit, sortCameras, type RoomCamera, type RoomObject, type RoomScene } from "./demo";
 
 const cam = (img_name: string, position: RoomCamera["position"] = [0, 0, 0]): RoomCamera => ({
   img_name, position, rotation: [[1, 0, 0.1], [0, 1, 0.2], [0, 0, 0.3]],
@@ -49,5 +49,10 @@ describe("展示房間", () => {
 
   it("沒有拆物品時載入完整房間，不重複疊小物", () => {
     expect(roomSplats("https://x", { ...scene, assets: { room: "scene.splat" } })).toEqual([{ url: "https://x/scene.splat" }]);
+  });
+
+  it("下載清單照 worker 上傳的檔案：有 room_cut 就是挖空的房間加可推倒的物品", () => {
+    expect(resultFiles(scene)).toEqual(["scene.json", "scene.cameras.json", "scene.layout.json", "thumb.jpg", "objects/room_cut.splat", "objects/cup.movable.splat"]);
+    expect(resultFiles({ ...scene, assets: { room: "scene.splat" } }).slice(4)).toEqual(["scene.splat"]);
   });
 });

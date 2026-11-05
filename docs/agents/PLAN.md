@@ -18,6 +18,10 @@
 
 ## 任務（tracer-bullet，每張可獨立 Demo）
 
+- MeowHQ Dashboard UI/UX 優化（#226，Tina × Cursor，2026-11-05）：審查中；PR #227、分支 `ui/226-hq-dashboard-ui`（併含 #224）。
+- MeowHQ 首頁不要自動一直重新整理（#224，Tina × Cursor，2026-11-05）：併入 PR #227；舊 PR #225 已關閉。
+- MeowHQ 首頁修閃爍＋移除最近管理動作（#222，Tina × Cursor，2026-11-05）：完成；PR #223 已合併。
+- MeowHQ KPI Dashboard（#218，Tina × Cursor，2026-11-05）：完成；PR #219 已合併。首頁營運總覽＋`/api/hq/dashboard`；0023 待執行；付費貓咪／Vercel Observability 尚未啟用。
 - 新增貓咪三個角度上傳按鈕（#195，Tina × Claude Code，2026-11-04）：審查中；分支 `fix/195-angle-upload-buttons`。
 - 皇家食物元件（#186，Tina × Codex，2026-11-04）：審查中；分支 `feat/186-royalcanin-food-catalog`。台灣官方 sitemap 86 款、照片與交叉分類完成，72 款參考價、14 款待查；詳細資訊官方外連。尚需正式字型建置／人工視覺驗證，購買流程另做。
 

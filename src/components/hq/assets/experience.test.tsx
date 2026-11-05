@@ -10,26 +10,71 @@ vi.mock("next/navigation", () => ({
   useSearchParams: () => nav.params,
   usePathname: () => "/MeowHQ/assets",
 }));
-const viewer = vi.hoisted(() => ({ last: null as null | { rooms: { id: string }[]; cat: { body: string; albedoUrl: string; baseUrl: string } | null } }));
+const viewer = vi.hoisted(() => ({
+  last: null as null | {
+    rooms: { id: string; furniture?: { kind: string; parent?: number }[] }[];
+    cat: { body: string; albedoUrl: string; baseUrl: string } | null;
+    onFloorDrop?: (itemId: string, at: { roomId: string; x: number; z: number; y: number; support: { furnitureIndex: number; localX: number; localZ: number } | null }) => void;
+    onMoveItem?: (key: string, at: { x: number; z: number; y: number; support: { furnitureIndex: number; localX: number; localZ: number } | null }) => void;
+    onRemoveItem?: (key: string) => void;
+    onRemoveFurniture?: (roomId: string, furnitureIndex: number) => void;
+    onMoveFurniture?: (roomId: string, furnitureIndex: number, next: { x: number; z: number; rot?: number; support?: unknown }, prev: { x: number; z: number }) => void;
+    onRotateFurniture?: (roomId: string, furnitureIndex: number) => void;
+    removedFurniture?: string[];
+    furnitureMoves?: Record<string, { x: number; z: number; rot?: number }>;
+    onPlace?: unknown;
+    placeMode?: boolean;
+    interactMode?: "point" | "hand";
+    placedItems?: { key: string; name: string; x: number; z: number; y: number; support?: { furnitureIndex: number; localX: number; localZ: number } | null }[];
+  },
+}));
 vi.mock("./FloorplanViewer", () => ({
   default: function FakeViewer(props: typeof viewer.last & object) { viewer.last = props; return <div data-testid="fake-viewer" />; },
+}));
+vi.mock("./ItemGlbThumb", () => ({
+  ItemGlbThumb: () => <span data-testid="item-thumb" />,
 }));
 
 const confirmed = { state: "confirmed", preview: "albedo", previewBody: "adult" };
 const cat = (id: string, name: string, texture: unknown = confirmed) => ({ id, name, body: "adult", texture, hasAlbedo: true, albedoVersion: "v1", variantStorage: false });
 const H1 = "room_20261102_220000", H2 = "room_20261103_010000";
 const summary = (id: string, name: string, status = "ready") => ({ id, name, roomCount: 1, updatedAt: "x", createdBy: "子哲", rooms: [{ id: "r1", name: "客廳", status, imageUrl: null }] });
-const house = (id: string, name: string) => ({ id, name, updatedAt: "x", rooms: [{ id: "r1", name: "客廳", image_path: "x", status: "ready", created_at: "x", imageUrl: null, photoUrls: [], walls: [] }] });
+const house = (id: string, name: string) => ({
+  id, name, updatedAt: "x",
+  rooms: [{
+    id: "r1", name: "客廳", image_path: "x", status: "ready", created_at: "x",
+    imageUrl: null, photoUrls: [], walls: [],
+    furniture: [
+      { kind: "desk", label: "書桌", x: 1, y: 0.4, w: 1.2, d: 0.6, h: 0.75, rot: 0 },
+      { kind: "computer", label: "螢幕", x: 1, y: 0.4, w: 0.5, d: 0.2, h: 0.45, rot: 0, parent: 0, elev: 0.75 },
+      { kind: "fan", label: "風扇", x: 2, y: 2, w: 0.4, d: 0.4, h: 1, rot: 0 },
+    ],
+  }],
+});
+const categories = [{ id: "litter_box", name: "貓砂盆", sortOrder: 1 }, { id: "toys", name: "玩具", sortOrder: 2 }];
+const items = [
+  {
+    id: "i1", name: "開放式貓砂盆", nameEn: null, categoryId: "litter_box", categoryName: "貓砂盆",
+    priceTwd: 100, instructions: null, modelPath: "a/model.glb", modelUrl: "https://example/a.glb",
+    widthM: 0.5, depthM: 0.4, heightM: 0.3, createdAt: "2026-11-04T00:00:00Z",
+  },
+  {
+    id: "i2", name: "逗貓棒", nameEn: null, categoryId: "toys", categoryName: "玩具",
+    priceTwd: 50, instructions: null, modelPath: "b/model.glb", modelUrl: "https://example/b.glb",
+    widthM: 0.2, depthM: 0.2, heightM: 0.4, createdAt: "2026-11-04T00:00:00Z",
+  },
+];
 
 let calls: string[];
 function mockFetch(cats: unknown[], houses: unknown[]) {
   calls = [];
   vi.stubGlobal("fetch", vi.fn(async (url: string) => {
     calls.push(url);
-    const body = url.startsWith("/api/hq/cat-models") ? { cats }
-      : url === "/api/hq/floorplans" ? { houses, storage: true }
-        : { house: house(url.split("/").pop()!, url.endsWith(H2) ? "測試之家" : "子哲的家") };
-    return { ok: true, status: 200, json: async () => body };
+    if (url.startsWith("/api/hq/cat-models")) return { ok: true, status: 200, json: async () => ({ cats }) };
+    if (url === "/api/hq/floorplans") return { ok: true, status: 200, json: async () => ({ houses, storage: true }) };
+    if (url === "/api/hq/items/categories") return { ok: true, status: 200, json: async () => ({ categories }) };
+    if (url === "/api/hq/items") return { ok: true, status: 200, json: async () => ({ items }) };
+    return { ok: true, status: 200, json: async () => ({ house: house(url.split("/").pop()!, url.endsWith(H2) ? "測試之家" : "子哲的家") }) };
   }));
 }
 
@@ -69,5 +114,75 @@ describe("虛擬體驗（#150）", () => {
     expect(await screen.findByRole("link", { name: "到貓咪製作" })).toHaveAttribute("href", "/MeowHQ/assets");
     expect(screen.getByRole("link", { name: "到平面圖轉換" })).toHaveAttribute("href", "/MeowHQ/assets?tab=rooms-floorplan");
     expect(screen.getByText("選好虛擬貓和喵戶後，貓會出現在房間裡")).toBeInTheDocument();
+  });
+
+  it("右側有用品選單，可依類別篩選；拖放會把用品放進場景；點選不會開放置模式", async () => {
+    mockFetch([cat("cat_1", "橘寶 Mango")], [summary(H1, "子哲的家")]);
+    render(<ExperienceTab />);
+    const palette = await screen.findByRole("complementary", { name: "生活用品選單" });
+    expect(within(palette).getByText("開放式貓砂盆")).toBeInTheDocument();
+    expect(within(palette).getByText("逗貓棒")).toBeInTheDocument();
+    expect(within(palette).getAllByTestId("item-thumb")).toHaveLength(2);
+    // 只有左邊道具格可拖；文字按鈕不可拖
+    expect(within(palette).getByLabelText("拖曳 逗貓棒")).toHaveAttribute("draggable", "true");
+    expect(within(palette).getByRole("button", { name: /逗貓棒/ })).not.toHaveAttribute("draggable");
+    fireEvent.click(screen.getByRole("button", { name: "玩具" }));
+    expect(within(palette).queryByText("開放式貓砂盆")).toBeNull();
+    expect(within(palette).getByText("逗貓棒")).toBeInTheDocument();
+    await waitFor(() => expect(viewer.last?.onFloorDrop).toBeTypeOf("function"));
+    expect(viewer.last?.onPlace).toBeUndefined();
+    expect(viewer.last?.interactMode).toBe("point");
+    expect(screen.getByRole("button", { name: "點" })).toHaveAttribute("aria-pressed", "true");
+    fireEvent.click(screen.getByRole("button", { name: "手掌" }));
+    await waitFor(() => expect(viewer.last?.interactMode).toBe("hand"));
+    viewer.last!.onFloorDrop!("i2", { roomId: "r1", x: 1.2, z: 0.8, y: 0, support: null });
+    await waitFor(() => expect(viewer.last?.placedItems?.some(p => p.name === "逗貓棒" && p.x === 1.2 && p.z === 0.8 && p.y === 0)).toBe(true));
+    const key = viewer.last!.placedItems!.find(p => p.name === "逗貓棒")!.key;
+    expect(viewer.last?.onRemoveItem).toBeTypeOf("function");
+    viewer.last!.onRemoveItem!(key);
+    await waitFor(() => expect(viewer.last?.placedItems?.some(p => p.key === key)).toBe(false));
+  });
+
+  it("手掌模式可暫時移除讀圖家具；壓在上面的用品改落地；還原家具清空清單", async () => {
+    mockFetch([cat("cat_1", "橘寶 Mango")], [summary(H1, "子哲的家")]);
+    render(<ExperienceTab />);
+    await screen.findByTestId("fake-viewer");
+    fireEvent.click(await screen.findByRole("button", { name: "手掌" }));
+    await waitFor(() => expect(viewer.last?.onRemoveFurniture).toBeTypeOf("function"));
+    viewer.last!.onFloorDrop!("i2", {
+      roomId: "r1", x: 1, z: 0.4, y: 0.75,
+      support: { furnitureIndex: 0, localX: 0, localZ: 0 },
+    });
+    await waitFor(() => expect(viewer.last?.placedItems?.some(p => p.name === "逗貓棒" && p.support?.furnitureIndex === 0)).toBe(true));
+    viewer.last!.onRemoveFurniture!("r1", 0);
+    await waitFor(() => {
+      expect(viewer.last?.removedFurniture).toEqual(["r1:0"]);
+      const stick = viewer.last?.placedItems?.find(p => p.name === "逗貓棒");
+      expect(stick).toMatchObject({ y: 0, support: null });
+    });
+    fireEvent.click(screen.getByRole("button", { name: "還原家具" }));
+    await waitFor(() => expect(viewer.last?.removedFurniture).toEqual([]));
+  });
+
+  it("手掌模式可旋轉家具；拖移 callback 寫入 furnitureMoves", async () => {
+    mockFetch([cat("cat_1", "橘寶 Mango")], [summary(H1, "子哲的家")]);
+    render(<ExperienceTab />);
+    await screen.findByTestId("fake-viewer");
+    fireEvent.click(await screen.findByRole("button", { name: "手掌" }));
+    await waitFor(() => expect(viewer.last?.onRotateFurniture).toBeTypeOf("function"));
+    expect(viewer.last?.onMoveFurniture).toBeTypeOf("function");
+    viewer.last!.onRotateFurniture!("r1", 2);
+    await waitFor(() => {
+      const move = viewer.last?.furnitureMoves?.["r1:2"];
+      expect(move?.rot).toBe(90);
+    });
+    viewer.last!.onMoveFurniture!(
+      "r1", 1,
+      { x: 0.8, z: 1.2, rot: 0, support: null },
+      { x: 1, z: 0.4 },
+    );
+    await waitFor(() => {
+      expect(viewer.last?.furnitureMoves?.["r1:1"]).toMatchObject({ x: 0.8, z: 1.2, support: null });
+    });
   });
 });

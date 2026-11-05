@@ -1,6 +1,6 @@
 ﻿# 模組：後台與內容審核（admin-moderation）
 
-> 最後更新：2026-11-02｜珮瑜 × Claude Code
+> 最後更新：2026-11-05｜Tina × Cursor
 > 規則：本檔隨程式碼同一個 PR 更新；「決策」與「地雷」只增不刪（過時的標註［已失效］）。
 
 ## 目的
@@ -16,6 +16,7 @@
 - MeowHQ 規格：`docs/hq/01～03`
 
 ## 目前狀態
+- **#218／#222／#224／#226 KPI Dashboard**：`/MeowHQ` 營運總覽＋待辦；#222 去最近動作、0023 未執行不掃 Storage；#224 進頁只載一次；#226 卡片去雜訊、頂部全域抓取時間、主數值放大。API `GET /api/hq/dashboard`。定義見 `docs/hq/06_kpi-dashboard.md`。`0023` **尚未執行**。付費貓咪／Vercel Observability 尚未啟用。
 隱藏後台 `/mh-console-8k2p` 已完成（Issue #3）：中途認證審核、管理員授權／移除、網站標誌（存 `site_settings`）。頁尾的管理者設定入口已移除。檢舉與內容審核尚未開始。
 MeowHQ（`/MeowHQ`，取代舊隱藏後台）開發中：階段 0（#18）、db（#19，`0002_meow_hq.sql`）、logic（#20）已合併；外殼（#21）：路由／大小寫導向／登入閘門／Nordic Meow 樣式／頂列／側欄／toast／空白、載入、錯誤、離線元件；側欄改接 `permissions.ts`。舊後台 `/mh-console-8k2p` 已移除（Tina 2026-10-29 決定），功能移到 #23（管理員授權、網站外觀）、#24（中途認證）。`Auth.tsx` 的 `isAdmin` 為 admin 或 system_admin（`src/lib/auth-role.ts`）。T-HQ-11（虛擬體驗元件管理—貓咪模型）由 Issue #75 進行：規格 `docs/hq/04_assets-cat-models規格書.md`，儲存位置定為 Supabase Storage（解決 #15）；PR 2a、2b 已有 `/MeowHQ/assets` 四個分頁、貓咪列表、新增貓咪 `/cats/new`、貓咪頁 `/cats/<id>`、貼圖工作頁 `/cats/<id>/studio`（本機檔案來源，需設 `CAT_STUDIO_ROOT`，見 `.env.example`）。
 2026-10-29：`0002_meow_hq.sql` 已在 Supabase 執行。#22：待辦總覽（`/MeowHQ`）、列表共用元件（`src/components/hq/list/HqList.tsx`）、模組守門（`HqModuleGuard`）、側欄改接 `permissions.ts`（授權讀取中只顯示首頁，不再退回全部可見）、資料庫錯誤轉白話（`hqErrorMessage`，優先顯示函式 hint）。
@@ -141,6 +142,7 @@ ole === "admin" 判斷管理員，而現有 admin 會升為 system_admin；舊�
 | 2026-11-02 | Tina × Claude Code | #113 後台左側選單依 Stitch 改成分組（首頁｜營運與社群｜商品與知識｜虛擬與科技體驗｜系統）＋線條圖示＋目前頁面左側色條；保留原有項目與權限過濾，沒有項目的分組不顯示；頂列不改（`HqShell.tsx` 的 `NAV_GROUPS`、`NAV_ICONS`）。虛擬體驗元件管理改為分組標題，區塊為左側第一層（線條圖示，不用 emoji）：貓咪製作、室內空間、飼料、生活用品、其他；室內空間頁用大卡片進入寶麗來轉換、平面圖轉換（`hrefs.ts` 的 `ASSET_SECTIONS`，`?tab=`；除貓咪製作外皆規劃中）；頁面移除分頁 | （見 PR） |
 | 2026-11-02 | Tina × Claude Code | #118 還沒有 3D 的貓：列表點進去直接到製作glb工作區，直接開貓咪頁也自動轉過去（不載入骨架示範貓），工作區返回連結改回列表；列表「動作數 3/9」（骨架共用動作數）改成「進度」欄（1/3 上傳照片 → 2/3 AI 三視角・產生中／完成 → 3/3 產生 3D・產生中／失敗 → 完成，`catProgress`）；播放／動作面板只在有貼圖時顯示，資訊區顯示其他角度照片；AI 三視角分「上傳的照片」（原始、其他角度 2、3）與「AI 三視角」兩區 | （見 PR） |
 | 2026-11-02 | Tina × Claude Code | #110 新增貓咪頁依 Stitch「MeowHQ Cat Model Builder」改兩步驟（01 上傳原始照片＋其他角度 2、3＋基本資料＋進階畫質 → 「產生 AI 三視角」；02 年齡判斷（AI 看照片，判斷不出用表單年齡；幼貓自動加幼貓指示）、原始＋三張卡片、每張指示中｜EN、用量與費用；底部「確認並前往製作glb工作區」）；只保留 gpt-image-2（`AZURE_OPENAI_IMAGE_DEPLOYMENT`），聊天部署統一 `AZURE_OPENAI_CHAT_DEPLOYMENT_NAME`（gpt-6-luna，相容舊名）；Azure v1 端點；兩隻體型骨架移到 `/MeowHQ/assets/bases`（貓咪 tab「體型骨架預覽」按鈕）；#107 補傳介面不做（已關閉） | （見 PR） |
+| 2026-11-03 | 珮瑜 × Claude Code | #93 影片轉換新增「已建立的房間」列表（同貓咪列表欄位、搜尋、分頁）與任務進度（6 步 `FlowStepper`、已經過分鐘數、排隊逾時提醒、完成耗時）；上傳可填備註（`meta.note`），worker 產生縮圖（`meta.thumb`）（`RoomVideoTab.tsx`、`RoomProgress.tsx`、`rooms/types.ts` 的 `roomStage`、`roomProgress`） | （見 PR） |
 | 2026-11-01 | Tina × Claude Code | #107 貓咪頁「資訊」區可補傳／換一張正面、背部花紋照（`ExtraPhotos`、`POST /api/hq/cat-models/<id>/photos`、`/file/photo_front`、`/file/photo_back`）；Supabase 簽名上傳允許覆蓋；不寫稽核（動作清單需改 SQL） | （見 PR） |
 | 2026-11-03 | Tina × Claude Code | #138 平面圖轉換 PR 3（AI 讀圖）：上傳確認後自動讀圖（`after()` 背景，Azure 聊天部署固定，`readFloorplanRoom`）；`POST /api/hq/rooms/floorplan/read` 重新讀圖（202，`maxDuration=120`）；輸出 `floorplanRoomSchema`（`src/lib/ai/schemas.ts`）、提示詞 `src/lib/prompts/floorplan.ts`；`src/lib/hq/floorplans/read.ts` 整理成 meta 格式並檢查（牆 ≥3 且封閉、單邊 1–20 m、門窗截到牆長、家具在房內、可跳上家具標 `walkable`）；房名是預設「房間 N」時才用 AI 讀到的；讀圖中超過 3 分鐘可重讀；戶 `status` 依房間更新（running／ready／failed）；`ai_raw` 不送畫面；測試用固定 JSON `fixtures/living-room.json`。無新 migration | （見 PR） |
 | 2026-11-03 | Tina × Claude Code | #144 平面圖轉換支援室內實景照片：同一個上傳 AI 自動分辨平面圖／實景照片（`floorplanRoomSchema.kind`），一間房 1～4 張（`photo_paths`、`MAX_ROOM_IMAGES`），讀圖時多張一起送（`ChainInput.moreImageDataUrls`）；格局記 `input`，照片比例一律推估；新增 `POST|DELETE /api/hq/floorplans/<戶>/rooms/<房間>/photos`（加照片後自動重讀）；實景照片保留原圖，決策 007 補充第二個例外。無新 migration | （見 PR） |
@@ -155,6 +157,7 @@ ole === "admin" 判斷管理員，而現有 admin 會升為 system_admin；舊�
 | 2026-11-03 | Tina × Claude Code | #154 排隊或生成中的貓也能刪除（Tina 決定）；已在跑的 worker 寫回時可能留下 Storage 孤兒檔 | #154 |
 | 2026-11-03 | Tina × Claude Code | #159 貓咪模型列表改版：欄位改為貓咪模型（縮圖＋名稱＋示範貓標籤）、進度（狀態＋n/4＋4 段進度條＋目前步驟）、備註說明（最多 2 行，空白顯示「尚未填寫」）、建立者／更新、操作；依進度篩選（全部／產生中／完成／示範貓，網址 `status=running|done|demo`，分組邏輯 `catListGroup`）；搜尋也比對建立者；刪除確認說明 3D 模型與貼圖一併刪除、無法復原，排隊或生成中時另註明任務一併取消；示範貓操作欄顯示「不可刪除」 | （見 PR） |
 | 2026-11-04 | Tina × Claude Code | #169 紋理貼圖 worker 放進 repo `workers/cat-paint/`（含 Azure VM 安裝腳本、systemd），預定跑在 Azure VM（T4） | #169 |
+| 2026-11-05 | Tina × Cursor | #218 KPI Dashboard：`/MeowHQ` 營運總覽、`GET /api/hq/dashboard`、`docs/hq/06_kpi-dashboard.md`、`0023_meow_dashboard_stats.sql`（待執行） | #218 |
 - 2026-10-29｜#24：前端呼叫 `meow_suspend_user`／`meow_unsuspend_user`／`meow_ban_email`／`meow_unban_email`／`meow_review_verification`／`meow_revoke_badge`；「要求補件」不另設狀態，用退回＋快選原因「退回並要求補件」；黑名單狀態只有系統管理員讀得到（RLS），其他管理員看不到黑名單欄與操作。
 
 - 2026-10-31｜#75：虛擬體驗元件分四個區塊（貓咪、室內空間、生活用品、其他），R3 已改寫；貓咪模型的貼圖由 cat_studio/paint_worker.py 產生，網頁只建任務與預覽（共用母體 ase_clips.glb 換 cat_fur 貼圖，不需每隻貓各一個 glb）；動作屬母體，補入新動作後所有貓自動擁有；本機模式（可新增／產生）只在非 production 且設了 CAT_STUDIO_ROOT 時啟用；正式站改讀 `public/hq-cat-models/` 示範貓（已完成的 bb）供預覽，寫入仍關閉。004_meow_cat_models.sql（資料表 meow_cat_models、meow_cat_model_jobs、bucket meow-cat-photos／meow-cat-models）在 PR 3，執行前須經 Tina 確認。
@@ -171,3 +174,5 @@ ole === "admin" 判斷管理員，而現有 admin 會升為 system_admin；舊�
 
 ### #197 生活用品（2026-11-04）
 - Migration：`0021_meow_household_items.sql`，已於 2026-11-04 在 `onebpkbkrnnwamwsoelo` 執行。新增 `meow_item_categories`、`meow_items`、公開 bucket `meow-items`（只允許 .glb，20MB）；讀取公開，寫入需 `virtual_assets`。畫面與虛擬體驗接線尚未做。
+- 畫面：`ItemsTab`（上傳、篩選、類別 CRUD）；虛擬體驗 `ExperienceTab` 可放置用品，`FloorplanViewer` 加入碰撞。
+- 小物分流：平面圖 AI 讀落地風扇（`fan`）、桌上電腦（`computer`）與桌上雜物（`cup`／`vase`／`notebook`，可 `parent` 貼 desk／table／cabinet／counter）；**包包、鍵盤**仍走生活用品上傳（`0022` 種子含 `bags`／`keyboards`／`cups`／`vases`／`notebooks`，後三者亦可手動上傳自訂 glb）。虛擬體驗 nested：`PlacedHouseholdItem.y`／`support`。

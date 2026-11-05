@@ -3,3 +3,5 @@
 本專案所有 AI 助理遵守同一份規範：請完整閱讀並遵守根目錄的 `AGENTS.md`。
 
 補充：開工先讀 `docs/agents/HANDOFF.md`、`docs/agents/PLAN.md`，以及要修改模組的 `docs/modules/*.md`。Commit trailer 的 Agent 欄寫 `Antigravity (<模型>)` 或 `Gemini CLI (<模型>)`。
+
+MeowHQ 畫面發布：遵守 `AGENTS.md` §6.1（頁尾依目前功能／tab 顯示最後修改人與時間，由 `HqShell` 統一渲染）。

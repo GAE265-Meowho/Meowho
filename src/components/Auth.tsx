@@ -65,9 +65,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(data.user);
       if (data.user) loadProfile(data.user.id).catch(() => undefined).finally(done); else done();
     }).catch(done);
-    const { data: sub } = sb.auth.onAuthStateChange((_e, session) => {
-      setUser(session?.user ?? null);
-      if (session?.user) loadProfile(session.user.id); else setProfile(null);
+    // #224：TOKEN_REFRESHED 等事件不要重載 profile／換 user 物件，避免 MeowHQ 首頁跟著一直重抓
+    const { data: sub } = sb.auth.onAuthStateChange((event, session) => {
+      if (event === "TOKEN_REFRESHED") return;
+      setUser(prev => {
+        const next = session?.user ?? null;
+        if (prev?.id === next?.id) return prev ?? next;
+        return next;
+      });
+      if (session?.user) {
+        if (event === "SIGNED_IN" || event === "INITIAL_SESSION" || event === "USER_UPDATED") {
+          void loadProfile(session.user.id);
+        }
+      } else {
+        setProfile(null);
+      }
     });
     return () => { clearTimeout(timer); sub.subscription.unsubscribe(); };
   }, [sb, loadProfile]);

@@ -28,7 +28,7 @@ cd ~/Meowho && git pull && sudo systemctl restart meow-paint
 ```
 
 ## 注意
-- **同時只能有一個 worker**：VM 的 worker 在跑時，不要在本機再開 `paint_worker.py --supabase`。
-- **T4 只有 16 GB**：和其他 GPU 工作（如 `room_worker`）同一時間只跑一個。
+- **同時只能有一個 paint worker**：VM 的 worker 在跑時，不要在本機再開 `paint_worker.py --supabase`。
+- **T4 只有 16 GB**：和房間 worker（`workers/room-convert`）共用同一台 VM 時，兩邊用檔案鎖 `/tmp/meowho-gpu.lock`（`fcntl.LOCK_EX`）輪流領工作；等鎖期間工作維持 `queued`，不會卡在 `running`（#200）。
 - `/mnt` 是 Azure 暫存磁碟，停止 VM 會清空；本 worker 全部裝在 repo 資料夾內。
 - 用完在 Azure Portal 按「停止」（已解除配置）才不計 VM 費用；只在 Linux 內關機仍會計費。

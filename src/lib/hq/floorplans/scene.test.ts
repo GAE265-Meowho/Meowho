@@ -26,6 +26,17 @@ describe("roomBoxes", () => {
     expect(boxes.find(b => b.furniture === "chair")?.walkable).toBeUndefined();
   });
 
+  it("桌上電腦：elev 抬高，中心 y＝桌高＋半個螢幕高，不可跳上", () => {
+    const g = geo();
+    g.furniture = [
+      { kind: "desk", label: "書桌", x: 2, y: 1, w: 1.2, d: 0.6, h: 0.75, rot: 0, surface: "walkable" },
+      { kind: "computer", label: "螢幕", x: 2, y: 1, w: 0.5, d: 0.2, h: 0.45, rot: 0, parent: 0, elev: 0.75 },
+    ];
+    const { boxes } = roomBoxes(g);
+    expect(boxes.find(b => b.furniture === "desk")).toMatchObject({ y: 0.375, walkable: true });
+    expect(boxes.find(b => b.furniture === "computer")).toMatchObject({ y: 0.75 + 0.225, sy: 0.45, walkable: undefined });
+  });
+
   it("門：牆斷開，門上方留門楣；牆兩端各延伸半個牆厚，轉角不留縫", () => {
     const top = roomBoxes(geo()).boxes.filter(b => b.z === 0 && b.kind !== "floor" && b.kind !== "furniture");
     // 4.2 長的牆，門在 1.2～2.1：左段＋門楣＋右段
@@ -66,6 +77,22 @@ describe("roomBoxes", () => {
     g.walls = g.walls.map(w => ({ ...w, a: [w.a[0] + 5, w.a[1] + 2] as [number, number], b: [w.b[0] + 5, w.b[1] + 2] as [number, number] }));
     g.furniture = g.furniture.map(f => ({ ...f, x: f.x + 5, y: f.y + 2 }));
     expect(roomBoxes(g).boxes.find(b => b.furniture === "sofa")).toMatchObject({ x: 1.5, z: 3.065 });
+  });
+
+  it("session moves 套用到家具座標；全部 movable、nested 跟隨；rot 進 rotY", () => {
+    const g = geo();
+    g.furniture = [
+      { kind: "desk", label: "書桌", x: 2, y: 2, w: 1.2, d: 0.6, h: 0.75, rot: 0 },
+      { kind: "computer", label: "螢幕", x: 2.1, y: 2.05, w: 0.4, d: 0.2, h: 0.35, rot: 0, parent: 0, elev: 0.75 },
+    ];
+    const { boxes } = roomBoxes(g, undefined, new Map([[0, { x: 3, z: 2.5, rot: 90, support: null }]]));
+    const desk = boxes.find(b => b.furniture === "desk");
+    const mon = boxes.find(b => b.furniture === "computer");
+    expect(desk).toMatchObject({ x: 3, z: 2.5, movable: true, furnitureIndex: 0 });
+    expect(desk?.rotY).toBeCloseTo(-Math.PI / 2, 2);
+    // 父轉 90° 後，子相對偏移跟著轉：(dx,dz)=(0.1,0.05) → (-0.05, 0.1)
+    expect(mon).toMatchObject({ x: 2.95, z: 2.6, furnitureIndex: 1, movable: true });
+    expect(mon?.y).toBeCloseTo(0.75 + 0.35 / 2, 5);
   });
 });
 

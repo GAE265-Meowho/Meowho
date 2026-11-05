@@ -1,0 +1,1231 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>新增送養貓咪</title>
+<!--
+  中途新增送養貓流程（設計稿實作版）
+  流程：拍照（正面、側面、背面＋其他照片）→ 說說牠（語音轉文字→可修改→送出填表）→ 快問快答 7 頁（個性、照顧、習慣、問題行為、相處、剛到家、摸摸牠）→ 確認名片 → 完成
+
+  接進 Meowho 時：
+  - 色票、按鈕照 docs/design/DESIGN.md v2，:root 的 token 名稱和 globals.css 相同，搬成 CSS Module 時直接刪掉這裡的 :root。
+  - 貓形按鈕對應 components/ui/CatButton.tsx；必填「＊」對應 components/ui/Required.tsx。
+  - parseStory() 是示範用的規則式擷取。正式版改呼叫 POST /api/onboarding/turn（lib/onboarding/conversation.ts）。
+  - toMeowhoPayload() 把畫面狀態轉成 meow_cats 的欄位。照護配合度、觸摸、剛到家、相處細項放在新的 care jsonb（資料庫還沒有，要加 migration）。
+  - 正面、側面、背面三張給 3D 流程用（側面必填＝AI 三視角的上色照，正面、背面當參考圖，沒拍 AI 補）；其他照片進 photo_paths（目前上限 5 張，要放寬或分開存）。
+  - 個性改成四條兩端量表（活動量、跟人的距離、膽量、適應新環境，各 1–5 格，參考巴克幫的性格量表），
+    個性標籤由量表自動產生（personalityTags()），和遊戲 24e-adopt.js 用的標籤一致：慵懶／活潑、獨立／黏人、膽小／怕生／親人、愛咬人。
+  - 問題行為（沒有／偶爾／常常／不確定）：「沒有」也會顯示在名片上。
+  - 健康標籤：前五個遊戲已有寫好的劇情；其他標籤和「其他身體狀況」自己填的內容，試養遊戲交給 AI 依這段安排劇情（payload 的 medical.ai_story）。
+  - 示範版不存檔、不上傳，照片只在瀏覽器裡預覽。
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;700&family=Zen+Maru+Gothic:wght@500;700&family=Noto+Sans+TC:wght@400;500;700&display=swap">
+<style>
+:root {
+  --paper: #fbf5ea;  --cream: #fffaf0;  --card: #ffffff;  --line: #efe3cf;
+  --ink: #3f2e24;    --ink-soft: #7a6252;
+  --yellow: #f6b53b; --yellow-deep: #e9a21f; --yellow-soft: #fdedc4;
+  --orange: #e8913a; --orange-deep: #a8562a; --orange-soft: #fde3c6;
+  --heading-orange: #b25e16;
+  --caramel: #a5602a; --caramel-deep: #7d4517;
+  --pink: #f4b2ad;   --pink-soft: #fde7e4; --mint-soft: #e3f2e7;
+  --tap: 36px;
+}
+@media (pointer: coarse) { :root { --tap: 44px; } }
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; background: var(--paper); color: var(--ink);
+  font-family: Quicksand, "Zen Maru Gothic", "Noto Sans TC", sans-serif; font-size: 15px; line-height: 1.6;
+}
+button, input, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 3px solid var(--orange); outline-offset: 2px; }
+a { color: var(--orange-deep); }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+.page { max-width: 480px; margin: 0 auto; padding: 0 20px calc(32px + env(safe-area-inset-bottom)); min-height: 100vh; display: flex; flex-direction: column; }
+.top { display: flex; align-items: center; justify-content: space-between; height: 60px; }
+.top .title { font-weight: 700; font-size: 17px; letter-spacing: .06em; }
+.icon-btn { width: 44px; height: 44px; border: 0; background: transparent; display: grid; place-items: center; padding: 0; border-radius: 50%; }
+.icon-btn[disabled] { visibility: hidden; }
+.home-chip { font-size: 13px; font-weight: 700; background: var(--yellow-soft); padding: 4px 10px; border-radius: 999px; }
+
+.steps { list-style: none; margin: 4px 0 22px; padding: 0; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
+.steps li { display: flex; flex-direction: column; gap: 6px; font-size: 12px; color: var(--ink-soft); }
+.steps li i { height: 6px; border-radius: 3px; background: var(--line); }
+.steps li.done i, .steps li.now i { background: var(--caramel); }
+.steps li.now { color: var(--ink); font-weight: 700; }
+
+h1 { margin: 0 0 8px; font-size: 28px; line-height: 1.4; letter-spacing: .06em; }
+h2 { margin: 0; font-size: 18px; letter-spacing: .04em; }
+.lead { margin: 0 0 18px; font-size: 15px; line-height: 1.7; color: var(--ink-soft); }
+.muted { color: var(--ink-soft); }
+.card { background: var(--card); border-radius: 30px; box-shadow: 0 6px 0 -1px var(--line); padding: 18px; }
+.stack { display: flex; flex-direction: column; gap: 16px; }
+.grow { flex-grow: 1; }
+.kicker { font-size: 14px; font-weight: 700; background: var(--yellow); color: var(--ink); padding: 4px 12px; border-radius: 999px; }
+.row-between { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.tag { font-size: 12px; font-weight: 700; color: var(--orange-deep); }
+.req { color: var(--orange-deep); font-weight: 700; }
+
+/* ---------- 貓形 pill 按鈕（components/ui/CatButton.tsx） ---------- */
+.cat-btn { position: relative; isolation: isolate; display: flex; align-items: center; justify-content: center; width: 100%; height: 54px; margin-top: 16px;
+  border: 0; border-radius: 999px; background: var(--caramel); color: #fff; font-size: 17px; font-weight: 700; letter-spacing: .06em;
+  box-shadow: 0 6px 0 var(--caramel-deep); text-decoration: none; transition: transform .15s; }
+.cat-btn .ears { position: absolute; left: 26px; top: -15px; width: 56px; height: 20px; z-index: -1; fill: var(--caramel); }
+.cat-btn .tail { position: absolute; right: -10px; top: 16px; width: 22px; height: 38px; z-index: -1; }
+.cat-btn .tail .body { fill: var(--caramel); }
+.cat-btn .tail .stripes path { stroke: #c98a54; stroke-width: 14; fill: none; }
+.cat-btn:hover { transform: translateY(-2px); }
+.cat-btn:hover .tail { animation: wag .5s ease-in-out 2; transform-origin: 0 0; }
+@keyframes wag { 50% { transform: rotate(8deg); } }
+.ghost-btn { min-height: 44px; padding: 0 20px; border: 2px solid var(--orange); border-radius: 999px; background: var(--card); color: var(--orange-deep); font-size: 15px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; gap: 8px; text-decoration: none; }
+.dark-btn { min-height: 44px; padding: 0 18px; border: 0; border-radius: 999px; background: var(--ink); color: var(--yellow-soft); font-size: 15px; font-weight: 700; }
+.link-btn { min-height: 44px; border: 0; background: transparent; color: var(--orange-deep); font-size: 15px; font-weight: 700; padding: 0 4px; }
+.missing { margin: 16px 0 0; padding: 10px 14px; border-radius: 18px; background: var(--pink-soft); font-size: 14px; }
+
+/* ---------- 選項 ---------- */
+.seg { display: grid; gap: 6px; }
+.opt { min-height: var(--tap); min-height: 44px; padding: 0 10px; border: 2px solid var(--line); border-radius: 999px; background: var(--cream); font-size: 14px; font-weight: 700; }
+.opt[aria-checked="true"], .opt[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--yellow); }
+.chip { min-height: 44px; padding: 0 14px; border: 2px solid var(--line); border-radius: 999px; background: var(--card); font-size: 14px; font-weight: 700; }
+.chip[aria-pressed="true"] { background: var(--yellow-soft); border-color: var(--caramel); }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field > label, .field > .label { font-size: 14px; font-weight: 700; }
+.input { height: 44px; border: 2px solid var(--line); border-radius: 999px; background: var(--card); padding: 0 16px; font-size: 15px; width: 100%; }
+.input::placeholder, textarea::placeholder { color: #8f7663; }
+.input:focus, textarea:focus { outline: none; border-color: var(--orange); }
+.input.guess { border-color: var(--yellow); background: var(--yellow-soft); }
+.age-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
+.two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+
+/* ---------- 拍照 ---------- */
+.angles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.slot { position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 12px 8px; border: 2px dashed var(--orange); border-radius: 28px; background: var(--cream); cursor: pointer; text-align: center; }
+.slot.has { border-style: solid; border-color: var(--caramel); background: var(--yellow-soft); }
+.slot svg, .slot .photo { width: 100%; max-width: 150px; aspect-ratio: 350 / 284; }
+.slot .photo { object-fit: cover; border-radius: 18px; }
+.slot b { font-size: 16px; }
+.slot span { font-size: 13px; color: var(--ink-soft); }
+.slot .badge { position: absolute; top: 10px; right: 10px; font-size: 12px; font-weight: 700; background: var(--ink); color: var(--yellow-soft); padding: 2px 8px; border-radius: 999px; }
+.slot input, .add input { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; }
+.angles.three { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; gap: 10px; }
+.angles.three .slot { padding: 10px 6px; border-radius: 24px; }
+.angles.three .slot b { font-size: 15px; }
+.angles.three .slot span { font-size: 12px; line-height: 1.4; }
+.add { gap: 2px; align-content: center; }
+.thumbs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.thumb { position: relative; aspect-ratio: 1 / 1; }
+.thumb img { width: 100%; height: 100%; object-fit: cover; border-radius: 46% 54% 42% 58% / 52% 44% 56% 48%; background: var(--orange-soft); }
+.set-cover { position: absolute; z-index: 2; min-height: 30px; padding: 0 10px; border: 1.5px solid var(--caramel); border-radius: 999px; background: var(--card); color: var(--orange-deep); font-size: 12px; font-weight: 700; white-space: nowrap; }
+.set-cover.on { background: var(--ink); border-color: var(--ink); color: var(--yellow-soft); }
+.slot .set-cover { top: 8px; left: 50%; transform: translateX(-50%); }
+.thumb .set-cover { left: 50%; bottom: -10px; transform: translateX(-50%); }
+.thumb .cover { position: absolute; left: 50%; bottom: -4px; transform: translateX(-50%); font-size: 12px; font-weight: 700; background: var(--ink); color: var(--yellow-soft); padding: 1px 8px; border-radius: 999px; white-space: nowrap; }
+.thumb .rm { position: absolute; top: -6px; right: -6px; width: 28px; height: 28px; border-radius: 50%; border: 0; background: var(--ink); color: #fff; display: grid; place-items: center; padding: 0; }
+.add { position: relative; aspect-ratio: 1 / 1; border: 2px dashed var(--orange); border-radius: 20px; background: var(--cream); color: var(--orange-deep); display: grid; place-items: center; }
+
+/* ---------- 說說牠 ---------- */
+.mic { width: 84px; height: 84px; border: 0; border-radius: 50%; background: var(--caramel); color: #fff; box-shadow: 0 6px 0 var(--caramel-deep); display: grid; place-items: center; padding: 0; touch-action: none; user-select: none; -webkit-user-select: none; }
+.mic.on { background: var(--orange-deep); animation: pulse 1.2s ease-in-out infinite; }
+@keyframes pulse { 50% { transform: scale(1.06); } }
+textarea.story { width: 100%; border: 2px solid var(--orange); border-radius: 22px; background: var(--cream); padding: 12px 14px; resize: vertical; font-size: 15px; line-height: 1.8; min-height: 140px; }
+.legend { display: flex; gap: 14px; justify-content: center; margin: 18px 0 10px; font-size: 13px; color: var(--ink-soft); flex-wrap: wrap; }
+.hlist { display: flex; flex-direction: column; }
+.hrow { display: flex; flex-direction: column; gap: 10px; padding: 16px 0; border-top: 1.5px dashed var(--line); }
+.hrow:first-child { border-top: 0; padding-top: 4px; }
+.hrow > .label { font-size: 15px; font-weight: 700; display: flex; align-items: baseline; gap: 8px; }
+.hrow .seg { grid-template-columns: repeat(4, minmax(0, 1fr)) !important; }
+.hrow .opt { min-height: 46px; padding: 0 4px; font-size: 14px; }
+.note { margin: 0; font-size: 14px; color: var(--ink-soft); }
+.status { margin: 0; font-size: 14px; font-weight: 700; color: var(--orange-deep); min-height: 1.6em; text-align: center; }
+
+/* ---------- 快問快答 ---------- */
+.qrow { padding: 10px 0; border-bottom: 1.5px dashed var(--line); display: flex; flex-direction: column; gap: 8px; }
+.qrow:last-child { border-bottom: 0; }
+.opt { white-space: nowrap; }
+.qrow .opt { padding: 0 2px; font-size: 13px; letter-spacing: 0; }
+@media (min-width: 400px) { .qrow .opt { font-size: 14px; } }
+.qgroup p { margin: 0 0 8px; font-size: 14px; font-weight: 700; color: var(--ink-soft); }
+
+/* ---------- 摸摸牠 ---------- */
+.legend4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin-bottom: 10px; font-size: 13px; text-align: center; }
+.legend4 span { padding: 6px 2px; border-radius: 999px; font-weight: 700; }
+.catbox { position: relative; width: 100%; max-width: 350px; margin: 0 auto; aspect-ratio: 350 / 330; background: var(--card); border-radius: 32px; box-shadow: 0 6px 0 -1px var(--line); overflow: hidden; }
+.catbox > svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.zone { position: absolute; transform: translate(-50%, -50%); min-height: 44px; padding: 2px 4px; border-radius: 22px; font-size: 14px; font-weight: 700; line-height: 1.25; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  background: rgba(255, 250, 240, .9); border: 2px dashed var(--orange-deep); }
+.zone small { font-size: 12px; font-weight: 500; }
+.z1 { background: var(--caramel); color: #fff; border: 2px solid var(--caramel); }
+.z2 { background: var(--yellow-soft); border: 2px solid var(--caramel); }
+.z3 { background: var(--pink-soft); border: 2px dashed var(--orange-deep); }
+
+/* ---------- 名片 ---------- */
+.preview { display: grid; grid-template-columns: 108px minmax(0, 1fr); gap: 14px; align-items: center; }
+.blob { aspect-ratio: 1 / 1; background: var(--yellow-soft); border-radius: 46% 54% 42% 58% / 52% 44% 56% 48%; overflow: hidden; display: grid; place-items: center; }
+.blob img { width: 100%; height: 100%; object-fit: cover; }
+.pill { font-size: 13px; background: var(--yellow-soft); padding: 3px 10px; border-radius: 999px; }
+.pill.ok { background: var(--mint-soft); } .pill.warn { background: var(--pink-soft); }
+details { border-bottom: 1.5px dashed var(--line); padding: 12px 0; }
+details:last-child { border-bottom: 0; }
+summary { list-style: none; display: flex; justify-content: space-between; align-items: center; min-height: 36px; cursor: pointer; gap: 10px; }
+summary::-webkit-details-marker { display: none; }
+summary b { font-size: 16px; }
+summary span { font-size: 14px; color: var(--ink-soft); text-align: right; }
+dl.kv { margin: 8px 0 0; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 6px 14px; font-size: 14px; }
+dl.kv dt { color: var(--ink-soft); } dl.kv dd { margin: 0; }
+.week { background: var(--yellow-soft); border-radius: 28px; padding: 16px 18px; }
+.week ul { margin: 8px 0 0; padding-left: 1.2em; display: flex; flex-direction: column; gap: 4px; font-size: 14px; line-height: 1.7; }
+.consent { margin-top: 20px; display: flex; gap: 12px; align-items: flex-start; font-size: 15px; line-height: 1.7; cursor: pointer; }
+.consent input { width: 24px; height: 24px; margin: 2px 0 0; accent-color: var(--caramel); flex: none; }
+
+/* ---------- 完成 ---------- */
+.done-hero { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 10px; }
+.done-hero .blob { width: 148px; }
+
+/* ---------- 可點的小框：一樣大小的格子 ---------- */
+.chips.even { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 8px; }
+.chips.even .chip { width: 100%; padding: 4px 6px; line-height: 1.3; white-space: normal; text-align: center; }
+
+/* ---------- 個性：可以拉的量表（五個節點） ---------- */
+.slider { position: relative; height: 44px; }
+.slider .rail { position: absolute; left: 8px; right: 8px; top: 50%; transform: translateY(-50%); display: flex; justify-content: space-between; align-items: center; pointer-events: none; }
+.slider .rail::before { content: ""; position: absolute; left: 6px; right: 6px; top: 50%; height: 6px; margin-top: -3px; border-radius: 3px; background: var(--line); }
+.slider .rail i { position: relative; width: 12px; height: 12px; border-radius: 50%; background: var(--line); border: 2px solid var(--card); }
+.range { position: relative; z-index: 1; -webkit-appearance: none; appearance: none; width: 100%; height: 44px; margin: 0; background: transparent; cursor: pointer; touch-action: pan-y; }
+.range:focus { outline: none; }
+.range:focus-visible { outline: 3px solid var(--orange); outline-offset: 2px; border-radius: 22px; }
+.range::-webkit-slider-runnable-track { height: 44px; background: transparent; }
+.range::-moz-range-track { height: 44px; background: transparent; }
+.range::-webkit-slider-thumb { -webkit-appearance: none; width: 28px; height: 28px; margin-top: 8px; border-radius: 50%; background: var(--caramel); border: 4px solid #fff; box-shadow: 0 3px 0 var(--caramel-deep); }
+.range::-moz-range-thumb { width: 20px; height: 20px; border-radius: 50%; background: var(--caramel); border: 4px solid #fff; box-shadow: 0 3px 0 var(--caramel-deep); }
+.range.unset::-webkit-slider-thumb { background: var(--card); border: 3px dashed var(--orange); box-shadow: none; }
+.range.unset::-moz-range-thumb { background: var(--card); border: 3px dashed var(--orange); box-shadow: none; }
+.words { display: flex; justify-content: space-between; margin: 0 -14px; }
+.words span { width: 56px; text-align: center; font-size: 13px; color: var(--ink-soft); }
+.words span.on { color: var(--orange-deep); font-weight: 700; }
+
+/* ---------- 個性量表 ---------- */
+.trait { padding: 14px 0; border-bottom: 1.5px dashed var(--line); display: flex; flex-direction: column; gap: 8px; }
+.trait:last-child { border-bottom: 0; }
+.scale { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; }
+.scale .opt { padding: 0; font-size: 15px; }
+.ends { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; color: var(--ink-soft); }
+.ends span:last-child { text-align: right; }
+.mrow { display: flex; flex-direction: column; gap: 6px; padding: 10px 0; border-bottom: 1.5px dashed var(--line); }
+.mrow:last-child { border-bottom: 0; padding-bottom: 0; }
+.mrow b { font-size: 15px; }
+.meter { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; }
+.meter i { height: 10px; border-radius: 5px; background: var(--line); }
+.meter i.on { background: var(--caramel); }
+.mrow .ends { font-size: 12px; }
+.mrow q { font-size: 14px; color: var(--ink); quotes: "「" "」"; }
+.pill.mid { background: var(--orange-soft); }
+.pill.plain { background: var(--cream); border: 1.5px solid var(--line); }
+.nick { align-self: flex-start; font-size: 13px; font-weight: 700; background: var(--ink); color: var(--yellow-soft); padding: 2px 10px; border-radius: 999px; }
+.story-card { background: var(--cream); border: 2px solid var(--line); border-radius: 28px; padding: 16px 18px; }
+.story-card p { margin: 8px 0 0; font-size: 15px; line-height: 1.8; white-space: pre-wrap; }
+.sub { font-size: 13px; color: var(--ink-soft); margin: -2px 0 0; }
+.rowline { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+
+/* ---------- 版面：手機單欄 → 平板加寬 → 桌機雙欄（斷點照 DESIGN.md §9） ---------- */
+.cols { display: flex; flex-direction: column; gap: 16px; }
+.cols .legend { margin: 16px 0 0; }
+.h1s { font-size: 26px; line-height: 1.45; letter-spacing: .04em; }
+.narrow { width: 100%; }
+.cta { display: flex; flex-direction: column; align-items: stretch; }
+.cta-alt { order: 3; align-self: center; margin-top: 10px; }
+.done-actions .two { margin-top: 18px; }
+
+@media (min-width: 768px) {
+  .page { max-width: 760px; padding-left: 32px; padding-right: 32px; }
+  .thumbs { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  /* 拍照頁從平板起就分兩欄：標題在上，左邊四個角度的框，右邊其他照片 */
+  .cols.photo-cols { display: grid; grid-template-columns: minmax(0, 7fr) minmax(0, 5fr); grid-template-areas: "head head" "main side"; grid-template-rows: auto auto; column-gap: 28px; row-gap: 16px; align-items: start; }
+  .cols.photo-cols .a-head { grid-area: head; }
+  .cols.photo-cols .a-main { grid-area: main; }
+  .cols.photo-cols .a-side { grid-area: side; position: sticky; top: 24px; }
+  .cols.photo-cols .lead { max-width: 640px; }
+  .cols.photo-cols .angles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .cols.photo-cols .thumbs { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (min-width: 1024px) { .cols.photo-cols { column-gap: 40px; } .cols.photo-cols .thumbs { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+
+@media (min-width: 1024px) {
+  .page { max-width: 1180px; padding: 8px 40px 56px; }
+  .top { height: 72px; }
+  .top .title { font-size: 20px; }
+  .steps { max-width: 720px; margin: 8px 0 36px; gap: 10px; }
+  .steps li { font-size: 14px; }
+  h1 { font-size: clamp(34px, 3.2vw, 44px); }
+  .h1s { font-size: clamp(28px, 2.6vw, 36px); }
+  .lead { font-size: 16px; }
+
+  /* 電腦版也維持單欄，一路往下捲；只有拍照頁分左右（見上面的 .photo-cols） */
+  .cols:not(.photo-cols), .cta:not(.photo-cta) { max-width: 760px; width: 100%; margin-left: auto; margin-right: auto; }
+  .cols:not(.photo-cols) { gap: 18px; }
+  .steps { width: 100%; max-width: 760px; margin-left: auto; margin-right: auto; }
+
+  /* 拍照：四個角度排成 2×2 大格（左右位置見上面的 .photo-cols） */
+  .angles { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+  .slot { padding: 20px 14px 16px; }
+  .slot svg, .slot .photo { max-width: 240px; }
+  .thumbs { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
+  /* 快問：置中窄欄，選項列排兩欄 */
+  .narrow { max-width: 760px; margin-left: auto; margin-right: auto; }
+  .chips.even { grid-template-columns: repeat(auto-fill, minmax(128px, 1fr)); }
+  /* 快問快答：一律單欄、上下滑 */
+  .qrows { padding: 6px 24px !important; }
+
+  /* 摸摸牠：貓咪圖放大 */
+  .catbox { max-width: 460px; }
+
+  /* 主要按鈕靠右，不撐滿 */
+  .cta { flex-direction: row; justify-content: flex-end; align-items: center; gap: 24px; margin-top: 32px; flex-wrap: wrap; }
+  .cta .missing { margin: 0 auto 0 0; }
+  .cta .cat-btn { width: auto; min-width: 300px; padding: 0 56px; margin-top: 0; }
+  .cta-alt { order: 0; margin-top: 0; }
+  .cta.narrow .cat-btn { margin-left: auto; }
+
+  .grow { flex-grow: 0; }
+
+  /* 完成頁 */
+  .done-hero .blob { width: 180px; }
+  .done-actions { display: flex; align-items: center; gap: 16px; justify-content: center; margin-top: 32px; }
+  .done-actions .cat-btn { width: auto; min-width: 280px; padding: 0 48px; margin-top: 0; }
+  .done-actions .two { margin-top: 0; display: flex; gap: 12px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
+</style>
+</head>
+<body>
+<main class="page" id="app" aria-live="polite"></main>
+
+<script>
+/* ================================================================
+   資料
+   ================================================================ */
+const HOME = "小橘之家"; // 正式版：目前選定的喵戶名稱
+const STEP_LABEL = ["拍照", "說說牠", "快問", "確認", "完成"];
+const STEP_OF = { photo: 0, talk: 1, quick: 2, touch: 2, review: 3, done: 4 };
+const MAX_OTHERS = 6;
+
+// 個性：四條兩端量表（參考巴克幫的性格量表），1–5 格，中間是普通。
+// 個性標籤由量表自動產生，對到 24e-adopt.js 的個性標籤，不會再出現「黏人又獨立」這種矛盾
+const TRAITS = [
+  { key: "energy", name: "活動量", L: "很懶、愛睡", R: "精力旺盛", tag: v => v <= 2 ? ["慵懶"] : v >= 4 ? ["活潑"] : [], ph: "白天都在睡，晚上很瘋" },
+  { key: "bond", name: "跟人的距離", L: "獨立、不愛被打擾", R: "很黏、跟前跟後", tag: v => v <= 2 ? ["獨立"] : v >= 4 ? ["黏人"] : [], ph: "你在家就一定要待在你旁邊" },
+  { key: "brave", name: "膽量", L: "膽小怕生、會躲", R: "大膽好奇、主動靠近", tag: v => v === 1 ? ["膽小", "怕生"] : v === 2 ? ["怕生"] : v >= 4 ? ["親人"] : [], ph: "門鈴一響就躲，熟人就沒事" },
+  { key: "adapt", name: "適應新環境", L: "要很久", R: "很快就自在", tag: v => v <= 2 ? ["慢熱"] : v >= 4 ? ["適應力好"] : [], ph: "換籠子後兩天不吃，第三天就好了" }
+];
+const SCALE_WORD = {
+  energy: ["很懶", "偏安靜", "普通", "偏好動", "超好動"], bond: ["很獨立", "偏獨立", "普通", "偏黏人", "超黏人"],
+  brave: ["很膽小", "有點怕生", "普通", "偏大膽", "超大膽"], adapt: ["要很久", "偏慢熱", "普通", "偏快", "很快"]
+};
+const EXTRA_PERS = ["貪吃", "好奇", "愛玩", "愛撒嬌", "愛被抱", "溫和", "有小脾氣", "怕寂寞", "會等門", "愛叫", "愛踏踏", "愛曬太陽"];
+
+// 問題行為：「沒有」也會顯示在名片上，讓領養人放心（參考巴克幫的 0 分）
+const LEVEL = ["沒有", "偶爾", "常常", "不確定"];
+const PROBLEMS = [["pee", "亂尿"], ["bite", "咬人或抓人"], ["guard", "護食"], ["scratch", "抓家具"], ["sep", "你出門後一直叫"], ["night", "半夜吵鬧"], ["chew", "咬電線或塑膠袋"], ["door", "衝門口"]];
+
+// 健康標籤：game = true 的遊戲已有寫好的劇情（24e-adopt.js）；其他標籤和自己填的內容，遊戲交給 AI 安排劇情
+const HEALTH_TAGS = [["慢性腎病", true], ["口炎", true], ["皮膚病", true],
+  ["視力不好", false], ["聽力不好", false], ["心臟病", false], ["糖尿病", false], ["泌尿道問題", false], ["食物過敏", false], ["以前骨折過", false], ["每天吃藥", true]];
+
+const CARE = ["順利", "要技巧", "很難", "沒試過"];
+const MEET = ["可以", "看情況", "不行", "沒遇過"];
+const DAYS = ["當天", "1–3 天", "一週內", "更久"];
+const QUICK = [
+  { kind: "trait", key: "traits", title: "牠是什麼個性？", why: "每一條拉到最像牠的位置，中間是普通。試養時牠會照這個反應，例如膽小的貓，有客人來會躲一整晚。" },
+  { kind: "seg", key: "care", title: "日常照護的配合度", why: "",
+    rows: [["nail", "剪指甲"], ["hold", "抱起來"], ["carrier", "進外出籠"], ["pill", "餵藥"], ["brush", "梳毛"], ["teeth", "刷牙"], ["vet", "看醫生"]], opts: CARE },
+  { kind: "chip", key: "habits", title: "平常的習慣", why: "有的就點，沒有的不用管。講過的已經幫你選好了。",
+    groups: [
+      ["上廁所", [["litter", "會用貓砂"], ["outdoor", "習慣在外面上"]]],
+      ["吃飯", [["dry", "乾飼料"], ["can", "罐頭"], ["wet", "濕食"], ["picky", "挑食"]], { key: "snack", label: "最愛的零食", ph: "例如：肉泥、凍乾雞肉" }],
+      ["什麼時候最有精神", [["dawn", "清晨討飯"], ["night", "半夜跑酷"], ["day", "白天"]]],
+      ["喜歡待在", [["high", "高處"], ["hide", "躲起來的地方"], ["lap", "人的旁邊"]]],
+      ["愛玩的", [["wand", "逗貓棒"], ["ball", "追球"], ["ambush", "埋伏撲腳"]]],
+      ["還要注意", [["opendoor", "會開門"], ["table", "會跳上桌偷吃"], ["vacuum", "怕吸塵器"], ["thunder", "怕打雷"]], { key: "caution", label: "其他要注意的地方", ph: "例如：怕戴頭套、看到鳥會很激動" }]
+    ] },
+  { kind: "seg", key: "prob", title: "貓咪的小小壞習慣", why: "選「沒有」也很有用，領養人看了會比較放心。選偶爾或常常的，可以補一句是什麼情況。",
+    rows: PROBLEMS, opts: LEVEL, notes: "probNote", noteph: "換了環境才會、晚上比較常" },
+  { kind: "seg", key: "meet", title: "跟誰處得來？", why: "選「看情況」或「不行」的，補一句是什麼情況，領養人比較好判斷。",
+    rows: [["cats", "其他貓"], ["dogs", "狗"], ["kids", "小孩"], ["guest", "陌生人"]], opts: MEET, notes: "meetNote", noteph: "要隔離一週慢慢介紹" },
+  { kind: "seg", key: "arrival", title: "適應速度", why: "這會變成領養人第一週的預告，例如「前三天會躲起來」。",
+    rows: [["hide", "躲到願意出來"], ["eat", "開始吃飯"], ["touch", "讓你摸"]], opts: DAYS }
+];
+const Q = k => QUICK.find(p => p.key === k);
+const PAGES = QUICK.length + 1; // 快問快答＋摸摸牠
+
+// [代號, 名稱, 中心 x, 中心 y, 寬]：座標對齊摸摸牠的貓咪圖（350×330）
+const ZONES = [
+  ["top", "頭頂", 96, 66, 70], ["ear", "耳後", 168, 92, 62], ["cheek", "臉頰兩側", 56, 140, 84], ["chin", "下巴", 112, 186, 62],
+  ["back", "背", 208, 146, 76], ["butt", "屁股", 294, 166, 64], ["tail", "尾巴", 316, 78, 58],
+  ["belly", "肚子", 214, 222, 70], ["paw", "腳掌", 152, 306, 70]
+];
+const ZONE_STATE = ["", "喜歡", "可以", "不要摸"];
+const DURS = ["幾下", "一兩分鐘", "很久", "看心情"];
+const SIGNS = [["tail", "甩尾巴"], ["ears", "耳朵往後"], ["skin", "背上皮膚抖"], ["look", "回頭看你"], ["leave", "直接走開"], ["nip", "輕咬一下"], ["bite", "用力咬或抓"]];
+
+// 三張：正面、側面、背面。側面必填，因為 3D 上色用側面（AI 三視角的 left，id 沿用 left）
+const ANGLES = [
+  { id: "front", name: "正面", hint: "看得到臉" },
+  { id: "left", name: "側面", hint: "拍到四隻腳", required: true },
+  { id: "back", name: "背面", hint: "看得到尾巴" }
+];
+
+/* ================================================================
+   狀態
+   ================================================================ */
+const S = {
+  step: "photo", qp: 0,
+  angles: { front: null, left: null, back: null },
+  others: [],
+  story: "", status: "",
+  f: { name: "", sex: null, stage: null, ageText: "", ageNum: "", ageUnit: 1, coat: "", breed: "", from: null, since: "", kg: "" },
+  h: { neuter: null, vaccine: null, deworm: [], fiv: null, chip: null, tags: new Set(), body: "", med: "" },
+  said: new Set(), guessed: new Set(),
+  traits: {}, traitNote: {}, personality: new Set(),
+  care: {}, meet: {}, meetNote: {}, prob: {}, probNote: {}, arrival: {}, habits: new Set(),
+  touch: {}, dur: null, signs: new Set(),
+  consent: false, missing: [],
+  intro: "", blurbV: 0, cover: null,
+  notes: { snack: "", caution: "", other: "" }
+};
+
+/* ================================================================
+   貓咪圖
+   ================================================================ */
+// 側面站姿（頭朝左）。畫兩次：第一次粗描邊、第二次只填色，疊起來就是整隻貓的外框
+const SIDE_TAIL = 'M300 158C330 140 338 96 322 58C316 44 330 34 338 46';
+const SIDE = '<ellipse cx="212" cy="176" rx="96" ry="46"/><ellipse cx="142" cy="172" rx="40" ry="50"/><ellipse cx="282" cy="180" rx="40" ry="46"/>'
+  + '<rect x="120" y="180" width="24" height="98" rx="12"/><rect x="156" y="186" width="24" height="92" rx="12"/><rect x="258" y="190" width="24" height="88" rx="12"/><rect x="290" y="184" width="24" height="94" rx="12"/>'
+  + '<path d="M46 92L40 30Q42 18 54 26L96 62Z"/><path d="M106 58L144 22Q154 16 156 28L160 96Z"/><ellipse cx="100" cy="110" rx="66" ry="56"/>';
+const FRONT_TAIL = 'M234 236C282 226 292 166 264 136';
+const FRONT = '<ellipse cx="175" cy="202" rx="62" ry="64"/>'
+  + '<rect x="112" y="214" width="24" height="70" rx="12"/><rect x="214" y="214" width="24" height="70" rx="12"/>'
+  + '<rect x="140" y="206" width="26" height="80" rx="13"/><rect x="184" y="206" width="26" height="80" rx="13"/>'
+  + '<path d="M122 80L116 22Q118 10 130 16L170 48Z"/><path d="M180 48L220 16Q232 10 234 22L228 80Z"/><ellipse cx="175" cy="98" rx="66" ry="56"/>';
+const BACK_TAIL = 'M175 230C150 200 150 140 184 112';
+const BACK = '<ellipse cx="175" cy="202" rx="70" ry="62"/>'
+  + '<rect x="116" y="214" width="26" height="72" rx="13"/><rect x="208" y="214" width="26" height="72" rx="13"/>'
+  + '<rect x="142" y="222" width="24" height="64" rx="12"/><rect x="184" y="222" width="24" height="64" rx="12"/>'
+  + '<path d="M122 80L116 22Q118 10 130 16L170 48Z"/><path d="M180 48L220 16Q232 10 234 22L228 80Z"/><ellipse cx="175" cy="98" rx="64" ry="54"/>';
+
+function guide(kind, bg) {
+  const corners = '<path d="M10 60V10h50M290 10h50v50M340 224v50h-50M60 274H10v-50" fill="none" stroke="#e9a21f" stroke-width="10" stroke-linecap="round"/>';
+  const line = "#a8562a";
+  let shapes, tail, tr, tailFront = false, face = "";
+  if (kind === "left" || kind === "right") { shapes = SIDE; tail = SIDE_TAIL; tr = kind === "left" ? "translate(0 -8)" : "translate(350 -8) scale(-1 1)"; }
+  else if (kind === "front") { shapes = FRONT; tail = FRONT_TAIL; tr = "translate(0 -12)"; face = `<g fill="${line}"><ellipse cx="150" cy="96" rx="8" ry="10"/><ellipse cx="200" cy="96" rx="8" ry="10"/><path d="M168 118h14l-7 8z"/></g>`; }
+  else { shapes = BACK; tail = BACK_TAIL; tr = "translate(0 -12)"; tailFront = true; }
+  const tOut = `<path d="${tail}" fill="none" stroke-width="30"/>`;
+  const tIn = `<path d="${tail}" fill="none" stroke="${bg}" stroke-width="18" stroke-linecap="round"/>`;
+  return `<svg viewBox="0 0 350 284" aria-hidden="true">${corners}<g transform="${tr}">`
+    + `<g stroke="${line}" stroke-width="12" stroke-linejoin="round" stroke-linecap="round" fill="${line}">${tOut}${shapes}</g>`
+    + `<g fill="${bg}">${tailFront ? "" : tIn}${shapes}${tailFront ? tIn : ""}</g>${face}</g></svg>`;
+}
+
+// 摸摸牠用的彩色橘虎斑貓（站姿，350×330）
+function colorCat() {
+  const bodyFill = SIDE.replace(/<ellipse cx="(134|170|272|304)"[^>]*>/g, "");
+  const paws = [134, 170, 272, 304];
+  return `<svg viewBox="0 0 350 330" aria-hidden="true">
+    <ellipse cx="200" cy="300" rx="130" ry="12" fill="#fbf5ea"/>
+    <g transform="translate(0 6)">
+      <g stroke="#7a6252" stroke-width="10" stroke-linejoin="round" stroke-linecap="round" fill="#7a6252">
+        <path d="${SIDE_TAIL}" fill="none" stroke-width="30"/>${SIDE}
+        ${paws.map(x => `<ellipse cx="${x}" cy="280" rx="17" ry="9"/>`).join("")}
+      </g>
+      <g fill="#fde3c6">
+        <path d="${SIDE_TAIL}" fill="none" stroke="#fde3c6" stroke-width="20" stroke-linecap="round"/>${bodyFill}
+        ${paws.map(x => `<ellipse cx="${x}" cy="280" rx="17" ry="9" fill="#fffaf0"/>`).join("")}
+      </g>
+      <path d="M55 80L52 42L82 64Z" fill="#f4b2ad"/><path d="M118 60L144 36L150 84Z" fill="#f4b2ad"/>
+      <g fill="none" stroke="#e8913a" stroke-width="6" stroke-linecap="round">
+        <path d="M86 62q5 11 0 22M100 58v26M114 62q-5 11 0 22"/>
+        <path d="M196 133q7 14 0 28M222 131q7 15 0 30M248 133q7 14 0 28M274 140q6 12 0 24"/>
+        <path d="M318 112l14-4M322 86l14-2"/>
+      </g>
+      <ellipse cx="100" cy="140" rx="36" ry="22" fill="#fffaf0"/>
+      <ellipse cx="138" cy="190" rx="22" ry="34" fill="#fffaf0"/>
+      <ellipse cx="74" cy="102" rx="8" ry="10" fill="#3f2e24"/><ellipse cx="126" cy="102" rx="8" ry="10" fill="#3f2e24"/>
+      <circle cx="76" cy="98" r="3" fill="#fff"/><circle cx="128" cy="98" r="3" fill="#fff"/>
+      <ellipse cx="62" cy="124" rx="9" ry="5" fill="#f4b2ad"/><ellipse cx="138" cy="124" rx="9" ry="5" fill="#f4b2ad"/>
+      <path d="M93 124h14l-7 8z" fill="#f4b2ad" stroke="#7a6252" stroke-width="2.5" stroke-linejoin="round"/>
+      <path d="M100 132q-5 8-12 4M100 132q5 8 12 4" fill="none" stroke="#7a6252" stroke-width="2.5" stroke-linecap="round"/>
+      <path d="M66 134l-30-4M66 141l-28 5M134 134l30-4M134 141l28 5" stroke="#7a6252" stroke-width="2" stroke-linecap="round"/>
+      <path d="M128 280v-6M140 280v-6M164 280v-6M176 280v-6M266 280v-6M278 280v-6M298 280v-6M310 280v-6" stroke="#7a6252" stroke-width="2" stroke-linecap="round"/>
+    </g></svg>`;
+}
+
+const CAT_ICON = '<svg width="52" height="52" viewBox="0 0 64 64" aria-hidden="true" fill="#e8913a"><path d="M14 10l8 10h20l8-10v24c0 12-8 22-18 22S14 46 14 34z"/></svg>';
+const BACK_ICON = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>';
+const PLUS = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>';
+const MIC = '<svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0014 0M12 18v3"/></svg>';
+const TAIL_PATH = "M0 0C60 6 112 30 118 90 122 130 104 170 88 186 74 202 46 216 22 212 4 209-4 196 8 182 22 166 44 150 50 122 56 92 40 66 0 50Z";
+
+function catBtn(label, act, extra = "") {
+  return `<button type="button" class="cat-btn" data-act="${act}" ${extra}>`
+    + `<svg class="ears" viewBox="0 0 64 22" aria-hidden="true"><path d="M2 24 9.5 5.2Q11 2.4 13.2 4.6L26 24Z"/><path d="M38 24 50.8 4.6Q53 2.4 54.5 5.2L62 24Z"/></svg>`
+    + `<svg class="tail" viewBox="-4 -4 130 222" aria-hidden="true"><path class="body" d="${TAIL_PATH}"/><g class="stripes"><path d="M50 114 130 128"/><path d="M24 156 110 178"/></g></svg>`
+    + `${label}</button>`;
+}
+
+/* ================================================================
+   小工具
+   ================================================================ */
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const tagOf = key => S.said.has(key) ? '<span class="tag">你說過</span>' : S.guessed.has(key) ? '<span class="tag">照片猜的</span>' : "";
+
+function radios(group, opts, value, cols) {
+  return `<div class="seg" role="radiogroup" aria-label="${esc(group.label)}" style="grid-template-columns: repeat(${cols || opts.length}, minmax(0, 1fr))">`
+    + opts.map((o, j) => `<button type="button" class="opt" role="radio" aria-checked="${value === j}" data-act="pick" data-path="${group.path}" data-v="${j}">${esc(o)}</button>`).join("")
+    + "</div>";
+}
+function toggles(path, opts, set) {
+  return `<div class="chips even">` + opts.map(([k, l]) => `<button type="button" class="chip" aria-pressed="${set.has(k)}" data-act="toggle" data-path="${path}" data-v="${k}">${esc(l)}</button>`).join("") + "</div>";
+}
+function personalityTags() {
+  const out = [];
+  TRAITS.forEach(t => { const v = S.traits[t.key]; if (v) out.push(...t.tag(v)); });
+  if (S.prob.bite === 1 || S.prob.bite === 2) out.push("愛咬人");
+  EXTRA_PERS.forEach(t => { if (S.personality.has(t)) out.push(t); });
+  return [...new Set(out)];
+}
+function healthTags() {
+  const out = [...S.h.tags];
+  if (S.h.fiv === 1) out.push("FIV陽性");
+  return out;
+}
+const isBad = v => v === 1 || v === 2; // 偶爾或常常
+function getPath(path) { return path.split(".").reduce((o, k) => o[k], S); }
+function setPath(path, v) { const ks = path.split("."); const last = ks.pop(); ks.reduce((o, k) => o[k], S)[last] = v; }
+
+/* ================================================================
+   示範用的文字擷取（正式版改呼叫 /api/onboarding/turn）
+   ================================================================ */
+const CN = { 一: 1, 二: 2, 兩: 2, 三: 3, 四: 4, 五: 5, 六: 6, 七: 7, 八: 8, 九: 9, 十: 10 };
+const num = s => /^\d+$/.test(s) ? +s : CN[s] ?? null;
+
+function ageMonths() {
+  const n = parseFloat(S.f.ageNum);
+  return Number.isFinite(n) && n >= 0 ? Math.round(S.f.ageUnit === 0 ? n : n * 12) : null;
+}
+function stageOf() {
+  const m = ageMonths();
+  // 未滿 7 個月算幼貓、7 個月到未滿 10 歲算成貓、10 歲以上算老貓
+  return m == null ? S.f.stage : m < 7 ? 0 : m < 120 ? 1 : 2;
+}
+
+function parseStory(text) {
+  let n = 0;
+  const said = k => { S.said.add(k); S.guessed.delete(k); n++; };
+  const first = text.split(/[，,。\s]/)[0];
+  if (first && first.length <= 6 && !/\d|撿|在|我|牠|他|她/.test(first)) { S.f.name = first; said("name"); }
+  if (/母的|母貓|女生|妹妹/.test(text)) { S.f.sex = 1; said("sex"); }
+  else if (/公的|公貓|男生|弟弟/.test(text)) { S.f.sex = 0; said("sex"); }
+  let m = text.match(/([\d一二兩三四五六七八九十]+)\s*個?月/);
+  if (m && num(m[1]) != null) { S.f.ageNum = String(num(m[1])); S.f.ageUnit = 0; S.f.stage = stageOf(); S.f.ageText = `約 ${num(m[1])} 個月`; said("stage"); }
+  else if ((m = text.match(/([\d一二兩三四五六七八九十]+)\s*歲/)) && num(m[1]) != null) { const y = num(m[1]); S.f.ageNum = String(y); S.f.ageUnit = 1; S.f.stage = stageOf(); S.f.ageText = `約 ${y} 歲`; said("stage"); }
+  if ((m = text.match(/(\d{1,2})\/(\d{1,2})/))) { S.f.since = `${new Date().getFullYear()}/${m[1].padStart(2, "0")}/${m[2].padStart(2, "0")}`; said("since"); }
+  if (/撿到|街貓|浪貓/.test(text)) { S.f.from = 0; said("from"); }
+  else if (/棄養|被丟/.test(text)) { S.f.from = 1; said("from"); }
+  else if (/前飼主|原飼主/.test(text)) { S.f.from = 2; said("from"); }
+  else if (/收容所/.test(text)) { S.f.from = 3; said("from"); }
+  if (/還沒結紮|未結紮|沒結紮/.test(text)) { S.h.neuter = 1; said("neuter"); }
+  else if (/已結紮|結紮了|有結紮/.test(text)) { S.h.neuter = 0; said("neuter"); }
+  if ((m = text.match(/([\d一二兩三四五])\s*劑/))) { const d = num(m[1]); S.h.vaccine = Math.min(3, d); said("vaccine"); }
+  if (/體內外驅蟲|內外驅蟲/.test(text)) { S.h.deworm = [0, 1]; said("deworm"); }
+  else if (/體內驅蟲/.test(text)) { S.h.deworm = [0]; said("deworm"); }
+  else if (/體外驅蟲/.test(text)) { S.h.deworm = [1]; said("deworm"); }
+  if (/FIV|FeLV|愛滋|白血/i.test(text)) { if (/陰性/.test(text)) { S.h.fiv = 0; said("fiv"); } else if (/陽性/.test(text)) { S.h.fiv = 1; said("fiv"); } }
+  if (/晶片/.test(text)) { S.h.chip = /沒有晶片|還沒.*晶片/.test(text) ? 1 : 0; said("chip"); }
+  const TW = [[/超黏|很黏|黏人|跟前跟後|跟屁蟲/, "bond", 5], [/很獨立|不黏人|不愛被抱/, "bond", 1], [/獨立/, "bond", 2],
+    [/很活潑|超好動|精力旺盛|很皮/, "energy", 5], [/活潑|好動/, "energy", 4], [/很懶|愛睡|懶懶/, "energy", 1], [/安靜/, "energy", 2],
+    [/很膽小|超膽小|膽小/, "brave", 1], [/怕生|害羞/, "brave", 2], [/親人|不怕人|主動靠近/, "brave", 5], [/大膽|膽子大/, "brave", 4],
+    [/適應很快|很快就適應/, "adapt", 5], [/慢熱|適應很慢/, "adapt", 2]];
+  const seen = new Set();
+  TW.forEach(([re, k, v]) => { if (!seen.has(k) && re.test(text)) { S.traits[k] = v; seen.add(k); said("traits." + k); } });
+  EXTRA_PERS.forEach(t => { if (text.includes(t)) { S.personality.add(t); n++; } });
+  if (/很愛吃|愛吃/.test(text)) S.personality.add("貪吃");
+  HEALTH_TAGS.forEach(([t]) => { if (text.includes(t)) S.h.tags.add(t); });
+  if (/腎/.test(text)) S.h.tags.add("慢性腎病");
+  if (S.h.tags.size) said("htags");
+  if ((m = text.match(/躲了?([\d一二兩三四五六七])天/))) { const d = num(m[1]); S.arrival.hide = d <= 0 ? 0 : d <= 3 ? 1 : d <= 7 ? 2 : 3; said("arrival.hide"); if (/吃/.test(text)) { S.arrival.eat = S.arrival.hide; said("arrival.eat"); } }
+  if (/剪指甲.{0,8}(毛巾|兩個人|包)/.test(text)) { S.care.nail = 1; said("care.nail"); }
+  if (/會用貓砂/.test(text)) { S.habits.add("litter"); said("habits.litter"); }
+  if (/咬手|咬人|會抓人/.test(text)) { S.prob.bite = 1; said("prob.bite"); }
+  if (/亂尿/.test(text)) { S.prob.pee = 1; said("prob.pee"); }
+  if (/逗貓棒/.test(text)) { S.habits.add("wand"); said("habits.wand"); }
+  if (/抓沙發|抓家具/.test(text)) { S.prob.scratch = 1; said("prob.scratch"); }
+  return n;
+}
+
+/* ================================================================
+   畫面
+   ================================================================ */
+function shell(inner, back) {
+  const idx = STEP_OF[S.step];
+  const steps = STEP_LABEL.map((l, i) => `<li class="${i < idx ? "done" : i === idx ? "now" : ""}"><i></i>${l}</li>`).join("");
+  return `<header class="top">
+      <button type="button" class="icon-btn" aria-label="上一步" data-act="back" ${back ? "" : "disabled"}>${BACK_ICON}</button>
+      <span class="title">新增貓咪</span><span class="home-chip">${esc(HOME)}</span>
+    </header>
+    <ol class="steps" aria-label="進度：第 ${idx + 1} 步，共 5 步">${steps}</ol>${inner}`;
+}
+// 封面：中途點「設為封面」選的那張（a:正面/側面/背面、o:其他照片第幾張）；沒選就用其他照片第一張，再來是正面、側面、背面
+function coverSrc() {
+  const c = S.cover;
+  if (c && c[0] === "a" && S.angles[c.slice(2)]) return S.angles[c.slice(2)];
+  if (c && c[0] === "o" && S.others[+c.slice(2)]) return S.others[+c.slice(2)];
+  return S.others[0] || S.angles.front || S.angles.left || S.angles.back || null;
+}
+const isCover = src => !!src && coverSrc() === src;
+const coverBtn = (key, src) => isCover(src) ? `<button type="button" class="set-cover on" data-act="cover" data-v="${key}" aria-pressed="true">封面</button>` : `<button type="button" class="set-cover" data-act="cover" data-v="${key}" aria-pressed="false">設為封面</button>`;
+function missingBox() { return S.missing.length ? `<p class="missing" role="alert">還沒填：${S.missing.map(esc).join("、")}</p>` : ""; }
+
+function vPhoto() {
+  const slots = ANGLES.map(a => {
+    const src = S.angles[a.id];
+    return `<label class="slot ${src ? "has" : ""}">
+      ${src ? `<img class="photo" src="${src}" alt="${a.name}照片">` : guide(a.id, "#fffaf0")}
+      <b>${a.name}${a.required ? '<span class="req" aria-label="必填">＊</span>' : ""}</b>
+      <span>${src ? "點一下重拍" : a.hint}</span>
+      ${src ? coverBtn("a:" + a.id, src) : ""}
+      <input type="file" accept="image/*" capture="environment" data-angle="${a.id}" aria-label="拍${a.name}照片">
+    </label>`;
+  }).join("");
+  const thumbs = S.others.map((src, i) => `<div class="thumb"><img src="${src}" alt="其他照片 ${i + 1}">${coverBtn("o:" + i, src)}<button type="button" class="rm" aria-label="移除第 ${i + 1} 張" data-act="rmOther" data-v="${i}">×</button></div>`).join("");
+  const add = S.others.length < MAX_OTHERS ? `<label class="add" aria-label="新增其他照片">${PLUS}<input type="file" accept="image/*" multiple data-others="1"></label>` : "";
+  return shell(`
+    <div class="cols">
+      <div class="a-head">
+        <h1>拍牠的正面、側面、背面</h1>
+        <p class="lead">點一格開相機，讓牠站著，盡量拍到全身。我們會用這三張做出牠的 3D 模樣；正面和背面沒拍的話，AI 會補。</p>
+      </div>
+      <div class="angles three">${slots}</div>
+      <section class="card stack" style="gap:10px" aria-labelledby="more">
+        <div class="row-between"><h2 id="more" style="font-size:16px">其他照片（選填）</h2><span class="muted" style="font-size:13px">${S.others.length} / ${MAX_OTHERS}</span></div>
+        <p class="note" style="font-size:13px">生活照、睡覺、玩耍都好。點照片上的「設為封面」，選一張當名片封面。</p>
+        <div class="thumbs">${thumbs}${add}</div>
+      </section>
+    </div>
+    <div class="grow"></div>
+    <div class="cta">${missingBox()}${catBtn("下一步：說說牠", "toTalk")}</div>`, false);
+}
+
+function vTalk() {
+  const f = S.f, h = S.h;
+  return shell(`
+    <div class="cols">
+    <div class="a-head">
+      <h1>說說牠</h1>
+      <p class="lead">先用講的，想到什麼說什麼。我會把聽到的填進表格，你再補沒講到的。</p>
+    </div>
+    <div class="a-side">
+    <section class="card stack" style="align-items:center;gap:12px" aria-label="用說的">
+      <button type="button" class="mic" id="mic" aria-label="按住說話">${MIC}</button>
+      <b style="font-size:16px" id="micLabel">按住說說牠</b>
+      <div class="field" style="align-self:stretch">
+        <label for="story">聽到的內容，有錯可以直接改</label>
+        <textarea id="story" class="story" data-bind="story" maxlength="2000" placeholder="例如：小米，8/01 在公園撿到，大概三個月大，母的…">${esc(S.story)}</textarea>
+        <span class="muted" style="font-size:13px">也可以直接打字，或貼上你寫過的送養文</span>
+        <div class="two">
+          <button type="button" class="ghost-btn" style="border-color:var(--line)" data-act="clearStory">清空重講</button>
+          <button type="button" class="dark-btn" data-act="sendStory">送出，填進表格</button>
+        </div>
+      </div>
+      <p class="status" id="status">${esc(S.status)}</p>
+    </section>
+
+    <div class="legend"><span><b class="tag">你說過</b>：從你的話填的</span><span><b class="tag">照片猜的</b>：請看一下</span></div>
+    </div>
+
+    <div class="a-main">
+    <section class="card stack" aria-labelledby="basic">
+      <h2 id="basic">基本資料</h2>
+      <div class="field"><label for="f-name">名字<span class="req" aria-label="必填">＊</span>　${tagOf("name")}</label>
+        <input id="f-name" class="input" data-bind="f.name" value="${esc(f.name)}" maxlength="30"></div>
+      <div class="field"><span class="label" id="l-sex">性別　${tagOf("sex")}</span>${radios({ label: "性別", path: "f.sex" }, ["公", "母", "不確定"], f.sex)}</div>
+      <div class="field">
+        <label for="f-age" class="label">大概幾歲<span class="req" aria-label="必填">＊</span>　${S.said.has("stage") ? '<span class="tag">你說過</span>' : ""}</label>
+        <div class="age-row">
+          <input id="f-age" class="input" data-bind="f.ageNum" value="${esc(f.ageNum)}" inputmode="decimal" placeholder="例如 3" aria-describedby="age-hint">
+          <div class="seg" role="radiogroup" aria-label="單位" style="grid-template-columns: repeat(2, minmax(0, 1fr))">${["個月", "歲"].map((u, j) => `<button type="button" class="opt" role="radio" aria-checked="${f.ageUnit === j}" data-act="ageUnit" data-v="${j}">${u}</button>`).join("")}</div>
+        </div>
+        <span class="muted" id="age-hint" style="font-size:13px">填了會自動選年齡層，不確定就直接選下面</span>
+        ${radios({ label: "年齡層", path: "f.stage" }, ["幼貓", "成貓", "老貓"], f.stage)}
+      </div>
+      <div class="two">
+        <div class="field"><label for="f-coat">毛色　${tagOf("coat")}</label><input id="f-coat" class="input ${S.guessed.has("coat") ? "guess" : ""}" data-bind="f.coat" value="${esc(f.coat)}"></div>
+        <div class="field"><label for="f-breed">品種　${tagOf("breed")}</label><input id="f-breed" class="input ${S.guessed.has("breed") ? "guess" : ""}" data-bind="f.breed" value="${esc(f.breed)}"></div>
+      </div>
+      <div class="field"><span class="label">怎麼來的　${tagOf("from")}</span>${radios({ label: "怎麼來的", path: "f.from" }, ["街上撿到", "被棄養", "前飼主送養", "收容所"], f.from, 2)}</div>
+      <div class="two">
+        <div class="field"><label for="f-since">來你這裡　${tagOf("since")}</label><input id="f-since" class="input" data-bind="f.since" value="${esc(f.since)}" placeholder="2026/08/01"></div>
+        <div class="field"><label for="f-kg">體重（公斤）</label><input id="f-kg" class="input" data-bind="f.kg" value="${esc(f.kg)}" inputmode="decimal" placeholder="例如 1.8"></div>
+      </div>
+    </section>
+
+    <section class="card stack" style="margin-top:18px;gap:14px" aria-labelledby="health">
+      <h2 id="health">健康</h2>
+      <div class="hlist">
+        <div class="hrow"><span class="label">結紮 ${tagOf("neuter")}</span>${radios({ label: "結紮", path: "h.neuter" }, ["已結紮", "還沒", "不確定"], h.neuter, 4)}</div>
+        <div class="hrow"><span class="label">疫苗 ${tagOf("vaccine")}</span>${radios({ label: "疫苗", path: "h.vaccine" }, ["沒打", "1 劑", "2 劑", "3 劑以上"], h.vaccine, 4)}</div>
+        <div class="hrow"><span class="label">驅蟲 ${tagOf("deworm")}</span><div class="seg" role="group" aria-label="驅蟲">${["體內", "體外"].map((l, j) => `<button type="button" class="opt" aria-pressed="${h.deworm.includes(j)}" data-act="deworm" data-v="${j}">${l}</button>`).join("")}</div></div>
+        <div class="hrow"><span class="label">FIV／FeLV ${tagOf("fiv")}</span>${radios({ label: "FIV／FeLV", path: "h.fiv" }, ["陰性", "陽性", "還沒篩"], h.fiv, 4)}</div>
+        <div class="hrow"><span class="label">晶片 ${tagOf("chip")}</span>${radios({ label: "晶片", path: "h.chip" }, ["有", "還沒"], h.chip, 4)}</div>
+      </div>
+      <div class="field"><span class="label">身體狀況 ${tagOf("htags")}</span>${toggles("h.tags", HEALTH_TAGS.map(([t]) => [t, t]), S.h.tags)}</div>
+      <div class="field"><label for="f-body">其他身體狀況（自己填）</label><input id="f-body" class="input" data-bind="h.body" value="${esc(h.body)}" maxlength="120" placeholder="例如：右後腳以前受過傷，跳不高">
+        <span class="muted" style="font-size:13px">上面沒有的寫在這裡。試養時會請 AI 照這段安排照顧的劇情，不會寫成診斷。</span></div>
+      <div class="field"><label for="f-med">慢性病、正在吃的藥</label><input id="f-med" class="input" data-bind="h.med" value="${esc(h.med)}" placeholder="例如：腎病，每天吃一次藥"></div>
+      <p class="note">健康資訊僅供參考，非醫療建議。</p>
+    </section>
+    </div>
+    </div>
+    <div class="grow"></div>
+    <div class="cta">${missingBox()}
+      <button type="button" class="link-btn cta-alt" data-act="toReview">先這樣，直接看名片</button>
+      ${catBtn("下一步：快問快答", "toQuick")}</div>`, true);
+}
+
+function vQuick() {
+  const pg = QUICK[S.qp];
+  let body = "";
+  if (pg.kind === "trait") {
+    body = `<div class="card" style="padding:4px 16px">` + TRAITS.map(t => {
+      const v = S.traits[t.key];
+      const said = S.said.has("traits." + t.key) ? '<span class="tag">你說過</span>' : "";
+      return `<div class="trait">
+        <div style="display:flex;gap:8px;align-items:baseline"><b style="font-size:15px">${t.name}</b>${said}<span id="tw-${t.key}" style="margin-left:auto;font-size:14px;font-weight:700;color:${v ? "var(--orange-deep)" : "var(--ink-soft)"}">${v ? SCALE_WORD[t.key][v - 1] : "還沒選，拉一下"}</span>${v ? `<button type="button" class="link-btn" style="min-height:32px;font-size:13px" data-act="clearTrait" data-v="${t.key}">清除</button>` : ""}</div>
+        <span class="sub">${t.L} ↔ ${t.R}</span>
+        <div class="slider"><div class="rail" aria-hidden="true">${"<i></i>".repeat(5)}</div>
+          <input type="range" class="range ${v ? "" : "unset"}" min="1" max="5" step="1" value="${v || 3}" data-trait="${t.key}" aria-label="${t.name}，從${t.L}到${t.R}" aria-valuetext="${v ? SCALE_WORD[t.key][v - 1] : "還沒選"}"></div>
+        <div class="words" id="w-${t.key}" aria-hidden="true">${SCALE_WORD[t.key].map((w, j) => `<span class="${v === j + 1 ? "on" : ""}">${w}</span>`).join("")}</div>
+        ${v ? `<input class="input" data-bind="traitNote.${t.key}" value="${esc(S.traitNote[t.key] || "")}" maxlength="60" placeholder="例如：${t.ph}" aria-label="${t.name}的補充">` : ""}
+      </div>`;
+    }).join("") + `</div>
+      <div class="qgroup" role="group" aria-label="其他個性" style="margin-top:16px"><p>還有這些個性嗎？</p>${toggles("personality", EXTRA_PERS.map(t => [t, t]), S.personality)}</div>`;
+  } else if (pg.kind === "seg") {
+    body = `<div class="card qrows" style="padding:6px 16px">` + pg.rows.map(([k, l]) => {
+      const v = S[pg.key][k];
+      const said = S.said.has(`${pg.key}.${k}`) ? '<span class="tag">你說過</span>' : "";
+      const note = pg.notes && isBad(v) ? `<input class="input" data-bind="${pg.notes}.${k}" value="${esc(S[pg.notes][k] || "")}" maxlength="60" placeholder="補一句，例如：${pg.noteph}" aria-label="${l}的說明">` : "";
+      return `<div class="qrow"><div style="display:flex;gap:8px;align-items:baseline"><b style="font-size:15px">${l}</b>${said}</div>${radios({ label: l, path: `${pg.key}.${k}` }, pg.opts, v, 4)}${note}</div>`;
+    }).join("") + "</div>";
+  } else {
+    body = `<div class="stack qgroups">` + pg.groups.map(([t, opts, note]) => `<div class="qgroup" role="group" aria-label="${t}"><p>${t}</p>${toggles("habits", opts, S.habits)}${note ? `<div class="field" style="margin-top:10px"><label for="n-${note.key}" style="font-size:14px">${note.label}</label><input id="n-${note.key}" class="input" data-bind="notes.${note.key}" value="${esc(S.notes[note.key])}" maxlength="100" placeholder="${note.ph}"></div>` : ""}</div>`).join("")
+      + `<div class="qgroup qwide"><div class="field"><label for="n-other" style="font-size:14px;font-weight:700;color:var(--ink-soft)">其他想讓領養人知道的</label>`
+      + `<textarea id="n-other" class="story" data-bind="notes.other" maxlength="300" style="min-height:110px" placeholder="想到什麼都可以寫，例如：喜歡窩在衣櫃裡、聽到塑膠袋聲音會衝過來、跟另一隻貓是好朋友">${esc(S.notes.other)}</textarea></div></div>`
+      + "</div>";
+  }
+  return shell(`
+    <div class="narrow">
+    <div class="row-between" style="margin-bottom:8px"><span class="kicker">第 ${S.qp + 1} 頁，共 ${PAGES} 頁</span><button type="button" class="link-btn" data-act="qNext">這頁略過</button></div>
+    <h1 class="h1s">${pg.title}</h1>
+    ${pg.why ? `<p class="lead" style="font-size:14px">${pg.why}</p>` : `<div style="height:10px"></div>`}
+    ${body}
+    </div>
+    <div class="grow"></div>
+    <div class="cta narrow">${catBtn(S.qp === QUICK.length - 1 ? "最後一頁：摸摸牠" : "下一頁", "qNext")}</div>`, true);
+}
+
+function vTouch() {
+  const zones = ZONES.map(([k, l, x, y, w]) => {
+    const v = S.touch[k] || 0;
+    return `<button type="button" class="zone ${v ? "z" + v : ""}" style="left:${(x / 350 * 100).toFixed(2)}%;top:${(y / 330 * 100).toFixed(2)}%;width:${w}px" data-act="zone" data-v="${k}"
+      aria-label="${l}：${v ? ZONE_STATE[v] : "還沒設定"}。點一下喜歡、兩下可以、三下不要摸、四下取消"><span>${l}</span>${v ? `<small>${ZONE_STATE[v]}</small>` : ""}</button>`;
+  }).join("");
+  return shell(`
+    <div class="cols">
+    <div class="a-head">
+    <div class="row-between" style="margin-bottom:8px"><span class="kicker">第 ${PAGES} 頁，共 ${PAGES} 頁</span><button type="button" class="link-btn" data-act="toReview">這頁略過</button></div>
+    <h1 class="h1s">摸哪裡牠會開心？</h1>
+    <p class="lead" style="font-size:14px;margin-bottom:12px">直接點貓咪身上的地方。沒摸過的不用點。</p>
+    </div>
+    <div class="a-side">
+    <div class="legend4" aria-hidden="true">
+      <span style="background:var(--caramel);color:#fff">1 下 喜歡</span>
+      <span style="background:var(--yellow-soft);border:1.5px solid var(--caramel)">2 下 可以</span>
+      <span style="background:var(--pink-soft);border:1.5px dashed var(--orange-deep)">3 下 不要</span>
+      <span style="background:var(--card);border:1.5px solid var(--line);color:var(--ink-soft);font-weight:500">4 下 取消</span>
+    </div>
+    <div class="catbox">${colorCat()}${zones}</div>
+    </div>
+    <div class="a-main">
+    <section class="card">
+    <h2 style="margin:0 0 8px;font-size:17px" id="dur">喜歡的地方，摸多久會膩？</h2>
+    ${radios({ label: "摸多久會膩", path: "dur" }, DURS, S.dur, 4)}
+    <h2 style="margin:20px 0 8px;font-size:17px">不想被摸時，牠會怎樣？</h2>
+    ${toggles("signs", SIGNS, S.signs)}
+    </section>
+    </div>
+    </div>
+    <div class="grow"></div>
+    <div class="cta">${catBtn("下一步：看名片", "toReview")}</div>`, true);
+}
+
+function weekLines() {
+  const L = [], a = S.arrival, n = S.f.name || "牠", T = S.traits, B = S.prob;
+  if (a.hide != null) L.push(["剛到家當天就會出來走動", "前 1 到 3 天會躲起來，給牠一個安靜的角落", "第一週大多躲著，要有耐心", "要一週以上才會出來，先別急著抱"][a.hide]);
+  else if (T.adapt && T.adapt <= 2) L.push("換環境要比較久才適應，先準備一個能躲的地方");
+  if (T.brave && T.brave <= 2) L.push("怕生，有客人來時可能躲一整晚，別硬把牠抱出來");
+  if (T.bond >= 4) L.push("熟了以後很黏人，你走到哪跟到哪");
+  if (T.bond && T.bond <= 2) L.push("喜歡有自己的空間，摸太久會不高興");
+  if (T.energy >= 4) L.push("精力很好，每天要留時間陪玩");
+  if (isBad(B.bite)) L.push("玩到興奮會咬手，準備逗貓棒轉移");
+  if (isBad(B.sep)) L.push("你出門後會一直叫，可以先試短時間外出");
+  if (S.habits.has("dawn")) L.push("清晨會叫你起床討飯");
+  if (isBad(B.door)) L.push("會衝門口，進出門要先確認牠在哪");
+  if (S.care.nail === 1 || S.care.nail === 2) L.push("剪指甲" + (S.care.nail === 1 ? "要用毛巾包或兩個人" : "很困難，可以請醫院幫忙"));
+  if (S.touch.belly === 3) L.push("不喜歡被摸肚子");
+  const page = QUICK.findIndex(p => p.key === "arrival") + 1;
+  return L.length ? L : [`還不知道${n}剛到家會怎樣，可以在快問第 ${page} 頁補`];
+}
+function count(obj) { return Object.values(obj).filter(v => v != null).length; }
+
+/* ---------- AI 介紹、稱號和座右銘（示範用範本；正式版改呼叫新的 LLM 任務，例如 POST /api/onboarding/cat-blurb，
+   輸入要經 wrapUserInput()／checkInput()，提示詞放 lib/prompts/onboarding.ts，不可寫出疾病推論或醫療承諾） ---------- */
+function genBlurb(v) {
+  const f = S.f, n = f.name || "牠", P = new Set(personalityTags()), H = S.habits, T = S.traits;
+  const stage = ["小", "", "老"][f.stage] ?? "";
+  const look = [f.coat, f.breed].filter(Boolean).join("");
+  const from = ["從街頭被撿回來", "曾經被放棄過，但沒有放棄相信人", "因為前飼主沒辦法再照顧而來到中途", "從收容所出來"][f.from];
+  const traits = [];
+  if (P.has("黏人")) traits.push(["是標準的跟屁蟲，你走到哪牠跟到哪", "黏人程度滿分，洗澡都要在門口站崗", "最大的興趣是黏在你身邊"][v % 3]);
+  if (P.has("獨立")) traits.push("喜歡有自己的空間，想撒嬌時會自己來找你");
+  if (P.has("親人")) traits.push("見到人就會主動靠過來");
+  if (P.has("好奇") || P.has("活潑") || P.has("愛玩")) traits.push(["對什麼都好奇，紙箱和塑膠袋都要親自檢查", "精力旺盛，逗貓棒一拿出來就上鉤", "一天到晚都在找好玩的事"][v % 3]);
+  if (P.has("慵懶")) traits.push("最喜歡找個舒服的地方睡一整天");
+  if (P.has("膽小") || P.has("怕生")) traits.push("一開始會害羞躲起來，熟了以後會給你很多呼嚕");
+  if (P.has("貪吃")) traits.push("聽到罐頭聲音會用最快的速度出現");
+  if (P.has("愛撒嬌") || P.has("愛被抱")) traits.push("很愛撒嬌，抱起來就開始呼嚕");
+  if (P.has("會等門")) traits.push("每天都會在門口等你回家");
+  if (P.has("溫和")) traits.push("脾氣很好，很少生氣");
+  if (P.has("愛咬人")) traits.push("玩到興奮會咬手，需要一位會用玩具陪玩的家人");
+  const liked = ZONES.filter(z => S.touch[z[0]] === 1).map(z => z[1]);
+  const touch = liked.length ? `最喜歡被摸${liked.slice(0, 2).join("和")}` : "";
+  const opener = [`${n}是一隻${stage}${look ? look : "貓"}`, `來認識一下${n}吧！牠是一隻${stage}${look ? look : "貓"}`, `嗨，我們家的${n}是${stage}${look ? look : "貓"}`][v % 3];
+  const intro = [opener + (from ? `，${from}` : "") + "。", traits.length ? traits.join("，") + "。" : "", touch ? touch + "。" : "",
+    ["正在等一個願意陪牠長大的家！", "如果你也想要每天回家都有人迎接，就來認識牠吧！", "準備好一起生活了嗎？"][v % 3]].join("");
+  // 稱號：名字上方的一句話（像巴克幫的「陽光大男孩」），照量表挑
+  const nicks = [];
+  if (T.bond >= 4 && T.energy >= 4) nicks.push("黏人的小太陽");
+  if (T.bond >= 4 && T.brave <= 2) nicks.push("慢熟的撒嬌鬼");
+  if (T.bond >= 4) nicks.push("專屬小跟班");
+  if (T.brave <= 2) nicks.push("害羞的小可愛");
+  if (T.energy >= 4) nicks.push("精力無限的跑酷王");
+  if (T.brave >= 4) nicks.push("好奇的小探險家");
+  if (T.energy <= 2) nicks.push("愛睡的懶懶貓");
+  if (T.bond <= 2) nicks.push("有個性的獨行俠");
+  if (P.has("貪吃")) nicks.push("罐罐鑑賞家");
+  if (P.has("愛撒嬌")) nicks.push("撒嬌界的高手");
+  if (f.stage === 2) nicks.push("溫柔的老紳士");
+  nicks.push("等你帶回家的好孩子");
+  // 座右銘：改編俗語的搞笑版，先放符合這隻貓個性的，再放通用的
+  const pool = [];
+  if (P.has("黏人") || P.has("親人")) pool.push("一日不見，如隔三餐。", "你走到哪裡，我就躺到哪裡。");
+  if (P.has("愛咬人") || P.has("愛玩") || P.has("活潑")) pool.push("君子動口不動手，我動口也動手。", "玩不玩得盡興，看你的手速。");
+  if (P.has("貪吃")) pool.push("人要衣裝，貓要罐裝。", "車到山前必有路，罐到嘴前必有我。");
+  if (P.has("膽小") || P.has("怕生")) pool.push("退一步海闊天空，退兩步就是床底。", "敵不動，我不動；敵一動，我先躲。");
+  if (P.has("好奇")) pool.push("打破砂鍋問到底，打翻水杯看到底。", "書中自有黃金屋，紙箱自有我的家。");
+  if (P.has("慵懶") || P.has("獨立")) pool.push("能躺著絕不坐著，能坐著絕不站著。");
+  if (H.has("dawn")) pool.push("早起的鳥兒有蟲吃，早起的貓咪有你餵。");
+  if (H.has("night") || P.has("愛叫")) pool.push("夜深人靜，正是本喵跑酷時。");
+  pool.push("在哪裡跌倒，就在哪裡躺下。", "天塌下來，有紙箱頂著。", "吃飯皇帝大，睡覺皇帝更大。", "貓生苦短，及時罐罐。", "知足常樂，知罐更樂。", "三思而後行，三睡而後吃。");
+  return { intro, motto: pool[v % pool.length], nick: nicks[v % nicks.length] };
+}
+// 介紹的預設文字＝符合個性的座右銘（中途可以改寫）
+let blurbDone = false;
+function ensureBlurb() { if (!blurbDone && !S.intro) { S.intro = genBlurb(S.blurbV).motto; } blurbDone = true; }
+
+function meterHTML() {
+  const rows = TRAITS.filter(t => S.traits[t.key]);
+  if (!rows.length) return `<p class="note">還沒填個性。<button type="button" class="link-btn" style="padding:0;min-height:0" data-act="toTraits">現在填</button></p>`;
+  return rows.map(t => {
+    const v = S.traits[t.key], note = S.traitNote[t.key];
+    return `<div class="mrow"><div class="row-between"><b>${t.name}</b><span style="font-size:14px;font-weight:700;color:var(--orange-deep)">${SCALE_WORD[t.key][v - 1]}</span></div>
+      <div class="meter" role="img" aria-label="${t.name}：${SCALE_WORD[t.key][v - 1]}，5 格中的第 ${v} 格">${[1, 2, 3, 4, 5].map(j => `<i class="${j === v ? "on" : ""}"></i>`).join("")}</div>
+      <div class="ends"><span>${t.L}</span><span>${t.R}</span></div>${note ? `<q>${esc(note)}</q>` : ""}</div>`;
+  }).join("");
+}
+const CARE_CLS = ["ok", "mid", "warn", "plain"], LEVEL_CLS = ["ok", "mid", "warn", "plain"], MEET_CLS = ["ok", "mid", "warn", "plain"];
+
+function vReview() {
+  const f = S.f, h = S.h, n = f.name || "這隻貓";
+  const cover = coverSrc();
+  const sex = ["公", "母", "性別不確定"][f.sex] ?? "";
+  const stage = (["幼貓", "成貓", "老貓"][f.stage] ?? "") + (ageMonths() != null ? `（約 ${f.ageNum} ${["個月", "歲"][f.ageUnit]}）` : "");
+  const liked = ZONES.filter(z => S.touch[z[0]] === 1).map(z => z[1]);
+  const no = ZONES.filter(z => S.touch[z[0]] === 3).map(z => z[1]);
+  const healthPills = [
+    h.vaccine != null && `<span class="pill ok">疫苗 ${["沒打", "1 劑", "2 劑", "3 劑以上"][h.vaccine]}</span>`,
+    h.deworm.length && `<span class="pill ok">${h.deworm.length === 2 ? "體內外" : h.deworm[0] === 0 ? "體內" : "體外"}驅蟲</span>`,
+    h.neuter != null && `<span class="pill ${h.neuter === 0 ? "ok" : "warn"}">${["已結紮", "還沒結紮", "結紮不確定"][h.neuter]}</span>`,
+    ...healthTags().map(t => `<span class="pill mid">${esc(t)}</span>`)
+  ].filter(Boolean).join("");
+  const careQ = Q("care"), probQ = Q("prob"), meetQ = Q("meet"), habQ = Q("habits");
+  const careRows = careQ.rows.filter(([k]) => S.care[k] != null);
+  const probRows = probQ.rows.filter(([k]) => S.prob[k] != null);
+  const meetRows = meetQ.rows.filter(([k]) => S.meet[k] != null);
+  const notedLine = (notes, k) => notes[k] ? `<span class="sub" style="display:block;margin-top:2px">${esc(notes[k])}</span>` : "";
+  const noneProbs = probRows.filter(([k]) => S.prob[k] === 0).map(([, l]) => l);
+  const badProbs = probRows.filter(([k]) => S.prob[k] !== 0);
+  return shell(`
+    <div class="cols">
+    <div class="a-head"><h1 class="h1s" style="margin-bottom:14px">領養人會看到這張名片</h1></div>
+    <div class="a-side tall">
+    <article class="card preview" aria-label="${esc(n)}的名片預覽" style="padding:16px">
+      <div class="blob">${cover ? `<img src="${cover}" alt="">` : CAT_ICON}</div>
+      <div class="stack" style="gap:6px">
+        <b style="font-size:22px;letter-spacing:.04em">${esc(n)}</b>
+        <span id="previewIntro" style="font-size:14px;font-weight:700;color:var(--orange-deep);white-space:pre-wrap">${esc(S.intro)}</span>
+        <span class="muted" style="font-size:14px">${[sex, stage, (f.coat || "") + (f.breed || "")].filter(Boolean).map(esc).join("・")}</span>
+        <div class="chips" style="gap:6px">${personalityTags().map(t => `<span class="pill">${esc(t)}</span>`).join("")}</div>
+      </div>
+    </article>
+
+    <section class="card" style="margin-top:18px;padding:14px 18px" aria-labelledby="pers">
+      <div class="row-between"><h2 id="pers" style="font-size:17px">個性</h2>${count(S.traits) ? '<button type="button" class="link-btn" style="min-height:32px" data-act="toTraits">編輯</button>' : ""}</div>
+      ${meterHTML()}
+    </section>
+
+    <section class="story-card" style="margin-top:18px" aria-labelledby="story-h">
+      <h2 id="story-h" style="font-size:16px">${esc(n)}的故事</h2>
+      <p>${esc(S.story || "還沒寫。回到「說說牠」用講的，就會出現在這裡。")}</p>
+    </section>
+
+    <section class="week" style="margin-top:18px" aria-labelledby="week">
+      <h2 id="week" style="font-size:16px">領養人第一週會遇到</h2>
+      <ul>${weekLines().map(l => `<li>${esc(l)}</li>`).join("")}</ul>
+    </section>
+
+    <section class="card stack" style="margin-top:18px;gap:14px" aria-labelledby="blurb">
+      <div class="row-between">
+        <h2 id="blurb" style="font-size:17px">介紹</h2>
+        <button type="button" class="link-btn" data-act="reBlurb">換一個</button>
+      </div>
+      <p class="note" style="margin-top:-8px">先幫你放了一句符合牠個性的座右銘，按「換一個」可以換，也可以自己改寫。</p>
+      <div class="field"><label for="f-intro" class="sr">介紹</label>
+        <textarea id="f-intro" class="story" data-bind="intro" maxlength="300" style="min-height:96px" placeholder="例如：退一步海闊天空，退兩步就是床底。">${esc(S.intro)}</textarea></div>
+    </section>
+    </div>
+
+    <div class="a-main">
+    <div class="card first" style="margin-top:18px;padding:4px 18px">
+      <details><summary><b>基本資料</b><span>編輯</span></summary>
+        <dl class="kv">
+          <dt>來源</dt><dd>${esc(["街上撿到", "被棄養", "前飼主送養", "收容所"][f.from] ?? "未填")}</dd>
+          <dt>來你這裡</dt><dd>${esc(f.since || "未填")}</dd>
+          <dt>體重</dt><dd>${f.kg ? esc(f.kg) + " 公斤" : "未填"}</dd>
+        </dl></details>
+      <details open><summary><b>健康</b><span>編輯</span></summary>
+        <div class="chips" style="gap:6px;margin-top:8px">${healthPills || '<span class="muted">還沒填</span>'}</div>
+        <dl class="kv">
+          <dt>FIV／FeLV</dt><dd>${esc(["陰性", "陽性", "還沒篩"][h.fiv] ?? "未填")}</dd>
+          <dt>晶片</dt><dd>${esc(["有", "還沒"][h.chip] ?? "未填")}</dd>
+          <dt>其他身體狀況</dt><dd>${esc(h.body || "沒有特別")}</dd>
+          <dt>慢性病、用藥</dt><dd>${esc(h.med || "沒有")}</dd>
+        </dl>
+        <p class="note" style="margin-top:10px">健康資訊僅供參考，非醫療建議。</p></details>
+      <details open><summary><b>小小壞習慣</b><span>${probRows.length ? probRows.length + " 項・編輯" : "還沒填"}</span></summary>
+        ${noneProbs.length ? `<div class="rowline">${noneProbs.map(l => `<span class="pill ok">${esc(l)}：沒有</span>`).join("")}</div>` : ""}
+        ${badProbs.length ? `<dl class="kv">${badProbs.map(([k, l]) => `<dt>${l}</dt><dd><span class="pill ${LEVEL_CLS[S.prob[k]]}">${LEVEL[S.prob[k]]}</span>${notedLine(S.probNote, k)}</dd>`).join("")}</dl>` : ""}
+        ${probRows.length ? "" : '<p class="note" style="margin-top:8px">在快問快答「貓咪的小小壞習慣」填，選「沒有」也會顯示，讓領養人放心。</p>'}</details>
+      <details open><summary><b>照顧起來</b><span>${count(S.care)} 項・編輯</span></summary>
+        <div class="rowline">${careRows.map(([k, l]) => `<span class="pill ${CARE_CLS[S.care[k]]}">${l}：${CARE[S.care[k]]}</span>`).join("") || '<span class="muted">還沒填</span>'}</div></details>
+      <details><summary><b>跟誰處得來</b><span>${meetRows.length ? meetRows.length + " 項・編輯" : "還沒填"}</span></summary>
+        <dl class="kv">${meetRows.map(([k, l]) => `<dt>${l}</dt><dd><span class="pill ${MEET_CLS[S.meet[k]]}">${MEET[S.meet[k]]}</span>${notedLine(S.meetNote, k)}</dd>`).join("")}</dl></details>
+      <details><summary><b>摸摸牠</b><span>${liked.length ? "喜歡" + liked.join("、") : "還沒填"}</span></summary>
+        <dl class="kv"><dt>喜歡</dt><dd>${liked.join("、") || "—"}</dd><dt>不要摸</dt><dd>${no.join("、") || "—"}</dd>
+        <dt>摸多久會膩</dt><dd>${DURS[S.dur] ?? "—"}</dd><dt>不想被摸時</dt><dd>${SIGNS.filter(s => S.signs.has(s[0])).map(s => s[1]).join("、") || "—"}</dd></dl></details>
+      <details><summary><b>習慣</b><span>${S.habits.size} 項・編輯</span></summary>
+        <dl class="kv"><dt>習慣</dt><dd>${habQ.groups.flatMap(g => g[1]).filter(([k]) => S.habits.has(k)).map(x => x[1]).join("、") || "—"}</dd>
+        ${S.notes.snack ? `<dt>最愛的零食</dt><dd>${esc(S.notes.snack)}</dd>` : ""}${S.notes.caution ? `<dt>要注意</dt><dd>${esc(S.notes.caution)}</dd>` : ""}${S.notes.other ? `<dt>其他</dt><dd style="white-space:pre-wrap">${esc(S.notes.other)}</dd>` : ""}</dl></details>
+      <details><summary><b>送養條件和交接物品</b><span>沿用喵戶預設・編輯</span></summary></details>
+    </div>
+
+    <label class="consent"><input type="checkbox" data-bind-check="consent" ${S.consent ? "checked" : ""}>
+      <span>我同意把${esc(n)}的照片和資料放上平台，給領養人看，也用在試養體驗裡<span class="req" aria-label="必填">＊</span></span></label>
+    </div>
+    </div>
+    <div class="grow"></div>
+    <div class="cta">${missingBox()}${catBtn(`建立${esc(n)}的名片`, "create")}</div>`, true);
+}
+
+function completeness() {
+  const checks = [
+    S.angles.front, S.angles.back, S.others.length, S.f.sex != null, S.f.coat, S.f.from != null, S.f.kg,
+    S.h.neuter != null, S.h.vaccine != null, S.h.fiv != null, S.h.chip != null,
+    count(S.traits) >= 3, count(S.prob) >= 4, count(S.care) >= 4, S.habits.size >= 2, count(S.meet) >= 2, count(S.arrival) >= 2, count(S.touch) >= 3, S.dur != null
+  ];
+  return Math.round(checks.filter(Boolean).length / checks.length * 100);
+}
+function vDone() {
+  const n = S.f.name || "這隻貓", pct = completeness();
+  const skipped = [];
+  if (count(S.traits) < 3) skipped.push("個性");
+  if (count(S.prob) < 4) skipped.push("小小壞習慣");
+  if (count(S.care) < 4) skipped.push("照顧起來");
+  if (count(S.meet) < 2) skipped.push("跟誰處得來");
+  if (count(S.arrival) < 2) skipped.push("適應速度");
+  if (count(S.touch) < 3) skipped.push("摸摸牠");
+  if (S.h.fiv == null) skipped.push("FIV／FeLV");
+  const dash = (pct / 100 * 188.5).toFixed(1);
+  const cover = coverSrc();
+  return shell(`
+    <div class="narrow">
+    <div class="done-hero">
+      <div class="blob">${cover ? `<img src="${cover}" alt="">` : CAT_ICON}</div>
+      <h1 style="margin-top:8px">${esc(n)}的名片建好了</h1>
+      <p class="lead" style="margin:0">確認 3D 模型、出好領養任務，就能出發找新主人。</p>
+    </div>
+    <section class="card" style="margin-top:24px;display:flex;align-items:center;gap:16px" aria-labelledby="fill">
+      <svg width="72" height="72" viewBox="0 0 72 72" role="img" aria-label="資料完整度 ${pct}%" style="flex:none">
+        <circle cx="36" cy="36" r="30" fill="none" stroke="#efe3cf" stroke-width="8"/>
+        <circle cx="36" cy="36" r="30" fill="none" stroke="#e8913a" stroke-width="8" stroke-linecap="round" stroke-dasharray="${dash} 189" transform="rotate(-90 36 36)"/>
+        <text x="36" y="42" text-anchor="middle" font-size="17" font-weight="700" fill="#3f2e24" font-family="Quicksand, sans-serif">${pct}%</text>
+      </svg>
+      <div class="stack" style="gap:4px">
+        <h2 id="fill" style="font-size:16px">${skipped.length ? `再補 ${skipped.length} 項，試養會更像${esc(n)}` : "資料很完整，試養會很像牠"}</h2>
+        ${skipped.length ? `<span class="muted" style="font-size:14px">還沒填：${skipped.join("、")}</span><button type="button" class="link-btn" style="align-self:flex-start;padding:0" data-act="refill">現在補</button>` : ""}
+      </div>
+    </section>
+    </div>
+    <div class="grow"></div>
+    <div class="narrow done-actions">
+      ${catBtn("出領養任務", "tasks")}
+      <div class="two">
+        <button type="button" class="ghost-btn" data-act="model">看 3D 模型</button>
+        <button type="button" class="ghost-btn" data-act="restart">再新增一隻</button>
+      </div>
+    </div>`, false);
+}
+
+const VIEWS = { photo: vPhoto, talk: vTalk, quick: vQuick, touch: vTouch, review: vReview, done: vDone };
+const app = document.getElementById("app");
+function render(scrollTop) {
+  if (S.step === "review") ensureBlurb();
+  app.innerHTML = VIEWS[S.step]();
+  if (S.step === "talk") bindMic();
+  if (scrollTop) window.scrollTo(0, 0);
+}
+function go(step) { S.step = step; S.missing = []; render(true); }
+
+/* ================================================================
+   給 Meowho：畫面狀態 → meow_cats 欄位
+   ================================================================ */
+function toMeowhoPayload() {
+  const f = S.f, h = S.h;
+  const done = v => v == null ? "unknown" : v === 0 ? "done" : v === 1 ? "not_done" : "unknown";
+  return {
+    name: f.name.trim(),
+    sex: ["male", "female", "unknown"][f.sex] ?? "unknown",
+    life_stage: ["kitten", "adult", "senior"][f.stage] ?? null,
+    est_age_months: ageMonths(),
+    coat: f.coat || null, breed: f.breed || null,
+    personality_tags: personalityTags(),
+    // 新欄位（需 migration）：四條個性量表 1–5（null = 沒填）和中途的補充
+    personality_scale: Object.fromEntries(TRAITS.map(t => [t.key, S.traits[t.key] ?? null])),
+    personality_notes: Object.fromEntries(Object.entries(S.traitNote).filter(([, v]) => v)),
+    description: S.story || null,
+    // 新欄位（需 migration）：介紹（預設是 AI 依個性挑的座右銘，中途可改）；description 仍存中途原話
+    intro: S.intro || null,
+    cover: S.cover, // 中途選的封面：a:front／a:left／a:back／o:第幾張
+    medical: {
+      neutered: done(h.neuter), vaccineDoses: h.vaccine, dewormInternal: h.deworm.includes(0) ? "done" : "unknown", dewormExternal: h.deworm.includes(1) ? "done" : "unknown",
+      fivFelv: ["negative", "fiv_positive", "untested"][h.fiv] ?? "untested", microchip: ["yes", "no"][h.chip] ?? "unknown",
+      history: h.body || null, medication: h.med || null,
+      health_tags: healthTags(),
+      // 給試養遊戲的 AI：遊戲沒有寫好劇情的健康標籤，加上中途自己填的內容，請 AI 安排照顧劇情（不可寫成診斷）
+      ai_story: { tags: healthTags().filter(t => !HEALTH_TAGS.some(([x, g]) => x === t && g) && t !== "FIV陽性"), text: [h.body, h.med].filter(Boolean).join("；") || null }
+    },
+    compat: { cats: ["yes", "maybe", "no", "unknown"][S.meet.cats] ?? null, dogs: ["yes", "maybe", "no", "unknown"][S.meet.dogs] ?? null, kids: ["yes", "maybe", "no", "unknown"][S.meet.kids] ?? null },
+    habits: [...S.habits],
+    // 新欄位（需 migration）：問題行為 none / sometimes / often / unknown
+    behavior: Object.fromEntries(Object.entries(S.prob).filter(([, v]) => v != null).map(([k, v]) => [k, { level: ["none", "sometimes", "often", "unknown"][v], note: S.probNote[k] || null }])),
+    // 新欄位（需 migration）：照護配合度、相處細項、剛到家、觸摸、來源、體重
+    care: {
+      handling: Object.fromEntries(Object.entries(S.care).map(([k, v]) => [k, ["easy", "tricky", "hard", "untried"][v]])),
+      strangers: ["yes", "maybe", "no", "unknown"][S.meet.guest] ?? null,
+      compatNotes: Object.fromEntries(Object.entries(S.meetNote).filter(([, v]) => v)),
+      arrival: Object.fromEntries(Object.entries(S.arrival).map(([k, v]) => [k, ["same_day", "1_3_days", "within_week", "longer"][v]])),
+      touch: Object.fromEntries(Object.entries(S.touch).filter(([, v]) => v).map(([k, v]) => [k, ["", "love", "ok", "no"][v]])),
+      touchLimit: ["few_strokes", "1_2_min", "long", "mood"][S.dur] ?? null,
+      touchSigns: [...S.signs],
+      origin: ["street", "abandoned", "rehomed", "shelter"][f.from] ?? null,
+      since: f.since || null, weightKg: f.kg ? Number(f.kg) : null,
+      favoriteSnack: S.notes.snack || null, cautionNote: S.notes.caution || null, otherNote: S.notes.other || null
+    },
+    consent: S.consent
+  };
+}
+window.toMeowhoPayload = toMeowhoPayload;
+
+/* ================================================================
+   事件
+   ================================================================ */
+function readFile(file) { return new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(file); }); }
+
+app.addEventListener("change", async e => {
+  const t = e.target;
+  if (t.dataset.angle && t.files[0]) {
+    S.angles[t.dataset.angle] = await readFile(t.files[0]);
+    // 正式版：送 /api/onboarding/cat-photo 判讀；這裡示範照片猜到的毛色、品種
+    if (!S.f.coat) { S.f.coat = "橘白色"; S.f.breed = "米克斯"; S.guessed.add("coat"); S.guessed.add("breed"); }
+    S.missing = []; render();
+  } else if (t.dataset.others && t.files.length) {
+    for (const file of [...t.files].slice(0, MAX_OTHERS - S.others.length)) S.others.push(await readFile(file));
+    // 正式版：送 /api/onboarding/cat-photo 判讀；這裡示範照片猜到的毛色、品種
+    if (!S.f.coat) { S.f.coat = "橘白色"; S.f.breed = "米克斯"; S.guessed.add("coat"); S.guessed.add("breed"); }
+    S.missing = [];
+    render();
+  } else if (t.dataset.bindCheck) {
+    S[t.dataset.bindCheck] = t.checked;
+  }
+});
+// 個性拉桿：拉的時候只更新文字，放開後才重畫（才會出現補充欄和清除）
+function traitLive(el) {
+  const k = el.dataset.trait, v = +el.value, t = TRAITS.find(x => x.key === k);
+  S.traits[k] = v; el.classList.remove("unset"); el.setAttribute("aria-valuetext", SCALE_WORD[k][v - 1]);
+  const tw = document.getElementById("tw-" + k); if (tw) { tw.textContent = SCALE_WORD[k][v - 1]; tw.style.color = "var(--orange-deep)"; }
+  document.querySelectorAll(`#w-${k} span`).forEach((s, j) => s.classList.toggle("on", j === v - 1));
+}
+app.addEventListener("change", e => { if (e.target.dataset && e.target.dataset.trait) { traitLive(e.target); render(); } });
+["pointerup", "keyup"].forEach(ev => app.addEventListener(ev, e => {
+  const el = e.target; if (!el.dataset || !el.dataset.trait) return;
+  if (S.traits[el.dataset.trait] == null) { traitLive(el); render(); } // 沒拉動直接點中間，也算選了
+}));
+app.addEventListener("input", e => {
+  if (e.target.dataset.trait) { traitLive(e.target); return; }
+  const p = e.target.dataset.bind;
+  if (!p) return;
+  setPath(p, e.target.value);
+  if (p === "f.ageNum") {
+    S.f.stage = stageOf();
+    document.querySelectorAll('[data-path="f.stage"]').forEach(b => b.setAttribute("aria-checked", String(+b.dataset.v === S.f.stage)));
+  }
+  if (p === "intro") { const m = document.getElementById("previewIntro"); if (m) m.textContent = e.target.value; }
+  const key = p.split(".").pop();
+  S.guessed.delete(key);
+});
+
+app.addEventListener("click", e => {
+  const b = e.target.closest("[data-act]");
+  if (!b) return;
+  const act = b.dataset.act, v = b.dataset.v;
+  switch (act) {
+    case "back":
+      if (S.step === "talk") go("photo");
+      else if (S.step === "quick") { if (S.qp > 0) { S.qp--; render(true); } else go("talk"); }
+      else if (S.step === "touch") { S.qp = QUICK.length - 1; go("quick"); }
+      else if (S.step === "review") go("touch");
+      break;
+    case "toTalk":
+      if (!S.angles.left) { S.missing = ["側面照片"]; render(); break; }
+      go("talk"); break;
+    case "toQuick": case "toReview": {
+      if (S.step === "talk") {
+        const miss = [];
+        if (!S.f.name.trim()) miss.push("名字");
+        if (S.f.stage == null) miss.push("年紀");
+        if (miss.length) { S.missing = miss; render(); break; }
+      }
+      if (act === "toQuick") { S.qp = 0; go("quick"); } else go("review");
+      break;
+    }
+    case "qNext":
+      if (S.qp < QUICK.length - 1) { S.qp++; render(true); } else go("touch");
+      break;
+    case "pick": {
+      const cur = getPath(b.dataset.path);
+      setPath(b.dataset.path, cur === +v ? null : +v);
+      render(); break;
+    }
+    case "toggle": { const set = getPath(b.dataset.path); set.has(v) ? set.delete(v) : set.add(v); render(); break; }
+    case "toTraits": S.qp = 0; go("quick"); break;
+    case "clearTrait": delete S.traits[v]; render(); break;
+    case "ageUnit": S.f.ageUnit = +v; S.f.stage = stageOf(); render(); break;
+    case "deworm": { const i = S.h.deworm.indexOf(+v); i >= 0 ? S.h.deworm.splice(i, 1) : S.h.deworm.push(+v); render(); break; }
+    case "zone": S.touch[v] = ((S.touch[v] || 0) + 1) % 4; render(); break;
+    case "rmOther": {
+      const i = +v; S.others.splice(i, 1);
+      if (S.cover && S.cover[0] === "o") { const c = +S.cover.slice(2); S.cover = c === i ? null : c > i ? "o:" + (c - 1) : S.cover; }
+      render(); break;
+    }
+    case "cover": e.preventDefault(); S.cover = v; render(); break;
+    case "clearStory": S.story = ""; S.status = ""; render(); document.getElementById("story")?.focus(); break;
+    case "sendStory": {
+      if (!S.story.trim()) { S.status = "先說幾句，或打字貼上"; render(); break; }
+      const n = parseStory(S.story);
+      S.status = n ? `已填好 ${n} 格，可以再說一段補充` : "沒有抓到可以填的，下面直接點選也可以";
+      render(); break;
+    }
+    case "create": {
+      const miss = [];
+      if (!S.f.name.trim()) miss.push("名字");
+      if (S.f.stage == null) miss.push("年紀");
+      if (!S.angles.left) miss.push("側面照片");
+      if (!S.consent) miss.push("同意授權");
+      if (miss.length) { S.missing = miss; render(); break; }
+      console.log("meow_cats payload", toMeowhoPayload());
+      go("done"); break;
+    }
+    case "reBlurb": { S.blurbV++; S.intro = genBlurb(S.blurbV).motto; render(); break; }
+    case "refill": S.qp = 0; go("quick"); break;
+    case "tasks": case "model": alert("示範版：正式版會前往 /cats/<id>/tasks 或 /cats/<id>"); break;
+    case "restart": location.reload(); break;
+  }
+});
+
+/* ================================================================
+   語音（瀏覽器內建，zh-TW；正式版沿用 lib/onboarding/speech.ts）
+   ================================================================ */
+function bindMic() {
+  const mic = document.getElementById("mic"), label = document.getElementById("micLabel"), box = document.getElementById("story");
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) {
+    mic.addEventListener("click", () => { document.getElementById("status").textContent = "這個瀏覽器不支援語音，請直接打字"; box.focus(); });
+    return;
+  }
+  let rec = null, base = "";
+  const start = e => {
+    e.preventDefault();
+    if (rec) return;
+    rec = new SR(); rec.lang = "zh-TW"; rec.interimResults = true; rec.continuous = true;
+    base = box.value ? box.value.replace(/\s*$/, "") + (/[。，！？]$/.test(box.value.trim()) ? "" : "，") : "";
+    if (!box.value) base = "";
+    rec.onresult = ev => {
+      let text = "";
+      for (let i = 0; i < ev.results.length; i++) text += ev.results[i][0].transcript;
+      box.value = base + text; S.story = box.value;
+    };
+    rec.onerror = ev => { document.getElementById("status").textContent = ev.error === "not-allowed" ? "要允許使用麥克風才能用說的" : "沒有聽清楚，再試一次"; };
+    rec.onend = () => { rec = null; mic.classList.remove("on"); label.textContent = "按住說說牠"; };
+    rec.start(); mic.classList.add("on"); label.textContent = "放開就停止";
+  };
+  const stop = () => { if (rec) rec.stop(); };
+  mic.addEventListener("pointerdown", start);
+  ["pointerup", "pointerleave", "pointercancel"].forEach(t => mic.addEventListener(t, stop));
+  mic.addEventListener("keydown", e => { if ((e.key === " " || e.key === "Enter") && !rec) start(e); });
+  mic.addEventListener("keyup", e => { if (e.key === " " || e.key === "Enter") stop(); });
+}
+
+render();
+</script>
+</body>
+</html>
+

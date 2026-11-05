@@ -145,6 +145,21 @@
 - 原型中尚未完成的按鈕加 `data-login` 或 `data-proto="功能名"`，會自動顯示提示。
 - 站台標誌由管理者設定選擇（`LOGOS`），不要自行更換 logo 檔案。2026-10-29 Tina 已將三款內建 Logo 換成 Meowho喵戶 新版（小屋摸摸款、圓形花貓款、橫式字標款）。
 
+### 6.1 MeowHQ 頁面建置資訊（所有 `/MeowHQ` 頁必守）
+
+凡變更會影響 `https://meowho.vercel.app/MeowHQ`（含子路徑）畫面並要發布上線時：
+
+- **每個 MeowHQ 頁**內容區底部必須有頁尾（由 `HqShell` 統一渲染，**不要**在各 tab 重複做）：
+  - **左下**：`update by : <whom>`（**目前功能／tab** 對應原始碼的最後 git 作者）
+  - **右下**：`version date: yyyy/mm/dd hh24:mi:ss`（該功能／tab 原始碼最後 commit 時間，Asia/Taipei）
+- 不同功能互不共用：例如只改貓戶管理時，`/MeowHQ/households` 頁尾會更新；`/MeowHQ/assets?tab=experience` 維持體驗相關檔案的作者／時間。
+- 實作來源：
+  - 對照表 `src/lib/hq/page-meta-map.ts`（新增側欄功能或 `?tab=` 時**必須**補 key 與 paths）
+  - `npm run hq:page-meta`（`predev`／`prebuild` 會自動跑）寫入 `src/lib/hq/page-meta.generated.json`
+  - UI：`HqShell` 的 `.hq-pagefoot` 依 pathname + `?tab=` 查表；`NEXT_PUBLIC_HQ_*` 僅作缺資料時的 fallback
+- **禁止**把 version 藏在頂列、或只做在單一 tab；改殼層／頁尾樣式時要跑 `shell.test.tsx` 的頁尾斷言。
+- Cursor、Claude Code、Codex、Antigravity／Gemini 皆遵守本節（本檔為唯一共同規範）。
+
 ### 不可違反的業務規則
 - 費用數字只來自資料庫或公式，**LLM 不得產生數字**。
 - 醫療相關內容附「僅供參考，非醫療建議」；處方飼料只在有獸醫診斷紀錄時顯示。
