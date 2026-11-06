@@ -57,7 +57,9 @@ export default function RoomViewer({ base }: { base: string }) {
         // orbit 目標放在相機正前方極近處，拖曳就像原地轉頭
         return { pos, look: pos.clone().add(new THREE.Vector3(...cameraForward(c)).multiplyScalar(unit * 0.01)) };
       };
-      const first = view(cameras[0]);
+      // 影片開頭常貼著牆或家具、晃得最厲害，改從中段的拍攝點開場
+      let index = Math.floor(cameras.length / 2);
+      const first = view(cameras[index]);
       const threeScene = new THREE.Scene();  // 貓畫在這，高斯點會依深度蓋在它前面
       const movable = scene.assets.room_cut && scene.objects.some(o => o.splat);
       viewer = new GS.Viewer({
@@ -68,6 +70,7 @@ export default function RoomViewer({ base }: { base: string }) {
         initialCameraLookAt: first.look.toArray(),
         sharedMemoryForWorkers: false,  // 不需要 COOP/COEP 標頭
         sphericalHarmonicsDegree: 0,
+        antialiased: !window.matchMedia("(pointer: coarse)").matches,  // 電腦上邊緣較平滑；手機省效能
         sceneRevealMode: GS.SceneRevealMode.Instant,  // 預設淡入在低階顯卡上要等很久
         dynamicScene: Boolean(movable),               // 杯子掉落時要每幀更新姿態
       });
@@ -88,7 +91,6 @@ export default function RoomViewer({ base }: { base: string }) {
       controls.maxPolarAngle = Math.PI - 0.02;
       controls.keys = { LEFT: "", UP: "", RIGHT: "", BOTTOM: "" };  // 內建 WASD 是平移
 
-      let index = 0;
       let tween: { from: { pos: THREE.Vector3; look: THREE.Vector3 }; to: ReturnType<typeof view>; start: number } | null = null;
       const tweenTo = (to: ReturnType<typeof view>) => {
         tween = { from: { pos: active.camera.position.clone(), look: controls.target.clone() }, to, start: performance.now() };
@@ -98,7 +100,7 @@ export default function RoomViewer({ base }: { base: string }) {
         setSpot({ index, total: cameras.length });
         tweenTo(view(cameras[index]));
       };
-      setSpot({ index: 0, total: cameras.length });
+      setSpot({ index, total: cameras.length });
       setStatus("ready");
 
       // 貓和物理載入失敗時，房間照常可以看
