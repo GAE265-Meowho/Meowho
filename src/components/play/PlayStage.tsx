@@ -21,7 +21,8 @@ const noop = () => {};
 export function PlayStage({ kind, scanBase, look, tag, placed, goal, clip, speed, onDrop, onItemError, children }: {
   kind: "scan" | "dollhouse";
   scanBase: string | null;
-  look: PlayCatLook;
+  /** null＝貓不在畫面（原版場景的 cat: "none"） */
+  look: PlayCatLook | null;
   /** 左上角的小標（例如「到家第一天」） */
   tag?: string;
   placed: PlacedHouseholdItem[];

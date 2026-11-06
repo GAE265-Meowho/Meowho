@@ -1,0 +1,65 @@
+/* 虛擬飼養 DEMO（#237）：catgame 原版小遊戲的樣式（原版 style 的 :root 顏色、.scrim／.modal、.meter／.bar、.arena、貓咪動畫）。
+   只套用在 .cg 底下；顏色沿用原版淺色主題，麻糬改成虎斑（--fur、--stripe）。 */
+.cg {
+  --card: #ffffff; --ink: #1f2b33; --muted: #5f6d75; --line: #d6dee1; --soft: #e4eded;
+  --accent: #2c6e68; --accent-ink: #ffffff; --paw: #d8607a; --cat-line: #1f2b33;
+  --fur: #c89a6a; --stripe: #6b4a2e;
+  --good: #3b8150; --warn: #a8700c; --bad: #c0453c; --scrim: rgba(18, 28, 32, .48);
+  --wall: #dde7e4; --floor: #d6c6ac; --wood: #9c7d5b; --sofa: #7d98ad; --sky-day: #bfe0ee; --glass: #cfe8ef;
+  --tartar: #d2a94a; --shadow: #22282c; --eye-glow: #f3cf5e; --litter: #8fb4a8; --sand: #ece1c8;
+  color: var(--ink);
+}
+.cg :global(.scrim) {
+  position: fixed; inset: 0; z-index: 1000; background: var(--scrim); display: flex; align-items: center; justify-content: center;
+  padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) max(16px, env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
+}
+.cg :global(.modal) {
+  background: var(--card); border-radius: 16px; max-width: 520px; width: 100%; max-height: 100%; overflow: auto; padding: 22px;
+  display: grid; gap: 14px; animation: cgpop .25s ease;
+}
+.cg :global(.modal.mini) { max-width: 560px; }
+.cg :global(.modal .eyebrow) { font-size: 12px; letter-spacing: .08em; color: var(--paw); }
+.cg :global(.modal h2) { margin: 0; font-size: 22px; font-weight: 700; }
+.cg :global(.small) { font-size: 13px; margin: 0; }
+.cg :global(.muted) { color: var(--muted); }
+.cg :global(.meter) { display: grid; grid-template-columns: 4.5em minmax(0, 1fr) 3.2em; align-items: center; gap: 8px; font-size: 13px; }
+.cg :global(.bar) { height: 8px; background: var(--soft); border-radius: 999px; overflow: hidden; }
+.cg :global(.bar > i) { display: block; height: 100%; background: var(--accent); border-radius: 999px; transition: width .35s; }
+.cg :global(.bar.paw > i) { background: var(--paw); }
+.cg :global(.meter .num) { text-align: right; font-variant-numeric: tabular-nums; }
+.cg :global(.arena) { width: 100%; height: auto; display: block; border-radius: 12px; background: var(--soft); touch-action: none; user-select: none; -webkit-user-select: none; }
+.cg :global(.mm) { display: grid; gap: 6px; }
+.cg :global(.mmsg) { min-height: 1.6em; font-size: 14px; color: var(--paw); }
+.cg :global(.row2) { display: flex; gap: 8px; }
+.cg :global(.row2 button) {
+  flex: 1; text-align: center; border: 1px solid var(--line); background: var(--card); border-radius: 10px; padding: 10px 14px;
+  min-height: 44px; font: inherit; color: inherit; cursor: pointer;
+}
+.cg :global(.row2 .solidbtn) { background: var(--paw); border-color: var(--paw); color: #fff; }
+.cg :global(.picker) { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.cg :global(.pk) { border: 1px solid var(--line); background: var(--card); border-radius: 8px; padding: 5px 10px; font: inherit; font-size: 13px; min-height: 36px; cursor: pointer; }
+.cg :global(.pk[aria-pressed="true"]) { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.cg :global(button:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* 貓咪動畫（原版 10-cat-drawing 對應的樣式） */
+.cg :global(.tail) { transform-box: fill-box; transform-origin: 0% 100%; animation: cgsway 2.8s ease-in-out infinite; }
+.cg :global(.blink) { transform-box: fill-box; transform-origin: center; animation: cgblink 4.6s infinite; }
+.cg :global(.breathe) { transform-box: fill-box; transform-origin: 50% 100%; animation: cgbreathe 3.4s ease-in-out infinite; }
+.cg :global(.earL), .cg :global(.earR) { transform-box: fill-box; transform-origin: 50% 100%; transition: transform .2s; }
+.cg :global(.flat .earL) { transform: rotate(-26deg); }
+.cg :global(.flat .earR) { transform: rotate(26deg); }
+.cg :global(.eyes-closed) { display: none; }
+.cg :global(.purr .eyes-closed) { display: inline; }
+.cg :global(.purr .eyes-open) { display: none; }
+.cg :global(.eyes-wide) { display: none; }
+.cg :global(.wide .eyes-wide) { display: inline; }
+.cg :global(.wide .eyes-open) { display: none; }
+.cg :global(.purr.wide .eyes-closed) { display: none; }
+@keyframes cgpop { from { transform: translateY(8px); } to { transform: none; } }
+@keyframes cgsway { 0%, 100% { transform: rotate(-5deg); } 50% { transform: rotate(9deg); } }
+@keyframes cgblink { 0%, 93%, 100% { transform: scaleY(1); } 96% { transform: scaleY(.1); } }
+@keyframes cgbreathe { 50% { transform: scaleY(1.025); } }
+@media (prefers-reduced-motion: reduce) {
+  .cg :global(.modal) { animation: none; }
+  .cg :global(.bar > i) { transition: none; }
+  .cg :global(.tail), .cg :global(.blink), .cg :global(.breathe) { animation: none; }
+}
