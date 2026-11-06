@@ -15,6 +15,23 @@ export function publishChecklist(check: PublishCheck | null, catId: string) {
 /** 預設 3D 貓的貼圖標記：預覽時用母體自己的貼圖 */
 export const DEFAULT_ALBEDO = "default";
 
+/** 貼圖所在的公開 bucket（同 lib/hq/cat-models/supabase.ts 的 MODEL_BUCKET；那支是 server-only，前台不能 import） */
+const MODEL_BUCKET = "meow-cat-models";
+
+/**
+ * meow_cat_model_variants 的 albedo_path／confirmed_albedo → CatPreview 要的網址。
+ * paint worker 存的是 bucket 裡的路徑（例如 cat_…/paint_albedo.png），不能直接當網址用，否則載入失敗會退回母體的灰色預設貼圖。
+ * 預設 3D 貓（DEFAULT_ALBEDO）或沒有貼圖回 null＝用母體自己的貼圖；完整網址原樣回傳。
+ */
+export function albedoSrc(path: string | null | undefined, supabaseUrl: string): string | null {
+  if (!path || path === DEFAULT_ALBEDO) return null;
+  if (/^https?:\/\//.test(path)) return path;
+  return `${supabaseUrl.replace(/\/$/, "")}/storage/v1/object/public/${MODEL_BUCKET}/${path.replace(/^\//, "")}`;
+}
+
+/** 母體 glb：和 MeowHQ 預覽用同一支（/api/hq/cat-models/base），貼圖是照這個母體畫的，換成別版母體 UV 會對不上 */
+export const catBaseUrl = (body: "adult" | "kitten") => (body === "kitten" ? "/api/hq/cat-models/base?body=kitten" : "/api/hq/cat-models/base");
+
 const pad = (n: number) => String(n).padStart(2, "0");
 /** meow_cat_models.id 的格式：cat_YYYYMMDD_HHMMSS（UTC） */
 export const modelIdAt = (d: Date) =>
