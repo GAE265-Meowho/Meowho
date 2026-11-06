@@ -516,6 +516,10 @@
 .hq-flowsteps.overview li:not(:last-child)::after { background: var(--hq-sage-soft); }
 .hq-flowsteps.overview .hq-flowno { color: var(--hq-sage-ink); }
 .hq-flow > .hq-flowsteps { flex: 1 1 100%; }
+.hq-flowlane { flex: 1 1 100%; min-width: 0; }
+.hq-flowlane + .hq-flowlane { padding-top: .75rem; border-top: 1px dashed var(--hq-line); }
+.hq-flowlane > h3 { margin: 0 0 .5rem; font-size: .95rem; color: var(--hq-sage-ink); }
+.hq-progress-list { display: flex; flex-direction: column; align-items: flex-start; gap: .6rem; }
 @media (min-width: 1280px) { .hq-studio-file .hq-ai-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 .hq-catinfo .hq-row:has(> .hq-dl) > .hq-thumb { width: 100%; height: auto; aspect-ratio: 1; object-fit: cover; }
 @media (max-width: 1023px) { .hq-catinfo .hq-row:has(> .hq-dl) > .hq-thumb { width: 120px; } }

@@ -123,6 +123,7 @@ async function toView(root: string, id: string): Promise<CatModelView | null> {
     body: bodyFor({ baseVersion: job?.base_version ?? null, hasAlbedo, ageMonths: num(profile.age_months) }),
     variantStorage: true, bodyVariants,
     jobStatus: job?.status ?? null,
+    jobBody: job?.body_type ?? null,
     jobQueuedAt: job?.queued_at ?? null,
     jobStartedAt: job?.started_at ?? null,
     jobSeconds: typeof job?.seconds === "number" ? job.seconds : null,

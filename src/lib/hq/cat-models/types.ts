@@ -107,6 +107,8 @@ export interface CatModelView {
     baseVersion: string | null;
   }>>;
   jobStatus: JobStatus | null;
+  /** 最新一筆任務畫的是哪個體型；舊任務沒有記錄時為 null（視為 body） */
+  jobBody?: BodyType | null;
   jobQueuedAt: string | null;
   jobStartedAt: string | null;
   jobSeconds: number | null;
@@ -185,9 +187,22 @@ export function discardPending(input: {
   return { albedo: prev, prev: null, baseVersion: input.prevBaseVersion ?? null, remove: albedo };
 }
 
-/** 待辦總覽：貼圖待確認的貓有幾隻 */
-export const countTexturePending = (cats: readonly Pick<CatModelView, "texture" | "hasAlbedo" | "body">[]) =>
-  cats.filter(c => textureOf(c).state === "pending").length;
+/** 各體型的確認狀態：雙體型時看 bodyVariants（確認只寫在體型表），舊資料看主表 */
+type TextureSource = Pick<CatModelView, "texture" | "hasAlbedo" | "body"> & {
+  variantStorage?: boolean;
+  bodyVariants?: Partial<Record<BodyType, { texture: TextureInfo }>>;
+};
+export function bodyTextures(c: TextureSource): TextureInfo[] {
+  if (!c.variantStorage) return [textureOf(c)];
+  return BODY_ORDER.map(body => c.bodyVariants?.[body]?.texture ?? { state: "none", preview: null, previewBody: body });
+}
+
+/** 待辦總覽：貼圖待確認的貓有幾隻（任一體型待確認就算） */
+export const countTexturePending = (cats: readonly TextureSource[]) =>
+  cats.filter(c => bodyTextures(c).some(t => t.state === "pending")).length;
+
+/** 有沒有確認過的貼圖可以在貓咪頁看（任一體型） */
+export const hasConfirmedLook = (c: TextureSource) => bodyTextures(c).some(t => t.preview);
 
 /** 任務是否在忙（排隊中或生成中）：忙的時候不能再送、不能換版 */
 export const isJobActive = (status: CatModelStatus) => status === "queued" || status === "running";
@@ -210,6 +225,8 @@ export function elapsedMinutes(since: string | null, nowMs: number): number | nu
 /** 母體體型（規格書 04 TBD-C）：≤ 6 個月幼貓 cat_base_kitten、其他成貓 cat_base */
 export type BodyType = "adult" | "kitten";
 export const BODY_LABELS: Record<BodyType, string> = { adult: "成貓", kitten: "幼貓" };
+/** 每隻貓都要做成貓、幼貓兩套模型：列表、流程圖都照這個順序 */
+export const BODY_ORDER: readonly BodyType[] = ["adult", "kitten"];
 export const KITTEN_MAX_MONTHS = 6;
 
 /**
@@ -394,18 +411,39 @@ export function catProgress(c: { hasAlbedo: boolean; body?: BodyType; texture?: 
   return { step: 1, text: "1/4 上傳照片", tone: "mute" };
 }
 
-/** #159 列表的進度篩選：示範貓自成一組；排隊／生成中（含 AI 三視角產生中）為「產生中」；確認過貼圖為「完成」 */
+type BodyProgressInput = Parameters<typeof catProgress>[0] & Pick<CatModelView, "body" | "variantStorage" | "jobBody"> & {
+  bodyVariants?: Partial<Record<BodyType, { texture: TextureInfo }>>;
+};
+
+/** 某個體型的進度：任務狀態只算在它畫的體型上，貼圖確認看該體型自己的記錄 */
+export function catBodyProgress(c: BodyProgressInput, body: BodyType): CatProgress {
+  const jobHere = (c.jobBody ?? c.body) === body;
+  const jobState = isJobActive(c.status) || c.status === "failed";
+  const texture = c.bodyVariants?.[body]?.texture ?? { state: "none" as const, preview: null, previewBody: body };
+  return catProgress({
+    ...c, body, texture, hasAlbedo: texture.state !== "none",
+    status: jobState && !jobHere ? "ready" : c.status,
+  });
+}
+
+/** 列表「進度」欄：雙體型時成貓、幼貓各一條；舊資料只有目前體型一條 */
+export function catProgresses(c: BodyProgressInput): (CatProgress & { body: BodyType })[] {
+  if (!c.variantStorage) return [{ ...catProgress(c), body: c.body }];
+  return BODY_ORDER.map(body => ({ ...catBodyProgress(c, body), body }));
+}
+
+/** #159 列表的進度篩選：示範貓自成一組；排隊／生成中（含 AI 三視角產生中）為「產生中」；每個體型都確認過貼圖才算「完成」 */
 export type CatListGroup = "running" | "done" | "demo" | "other";
-export function catListGroup(c: Parameters<typeof catProgress>[0] & { builtin?: boolean }): CatListGroup {
+export function catListGroup(c: BodyProgressInput & { builtin?: boolean }): CatListGroup {
   if (c.builtin) return "demo";
   if (isJobActive(c.status) || c.aiRunning.length) return "running";
-  return catProgress(c).step === 4 ? "done" : "other";
+  return catProgresses(c).every(p => p.step === 4) ? "done" : "other";
 }
 
 /** 製作流程每一步的狀態（給步驟圖用） */
 export type StepState = "done" | "active" | "todo" | "failed";
-export function catStepStates(c: Parameters<typeof catProgress>[0]): StepState[] {
-  const p = catProgress(c);
+export function catStepStates(c: Parameters<typeof catProgress>[0] & Partial<BodyProgressInput>): StepState[] {
+  const p = c.variantStorage && c.body ? catBodyProgress({ ...c, body: c.body }, c.body) : catProgress(c);
   if (p.text === "完成") return ["done", "done", "done", "done"];
   return [1, 2, 3, 4].map(n => n < p.step ? "done" : n > p.step ? "todo" : p.tone === "danger" ? "failed" : "active");
 }

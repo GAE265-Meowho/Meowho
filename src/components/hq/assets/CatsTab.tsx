@@ -4,7 +4,9 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
-import { CAT_STEPS, catListGroup, catProgress, isJobActive, textureOf, formatCatTime, type CatListGroup, type CatModelView } from "@/lib/hq/cat-models/types";
+import {
+  BODY_LABELS, BODY_ORDER, CAT_STEPS, catListGroup, catProgresses, hasConfirmedLook, isJobActive, formatCatTime, type CatListGroup, type CatModelView,
+} from "@/lib/hq/cat-models/types";
 import { FLOW_ICONS, FlowStepper } from "./FlowStepper";
 import { paginate, type ListQuery } from "@/lib/hq/listing";
 import { HqListBody, HqPager, HqTable, HqToolbar, type Column } from "../list/HqList";
@@ -41,18 +43,26 @@ function DeleteCell({ cat, onDeleted }: { cat: CatModelView; onDeleted: () => vo
   );
 }
 
-/** #159 進度：未完成顯示「狀態＋n/4」與 4 段進度條，下方為目前步驟；完成顯示標籤 */
+/** #159 進度：未完成顯示「狀態＋n/4」與 4 段進度條，下方為目前步驟；完成顯示標籤。雙體型時成貓、幼貓各一條 */
 function ProgressCell({ cat }: { cat: CatModelView }) {
-  const p = catProgress(cat);
-  if (p.step === 4) return <span className="hq-tag">完成</span>;
-  const [stepText, state] = p.text.split("・");
+  const list = catProgresses(cat);
+  const labeled = list.length > 1;
   return (
-    <span className={`hq-progress ${p.tone}`}>
-      <span className="hq-progress-head"><span>{state ?? "進行中"}</span><span>{p.step}/4</span></span>
-      <span className="hq-progress-bar" role="progressbar" aria-label={p.text} aria-valuemin={0} aria-valuemax={4} aria-valuenow={p.step}>
-        {[1, 2, 3, 4].map(n => <span key={n} className={n <= p.step ? "on" : ""} />)}
-      </span>
-      <span className="hq-progress-step">{stepText.replace(/^\d\/4 /, "")}</span>
+    <span className="hq-progress-list">
+      {list.map(p => {
+        const name = labeled ? `${BODY_LABELS[p.body]} ` : "";
+        if (p.step === 4) return <span key={p.body} className="hq-tag">{name}完成</span>;
+        const [stepText, state] = p.text.split("・");
+        return (
+          <span key={p.body} className={`hq-progress ${p.tone}`}>
+            <span className="hq-progress-head"><span>{name}{state ?? "進行中"}</span><span>{p.step}/4</span></span>
+            <span className="hq-progress-bar" role="progressbar" aria-label={`${name}${p.text}`} aria-valuemin={0} aria-valuemax={4} aria-valuenow={p.step}>
+              {[1, 2, 3, 4].map(n => <span key={n} className={n <= p.step ? "on" : ""} />)}
+            </span>
+            <span className="hq-progress-step">{stepText.replace(/^\d\/4 /, "")}</span>
+          </span>
+        );
+      })}
     </span>
   );
 }
@@ -62,7 +72,7 @@ const GROUPS: { value: Exclude<CatListGroup, "other">; label: string }[] = [
 ];
 
 /** #118：還沒有 3D 的貓直接進製作glb工作區，有 3D 的進貓咪頁（#129：以「有確認過的紋理貼圖」為準） */
-export const catHref = (c: CatModelView) => (textureOf(c).preview ? assetsHref(c.id) : studioHref(c.id));
+export const catHref = (c: CatModelView) => (hasConfirmedLook(c) ? assetsHref(c.id) : studioHref(c.id));
 
 /** 搜尋名稱或建立者；status 為進度分組（#159：running／done／demo） */
 export function filterCats(cats: readonly CatModelView[], q: { q?: string; status?: string }): CatModelView[] {
@@ -119,9 +129,15 @@ export function CatsTab({ query, update }: { query: ListQuery & { page: number }
     <>
       {/* 流程（#110 Stitch；#129 改 4 步）：上傳照片 → AI 三視角 → 紋理貼圖 → 動作 glb；兩隻體型骨架移到另一頁，用按鈕進入 */}
       <section className="hq-flow" aria-label="製作流程">
-        {/* #129：改為 4 步；第 3 步的紋理貼圖要人工確認才能進第 4 步，不滿意回到第 3 步重新產生 */}
-        <FlowStepper overview label="貓咪製作流程" loop={{ from: 3, to: 2, text: "不滿意可重新產生紋理貼圖" }}
-          steps={CAT_STEPS.map((s, i) => ({ title: s.title, desc: s.desc, icon: FLOW_ICONS[i], state: "todo" }))} />
+        {/* #129：改為 4 步；第 3 步的紋理貼圖要人工確認才能進第 4 步，不滿意回到第 3 步重新產生。
+            每隻貓都要做成貓、幼貓兩套：照片與 AI 三視角共用，紋理貼圖與動作 glb 各自產生、各自確認 */}
+        {BODY_ORDER.map(body => (
+          <div key={body} className="hq-flowlane">
+            <h3>{BODY_LABELS[body]}模型</h3>
+            <FlowStepper overview label={`${BODY_LABELS[body]}製作流程`} loop={{ from: 3, to: 2, text: "不滿意可重新產生紋理貼圖" }}
+              steps={CAT_STEPS.map((s, i) => ({ title: s.title, desc: s.desc, icon: FLOW_ICONS[i], state: "todo" }))} />
+          </div>
+        ))}
         <div className="hq-row">
           <Link href={BASES_HREF} className="hq-btn ghost">體型骨架預覽</Link>
           <Link href={NEW_CAT_HREF} className="hq-btn">新增貓咪模型</Link>

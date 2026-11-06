@@ -43,10 +43,11 @@ describe("已建立的貓咪模型列表（#102）", () => {
     render(<CatsTab query={{ page: 1 }} update={() => {}} />);
     expect(within(screen.getByRole("row", { name: /小橘/ })).queryByText(/喵戶：/)).toBeNull();
   });
-  it("#110：流程改成上傳照片 → AI 三視角 → 產生 3D；兩隻骨架改用「體型骨架預覽」按鈕進入", () => {
+  it("#110：流程改成上傳照片 → AI 三視角 → 產生 3D；成貓、幼貓各一條流程；兩隻骨架改用「體型骨架預覽」按鈕進入", () => {
     rows.data = [];
     render(<CatsTab query={{ page: 1 }} update={() => {}} />);
-    expect(screen.getByText("AI 三視角")).toBeInTheDocument();
+    expect(screen.getByRole("list", { name: "成貓製作流程" })).toHaveTextContent("AI 三視角");
+    expect(screen.getByRole("list", { name: "幼貓製作流程" })).toHaveTextContent("AI 三視角");
     expect(screen.getByRole("link", { name: "體型骨架預覽" })).toHaveAttribute("href", "/MeowHQ/assets/bases");
     expect(screen.queryByRole("link", { name: "測試動作與參數" })).toBeNull();
   });
