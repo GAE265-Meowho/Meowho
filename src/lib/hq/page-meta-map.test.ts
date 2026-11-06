@@ -19,6 +19,7 @@ describe("resolvePageMetaKey", () => {
     expect(resolvePageMetaKey("/MeowHQ/assets/cats/new")).toBe("assets/cats");
     expect(resolvePageMetaKey("/MeowHQ/assets/bases/adult")).toBe("assets/cats");
     expect(resolvePageMetaKey("/MeowHQ/assets/floorplans/room_1")).toBe("assets/rooms-floorplan");
+    expect(resolvePageMetaKey("/MeowHQ/assets/rooms/room_1")).toBe("assets/rooms-video");
   });
 
   it("admin 依 ?tab=", () => {

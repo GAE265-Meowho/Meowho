@@ -2,6 +2,7 @@
 // 虛擬體驗（#150，Tina 2026-11-03）：選一隻虛擬貓、選一戶喵戶，把貓放進那戶的 3D 室內空間。之後做互動遊戲的基礎。
 // 貓＝共用母體 base_clips.glb＋這隻貓已確認的貼圖（同貓咪頁，catLook.ts）；房間＝平面圖轉換讀圖完成的房間。
 // 選擇寫進網址（?tab=experience&cat=&house=），複製連結給其他管理員看到同一個畫面。
+// 室內空間也可以選影片轉換完成的房間（house=video:<房間 id>）：改用 3D 高斯檢視器，貓用選的那隻的貼圖；用品、手掌模式只有平面圖空間有。
 // 生活用品（#197）：右側選單類別篩選＋小圖示，只能拖進房間放置；已放用品可拖移，上方 × 可刪除。點地板只叫貓走。
 // 讀圖家具：手掌模式可拖移／承載／右轉、× 移除（session；換喵戶／重整會回來）。
 import dynamic from "next/dynamic";
@@ -22,9 +23,12 @@ import { ExperienceItemPalette } from "./ExperienceItemPalette";
 import { FLOORPLAN_API } from "./floorplanApi";
 import type { InteractMode, PlaceAt, PlacedHouseholdItem } from "./FloorplanViewer";
 import { assetSectionHref } from "./hrefs";
+import { useRooms } from "./RoomVideoTab";
 import { useCatList } from "./useCatModels";
 
 const FloorplanViewer = dynamic(() => import("./FloorplanViewer"), { ssr: false, loading: () => <HqSkeleton rows={4} /> });
+const RoomViewer = dynamic(() => import("./RoomViewer"), { ssr: false, loading: () => <HqSkeleton rows={4} /> });
+const VIDEO = "video:";
 
 type Load<T> = { state: "loading" } | { state: "error" } | { state: "ready"; data: T };
 
@@ -112,6 +116,7 @@ export function ExperienceTab() {
   const cats = useCatList().value;
   const houses = useHouses();
   const catalog = useItemsCatalog();
+  const videoRooms = useRooms().value;
   const [room, setRoom] = useState<string | null>(null);
   const [itemId, setItemId] = useState<string>("");
   const [interactMode, setInteractMode] = useState<InteractMode>("point");
@@ -125,7 +130,11 @@ export function ExperienceTab() {
   const itemOptions = useMemo(() => (catalog.state === "ready" ? catalog.data.items : []), [catalog]);
   const categories = useMemo(() => (catalog.state === "ready" ? catalog.data.categories : []), [catalog]);
   const catId = catOptions.some(c => c.id === params.get("cat")) ? params.get("cat") : catOptions[0]?.id ?? null;
-  const houseId = houseOptions.some(h => h.id === params.get("house")) ? params.get("house") : houseOptions[0]?.id ?? null;
+  const videoOptions = useMemo(() => (videoRooms.state === "ready" ? videoRooms.data.filter(r => r.status === "ready" && r.resultBase) : []), [videoRooms]);
+  const wanted = params.get("house");
+  const videoRoom = videoOptions.find(r => VIDEO + r.id === wanted) ?? (houseOptions.length ? null : videoOptions[0] ?? null);
+  const houseId = videoRoom ? null : houseOptions.some(h => h.id === wanted) ? wanted : houseOptions[0]?.id ?? null;
+  const space = videoRoom ? VIDEO + videoRoom.id : houseId;
   const house = useHouse(houseId);
   const cat = catOptions.find(c => c.id === catId) ?? null;
   const look = cat ? catLook(cat) : null;
@@ -272,7 +281,7 @@ export function ExperienceTab() {
     }));
   };
 
-  if (cats.state === "loading" || houses.state === "loading") return <HqSkeleton rows={4} />;
+  if (cats.state === "loading" || houses.state === "loading" || videoRooms.state === "loading") return <HqSkeleton rows={4} />;
   if (cats.state !== "ready" || houses.state !== "ready") return <HqLoadError onRetry={() => window.location.reload()} />;
 
   return (
@@ -287,18 +296,21 @@ export function ExperienceTab() {
             : <span className="hq-hint">還沒有完成紋理貼圖的貓。<Link href={assetSectionHref("cats")}>到貓咪製作</Link></span>}
         </label>
         <label className="hq-box">
-          <span className="hq-label">喵戶</span>
-          {houseOptions.length
-            ? <select className="hq-input" value={houseId ?? ""} onChange={e => choose("house", e.target.value)}>
-              {houseOptions.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}
+          <span className="hq-label">室內空間</span>
+          {houseOptions.length || videoOptions.length
+            ? <select className="hq-input" value={space ?? ""} onChange={e => choose("house", e.target.value)}>
+              {houseOptions.length > 0 && <optgroup label="平面圖轉換">{houseOptions.map(h => <option key={h.id} value={h.id}>{h.name}</option>)}</optgroup>}
+              {videoOptions.length > 0 && <optgroup label="影片轉換">{videoOptions.map(r => <option key={r.id} value={VIDEO + r.id}>{r.name}</option>)}</optgroup>}
             </select>
-            : <span className="hq-hint">還沒有讀圖完成的室內空間。<Link href={assetSectionHref("rooms-floorplan")}>到平面圖轉換</Link></span>}
+            : <span className="hq-hint">還沒有完成的室內空間。<Link href={assetSectionHref("rooms-floorplan")}>到平面圖轉換</Link>、<Link href={assetSectionHref("rooms-video")}>到影片轉換</Link></span>}
         </label>
       </div>
 
       <section className="hq-box" aria-label="3D 虛擬體驗">
-        <h3>{cat && house?.state === "ready" ? `${cat.name} 在 ${house.data.name}` : "3D 虛擬體驗"}</h3>
-        {!look || !houseId ? <div className="hq-texture-empty" role="status"><strong>選好虛擬貓和喵戶後，貓會出現在房間裡</strong></div>
+        <h3>{cat && videoRoom ? `${cat.name} 在 ${videoRoom.name}` : cat && house?.state === "ready" ? `${cat.name} 在 ${house.data.name}` : "3D 虛擬體驗"}</h3>
+        {!look || !space ? <div className="hq-texture-empty" role="status"><strong>選好虛擬貓和室內空間後，貓會出現在房間裡</strong></div>
+          : videoRoom ? <RoomViewer key={`${videoRoom.id}:${look.albedoUrl}`} base={videoRoom.resultBase!} cat={look} />
+          : !houseId ? null
           : !house || house.state === "loading" ? <HqSkeleton rows={4} />
             : house.state === "error" ? <HqLoadError onRetry={() => choose("house", houseId)} />
               : (

@@ -56,12 +56,12 @@ const SECTION_ICONS: Partial<Record<AssetSection, React.ReactNode>> = {
 };
 const MENU_SECTIONS = ASSET_SECTIONS.filter(s => !("parent" in s));
 
-/** 虛擬體驗元件管理分組（#113；#183 改為可收合的樹狀選單）：?tab= 決定目前區塊；子區塊算父區塊，平面圖的戶（/assets/floorplans/…，#138）算室內空間，其他子頁（/assets/cats/…、/assets/bases）算貓咪製作 */
+/** 虛擬體驗元件管理分組（#113；#183 改為可收合的樹狀選單）：?tab= 決定目前區塊；子區塊算父區塊，平面圖的戶（/assets/floorplans/…，#138）、影片轉換的單間房（/assets/rooms/…）算室內空間，其他子頁（/assets/cats/…、/assets/bases）算貓咪製作 */
 function AssetsGroup({ activePath, onPick, tab }: { activePath: string; onPick: () => void; tab: string | null }) {
   const inAssets = activePath === ASSETS_CATS_HREF || activePath.startsWith(ASSETS_CATS_HREF + "/");
   const current = !inAssets ? null
     : activePath === ASSETS_CATS_HREF && isAssetSection(tab) ? topSection(tab)
-    : activePath.startsWith(ASSETS_CATS_HREF + "/floorplans/") ? "rooms" : "cats";
+    : activePath.startsWith(ASSETS_CATS_HREF + "/floorplans/") || activePath.startsWith(ASSETS_CATS_HREF + "/rooms/") ? "rooms" : "cats";
   // #183：可收合的樹狀選單。在這個模組裡時自動展開；其他頁面預設收合，按標題展開
   const [open, setOpen] = useState(current !== null);
   useEffect(() => { if (current !== null) setOpen(true); }, [current]);

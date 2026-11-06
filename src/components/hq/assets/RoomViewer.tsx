@@ -23,7 +23,8 @@ async function readJson<T>(url: string): Promise<T> {
   return res.json() as Promise<T>;
 }
 
-export default function RoomViewer({ base }: { base: string }) {
+/** cat：虛擬體驗選的貓（母體＋貼圖）；不給就用成貓母體預設花色 */
+export default function RoomViewer({ base, cat }: { base: string; cat?: { baseUrl: string; albedoUrl: string } | null }) {
   const host = useRef<HTMLDivElement>(null);
   const goTo = useRef<(step: number) => void>(() => {});
   const world = useRef<RoomWorld | null>(null);
@@ -105,7 +106,7 @@ export default function RoomViewer({ base }: { base: string }) {
 
       // 貓和物理載入失敗時，房間照常可以看
       const roomWorld = await createRoomWorld({
-        viewer: active, threeScene, scene, layout, cameras, catUrl: CAT_MODEL, unit, focus: tweenTo,
+        viewer: active, threeScene, scene, layout, cameras, catUrl: cat?.baseUrl ?? CAT_MODEL, albedoUrl: cat?.albedoUrl, unit, focus: tweenTo,
       }).catch(e => {
         console.error("貓咪互動載入失敗", e);
         return null;
@@ -190,7 +191,7 @@ export default function RoomViewer({ base }: { base: string }) {
       viewer?.dispose().catch(() => {}).finally(() => stage.remove());
       if (!viewer) stage.remove();
     };
-  }, [base]);
+  }, [base, cat?.baseUrl, cat?.albedoUrl]);
 
   if (status === "error") {
     return <div className="hq-state"><p>房間載入失敗，請稍後再試。</p></div>;
