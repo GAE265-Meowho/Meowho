@@ -43,13 +43,14 @@ function DeleteCell({ cat, onDeleted }: { cat: CatModelView; onDeleted: () => vo
   );
 }
 
-/** #159 進度：未完成顯示「狀態＋n/4」與 4 段進度條，下方為目前步驟；完成顯示標籤。雙體型時成貓、幼貓各一條 */
-function ProgressCell({ cat }: { cat: CatModelView }) {
+/** #159 進度：未完成顯示「狀態＋n/4」與 4 段進度條，下方為目前步驟；完成顯示標籤。雙體型時分到成貓／幼貓欄。 */
+function ProgressCell({ cat, body }: { cat: CatModelView; body?: "adult" | "kitten" }) {
   const list = catProgresses(cat);
-  const labeled = list.length > 1;
+  const selected = body ? list.filter(p => p.body === body) : list;
+  const labeled = !body && list.length > 1;
   return (
     <span className="hq-progress-list">
-      {list.map(p => {
+      {selected.map(p => {
         const name = labeled ? `${BODY_LABELS[p.body]} ` : "";
         if (p.step === 4) return <span key={p.body} className="hq-tag">{name}完成</span>;
         const [stepText, state] = p.text.split("・");
@@ -63,8 +64,17 @@ function ProgressCell({ cat }: { cat: CatModelView }) {
           </span>
         );
       })}
+      {!selected.length && <span className="hq-hint">—</span>}
     </span>
   );
+}
+
+function formatAge(ageMonths: number | null): string {
+  if (ageMonths === null) return "—";
+  const years = Math.floor(ageMonths / 12);
+  const months = ageMonths % 12;
+  if (!years) return `${ageMonths} 個月`;
+  return months ? `${years} 歲 ${months} 個月` : `${years} 歲`;
 }
 
 const BACKFILL_ERRORS: Record<string, string> = {
@@ -132,7 +142,7 @@ export function CatsTab({ query, update }: { query: ListQuery & { page: number }
 
   const columns: Column<CatModelView>[] = [
     {
-      key: "cat", label: "貓咪模型",
+      key: "cat", label: "貓咪",
       render: c => (
         <span className="hq-catcell">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -146,8 +156,10 @@ export function CatsTab({ query, update }: { query: ListQuery & { page: number }
         </span>
       ),
     },
-    { key: "progress", label: "進度", render: c => <ProgressCell cat={c} /> },
-    { key: "notes", label: "備註說明", render: c => (c.notes ? <span className="hq-clamp2" title={c.notes}>{c.notes}</span> : <span className="hq-hint">尚未填寫</span>) },
+    { key: "age", label: "年齡", render: c => <span>{formatAge(c.ageMonths)}</span> },
+    { key: "adult", label: "3D 成貓", render: c => <ProgressCell cat={c} body="adult" /> },
+    { key: "kitten", label: "3D 幼貓", render: c => <ProgressCell cat={c} body="kitten" /> },
+    { key: "notes", label: "說明", render: c => (c.notes ? <span className="hq-clamp2" title={c.notes}>{c.notes}</span> : <span className="hq-hint">尚未填寫</span>) },
     {
       key: "creator", label: "建立者／更新",
       render: c => <span className="hq-stack"><span>{c.createdBy ?? "—"}</span><span className="hq-hint">{formatCatTime(c.updatedAt)}</span></span>,
@@ -159,7 +171,8 @@ export function CatsTab({ query, update }: { query: ListQuery & { page: number }
   return (
     <>
       {/* 流程（#110 Stitch；#129 改 4 步）：上傳照片 → AI 三視角 → 紋理貼圖 → 動作 glb；兩隻體型骨架移到另一頁，用按鈕進入 */}
-      <section className="hq-flow" aria-label="製作流程">
+      <details className="hq-flow" open>
+        <summary><strong>製作流程</strong></summary>
         {/* #129：改為 4 步；第 3 步的紋理貼圖要人工確認才能進第 4 步，不滿意回到第 3 步重新產生。
             每隻貓都要做成貓、幼貓一對：照片與 AI 三視角共用，第 3 步起分流，紋理貼圖與動作 glb 各自產生、各自確認 */}
         <div className="hq-flowfork">
@@ -181,13 +194,15 @@ export function CatsTab({ query, update }: { query: ListQuery & { page: number }
             ))}
           </div>
         </div>
-        <div className="hq-row">
-          <BackfillButton onDone={reload} />
-          <Link href={BASES_HREF} className="hq-btn ghost">體型骨架預覽</Link>
-          <Link href={NEW_CAT_HREF} className="hq-btn">新增貓咪模型</Link>
-        </div>
-      </section>
-      <h2 className="hq-listtitle">已建立的貓咪模型</h2>
+      </details>
+      <hr className="hq-divider" />
+      <div className="hq-flow-actions">
+        <BackfillButton onDone={reload} />
+        <Link href={NEW_CAT_HREF} className="hq-btn">新增貓咪</Link>
+        <Link href={BASES_HREF} className="hq-btn ghost">3D 貓咪體型預覽</Link>
+      </div>
+      <hr className="hq-divider" />
+      <h2 className="hq-listtitle">貓咪模型</h2>
       <HqToolbar
         q={query.q} onSearch={q => update({ q })} placeholder="搜尋貓咪名稱或建立者"
         statuses={chips} status={query.status} onStatus={status => update({ status, page: 1 })} filterLabel="依進度篩選"
