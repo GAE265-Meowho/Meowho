@@ -2,7 +2,7 @@
 // 題庫依據：愛貓網〈貓送養問卷調查表〉、嘉義縣民雄收容所中途之家認養問卷（見 #89）。
 // 隱私：不問詳細地址（只公開到區），家訪地址等中途同意後再私訊。收入屬敏感題，不放進基本問卷。
 import { z } from "zod";
-import { DWELLINGS, LIVING, type Home } from "../onboarding/household-rules";
+import { DWELLINGS, EXPERIENCE, FAMILY, LIVING, type Home } from "../onboarding/household-rules";
 
 export const SECTIONS = {
   about: "認識你", home: "居住", pets: "現有寵物", care: "照顧安排", cost: "費用與心理準備", agreement: "約定",
@@ -15,7 +15,7 @@ export const QUESTION_TYPES = { text: "文字", yesno: "是／否", single: "單
 export type QuestionType = keyof typeof QUESTION_TYPES;
 
 /** 從領養人喵戶帶入答案的欄位 */
-export type PrefillKey = "area" | "living" | "dwelling" | "family" | "pets";
+export type PrefillKey = "area" | "living" | "dwelling" | "family" | "pets" | "experience";
 
 export const QuestionSchema = z.object({
   id: z.string().regex(/^[a-z0-9_-]{1,40}$/),
@@ -26,7 +26,7 @@ export const QuestionSchema = z.object({
   required: z.boolean(),
   /** 是／否之外再請領養人說明 */
   withDetail: z.boolean(),
-  prefill: z.enum(["area", "living", "dwelling", "family", "pets"]).nullable(),
+  prefill: z.enum(["area", "living", "dwelling", "family", "pets", "experience"]).nullable(),
 });
 export type Question = z.infer<typeof QuestionSchema>;
 export const MAX_QUESTIONS = 60;
@@ -48,14 +48,14 @@ export const BANK: (Question & { base: boolean })[] = [
   q("area", "home", "居住地區", "text", { prefill: "area" }),
   q("living", "home", "住家狀況", "single", { options: Object.values(LIVING), prefill: "living" }),
   q("dwelling", "home", "住家型態", "single", { options: Object.values(DWELLINGS), prefill: "dwelling" }),
-  q("family", "home", "同住的人", "multi", { options: ["小孩", "長輩", "伴侶", "室友", "其他"], required: false, prefill: "family" }),
+  q("family", "home", "同住的人", "multi", { options: [...FAMILY], required: false, prefill: "family" }),
   q("family_agree", "home", "同住的人都同意養貓嗎？", "yesno", { withDetail: true }),
   q("has_cats", "pets", "家裡現在有其他貓嗎？有的話，有幾隻、大約幾歲？", "yesno", { withDetail: true }),
   q("pets_neutered", "pets", "家裡的寵物都結紮了嗎？", "yesno", { withDetail: true, required: false }),
   q("pets_vaccinated", "pets", "家裡的寵物有打預防針嗎？", "yesno", { withDetail: true, required: false }),
   q("pets_illness", "pets", "家裡的寵物有沒有其他疾病？", "text", { required: false }),
   q("pets_food", "pets", "家裡的貓吃什麼食物、品牌？", "text", { base: false, required: false }),
-  q("experience", "pets", "過去養寵物的經驗", "text"),
+  q("experience", "pets", "過去養寵物的經驗", "text", { prefill: "experience" }),
   q("space", "care", "貓咪會養在房間，還是可以整屋自由活動？", "single", { options: ["養在房間", "整屋自由活動", "其他"] }),
   q("space_photos", "care", "請拍幾張貓咪之後活動空間的照片，尤其是門窗。", "photo"),
   q("screens", "care", "願意為貓咪做門窗防護，預防逃脫嗎？", "yesno"),
@@ -134,6 +134,8 @@ export function prefillAnswers(qs: Question[], h: { city: string | null; distric
     dwelling: home.dwelling ? (home.dwelling === "other" ? label(DWELLINGS.other, home.dwellingOther ?? "") : DWELLINGS[home.dwelling]) : null,
     family: home.family?.length ? home.family.map(f => (f === "其他" ? label("其他", home.familyOther ?? "") : f)) : null,
     pets: home.pets?.length ? home.pets.map(p => (p === "其他動物" ? label("其他動物", home.petsOther ?? "") : p)) : null,
+    // 建立喵戶時選的養貓經驗（#233），領養人可以在問卷裡再補充
+    experience: home.experience ? EXPERIENCE[home.experience] : null,
   };
   const out: Answers = {};
   for (const x of qs) if (x.prefill && values[x.prefill] !== null) out[x.id] = values[x.prefill]!;
