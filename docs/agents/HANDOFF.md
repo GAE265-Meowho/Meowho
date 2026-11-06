@@ -4,7 +4,7 @@
 > 最後更新：2026-11-06｜渝茜 × Claude Code（#237 虛擬飼養 DEMO）
 
 ## 目前狀態
-- **#237 虛擬飼養 DEMO（渝茜 × Claude Code，審查中）**：分支 `feat/237-catgame-demo`。`/cats/[id]/play`（DEMO 固定麻糬、虎斑），流程與真的接上／備案對照見 `docs/modules/readiness.md`「虛擬飼養 DEMO」。邏輯在 `src/lib/play/`（純函式＋測試），畫面在 `src/components/play/`，AI 在 `/api/play/{hazards,lines,advice}`。
+- **#237 虛擬飼養 DEMO（渝茜 × Claude Code，審查中）**：PR #244、分支 `feat/237-catgame-demo`。`/cats/[id]/play`（DEMO 固定麻糬、虎斑），流程與真的接上／備案對照見 `docs/modules/readiness.md`「虛擬飼養 DEMO」。邏輯在 `src/lib/play/`（純函式＋測試），畫面在 `src/components/play/`，AI 在 `/api/play/{hazards,lines,advice}`。
   - 要設的環境變數（Vercel，都是既有名稱）：`AZURE_OPENAI_ENDPOINT`、`AZURE_OPENAI_API_KEY`、`AZURE_OPENAI_CHAT_DEPLOYMENT_NAME=gpt-6-luna`（沒設＝全部走規則備案）；選填 `NEXT_PUBLIC_ROOM_DEMO_BASE`（掃描房間 manifest 資料夾，沒設＝自動改用娃娃屋）；喵戶讀取用既有的 `NEXT_PUBLIC_SUPABASE_*`。
   - **尚未實測**（沙盒連不到）：Azure 三支 AI、Supabase 讀喵戶 `home`、`meow-items` 遠端 GLB（沙盒看到的是替代方塊）、掃描房間 `RoomViewer`。合併前請在 PR 預覽網址走一次：登入有喵戶的帳號、設好 Azure，確認台詞與危險清單是 AI 版（API 回 `source: "ai"`）。
   - 生活用品先寫死在 `src/lib/play/items.ts`；子哲開放 `meow_items` 公開讀取後改讀後台。catgame 原文沒讀到（執行環境沒有 Projects 工具），劇情台詞之後可以再對照 catgame 調整 `src/lib/play/story.ts`、`events.ts`。

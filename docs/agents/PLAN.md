@@ -18,7 +18,7 @@
 
 ## 任務（tracer-bullet，每張可獨立 Demo）
 
-- 虛擬飼養 DEMO（#237，渝茜 × Claude Code，2026-11-06）：審查中；分支 `feat/237-catgame-demo`。`/cats/[id]/play` 3 個節點、AI 危險／台詞／建議（規則備案）、採買花費、3D 娃娃屋擺用品、小遊戲、試養報告；Azure／喵戶讀取／遠端 GLB／掃描房間未在沙盒實測。
+- 虛擬飼養 DEMO（#237，渝茜 × Claude Code，2026-11-06）：審查中；PR #244、分支 `feat/237-catgame-demo`。`/cats/[id]/play` 3 個節點、AI 危險／台詞／建議（規則備案）、採買花費、3D 娃娃屋擺用品、小遊戲、試養報告；Azure／喵戶讀取／遠端 GLB／掃描房間未在沙盒實測。
 - 成貓 sleep 睡姿更新（#221，Tina × Cursor，2026-11-06）：審查中；PR #236、分支 `fix/221-adult-sleep-clip`。bundled 成貓母體 `base_clips.glb` 換成 cat_base 最新 sleep；幼貓不動；`CatPreview` sleep 取景。
 - MeowHQ Dashboard UI/UX 優化（#226，Tina × Cursor，2026-11-05）：審查中；PR #227、分支 `ui/226-hq-dashboard-ui`（併含 #224）。
 - MeowHQ 首頁不要自動一直重新整理（#224，Tina × Cursor，2026-11-05）：併入 PR #227；舊 PR #225 已關閉。
