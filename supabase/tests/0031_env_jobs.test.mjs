@@ -26,8 +26,8 @@ const errorCode = async (promise) => {
 const db = new PGlite();
 await db.exec(read("./stub_supabase.sql"));
 for (const file of migrationFiles) await db.exec(read(`../migrations/${file}`));
-await db.exec(read("../migrations/0030_meow_env_jobs.sql"));
-await db.exec(read("../migrations/0030_meow_env_jobs.sql"));
+await db.exec(read("../migrations/0031_meow_env_jobs.sql"));
+await db.exec(read("../migrations/0031_meow_env_jobs.sql"));
 
 await db.exec(`
   insert into auth.users (id, email) values ('${id("001")}', 'env29@example.test');
@@ -199,4 +199,4 @@ check("刪喵戶將 active job 取消並保留", "canceled", await one(db, `sele
 check("刪喵戶後 job 保留 tombstone", 1, await one(db, `select count(*) from public.meow_env_jobs where id = '${householdJob}'`));
 check("刪喵戶後 complete 拒絕", "env_job_canceled", await errorCode(db.query(`select public.meow_env_complete('${householdJob}', 1, 'x', '[]', '[]', '${jsonPath}', '${pdfPath}')`)));
 
-console.log("PASS 0030 env jobs migration suite");
+console.log("PASS 0031 env jobs migration suite");

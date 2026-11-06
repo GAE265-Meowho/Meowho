@@ -643,5 +643,5 @@ const count = (s) => results.filter((r) => r.status === s).length;
 console.log(`\nPASS ${count("PASS")}｜FAIL ${failed}｜SKIP ${count("SKIP")}`);
 if (failed || results.length === 0) process.exit(1);
 
-// PR A：WelfareLens v0.4 env job / atomic scheduling contract.
-await import("./0030_env_jobs.test.mjs");
+// PR A：WelfareLens v0.4 env job / atomic scheduling contract (migration 0031).
+await import("./0031_env_jobs.test.mjs");
