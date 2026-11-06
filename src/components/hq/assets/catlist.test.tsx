@@ -43,11 +43,17 @@ describe("已建立的貓咪模型列表（#102）", () => {
     render(<CatsTab query={{ page: 1 }} update={() => {}} />);
     expect(within(screen.getByRole("row", { name: /小橘/ })).queryByText(/喵戶：/)).toBeNull();
   });
-  it("#110：流程改成上傳照片 → AI 三視角 → 產生 3D；成貓、幼貓各一條流程；兩隻骨架改用「體型骨架預覽」按鈕進入", () => {
+  it("#110：流程改成上傳照片 → AI 三視角 → 產生 3D；照片與三視角共用，第 3 步起成貓、幼貓分流；兩隻骨架改用「體型骨架預覽」按鈕進入", () => {
     rows.data = [];
     render(<CatsTab query={{ page: 1 }} update={() => {}} />);
-    expect(screen.getByRole("list", { name: "成貓製作流程" })).toHaveTextContent("AI 三視角");
-    expect(screen.getByRole("list", { name: "幼貓製作流程" })).toHaveTextContent("AI 三視角");
+    expect(screen.getByRole("list", { name: "成貓、幼貓共用的步驟" })).toHaveTextContent("AI 三視角");
+    for (const name of ["成貓製作流程", "幼貓製作流程"]) {
+      const lane = screen.getByRole("list", { name });
+      expect(lane).toHaveTextContent("STEP 03");
+      expect(lane).toHaveTextContent("產生紋理貼圖");
+      expect(lane).not.toHaveTextContent("AI 三視角");
+    }
+    expect(screen.getByRole("button", { name: "補排紋理貼圖" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "體型骨架預覽" })).toHaveAttribute("href", "/MeowHQ/assets/bases");
     expect(screen.queryByRole("link", { name: "測試動作與參數" })).toBeNull();
   });

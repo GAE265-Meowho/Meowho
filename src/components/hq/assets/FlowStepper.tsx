@@ -36,13 +36,14 @@ export interface FlowStep { title: string; desc?: string; icon: StepIcon; state:
 
 /**
  * loop：在兩個步驟之間畫一條虛線回圈（例：第 4 步不滿意，回到第 3 步重新產生），只在橫向時顯示。
+ * start：第一步的 STEP 編號（分流圖後半段從 3 開始）；short：步驟少，容器窄一點也橫向排。
  */
-export function FlowStepper({ steps, label, compact = false, overview = false, loop }: {
-  steps: FlowStep[]; label: string; compact?: boolean; overview?: boolean; loop?: { from: number; to: number; text: string };
+export function FlowStepper({ steps, label, compact = false, overview = false, loop, start = 1, short = false }: {
+  steps: FlowStep[]; label: string; compact?: boolean; overview?: boolean; loop?: { from: number; to: number; text: string }; start?: number; short?: boolean;
 }) {
   const n = steps.length;
   return (
-    <div className={`hq-flowsteps${compact ? " compact" : ""}${overview ? " overview" : ""}`}>
+    <div className={`hq-flowsteps${compact ? " compact" : ""}${overview ? " overview" : ""}${short ? " short" : ""}`}>
       {loop && (
         <div className="hq-flowloop" aria-hidden="true"
           style={{ left: `${(Math.min(loop.from, loop.to) + 0.5) * 100 / n}%`, right: `${(n - Math.max(loop.from, loop.to) - 0.5) * 100 / n}%` }}>
@@ -56,7 +57,7 @@ export function FlowStepper({ steps, label, compact = false, overview = false, l
               <Icon name={s.state === "done" ? "done" : s.state === "failed" ? "fail" : s.icon} />
             </span>
             <span className="hq-flowtext">
-              <span className="hq-flowno">STEP {String(i + 1).padStart(2, "0")}{!overview && <span className="hq-sr">・{STATE_TEXT[s.state]}</span>}</span>
+              <span className="hq-flowno">STEP {String(i + start).padStart(2, "0")}{!overview && <span className="hq-sr">・{STATE_TEXT[s.state]}</span>}</span>
               <strong>{s.title}</strong>
               {s.desc && <span className="hq-flowdesc">{s.desc}</span>}
               {s.note && <span className="hq-flownote">{s.note}</span>}

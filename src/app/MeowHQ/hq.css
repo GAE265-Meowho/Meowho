@@ -519,6 +519,29 @@
 .hq-flowlane { flex: 1 1 100%; min-width: 0; }
 .hq-flowlane + .hq-flowlane { padding-top: .75rem; border-top: 1px dashed var(--hq-line); }
 .hq-flowlane > h3 { margin: 0 0 .5rem; font-size: .95rem; color: var(--hq-sage-ink); }
+/* 步驟少（分流圖）：容器 300px 以上就橫向 */
+@container (min-width: 300px) {
+  .hq-flowsteps.short ol { flex-direction: row; }
+  .hq-flowsteps.short li { flex: 1 1 0; flex-direction: column; align-items: center; text-align: center; padding: 0 .4rem; }
+  .hq-flowsteps.short li:not(:last-child)::after { left: calc(50% + 28px); right: calc(-50% + 28px); top: 21px; bottom: auto; width: auto; height: 2px; }
+  .hq-flowsteps.short .hq-flowtext { align-items: center; padding-top: .55rem; }
+  .hq-flowsteps.short .hq-flowloop { display: block; position: absolute; top: .55rem; height: 1.6rem; border: 2px dashed color-mix(in srgb, var(--hq-caramel) 45%, transparent); border-bottom: 0; border-radius: 14px 14px 0 0; }
+  .hq-flowsteps.short .hq-flowloop span { position: absolute; left: 50%; top: -.75rem; transform: translateX(-50%); background: var(--hq-caramel-soft); color: var(--hq-caramel-ink); font-size: .78rem; padding: .1rem .7rem; border-radius: 999px; white-space: nowrap; }
+}
+/* 製作流程分流圖：照片與 AI 三視角成貓、幼貓共用，第 3 步起分成兩條 */
+.hq-flowfork { flex: 1 1 100%; min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr) 56px minmax(0, 1.15fr); align-items: center; }
+.hq-flowfork h3 { margin: 0 0 .5rem; font-size: .95rem; color: var(--hq-sage-ink); }
+.hq-flowfork h3 small { margin-left: .4rem; font-size: .8rem; font-weight: 400; color: var(--hq-sub); }
+.hq-flowfork-shared, .hq-flowfork-lane { min-width: 0; }
+.hq-flowfork-split { align-self: stretch; width: 100%; height: 100%; color: var(--hq-sage); }
+.hq-flowfork-lanes { display: flex; flex-direction: column; gap: .75rem; min-width: 0; }
+.hq-flowfork-lane + .hq-flowfork-lane { padding-top: .75rem; border-top: 1px dashed var(--hq-line); }
+.hq-flowfork-lane .hq-flowsteps { padding-top: 1.6rem; }
+@media (max-width: 1023px) {
+  .hq-flowfork { grid-template-columns: minmax(0, 1fr); row-gap: .75rem; }
+  .hq-flowfork-split { display: none; }
+  .hq-flowfork-lanes { padding-top: .75rem; border-top: 1px dashed var(--hq-line); }
+}
 .hq-progress-list { display: flex; flex-direction: column; align-items: flex-start; gap: .6rem; }
 @media (min-width: 1280px) { .hq-studio-file .hq-ai-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 .hq-catinfo .hq-row:has(> .hq-dl) > .hq-thumb { width: 100%; height: auto; aspect-ratio: 1; object-fit: cover; }
@@ -539,6 +562,11 @@
 .hq-exp-stage .hq-fp-3d { height: 520px; }
 .hq-root .hq-btn.hq-exp-mode { width: 44px; padding: 0; flex: 0 0 44px; }
 .hq-root .hq-btn.hq-exp-mode svg { display: block; }
+.hq-exp-side { display: flex; flex-direction: column; gap: .5rem; min-width: 0; }
+.hq-exp-side > .hq-hint { margin: 0; }
+.hq-exp-tools { gap: .5rem; flex-wrap: wrap; align-items: center; }
+.hq-exp-body { margin-top: .5rem; }
+.hq-exp-body button:disabled { opacity: .45; cursor: not-allowed; }
 @media (max-width: 1023px) {
   .hq-exp-stage { grid-template-columns: minmax(0, 1fr); }
   .hq-exp-stage .hq-fp-3d { height: 360px; }
