@@ -52,9 +52,9 @@ describe("流程（原版劇情）", () => {
     expect(all).toContain("麻糬享年 15 歲。牠陪你走過了你的戀愛、看醫生的日子，和好多個普通的晚上。");
   });
 
-  it("〈通稱〉換成示範客廳的家具：躲藏處＝沙發底下", () => {
+  it("〈通稱〉換成範例房間的家具：躲藏處＝床底", () => {
     const { seen } = playThrough([]);
-    expect(seen.join("")).toContain("鑽進了沙發底下");
+    expect(seen.join("")).toContain("鑽進了床底");
     expect(seen.join("")).not.toMatch(/〈|〉/);
   });
 
@@ -65,12 +65,12 @@ describe("流程（原版劇情）", () => {
     expect(s.life.events[0].node).toBe("five-years");
   });
 
-  it("意外從玩家沒有處理的危險裡挑，用原版 FEV 的事件（大門 → 受驚衝出門）", () => {
-    const keep = hazards.filter(h => h.key !== "door").map(h => h.key);
+  it("意外從玩家沒有處理的危險裡挑，用原版 FEV 的事件（桌上的杯子 → 跳上桌子）", () => {
+    const keep = hazards.filter(h => h.key !== "cup").map(h => h.key);
     const { s, seen } = playThrough(keep);
     expect(s.event?.kind).toBe("accident");
-    expect(s.life.events[0]).toMatchObject({ id: "dashout", t: "受驚衝出門" });
-    expect(seen.join("")).toContain("外送來了。你一開大門");
+    expect(s.life.events[0]).toMatchObject({ id: "table", t: "跳上桌子" });
+    expect(seen.join("")).toContain("跳上了書桌");
   });
 
   it("全部都處理了：改成毛球嘔吐或經濟吃緊，劇情先肯定玩家的準備", () => {

@@ -12,14 +12,14 @@ const places = { hide: homeWord("躲藏處", labels)!, high: homeWord("高處", 
 const names = Object.fromEntries((DEMO_DOLLHOUSE.furniture ?? []).map((f, i) => [i, f.label]));
 
 describe("goalFor", () => {
-  it("躲沙發底下：走到沙發旁的空地板", () => {
+  it("躲床底：走到床旁的空地板", () => {
     const g = goalFor(scene, "hide", places, []);
     expect(g?.box).toBeNull();
     expect(blocked(g!.x, g!.z, scene, obstacles(scene))).toBe(false);
   });
-  it("跳上高處、窩沙發：指定家具方塊（示範客廳的高處＝沙發，原版 FURN_WORD）", () => {
-    expect(scene.boxes[goalFor(scene, "high", places, [])!.box!].furniture).toBe("sofa");
-    expect(scene.boxes[goalFor(scene, "sofa", places, [])!.box!].furniture).toBe("sofa");
+  it("跳上高處、窩沙發：指定家具方塊（範例房間的高處＝床，原版 FURN_WORD）", () => {
+    expect(scene.boxes[goalFor(scene, "high", places, [])!.box!].furniture).toBe("bed");
+    expect(goalFor(scene, "sofa", places, [])).toBeNull();  // 這間房沒有沙發
   });
   it("吃飯：走到餐碗旁；沒擺餐碗就原地", () => {
     const bowl = { id: "bowl", x: 2.5, z: 1.0, widthM: 0.52, depthM: 0.339 };
@@ -32,7 +32,7 @@ describe("goalFor", () => {
     expect(goalFor(scene, undefined, places, [])).toBeNull();
   });
   it("房間沒有對應家具時回 null（只用文字情境）", () => {
-    expect(boxFor(scene, "床底")).toBeNull();
+    expect(boxFor(scene, "沙發底下")).toBeNull();
   });
 });
 
@@ -41,7 +41,7 @@ describe("itemSpots", () => {
     const size = { widthM: 0.341, depthM: 0.506 };
     const spots = itemSpots(scene, size, [], names);
     expect(spots.length).toBeGreaterThan(2);
-    expect(spots.some(s => s.label === "沙發旁")).toBe(true);
+    expect(spots.some(s => s.label === "床旁")).toBe(true);
     for (const s of spots) expect(blocked(s.x, s.z, scene, obstacles(scene), 0.25)).toBe(false);
     const placed = [{ id: "bowl", ...spots[0], widthM: 0.52, depthM: 0.339 }];
     const again = itemSpots(scene, size, placed, names);
