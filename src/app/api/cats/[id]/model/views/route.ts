@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { GEN_VIEWS, generatedState, type GeneratedProfile } from "@/lib/hq/cat-models/types";
+import { sbAutoPaint } from "@/lib/hq/cat-models/supabase";
+import { GEN_VIEWS, generatedState, viewsReady, type GeneratedProfile } from "@/lib/hq/cat-models/types";
 import { getAdminSupabase } from "@/lib/supabase/admin";
 import { getServerSupabase } from "@/lib/supabase/server";
 
@@ -20,6 +21,8 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   if (!model) return NextResponse.json({ started: false, running: [], views: {}, errors: {} });
   const g = (model.profile as { generated?: GeneratedProfile } | null)?.generated;
   const st = generatedState(g);
+  // 三視角好了還沒排過紋理貼圖（建貓時的背景工作被中斷、或自動排程上線前建的貓）：這裡補排
+  if (viewsReady(st)) await sbAutoPaint(model.id, admin);
   const views: Record<string, string | null> = {};
   for (const v of GEN_VIEWS) {
     const path = g?.views?.[v];

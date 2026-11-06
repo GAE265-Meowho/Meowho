@@ -5,7 +5,7 @@ import {
 } from "./local";
 import { bundledBasePublicPath, bundledEnabled, bundledFilePublicPath, getBundledCat, listBundledCats } from "./bundled";
 import {
-  sbBaseRedirect, sbCreateCat, sbDeleteCat, sbFileRedirect, sbGetCat, sbListCats, sbStartViews, sbPhotoUpload, sbQueuePaint, sbRestore, sbConfirmTexture,
+  sbBaseRedirect, sbCreateCat, sbDeleteCat, sbFileRedirect, sbGetCat, sbListCats, sbStartViews, sbPhotoUpload, sbQueuePaint, sbRestore, sbConfirmTexture, sbBackfillPaint,
   type UploadTicket,
 } from "./supabase";
 import type { BodyType, CatModelView } from "./types";
@@ -129,6 +129,12 @@ export async function repoQueuePaint(id: string, view: unknown, fill: unknown, b
   if (src === "local") return queuePaint(localRoot()!, id, view, fill, new Date(), body);
   if (src === "supabase") return sbQueuePaint(id, view, fill, body);
   return { ok: false, code: "disabled" };
+}
+
+/** 補排紋理貼圖：每隻貓都要有成貓、幼貓一對（只有 Supabase 有 paint worker 排程） */
+export async function repoBackfillPaint(): Promise<Awaited<ReturnType<typeof sbBackfillPaint>> | Denied> {
+  if (resolveCatSource() !== "supabase") return { ok: false, code: "disabled" };
+  return sbBackfillPaint();
 }
 
 /** AI 三視角（#110）：標記產生中，回傳 run 讓 API 放進 after() 背景執行 */

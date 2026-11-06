@@ -27,6 +27,10 @@
 - **前台預覽和 MeowHQ 一致（2026-11-06）**：`PublishPanel` 與試養頁的 `CatPreview` 母體改走 `/api/hq/cat-models/base`（`catBaseUrl`，和 MeowHQ 同一份母體，貼圖 UV 才對得上），貼圖用 `albedoSrc()` 把 `albedo_path`／`confirmed_albedo` 的 bucket 路徑轉成 `meow-cat-models` 公開網址。之前直接把路徑當網址，paint worker 做好的貼圖載入失敗，畫面退回母體的灰色預設貼圖。
 - **照片（#181，2026-11-04）**：建模型時把封面照片從 `meow-cat-photos` 複製到 `meow-cat-model-photos/<模型ID>/photo.<副檔名>`，`photo_path` 指向複製後的檔案（`src/lib/cat-model-photo.ts`）。之前建的舊模型 `photo_path` 還是前台路徑，MeowHQ 製作頁讀照片時（`sbFileRedirect`）或中途再呼叫 API 時會自動補複製。MeowHQ 貓咪模型列表、貓咪頁、製作glb工作區顯示所屬喵戶。目前 Step 02～04 由管理員在 MeowHQ 手動觸發，之後改自動。
 - **三個角度＋自動 AI 三視角（#188，2026-11-04）**：新增貓咪時依序上傳側面、正面、背面（`CatFields.angles`，必填；之後可再加生活照到 5 張）。建立後 `NewCatFlow` 帶 `{ angles }` 呼叫（#206 起角度照存 `meow_cats.photo_angles`，`pickAngles` 也會讀它） `POST /api/cats/[id]/model`：三張複製成 `<模型ID>/photo.*`、`photo_front.*`、`photo_back.*`（`profile.extra_photos`），三張都有就用 service role 呼叫 `sbStartViews(..., { client })` 在 `after()` 自動產生 AI 三視角（Step 02）。前台貓咪頁的「AI 三視角」（`AiViewsPreview`，`GET /api/cats/[id]/model/views`，只給中途、短時效網址）顯示進度與結果；MeowHQ 製作頁讀同一份 `profile.generated`。Step 03、04 仍由管理員在 MeowHQ 手動觸發。修改既有的貓（`angles = null`）只需要有照片，不要求三個角度。
+- **每隻貓都要有成貓、幼貓一對紋理貼圖（2026-11-06，idea 2）**：照片與 AI 三視角共用，第 3 步（紋理貼圖）才分流。`sbAutoPaint`（`src/lib/hq/cat-models/supabase.ts`）在三視角三張都成功後排缺的體型（AI 左側面照、補花紋沿用上次，沒有就不補）。同一隻貓同時只能有一筆任務，所以先排這隻貓年齡層的體型，另一個記在 `meow_cat_models.meta.auto_paint`，`paint_worker.py` 做完一筆再排下一筆（`queue_next_body`）。
+  - 觸發點：建貓後的背景工作（三視角跑完）、`POST /api/cats/[id]/model` 已有模型時、`GET /api/cats/[id]/model/views` 看到三視角已完成時；MeowHQ 手動產生一個體型時，另一個體型沒有貼圖也會接著做（`planPair`）。
+  - MeowHQ 貓咪製作列表的「補排紋理貼圖」（`POST /api/hq/cat-models/auto-paint`，`sbBackfillPaint`）一次掃全部的貓補排。
+  - 排過的體型（成功或失敗）不會再自動排，失敗請管理員在 MeowHQ 重新產生；三視角沒完成的貓不排。
 - 中途按「確認使用」→ `meow_confirm_cat_model()` 把 `albedo_path` 複製到 `confirmed_albedo`，「準備出發找新主人」的 3D 檢查就通過。
 
 **之後要接的流程與位置**（照規格 09 §5.1 的流程圖）

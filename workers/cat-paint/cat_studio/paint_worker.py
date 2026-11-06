@@ -267,6 +267,9 @@ class Supabase:
                         headers={"Prefer": "resolution=merge-duplicates,return=representation"}, timeout=30)
         return self._ok(r).json()
 
+    def insert(self, table, fields):
+        return self._ok(self.s.post(f"{self.url}/rest/v1/{table}", json=fields, timeout=30))
+
     def download(self, bucket, path):
         r = self.s.get(f"{self.url}/storage/v1/object/{bucket}/{path}", timeout=120)
         return None if r.status_code in (400, 404) else self._ok(r).content
@@ -350,6 +353,11 @@ def run_supabase(worker, sb, job, worker_id):
             sb.remove(MODEL_BUCKET, old_prev)
         sb.patch("meow_cat_model_jobs", {"id": f"eq.{job['id']}"}, {"status": "done", "step": "完成", "finished_at": now_iso()})
         print(f"    完成（{mother.version}），{secs // 60} 分 {secs % 60} 秒 → {new_path}")
+        try:
+            queue_next_body(sb, model_id, meta, body, view, fill)
+        except Exception as e:
+            # 這筆已經完成，排不進去不能把它標成失敗；前台貓咪頁讀三視角時網站會再補排
+            print(f"    自動排下一個體型失敗：{type(e).__name__}: {e}")
     except KeyboardInterrupt:
         # Ctrl+C：不標成失敗的話，這隻貓會永遠卡在「生成中」，網頁也不能重試
         fail_supabase_job(sb, job["id"], model_id, "worker 被中斷，請重試")
@@ -361,6 +369,21 @@ def run_supabase(worker, sb, job, worker_id):
         fail_supabase_job(sb, job["id"], model_id, msg)
     finally:
         torch.cuda.empty_cache()
+
+
+def queue_next_body(sb, model_id, meta, body, view, fill):
+    """前台上傳的貓成貓、幼貓都要畫：網站排第一筆時把其餘體型記在 meta.auto_paint，
+    同一隻貓同時只能有一筆任務（unique index），所以這筆標成 done 之後才排下一筆"""
+    rest = [b for b in (meta.get("auto_paint") or []) if b in ("adult", "kitten") and b != body]
+    if not meta.get("auto_paint"):
+        return
+    sb.patch("meow_cat_models", {"id": f"eq.{model_id}"}, {"meta": {**meta, "auto_paint": rest[1:]}})
+    if not rest:
+        return
+    sb.insert("meow_cat_model_jobs", {"model_id": model_id, "status": "queued", "body_type": rest[0], "view": view, "fill": fill,
+                                      "step": "排隊中（自動產生，請確認 paint_worker.py --supabase 有在執行）"})
+    sb.patch("meow_cat_models", {"id": f"eq.{model_id}"}, {"status": "queued", "updated_at": now_iso()})
+    print(f"    自動排下一個體型：{rest[0]}")
 
 
 def fail_supabase_job(sb, job_id, model_id, msg):

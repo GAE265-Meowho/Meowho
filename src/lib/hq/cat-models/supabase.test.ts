@@ -10,6 +10,7 @@ let insertError: { code: string } | null = null;
 let modelRow: Record<string, unknown> | null = null;
 let download: Blob | null = null;
 let variantRows: Record<string, unknown>[] | null = null;
+let jobRows: Record<string, unknown>[] | null = null;
 
 /** 夠用的假 client：記下每次呼叫，回傳測試設定的結果 */
 function fakeClient() {
@@ -18,7 +19,7 @@ function fakeClient() {
       select: (...a: unknown[]) => { calls.push({ table, op: "select", args: a }); return q; },
       eq: () => q, order: () => q, limit: () => q,
       maybeSingle: async () => ({ data: table === "meow_cat_models" ? modelRow : table === "meow_cat_model_variants" ? variantRows?.[0] ?? null : null, error: null }),
-      then: (resolve: (value: unknown) => void) => resolve({ data: table === "meow_cat_model_variants" ? variantRows : null,
+      then: (resolve: (value: unknown) => void) => resolve({ data: table === "meow_cat_model_variants" ? variantRows : table === "meow_cat_model_jobs" ? jobRows : null,
         error: table === "meow_cat_model_variants" && variantRows === null ? { message: "missing table" } : null }),
       insert: async (row: unknown) => { calls.push({ table, op: "insert", args: [row] }); return { error: insertError }; },
       update: (row: unknown) => { calls.push({ table, op: "update", args: [row] }); return q; },
@@ -44,7 +45,7 @@ function fakeClient() {
 vi.mock("@/lib/supabase/server", () => ({ getServerSupabase: async () => fakeClient() }));
 vi.mock("@/lib/supabase/admin", () => ({ getAdminSupabase: () => null }));
 
-const { sbStartViews, sbCreateCat, sbPhotoUpload, sbQueuePaint, sbRestore, sbConfirmTexture } = await import("./supabase");
+const { sbStartViews, sbCreateCat, sbPhotoUpload, sbQueuePaint, sbRestore, sbConfirmTexture, sbAutoPaint, sbBackfillPaint } = await import("./supabase");
 /** 找寫入某個欄位的 update（同一次操作可能有好幾筆 update） */
 const updateWith = (key: string) => calls.find(c => c.op === "update" && key in (c.args[0] as object))?.args[0] as Record<string, unknown> | undefined;
 
@@ -66,6 +67,8 @@ describe("#104 依體型獨立操作", () => {
     variantRows = [];
     expect(await sbQueuePaint(ID, "left", "none", "adult")).toEqual({ ok: true });
     expect(calls.find(c => c.table === "meow_cat_model_jobs" && c.op === "insert")?.args[0]).toMatchObject({ body_type: "adult" });
+    // 幼貓還沒有貼圖：記在 meta.auto_paint，worker 做完成貓接著做幼貓
+    expect(updateWith("meta")).toEqual({ meta: { auto_paint: ["kitten"] } });
   });
   it("確認幼貓不更新成貓的舊欄位", async () => {
     process.env.CAT_MODEL_VARIANTS_WORKER_READY = "1";
@@ -78,7 +81,7 @@ describe("#104 依體型獨立操作", () => {
   });
 });
 
-beforeEach(() => { delete process.env.CAT_MODEL_VARIANTS_WORKER_READY; calls.length = 0; user = { id: "u-1" }; files = []; insertError = null; modelRow = row(); variantRows = null; download = new Blob(["jpg"], { type: "image/jpeg" }); });
+beforeEach(() => { delete process.env.CAT_MODEL_VARIANTS_WORKER_READY; calls.length = 0; user = { id: "u-1" }; files = []; insertError = null; modelRow = row(); variantRows = null; jobRows = null; download = new Blob(["jpg"], { type: "image/jpeg" }); });
 
 describe("sbPhotoUpload（新增第一步）", () => {
   it("格式、大小不合法直接擋，不簽網址", async () => {
@@ -214,6 +217,54 @@ describe("sbQueuePaint 改用 AI 左側面照（#110）", () => {
       expect(await sbQueuePaint(ID, "right", "tabby")).toEqual({ ok: false, code: "views_required" });
     }
     expect(calls.some(c => c.op === "insert")).toBe(false);
+  });
+});
+
+describe("sbAutoPaint（前台上傳後自動排成貓／幼貓紋理）", () => {
+  const sb = () => fakeClient() as unknown as Parameters<typeof sbAutoPaint>[1];
+  const member = (over: Record<string, unknown> = {}) => row({ owner_type: "member", status: "ready", profile: READY, ...over });
+  const job = () => calls.find(c => c.table === "meow_cat_model_jobs" && c.op === "insert")?.args[0];
+  it("三視角好了：先排這隻貓年齡層的體型，其餘記在 meta.auto_paint、用 AI 左側面照", async () => {
+    modelRow = member();
+    variantRows = [{ body_type: "kitten", albedo_path: "default" }];
+    expect(await sbAutoPaint(ID, sb())).toBe("kitten");
+    expect(updateWith("meta")).toEqual({ meta: { auto_paint: ["adult"] } });
+    expect(job()).toMatchObject({ model_id: ID, status: "queued", body_type: "kitten", view: "left", fill: "none" });
+    expect(updateWith("photo_path")).toMatchObject({ photo_path: `${ID}/gen_left.png` });
+    expect(updateWith("status")).toMatchObject({ status: "queued" });
+  });
+  it("成貓已排過（不論成功失敗）、幼貓還沒：只排幼貓", async () => {
+    modelRow = member();
+    variantRows = [{ body_type: "adult", albedo_path: "default" }];
+    jobRows = [{ body_type: "adult", status: "error" }];
+    expect(await sbAutoPaint(ID, sb())).toBe("kitten");
+    expect(updateWith("meta")).toEqual({ meta: { auto_paint: [] } });
+  });
+  it("MeowHQ 自建的貓：已有成貓貼圖就補幼貓，沿用上次的補花紋", async () => {
+    modelRow = row({ status: "ready", fill_pattern: "tabby", profile: { age_months: 24, ...READY } });
+    variantRows = [{ body_type: "adult", albedo_path: "cats/a.png" }];
+    jobRows = [{ body_type: "adult", status: "done" }];
+    expect(await sbAutoPaint(ID, sb())).toBe("kitten");
+    expect(job()).toMatchObject({ body_type: "kitten", fill: "tabby" });
+  });
+  it("不排：三視角沒好、已有任務在跑、兩個體型都有貼圖", async () => {
+    const cases: [Record<string, unknown>, Record<string, unknown>[] | null, Record<string, unknown>[] | null][] = [
+      [member({ profile: {} }), [], null],
+      [member(), [], [{ body_type: "adult", status: "running" }]],
+      [member(), [{ body_type: "adult", albedo_path: "a.png" }, { body_type: "kitten", albedo_path: "k.png" }], null],
+    ];
+    for (const [m, v, j] of cases) {
+      modelRow = m; variantRows = v; jobRows = j;
+      expect(await sbAutoPaint(ID, sb())).toBeNull();
+    }
+    expect(job()).toBeUndefined();
+  });
+});
+
+describe("sbBackfillPaint（MeowHQ 補排紋理貼圖）", () => {
+  it("沒登入：permission_denied", async () => {
+    user = null;
+    expect(await sbBackfillPaint()).toEqual({ ok: false, code: "permission_denied" });
   });
 });
 
