@@ -130,6 +130,32 @@ describe("虛擬體驗（#150）", () => {
     expect(calls.some(u => u.startsWith("/api/hq/floorplans/"))).toBe(false);
   });
 
+  it("成貓／幼貓切換：只能選有確認貼圖的體型，選擇寫進網址；互動模式在生活用品選單上方", async () => {
+    const variant = (body: string) => ({ albedoUrl: `https://x/${body}.png`, prevUrl: null, baseVersion: `${body}-v1`, texture: { ...confirmed, previewBody: body } });
+    const pair = { ...cat("cat_1", "橘寶 Mango"), variantStorage: true, bodyVariants: { adult: variant("adult"), kitten: variant("kitten") } };
+    const adultOnly = { ...cat("cat_2", "小黑"), variantStorage: true, bodyVariants: { adult: variant("adult") } };
+    nav.params = new URLSearchParams("tab=experience&body=kitten");
+    mockFetch([pair, adultOnly], [summary(H1, "子哲的家")]);
+    render(<ExperienceTab />);
+    await screen.findByTestId("fake-viewer");
+    const group = screen.getByRole("group", { name: "體型" });
+    expect(within(group).getByRole("button", { name: "幼貓" })).toHaveAttribute("aria-pressed", "true");
+    expect(viewer.last?.cat).toMatchObject({ body: "kitten", albedoUrl: "https://x/kitten.png", baseUrl: "/api/hq/cat-models/base?body=kitten" });
+    fireEvent.click(within(group).getByRole("button", { name: "成貓" }));
+    expect(nav.replace).toHaveBeenCalledWith("/MeowHQ/assets?tab=experience&body=adult", { scroll: false });
+
+    const side = screen.getByRole("group", { name: "互動模式" }).parentElement!;
+    const palette = within(side).getByRole("complementary", { name: "生活用品選單" });
+    expect(screen.getByRole("group", { name: "互動模式" }).compareDocumentPosition(palette) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+
+    cleanup();
+    nav.params = new URLSearchParams("tab=experience&cat=cat_2&body=kitten");
+    render(<ExperienceTab />);
+    await screen.findByTestId("fake-viewer");
+    expect(within(screen.getByRole("group", { name: "體型" })).getByRole("button", { name: "幼貓" })).toBeDisabled();
+    expect(viewer.last?.cat).toMatchObject({ body: "adult" });
+  });
+
   it("沒有可用的貓或喵戶：說明並連到貓咪製作／平面圖轉換", async () => {
     mockFetch([], []);
     render(<ExperienceTab />);
