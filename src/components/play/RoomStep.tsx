@@ -78,7 +78,7 @@ export function RoomStep({ scanBase, onReady }: {
             onChange={e => { const f = e.target.files?.[0]; if (f) setSource(`已選擇：${f.name.slice(0, 40)}`); }} />
           {kind === "scan" ? "選擇影片或照片" : "選擇平面圖"}
         </label>
-        <CatButton variant="ghost" size="sm" onClick={() => setSource(kind === "scan" ? "使用示範掃描房間" : "使用示範平面圖（客廳）")}>用示範房間</CatButton>
+        <CatButton variant="ghost" size="sm" onClick={() => setSource(kind === "scan" ? "使用示範掃描房間" : "使用範例平面圖（子哲的家）")}>用示範房間</CatButton>
       </div>
     </section>
   );

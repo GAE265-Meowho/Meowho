@@ -6,12 +6,14 @@ import { DEMO_DOLLHOUSE, inventoryFromPlan } from "./room";
 const demo = inventoryFromPlan(DEMO_DOLLHOUSE).labels;
 
 describe("homeWord", () => {
-  it("照原版順序挑家裡第一個有的家具：示範客廳沒有床，躲藏處＝沙發底下", () => {
-    expect(homeWord("躲藏處", demo)).toBe("沙發底下");
+  it("照原版順序挑家裡第一個有的家具：範例房間（子哲的家）有床，躲藏處＝床底；沒有床有沙發就是沙發底下", () => {
+    expect(homeWord("躲藏處", demo)).toBe("床底");
+    expect(homeWord("躲藏處", ["沙發", "書桌"])).toBe("沙發底下");
     expect(homeWord("躲藏處", ["床", "沙發"])).toBe("床底");
-    expect(homeWord("高處", demo)).toBe("沙發");
+    expect(homeWord("高處", demo)).toBe("床");
     expect(homeWord("桌面", demo)).toBe("書桌");
-    expect(homeWord("門口", demo)).toBe("大門");
+    expect(homeWord("門口", demo)).toBe("房門");
+    expect(homeWord("門口", [...demo, "門"])).toBe("大門");
   });
   it("清單裡的 \"\" 代表一定有；都沒有回 null", () => {
     expect(homeWord("躲藏處", [])).toBe("角落");
