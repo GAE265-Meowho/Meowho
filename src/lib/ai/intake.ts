@@ -1,16 +1,15 @@
-// 建檔對話引擎（#72）的 AI 任務：喵戶一句話擷取、貓咪一句話擷取、照片判讀、影片判讀。
+// 建檔對話引擎（#72）的 AI 任務：喵戶一句話擷取、貓咪一句話擷取、照片判讀。
+// 影片個性判讀已拿掉（2026-11-06 子哲：建貓流程沒有影片，AI 也改用 Azure OpenAI，不能直接看影片）。
 // 每個任務 = 提示詞（src/lib/prompts）＋ 輸出格式（schemas.ts）＋ 通用鏈（chain.ts）。
 import type { BaseMessage } from "@langchain/core/messages";
 import type { Runnable } from "@langchain/core/runnables";
-import { CAT_PHOTO_ANALYSIS, CAT_VIDEO_ANALYSIS, INTAKE_CAT, INTAKE_HOUSEHOLD } from "@/lib/prompts/onboarding";
+import { CAT_PHOTO_ANALYSIS, INTAKE_CAT, INTAKE_HOUSEHOLD } from "@/lib/prompts/onboarding";
 import { HEALTH_TAGS, PERSONALITY_TAGS } from "@/lib/cat-profile/tags";
 import { ADOPTION_TERMS, HABITS, HANDOVER_ITEMS } from "@/lib/cat-profile/adoption";
 import type { TurnExtractor } from "@/lib/onboarding/conversation";
-import { MAX_ANALYZE_VIDEO_BYTES } from "@/lib/storage/media";
 import { createStructuredChain } from "./chain";
 import { wrapUserInput } from "./guard";
-import type { Provider } from "./config";
-import { CatPhotoAnalysisSchema, CatTurnSchema, CatVideoSchema, HouseholdTurnSchema } from "./schemas";
+import { CatPhotoAnalysisSchema, CatTurnSchema, HouseholdTurnSchema } from "./schemas";
 
 type Runner = Runnable<BaseMessage[], unknown>;
 
@@ -20,8 +19,6 @@ const catSystem = INTAKE_CAT.system
   .replace("{{HABITS}}", HABITS.join("、"))
   .replace("{{HANDOVER}}", HANDOVER_ITEMS.join("、"))
   .replace("{{ADOPTION_TERMS}}", ADOPTION_TERMS.join("、"));
-
-const videoSystem = CAT_VIDEO_ANALYSIS.system.replace("{{PERSONALITY_TAGS}}", PERSONALITY_TAGS.join("、"));
 
 export const householdTurnChain = (runner: Runner) => createStructuredChain(INTAKE_HOUSEHOLD.system, HouseholdTurnSchema, runner);
 export const catTurnChain = (runner: Runner) => createStructuredChain(catSystem, CatTurnSchema, runner);
@@ -36,14 +33,3 @@ export const makeTurnExtractor = (runners: { household: Runner; cat: Runner }): 
   async ({ phase, asking, text }) => phase === "household"
     ? householdTurnChain(runners.household).invoke(intakeTurnInput(asking, text))
     : catTurnChain(runners.cat).invoke(intakeTurnInput(asking, text));
-
-// ---------- 影片判讀（#72）：直接把影片送 Gemini 多模態，不抽影格 ----------
-
-export const catVideoChain = (runner: Runner) => createStructuredChain(videoSystem, CatVideoSchema, runner);
-export const catVideoInput = (mimeType: string, base64: string) =>
-  ({ text: "請觀察這段影片中的貓咪個性。", media: { mimeType, data: base64 } });
-
-/** Gemini 直接夾帶檔案的上限約 20 MB；更大的影片先不判讀（可行性報告會記錄比例），之後可改用 Gemini File API */
-export const MAX_INLINE_VIDEO_BYTES = MAX_ANALYZE_VIDEO_BYTES;
-export const canAnalyzeVideo = (provider: Provider | null, sizeBytes: number) =>
-  provider === "gemini" && sizeBytes <= MAX_INLINE_VIDEO_BYTES;
