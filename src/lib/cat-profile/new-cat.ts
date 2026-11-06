@@ -47,6 +47,20 @@ export function coverPath(cover: Cover, angles: PhotoAngles, others: readonly st
   return others[0] ?? angles.front ?? angles.left ?? angles.back ?? null;
 }
 
+/**
+ * 貓咪頁的照片順序：封面放第一張，接著正面、側面、背面，再來是生活照（重複的不放）。
+ * 資料庫一筆的 cover、photo_angles、photo_paths 直接傳進來；舊資料沒有角度照就只有生活照。
+ */
+export function catPagePhotos(row: { cover?: string | null; photo_angles?: unknown; photo_paths?: string[] | null }): string[] {
+  const a = (row.photo_angles && typeof row.photo_angles === "object" ? row.photo_angles : {}) as Record<string, unknown>;
+  const angles = emptyAngles();
+  for (const k of ANGLE_KEYS) angles[k] = typeof a[k] === "string" && a[k] ? (a[k] as string) : null;
+  const others = (row.photo_paths ?? []).filter(Boolean);
+  const cover = typeof row.cover === "string" && /^(a:(front|left|back)|o:\d+)$/.test(row.cover) ? (row.cover as Cover) : null;
+  const all = [coverPath(cover, angles, others), ...ANGLE_KEYS.map(k => angles[k]), ...others];
+  return [...new Set(all.filter((p): p is string => Boolean(p)))];
+}
+
 /** UT-03-08：刪掉第 i 張生活照後的封面。刪的是封面那張 → 改回預設；刪的在前面 → 封面的序號往前移 */
 export function coverAfterRemoveOther(cover: Cover, index: number): Cover {
   if (!cover?.startsWith("o:")) return cover;
