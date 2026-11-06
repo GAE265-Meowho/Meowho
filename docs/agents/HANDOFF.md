@@ -1,9 +1,13 @@
 # HANDOFF — 接手的 agent 需要知道的事
 
 > 寫給「完全沒有上下文的下一個 agent」。只保留**現在仍然成立**的內容。
-> 最後更新：2026-11-06｜Tina × Cursor（#239 成貓坐下）
+> 最後更新：2026-11-06｜渝茜 × Claude Code（#237 虛擬飼養 DEMO）
 
 ## 目前狀態
+- **#237 虛擬飼養 DEMO（渝茜 × Claude Code，審查中）**：PR #244、分支 `feat/237-catgame-demo`。`/cats/[id]/play`（DEMO 固定麻糬、虎斑），流程與真的接上／備案對照見 `docs/modules/readiness.md`「虛擬飼養 DEMO」。邏輯在 `src/lib/play/`（純函式＋測試），畫面在 `src/components/play/`，AI 在 `/api/play/{hazards,lines,advice}`。
+  - 要設的環境變數（Vercel，都是既有名稱）：`AZURE_OPENAI_ENDPOINT`、`AZURE_OPENAI_API_KEY`、`AZURE_OPENAI_CHAT_DEPLOYMENT_NAME=gpt-6-luna`（沒設＝全部走規則備案）；選填 `NEXT_PUBLIC_ROOM_DEMO_BASE`（掃描房間 manifest 資料夾，沒設＝自動改用娃娃屋）；喵戶讀取用既有的 `NEXT_PUBLIC_SUPABASE_*`。
+  - **尚未實測**（沙盒連不到）：Azure 三支 AI、Supabase 讀喵戶 `home`、`meow-items` 遠端 GLB（沙盒看到的是替代方塊）、掃描房間 `RoomViewer`。合併前請在 PR 預覽網址走一次：登入有喵戶的帳號、設好 Azure，確認台詞與危險清單是 AI 版（API 回 `source: "ai"`）。
+  - 生活用品先寫死在 `src/lib/play/items.ts`；子哲開放 `meow_items` 公開讀取後改讀後台。劇情、事件、採買估價、小遊戲、試養報告已照 catgame 原版（`story.ts` 的節點、`events.ts` 的 FEV、`costs.ts` 的 SHOP_ITEMS、`components/play/catgame/minis.ts`）；和原版的差異列在 PR #244 內文。
 - **一般飼主建立喵戶＝試養遊戲的玩家背景（子哲 × Claude Code，#233，審查中）**：分支 `feat/233-household-budget-experience`。住家狀況、同住的人、現有寵物、養貓經驗、每月預算改必填；預算存 `meow_household_budgets`（`0025_meow_household_budget.sql`，子哲 2026-11-06 已在 SQL Editor 執行）。渝茜的遊戲（#237）要讀玩家背景時：住家資料讀 `meow_households.home`，預算用喵戶長本人的 session 讀 `meow_household_budgets`。
 - **#239 成貓坐下（Tina × Cursor，已合併 #248）**：分支 `feat/239-adult-sit-clip`。成貓 `base_clips.glb` 含 idle／walk／sleep／sit；`clips.ts` 的「坐下」為 ready，幼貓 GLB 沒有 sit 會自動灰色。Storage `meow-cat-models/base/v1/base_clips.glb` 已於 2026-11-06 覆蓋為同一份（SHA-256 比對一致）。後續 `fix/239-sit-hind-legs`（審查中）：骨架髖關節左右對稱、靜止姿勢後腿站直，坐下後腿改 IK 腳掌貼地、腰部不再摺痕；**合併後要再覆蓋 Storage 一次**。Meow 不是 git repo，`stepB_rig.py`／`stepC_clips.py` 只在 Tina 電腦。
 - **#221 成貓 sleep 睡姿（Tina × Cursor，已合併 #236）**：分支 `fix/221-adult-sleep-clip`。以 `Meow/cat_base` 的 `base_clips.glb`（`stepC_clips.py`）覆寫 `public/hq-cat-models/base/base_clips.glb`；幼貓 `base_clips_kitten.glb` 未動。`CatPreview` sleep 取景對齊貼地睡姿。正式站若用 Storage `base/v1/base_clips.glb` 合併後需再上傳。

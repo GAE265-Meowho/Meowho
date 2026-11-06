@@ -5,7 +5,7 @@
 // 用 next/dynamic（ssr: false）載入；不改動 Gaussian Splat 用的 RoomViewer。
 import { Html, OrbitControls, useGLTF, useTexture } from "@react-three/drei";
 import { Canvas, useFrame, useThree, type ThreeEvent } from "@react-three/fiber";
-import { Suspense, useEffect, useMemo, useRef, useState, type DragEvent, type MutableRefObject } from "react";
+import { Component, Suspense, useEffect, useMemo, useRef, useState, type DragEvent, type MutableRefObject, type ReactNode } from "react";
 import * as THREE from "three";
 import { FLOOR_TEXTURE, kitScale, kitUrl } from "@/lib/hq/floorplans/kit";
 import { goalForBox, idleAction, stepActor, worldOf, type Actor, type Goal } from "@/lib/hq/floorplans/catjump";
@@ -473,6 +473,23 @@ function itemObstacles(items: PlacedHouseholdItem[]): Obstacle[] {
     .map(i => ({ x: i.x, z: i.z, hx: Math.min(i.widthM, i.depthM) / 2, hz: Math.min(i.widthM, i.depthM) / 2, rotY: 0 }));
 }
 
+/** 生活用品模型載入失敗（離線、遠端網址失效）時改畫同尺寸的簡單方塊（#237） */
+class ItemBoundary extends Component<{ fallback: ReactNode; onError?: () => void; children: ReactNode }, { failed: boolean }> {
+  state = { failed: false };
+  static getDerivedStateFromError() { return { failed: true }; }
+  componentDidCatch() { this.props.onError?.(); }
+  render() { return this.state.failed ? this.props.fallback : this.props.children; }
+}
+
+function ItemBox({ item }: { item: PlacedHouseholdItem }) {
+  return (
+    <mesh position={[item.x, item.y + item.heightM / 2, item.z]} castShadow receiveShadow>
+      <boxGeometry args={[item.widthM, item.heightM, item.depthM]} />
+      <meshStandardMaterial color="#E8A35C" roughness={0.8} />
+    </mesh>
+  );
+}
+
 /** 地板：橡木貼圖，每 1.2 公尺重複一次；userData 供拖放 raycast 對到房間 */
 function Floor({ b, roomId, onClick }: { b: SceneBox; roomId: string; onClick: (e: ThreeEvent<MouseEvent>) => void }) {
   const [color, normal] = useTexture([FLOOR_TEXTURE.color, FLOOR_TEXTURE.normal]);
@@ -545,9 +562,13 @@ export interface ViewerCat { baseUrl: string; albedoUrl: string; body: BodyType 
  * 規則在 catwalk.ts、catjump.ts（純函式、可測）；貓放大 CAT_SCALE 倍（真實比例在整間房的鏡頭裡太小）。
  * pos：貓的世界座標，給鏡頭跟隨用。
  */
-function CatActor({ s, look, click, pos, extraObs }: {
+function CatActor({ s, look, click, pos, extraObs, forceClip = null, speed = 1 }: {
   s: RoomScene; look: ViewerCat; click: (RoomClick & { at: number }) | null; pos: React.RefObject<THREE.Vector3>;
   extraObs: Obstacle[];
+  /** 停下來時固定播這個動作（例如 sleep），不自己閒逛（#237 虛擬飼養劇情） */
+  forceClip?: string | null;
+  /** 走路與動作速度倍率（#237：老貓放慢） */
+  speed?: number;
 }) {
   const world = useMemo(() => worldOf(s, [...obstacles(s), ...extraObs]), [s, extraObs]);
   const start = useMemo(() => freeSpot(s, world.obs) ?? { x: s.size[0] / 2, z: s.size[1] / 2 }, [s, world]);
@@ -562,11 +583,12 @@ function CatActor({ s, look, click, pos, extraObs }: {
     idle.current = 0;
   }, [click, world]);
   useFrame((_, delta) => {
-    const dt = Math.min(delta, 0.1);
+    const dt = Math.min(delta, 0.1) * speed;
     const { actor, done } = stepActor(cat.current, goal.current, world, dt);
     let next = clip;
     if (done) goal.current = null;
     if (actor.moving || actor.jump) { idle.current = 0; next = "walk"; }
+    else if (forceClip) next = forceClip;
     else {
       idle.current += dt;
       if (next === "walk") next = "idle";
@@ -586,7 +608,7 @@ function CatActor({ s, look, click, pos, extraObs }: {
   return (
     <group ref={ref} position={[start.x, 0, start.z]} scale={CAT_SCALE}>
       <Suspense fallback={null}>
-        <CatModel baseUrl={look.baseUrl} albedoUrl={look.albedoUrl} clip={clip} follow={false} />
+        <CatModel baseUrl={look.baseUrl} albedoUrl={look.albedoUrl} clip={clip} follow={false} speed={speed} />
       </Suspense>
     </group>
   );
@@ -641,7 +663,7 @@ export type PlaceAt = { roomId: string; x: number; z: number; y: number; support
 /** point＝點地板／床叫貓；hand＝拖移已放用品／落地家具（不叫貓） */
 export type InteractMode = "point" | "hand";
 
-export default function FloorplanViewer({ rooms, selected, onPick, cat, placedItems = [], interactMode = "point", removedFurniture, furnitureMoves, onMoveItem, onRemoveItem, onRemoveFurniture, onMoveFurniture, onRotateFurniture, onFloorDrop }: {
+export default function FloorplanViewer({ rooms, selected, onPick, cat, placedItems = [], interactMode = "point", removedFurniture, furnitureMoves, onMoveItem, onRemoveItem, onRemoveFurniture, onMoveFurniture, onRotateFurniture, onFloorDrop, catGoal = null, catClip = null, catSpeed = 1, onItemError }: {
   rooms: PlanRoom[]; selected: string | null; onPick: (id: string) => void;
   /** 虛擬體驗（#150）：放一隻貓進去；有貓時只顯示單間（沒有「全部」），點地板叫貓走過去 */
   cat?: ViewerCat | null;
@@ -665,6 +687,14 @@ export default function FloorplanViewer({ rooms, selected, onPick, cat, placedIt
   onRotateFurniture?: (roomId: string, furnitureIndex: number) => void;
   /** 從右側選單拖放到地板或桌面 */
   onFloorDrop?: (itemId: string, at: PlaceAt) => void;
+  /** 程式指定貓走去哪（#237 虛擬飼養劇情）；at 比玩家點擊新時才採用 */
+  catGoal?: (RoomClick & { at: number }) | null;
+  /** 貓停下來時固定播的動作（#237） */
+  catClip?: string | null;
+  /** 貓的動作速度倍率（#237） */
+  catSpeed?: number;
+  /** 生活用品模型載入失敗、已改成方塊（#237） */
+  onItemError?: (key: string) => void;
 }) {
   const removedList = useMemo(
     () => (removedFurniture ? [...removedFurniture] : []),
@@ -676,6 +706,7 @@ export default function FloorplanViewer({ rooms, selected, onPick, cat, placedIt
   );
   const [focus, setFocus] = useState<string | null>(cat ? selected ?? scenes[0]?.id ?? null : null);
   const [click, setClick] = useState<(RoomClick & { at: number }) | null>(null);
+  const catClick = catGoal && (!click || catGoal.at >= click.at) ? catGoal : click;
   const catPos = useRef(new THREE.Vector3());
   const floorRay = useRef<FloorRayApi | null>(null);
   const shown = useMemo(() => focusScenes(scenes, focus), [scenes, focus]);
@@ -742,16 +773,18 @@ export default function FloorplanViewer({ rooms, selected, onPick, cat, placedIt
                   }}
                 >
                   {roomItems.map(item => (
-                    <Suspense key={item.key} fallback={null}>
-                      <PlacedItemModel
-                        item={item} room={s}
-                        dragEnabled={interactMode === "hand"}
-                        onMove={onMoveItem}
-                        onRemove={onRemoveItem}
-                      />
-                    </Suspense>
+                    <ItemBoundary key={item.key} fallback={<ItemBox item={item} />} onError={() => onItemError?.(item.key)}>
+                      <Suspense fallback={null}>
+                        <PlacedItemModel
+                          item={item} room={s}
+                          dragEnabled={interactMode === "hand"}
+                          onMove={onMoveItem}
+                          onRemove={onRemoveItem}
+                        />
+                      </Suspense>
+                    </ItemBoundary>
                   ))}
-                  {cat && <CatActor key={`${s.id}:${cat.albedoUrl}`} s={s} look={cat} click={click} pos={catPos} extraObs={itemObstacles(roomItems)} />}
+                  {cat && <CatActor key={`${s.id}:${cat.albedoUrl}`} s={s} look={cat} click={catClick} pos={catPos} extraObs={itemObstacles(roomItems)} forceClip={catClip} speed={catSpeed} />}
                 </Room>
               );
             })}

@@ -144,3 +144,28 @@ export const floorplanRoomSchema = z.object({
   })),
 });
 export type FloorplanRoomOut = z.infer<typeof floorplanRoomSchema>;
+
+// ---------- 虛擬飼養 DEMO（#237）：提示詞在 src/lib/prompts/play.ts，結果再由 src/lib/play/ 的檢查函式把關 ----------
+// 欄位一律必填（Azure 嚴格 structured output 不接受 optional）；長度、說話的人、不含數字由 src/lib/play/ 檢查。
+export const PlayHazardsSchema = z.object({
+  hazards: z.array(z.object({
+    key: z.string().describe("英文小寫代碼：電線 cable、窗戶 window、桌上水杯 cup、花瓶或植物 plant、大門 door、布料家具 scratch、細繩 string；其他自訂英文小寫加底線"),
+    label: z.string().describe("危險項目名稱，20 字內，不含數字"),
+    level: z.enum(["high", "medium", "low"]).describe("風險等級"),
+    advice: z.string().describe("建議處理方式，60 字內，不含數字與價格"),
+  })).describe("3～6 項，依風險由高到低"),
+});
+export type PlayHazardsOut = z.infer<typeof PlayHazardsSchema>;
+
+export const PlayLinesSchema = z.object({
+  lines: z.array(z.object({
+    speaker: z.string().describe("說話的人，只能從資料區的「可以說話的人」選"),
+    text: z.string().describe("一句台詞或旁白，80 字內，不含數字"),
+  })).describe("2～3 句"),
+});
+export type PlayLinesOut = z.infer<typeof PlayLinesSchema>;
+
+export const PlayAdviceSchema = z.object({
+  tips: z.array(z.string().describe("一條建議，60 字內，不含數字與金額")).describe("3 條建議"),
+});
+export type PlayAdviceOut = z.infer<typeof PlayAdviceSchema>;
