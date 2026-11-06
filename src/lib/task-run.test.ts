@@ -40,7 +40,7 @@ describe("進度", () => {
     expect(isComplete(content, done)).toBe(true);
     expect(nextTask(content, done)).toBeNull();
   });
-  it("任務證明：每個任務選了什麼、重選幾次", () => {
+  it("試養報告：每個任務選了什麼、重選幾次", () => {
     const p = { done: ["a", "b"], choices: { a: [1, 0], b: [0] } };
     expect(proofLines(content, p)).toEqual([
       { title: "任務a", day: 1, tries: 2, chosen: "好做法" },
