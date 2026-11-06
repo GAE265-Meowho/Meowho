@@ -2,9 +2,9 @@ import "server-only";
 // API route 用的入口：取模型 → 建鏈 → 執行。未設定或失敗回傳 null，由呼叫端改用規則式。
 import { structured } from "./chain";
 import { getChatModel, isAIConfigured } from "./models";
-import { canAnalyzeVideo, catPhotoAnalysisChain, catVideoChain, catVideoInput, makeTurnExtractor } from "./intake";
-import { resolveProvider, type Provider } from "./config";
-import { CatPhotoAnalysisSchema, CatTurnSchema, CatVideoSchema, HouseholdTurnSchema } from "./schemas";
+import { catPhotoAnalysisChain, makeTurnExtractor } from "./intake";
+import type { Provider } from "./config";
+import { CatPhotoAnalysisSchema, CatTurnSchema, HouseholdTurnSchema } from "./schemas";
 import type { TurnExtractor } from "@/lib/onboarding/conversation";
 import { DeclineDraftSchema, declineDraftChain, declineDraftInput, type DeclineContext } from "./decline";
 import { floorplanReadChain, floorplanReadInput } from "./floorplan";
@@ -46,14 +46,6 @@ export const analyzeCatPhoto = (mime: string, base64: string, reference?: string
       ? { text: "第一張是參考照片（已確認的這隻貓），第二張是新照片，請辨識新照片。", referenceImageDataUrl: `data:image/jpeg;base64,${reference}`, imageDataUrl: `data:${mime};base64,${base64}` }
       : { text: "請辨識這張照片中的貓咪。", imageDataUrl: `data:${mime};base64,${base64}` }), 20_000, provider);
 
-/** 影片判讀：只支援 Gemini 且檔案不超過直接夾帶上限；其他情況回傳 null（只留影片，不給建議） */
-export const analyzeCatVideo = (mime: string, bytes: Uint8Array) => {
-  if (!canAnalyzeVideo(resolveProvider(process.env), bytes.byteLength)) return Promise.resolve(null);
-  return safe(async () => catVideoChain(structured(await getChatModel("vision"), CatVideoSchema, "cat_video"))
-    .invoke(catVideoInput(mime, Buffer.from(bytes).toString("base64"))), 50_000); // API 路由上限 60 秒
-};
-
-/** 領養任務草稿（規格 09 §5.2）：未設定或失敗回傳 null，由呼叫端改用固定草稿 */
 export const draftAdoptionTasks = (c: TaskCatContext) => safe(async () =>
   taskDraftChain(structured(await getChatModel("text", { temperature: 0.6 }), TaskDraftSchema, "task_draft")).invoke(taskDraftInput(c)));
 
