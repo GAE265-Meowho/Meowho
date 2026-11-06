@@ -37,6 +37,8 @@ export interface PlacedHouseholdItem {
   widthM: number;
   depthM: number;
   heightM: number;
+  /** 水平旋轉角度（度）；生活用品預設 0，每次操作右轉 90 度。 */
+  rotY?: number;
   support?: ItemSupport;
 }
 
@@ -304,20 +306,21 @@ function Furniture({ b, room, roomId, boxIndex, planFurniture, onClick, onRemove
   );
 }
 
-type MovePayload = { x: number; z: number; y: number; support: ItemSupport };
+type MovePayload = { x: number; z: number; y: number; rotY: number; support: ItemSupport };
 
 /** 生活用品：依量到的公尺尺寸縮放；可放地板或桌面；手掌模式可拖移；上方 × 可刪除；落地物貓會繞過 */
-function PlacedItemModel({ item, room, dragEnabled, onMove, onRemove }: {
+function PlacedItemModel({ item, room, dragEnabled, onMove, onRotate, onRemove }: {
   item: PlacedHouseholdItem;
   room: RoomScene;
   dragEnabled: boolean;
   onMove?: (key: string, place: MovePayload) => void;
+  onRotate?: (key: string) => void;
   onRemove?: (key: string) => void;
 }) {
   const { scene } = useGLTF(item.url);
   const group = useRef<THREE.Group>(null);
   const dragging = useRef(false);
-  const draft = useRef<MovePayload>({ x: item.x, z: item.z, y: item.y, support: item.support ?? null });
+  const draft = useRef<MovePayload>({ x: item.x, z: item.z, y: item.y, rotY: item.rotY ?? 0, support: item.support ?? null });
   const controls = useThree(s => s.controls) as { enabled: boolean } | null;
   const { camera, pointer, raycaster, scene: threeScene } = useThree();
   const prepared = useMemo(() => {
@@ -336,8 +339,9 @@ function PlacedItemModel({ item, room, dragEnabled, onMove, onRemove }: {
   useEffect(() => {
     if (dragging.current) return;
     group.current?.position.set(item.x, worldY(item.y), item.z);
-    draft.current = { x: item.x, z: item.z, y: item.y, support: item.support ?? null };
-  }, [item.x, item.z, item.y, item.support, prepared.base]);
+    group.current && (group.current.rotation.y = THREE.MathUtils.degToRad(item.rotY ?? 0));
+    draft.current = { x: item.x, z: item.z, y: item.y, rotY: item.rotY ?? 0, support: item.support ?? null };
+  }, [item.x, item.z, item.y, item.rotY, item.support, prepared.base]);
 
   useEffect(() => {
     const end = () => {
@@ -372,7 +376,7 @@ function PlacedItemModel({ item, room, dragEnabled, onMove, onRemove }: {
           const cx = (o.userData.meowSupportCx as number) ?? p.x;
           const cz = (o.userData.meowSupportCz as number) ?? p.z;
           draft.current = {
-            x: p.x, z: p.z, y: topY,
+            x: p.x, z: p.z, y: topY, rotY: item.rotY ?? 0,
             support: { furnitureIndex: idx, localX: p.x - cx, localZ: p.z - cz },
           };
           group.current.position.set(p.x, worldY(topY), p.z);
@@ -381,7 +385,7 @@ function PlacedItemModel({ item, room, dragEnabled, onMove, onRemove }: {
         if (floorRoom === item.roomId) {
           const p = roomLocalPoint(o, h.point);
           if (!p) return;
-          draft.current = { x: p.x, z: p.z, y: 0, support: null };
+          draft.current = { x: p.x, z: p.z, y: 0, rotY: item.rotY ?? 0, support: null };
           group.current.position.set(p.x, worldY(0), p.z);
           return;
         }
@@ -394,6 +398,7 @@ function PlacedItemModel({ item, room, dragEnabled, onMove, onRemove }: {
     <group
       ref={group}
       position={[item.x, worldY(item.y), item.z]}
+      rotation={[0, THREE.MathUtils.degToRad(item.rotY ?? 0), 0]}
       onPointerDown={(e: ThreeEvent<PointerEvent>) => {
         if (!dragEnabled || !onMove) return;
         e.stopPropagation();
@@ -406,16 +411,28 @@ function PlacedItemModel({ item, room, dragEnabled, onMove, onRemove }: {
       }}
     >
       <primitive object={prepared.m} scale={prepared.scale} />
-      {onRemove && (
+      {(onRotate || onRemove) && (
         <Html position={[0, item.heightM + 0.12, 0]} center zIndexRange={[30, 20]} style={{ pointerEvents: "none" }}>
-          <button
-            type="button"
-            className="hq-fp-item-x"
-            aria-label={`移除 ${item.name}`}
-            style={{ pointerEvents: "auto" }}
-            onPointerDown={e => { e.stopPropagation(); e.preventDefault(); }}
-            onClick={e => { e.stopPropagation(); onRemove(item.key); }}
-          >×</button>
+          <div className="hq-fp-item-ops" style={{ pointerEvents: "auto" }}>
+            {onRotate && (
+              <button
+                type="button"
+                className="hq-fp-item-x"
+                aria-label={`右轉 ${item.name} 90 度`}
+                onPointerDown={e => { e.stopPropagation(); e.preventDefault(); }}
+                onClick={e => { e.stopPropagation(); onRotate(item.key); }}
+              >↻</button>
+            )}
+            {onRemove && (
+              <button
+                type="button"
+                className="hq-fp-item-x"
+                aria-label={`移除 ${item.name}`}
+                onPointerDown={e => { e.stopPropagation(); e.preventDefault(); }}
+                onClick={e => { e.stopPropagation(); onRemove(item.key); }}
+              >×</button>
+            )}
+          </div>
         </Html>
       )}
     </group>
@@ -470,7 +487,7 @@ function FloorRayBridge({ api }: { api: MutableRefObject<FloorRayApi | null> }) 
 function itemObstacles(items: PlacedHouseholdItem[]): Obstacle[] {
   return items
     .filter(i => !i.support)
-    .map(i => ({ x: i.x, z: i.z, hx: Math.min(i.widthM, i.depthM) / 2, hz: Math.min(i.widthM, i.depthM) / 2, rotY: 0 }));
+    .map(i => ({ x: i.x, z: i.z, hx: i.widthM / 2, hz: i.depthM / 2, rotY: THREE.MathUtils.degToRad(i.rotY ?? 0) }));
 }
 
 /** 生活用品模型載入失敗（離線、遠端網址失效）時改畫同尺寸的簡單方塊（#237） */
@@ -663,7 +680,7 @@ export type PlaceAt = { roomId: string; x: number; z: number; y: number; support
 /** point＝點地板／床叫貓；hand＝拖移已放用品／落地家具（不叫貓） */
 export type InteractMode = "point" | "hand";
 
-export default function FloorplanViewer({ rooms, selected, onPick, cat, placedItems = [], interactMode = "point", removedFurniture, furnitureMoves, onMoveItem, onRemoveItem, onRemoveFurniture, onMoveFurniture, onRotateFurniture, onFloorDrop, catGoal = null, catClip = null, catSpeed = 1, onItemError }: {
+export default function FloorplanViewer({ rooms, selected, onPick, cat, placedItems = [], interactMode = "point", removedFurniture, furnitureMoves, onMoveItem, onRotateItem, onRemoveItem, onRemoveFurniture, onMoveFurniture, onRotateFurniture, onFloorDrop, catGoal = null, catClip = null, catSpeed = 1, onItemError }: {
   rooms: PlanRoom[]; selected: string | null; onPick: (id: string) => void;
   /** 虛擬體驗（#150）：放一隻貓進去；有貓時只顯示單間（沒有「全部」），點地板叫貓走過去 */
   cat?: ViewerCat | null;
@@ -677,6 +694,8 @@ export default function FloorplanViewer({ rooms, selected, onPick, cat, placedIt
   furnitureMoves?: Record<string, FurnitureMove>;
   /** 拖移已放置的用品（可改到桌面或地板） */
   onMoveItem?: (key: string, at: MovePayload) => void;
+  /** 生活用品右轉 90° */
+  onRotateItem?: (key: string) => void;
   /** 移除已放置的用品（元件上方 ×） */
   onRemoveItem?: (key: string) => void;
   /** 暫時移除讀圖家具（手掌模式 ×） */
@@ -779,6 +798,7 @@ export default function FloorplanViewer({ rooms, selected, onPick, cat, placedIt
                           item={item} room={s}
                           dragEnabled={interactMode === "hand"}
                           onMove={onMoveItem}
+                          onRotate={interactMode === "hand" ? onRotateItem : undefined}
                           onRemove={onRemoveItem}
                         />
                       </Suspense>
