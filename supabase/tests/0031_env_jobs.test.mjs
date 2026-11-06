@@ -42,6 +42,7 @@ await db.exec(`
 
 const created = await db.query(`select * from public.meow_create_home_processing('${id("201")}', 'room_20261106_290001', '${id("901")}')`);
 check("建立 room + env 工作", 1, created.rows.length);
+check("新 env job 複製來源影片路徑供清理", `homes/${id("101")}/videos/${id("201")}.mp4`, await one(db, `select video_path from public.meow_env_jobs where video_id = '${id("201")}'`));
 check("env job queued", "queued", await one(db, `select status from public.meow_env_jobs where video_id = '${id("201")}'`));
 check("room job queued", "queued", await one(db, "select status from public.meow_room_jobs where room_id = 'room_20261106_290001'"));
 const retry = await db.query(`select * from public.meow_create_home_processing('${id("201")}', 'room_20261106_290001', '${id("901")}')`);
@@ -73,6 +74,8 @@ check("過期 attempt 不可結案", "env_lease_expired", stale);
 const fail = await errorCode(db.query(`select public.meow_env_fail('${jobId}', ${attempt}, 'timeout', '暫時失敗', true)`));
 check("過期 attempt fail 拒絕", "env_lease_expired", fail);
 await db.exec(`update public.meow_env_jobs set max_attempts = 1 where id = '${jobId}'`);
+check("租約耗盡後 claim 結束工作但不外洩技術細節", null, await one(db, `select public.meow_env_claim('worker-exhausted')`));
+check("租約耗盡使用契約系統錯誤訊息", "我們這邊出了問題，修好會通知你，不要求重拍。", await one(db, `select error from public.meow_env_reports where id = (select report_id from public.meow_env_jobs where id = '${jobId}')`));
 
 await db.exec(`
   insert into public.meow_home_videos (id, household_id, path, purpose, status, size_bytes, duration_s, uploaded_at)
@@ -100,6 +103,9 @@ const retryJob = await one(db, `select id from public.meow_env_jobs where video_
 await db.query(`select public.meow_env_claim('worker-c')`);
 const requeued = await one(db, `select public.meow_env_fail('${retryJob}', 1, 'timeout', '暫時錯誤', true)`);
 check("暫時錯誤重新排隊", "requeued", requeued);
+const retryReportId = await one(db, `select report_id from public.meow_env_jobs where id='${retryJob}'`);
+check("暫時性重試不提前永久失敗報告", "queued|null", await one(db, `select status || '|' || coalesce(error, 'null') from public.meow_env_reports where id = '${retryReportId}'`));
+check("重試技術細節只保存在 job", "暫時錯誤", await one(db, `select error_detail from public.meow_env_jobs where id = '${retryJob}'`));
 check("fail 冪等", "requeued", await one(db, `select public.meow_env_fail('${retryJob}', 1, 'timeout', '暫時錯誤', true)`));
 check("重試工作回 queued", "queued", await one(db, `select status from public.meow_env_jobs where id = '${retryJob}'`));
 check("重排期間同 attempt complete 回 job_not_running", "env_job_not_running", await errorCode(db.query(`select public.meow_env_complete('${retryJob}', 1, 'x', '[]', '[]', 'homes/${id("101")}/reports/r/a1/result.json', 'homes/${id("101")}/reports/r/a1/report.pdf')`)));
@@ -143,16 +149,102 @@ const requeuedJob = systemRequeue.env_job_id;
 check("系統失敗新工作 attempt 重設", 0, await one(db, `select attempt from public.meow_env_jobs where id='${requeuedJob}'`));
 check("新 request 重送冪等", requeuedJob, (await one(db, `select public.meow_create_home_processing('${id("206")}', null, '${id("907")}')`)).env_job_id);
 
+// Report deletion must preserve a canceled tombstone for worker RPC rejection and media cleanup.
+const reportPrefixBeforeDelete = await one(db, `select report_storage_prefix from public.meow_env_jobs where id = '${requeuedJob}'`);
+await db.query(`delete from public.meow_env_reports where id = (select report_id from public.meow_env_jobs where id = '${requeuedJob}')`);
+check("刪報告將 active job 取消", "canceled", await one(db, `select status from public.meow_env_jobs where id = '${requeuedJob}'`));
+check("取消 tombstone 保留報告清理前綴", reportPrefixBeforeDelete, await one(db, `select report_storage_prefix from public.meow_env_jobs where id = '${requeuedJob}'`));
+check("刪報告後仍保留影片清理路徑", `homes/${id("101")}/videos/${id("206")}.mp4`, await one(db, `select video_path from public.meow_env_jobs where id = '${requeuedJob}'`));
+check("取消後 renew 拒絕", "env_job_canceled", await errorCode(db.query(`select public.meow_env_renew('${requeuedJob}', 0, 'late')`)));
+check("取消後 complete 拒絕", "env_job_canceled", await errorCode(db.query(`select public.meow_env_complete('${requeuedJob}', 0, 'x', '[]', '[]', '${jsonPath}', '${pdfPath}')`)));
+check("取消後 fail 拒絕", "env_job_canceled", await errorCode(db.query(`select public.meow_env_fail('${requeuedJob}', 0, 'timeout', 'late', true)`)));
+
 // Every code listed in v0.4 §4.6 is accepted by the fail RPC.
 await db.exec(`insert into public.meow_home_videos (id, household_id, path, purpose, status, uploaded_at) values ('${id("207")}', '${id("101")}', 'homes/${id("101")}/videos/${id("207")}.mp4', 'safety', 'uploaded', now());`);
 await db.query(`select public.meow_create_home_processing('${id("207")}', null, '${id("908")}')`);
 const codeJob = await one(db, `select id from public.meow_env_jobs where video_id='${id("207")}'`);
+const codeReport = await one(db, `select report_id from public.meow_env_jobs where id='${codeJob}'`);
 const allowedCodes = ['network','rate_limited','service_unavailable','timeout','video_format','video_too_long','video_too_large','video_unreadable','video_not_indoor','source_invalid','config_error','permission_denied','result_invalid','lease_expired'];
+const expectedUserError = (code) => {
+  if (code.startsWith("video_")) return "安全檢測沒有完成，請照拍攝須知重新拍一次。";
+  if (code === "source_invalid") return "影片沒有上傳完整，請重新上傳。";
+  if (["network", "rate_limited", "service_unavailable", "timeout"].includes(code)) return "安全檢測暫時無法完成，我們修好後會通知你，不用重拍。";
+  return "我們這邊出了問題，修好會通知你，不要求重拍。";
+};
 for (const code of allowedCodes) {
   await db.exec(`update public.meow_env_jobs set status='running',attempt=1,lease_until=now()+interval '10 minutes',finished_at=null,error_code=null where id='${codeJob}'`);
   const result = await errorCode(db.query(`select public.meow_env_fail('${codeJob}', 1, '${code}', 'contract test', false)`));
   check(`合法 fail code ${code}`, "no_error", result);
+  check(`${code} 僅寫入對應繁中飼主訊息`, expectedUserError(code), await one(db, `select error from public.meow_env_reports where id='${codeReport}'`));
+  check(`${code} 技術細節僅留在 job`, "contract test", await one(db, `select error_detail from public.meow_env_jobs where id='${codeJob}'`));
 }
+
+await db.exec(`update public.meow_env_jobs set status='failed',retryable=false,finished_at=now() where id='${codeJob}'`);
+
+// A queued job whose source became unavailable is failed with a safe message while its tombstone retains the path.
+await db.exec(`insert into public.meow_home_videos (id, household_id, path, purpose, status, uploaded_at) values ('${id("209")}', '${id("101")}', 'homes/${id("101")}/videos/${id("209")}.mp4', 'safety', 'uploaded', now());`);
+await db.query(`select public.meow_create_home_processing('${id("209")}', null, '${id("909")}')`);
+await db.exec(`update public.meow_home_videos set raw_deleted_at=now() where id='${id("209")}'`);
+const invalidSourceJob = await one(db, `select id from public.meow_env_jobs where video_id='${id("209")}'`);
+check("不可用來源在 claim 時結束且不再派發", null, await one(db, `select public.meow_env_claim('worker-source-invalid')`));
+check("claim 的來源錯誤使用安全飼主訊息", "影片沒有上傳完整，請重新上傳。", await one(db, `select error from public.meow_env_reports where video_id='${id("209")}'`));
+check("claim 的來源錯誤碼保留", "source_invalid", await one(db, `select error_code from public.meow_env_jobs where id='${invalidSourceJob}'`));
+check("來源失敗 tombstone 仍保留影片路徑", `homes/${id("101")}/videos/${id("209")}.mp4`, await one(db, `select video_path from public.meow_env_jobs where id='${invalidSourceJob}'`));
+
+// Simulate a competing unique-key insert to exercise ON CONFLICT + safe result read-back.
+await db.exec(`
+  insert into public.meow_home_videos (id, household_id, path, purpose, status, uploaded_at)
+    values ('${id("211")}', '${id("101")}', 'homes/${id("101")}/videos/${id("211")}.mp4', 'safety', 'uploaded', now()),
+           ('${id("212")}', '${id("101")}', 'homes/${id("101")}/videos/${id("212")}.mp4', 'safety', 'uploaded', now());
+  create function public.test_race_home_processing_request() returns trigger language plpgsql as $$
+  begin
+    if pg_catalog.pg_trigger_depth() = 1 and new.request_id = '${id("912")}' then
+      insert into public.meow_home_processing_requests(request_id,video_id,env_job_id,room_job_id)
+      values(new.request_id,new.video_id,new.env_job_id,new.room_job_id);
+    elsif pg_catalog.pg_trigger_depth() = 1 and new.request_id = '${id("913")}' then
+      insert into public.meow_home_processing_requests(request_id,video_id,env_job_id,room_job_id)
+      values(new.request_id,'${id("202")}','${safetyJob}',null);
+    end if;
+    return new;
+  end $$;
+  create trigger test_race_home_processing_request before insert on public.meow_home_processing_requests
+    for each row execute function public.test_race_home_processing_request();
+`);
+const raceResult = await errorCode(db.query(`select public.meow_create_home_processing('${id("211")}', null, '${id("912")}')`));
+check("request 唯一鍵衝突時回傳已存在的同一工作", "no_error", raceResult);
+const raceJob = await one(db, `select env_job_id from public.meow_home_processing_requests where request_id='${id("912")}'`);
+check("request 衝突讀回的工作屬於同一影片", raceJob, await one(db, `select id from public.meow_env_jobs where video_id='${id("211")}'`));
+check("request id 綁定不同影片時明確拒絕", "env_request_conflict", await errorCode(db.query(`select public.meow_create_home_processing('${id("212")}', null, '${id("913")}')`)));
+check("request 參數衝突回滾新排程", 0, await one(db, `select count(*) from public.meow_env_jobs where video_id='${id("212")}'`));
+await db.exec(`drop trigger test_race_home_processing_request on public.meow_home_processing_requests; drop function public.test_race_home_processing_request();`);
+
+// A system failure retry must reuse an already completed room conversion.
+await db.exec(`
+  insert into public.meow_room_models (id, name, status, video_path, created_by)
+    values ('room_20261106_290004', '已完成 3D 的房間', 'ready', 'homes/${id("101")}/videos/${id("210")}.mp4', '${id("001")}');
+  insert into public.meow_home_videos (id, household_id, path, purpose, status, uploaded_at)
+    values ('${id("210")}', '${id("101")}', 'homes/${id("101")}/videos/${id("210")}.mp4', 'room', 'uploaded', now());
+`);
+await db.query(`select public.meow_create_home_processing('${id("210")}', 'room_20261106_290004', '${id("910")}')`);
+const completedRoomJob = await one(db, `select id from public.meow_room_jobs where room_id='room_20261106_290004'`);
+await db.exec(`update public.meow_room_jobs set status='done',finished_at=now() where id='${completedRoomJob}'`);
+const env210 = await one(db, `select id from public.meow_env_jobs where video_id='${id("210")}'`);
+await db.exec(`update public.meow_env_jobs set status='running',attempt=1,lease_until=now()+interval '10 minutes' where id='${env210}'`);
+check("config_error 結束原健檢工作", "failed", await one(db, `select public.meow_env_fail('${env210}',1,'config_error','設定故障細節',false)`));
+const envOnlyRetry = await one(db, `select public.meow_create_home_processing('${id("210")}','room_20261106_290004','${id("911")}')`);
+check("健檢重排沿用已完成的 3D 工作", completedRoomJob, envOnlyRetry.room_job_id);
+check("健檢重排不新增 3D 工作", 1, await one(db, `select count(*) from public.meow_room_jobs where room_id='room_20261106_290004'`));
+check("健檢重排只新增一筆 env 工作", 2, await one(db, `select count(*) from public.meow_env_jobs where video_id='${id("210")}'`));
+check("重排 env 工作 attempt 從零開始", 0, await one(db, `select attempt from public.meow_env_jobs where id='${envOnlyRetry.env_job_id}'`));
+await db.exec(`update public.meow_env_jobs set status='failed',retryable=false,finished_at=now() where id in ('${raceJob}','${envOnlyRetry.env_job_id}')`);
+
+// Deleting source metadata cancels the job but retains the Azure path on the job tombstone.
+await db.exec(`insert into public.meow_home_videos (id, household_id, path, purpose, status, uploaded_at) values ('${id("213")}', '${id("101")}', 'homes/${id("101")}/videos/${id("213")}.mov', 'safety', 'uploaded', now());`);
+await db.query(`select public.meow_create_home_processing('${id("213")}', null, '${id("914")}')`);
+const sourceMetadataJob = await one(db, `select id from public.meow_env_jobs where video_id='${id("213")}'`);
+await db.query(`delete from public.meow_home_videos where id='${id("213")}'`);
+check("刪來源 metadata 後工作取消", "canceled", await one(db, `select status from public.meow_env_jobs where id='${sourceMetadataJob}'`));
+check("刪來源 metadata 後仍保留影片清理路徑", `homes/${id("101")}/videos/${id("213")}.mov`, await one(db, `select video_path from public.meow_env_jobs where id='${sourceMetadataJob}'`));
 
 // Duplicate scheduling with a different valid room must not silently return the old report.
 await db.exec(`insert into public.meow_room_models (id, name, status, video_path, created_by) values ('room_20261106_290003', '不同綁定', 'queued', 'homes/${id("101")}/videos/${id("201")}.mp4', '${id("001")}');`);
@@ -177,16 +269,7 @@ check("排程回滾未留下 room job", 0, await one(db, `select count(*) from p
 await db.exec(`drop trigger test_reject_home_processing_request on public.meow_home_processing_requests; drop function public.test_reject_home_processing_request();`);
 
 await db.exec(`insert into public.meow_home_videos (id, household_id, path, purpose, status, uploaded_at) values ('${id("208")}', '${id("101")}', 'homes/${id("101")}/videos/${id("777")}.mp4', 'safety', 'uploaded', now());`);
-check("來源路徑中的 video id 必須吻合資料列", "env_source_invalid", await errorCode(db.query(`select public.meow_create_home_processing('${id("208")}', null, '${id("909")}')`)));
-
-// Report deletion must preserve a canceled job tombstone for worker RPC rejection.
-const reportPrefixBeforeDelete = await one(db, `select report_storage_prefix from public.meow_env_jobs where id = '${requeuedJob}'`);
-await db.query(`delete from public.meow_env_reports where id = (select report_id from public.meow_env_jobs where id = '${requeuedJob}')`);
-check("刪報告將 active job 取消", "canceled", await one(db, `select status from public.meow_env_jobs where id = '${requeuedJob}'`));
-check("取消 tombstone 保留報告清理前綴", reportPrefixBeforeDelete, await one(db, `select report_storage_prefix from public.meow_env_jobs where id = '${requeuedJob}'`));
-check("取消後 renew 拒絕", "env_job_canceled", await errorCode(db.query(`select public.meow_env_renew('${requeuedJob}', 0, 'late')`)));
-check("取消後 complete 拒絕", "env_job_canceled", await errorCode(db.query(`select public.meow_env_complete('${requeuedJob}', 0, 'x', '[]', '[]', '${jsonPath}', '${pdfPath}')`)));
-check("取消後 fail 拒絕", "env_job_canceled", await errorCode(db.query(`select public.meow_env_fail('${requeuedJob}', 0, 'timeout', 'late', true)`)));
+check("來源路徑中的 video id 必須吻合資料列", "env_source_invalid", await errorCode(db.query(`select public.meow_create_home_processing('${id("208")}', null, '${id("915")}')`)));
 
 // Household deletion must also keep a canceled tombstone instead of cascading away the job.
 await db.exec(`insert into public.meow_home_videos (id, household_id, path, purpose, status, uploaded_at) values ('${id("204")}', '${id("101")}', 'homes/${id("101")}/videos/${id("204")}.mp4', 'safety', 'uploaded', now());`);
@@ -197,6 +280,7 @@ check("並行 claim 只領到唯一佇列工作", 1, concurrentClaims.filter((re
 await db.query(`delete from public.meow_households where id = '${id("101")}'`);
 check("刪喵戶將 active job 取消並保留", "canceled", await one(db, `select status from public.meow_env_jobs where id = '${householdJob}'`));
 check("刪喵戶後 job 保留 tombstone", 1, await one(db, `select count(*) from public.meow_env_jobs where id = '${householdJob}'`));
+check("刪喵戶後仍保留影片清理路徑", `homes/${id("101")}/videos/${id("204")}.mp4`, await one(db, `select video_path from public.meow_env_jobs where id='${householdJob}'`));
 check("刪喵戶後 complete 拒絕", "env_job_canceled", await errorCode(db.query(`select public.meow_env_complete('${householdJob}', 1, 'x', '[]', '[]', '${jsonPath}', '${pdfPath}')`)));
 
 console.log("PASS 0031 env jobs migration suite");

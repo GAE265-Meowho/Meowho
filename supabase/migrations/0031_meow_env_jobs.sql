@@ -39,6 +39,7 @@ create table if not exists public.meow_env_jobs (
   report_storage_prefix text not null check (report_storage_prefix ~ '^homes/[0-9a-fA-F-]{36}/reports/[0-9a-fA-F-]{36}/$'),
   household_id uuid references public.meow_households (id) on delete set null,
   video_id uuid references public.meow_home_videos (id) on delete set null,
+  video_path text not null check (video_path ~ '^homes/[0-9a-fA-F-]{36}/videos/[0-9a-fA-F-]{36}\.(mp4|mov)$'),
   room_job_id uuid references public.meow_room_jobs (id) on delete set null,
   status text not null default 'queued' check (status in ('queued', 'running', 'done', 'failed', 'canceled')),
   attempt int not null default 0 check (attempt >= 0),
@@ -87,6 +88,23 @@ returns boolean language sql immutable security definer set search_path = pg_cat
     or p_path = pg_catalog.format('homes/%s/videos/%s.mov', p_household, p_video))
 $$;
 
+-- Only stable, contract-defined Traditional Chinese messages may reach household reports.
+create or replace function public.meow_env_user_error(p_code text)
+returns text language sql immutable set search_path = pg_catalog as $$
+  select case
+    when p_code in ('video_format','video_too_long','video_too_large','video_unreadable','video_not_indoor')
+      then '安全檢測沒有完成，請照拍攝須知重新拍一次。'
+    when p_code = 'source_invalid'
+      then '影片沒有上傳完整，請重新上傳。'
+    when p_code in ('network','rate_limited','service_unavailable','timeout')
+      then '安全檢測暫時無法完成，我們修好後會通知你，不用重拍。'
+    when p_code in ('config_error','permission_denied','result_invalid','lease_expired')
+      then '我們這邊出了問題，修好會通知你，不要求重拍。'
+    else null
+  end
+$$;
+revoke all on function public.meow_env_user_error(text) from public, anon, authenticated;
+
 -- Proposed PR A interface: one idempotent transaction creates report + env job,
 -- and (for purpose=room) the existing 3D job. Repeating with the same video id
 -- returns the existing active/result rows without creating duplicates.
@@ -95,6 +113,9 @@ returns jsonb language plpgsql security definer set search_path = pg_catalog, pu
 declare v public.meow_home_videos; r public.meow_env_reports; e public.meow_env_jobs; room_job public.meow_room_jobs; req public.meow_home_processing_requests;
 begin
   if p_request_id is null then raise exception 'env_request_invalid'; end if;
+  -- Serialize the same request key across distinct video rows, then still use
+  -- ON CONFLICT below as the database-level idempotency backstop.
+  perform pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended(p_request_id::text, 0));
   select * into req from public.meow_home_processing_requests where request_id=p_request_id;
   if found then
     if req.video_id is distinct from p_video_id then raise exception 'env_request_conflict'; end if;
@@ -119,8 +140,12 @@ begin
     if e.status in ('queued','running') then
       room_job.id := e.room_job_id;
       insert into public.meow_home_processing_requests(request_id,video_id,env_job_id,room_job_id)
-      values(p_request_id,p_video_id,e.id,e.room_job_id);
-      return jsonb_build_object('video_id', p_video_id, 'report_id', r.id, 'env_job_id', e.id, 'room_job_id', e.room_job_id);
+      values(p_request_id,p_video_id,e.id,e.room_job_id) on conflict (request_id) do nothing;
+      select * into req from public.meow_home_processing_requests where request_id=p_request_id;
+      if not found or req.video_id is distinct from p_video_id or req.env_job_id is distinct from e.id or req.room_job_id is distinct from e.room_job_id then
+        raise exception 'env_request_conflict';
+      end if;
+      return jsonb_build_object('video_id', req.video_id, 'report_id', r.id, 'env_job_id', req.env_job_id, 'room_job_id', req.room_job_id);
     end if;
     if e.status is distinct from 'failed' then raise exception 'env_request_conflict'; end if;
     if e.error_code is null or e.error_code not in ('config_error','permission_denied','result_invalid','lease_expired') then raise exception 'env_job_not_requeueable'; end if;
@@ -129,18 +154,25 @@ begin
       values (v.household_id, p_room_id, p_video_id, 'queued') returning * into r;
   end if;
   if v.purpose = 'room' then
-    select * into room_job from public.meow_room_jobs where room_id=p_room_id and status in ('queued','running') order by queued_at desc limit 1;
+    select * into room_job from public.meow_room_jobs where room_id=p_room_id and status='done' order by finished_at desc nulls last, queued_at desc limit 1;
     if not found then
-      insert into public.meow_room_jobs (room_id, status) values (p_room_id, 'queued') returning * into room_job;
+      select * into room_job from public.meow_room_jobs where room_id=p_room_id and status in ('queued','running') order by queued_at desc limit 1;
+      if not found then
+        insert into public.meow_room_jobs (room_id, status) values (p_room_id, 'queued') returning * into room_job;
+      end if;
     end if;
   end if;
-  insert into public.meow_env_jobs (report_id, report_storage_prefix, household_id, video_id)
-    values (r.id, pg_catalog.format('homes/%s/reports/%s/', v.household_id, r.id), v.household_id, v.id) returning * into e;
+  insert into public.meow_env_jobs (report_id, report_storage_prefix, household_id, video_id, video_path)
+    values (r.id, pg_catalog.format('homes/%s/reports/%s/', v.household_id, r.id), v.household_id, v.id, v.path) returning * into e;
   update public.meow_env_jobs set room_job_id=room_job.id where id=e.id returning * into e;
   update public.meow_env_reports set status='queued', error=null, ready_at=null where id=r.id;
   insert into public.meow_home_processing_requests(request_id,video_id,env_job_id,room_job_id)
-    values(p_request_id,p_video_id,e.id,room_job.id);
-  return jsonb_build_object('video_id', p_video_id, 'report_id', r.id, 'env_job_id', e.id, 'room_job_id', room_job.id);
+    values(p_request_id,p_video_id,e.id,room_job.id) on conflict (request_id) do nothing;
+  select * into req from public.meow_home_processing_requests where request_id=p_request_id;
+  if not found or req.video_id is distinct from p_video_id or req.env_job_id is distinct from e.id or req.room_job_id is distinct from room_job.id then
+    raise exception 'env_request_conflict';
+  end if;
+  return jsonb_build_object('video_id', req.video_id, 'report_id', r.id, 'env_job_id', req.env_job_id, 'room_job_id', req.room_job_id);
 end $$;
 
 create or replace function public.meow_env_claim(p_worker text)
@@ -152,13 +184,13 @@ begin
     if not found then return null; end if;
     if j.status = 'running' and j.attempt >= j.max_attempts then
       update public.meow_env_jobs set status='failed', error_code='lease_expired', retryable=false, finished_at=now(), lease_until=null where id=j.id;
-      update public.meow_env_reports set status='failed', error='處理租約已過期，重試次數已用完' where id=j.report_id;
+      update public.meow_env_reports set status='failed', error=public.meow_env_user_error('lease_expired') where id=j.report_id;
       continue;
     end if;
     select * into v from public.meow_home_videos where id = j.video_id for update;
     if not found or v.status <> 'uploaded' or v.raw_deleted_at is not null or not public.meow_env_path_ok(v.path, v.household_id, v.id) then
       update public.meow_env_jobs set status='failed', error_code='source_invalid', retryable=false, finished_at=now() where id=j.id;
-      update public.meow_env_reports set status='failed', error='來源影片無效' where id=j.report_id;
+      update public.meow_env_reports set status='failed', error=public.meow_env_user_error('source_invalid') where id=j.report_id;
       continue;
     end if;
     next_attempt := j.attempt + 1;
@@ -250,7 +282,7 @@ begin
     return 'requeued';
   end if;
   update public.meow_env_jobs set status='failed', finished_at=now(), lease_until=null, error_code=p_code, error_detail=left(p_detail,500), retryable=false where id=p_job;
-  update public.meow_env_reports set status='failed', error=left(p_detail,2000) where id=j.report_id;
+  update public.meow_env_reports set status='failed', error=public.meow_env_user_error(p_code) where id=j.report_id;
   return 'failed';
 end $$;
 
