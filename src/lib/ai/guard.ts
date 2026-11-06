@@ -9,6 +9,7 @@ export const AI_LIMITS = {
   questionChars: 300, // 貓咪知識問答（之後的問答模組使用）
   turnsPerChat: 20, // 一次對話最多輪數（問答模組使用）
   callsPerDay: 50, // 每位會員每天呼叫次數（問答模組使用）
+  playContextChars: 1200, // 虛擬飼養 DEMO（#237）：送給 AI 的玩家背景＋房間物品清單＋遊戲紀錄
 } as const;
 
 /** 字數：以 Unicode 字元計，emoji 算 1 字 */

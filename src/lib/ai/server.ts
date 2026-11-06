@@ -11,6 +11,10 @@ import { floorplanReadChain, floorplanReadInput } from "./floorplan";
 import { floorplanRoomSchema } from "./schemas";
 import { TaskDraftSchema } from "@/lib/adoption-tasks";
 import { taskDraftChain, taskDraftInput, type TaskCatContext } from "./tasks";
+import { adviceInput, hazardsInput, linesInput, playAdviceChain, playHazardsChain, playLinesChain } from "./play";
+import { PlayAdviceSchema, PlayHazardsSchema, PlayLinesSchema } from "./schemas";
+import type { AdviceRequest, HazardsRequest, LinesRequest } from "@/lib/play/api";
+import { LINES_TIMEOUT_MS } from "@/lib/play/lines";
 
 export { aiLabel, isAIConfigured } from "./models";
 
@@ -68,3 +72,21 @@ export const draftDeclineReason = (c: DeclineContext) => safe(async () =>
 export const readFloorplanRoom = (images: { mime: string; bytes: Uint8Array }[], roomName: string | null) => safe(async () =>
   floorplanReadChain(structured(await getChatModel("vision", { provider: "azure" }), floorplanRoomSchema, "floorplan_room"))
     .invoke(floorplanReadInput(images.map(i => ({ mime: i.mime, base64: Buffer.from(i.bytes).toString("base64") })), roomName)), 100_000, "azure");
+
+// ---------- 虛擬飼養 DEMO（#237）：固定用 Azure 聊天部署（AZURE_OPENAI_CHAT_DEPLOYMENT_NAME，例如 gpt-6-luna），不受全站 AI_PROVIDER 影響 ----------
+// 未設定、失敗或逾時回傳 null，由 API 改用規則備案；結果的長度、說話的人、不含數字由 src/lib/play/ 的檢查函式再把關。
+
+/** 居家危險：有截圖時走 vision（同一個部署） */
+export const detectPlayHazards = (r: HazardsRequest) => safe(async () =>
+  playHazardsChain(structured(await getChatModel(r.imageDataUrl ? "vision" : "text", { provider: "azure" }), PlayHazardsSchema, "play_hazards"))
+    .invoke(hazardsInput(r)), 15_000, "azure");
+
+/** 個人化台詞：約 8 秒逾時，玩家不用等 */
+export const writePlayLines = (r: LinesRequest) => safe(async () =>
+  playLinesChain(structured(await getChatModel("text", { provider: "azure", temperature: 0.7 }), PlayLinesSchema, "play_lines"))
+    .invoke(linesInput(r)), LINES_TIMEOUT_MS, "azure");
+
+/** 試養報告建議 */
+export const writePlayAdvice = (r: AdviceRequest) => safe(async () =>
+  playAdviceChain(structured(await getChatModel("text", { provider: "azure", temperature: 0.4 }), PlayAdviceSchema, "play_advice"))
+    .invoke(adviceInput(r)), 15_000, "azure");
