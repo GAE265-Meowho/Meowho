@@ -3,6 +3,7 @@
 //   尺寸（公尺）與價格（新台幣）照後台資料抄過來。等 meow_items／meow_item_categories 開放公開讀取（#237 已提醒子哲），
 //   改成從後台讀用品清單，刪掉這份設定。餐碗組的路徑是 test_bowls_…（看起來是測試上傳），正式版換掉時這裡也要改。
 // 模型載入失敗（沙盒、離線）時，畫面改用同尺寸的簡單方塊（FloorplanViewer 的 PlacedItemModel 外層錯誤邊界）。
+// price 是後台登錄的價格，目前只作紀錄；遊戲的花費照 catgame 原版的砂盆、碗估價（costs.ts 的 SHOP_ITEMS）。
 
 export interface PlayItem {
   id: "bowl" | "litter_box";
@@ -11,7 +12,7 @@ export interface PlayItem {
   widthM: number;
   depthM: number;
   heightM: number;
-  /** 新台幣，一次性購買 */
+  /** 新台幣（後台登錄的價格，花費計算不用這個） */
   price: number;
 }
 

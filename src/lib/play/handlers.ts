@@ -5,10 +5,8 @@ import { adviceData, hazardsData, linesData } from "@/lib/ai/play";
 import type { PlayAdviceOut, PlayHazardsOut, PlayLinesOut } from "@/lib/ai/schemas";
 import { AdviceRequest, HazardsRequest, LinesRequest } from "./api";
 import { cleanAiHazards, ruleHazards, type Hazard } from "./hazards";
-import { checkLines, ruleLines } from "./lines";
+import { checkLines, ruleLines, type Line } from "./lines";
 import { checkAdvice, ruleAdvice } from "./report";
-import { placesOf } from "./room";
-import type { Line } from "./story";
 
 export type Source = "ai" | "rule";
 export type Handled<T> = { status: 200; body: T & { source: Source } } | { status: 400; body: { error: string } };
@@ -33,7 +31,7 @@ export async function handleLines(raw: unknown, ai: { configured: boolean; run: 
   const check = checkInput(linesData(req.data), AI_LIMITS.playContextChars);
   if (!check.ok) return bad(check.error);
   const { nodeId, catName, home, labels } = req.data;
-  const fallback = () => ({ status: 200 as const, body: { lines: ruleLines({ nodeId, catName, home, labels, places: placesOf(labels) }), source: "rule" as const } });
+  const fallback = () => ({ status: 200 as const, body: { lines: ruleLines({ nodeId, catName, home, labels }), source: "rule" as const } });
   if (!ai.configured) return fallback();
   const out = await ai.run(req.data).catch(() => null);
   const lines = out ? checkLines(out, { catName, home }) : null;

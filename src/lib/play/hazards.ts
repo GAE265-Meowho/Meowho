@@ -1,4 +1,5 @@
 // 虛擬飼養 DEMO（#237）：居家危險清單。AI 依房間物品清單辨認；AI 沒設定、失敗或回傳不合格時用這裡的規則對照。
+// key 對得到 catgame 原版事件（events.ts 的 HAZ_FEV）：cable、string、cup→table、scratch、door→dashout；window、plant 沒有原版事件。
 // 用語只講「降低風險、提醒」，不做驚嚇描述；植物不可直接判定有毒，只提示查證（readiness.md 地雷）。純函式。
 
 export type HazardLevel = "high" | "medium" | "low";
@@ -44,8 +45,13 @@ export const HAZARD_RULES: readonly Rule[] = [
     match: l => has(l, /門/),
   },
   {
-    key: "small", label: "小東西與塑膠袋", level: "low",
-    advice: "橡皮筋、髮圈、塑膠袋收進抽屜，避免貓咬著玩。",
+    key: "scratch", label: "布料家具（沙發、床、地毯）", level: "low",
+    advice: "在貓愛抓的家具旁邊放貓抓板，不要用罵的。",
+    match: l => has(l, /沙發|床|地毯|窗簾|椅/),
+  },
+  {
+    key: "string", label: "塑膠繩、橡皮筋等細繩", level: "medium",
+    advice: "拆包裹的塑膠繩、橡皮筋、髮圈收進抽屜，避免貓咬著玩吞下去。",
     match: () => true,
   },
 ];

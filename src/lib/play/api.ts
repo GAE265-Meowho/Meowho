@@ -36,7 +36,7 @@ export const AdviceRequest = z.object({
   hazards: z.array(HazardReq).max(10),
   handled: z.array(z.string().max(24)).max(10),
   choices: z.array(z.object({
-    prompt: z.string().max(40), text: z.string().max(80), good: z.boolean(), feedback: z.string().max(200),
+    prompt: z.string().max(40), text: z.string().max(80), good: z.boolean().nullable(), feedback: z.string().max(200),
   })).max(20),
   overBudget: z.boolean(),
 });

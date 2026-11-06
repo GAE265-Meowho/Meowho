@@ -30,8 +30,8 @@ export const linesData = (r: LinesRequest) => {
   const node = STORY.find(n => n.id === r.nodeId)!;
   const home = { ...r.home, sample: r.home.sample };
   return [
-    `節點：${node.title}`,
-    `貓的名字：${r.catName}（虎斑貓，${node.body === "kitten" ? "剛到家的幼貓" : node.id === "farewell" ? "十七歲的老貓" : "五歲的成貓"}）`,
+    `節點：${node.label}（${node.sub}）`,
+    `貓的名字：${r.catName}（虎斑貓，${node.body === "kitten" ? "剛到家的幼貓" : node.id === "farewell" ? "十五歲的老貓，最後的日子" : "五歲的成貓"}）`,
     `玩家背景：${homeSummary(home)}`,
     `房間家具：${r.labels.join("、") || "沒有"}`,
     `可以說話的人：${allowedSpeakers({ catName: r.catName, home }).join("、")}`,

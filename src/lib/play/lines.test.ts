@@ -3,11 +3,10 @@ import { describe, expect, it } from "vitest";
 import { SAMPLE_HOME, type PlayerHome } from "./background";
 import { allowedSpeakers, checkLines, ruleLines, type LinesContext } from "./lines";
 import { checkAdvice, ruleAdvice } from "./report";
-import { placesOf } from "./room";
 
 const home: PlayerHome = { dwelling: "公寓", living: "租屋", family: ["小孩"], pets: ["狗"], sample: false };
 const ctx = (over: Partial<LinesContext> = {}): LinesContext => ({
-  nodeId: "first-day", catName: "麻糬", home, labels: ["沙發"], places: placesOf(["沙發"]), ...over,
+  nodeId: "first-day", catName: "麻糬", home, labels: ["沙發"], ...over,
 });
 
 describe("checkLines（AI 台詞檢查）", () => {

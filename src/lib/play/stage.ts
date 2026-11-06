@@ -1,15 +1,17 @@
 // 虛擬飼養 DEMO（#237）：3D 娃娃屋裡「貓要走去哪」「用品可以放哪」。座標同 catwalk.ts（一間房左上角＝原點，公尺）。純函式。
-// 劇情動作 → 目標：躲〈躲藏處〉＝走到那件家具旁的地板；跳〈高處〉、窩〈沙發〉＝點那件家具（catjump 會走過去跳上去）；
+// 劇情動作 → 目標：躲〈躲藏處〉＝走到那件家具旁的地板；跳〈高處〉、窩沙發＝點那件家具（catjump 會走過去跳上去）；
 // 吃飯、上廁所＝走到擺好的餐碗、貓砂盆旁邊；探索＝房間裡固定的一個空位；睡覺、待著＝原地。
 import { goalForBox, worldOf } from "@/lib/hq/floorplans/catjump";
 import { blocked, CAT_RADIUS_M, obstacles, type Obstacle } from "@/lib/hq/floorplans/catwalk";
 import type { RoomScene } from "@/lib/hq/floorplans/scene";
-import type { CatAction } from "./story";
+
+/** 3D 貓的動作（由劇本的場景姿勢、小遊戲換算） */
+export type CatAction = "hide" | "explore" | "eat" | "litter" | "high" | "sofa" | "sleep" | "idle";
 
 export interface Spot { x: number; z: number }
 export interface PlacedSpot extends Spot { id: string; widthM: number; depthM: number }
 
-/** 家具種類對應劇情通稱的關鍵字（placeFor 回傳的字裡有這些字就用這件家具） */
+/** 家具種類對應劇情通稱的關鍵字（furniture.ts 的 homeWord 回傳的字裡有這些字就用這件家具） */
 const KIND_WORDS: Record<string, string[]> = {
   sofa: ["沙發"], bed: ["床"], wardrobe: ["衣櫃"], cabinet: ["櫃子"], tv_stand: ["電視櫃"], desk: ["書桌"], counter: ["流理台"], chair: ["椅"],
 };

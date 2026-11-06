@@ -2,21 +2,23 @@
 import { describe, expect, it } from "vitest";
 import { blocked, obstacles } from "@/lib/hq/floorplans/catwalk";
 import { houseScene } from "@/lib/hq/floorplans/scene";
-import { DEMO_DOLLHOUSE, inventoryFromPlan, placesOf } from "./room";
+import { homeWord } from "./furniture";
+import { DEMO_DOLLHOUSE, inventoryFromPlan } from "./room";
 import { boxFor, goalFor, itemSpots } from "./stage";
 
 const scene = houseScene([DEMO_DOLLHOUSE])[0];
-const places = placesOf(inventoryFromPlan(DEMO_DOLLHOUSE).labels);
+const labels = inventoryFromPlan(DEMO_DOLLHOUSE).labels;
+const places = { hide: homeWord("躲藏處", labels)!, high: homeWord("高處", labels)!, sofa: "沙發" };
 const names = Object.fromEntries((DEMO_DOLLHOUSE.furniture ?? []).map((f, i) => [i, f.label]));
 
 describe("goalFor", () => {
-  it("躲沙發後：走到沙發旁的空地板", () => {
+  it("躲沙發底下：走到沙發旁的空地板", () => {
     const g = goalFor(scene, "hide", places, []);
     expect(g?.box).toBeNull();
     expect(blocked(g!.x, g!.z, scene, obstacles(scene))).toBe(false);
   });
-  it("跳上高處、窩沙發：指定家具方塊", () => {
-    expect(scene.boxes[goalFor(scene, "high", places, [])!.box!].furniture).toBe("cabinet");
+  it("跳上高處、窩沙發：指定家具方塊（示範客廳的高處＝沙發，原版 FURN_WORD）", () => {
+    expect(scene.boxes[goalFor(scene, "high", places, [])!.box!].furniture).toBe("sofa");
     expect(scene.boxes[goalFor(scene, "sofa", places, [])!.box!].furniture).toBe("sofa");
   });
   it("吃飯：走到餐碗旁；沒擺餐碗就原地", () => {

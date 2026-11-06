@@ -3,8 +3,10 @@
 // AI 沒設定、失敗、逾時（LINES_TIMEOUT_MS）或沒通過檢查時，用 ruleLines 規則產生，玩家不用等。純函式。
 import { z } from "zod";
 import type { PlayerHome } from "./background";
-import type { Places } from "./room";
-import type { Line, NodeId } from "./story";
+import { homeWord } from "./furniture";
+import type { NodeId } from "./story";
+
+export interface Line { speaker: string; text: string }
 
 export const LINES_TIMEOUT_MS = 8_000;
 export const LINE_MAX_CHARS = 80;
@@ -15,7 +17,6 @@ export interface LinesContext {
   home: PlayerHome;
   /** 房間物品清單 */
   labels: string[];
-  places: Places;
 }
 
 /** 可以說話的人：旁白、你、貓、同住的人、原有的寵物 */
@@ -28,7 +29,8 @@ const has = (xs: string[], word: string) => xs.some(x => x.includes(word));
 
 /** 規則產生的個人化台詞 */
 export function ruleLines(ctx: LinesContext): Line[] {
-  const { catName: c, home, places } = ctx;
+  const { catName: c, home } = ctx;
+  const places = { hide: homeWord("躲藏處", ctx.labels) ?? "角落", sofa: homeWord("高處", ctx.labels) ?? "窗台" };
   const fam = home.family;
   const out: Line[] = [];
   if (ctx.nodeId === "first-day") {

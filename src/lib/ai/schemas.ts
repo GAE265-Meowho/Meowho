@@ -156,7 +156,7 @@ export type FloorplanRoomOut = z.infer<typeof floorplanRoomSchema>;
 // 欄位一律必填（Azure 嚴格 structured output 不接受 optional）；長度、說話的人、不含數字由 src/lib/play/ 檢查。
 export const PlayHazardsSchema = z.object({
   hazards: z.array(z.object({
-    key: z.string().describe("英文小寫代碼：電線 cable、窗戶 window、桌上水杯 cup、花瓶或植物 plant、大門 door；其他自訂英文小寫加底線"),
+    key: z.string().describe("英文小寫代碼：電線 cable、窗戶 window、桌上水杯 cup、花瓶或植物 plant、大門 door、布料家具 scratch、細繩 string；其他自訂英文小寫加底線"),
     label: z.string().describe("危險項目名稱，20 字內，不含數字"),
     level: z.enum(["high", "medium", "low"]).describe("風險等級"),
     advice: z.string().describe("建議處理方式，60 字內，不含數字與價格"),

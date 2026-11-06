@@ -1,196 +1,162 @@
-// 虛擬飼養 DEMO（#237）：三個節點的主線劇情。依 catgame（團隊專題專案的「麻糬」劇情）的節點精神改寫成 DEMO 長度：
-//   1. 到家第一天（幼貓）：真的第一天——外出籠、躲〈躲藏處〉、第一次放飯、第一次上廁所。
-//   2. 五年後（成貓）：例行健檢、剪指甲；整場唯一一次居家意外固定插在這裡（events.ts 挑）。
-//   3. 臨終前（成貓，老年感用較慢的動作與台詞表現）：安寧照護的選擇、餵藥、告別、回顧。
-// 節點 1、3 不發生任何隨機事件或意外（flow.ts 會檢查）。麻糬在 DEMO 裡是虎斑貓（後台兩隻虎斑示範貓）。
-// 文字裡的〈躲藏處〉〈高處〉〈沙發〉〈桌上小物〉〈門〉由 room.ts 的 fillPlaces 換成房間裡真的有的東西；{name}＝貓名。
-// 健康相關段落（health: true）在畫面旁顯示「僅供參考，非醫療建議」；只寫降低風險、及早發現、提醒就醫，不寫診斷與治療。
-// 金額是 DEMO 的估算常數（業務規則：數字只來自資料或公式，AI 不產生數字）。
-import type { ChoiceCost } from "./costs";
+// 虛擬飼養 DEMO（#237）：三個節點的主線劇情，照 catgame 原版（團隊專題專案 catgame/src/24i-full-mochi.js 的 MOCHI_NODES）。
+//   節點 1：「第 1 天」（age 2）——躲〈躲藏處〉（小遊戲 hide）、店員小安的叮嚀、第一次清砂盆（小遊戲 scoop）、第一次健檢 1,000 元
+//           原版的 rand: ["dashout"] 拿掉：節點 1 不發生任何隨機事件
+//   節點 2：「五年後」（age 60）——伴侶過敏三選一（含送養結局）、陪玩（小遊戲 play）；整場唯一一次居家意外插在主線之後（events.ts）
+//   節點 3：「最後一週」「接下來的路」「最後一天」（age 181～181.3）——居家安寧／住院／安樂三選一、享年、fullLifeWords；不加事件
+// 台詞、選項、花費、page 小叮嚀照原文；只把麻糬的外觀改成虎斑（原文「一團白色的毛球」）。
+// 文字裡的〈通稱〉由 furniture.ts 的 fullTx 換成房間裡的家具（照原版 FURN_WORD／homeWord）。
+// 金額是原版劇本的估算常數（業務規則：數字只來自資料或公式，AI 不產生數字）。
+// 健康相關的台詞（health: true）旁邊顯示「僅供參考，非醫療建議」與原版 DISCLAIMER。
+import { homeWord as homeWordOf } from "./furniture";
 
 export type NodeId = "first-day" | "five-years" | "farewell";
-export type CatAction = "hide" | "explore" | "eat" | "litter" | "high" | "sofa" | "sleep" | "idle";
-export type MiniId = "carrier" | "feed" | "scoop" | "nail" | "pill";
+export type MiniId = "hide" | "scoop" | "play";
+/** 原版 sc() 的貓姿勢：underbed 床底、hide 躲著、sofa 窩沙發、zoom 跑酷、frail 虛弱、bed 床邊、table 診療台、none 不在畫面、sit 坐著 */
+export type CatPose = "sit" | "underbed" | "hide" | "sofa" | "zoom" | "frail" | "bed" | "table" | "none";
+export type Speaker = "you" | "clerk" | "vet" | "partner" | string;
 
-export interface Line { speaker: string; text: string }
-export interface Option { text: string; good: boolean; feedback: string; cost?: ChoiceCost }
+/** 原版 CHARACTERS 的名字（24c） */
+export const SPEAKER_NAMES: Record<string, string> = {
+  you: "你", clerk: "小安・寵物店店員", vet: "林醫師・動物醫院", partner: "交往的對象",
+};
 
-export interface Beat {
-  id: string;
-  lines: Line[];
-  /** 3D 貓配合的動作 */
-  action?: CatAction;
-  /** 選項的問題 */
-  prompt?: string;
-  options?: Option[];
-  /** 這一段結束後的小遊戲 */
-  mini?: MiniId;
-  /** 健康相關：顯示「僅供參考，非醫療建議」 */
-  health?: boolean;
-  /** AI 依玩家背景加寫的個人化台詞（畫面填入） */
-  personal?: boolean;
-  /** 居家意外或小狀況（events.ts） */
-  event?: boolean;
+export interface Fx { spent?: number; kind?: "med" | "acc"; trust?: number; stress?: number; minutes?: number }
+
+/** 遊戲裡這隻貓這一生的紀錄（原版 ui.exp 的 X，只留 DEMO 用得到的欄位） */
+export interface Life {
+  name: string;
+  /** 幾個月大 */
+  age: number;
+  trust: number;
+  stress: number;
+  flags: Record<string, boolean>;
+  picks: { t: string; good: boolean | null; node: NodeId }[];
+  notes: { t: string; node: NodeId; spent: number }[];
+  events: { node: NodeId; id: string; t: string }[];
+  /** 花費分類：一次性、每月累計、醫療、意外、其他 */
+  cost: { once: number; month: number; med: number; acc: number; other: number };
+  /** 送養結局 */
+  abandoned: boolean;
+  /** 房間物品清單（〈通稱〉替換用） */
+  labels: string[];
 }
+
+export interface Ask {
+  l: string; fx?: Fx; set?: string; pick?: string; good?: boolean | null;
+  /** 這個選項要家裡有什麼才出現（原版 need） */
+  need?: (X: Life) => boolean;
+  then?: Step[];
+}
+
+export type Step =
+  | { k: "line"; t: string; who?: Speaker; health?: boolean }
+  | { k: "scene"; bg: string; time: string; cat: CatPose }
+  | { k: "bub"; bub: string }
+  | { k: "ask"; t: string; who: Speaker; health?: boolean; ask: Ask[] }
+  | { k: "mini"; mini: MiniId; then: (r: unknown) => Step[] }
+  | { k: "rec"; fx?: Fx; note?: string; pick?: string; good?: boolean | null; set?: string }
+  | { k: "fn"; fn: (X: Life) => Step[] }
+  | { k: "end" }
+  /** DEMO：AI 依玩家背景加寫的個人化台詞放在這裡（畫面填入） */
+  | { k: "personal" };
 
 export interface StoryNode {
   id: NodeId;
-  title: string;
-  /** 用哪個貓模型 */
+  /** 原版 label／sub */
+  label: string;
+  sub: string;
+  /** 這一段最後的月齡（每月花費依月齡差累計） */
+  age: number;
+  /** 用哪個 3D 貓模型 */
   body: "kitten" | "adult";
-  /** 動作速度倍率：臨終前放慢 */
+  /** 動作速度倍率：老貓放慢（DEMO 的 3D 表現） */
   speed: number;
-  beats: Beat[];
+  steps: Step[];
+  page: { title: string; tip: string } | null;
 }
 
-export const DISCLAIMER = "僅供參考，非醫療建議";
-const N = "旁白";
-const YOU = "你";
+// ---------- 原版的寫法（24i）：sc、XN、VT、YO ----------
+export const sc = (bg: string, time = "day", cat: CatPose = "sit"): Step => ({ k: "scene", bg, time, cat });
+export const XN = (t: string): Step => ({ k: "line", t });
+export const VT = (t: string): Step => ({ k: "line", who: "vet", t, health: true });
+export const YO = (t: string): Step => ({ k: "line", who: "you", t });
+export const WHO = (who: Speaker, t: string, health?: boolean): Step => ({ k: "line", who, t, ...(health ? { health } : {}) });
+export const BUB = (bub: string): Step => ({ k: "bub", bub });
+export const REC = (r: Omit<Extract<Step, { k: "rec" }>, "k">): Step => ({ k: "rec", ...r });
+export const ASK = (who: Speaker, t: string, ask: Ask[], health?: boolean): Step => ({ k: "ask", who, t, ask, ...(health ? { health } : {}) });
+export const FN = (fn: (X: Life) => Step[]): Step => ({ k: "fn", fn });
+export const END: Step = { k: "end" };
+
+/** 告別時回顧這一生：只說這次真的經歷過的事（原版 24k fullLifeWords） */
+export function fullLifeWords(X: Pick<Life, "picks">): string {
+  const has = (t: string) => X.picks.some(p => p.t.includes(t)), L: string[] = [];
+  if (has("搬家")) L.push("搬家");
+  if (has("工作變忙") || has("出差")) L.push("忙碌的工作");
+  if (has("伴侶過敏") || has("客人")) L.push("你的戀愛");
+  if (has("腎臟") || has("點滴") || has("就醫")) L.push("看醫生的日子");
+  return L.length ? L.slice(0, 3).join("、") : "到家的第一天、半夜的跑酷";
+}
+
+const playResult = (r: unknown) => (r && typeof r === "object" ? (r as { fun?: number }).fun ?? 0 : 0);
 
 export const STORY: readonly StoryNode[] = [
   {
-    id: "first-day", title: "到家第一天", body: "kitten", speed: 1,
-    beats: [
-      {
-        id: "arrive", action: "idle",
-        lines: [
-          { speaker: N, text: "下午兩點，外出籠放在客廳地上。籠子裡的{name}是一隻三個多月大的虎斑小貓，縮在最裡面，只露出一雙圓眼睛。" },
-          { speaker: YOU, text: "（要怎麼讓牠出來呢？）" },
-        ],
-        prompt: "籠門要怎麼開？",
-        options: [
-          { text: "打開籠門，退到旁邊，讓牠自己決定什麼時候出來", good: true, feedback: "剛到新家的貓需要自己確認環境安全，等牠準備好再出來最安心。" },
-          { text: "把牠從籠子裡抱出來，抱著介紹新家", good: false, feedback: "被硬抱出來會讓牠更緊張，第一天先讓牠自己探索。" },
-        ],
-        mini: "carrier",
-      },
-      {
-        id: "hide", action: "hide",
-        lines: [
-          { speaker: N, text: "{name}一踏出籠子，就貼著牆邊鑽進〈躲藏處〉，一動也不動。" },
-          { speaker: YOU, text: "（已經半小時了，牠還是不出來……）" },
-        ],
-        prompt: "這時候你會？",
-        options: [
-          { text: "在附近放水碗和小毯子，坐遠一點小聲說話", good: true, feedback: "給牠看得到、聞得到你但不被打擾的距離，牠會慢慢出來。" },
-          { text: "趴在地上一直伸手進去摸牠", good: false, feedback: "一直伸手會讓牠覺得躲的地方也不安全，先保持距離。" },
-        ],
-      },
-      {
-        id: "dinner", action: "eat",
-        lines: [
-          { speaker: N, text: "傍晚，你把幼貓飼料倒進餐碗。聽到聲音，{name}從〈躲藏處〉探出頭來。" },
-          { speaker: YOU, text: "（幼貓一天要分好幾餐，這一餐要倒多少呢？）" },
-        ],
-        mini: "feed",
-      },
-      {
-        id: "litter", action: "litter",
-        lines: [
-          { speaker: N, text: "睡前，{name}走到貓砂盆，認真地扒了扒砂，蹲了下來。" },
-        ],
-        prompt: "牠在上廁所，你會？",
-        options: [
-          { text: "讓牠安靜上完，等牠離開再清", good: true, feedback: "上廁所時被打擾，貓可能會不想再用這個貓砂盆。" },
-          { text: "馬上湊過去看牠有沒有順利上出來", good: false, feedback: "想確認是好事，但等牠上完再看砂團就好。" },
-        ],
-        mini: "scoop",
-      },
-      {
-        id: "vet-plan", action: "sofa", health: true,
-        lines: [
-          { speaker: N, text: "第一天快結束了，{name}窩在〈沙發〉一角打瞌睡。你想到中途說過，剛到家的小貓最好盡快做一次健康檢查。" },
-        ],
-        prompt: "第一次健康檢查？",
-        options: [
-          { text: "這週就預約動物醫院做健康檢查", good: true, feedback: "及早檢查能及早發現狀況，也讓醫師認識牠。", cost: { category: "medical", amount: 1200 } },
-          { text: "看起來很健康，等生病再去", good: false, feedback: "很多狀況早期看不出來，定期檢查才能及早發現。" },
-        ],
-      },
-      { id: "personal", personal: true, lines: [] },
+    id: "first-day", label: "第 1 天", sub: "麻糬・2 個月", age: 2, body: "kitten", speed: 1,
+    steps: [
+      sc("bedroom", "day", "underbed"),
+      XN("寵物店的小安把提籃交給你。籃子一打開，一團小小的虎斑毛球就咻地鑽進了〈躲藏處〉。"),
+      WHO("clerk", "剛到新家的小貓都會躲起來，這很正常喔。前幾天先別硬抓牠，讓牠自己決定什麼時候出來。"),
+      YO("（〈躲藏處〉黑黑的，只看得到兩顆發亮的眼睛……）"),
+      { k: "mini", mini: "hide", then: r => r === 0
+        ? [REC({ fx: { trust: 10, stress: -10 }, pick: "到家第一天，等牠自己出來", good: true }), sc("bedroom", "dusk"), BUB("heart"), XN("傍晚，麻糬自己走出來，在你腳邊聞了聞，還蹭了一下你的褲管。")]
+        : [REC({ fx: { trust: -10, stress: 15 }, pick: "到家第一天，硬把牠拉出來", good: false }), sc("bedroom", "night", "underbed"), BUB("hiss"), XN("麻糬抓了你一下，又縮回最裡面。那天晚上，牠一直沒有出來。")] },
+      WHO("clerk", "小貓一天要吃 3 到 4 餐。砂盆放在安靜的角落，水碗離飯碗遠一點，牠會比較願意喝水。"),
+      sc("room", "night"), XN("睡前，你第一次幫麻糬清砂盆。"),
+      { k: "mini", mini: "scoop", then: () => [REC({ pick: "第一天就清了砂盆", good: true }), XN("砂盆乾乾淨淨。之後每天都要清一到兩次，順便看看尿塊和便便正不正常。")] },
+      REC({ fx: { spent: 1000, kind: "med" }, note: "第一次健康檢查" }),
     ],
+    page: { title: "到家的第一天", tip: "剛到新家，躲起來是正常的。給牠一個安靜、可以躲的地方，比抱牠更能建立信任。" },
   },
   {
-    id: "five-years", title: "五年後", body: "adult", speed: 1,
-    beats: [
-      {
-        id: "grown", action: "high",
-        lines: [
-          { speaker: N, text: "五年過去了。{name}已經是一隻沉穩的大虎斑，每天早上都會跳上〈高處〉巡視整個家。" },
-          { speaker: YOU, text: "（還記得牠第一天躲在〈躲藏處〉的樣子。）" },
-        ],
-      },
-      {
-        id: "checkup", action: "idle", health: true,
-        lines: [
-          { speaker: N, text: "手機跳出提醒：「{name}的年度健康檢查」。牠最近吃得好、睡得好，看起來沒什麼問題。" },
-        ],
-        prompt: "今年的健康檢查？",
-        options: [
-          { text: "照常帶去，順便問問牙齒和體重", good: true, feedback: "成貓每年健檢能及早發現變化，有狀況越早處理越好。", cost: { category: "medical", amount: 2500 } },
-          { text: "牠看起來很好，今年先跳過", good: false, feedback: "貓很會隱藏不舒服，定期檢查比看外表可靠。" },
-        ],
-      },
-      {
-        id: "nails", action: "sofa",
-        lines: [
-          { speaker: N, text: "{name}在〈沙發〉上伸懶腰，爪子勾住布面，拔了好幾下才拔出來。" },
-          { speaker: YOU, text: "（該剪指甲了。）" },
-        ],
-        mini: "nail",
-      },
-      { id: "event", event: true, lines: [] },
-      { id: "personal", personal: true, lines: [] },
+    id: "five-years", label: "五年後", sub: "麻糬・5 歲", age: 60, body: "adult", speed: 1,
+    steps: [
+      sc("room", "dusk", "sofa"), XN("你交往兩年的對象，第一次來家裡過夜。"),
+      WHO("partner", "哈啾——！抱歉……我好像對貓過敏。"),
+      ASK("partner", "我很喜歡你。可是如果以後要住在一起……麻糬怎麼辦？", [
+        { l: "一起想辦法：空氣清淨機、每天吸地、臥室不讓貓進去", fx: { spent: 8000, minutes: 10 }, pick: "伴侶過敏：一起找兩全的方法", good: true,
+          then: [WHO("partner", "好像真的有差耶。而且……牠剛剛主動來蹭我的腳。"), BUB("heart")] },
+        { l: "把麻糬關在〈可關門的房間〉", fx: { stress: 20, trust: -15 }, need: X => Boolean(homeWordOf("可關門的房間", X.labels)), pick: "伴侶過敏：把貓關起來", good: false,
+          then: [sc("room", "night", "none"), XN("麻糬每天在房門口叫，好像不懂自己做錯了什麼。")] },
+        { l: "幫麻糬找新主人", pick: "伴侶過敏：把麻糬送走", good: false,
+          then: [sc("room", "dusk", "none"), XN("你把麻糬送到了中途之家。離開時，牠在提籃裡一直看著你。"),
+            XN("養一隻貓，是 15 年以上的承諾。搬家、交往、結婚、生小孩，都是最常見的棄養原因。"), END] },
+      ]),
+      sc("room", "dusk"), XN("今天比較早回家。麻糬叼著逗貓棒放在你腳邊。"),
+      { k: "mini", mini: "play", then: r => playResult(r) >= 50
+        ? [REC({ fx: { trust: 4, stress: -5 }, pick: "每天陪玩", good: true }), BUB("heart"), XN("麻糬玩到躺在地上喘氣，肚子一起一伏。")]
+        : [REC({ fx: { trust: 1 }, pick: "陪玩時找不到牠喜歡的玩法", good: null }), XN("麻糬玩了一下就跑去喝水了。也許該換個玩具試試。")] },
     ],
+    page: { title: "生活變了的時候", tip: "交往、結婚、搬家、生小孩，是最常見的棄養原因。養貓之前，先想好：生活變了，我打算怎麼辦？" },
   },
   {
-    id: "farewell", title: "臨終前", body: "adult", speed: 0.55,
-    beats: [
-      {
-        id: "old", action: "sleep",
-        lines: [
-          { speaker: N, text: "{name}十七歲了。牠走得很慢，跳不上〈高處〉了，大部分時間都蜷在牠最喜歡的毯子上睡覺。" },
-          { speaker: YOU, text: "（叫牠的名字，牠還是會慢慢抬頭看你。）" },
-        ],
-      },
-      {
-        id: "hospice", action: "sleep", health: true,
-        lines: [
-          { speaker: "獸醫", text: "牠的身體已經很累了。接下來可以討論，怎麼讓牠最後這段時間舒服一點。" },
-        ],
-        prompt: "你想怎麼陪牠走最後一段？",
-        options: [
-          { text: "在家安寧照護，定期回診，聽醫師的建議調整", good: true, feedback: "在熟悉的家裡、有醫師一起照顧，是很多家庭的選擇。", cost: { category: "medical", amount: 6000 } },
-          { text: "住院積極照護，盡量多陪牠一段時間", good: true, feedback: "這也是愛牠的選擇。和醫師討論牠的感受，一起決定。", cost: { category: "medical", amount: 18000 } },
-        ],
-      },
-      {
-        id: "medicine", action: "sleep", health: true,
-        lines: [
-          { speaker: N, text: "醫師開了每天要吃的藥。要照醫師說的時間和份量餵，不舒服的地方要記下來，回診時告訴醫師。" },
-        ],
-        mini: "pill",
-      },
-      {
-        id: "goodbye", action: "sleep",
-        lines: [
-          { speaker: N, text: "那天晚上很安靜。{name}把頭靠在你的手上，呼嚕聲越來越輕。" },
-        ],
-        prompt: "最後一個晚上，你會？",
-        options: [
-          { text: "關掉電視，陪在牠身邊，輕輕摸牠", good: true, feedback: "熟悉的聲音和味道，就是牠最安心的地方。" },
-          { text: "把牠最喜歡的毯子和玩具放在旁邊，跟牠說謝謝", good: true, feedback: "好好說再見，也是給自己的一段時間。" },
-        ],
-      },
-      { id: "personal", personal: true, lines: [] },
-      {
-        id: "review", action: "sleep",
-        lines: [
-          { speaker: N, text: "從那個縮在外出籠裡的小虎斑，到巡視〈高處〉的大貓，再到最後靠在你手上的老貓。謝謝你陪{name}走完這一生。" },
-        ],
-      },
+    // 原版三個節點（最後一週 181、接下來的路 181.2、最後一天 181.3）接起來演，同快速版第 7 段「告別」
+    id: "farewell", label: "告別", sub: "麻糬・15 歲", age: 181.3, body: "adult", speed: 0.55,
+    steps: [
+      sc("room", "dusk", "frail"), XN("麻糬已經好幾天幾乎不吃東西了，大部分時間都躲在角落。"),
+      sc("vet", "day", "table"), VT("現在可以開始思考接下來的照護方向了。不管選哪一個，都是為了讓牠少一點痛苦。"),
+      ASK("vet", "你想怎麼陪牠？", [
+        { l: "在家安寧照護，陪牠到最後", fx: { minutes: 30 }, set: "endHospice", pick: "最後的照護：居家安寧", good: null,
+          then: [sc("bedroom", "dusk", "bed"), XN("你把麻糬的窩搬到床邊，每天幫牠擦臉、餵一點點流質食物。")] },
+        { l: "住院積極治療", fx: { spent: 30000, kind: "med" }, set: "endHospital", pick: "最後的照護：住院治療", good: null, then: [XN("積極治療多換來了一些日子。你每天下班都去看牠。")] },
+        { l: "在獸醫的陪伴下，讓牠安詳地離開", fx: { spent: 5000, kind: "med" }, set: "endPeace", pick: "最後的照護：在獸醫陪伴下安樂", good: null,
+          then: [XN("你抱著麻糬，輕輕摸著牠的頭。牠在你懷裡安詳地睡去。")] },
+      ], true),
+      FN(X => (X.flags.endPeace ? [] : X.flags.endHospital ? [XN("最後，麻糬在醫院裡離開了。")] : [XN("一個安靜的早晨，麻糬在你身邊離開了。")])),
+      sc("room", "dusk", "none"), FN(X => [XN(`${X.name}享年 ${Math.floor((X.age || 181) / 12)} 歲。牠陪你走過了${fullLifeWords(X)}，和好多個普通的晚上。`)]),
     ],
+    page: { title: "最後的日子", tip: "陪一隻貓走到最後，是養貓最難、也最重要的一部分。這份承諾從收養的那一天就開始了。" },
   },
 ];
 
 export const nodeById = (id: NodeId) => STORY.find(n => n.id === id)!;
+
