@@ -1,6 +1,6 @@
 // 貓咪動作庫（規格書 04 §2.6、§8-9）
 import { describe, expect, it } from "vitest";
-import { buildClipItems, CLIP_LIBRARY, resolveClip } from "./clips";
+import { buildClipItems, CLIP_LIBRARY, clipPupil, DEFAULT_PUPIL, resolveClip } from "./clips";
 
 describe("resolveClip", () => {
   const have = ["idle", "walk", "sleep"];
@@ -33,5 +33,15 @@ describe("buildClipItems", () => {
   it("glb 有、動作庫沒登記的動作也列出並可播", () => {
     const extra = buildClipItems(["idle", "stretch"]).find(i => i.code === "stretch");
     expect(extra).toMatchObject({ available: true, label: "stretch" });
+  });
+});
+
+describe("clipPupil", () => {
+  it("幼貓坐下：瞳孔寬窄 0.67", () => expect(clipPupil("sit", "kitten")).toBe(0.67));
+  it("成貓坐下維持預設", () => expect(clipPupil("sit", "adult")).toBe(DEFAULT_PUPIL));
+  it("沒有指定瞳孔的動作、未登記的動作、沒有動作時都用預設", () => {
+    expect(clipPupil("idle", "kitten")).toBe(DEFAULT_PUPIL);
+    expect(clipPupil("stretch", "kitten")).toBe(DEFAULT_PUPIL);
+    expect(clipPupil(null, "kitten")).toBe(DEFAULT_PUPIL);
   });
 });
