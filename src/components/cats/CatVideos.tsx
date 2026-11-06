@@ -1,6 +1,6 @@
 "use client";
 // 修改貓咪頁的影片（#109；#206 起建貓流程沒有影片這一步，改放在修改頁）：加影片、移除，按下去就存，不用等「儲存修改」。
-// 影片在私人的 Azure 容器（決策 006），預覽用伺服器簽發的短時效網址；AI 看出的個性只存在影片紀錄，不會自動改標籤。
+// 影片在私人的 Azure 容器（決策 006），預覽用伺服器簽發的短時效網址。影片個性判讀已拿掉（2026-11-06），只存影片。
 import { useEffect, useRef, useState } from "react";
 import { postJson } from "@/components/onboarding/Chat";
 import { putUpload, videoDuration } from "@/components/onboarding/media";
@@ -10,11 +10,10 @@ import Icon from "@/components/ui/Icon";
 import { MAX_VIDEOS } from "@/lib/onboarding/conversation";
 import { VIDEO_ERROR } from "@/lib/onboarding/intake-copy";
 import { toCatVideoInserts } from "@/lib/onboarding/intake-rows";
-import { MAX_ANALYZE_VIDEO_BYTES, validateVideoUpload } from "@/lib/storage/media";
+import { validateVideoUpload } from "@/lib/storage/media";
 import type { UploadTarget } from "@/lib/storage/types";
 import { getBrowserSupabase } from "@/lib/supabase/client";
 
-type VideoAi = { result: { isCat: boolean; personalityTags: string[]; reason: string } | null };
 const deleteVideo = (path: string) =>
   fetch("/api/onboarding/cat-video", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ path }) }).catch(() => null);
 
@@ -54,10 +53,7 @@ export function CatVideos({ catId, catName }: { catId: string; catName: string }
         continue;
       }
       setUpload(null);
-      const r = file.size > MAX_ANALYZE_VIDEO_BYTES ? { result: null }
-        : await postJson<VideoAi>("/api/onboarding/cat-video/analyze", { path, sizeBytes: file.size }).catch((): VideoAi => ({ result: null }));
-      const tags = r.result?.isCat ? r.result.personalityTags : [];
-      const { error } = await sb.from("meow_cat_videos").insert(toCatVideoInserts(catId, [path], { [path]: { durationSec, tags, reason: r.result?.reason ?? null } }));
+      const { error } = await sb.from("meow_cat_videos").insert(toCatVideoInserts(catId, [path], { [path]: { durationSec } }));
       if (error) { setNote(`影片沒有存進去：${error.message}`); await deleteVideo(path); continue; }
       count += 1;
       setVideos(v => [...v, { path: path!, url: URL.createObjectURL(file) }]);
