@@ -71,7 +71,7 @@ export function abandonMissing(reasons: string[], note: string): string | null {
   return null;
 }
 
-/** 任務證明的摘要：每個任務第一次就選對、或重選了幾次 */
+/** 試養報告的摘要：每個任務第一次就選對、或重選了幾次 */
 export function proofLines(c: TaskContent, p: RunProgress): { title: string; day: number; tries: number; chosen: string | null }[] {
   return c.tasks.map(t => {
     const picks = p.choices[t.id] ?? [];

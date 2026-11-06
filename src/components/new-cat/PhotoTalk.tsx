@@ -133,7 +133,8 @@ export function TalkStep({ form, set, status, setStatus, sending, onSend }: {
           <input id="f-name" className={s.input} maxLength={30} value={form.name} onChange={e => set(f => touched({ ...f, name: e.target.value }, "name"))} />
         </Field>
         <Field label="性別" tag={tag("sex")}>
-          <Seg label="性別" options={[["male", "公"], ["female", "母"], ["unknown", "不確定"]] as const} value={form.sex} onChange={v => set(f => ({ ...f, sex: v }))} />
+          {/* 只有公、母；沒選存 unknown */}
+          <Seg label="性別" options={[["male", "公"], ["female", "母"]] as const} value={form.sex === "unknown" ? null : form.sex} onChange={v => set(f => ({ ...f, sex: v }))} />
         </Field>
         <Field label={<>大概幾歲<Required /></>} htmlFor="f-age" tag={tag("age")}>
           <div className={s.two}>

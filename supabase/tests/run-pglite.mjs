@@ -611,6 +611,29 @@ try {
   }
 }
 
+// 0026（任務證明改名試養報告，#233）：0001→0017 後跑 0026 兩次，系統訊息換成新名稱，執行權限不變
+{
+  const m = new PGlite();
+  const base = read("./stub_supabase.sql") + ["0001_meow", "0002_meow_hq", "0003_meow_site_assets", "0004_meow_cat_profile", "0005_meow_cat_models", "0006_meow_household_roles", "0007_meow_adoption_forms", "0008_meow_cat_favorites", "0009_meow_cat_returns", "0010_meow_adoption_notify", "0011_meow_threads", "0012_meow_thread_homed", "0013_meow_decline_reason_transfer", "0014_meow_room_models", "0014_meow_returns_in_threads", "0015_meow_room_floorplan", "0016_meow_cat_model_variants", "0017_meow_adoption_tasks"]
+    .map((f) => read(`../migrations/${f}.sql`)).join("");
+  const one = async (sql) => Object.values((await m.query(sql)).rows[0] ?? {})[0];
+  const eq = (name, expected, actual) =>
+    results.push({ name, status: String(actual) === String(expected) ? "PASS" : "FAIL", detail: String(actual) === String(expected) ? null : `預期 ${expected}，實際 ${actual}` });
+  try {
+    await m.exec(base);
+    await m.exec(read("../migrations/0026_meow_trial_report_rename.sql"));
+    await m.exec(read("../migrations/0026_meow_trial_report_rename.sql"));
+    const src = "(select prosrc from pg_proc where proname = 'meow_share_task_proof')";
+    eq("TR-1 系統訊息改成「附上了試養報告。」，舊名稱不再出現", "t|f",
+      await one(`select concat_ws('|', position('附上了試養報告。' in ${src}) > 0, position('任務證明' in ${src}) > 0)`));
+    eq("TR-2 已登入可以執行、未登入不行", "t|f",
+      await one(`select concat_ws('|', has_function_privilege('authenticated', 'public.meow_share_task_proof(uuid)', 'execute'), has_function_privilege('anon', 'public.meow_share_task_proof(uuid)', 'execute'))`));
+  } catch (e) {
+    console.error(`✗ 0026 測試中斷：${e.message}`);
+    process.exit(1);
+  }
+}
+
 let failed = 0;
 for (const r of results) {
   if (r.status === "FAIL") failed++;
