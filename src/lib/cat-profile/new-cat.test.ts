@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { coverAfterRemoveAngle, coverAfterRemoveOther, coverPath, emptyAngles, newCatMissing } from "./new-cat";
+import { catPagePhotos, coverAfterRemoveAngle, coverAfterRemoveOther, coverPath, emptyAngles, newCatMissing } from "./new-cat";
 
 const ok = { name: "橘子", lifeStage: "kitten" as const, angles: { front: "u/front.jpg", left: "u/left.jpg", back: "u/back.jpg" }, consent: true };
 
@@ -45,5 +45,19 @@ describe("UT-03-08：選封面、刪掉封面照後改回預設那張", () => {
     expect(coverAfterRemoveAngle("a:back", "front")).toBe("a:back");
     expect(coverPath("a:back", angles, others)).toBe("o/1.jpg");
     expect(coverPath("o:9", angles, others)).toBe("o/1.jpg");
+  });
+});
+
+describe("貓咪頁的照片（封面排第一張）", () => {
+  const photo_angles = { front: "f.jpg", left: "l.jpg", back: "b.jpg" };
+  it("只有角度照、封面選側面：側面排第一，其餘照順序", () => {
+    expect(catPagePhotos({ cover: "a:left", photo_angles, photo_paths: [] })).toEqual(["l.jpg", "f.jpg", "b.jpg"]);
+  });
+  it("封面是第 2 張生活照：放第一，不重複", () => {
+    expect(catPagePhotos({ cover: "o:1", photo_angles, photo_paths: ["o0.jpg", "o1.jpg"] })).toEqual(["o1.jpg", "f.jpg", "l.jpg", "b.jpg", "o0.jpg"]);
+  });
+  it("沒選封面：用預設（生活照第一張）；舊資料沒有角度照也照樣顯示", () => {
+    expect(catPagePhotos({ cover: null, photo_angles: null, photo_paths: ["o0.jpg"] })).toEqual(["o0.jpg"]);
+    expect(catPagePhotos({ cover: null, photo_angles, photo_paths: null })).toEqual(["f.jpg", "l.jpg", "b.jpg"]);
   });
 });

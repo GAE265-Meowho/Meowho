@@ -19,6 +19,7 @@ import Icon from "@/components/ui/Icon";
 import { effectiveTerms, type AdoptionTerms } from "@/lib/cat-profile/adoption";
 import { compatLines, medicalLines } from "@/lib/cat-profile/display";
 import { ageLabel } from "@/lib/cat-profile/life-stage";
+import { catPagePhotos } from "@/lib/cat-profile/new-cat";
 import { fromCatRow } from "@/lib/onboarding/intake-rows";
 import type { CatFields } from "@/lib/onboarding/conversation";
 import { getBrowserSupabase } from "@/lib/supabase/client";
@@ -48,7 +49,8 @@ export default function CatPage() {
         sb.from("meow_adoption_forms").select("is_open").eq("cat_id", id).maybeSingle(),
       ]);
       if (!row) { setCat(null); return; }
-      setCat({ ...fromCatRow(row), rawStatus: row.status, fromFoster: Boolean(row.origin_household_id) });
+      // #206 起照片分成角度照（photo_angles）和生活照（photo_paths），封面由 cover 指定：都放進來，封面排第一張
+      setCat({ ...fromCatRow(row), photos: catPagePhotos(row), rawStatus: row.status, fromFoster: Boolean(row.origin_household_id) });
       setHome(row.household as Home);
       setFormOpen(Boolean(fm?.is_open));
       fetch(`/api/cats/${id}/videos`).then(r => r.json()).then(d => setVideos(d.videos ?? [])).catch(() => {});
