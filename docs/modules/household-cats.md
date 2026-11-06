@@ -44,8 +44,11 @@
 
 - 2026-11-04 我的喵戶改版（子哲）：每個喵戶一個區塊（頭像、名稱、地區、介紹、右上角修改）；中途有「領養管理」「新增貓咪」與分頁「待領養貓／還在準備」，一般飼主有「生成 3D 環境」「居家安全檢測」與分頁「我的貓／收藏貓」（`src/lib/my-homes.ts`）。貓卡片只留修改圖示；刪除喵戶、刪除貓咪移到修改頁最下方（`src/components/me/DeleteSection.tsx`）。喵戶頭像存 `meow_households.avatar_path`（0019），檔案在 `meow-cat-photos/<喵戶長 id>/households/`，沒上傳就顯示 Google 頭像。
 
+- 2026-11-06 一般飼主建立喵戶（子哲，#233）：住家狀況、同住的人、現有寵物改必填；同住的人加「自己住」、寵物加「沒有」（只能單選，`pickSolo`）；租屋時問房東同不同意；新增養貓經驗（`home.landlord`、`home.experience`）；每月預算存 `meow_household_budgets`（0025，只有喵戶長本人和後台喵戶模組讀得到），不放進公開的 `home`。這些是試養遊戲（#237）的玩家背景；領養問卷會預填同住的人和養貓經驗。
+
 ## 資料表（Supabase）
 - 0024（#206，**尚未執行**）：`meow_cats` 加 `personality_scale`、`personality_notes`、`behavior`、`care`、`intro`、`photo_angles`、`cover`、`ai_story`；`photo_paths` 上限 6（只放生活照）；`compat` 容量放大（多了陌生人 `guest` 與說明 `notes`）；舊的健康標籤（結紮、疫苗、驅蟲、FIV／FeLV）移到 `medical`、個性標籤「安靜」改「慵懶」、生活習慣的護食等移到 `behavior`
+- `meow_household_budgets`（0025）：一般飼主的每月養貓預算，一戶一筆，1～200,000 元；RLS 只給喵戶長本人和後台喵戶模組。子哲 2026-11-06 已在 SQL Editor 執行
 - 已建立：`meow_households`（一個帳號最多 2 戶，trigger 限制）、`meow_cats`（visibility null＝沿用貓戶預設、status own/adoptable/adopted）、Storage bucket `meow-cat-photos`（路徑 `<uid>/<uuid>.jpg`）
 - 0004 草稿（#57，**尚未執行**）：`meow_cats` 加 `life_stage`（四級，新增時必填）、`personality_tags`、`health_tags`、`description`、`photo_paths`（最多 5）；`status` 預設 `adoptable`；新表 `meow_cat_videos`（每隻最多 3 支、每支 60 秒內，RLS 同貓咪）
 - 0017（已執行）：`meow_cats.status` 加 `preparing`（準備中，前台只有喵戶長看得到）；`meow_cat_models.cat_id` 綁定中途的 3D 貓

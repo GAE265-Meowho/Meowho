@@ -9,13 +9,14 @@ export interface ClipDef {
   status: ClipStatus;
 }
 
-export const CLIP_LIBRARY_VERSION = 1;
+export const CLIP_LIBRARY_VERSION = 2;
 export const FALLBACK_CLIP = "idle";
 
 export const CLIP_LIBRARY: readonly ClipDef[] = [
   { code: "idle", label: "待機", status: "ready" },
   { code: "walk", label: "走路", status: "ready" },
   { code: "sleep", label: "睡覺", status: "ready" },
+  { code: "sit", label: "坐下", status: "ready" },
   { code: "eat", label: "吃飯", status: "planned" },
   { code: "toilet", label: "上廁所", status: "planned" },
   { code: "cuddle", label: "撒嬌", status: "planned" },

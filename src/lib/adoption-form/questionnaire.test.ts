@@ -82,6 +82,11 @@ describe("領養人填寫", () => {
     expect(a).toMatchObject({ area: "台中市北屯區", living: "租屋", dwelling: "其他：套房", family: ["伴侶", "其他：阿姨"] });
   });
 
+  it("建立喵戶時選的養貓經驗、自己住也會帶入（#233）", () => {
+    const a = prefillAnswers(qs, { city: "台中市", district: "北屯區", home: { family: ["自己住"], experience: "some" } });
+    expect(a).toMatchObject({ family: ["自己住"], experience: "養過，不到 3 年" });
+  });
+
   it("沒有喵戶時不帶入", () => {
     expect(prefillAnswers(qs, null)).toEqual({});
   });

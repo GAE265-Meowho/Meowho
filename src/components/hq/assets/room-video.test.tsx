@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { RoomView } from "@/lib/hq/rooms/types";
 
@@ -8,6 +8,7 @@ vi.mock("next/dynamic", () => ({ default: () => ({ base }: { base: string }) => 
 vi.mock("@/lib/supabase/config", () => ({ isSupabaseConfigured: true }));
 
 const { RoomVideoTab } = await import("./RoomVideoTab");
+const { RoomVideoRoom } = await import("./RoomVideoRoom");
 
 const NOW = Date.parse("2026-11-03T06:10:00Z");
 const base: RoomView = {
@@ -34,30 +35,32 @@ const renderTab = (q?: string) => {
 };
 
 describe("RoomVideoTab（#93 總覽與進度）", () => {
-  it("列表欄位同貓咪列表，處理中顯示第幾步", async () => {
+  it("每間房一張卡片：縮圖、名稱、進度、建立者、備註，「預覽」連到單間房的頁面", async () => {
     renderTab();
     expect(await screen.findByText("4/6 訓練 3D 畫面・轉換中")).toBeInTheDocument();
-    for (const h of ["縮圖", "名稱", "進度", "建立者", "更新時間", "備註說明"]) expect(screen.getByRole("columnheader", { name: h })).toBeInTheDocument();
     expect(screen.getByText("沙發有拍到")).toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "子哲房間的縮圖" })).toHaveAttribute("src", "https://x/results/a/thumb.jpg");
+    expect(screen.getAllByRole("link", { name: "預覽" }).map(a => a.getAttribute("href")))
+      .toEqual(["/MeowHQ/assets/rooms/room_20261103_140000", "/MeowHQ/assets/rooms/room_20261103_110000"]);
   });
 
-  it("沒選房間時自動顯示處理中那間的任務進度", async () => {
+  it("卡片下方自動顯示處理中那間的任務進度", async () => {
     renderTab();
     expect(await screen.findByRole("region", { name: "任務進度" })).toHaveTextContent("第 4 步／共 6 步：訓練 3D 畫面");
     expect(screen.getByRole("status")).toHaveTextContent("已經過 6 分鐘，整體約需 20 分鐘。這一步最久");
   });
 
-  it("點完成的房間進 3D 檢視並顯示耗時", async () => {
-    renderTab();
-    fireEvent.click(await screen.findByText("子哲房間"));
-    expect(screen.getByTestId("viewer")).toHaveTextContent("https://x/results/a");
-    expect(screen.getByText(/轉換耗時 15 分 9 秒/)).toBeInTheDocument();
-  });
-
   it("搜尋只留符合的房間", async () => {
     renderTab("子哲");
     expect(await screen.findByText("子哲房間")).toBeInTheDocument();
-    expect(screen.queryByRole("cell", { name: "客廳" })).toBeNull();
+    expect(screen.queryByText("客廳")).toBeNull();
+  });
+
+  it("單間房的頁面：完成的進 3D 檢視並顯示耗時與下載", async () => {
+    render(<RoomVideoRoom id="room_20261103_110000" />);
+    expect(await screen.findByTestId("viewer")).toHaveTextContent("https://x/results/a");
+    expect(screen.getByText(/轉換耗時 15 分 9 秒/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "下載" })).toBeInTheDocument();
   });
 
   it("排隊超過 2 分鐘提醒 worker 可能沒開", async () => {

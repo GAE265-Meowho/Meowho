@@ -5,6 +5,7 @@
 執行（擇一）：
   blender -b --factory-startup --python scripts/blender/furniture_kit.py
   python3 scripts/blender/furniture_kit.py            # 已安裝 bpy 模組（pip install bpy）
+  blender -b --factory-startup --python scripts/blender/furniture_kit.py -- fan   # 只重產指定家具（kit.json 合併）
 
 輸出：public/hq-floorplan/furniture/<kind>.glb、kit.json；public/hq-floorplan/textures/floor_oak*.jpg
 座標：Blender 公尺、Z 向上；家具正面朝 -Y、背面貼 +Y；底部中心在原點。
@@ -13,12 +14,13 @@ kit.json 的 w／d／ref_h：網頁縮放用。ref_h 是「AI 讀到的高度」
 """
 import json
 import math
+import sys
 from pathlib import Path
 
 import bpy  # 要先載入 bpy，bmesh 才找得到（pip 版 bpy）
 import bmesh
 import numpy as np
-from mathutils import Matrix
+from mathutils import Matrix, Vector
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 OUT = ROOT / "public" / "hq-floorplan" / "furniture"
@@ -177,7 +179,7 @@ def mat(name, color=(0.8, 0.8, 0.8), rough=0.5, metal=0.0, tex=None, tile=1.0, n
     return m
 
 
-def build_materials():
+def build_materials(save_floor=True):
     rng = np.random.default_rng(SEED)
     T, N = {}, {}
     for key, fn, strength in (("floor", tex_floor, 2.0), ("veneer", tex_veneer, 1.5),
@@ -186,8 +188,9 @@ def build_materials():
         T[key] = image(f"T_{key}", rgb)
         N[key] = image(f"T_{key}_n", normal_from_height(h, strength), non_color=True)
     N["fabric"] = image("T_fabric_n", normal_from_height(tex_fabric(256, rng), 4.0), non_color=True)
-    save_jpg(T["floor"], OUT_TEX / "floor_oak.jpg")
-    save_jpg(N["floor"], OUT_TEX / "floor_oak_normal.jpg")
+    if save_floor:
+        save_jpg(T["floor"], OUT_TEX / "floor_oak.jpg")
+        save_jpg(N["floor"], OUT_TEX / "floor_oak_normal.jpg")
     return dict(
         veneer=mat("M_Wood_Veneer", rough=0.5, tex=T["veneer"], tile=1.0, normal=N["veneer"], strength=0.6),
         stone=mat("M_Stone", rough=0.25, tex=T["stone"], tile=1.0, normal=N["stone"], strength=0.4),
@@ -202,12 +205,19 @@ def build_materials():
         ceramic=mat("M_Ceramic", (0.95, 0.95, 0.94), 0.15),
         brass=mat("M_Brass", (0.75, 0.58, 0.33), 0.3, metal=1.0),
         alu=mat("M_Aluminium", (0.40, 0.40, 0.40), 0.35, metal=1.0),
+        plastic=mat("M_Plastic_Cream", (0.92, 0.90, 0.84), 0.35),
+        blade=mat("M_Plastic_Blade", (0.86, 0.89, 0.91), 0.2),
+        button=mat("M_Plastic_Grey", (0.35, 0.36, 0.38), 0.4),
     )
 
 
 # ---------------------------------------------------------------------------
 # 建模（MeshBuilder 沿用 meowho_3d_room）
 # ---------------------------------------------------------------------------
+# 圓柱／圓環的中心軸：z 直立；y 前後向（扇頭朝 -Y）；x 左右
+AXIS_ROT = {"z": Matrix.Identity(4), "y": Matrix.Rotation(math.pi / 2, 4, "X"), "x": Matrix.Rotation(math.pi / 2, 4, "Y")}
+
+
 class MeshBuilder:
     def __init__(self, name):
         self.name = name
@@ -252,15 +262,46 @@ class MeshBuilder:
         bmesh.ops.recalc_face_normals(self.bm, faces=faces)
         return self
 
-    def cyl(self, center, r, depth, m, segs=24):
-        M = Matrix.Translation(center)
+    def cyl(self, center, r, depth, m, segs=24, axis="z"):
+        M = Matrix.Translation(center) @ AXIS_ROT[axis]
         verts = bmesh.ops.create_cone(self.bm, cap_ends=True, cap_tris=False, segments=segs,
                                       radius1=r, radius2=r, depth=depth, matrix=M)["verts"]
         self._tag(verts, m)
         return self
 
-    def ellipsoid(self, center, radii, m):
-        M = Matrix.Translation(center) @ Matrix.Diagonal((*radii, 1.0))
+    def rod(self, p0, p1, r, m, segs=6):
+        """兩點之間的細圓桿（網罩鋼絲）"""
+        p0, p1 = Vector(p0), Vector(p1)
+        d = p1 - p0
+        rot = Vector((0, 0, 1)).rotation_difference(d.normalized()).to_matrix().to_4x4()
+        M = Matrix.Translation((p0 + p1) / 2) @ rot
+        verts = bmesh.ops.create_cone(self.bm, cap_ends=True, cap_tris=False, segments=segs,
+                                      radius1=r, radius2=r, depth=d.length, matrix=M)["verts"]
+        self._tag(verts, m)
+        return self
+
+    def torus(self, center, R, r, m, axis="z", segs=48, tsegs=6):
+        M = Matrix.Translation(center) @ AXIS_ROT[axis]
+        ring = []
+        for i in range(segs):
+            u = 2 * math.pi * i / segs
+            ring.append([self.bm.verts.new(M @ Vector(((R + r * math.cos(v)) * math.cos(u),
+                                                       (R + r * math.cos(v)) * math.sin(u), r * math.sin(v))))
+                         for v in (2 * math.pi * j / tsegs for j in range(tsegs))])
+        idx = self.mi(m)
+        faces = []
+        for i in range(segs):
+            a, b = ring[i], ring[(i + 1) % segs]
+            for j in range(tsegs):
+                k = (j + 1) % tsegs
+                faces.append(self.bm.faces.new((a[j], b[j], b[k], a[k])))
+        for f in faces:
+            f.material_index = idx
+        bmesh.ops.recalc_face_normals(self.bm, faces=faces)
+        return self
+
+    def ellipsoid(self, center, radii, m, rot=None):
+        M = Matrix.Translation(center) @ (rot or Matrix.Identity(4)) @ Matrix.Diagonal((*radii, 1.0))
         verts = bmesh.ops.create_uvsphere(self.bm, u_segments=20, v_segments=12, radius=1.0, matrix=M)["verts"]
         self._tag(verts, m)
         return self
@@ -474,19 +515,48 @@ def other(M):
 
 
 def fan(M):
-    """落地電風扇：圓座＋立柱＋圓框扇葉（簡化）"""
+    """落地電風扇（立扇）：圓座＋控制面板、伸縮立柱、馬達殼、直立網罩（外圈＋前後輻條＋同心圈）、五片斜扇葉"""
     w, d, h = 0.4, 0.4, 1.0
+    zc, R = 0.80, 0.19                        # 扇頭中心高度、網罩半徑（頂端約 1.0 m）
+    y_rim, y_front, y_back = -0.10, -0.16, -0.05
     b = MeshBuilder("fan")
-    b.cyl((0, 0, 0.03), 0.16, 0.06, M["black"], segs=16)
-    b.cyl((0, 0, 0.06), 0.025, 0.72, M["alu"], segs=12)
-    # 扇頭中心約 0.85 m
-    b.cyl((0, -0.02, 0.85), 0.04, 0.08, M["black"], segs=12)
-    b.cyl((0, 0.02, 0.85), 0.18, 0.03, M["alu"], segs=20)  # 外框
+    P, Bl = M["plastic"], M["blade"]
+    # 底座與控制面板
+    b.cyl((0, 0, 0.0175), 0.17, 0.035, P, segs=40)
+    b.ellipsoid((0, 0, 0.035), (0.165, 0.165, 0.022), P)
+    b.box((-0.065, -0.165, 0.02), (0.065, -0.10, 0.05), P, bevel=0.01, segs=2)
+    for i in range(4):
+        x = -0.045 + i * 0.03
+        b.box((x - 0.01, -0.15, 0.05), (x + 0.01, -0.125, 0.056), M["button"], bevel=0.002)
+    b.cyl((0, 0, 0.06), 0.035, 0.04, P, segs=24)
+    # 立柱：下粗上細，中間有鎖緊環
+    b.cyl((0, 0, 0.31), 0.02, 0.5, P, segs=16)
+    b.cyl((0, 0, 0.56), 0.027, 0.035, P, segs=16)
+    b.cyl((0, 0, 0.65), 0.013, 0.17, P, segs=12)
+    b.box((-0.03, -0.03, 0.70), (0.03, 0.03, 0.74), P, bevel=0.01, segs=2)
+    # 馬達殼（朝 -Y 為正面）
+    b.cyl((0, 0, zc), 0.075, 0.12, P, segs=32, axis="y")
+    b.ellipsoid((0, 0.06, zc), (0.075, 0.045, 0.075), P)
+    # 扇葉：輪轂＋五片有傾角的扇葉
+    b.cyl((0, -0.09, zc), 0.035, 0.07, P, segs=24, axis="y")
+    b.ellipsoid((0, -0.125, zc), (0.035, 0.015, 0.035), P)
     for i in range(5):
-        a = i * (2 * math.pi / 5)
-        bx = 0.12 * math.cos(a)
-        by = 0.02 + 0.12 * math.sin(a)
-        b.box((-0.02 + bx, -0.01 + by, 0.83), (0.02 + bx, 0.01 + by, 0.87), M["greige"])
+        a = 2 * math.pi * i / 5
+        rot = Matrix.Rotation(a, 4, "Y") @ Matrix.Translation((0.095, 0, 0)) @ Matrix.Rotation(math.radians(25), 4, "X")
+        b.ellipsoid((0, -0.105, zc), (0.08, 0.006, 0.045), Bl, rot=rot)
+    # 網罩：外圈、前後輻條、前面同心圈與中央飾蓋
+    b.torus((0, y_rim, zc), R, 0.007, P, axis="y", segs=64, tsegs=8)
+    r_front, r_back = 0.04, 0.075
+    for i in range(28):
+        a = 2 * math.pi * i / 28
+        c, s = math.cos(a), math.sin(a)
+        rim = (R * c, y_rim, zc + R * s)
+        b.rod(rim, (r_front * c, y_front, zc + r_front * s), 0.0022, P)
+        b.rod(rim, (r_back * c, y_back, zc + r_back * s), 0.0022, P)
+    for r in (0.09, 0.14):
+        y = y_front + (r - r_front) / (R - r_front) * (y_rim - y_front)
+        b.torus((0, y, zc), r, 0.0025, P, axis="y", segs=48, tsegs=5)
+    b.cyl((0, y_front - 0.003, zc), 0.045, 0.012, P, segs=32, axis="y")
     return b, (w, d, h)
 
 
@@ -536,11 +606,17 @@ KINDS = dict(sofa=sofa, bed=bed, table=table, chair=chair, desk=desk, wardrobe=w
 
 
 def main():
+    # 只重產指定家具：blender -b --factory-startup --python scripts/blender/furniture_kit.py -- fan
+    args = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
+    only = [k for k in args if k in KINDS]
     bpy.ops.wm.read_factory_settings(use_empty=True)
     OUT.mkdir(parents=True, exist_ok=True)
-    M = build_materials()
-    kit = {}
+    M = build_materials(save_floor=not only)
+    kit_path = OUT / "kit.json"
+    kit = json.loads(kit_path.read_text())["kinds"] if only and kit_path.exists() else {}
     for kind, fn in KINDS.items():
+        if only and kind not in only:
+            continue
         for o in list(bpy.data.objects):
             bpy.data.objects.remove(o, do_unlink=True)
         b, (w, d, ref_h) = fn(M)
@@ -555,7 +631,7 @@ def main():
                                   export_cameras=False, export_lights=False)
         kit[kind] = {"w": round(w, 3), "d": round(d, 3), "ref_h": round(ref_h, 3), "tris": tris, "bytes": path.stat().st_size}
         print(f"{kind}: {kit[kind]}")
-    (OUT / "kit.json").write_text(json.dumps({"version": 1, "units": "metres", "front": "+z", "kinds": kit}, indent=2) + "\n")
+    kit_path.write_text(json.dumps({"version": 1, "units": "metres", "front": "+z", "kinds": kit}, indent=2) + "\n")
 
 
 if __name__ == "__main__":

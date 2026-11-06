@@ -1,6 +1,6 @@
 "use client";
 // 對話框裡的領養任務狀態（規格 09 §7.4）：資料來自 0017 的 meow_thread_task_status。
-// 中途看到：系統認證（完成過這隻貓的任務）、附上的任務證明、放棄任務標籤；領養人看到自己的完成狀態，可以「附上任務證明」。
+// 中途看到：系統認證（完成過這隻貓的任務）、附上的試養報告、放棄任務標籤；領養人看到自己的完成狀態，可以「附上試養報告」。
 // 放棄任務標籤只有中途拿得到，領養人自己的畫面不顯示（資料庫也不回）。
 import { useEffect, useState } from "react";
 import f from "@/components/onboarding/intake.module.css";
@@ -61,7 +61,7 @@ export function TaskProof({ threadId, catId, catName, isKeeper, showHint, refres
       {st.proof && (isKeeper || st.proof.shared_at) && lines.length > 0 && (
         <>
           <button type="button" className={s.toggle} aria-expanded={open} onClick={() => setOpen(v => !v)}>
-            任務證明<span aria-hidden>{open ? "收合" : "展開"}</span>
+            試養報告<span aria-hidden>{open ? "收合" : "展開"}</span>
           </button>
           {open && (
             <ul className={s.proofList}>
@@ -72,7 +72,7 @@ export function TaskProof({ threadId, catId, catName, isKeeper, showHint, refres
         </>
       )}
       {!isKeeper && st.proof && !st.proof.shared_at && (
-        <div className={f.actions}><CatButton size="sm" disabled={busy} onClick={share}>附上任務證明</CatButton></div>
+        <div className={f.actions}><CatButton size="sm" disabled={busy} onClick={share}>附上試養報告</CatButton></div>
       )}
     </div>
   );

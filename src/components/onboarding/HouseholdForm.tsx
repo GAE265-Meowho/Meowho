@@ -7,7 +7,8 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { TW_CITIES, TW_DISTRICTS } from "@/lib/geo/tw-districts";
 import {
-  DWELLINGS, FAMILY, LIVING, PETS, ROLES, ROLE_INFO, checkHousehold, emptyHouseholdForm, toHouseholdRow, toHouseholdUpdate, verificationRow,
+  ALONE, DWELLINGS, EXPERIENCE, FAMILY, LANDLORD, LIVING, NO_PETS, PETS, ROLES, ROLE_INFO, budgetRow, checkHousehold, emptyHouseholdForm, pickSolo,
+  toHouseholdRow, toHouseholdUpdate, verificationRow,
   type HouseholdForm as Form, type MissingField,
 } from "@/lib/onboarding/household-rules";
 import { getBrowserSupabase } from "@/lib/supabase/client";
@@ -18,7 +19,8 @@ import { HouseholdAvatar } from "./HouseholdAvatar";
 import s from "./intake.module.css";
 
 const MISSING_LABEL: Record<MissingField, string> = {
-  role: "身分", name: "喵戶名稱", nameTaken: "不重複的喵戶名稱（你已經有同名的喵戶）", city: "縣市", district: "區", dwelling: "住家型態", orgName: "單位名稱", orgProofUrl: "立案證明連結（網址）",
+  role: "身分", name: "喵戶名稱", nameTaken: "不重複的喵戶名稱（你已經有同名的喵戶）", city: "縣市", district: "區", dwelling: "住家型態",
+  living: "住家狀況", landlord: "房東同不同意養貓", family: "同住的人", pets: "家裡現有的寵物", experience: "養貓經驗", budget: "每月養貓預算（1～200,000 元）", orgName: "單位名稱", orgProofUrl: "立案證明連結（網址）",
 };
 
 export function HouseholdForm({ userId, existingNames, onDemoCreated, onCreated, editing }: {
@@ -59,6 +61,11 @@ export function HouseholdForm({ userId, existingNames, onDemoCreated, onCreated,
         setError(err.message.includes("household_name_taken") ? "你已經有同名的喵戶，換個名字吧。" : `儲存失敗：${err.message}`);
         return;
       }
+      const b = budgetRow(f, editing.id);
+      if (b) {
+        const { error: bErr } = await sb.from("meow_household_budgets").upsert({ ...b, updated_at: new Date().toISOString() });
+        if (bErr) { setSaving(false); setError(`每月預算儲存失敗：${bErr.message}`); return; }
+      }
       router.push("/me");
       return;
     }
@@ -72,6 +79,9 @@ export function HouseholdForm({ userId, existingNames, onDemoCreated, onCreated,
     const v = verificationRow(f, { householdId: data.id, userId });
     // 徽章申請失敗不擋建立喵戶：之後可以在「我的喵戶」重新申請
     if (v) await sb.from("meow_shelter_verifications").insert(v);
+    // 每月預算另存一張只有喵戶長看得到的表（0025）；失敗不擋建立喵戶，之後可以在修改喵戶補上
+    const b = budgetRow(f, data.id);
+    if (b) await sb.from("meow_household_budgets").upsert(b);
     if (onCreated) { onCreated({ id: data.id, name: row.name, role: f.role }); return; }
     router.push("/me");
   }
@@ -128,22 +138,37 @@ export function HouseholdForm({ userId, existingNames, onDemoCreated, onCreated,
             )}
           </div>
           <div className={s.field}>
-            <span className={s.label}>住家狀況</span>
+            <span className={s.label}>住家狀況<Required /></span>
             <OnePick label="住家狀況" options={LIVING} value={f.home.living} onChange={v => setHome({ living: v })} />
           </div>
+          {f.home.living === "rent" && (
+            <div className={s.field}>
+              <span className={s.label}>房東同意養貓嗎<Required /></span>
+              <OnePick label="房東同意養貓嗎" options={LANDLORD} value={f.home.landlord} onChange={v => setHome({ landlord: v })} />
+            </div>
+          )}
           <div className={s.field}>
-            <span className={s.label}>同住的人</span>
-            <MultiPick label="同住的人" options={FAMILY} value={f.home.family} onChange={v => setHome({ family: v })} />
+            <span className={s.label}>同住的人<Required /></span>
+            <MultiPick label="同住的人" options={FAMILY} value={f.home.family} onChange={v => setHome({ family: pickSolo(f.home.family, v, ALONE) })} />
             {f.home.family.includes("其他") && (
               <input aria-label="其他同住的人" value={f.home.familyOther} maxLength={30} placeholder="請說明" onChange={e => setHome({ familyOther: e.target.value })} />
             )}
           </div>
           <div className={s.field}>
-            <span className={s.label}>家裡現有的寵物</span>
-            <MultiPick label="家裡現有的寵物" options={PETS} value={f.home.pets} onChange={v => setHome({ pets: v })} />
+            <span className={s.label}>家裡現有的寵物<Required /></span>
+            <MultiPick label="家裡現有的寵物" options={PETS} value={f.home.pets} onChange={v => setHome({ pets: pickSolo(f.home.pets, v, NO_PETS) })} />
             {f.home.pets.includes("其他動物") && (
               <input aria-label="其他動物" value={f.home.petsOther} maxLength={30} placeholder="例如：兔子、鸚鵡" onChange={e => setHome({ petsOther: e.target.value })} />
             )}
+          </div>
+          <div className={s.field}>
+            <span className={s.label}>養貓經驗<Required /></span>
+            <OnePick label="養貓經驗" options={EXPERIENCE} value={f.home.experience} onChange={v => setHome({ experience: v })} />
+          </div>
+          {/* 每月預算只有自己看得到（0025）；試養遊戲用它分析預算夠不夠、給建議（#237） */}
+          <div className={s.field}>
+            <label className={s.label} htmlFor="h-budget">每月可以花在貓身上的預算（元）<Required /></label>
+            <input id="h-budget" inputMode="numeric" value={f.budget} maxLength={8} placeholder="例如：4000" onChange={e => set({ budget: e.target.value })} />
           </div>
         </>
       )}

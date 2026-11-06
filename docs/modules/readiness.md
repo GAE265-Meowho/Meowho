@@ -4,7 +4,7 @@
 > 規則：本檔隨程式碼同一個 PR 更新；「決策」與「地雷」只增不刪（過時的標註［已失效］）。
 
 ## 目的
-無經驗領養人的準備度：居家環境 AI 報告、AR 3D 貓（加分）、綁定某隻貓的 7 天虛擬試養。
+無經驗領養人的準備度：居家環境 AI 報告、AR 3D 貓（加分）、綁定某隻貓的虛擬試養（3 個節點：到家第一天、五年後、臨終前）。
 
 ## 負責
 主責：F、D｜支援：E
@@ -87,12 +87,12 @@
 - **給做環境報告（第 4 步）的人**：影片在 `meow_room_models.video_path`（`meow-home-videos`）。房間 worker 處理完時若報告還是 `queued`／`running`，影片會留著；報告處理完時若房間已不是 `queued`／`running`，就由報告那邊刪影片、把房間的 `video_path` 設 null、寫 `raw_deleted_at`。
 - 0017 已建好上面的 bucket、policy、欄位；0022 修正兩條 storage policy（子查詢的 `name` 對到喵戶名稱，喵戶長上傳一律被擋），2026-11-05 珮瑜已在正式資料庫執行。要改資料庫時新開 migration，執行前給子哲確認。
 - 要一直保持通過的測試：`src/lib/home-room.test.ts`（按鈕狀態、檢測紀錄）、`src/lib/task-run.test.ts`（家具替換）。
-- AI 摘要（`meow_task_runs.summary`）還沒做：完成任務後由伺服器（service role）寫入，對話框的任務證明已經會顯示。
+- AI 摘要（`meow_task_runs.summary`）還沒做：完成任務後由伺服器（service role）寫入，對話框的試養報告已經會顯示。
 
 ## 資料表（Supabase）
 - ［已失效］`env_reports`、`virtual_sessions`、`virtual_tasks`（規劃名稱，改用下列 0017 的表）
 - 領養任務：`meow_task_templates`（系統預設任務，依年齡層）、`meow_cat_task_sets`（中途草稿）、`meow_cat_task_versions`（存了就不改）
-- 進行任務：`meow_task_runs`（進度、任務證明）、`meow_task_abandons`（放棄任務標籤，只有中途讀得到）
+- 進行任務：`meow_task_runs`（進度、試養報告）、`meow_task_abandons`（放棄任務標籤，只有中途讀得到）
 - 我的 3D 房間：`meow_room_models`（`owner_household_id`、`completed_at`、`raw_deleted_at`；`env_check` 11/04 起不再使用，之後的 migration 再移除）；私有 bucket `meow-home-videos`、`meow-home-scenes`
 - 環境報告：`meow_env_reports`、`meow_env_report_shares`、`meow_env_report_advice`；私有 bucket `meow-home-risk-crops`。同一個喵戶可以有多份（檢測紀錄），單獨檢測的 `room_model_id` 為 null
 
@@ -109,7 +109,7 @@
 - 2026-10-31（子哲，決策 007）：居家環境原始影片與照片在 3D 場景和環境報告產出後立即刪除，只留風險裁切照；3D 場景只有領養人看得到；環境報告由領養人在私訊中主動分享給喵戶長；喵戶長可對每個風險項目寫建議。
 - 環境報告（影片＋Vision）為核心，AR 為加分；iOS 降級為 3D 檢視。
 - 虛擬試養綁定想領養的那隻貓；同時只能一隻。
-- 2026-11-03（子哲，spec 09）：領養任務在飼主自己的 3D 房間進行；中途改任務時，正在做的人用開始時那版；放棄要選理由，放棄任務標籤只有該貓中途看得到；任務證明非申請必要條件但強烈建議。
+- 2026-11-03（子哲，spec 09）：領養任務在飼主自己的 3D 房間進行；中途改任務時，正在做的人用開始時那版；放棄要選理由，放棄任務標籤只有該貓中途看得到；試養報告非申請必要條件但強烈建議。
 - ［已失效，見 11-04］2026-11-03（子哲，spec 09）：環境檢查在上傳前詢問、按「完成」時再提醒；居家原始影像改成飼主按「完成」且報告產出後才刪（決策 007 待補充）。
 - 2026-11-04（子哲，spec 09 v0.6）：建立 3D 房間簡化成三步，環境檢查一律同時做、不詢問；處理完（成功或失敗）立即刪除原始檔，回到決策 007；可單獨做居家安全檢測，多份報告留成檢測紀錄。
 
@@ -121,7 +121,7 @@
 - 影像生成方案。
 - ［已處理，2026-11-06］虛擬飼養 DEMO 的劇情與小遊戲已改成照 catgame 原版。
 - `meow_items` 是否開放公開讀取（子哲）；餐碗組路徑 `test_bowls_…` 是測試上傳，正式版換掉時 `items.ts` 也要改。
-- 7 天任務劇情格式（待和渝茜確認）。
+- 任務劇情已定為渝茜 #237 的 3 個節點（2026-11-06，子哲）；遊戲開始前的初始資料 API 見 #233。
 - 系統預設任務的內容與維護者。
 
 ## 地雷
