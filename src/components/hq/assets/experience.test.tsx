@@ -15,7 +15,8 @@ const viewer = vi.hoisted(() => ({
     rooms: { id: string; furniture?: { kind: string; parent?: number }[] }[];
     cat: { body: string; albedoUrl: string; baseUrl: string } | null;
     onFloorDrop?: (itemId: string, at: { roomId: string; x: number; z: number; y: number; support: { furnitureIndex: number; localX: number; localZ: number } | null }) => void;
-    onMoveItem?: (key: string, at: { x: number; z: number; y: number; support: { furnitureIndex: number; localX: number; localZ: number } | null }) => void;
+    onMoveItem?: (key: string, at: { x: number; z: number; y: number; rotY: number; support: { furnitureIndex: number; localX: number; localZ: number } | null }) => void;
+    onRotateItem?: (key: string) => void;
     onRemoveItem?: (key: string) => void;
     onRemoveFurniture?: (roomId: string, furnitureIndex: number) => void;
     onMoveFurniture?: (roomId: string, furnitureIndex: number, next: { x: number; z: number; rot?: number; support?: unknown }, prev: { x: number; z: number }) => void;
@@ -25,7 +26,7 @@ const viewer = vi.hoisted(() => ({
     onPlace?: unknown;
     placeMode?: boolean;
     interactMode?: "point" | "hand";
-    placedItems?: { key: string; name: string; x: number; z: number; y: number; support?: { furnitureIndex: number; localX: number; localZ: number } | null }[];
+    placedItems?: { key: string; name: string; x: number; z: number; y: number; rotY?: number; support?: { furnitureIndex: number; localX: number; localZ: number } | null }[];
   },
 }));
 vi.mock("./FloorplanViewer", () => ({
@@ -187,6 +188,9 @@ describe("虛擬體驗（#150）", () => {
     await waitFor(() => expect(viewer.last?.placedItems?.some(p => p.name === "逗貓棒" && p.x === 1.2 && p.z === 0.8 && p.y === 0)).toBe(true));
     const key = viewer.last!.placedItems!.find(p => p.name === "逗貓棒")!.key;
     expect(viewer.last?.onRemoveItem).toBeTypeOf("function");
+    expect(viewer.last?.onRotateItem).toBeTypeOf("function");
+    viewer.last!.onRotateItem!(key);
+    await waitFor(() => expect(viewer.last?.placedItems?.find(p => p.key === key)?.rotY).toBe(90));
     viewer.last!.onRemoveItem!(key);
     await waitFor(() => expect(viewer.last?.placedItems?.some(p => p.key === key)).toBe(false));
   });

@@ -92,6 +92,7 @@ function placeFromItem(item: HouseholdItem, at: PlaceAt, list: PlacedHouseholdIt
     widthM: item.widthM ?? 0.5,
     depthM: item.depthM ?? 0.5,
     heightM: item.heightM ?? 0.4,
+    rotY: 0,
     support: at.support,
   };
 }
@@ -169,8 +170,12 @@ export function ExperienceTab() {
     setPlaced(list => [...list, placeFromItem(item, at, list)]);
   };
 
-  const moveItem = (key: string, at: { x: number; z: number; y: number; support: PlacedHouseholdItem["support"] }) => {
-    setPlaced(list => list.map(it => (it.key === key ? { ...it, x: at.x, z: at.z, y: at.y, support: at.support ?? null } : it)));
+  const moveItem = (key: string, at: { x: number; z: number; y: number; rotY: number; support: PlacedHouseholdItem["support"] }) => {
+    setPlaced(list => list.map(it => (it.key === key ? { ...it, x: at.x, z: at.z, y: at.y, rotY: at.rotY, support: at.support ?? null } : it)));
+  };
+
+  const rotateItem = (key: string) => {
+    setPlaced(list => list.map(it => it.key === key ? { ...it, rotY: ((it.rotY ?? 0) + 90) % 360 } : it));
   };
 
   const removeItem = (key: string) => {
@@ -328,7 +333,7 @@ export function ExperienceTab() {
                   <FloorplanViewer key={`${houseId}:${cat?.id}:${body}`} rooms={house.data.rooms} selected={room} onPick={setRoom}
                     cat={look} placedItems={placed} interactMode={interactMode}
                     removedFurniture={removedFurniture} furnitureMoves={furnitureMoves}
-                    onMoveItem={moveItem} onRemoveItem={removeItem}
+                    onMoveItem={moveItem} onRotateItem={rotateItem} onRemoveItem={removeItem}
                     onRemoveFurniture={removeFurniture} onMoveFurniture={moveFurniture}
                     onRotateFurniture={rotateFurniture}
                     onFloorDrop={dropItem} />
@@ -360,7 +365,7 @@ export function ExperienceTab() {
                     <p className="hq-hint">
                       {interactMode === "point"
                         ? "點模式：點地板叫貓走；點床、沙發、桌子會跳上去。下方用品仍可拖進房間放置。"
-                        : "手掌模式：拖家具（不穿牆）；桌上物可拆到地板或其他家具；↻ 右轉 90°；× 暫時移除。"}
+                        : "手掌模式：拖家具與生活用品（不穿牆）；桌上物可拆到地板或其他家具；↻ 右轉 90°；× 暫時移除。"}
                     </p>
                     {catalog.state === "loading" ? <HqSkeleton rows={3} />
                       : catalog.state === "error" ? <p className="hq-hint" role="alert">生活用品選單載入失敗。</p>
