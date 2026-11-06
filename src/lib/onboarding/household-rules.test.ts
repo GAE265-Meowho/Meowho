@@ -1,16 +1,38 @@
 import { describe, expect, it } from "vitest";
-import { canAddHousehold, checkHousehold, defaultCatStatus, emptyHouseholdForm, fromHouseholdRow, toHouseholdRow, toHouseholdUpdate, verificationRow, type HouseholdForm } from "./household-rules";
+import { budgetRow, canAddHousehold, checkHousehold, defaultCatStatus, emptyHouseholdForm, fromHouseholdRow, parseBudget, pickSolo, toHouseholdRow, toHouseholdUpdate, verificationRow, type Home, type HouseholdForm } from "./household-rules";
 
 const base = (o: Partial<HouseholdForm>): HouseholdForm => ({ ...emptyHouseholdForm(), city: "台中市", district: "北屯區", ...o });
+/** 必填都填好的一般飼主 */
+const owner = (h: Partial<Home> = {}): HouseholdForm => base({
+  role: "cat_owner", name: "子哲的家", budget: "4000",
+  home: { ...emptyHouseholdForm().home, dwelling: "apartment", living: "family", family: ["自己住"], pets: ["沒有"], experience: "none", ...h },
+});
 
 describe("依身分建立喵戶：必填欄位", () => {
   it("沒選身分不能建立", () => {
     expect(checkHousehold(base({}))).toContain("role");
   });
 
-  it("一般飼主：名稱與住家型態必填", () => {
-    expect(checkHousehold(base({ role: "cat_owner" }))).toEqual(["name", "dwelling"]);
-    expect(checkHousehold(base({ role: "cat_owner", name: "子哲的家", home: { ...emptyHouseholdForm().home, dwelling: "apartment" } }))).toEqual([]);
+  it("一般飼主：名稱、住家型態、住家狀況、同住的人、現有寵物、養貓經驗、每月預算必填（#233）", () => {
+    expect(checkHousehold(base({ role: "cat_owner" }))).toEqual(["name", "dwelling", "living", "family", "pets", "experience", "budget"]);
+    expect(checkHousehold(owner())).toEqual([]);
+  });
+
+  it("租屋要回答房東同不同意養貓", () => {
+    const rent = owner({ living: "rent", landlord: null });
+    expect(checkHousehold(rent)).toEqual(["landlord"]);
+    expect(checkHousehold(owner({ living: "rent", landlord: "asking" }))).toEqual([]);
+    expect(checkHousehold(owner({ living: "own", landlord: null }))).toEqual([]);
+  });
+
+  it("每月預算要是 1～200,000 的整數，可以寫千分位", () => {
+    expect(parseBudget("4,000")).toBe(4000);
+    expect(parseBudget(" 3500 ")).toBe(3500);
+    expect(parseBudget("0")).toBeNull();
+    expect(parseBudget("200001")).toBeNull();
+    expect(parseBudget("3.5")).toBeNull();
+    expect(parseBudget("很多")).toBeNull();
+    expect(checkHousehold({ ...owner(), budget: "abc" })).toEqual(["budget"]);
   });
 
   it("同一個帳號裡喵戶名稱不能重複（忽略前後空白與大小寫）", () => {
@@ -54,6 +76,27 @@ describe("寫入資料庫的格式", () => {
     expect(row).toMatchObject({ name: "小橘之家", home: null, adoption_terms: { items: ["不放養", "家訪"], note: "" }, org_name: null });
     expect(defaultCatStatus("personal_foster")).toBe("preparing");
     expect(defaultCatStatus("shelter_org")).toBe("preparing");
+  });
+});
+
+describe("「自己住」「沒有」只能單選", () => {
+  it("選了自己住就清掉其他人；選了其他人就拿掉自己住", () => {
+    expect(pickSolo(["伴侶", "室友"], ["伴侶", "室友", "自己住"], "自己住")).toEqual(["自己住"]);
+    expect(pickSolo(["自己住"], ["自己住", "伴侶"], "自己住")).toEqual(["伴侶"]);
+    expect(pickSolo(["貓"], ["貓", "沒有"], "沒有")).toEqual(["沒有"]);
+    expect(pickSolo(["貓"], ["貓", "狗"], "沒有")).toEqual(["貓", "狗"]);
+  });
+});
+
+describe("每月預算存在另一張表（只有喵戶長看得到，0025）", () => {
+  it("一般飼主才存，中途回傳 null", () => {
+    expect(budgetRow({ ...owner(), budget: "4,000" }, "h1")).toEqual({ household_id: "h1", monthly_twd: 4000 });
+    expect(budgetRow(base({ role: "personal_foster", budget: "4000" }), "h1")).toBeNull();
+  });
+  it("房東與養貓經驗存在住家資料；不是租屋就不存房東", () => {
+    const row = toHouseholdRow(owner({ living: "own", landlord: "yes", experience: "long" }));
+    expect(row.home).toMatchObject({ living: "own", landlord: null, experience: "long" });
+    expect(row.home).not.toHaveProperty("budget");
   });
 });
 

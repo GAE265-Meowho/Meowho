@@ -1,6 +1,6 @@
 "use client";
 // 進行領養任務（規格 09 §7.3、§7.4）：要登入、有喵戶、有 3D 房間（缺哪一步就引導，做完回來）。
-// 同時只能進行一隻貓的任務；進度存在 meow_task_runs（可以分次完成），全部完成後產生任務證明，帶去和中途對話。
+// 同時只能進行一隻貓的任務；進度存在 meow_task_runs（可以分次完成），全部完成後產生試養報告，帶去和中途對話。
 // 寫入走 0017 的資料庫函式：meow_start_task_run、meow_abandon_task_run、meow_complete_task_run、meow_share_task_proof。
 // 3D：目前顯示這隻貓的 3D 模型＋文字情境；把貓放進「我的 3D 房間」演出動作，等房間轉換接上後在 TaskStage 處理（docs/modules/readiness.md）。
 import dynamic from "next/dynamic";
@@ -170,7 +170,7 @@ export default function RunPage() {
     body = (
       <section className={`${f.card} ${f.center}`} aria-labelledby="proof-title">
         <h2 id="proof-title">你完成了{name}的領養任務</h2>
-        <p className={f.lead}>中途會在對話裡看到「已完成這隻貓的領養任務」，附上任務證明後也看得到你每個任務的選擇。</p>
+        <p className={f.lead}>中途會在對話裡看到「已完成這隻貓的領養任務」，附上試養報告後也看得到你每個任務的選擇和結果。</p>
         {lines.length > 0 && (
           <ul className={s.proof}>
             {lines.map(l => <li key={`${l.day}-${l.title}`}><b>第 {l.day} 天・{l.title}</b><span>{l.chosen}{l.tries > 1 ? `（重選 ${l.tries - 1} 次）` : ""}</span></li>)}
@@ -178,7 +178,7 @@ export default function RunPage() {
         )}
         {error && <p className={f.error} role="alert">{error}</p>}
         <div className={f.actions} style={{ justifyContent: "center" }}>
-          <CatButton disabled={busy} onClick={shareProof}>{busy ? "開啟中…" : "帶著任務證明聯絡中途"}</CatButton>
+          <CatButton disabled={busy} onClick={shareProof}>{busy ? "開啟中…" : "帶著試養報告聯絡中途"}</CatButton>
           <CatButton variant="ghost" href={`/cats/${catId}`}>回到{name}的貓咪頁</CatButton>
         </div>
       </section>

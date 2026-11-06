@@ -6,7 +6,7 @@
   - Supabase 改用子哲帳號的新專案 `onebpkbkrnnwamwsoelo`（Tokyo），重新執行 migration `0001`～`0003`；不搬舊資料（舊專案只有測試資料）
   - Google 登入改用新的 Google Cloud 專案 `meowho` 與自己的 OAuth 用戶端；Site URL 設為 `https://meowho.vercel.app`
   - 正式站改由 Vercel 專案 `zing15s-projects/meowho` 連動 `main` 自動部署，網址 https://meowho.vercel.app；自訂網域暫不搬
-  - AI 供應商用 Gemini（`AI_PROVIDER=gemini`）
+  - AI 供應商用 Gemini（`AI_PROVIDER=gemini`）；2026-11-06 起改用 Azure OpenAI（`AI_PROVIDER=azure`，見 `docs/setup/SUPABASE_LLM_SETUP.md` §4）
   - `meow_` 前綴與 RLS 規則照舊（AGENTS.md §7）
 - 影響：
   - 舊專案的帳號、喵戶、貓咪資料不會出現在新站；組員需重新登入，第一位系統管理員需重新用 SQL 指定

@@ -25,6 +25,11 @@ describe("buildClipItems", () => {
   it("動作庫標示 ready 但 glb 裡沒有時不可播", () => {
     expect(buildClipItems(["idle"]).find(i => i.code === "walk")?.available).toBe(false);
   });
+  it("坐下：成貓母體有 sit 可播，幼貓母體沒有時灰色不可點", () => {
+    expect(buildClipItems(["idle", "walk", "sleep", "sit"]).find(i => i.code === "sit"))
+      .toMatchObject({ label: "坐下", status: "ready", available: true });
+    expect(buildClipItems(["idle", "walk", "sleep"]).find(i => i.code === "sit")?.available).toBe(false);
+  });
   it("glb 有、動作庫沒登記的動作也列出並可播", () => {
     const extra = buildClipItems(["idle", "stretch"]).find(i => i.code === "stretch");
     expect(extra).toMatchObject({ available: true, label: "stretch" });

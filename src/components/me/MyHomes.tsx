@@ -13,7 +13,7 @@ import type { LifeStage } from "@/lib/cat-profile/life-stage";
 import { homeTools, type HomeTool, type ReportRow, type RoomRow } from "@/lib/home-room";
 import { catsForTab, homeAvatar, tabsFor, type HomeTab } from "@/lib/my-homes";
 import type { CaretakerType } from "@/lib/onboarding/household";
-import { DWELLINGS, LIVING, ROLE_INFO, type Home } from "@/lib/onboarding/household-rules";
+import { ALONE, DWELLINGS, EXPERIENCE, LIVING, NO_PETS, ROLE_INFO, emptyHouseholdForm, type Home } from "@/lib/onboarding/household-rules";
 import { getBrowserSupabase } from "@/lib/supabase/client";
 import { photoSrc } from "@/lib/supabase/config";
 import s from "./me.module.css";
@@ -51,12 +51,13 @@ function ToolButton({ tool, href, icon, variant }: { tool: HomeTool; href: strin
 /** 舊資料可能缺欄位（#82 早期格式），一律補預設值再顯示 */
 function homeSummary(raw: Partial<Home> | null): string {
   if (!raw) return "";
-  const h: Home = { dwelling: null, dwellingOther: "", living: null, family: [], familyOther: "", pets: [], petsOther: "", ...raw };
+  const h: Home = { ...emptyHouseholdForm().home, ...raw };
   return [
     h.dwelling === "other" ? h.dwellingOther || DWELLINGS.other : h.dwelling && DWELLINGS[h.dwelling],
     h.living && LIVING[h.living],
-    h.family.length ? `同住：${h.family.map(f => (f === "其他" && h.familyOther ? h.familyOther : f)).join("、")}` : null,
-    h.pets.length ? `家裡有${h.pets.map(p => (p === "其他動物" && h.petsOther ? h.petsOther : p)).join("、")}` : null,
+    h.family.includes(ALONE) ? ALONE : h.family.length ? `同住：${h.family.map(f => (f === "其他" && h.familyOther ? h.familyOther : f)).join("、")}` : null,
+    h.pets.includes(NO_PETS) ? "沒有其他寵物" : h.pets.length ? `家裡有${h.pets.map(p => (p === "其他動物" && h.petsOther ? h.petsOther : p)).join("、")}` : null,
+    h.experience && EXPERIENCE[h.experience],
   ].filter(Boolean).join("・");
 }
 
