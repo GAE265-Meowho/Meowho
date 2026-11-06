@@ -48,7 +48,7 @@
 
 ## 資料表（Supabase）
 - 0024（#206，**尚未執行**）：`meow_cats` 加 `personality_scale`、`personality_notes`、`behavior`、`care`、`intro`、`photo_angles`、`cover`、`ai_story`；`photo_paths` 上限 6（只放生活照）；`compat` 容量放大（多了陌生人 `guest` 與說明 `notes`）；舊的健康標籤（結紮、疫苗、驅蟲、FIV／FeLV）移到 `medical`、個性標籤「安靜」改「慵懶」、生活習慣的護食等移到 `behavior`
-- `meow_household_budgets`（0025）：一般飼主的每月養貓預算，一戶一筆，1～200,000 元；RLS 只給喵戶長本人和後台喵戶模組。⚠ 待子哲在 SQL Editor 執行
+- `meow_household_budgets`（0025）：一般飼主的每月養貓預算，一戶一筆，1～200,000 元；RLS 只給喵戶長本人和後台喵戶模組。子哲 2026-11-06 已在 SQL Editor 執行
 - 已建立：`meow_households`（一個帳號最多 2 戶，trigger 限制）、`meow_cats`（visibility null＝沿用貓戶預設、status own/adoptable/adopted）、Storage bucket `meow-cat-photos`（路徑 `<uid>/<uuid>.jpg`）
 - 0004 草稿（#57，**尚未執行**）：`meow_cats` 加 `life_stage`（四級，新增時必填）、`personality_tags`、`health_tags`、`description`、`photo_paths`（最多 5）；`status` 預設 `adoptable`；新表 `meow_cat_videos`（每隻最多 3 支、每支 60 秒內，RLS 同貓咪）
 - 0017（已執行）：`meow_cats.status` 加 `preparing`（準備中，前台只有喵戶長看得到）；`meow_cat_models.cat_id` 綁定中途的 3D 貓
