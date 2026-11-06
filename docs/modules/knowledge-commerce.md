@@ -23,6 +23,8 @@
 
 詳細資訊只存 `officialUrl` 並開新分頁到官方頁，未保存成分、營養資訊、宣稱及餵食指南。商品頁回應只在匯入程式記憶體中讀取，輸出採欄位白名單。
 
+2026-11-06（#237，渝茜 × Claude Code）：虛擬飼養 DEMO（`/cats/[id]/play`）的採買步驟是前台第一個用到飼料目錄的地方：`src/lib/play/costs.ts` 的 `playFoods` 只列皇家、非處方（`requiresVetDiagnosis` 一律不顯示），沒參考價的顯示「待查價」且不能選（`canVirtuallyBuy(product, false)`）；每月飼料費＝單價 ÷ 包裝克數 × 每日份量 × 30 天（估算份量常數在 `costs.ts`）。只在前端試算，沒有錢包、訂單。
+
 ## 資料表（Supabase）
 - `kb_articles`、`products`、`product_prices`、`cost_items`、`product_events`
 

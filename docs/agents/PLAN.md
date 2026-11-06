@@ -2,7 +2,7 @@
 
 > GitHub Issues 是任務的正式來源；本檔是給 agent 快速掌握全局的鏡像與排程。
 > 狀態只用：`待辦`、`進行中`、`審查中`、`完成`、`卡住`。開工改「進行中」並填負責人，收工更新。
-> 最後更新：2026-10-31｜子哲 × Claude Code
+> 最後更新：2026-11-06｜渝茜 × Claude Code（#237）
 
 ## 里程碑
 
@@ -18,6 +18,7 @@
 
 ## 任務（tracer-bullet，每張可獨立 Demo）
 
+- 虛擬飼養 DEMO（#237，渝茜 × Claude Code，2026-11-06）：審查中；分支 `feat/237-catgame-demo`。`/cats/[id]/play` 3 個節點、AI 危險／台詞／建議（規則備案）、採買花費、3D 娃娃屋擺用品、小遊戲、試養報告；Azure／喵戶讀取／遠端 GLB／掃描房間未在沙盒實測。
 - 成貓 sleep 睡姿更新（#221，Tina × Cursor，2026-11-06）：審查中；PR #236、分支 `fix/221-adult-sleep-clip`。bundled 成貓母體 `base_clips.glb` 換成 cat_base 最新 sleep；幼貓不動；`CatPreview` sleep 取景。
 - MeowHQ Dashboard UI/UX 優化（#226，Tina × Cursor，2026-11-05）：審查中；PR #227、分支 `ui/226-hq-dashboard-ui`（併含 #224）。
 - MeowHQ 首頁不要自動一直重新整理（#224，Tina × Cursor，2026-11-05）：併入 PR #227；舊 PR #225 已關閉。
@@ -46,7 +47,7 @@
 | 11 | 移轉、14 天試養、時間軸分段 | adoption | 10 | P1 | 待建立 | C | 待辦 |
 | 12 | 照片影片轉文字、每週週報 | ai-media-weekly | 4 | P2 | 待建立 | E | 待辦 |
 | 13 | 居家環境影片 AI 風險報告 | readiness | 7 | P2 | 待建立 | F | 待辦 |
-| 14 | 7 天虛擬試養（劇本、評分、摘要、加速模式） | readiness | 2、12 | P2 | 待建立 | D、F | 待辦 |
+| 14 | 7 天虛擬試養（劇本、評分、摘要、加速模式）；DEMO 版見 #237 | readiness | 2、12 | P2 | 待建立 | D、F | 待辦 |
 | 15 | 知識庫、皇家飼料資料庫、首年花費（含後台維護） | knowledge-commerce | 1 | P2 | 待建立 | D、A | 待辦 |
 | 16 | 導購追蹤連結＋成效儀表板 | knowledge-commerce | 15 | P2 | 待建立 | A、B | 待辦 |
 | 17 | 後台：標誌設定存資料庫、中途認證、管理員授權（檢舉、內容審核待做） | admin-moderation | 1 | P2 | #3 | Tina | 審查中 |
@@ -121,6 +122,8 @@
 ## 建議（agent 發現、尚未有人認領）
 
 - #56 領養人 profile 在 GitHub 指派給清俊，但 `21_第一週衝刺_Scope.md` 寫在子哲範圍；背景標記「自填」要用它的資料，負責人待組內確認
+- （#237 發現）`.env.example` 有一段 KPI Dashboard 的註解是亂碼（編碼錯誤），建議重存成 UTF-8
+- （#237 發現）`FloorplanViewer.tsx` 有 3 個既有的 lint 警告（hooks 依賴、未用的 `room` 參數），沒有在 #237 處理
 - 難度參數暫緩（子哲 2026-10-31）：等與渝茜（#58）確認後再加進貓咪 profile
 
 - 首頁還缺：貓咪詳細頁（點卡片進入）、中途之家專區（找中途、認證中途）、領養人 onboarding 入口（目前「我想領養」只導到搜尋列）、知識區完整頁、登入後的個人化首頁（我的貓戶摘要、通知）

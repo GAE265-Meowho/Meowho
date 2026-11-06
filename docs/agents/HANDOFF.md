@@ -1,9 +1,13 @@
 # HANDOFF — 接手的 agent 需要知道的事
 
 > 寫給「完全沒有上下文的下一個 agent」。只保留**現在仍然成立**的內容。
-> 最後更新：2026-11-06｜Tina × Cursor（#221 成貓 sleep）
+> 最後更新：2026-11-06｜渝茜 × Claude Code（#237 虛擬飼養 DEMO）
 
 ## 目前狀態
+- **#237 虛擬飼養 DEMO（渝茜 × Claude Code，審查中）**：分支 `feat/237-catgame-demo`。`/cats/[id]/play`（DEMO 固定麻糬、虎斑），流程與真的接上／備案對照見 `docs/modules/readiness.md`「虛擬飼養 DEMO」。邏輯在 `src/lib/play/`（純函式＋測試），畫面在 `src/components/play/`，AI 在 `/api/play/{hazards,lines,advice}`。
+  - 要設的環境變數（Vercel，都是既有名稱）：`AZURE_OPENAI_ENDPOINT`、`AZURE_OPENAI_API_KEY`、`AZURE_OPENAI_CHAT_DEPLOYMENT_NAME=gpt-6-luna`（沒設＝全部走規則備案）；選填 `NEXT_PUBLIC_ROOM_DEMO_BASE`（掃描房間 manifest 資料夾，沒設＝自動改用娃娃屋）；喵戶讀取用既有的 `NEXT_PUBLIC_SUPABASE_*`。
+  - **尚未實測**（沙盒連不到）：Azure 三支 AI、Supabase 讀喵戶 `home`、`meow-items` 遠端 GLB（沙盒看到的是替代方塊）、掃描房間 `RoomViewer`。合併前請在 PR 預覽網址走一次：登入有喵戶的帳號、設好 Azure，確認台詞與危險清單是 AI 版（API 回 `source: "ai"`）。
+  - 生活用品先寫死在 `src/lib/play/items.ts`；子哲開放 `meow_items` 公開讀取後改讀後台。catgame 原文沒讀到（執行環境沒有 Projects 工具），劇情台詞之後可以再對照 catgame 調整 `src/lib/play/story.ts`、`events.ts`。
 - **#221 成貓 sleep 睡姿（Tina × Cursor，審查中）**：PR #236、分支 `fix/221-adult-sleep-clip`。以 `Meow/cat_base` 的 `base_clips.glb`（`stepC_clips.py`）覆寫 `public/hq-cat-models/base/base_clips.glb`；幼貓 `base_clips_kitten.glb` 未動。`CatPreview` sleep 取景對齊貼地睡姿。正式站若用 Storage `base/v1/base_clips.glb` 合併後需再上傳。
 - **#226 MeowHQ Dashboard UI（Tina × Cursor，審查中）**：PR #227、分支 `ui/226-hq-dashboard-ui`（含 #224；舊 #225 已關閉）。卡片去來源／時間雜訊、頂部全域抓取時間、主數值放大。請 Tina **merge PR #227**。
 - **#222 MeowHQ 首頁（Tina × Cursor）**：已合併 #223。移除「我最近的管理動作」；0023 未執行時不掃 Storage。
