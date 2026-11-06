@@ -9,7 +9,7 @@ const fake = (out: unknown, seen?: BaseMessage[][]) =>
 
 const cat: TaskCatContext = {
   name: "橘子", lifeStage: "adult", personality: ["親人", "愛玩"], health: ["已結紮"], habits: ["愛踩踏"],
-  description: "很怕吸塵器", timeline: ["2026-10-01 來到中途"], videoNotes: ["會追逗貓棒"],
+  description: "很怕吸塵器", timeline: ["2026-10-01 來到中途"],
 };
 
 describe("領養任務草稿", () => {
@@ -21,7 +21,7 @@ describe("領養任務草稿", () => {
     const [system, human] = seen[0];
     expect(String(system.content)).toContain("領養任務");
     expect(String(system.content)).toContain("<user_input>");
-    expect(String(human.content)).toMatch(/<user_input>[\s\S]*橘子[\s\S]*親人、愛玩[\s\S]*很怕吸塵器[\s\S]*會追逗貓棒[\s\S]*<\/user_input>/);
+    expect(String(human.content)).toMatch(/<user_input>[\s\S]*橘子[\s\S]*親人、愛玩[\s\S]*很怕吸塵器[\s\S]*<\/user_input>/);
   });
   it("ai_story 的身體狀況也包在資料區（#206）", () => {
     const { text } = taskDraftInput({ ...cat, healthStory: { tags: ["心臟病"], text: "右後腳受過傷" } });

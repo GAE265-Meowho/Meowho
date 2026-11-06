@@ -71,3 +71,4 @@
 | 2026-10-29 | Tina × Claude Code | 語音輸入依原因顯示錯誤訊息；位置／介紹提問帶入貓戶名稱；聯絡信箱填入 | #33 |
 | 2026-10-31 | 子哲 × Claude Code | 建檔對話引擎與 LLM 擷取鏈（尚未接畫面；舊的一問一答流程仍在） | 待建立 |
 | 2026-11-01 | 子哲 × Claude Code | 修正喵戶清單貓形按鈕文字被染灰（深色按鈕白字） | #84 |
+| 2026-11-06 | 子哲 × Claude Code | 拿掉影片個性判讀（`/api/onboarding/cat-video/analyze`、`CAT_VIDEO_ANALYSIS`、`CatVideoSchema`、只給 Gemini 的影片送法）：建貓流程從 #206 起沒有影片，AI 也改用 Azure OpenAI；`meow_cat_videos` 的 AI 欄位留著不寫，領養任務草稿不再帶影片觀察 | — |

@@ -36,8 +36,8 @@ describe("寫入資料庫的格式", () => {
   });
 
   it("影片：每支一列，帶秒數與 AI 個性建議", () => {
-    expect(toCatVideoInserts("c1", ["cats/c1/videos/v.mp4"], { "cats/c1/videos/v.mp4": { durationSec: 12.4, tags: ["活潑"], reason: "跑跳" } }))
-      .toEqual([{ cat_id: "c1", storage_path: "cats/c1/videos/v.mp4", duration_sec: 13, ai_personality_tags: ["活潑"], ai_reason: "跑跳" }]);
+    expect(toCatVideoInserts("c1", ["cats/c1/videos/v.mp4"], { "cats/c1/videos/v.mp4": { durationSec: 12.4 } }))
+      .toEqual([{ cat_id: "c1", storage_path: "cats/c1/videos/v.mp4", duration_sec: 13 }]);
   });
 });
 

@@ -16,8 +16,6 @@ export interface ChainInput {
   referenceImageDataUrl?: string;
   /** 同一件事的其他照片（例如同一間房不同角度），放在主要照片後面 */
   moreImageDataUrls?: string[];
-  /** 影片等多媒體（目前只有 Gemini 支援，以 inlineData 送出） */
-  media?: { mimeType: string; data: string };
 }
 
 /** 組成送給模型的訊息；系統指示一律附上防護規則；有圖片時以 image_url 內容片段附上（各供應商通用格式） */
@@ -29,9 +27,7 @@ export function buildMessages(system: string, input: ChainInput): BaseMessage[] 
       { type: "image_url", image_url: { url: input.imageDataUrl } },
       ...(input.moreImageDataUrls ?? []).map(url => ({ type: "image_url", image_url: { url } })),
     ] })
-    : input.media
-      ? new HumanMessage({ content: [{ type: "text", text: input.text }, { type: "media", mimeType: input.media.mimeType, data: input.media.data }] })
-      : new HumanMessage(input.text);
+    : new HumanMessage(input.text);
   return [new SystemMessage(withGuard(system)), human];
 }
 
