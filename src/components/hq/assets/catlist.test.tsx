@@ -23,11 +23,11 @@ const base: CatModelView = { ...listBundledCats()[0], variantStorage: false, bod
 const member: CatModelView = { ...base, ownerType: "template", builtin: false, id: "cat_20261101_200000", name: "小橘", status: "ready", notes: "", createdBy: "Tina", updatedAt: "2026-11-01T14:44:54Z" };
 
 describe("已建立的貓咪模型列表（#102）", () => {
-  it("#159 欄位：貓咪模型、進度、備註說明、建立者／更新、操作", () => {
+  it("#258 欄位：貓咪、年齡、3D 成貓、3D 幼貓、說明、建立者／更新、操作", () => {
     rows.data = [member];
     render(<CatsTab query={{ page: 1 }} update={() => {}} />);
     const headers = screen.getAllByRole("columnheader").map(h => h.textContent);
-    expect(headers).toEqual(["貓咪模型", "進度", "備註說明", "建立者／更新", "操作"]);
+    expect(headers).toEqual(["貓咪", "年齡", "3D 成貓", "3D 幼貓", "說明", "建立者／更新", "操作"]);
     const row = screen.getByRole("row", { name: /小橘/ });
     expect(within(row).getByText("Tina")).toBeInTheDocument();
     expect(within(row).getByText("2026/11/01 22:44")).toBeInTheDocument();
@@ -46,6 +46,7 @@ describe("已建立的貓咪模型列表（#102）", () => {
   it("#110：流程改成上傳照片 → AI 三視角 → 產生 3D；照片與三視角共用，第 3 步起成貓、幼貓分流；兩隻骨架改用「體型骨架預覽」按鈕進入", () => {
     rows.data = [];
     render(<CatsTab query={{ page: 1 }} update={() => {}} />);
+    expect(screen.getByText("製作流程").closest("summary")).toBeInTheDocument();
     expect(screen.getByRole("list", { name: "成貓、幼貓共用的步驟" })).toHaveTextContent("AI 三視角");
     for (const name of ["成貓製作流程", "幼貓製作流程"]) {
       const lane = screen.getByRole("list", { name });
@@ -54,7 +55,8 @@ describe("已建立的貓咪模型列表（#102）", () => {
       expect(lane).not.toHaveTextContent("AI 三視角");
     }
     expect(screen.getByRole("button", { name: "補排紋理貼圖" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "體型骨架預覽" })).toHaveAttribute("href", "/MeowHQ/assets/bases");
+    expect(screen.getByRole("link", { name: "新增貓咪" })).toHaveAttribute("href", "/MeowHQ/assets/cats/new");
+    expect(screen.getByRole("link", { name: "3D 貓咪體型預覽" })).toHaveAttribute("href", "/MeowHQ/assets/bases");
     expect(screen.queryByRole("link", { name: "測試動作與參數" })).toBeNull();
   });
   it("#118 進度欄；還沒有 3D 的貓連到製作glb工作區，有 3D 的連到貓咪頁", () => {
@@ -85,7 +87,7 @@ describe("已建立的貓咪模型列表（#102）", () => {
     expect(cats[0]).toMatchObject({ notes: "系統預設範例", createdBy: "系統" });
     rows.data = cats;
     render(<CatsTab query={{ page: 1 }} update={() => {}} />);
-    expect(within(screen.getByRole("row", { name: /第一隻虎斑貓/ })).getAllByText(/完成/).map(t => t.textContent)).toEqual(["成貓 完成", "幼貓 完成"]);
+    expect(within(screen.getByRole("row", { name: /第一隻虎斑貓/ })).getAllByText("完成")).toHaveLength(2);
   });
   it("刪除：按「刪除」後原位確認，送出 DELETE；示範貓不能刪", async () => {
     rows.data = [member, { ...member, id: "cat_20261101_210000", name: "範本", builtin: true }];

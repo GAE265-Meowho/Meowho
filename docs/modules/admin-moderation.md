@@ -158,6 +158,7 @@ ole === "admin" 判斷管理員，而現有 admin 會升為 system_admin；舊�
 | 2026-11-03 | Tina × Claude Code | #159 貓咪模型列表改版：欄位改為貓咪模型（縮圖＋名稱＋示範貓標籤）、進度（狀態＋n/4＋4 段進度條＋目前步驟）、備註說明（最多 2 行，空白顯示「尚未填寫」）、建立者／更新、操作；依進度篩選（全部／產生中／完成／示範貓，網址 `status=running|done|demo`，分組邏輯 `catListGroup`）；搜尋也比對建立者；刪除確認說明 3D 模型與貼圖一併刪除、無法復原，排隊或生成中時另註明任務一併取消；示範貓操作欄顯示「不可刪除」 | （見 PR） |
 | 2026-11-04 | Tina × Claude Code | #169 紋理貼圖 worker 放進 repo `workers/cat-paint/`（含 Azure VM 安裝腳本、systemd），預定跑在 Azure VM（T4） | #169 |
 | 2026-11-05 | Tina × Cursor | #218 KPI Dashboard：`/MeowHQ` 營運總覽、`GET /api/hq/dashboard`、`docs/hq/06_kpi-dashboard.md`、`0023_meow_dashboard_stats.sql`（待執行） | #218 |
+| 2026-11-06 | Tina × Codex | #258 貓咪製作頁：流程圖改為可收合，操作按鈕移到流程外；貓咪模型列表拆出年齡、3D 成貓、3D 幼貓欄位，並更新欄位文案 | #258 |
 - 2026-10-29｜#24：前端呼叫 `meow_suspend_user`／`meow_unsuspend_user`／`meow_ban_email`／`meow_unban_email`／`meow_review_verification`／`meow_revoke_badge`；「要求補件」不另設狀態，用退回＋快選原因「退回並要求補件」；黑名單狀態只有系統管理員讀得到（RLS），其他管理員看不到黑名單欄與操作。
 
 - 2026-10-31｜#75：虛擬體驗元件分四個區塊（貓咪、室內空間、生活用品、其他），R3 已改寫；貓咪模型的貼圖由 cat_studio/paint_worker.py 產生，網頁只建任務與預覽（共用母體 ase_clips.glb 換 cat_fur 貼圖，不需每隻貓各一個 glb）；動作屬母體，補入新動作後所有貓自動擁有；本機模式（可新增／產生）只在非 production 且設了 CAT_STUDIO_ROOT 時啟用；正式站改讀 `public/hq-cat-models/` 示範貓（已完成的 bb）供預覽，寫入仍關閉。004_meow_cat_models.sql（資料表 meow_cat_models、meow_cat_model_jobs、bucket meow-cat-photos／meow-cat-models）在 PR 3，執行前須經 Tina 確認。
