@@ -102,13 +102,6 @@ export type HouseholdTurnOut = z.infer<typeof HouseholdTurnSchema>;
 export type CatTurnOut = z.infer<typeof CatTurnSchema>;
 export type CatPhotoAnalysisOut = z.infer<typeof CatPhotoAnalysisSchema>;
 
-export const CatVideoSchema = z.object({
-  isCat: z.boolean().describe("影片主角是否為貓"),
-  personalityTags: z.array(z.string()).describe("只能從個性標籤清單挑選，看不出來給空陣列"),
-  reason: z.string().describe("40 字內，說明從哪些動作看出這些個性"),
-});
-export type CatVideoOut = z.infer<typeof CatVideoSchema>;
-
 // ---------- 平面圖讀圖（#138，規格 docs/hq/05 §5）：一間房一張平面圖，或 1～4 張實景照片（#144）----------
 // 座標一律公尺、平面 (x, y)，原點在房間左上角；牆用中心線端點。陣列欄位不用 tuple（部分供應商的嚴格模式不支援），
 // 由 src/lib/hq/floorplans/read.ts 整理成 meta 的格式並檢查是否合理。

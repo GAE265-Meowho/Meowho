@@ -11,7 +11,7 @@ type Runner = Runnable<BaseMessage[], unknown>;
 
 export interface TaskCatContext {
   name: string; lifeStage: string | null; personality: string[]; health: string[]; habits: string[];
-  description: string | null; timeline: string[]; videoNotes: string[];
+  description: string | null; timeline: string[];
   /** meow_cats.ai_story（#206）：試養遊戲沒有寫好劇情的健康標籤＋中途自己填的身體狀況，請 AI 安排照顧劇情（不可寫成診斷） */
   healthStory?: { tags: string[]; text: string | null } | null;
 }
@@ -32,7 +32,6 @@ export const taskDraftInput = (c: TaskCatContext) => ({
     c.habits.length ? `生活習慣：${c.habits.slice(0, 12).join("、")}` : "",
     c.description ? `中途的描述：${c.description.slice(0, 600)}` : "",
     c.timeline.length ? `故事：${c.timeline.slice(-10).map(e => e.slice(0, 80)).join("；")}` : "",
-    c.videoNotes.length ? `影片觀察：${c.videoNotes.slice(0, 3).map(e => e.slice(0, 80)).join("；")}` : "",
   ].filter(Boolean).join("\n"))}`,
 });
 
