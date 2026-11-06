@@ -14,8 +14,17 @@ export const ROLES = Object.keys(ROLE_INFO) as CaretakerType[];
 
 export const DWELLINGS = { apartment: "公寓", building: "電梯大樓", house: "透天", other: "其他" } as const;
 export const LIVING = { rent: "租屋", own: "自有", family: "與家人同住" } as const;
-export const FAMILY = ["小孩", "長輩", "伴侶", "室友", "其他"] as const;
-export const PETS = ["貓", "狗", "其他動物"] as const;
+// 「自己住」「沒有」只能單選，用來和「還沒填」分開（試養遊戲讀得到明確答案，#233）
+export const FAMILY = ["自己住", "小孩", "長輩", "伴侶", "室友", "其他"] as const;
+export const PETS = ["沒有", "貓", "狗", "其他動物"] as const;
+export const ALONE = "自己住";
+export const NO_PETS = "沒有";
+/** 租屋時，房東同不同意養貓（兩位愛媽的問卷都有問，送養條件也有「租屋須房東同意」） */
+export const LANDLORD = { yes: "同意", asking: "還在問", no: "不同意" } as const;
+/** 養貓經驗（愛媽認為最有用的題目之一，#233） */
+export const EXPERIENCE = { none: "沒養過貓", some: "養過，不到 3 年", long: "養過 3 年以上" } as const;
+/** 每月養貓預算上限（和 0025 的 check 一致） */
+export const BUDGET_MAX = 200000;
 
 // 選「其他」時的補充文字存在 *Other 欄位（#89）
 export const HomeSchema = z.object({
@@ -26,6 +35,8 @@ export const HomeSchema = z.object({
   familyOther: z.string().max(30),
   pets: z.array(z.enum(PETS)),
   petsOther: z.string().max(30),
+  landlord: z.enum(Object.keys(LANDLORD) as [keyof typeof LANDLORD]).nullable(),
+  experience: z.enum(Object.keys(EXPERIENCE) as [keyof typeof EXPERIENCE]).nullable(),
 });
 export type Home = z.infer<typeof HomeSchema>;
 
@@ -41,15 +52,31 @@ export interface HouseholdForm {
   orgProofUrl: string;
   /** 個人中途可以順便申請中途徽章；立案中途一定會送 */
   applyBadge: boolean;
+  /** 一般飼主的每月養貓預算（輸入框的文字）；存在 meow_household_budgets，不跟喵戶一起公開（0025） */
+  budget: string;
 }
 
 export const emptyHouseholdForm = (): HouseholdForm => ({
   role: null, name: "", city: null, district: "", intro: "",
-  home: { dwelling: null, dwellingOther: "", living: null, family: [], familyOther: "", pets: [], petsOther: "" },
-  terms: null, orgName: "", orgProofUrl: "", applyBadge: false,
+  home: { dwelling: null, dwellingOther: "", living: null, family: [], familyOther: "", pets: [], petsOther: "", landlord: null, experience: null },
+  terms: null, orgName: "", orgProofUrl: "", applyBadge: false, budget: "",
 });
 
-export type MissingField = "role" | "name" | "nameTaken" | "city" | "district" | "dwelling" | "orgName" | "orgProofUrl";
+export type MissingField = "role" | "name" | "nameTaken" | "city" | "district" | "dwelling" | "living" | "landlord" | "family" | "pets" | "experience" | "budget" | "orgName" | "orgProofUrl";
+
+/** 每月預算：1～200,000 的整數，可以寫千分位；不合格回傳 null */
+export function parseBudget(typed: string): number | null {
+  const t = typed.replace(/[,，\s]/g, "");
+  if (!/^\d+$/.test(t)) return null;
+  const n = Number(t);
+  return n >= 1 && n <= BUDGET_MAX ? n : null;
+}
+
+/** 多選裡的單選項（「自己住」「沒有」）：新選了它就只留它；選了別的就拿掉它 */
+export function pickSolo<T extends string>(prev: readonly T[], next: T[], solo: T): T[] {
+  if (next.includes(solo) && !prev.includes(solo)) return [solo];
+  return next.length > 1 ? next.filter(x => x !== solo) : next;
+}
 
 /** 比對喵戶名稱用：忽略前後空白、全形空白與大小寫 */
 export const sameName = (a: string) => cleanName(a).replace(/\s+/g, " ").toLowerCase();
@@ -72,7 +99,16 @@ export function checkHousehold(f: HouseholdForm, existingNames: string[] = []): 
   if (!f.city) miss.push("city");
   // 區從該縣市的清單選（#89）
   if (!isKnownDistrict(f.city, f.district)) miss.push("district");
-  if (f.role === "cat_owner" && !f.home.dwelling) miss.push("dwelling");
+  if (f.role === "cat_owner") {
+    const h = f.home;
+    if (!h.dwelling) miss.push("dwelling");
+    if (!h.living) miss.push("living");
+    if (h.living === "rent" && !h.landlord) miss.push("landlord");
+    if (!h.family.length) miss.push("family");
+    if (!h.pets.length) miss.push("pets");
+    if (!h.experience) miss.push("experience");
+    if (parseBudget(f.budget) === null) miss.push("budget");
+  }
   if (f.role === "shelter_org") {
     if (!f.orgName.trim()) miss.push("orgName");
     if (!isUrl(f.orgProofUrl)) miss.push("orgProofUrl");
@@ -86,7 +122,14 @@ const cleanHome = (h: Home): Home => ({
   dwellingOther: h.dwelling === "other" ? h.dwellingOther.trim() : "",
   familyOther: h.family.includes("其他") ? h.familyOther.trim() : "",
   petsOther: h.pets.includes("其他動物") ? h.petsOther.trim() : "",
+  landlord: h.living === "rent" ? h.landlord : null,
 });
+
+/** 一般飼主的每月預算 → meow_household_budgets 一筆；中途或沒填好回傳 null */
+export function budgetRow(f: HouseholdForm, householdId: string) {
+  const n = parseBudget(f.budget);
+  return f.role === "cat_owner" && n !== null ? { household_id: householdId, monthly_twd: n } : null;
+}
 
 export function toHouseholdRow(f: HouseholdForm) {
   const owner = f.role === "cat_owner";
@@ -136,6 +179,8 @@ export const parseHouseholdLimit = (value: unknown): number | null =>
 export function fromHouseholdRow(r: {
   name: string; caretaker_type: CaretakerType; city: string | null; district: string | null; intro: string | null;
   home: Partial<Home> | Record<string, unknown> | null; adoption_terms: AdoptionTerms | null; org_name: string | null; org_proof_url: string | null;
+  /** meow_household_budgets.monthly_twd（0025）；沒填過是 null */
+  budget?: number | null;
 }): HouseholdForm {
   const empty = emptyHouseholdForm();
   const home = HomeSchema.safeParse({ ...empty.home, ...(r.home ?? {}) });
@@ -151,6 +196,7 @@ export function fromHouseholdRow(r: {
     terms: r.adoption_terms && terms.success ? terms.data : null,
     orgName: r.org_name ?? "",
     orgProofUrl: r.org_proof_url ?? "",
+    budget: r.budget ? String(r.budget) : "",
   };
 }
 

@@ -31,7 +31,9 @@ export default function EditHomePage() {
         setOthers((data ?? []).filter(h => h.id !== id).map(h => h.name));
         setAvatarPath(row.avatar_path ?? null);
         setName(row.name);
-        setForm(fromHouseholdRow(row));
+        // 每月預算在另一張只有喵戶長看得到的表（0025）；讀不到就留空讓他補
+        sb.from("meow_household_budgets").select("monthly_twd").eq("household_id", id).maybeSingle()
+          .then(({ data: b }) => setForm(fromHouseholdRow({ ...row, budget: b?.monthly_twd ?? null })));
       });
     sb.from("meow_cats").select("id, origin_household_id").eq("household_id", id).then(({ data }) => setCats(data ?? []));
   }, [loading, user, id]);
