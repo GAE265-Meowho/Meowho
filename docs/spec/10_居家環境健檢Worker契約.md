@@ -150,7 +150,7 @@ Worker 用 service role key 呼叫 PostgREST：`POST /rest/v1/rpc/<函式>`。
 - 檢查 §6 的格式、所有路徑都在這次的 `output_prefix` 底下、`p_pdf_path` 不能是空的，不符就整筆不寫（`env_result_invalid`）。
 - 通知飼主（§7）。
 - **成果檔要先上傳完，才能呼叫這支**；呼叫成功之前，報告看不到任何成果。
-- 必要的分析、`result.json`、PDF或上傳任何一項失敗，都不能呼叫 complete，改呼叫 fail。
+- 必要的分析、`result.json`、PDF 或上傳任何一項失敗，都不能呼叫 complete，改呼叫 fail。
 - **冪等**：同一個 job、同一個 attempt 已經 `done`，而且 `p_json_path`、`p_pdf_path` 都跟上次相同，回傳 `'already_done'`、不重寫、不重發通知。Worker 沒收到回應時可以安全重送。路徑不同則回 `env_job_not_running`。
 - 檢查順序：先看冪等，再看租約；租約已過期（不論有沒有人接手）回 `env_lease_expired`。
 
@@ -320,4 +320,4 @@ Worker 用 service role key 呼叫 PostgREST：`POST /rest/v1/rpc/<函式>`。
 | 2026-11-06 | 子哲 × Claude Code | v0.1 草稿，依 #240～#243 的決定 | #250 |
 | 2026-11-06 | 子哲 × Claude Code | v0.3，子哲同意 #240 修訂：新增本人專用全景 PDF（`full_pdf_path`、同意時間、撤回即刪），摘要 PDF 仍只放裁切照 | #250 |
 | 2026-11-06 | 子哲 × Claude Code | v0.2，依 Jerry 對 §9 的回覆：取消與冪等、失敗代碼分類、`warnings` 與 `result.json` 格式、Managed Identity、`meow_home_videos` 與清理條件 | #250 |
-| 2026-11-06 | Jerry × ChatGPT | v0.4 修訂提案：Demo 單一全景 PDF＋JSON，移除雙 PDF、額外同意與依身分分版規則，保留必要驗證及 AI 模擬標示 | #250 後續修訂 PR |
+| 2026-11-06 | Jerry × ChatGPT | v0.4 修訂提案：Demo 單一全景 PDF＋JSON，移除雙 PDF、額外同意與依身分分版規則，保留必要驗證及 AI 模擬標示 | #253 |
