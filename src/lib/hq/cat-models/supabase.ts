@@ -53,7 +53,38 @@ type Row = {
   created_by?: string | null;
   /** 前台的貓（owner_type = member）所屬喵戶（#181）；MeowHQ 自建的貓沒有 */
   cat?: { household: { id: string; name: string } | null } | null;
+  cat_id?: string | null;
 };
+
+/** 前台的貓在 meow_cats 的資料：MeowHQ 的虛擬貓咪檔案顯示喵戶、性別、體重用 */
+type FrontCat = { id: string; sex: string | null; care: { weightKg?: unknown } | null; est_age_months: number | null; household: { id: string; name: string } | null };
+
+/**
+ * 前台的貓：喵戶、性別、體重以 meow_cats 為準（中途之後修改也會跟著變）。
+ * 準備中的貓只有中途讀得到（0017 的 RLS），管理員用登入者身分 join 會拿到 null，喵戶就顯示「—」，
+ * 所以這裡用 service role 補讀；只補登入者本來就讀得到的模型（rows 已經過 meow_cat_models 的 RLS）。
+ */
+async function withFrontCats(rows: Row[], views: CatModelView[]): Promise<CatModelView[]> {
+  const ids = [...new Set(rows.map(r => r.cat_id).filter((v): v is string => Boolean(v)))];
+  const admin = ids.length ? getAdminSupabase() : null;
+  if (!admin) return views;
+  const { data, error } = await admin.from("meow_cats")
+    .select("id, sex, care, est_age_months, household:meow_households!meow_cats_household_id_fkey(id,name)").in("id", ids);
+  if (error || !data) return views;
+  const cats = new Map((data as unknown as FrontCat[]).map(c => [c.id, c]));
+  return views.map((v, i) => {
+    const c = cats.get(rows[i].cat_id ?? "");
+    if (!c) return v;
+    const weight = typeof c.care?.weightKg === "number" ? c.care.weightKg : null;
+    return {
+      ...v,
+      household: c.household ?? v.household ?? null,
+      gender: c.sex === "male" || c.sex === "female" ? c.sex : v.gender,
+      weightKg: weight ?? v.weightKg,
+      ageMonths: v.ageMonths ?? c.est_age_months ?? null,
+    };
+  });
+}
 
 type JobRow = {
   status: JobStatus;
@@ -168,24 +199,24 @@ export async function sbListCats(): Promise<CatModelView[]> {
   if (error) ({ data, error } = await sb.from("meow_cat_models").select("*").order("updated_at", { ascending: false }));
   if (error || !data) return [];
   const rows = data as Row[];
-  if (process.env.CAT_MODEL_VARIANTS_WORKER_READY !== "1" || !rows.length) return rows.map(r => viewFromRow(r));
+  if (process.env.CAT_MODEL_VARIANTS_WORKER_READY !== "1" || !rows.length) return withFrontCats(rows, rows.map(r => viewFromRow(r)));
   // 雙體型：確認只寫在體型表，進度要看各體型；任務狀態要知道畫的是哪個體型
   const ids = rows.map(r => r.id);
   const { data: variants, error: variantError } = await sb.from("meow_cat_model_variants")
     .select("model_id,body_type,albedo_path,prev_albedo_path,base_version,prev_base_version,confirmed_albedo").in("model_id", ids);
-  if (variantError) return rows.map(r => viewFromRow(r));
+  if (variantError) return withFrontCats(rows, rows.map(r => viewFromRow(r)));
   const jobIds = rows.filter(r => r.status === "queued" || r.status === "running" || r.status === "failed").map(r => r.id);
   const { data: jobs } = jobIds.length
     ? await sb.from("meow_cat_model_jobs").select("model_id,body_type,queued_at").in("model_id", jobIds).order("queued_at", { ascending: false })
     : { data: [] };
   const jobBody = new Map<string, BodyType | null>();
   for (const j of (jobs ?? []) as { model_id: string; body_type: BodyType | null }[]) if (!jobBody.has(j.model_id)) jobBody.set(j.model_id, j.body_type);
-  return rows.map(r => ({
+  return withFrontCats(rows, rows.map(r => ({
     ...viewFromRow(r),
     variantStorage: true,
     jobBody: jobBody.get(r.id) ?? null,
     bodyVariants: variantViews(r, ((variants ?? []) as (VariantRow & { model_id: string })[]).filter(v => v.model_id === r.id)),
-  }));
+  })));
 }
 
 export async function sbGetCat(id: string): Promise<CatModelView | null> {
@@ -201,7 +232,8 @@ export async function sbGetCat(id: string): Promise<CatModelView | null> {
     .select(`status,step,error,queued_at,started_at,finished_at${variantStorage ? ",body_type" : ""}`)
     .eq("model_id", id).order("queued_at", { ascending: false }).limit(1).maybeSingle();
   const jobRow = (job as (JobRow & { body_type?: BodyType | null }) | null) ?? null;
-  return { ...viewFromRow(data as Row, jobRow),
+  const [view] = await withFrontCats([data as Row], [viewFromRow(data as Row, jobRow)]);
+  return { ...view,
     variantStorage,
     jobBody: jobRow?.body_type ?? null,
     bodyVariants: variantViews(data as Row, variantStorage ? (variants as VariantRow[] | null) ?? [] : null) };
