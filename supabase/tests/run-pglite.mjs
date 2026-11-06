@@ -572,6 +572,45 @@ try {
   }
 }
 
+// 0025（一般飼主的每月預算，#233）：只有喵戶長本人讀寫得到；中途的喵戶不能存；別人和未登入都讀不到
+{
+  const m = new PGlite();
+  const base = read("./stub_supabase.sql") + ["0001_meow", "0002_meow_hq", "0003_meow_site_assets", "0004_meow_cat_profile", "0005_meow_cat_models", "0006_meow_household_roles", "0007_meow_adoption_forms", "0008_meow_cat_favorites", "0009_meow_cat_returns", "0010_meow_adoption_notify", "0011_meow_threads", "0012_meow_thread_homed", "0013_meow_decline_reason_transfer", "0014_meow_room_models", "0014_meow_returns_in_threads", "0015_meow_room_floorplan", "0016_meow_cat_model_variants", "0017_meow_adoption_tasks", "0018_meow_task_templates_seed", "0019_meow_household_avatar", "0020_meow_households_module"]
+    .map((f) => read(`../migrations/${f}.sql`)).join("");
+  const id = (n) => `00000000-0000-0000-0000-0000000025${n}`;
+  const eq = (name, expected, actual) =>
+    results.push({ name, status: String(actual) === String(expected) ? "PASS" : "FAIL", detail: String(actual) === String(expected) ? null : `預期 ${expected}，實際 ${actual}` });
+  // 用某人的身分（null＝未登入）執行，被擋下回 "rejected"
+  const as = async (who, sql) => {
+    await m.exec(who ? `begin; select set_config('request.jwt.claim.sub', '${id(who)}', true); set local role authenticated;` : "begin; set local role anon;");
+    try { const r = await m.query(sql); return r.rows.length ? Object.values(r.rows[0])[0] : "ok"; }
+    catch { return "rejected"; }
+    finally { await m.exec("rollback;"); }
+  };
+  try {
+    await m.exec(base);
+    await m.exec(read("../migrations/0025_meow_household_budget.sql"));
+    await m.exec(read("../migrations/0025_meow_household_budget.sql"));
+    await m.exec(`insert into auth.users (id, email) values ('${id("a1")}', 'o@b25.example'), ('${id("b1")}', 'x@b25.example');
+      insert into public.meow_profiles (id, email, display_name) values ('${id("a1")}', 'o@b25.example', 'o'), ('${id("b1")}', 'x@b25.example', 'x');
+      insert into public.meow_households (id, owner_id, name, caretaker_type, city, district) values
+        ('${id("d0")}', '${id("a1")}', '我家', 'cat_owner', '桃園市', '中壢區'),
+        ('${id("d1")}', '${id("a1")}', '我的中途', 'personal_foster', '桃園市', '中壢區');
+      insert into public.meow_household_budgets (household_id, monthly_twd) values ('${id("d0")}', 4000);`);
+    const q = `select monthly_twd from public.meow_household_budgets where household_id = '${id("d0")}'`;
+    eq("BG-1 喵戶長讀得到自己的每月預算", "4000", await as("a1", q));
+    eq("BG-2 別人讀不到", "ok", await as("b1", q));
+    eq("BG-3 未登入讀不到", "rejected", await as(null, q));
+    eq("BG-4 喵戶長可以改預算", "ok", await as("a1", `update public.meow_household_budgets set monthly_twd = 5000 where household_id = '${id("d0")}'`));
+    eq("BG-5 別人不能幫他新增預算", "rejected", await as("b1", `insert into public.meow_household_budgets (household_id, monthly_twd) values ('${id("d1")}', 1)`));
+    eq("BG-6 中途的喵戶不能存預算", "rejected", await as("a1", `insert into public.meow_household_budgets (household_id, monthly_twd) values ('${id("d1")}', 3000)`));
+    eq("BG-7 預算超出 1～200,000 會被擋", "rejected", await as("a1", `update public.meow_household_budgets set monthly_twd = 0 where household_id = '${id("d0")}'`));
+  } catch (e) {
+    console.error(`✗ 0025 測試中斷：${e.message}`);
+    process.exit(1);
+  }
+}
+
 let failed = 0;
 for (const r of results) {
   if (r.status === "FAIL") failed++;
