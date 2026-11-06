@@ -19,7 +19,7 @@ afterEach(() => { cleanup(); vi.unstubAllGlobals(); push.mockReset(); replace.mo
 
 const jpg = (name: string) => new File(["x"], name, { type: "image/jpeg" });
 const ID = "cat_20261102_120000";
-const base = listBundledCats()[1];
+const base = { ...listBundledCats()[0], ageMonths: 3, body: "kitten" as const, variantStorage: false, bodyVariants: undefined };
 
 describe("新增貓咪頁（#110）", () => {
   it("步驟 01：照片｜基本資料兩欄；原始照片必填且會保留，其他角度 2、3 選填；底部按鈕先停用", () => {

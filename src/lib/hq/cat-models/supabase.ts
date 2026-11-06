@@ -76,6 +76,9 @@ type VariantRow = {
 /** 前台上架的預設 3D 貓（DEFAULT_ALBEDO）用母體自己的毛色，不是 Storage 裡的檔案，在 MeowHQ 視為還沒有紋理貼圖 */
 const realAlbedo = (path: string | null) => (path === DEFAULT_ALBEDO ? null : path);
 
+/** 貼圖路徑：bucket 裡的路徑轉公開網址；「/」開頭是網站內建的靜態檔（示範貓，public/hq-cat-models/）原樣使用 */
+const textureUrl = (path: string) => (path.startsWith("/") ? path : publicObjectUrl(MODEL_BUCKET, path));
+
 function variantViews(row: Row, records: VariantRow[] | null): NonNullable<CatModelView["bodyVariants"]> {
   const variants: Variants = records ? Object.fromEntries(records.map(v => [v.body_type, {
     albedo: realAlbedo(v.albedo_path), prev: realAlbedo(v.prev_albedo_path), baseVersion: v.base_version,
@@ -90,8 +93,8 @@ function variantViews(row: Row, records: VariantRow[] | null): NonNullable<CatMo
     const variant = variants[body];
     if (!variant) continue;
     result[body] = {
-      albedoUrl: variant.albedo ? publicObjectUrl(MODEL_BUCKET, variant.albedo) : null,
-      prevUrl: variant.prev ? publicObjectUrl(MODEL_BUCKET, variant.prev) : null,
+      albedoUrl: variant.albedo ? textureUrl(variant.albedo) : null,
+      prevUrl: variant.prev ? textureUrl(variant.prev) : null,
       texture: variantTexture(variants, body), baseVersion: variant.baseVersion,
     };
   }

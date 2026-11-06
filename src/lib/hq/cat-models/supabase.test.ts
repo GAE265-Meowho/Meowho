@@ -45,7 +45,7 @@ function fakeClient() {
 vi.mock("@/lib/supabase/server", () => ({ getServerSupabase: async () => fakeClient() }));
 vi.mock("@/lib/supabase/admin", () => ({ getAdminSupabase: () => null }));
 
-const { sbStartViews, sbCreateCat, sbPhotoUpload, sbQueuePaint, sbRestore, sbConfirmTexture, sbAutoPaint, sbBackfillPaint } = await import("./supabase");
+const { sbStartViews, sbCreateCat, sbPhotoUpload, sbQueuePaint, sbRestore, sbConfirmTexture, sbAutoPaint, sbBackfillPaint, sbGetCat } = await import("./supabase");
 /** 找寫入某個欄位的 update（同一次操作可能有好幾筆 update） */
 const updateWith = (key: string) => calls.find(c => c.op === "update" && key in (c.args[0] as object))?.args[0] as Record<string, unknown> | undefined;
 
@@ -69,6 +69,19 @@ describe("#104 依體型獨立操作", () => {
     expect(calls.find(c => c.table === "meow_cat_model_jobs" && c.op === "insert")?.args[0]).toMatchObject({ body_type: "adult" });
     // 幼貓還沒有貼圖：記在 meta.auto_paint，worker 做完成貓接著做幼貓
     expect(updateWith("meta")).toEqual({ meta: { auto_paint: ["kitten"] } });
+  });
+  it("示範貓合併（0028）：「/」開頭的貼圖是網站內建靜態檔，原樣當網址；bucket 路徑轉公開網址", async () => {
+    process.env.CAT_MODEL_VARIANTS_WORKER_READY = "1";
+    modelRow = row({ status: "ready", albedo_path: "cats/a.png", base_version: "adult-v1" });
+    const kitten = "/hq-cat-models/cats/cat_20261030_140731/paint_albedo_kitten.png";
+    variantRows = [
+      { body_type: "adult", albedo_path: "cats/a.png", prev_albedo_path: null, base_version: "adult-v1", prev_base_version: null, confirmed_albedo: "cats/a.png" },
+      { body_type: "kitten", albedo_path: kitten, prev_albedo_path: null, base_version: "kitten-v1", prev_base_version: null, confirmed_albedo: kitten },
+    ];
+    const cat = await sbGetCat(ID);
+    expect(cat?.bodyVariants?.kitten).toMatchObject({ albedoUrl: kitten, texture: { state: "confirmed" } });
+    expect(cat?.bodyVariants?.adult?.albedoUrl).toMatch(/\/storage\/v1\/object\/public\/meow-cat-models\/cats\/a\.png$/);
+    expect(cat?.body).toBe("adult");
   });
   it("確認幼貓不更新成貓的舊欄位", async () => {
     process.env.CAT_MODEL_VARIANTS_WORKER_READY = "1";

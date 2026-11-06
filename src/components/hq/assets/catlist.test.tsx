@@ -18,7 +18,7 @@ vi.mock("./useCatModels", async orig => ({
 
 afterEach(() => cleanup());
 
-const base = listBundledCats()[0];
+const base: CatModelView = { ...listBundledCats()[0], variantStorage: false, bodyVariants: undefined };
 // MeowHQ 新增的貓在資料庫是 owner_type='template'，也要能刪（只有內建示範貓 builtin 不能刪）
 const member: CatModelView = { ...base, ownerType: "template", builtin: false, id: "cat_20261101_200000", name: "小橘", status: "ready", notes: "", createdBy: "Tina", updatedAt: "2026-11-01T14:44:54Z" };
 
@@ -79,13 +79,13 @@ describe("已建立的貓咪模型列表（#102）", () => {
     expect(update).toHaveBeenCalledWith({ status: "done", page: 1 });
     expect(screen.queryByText(/已上架|已下架/)).toBeNull();
   });
-  it("兩隻示範貓：建立者「系統」、備註「系統預設範例」", () => {
+  it("示範貓只剩一隻（好奇虎斑小貓併成牠的幼貓體型）：建立者「系統」、備註「系統預設範例」，成貓、幼貓都完成", () => {
     const cats = listBundledCats();
-    expect(cats.map(c => c.name)).toEqual(["第一隻虎斑貓", "好奇虎斑小貓"]);
-    for (const c of cats) {
-      expect(c.notes).toBe("系統預設範例");
-      expect(c.createdBy).toBe("系統");
-    }
+    expect(cats.map(c => c.name)).toEqual(["第一隻虎斑貓"]);
+    expect(cats[0]).toMatchObject({ notes: "系統預設範例", createdBy: "系統" });
+    rows.data = cats;
+    render(<CatsTab query={{ page: 1 }} update={() => {}} />);
+    expect(within(screen.getByRole("row", { name: /第一隻虎斑貓/ })).getAllByText(/完成/).map(t => t.textContent)).toEqual(["成貓 完成", "幼貓 完成"]);
   });
   it("刪除：按「刪除」後原位確認，送出 DELETE；示範貓不能刪", async () => {
     rows.data = [member, { ...member, id: "cat_20261101_210000", name: "範本", builtin: true }];

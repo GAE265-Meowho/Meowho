@@ -7,7 +7,7 @@ import type { CatModelView } from "@/lib/hq/cat-models/types";
 import { AiViews, estPerImageUsd } from "./AiViews";
 
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
-const base = listBundledCats()[1];
+const base: CatModelView = { ...listBundledCats()[0], ageMonths: 3, body: "kitten", variantStorage: false, bodyVariants: undefined };
 const cat = (over: Partial<CatModelView>): CatModelView => ({ ...base, id: "cat_20261102_010000", aiViews: [], aiRunning: [], aiErrors: {}, aiAge: null, aiPrompts: {}, aiUsage: {}, aiQuality: null, updatedAt: "v1", ...over });
 const ok = () => { const f = vi.fn(async () => ({ ok: true, status: 202, json: async () => ({ ok: true }) })); vi.stubGlobal("fetch", f); return f; };
 const bodyOf = (f: ReturnType<typeof vi.fn>) => JSON.parse(String((f.mock.calls[0] as unknown as [string, { body: string }])[1].body));

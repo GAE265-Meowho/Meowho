@@ -18,7 +18,8 @@ import { boxToSolid, clampFurniturePose, rotatedHalfExtents } from "@/lib/hq/flo
 import { houseScene } from "@/lib/hq/floorplans/scene";
 import type { FloorplanHouse, FloorplanSummary, PlanRoom, Point } from "@/lib/hq/floorplans/types";
 import { HqLoadError, HqSkeleton } from "../HqStates";
-import { BODY_LABELS, BODY_ORDER, type BodyType } from "@/lib/hq/cat-models/types";
+import { BODY_ORDER, type BodyType } from "@/lib/hq/cat-models/types";
+import { BodySwitch } from "./BodySwitch";
 import { catLook, defaultBody } from "./catLook";
 import { ExperienceItemPalette } from "./ExperienceItemPalette";
 import { FLOORPLAN_API } from "./floorplanApi";
@@ -300,18 +301,8 @@ export function ExperienceTab() {
               {catOptions.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
             : <span className="hq-hint">還沒有完成紋理貼圖的貓。<Link href={assetSectionHref("cats")}>到貓咪製作</Link></span>}
-          {cat && (
-            <div className="hq-chips hq-exp-body" role="group" aria-label="體型">
-              {BODY_ORDER.map(b => {
-                const ok = bodies.includes(b);
-                return (
-                  <button key={b} type="button" aria-pressed={body === b} className={body === b ? "on" : ""} disabled={!ok}
-                    title={ok ? `切換成${BODY_LABELS[b]}` : `還沒有確認的${BODY_LABELS[b]}紋理貼圖`} onClick={() => choose("body", b)}>
-                    {BODY_LABELS[b]}
-                  </button>
-                );
-              })}
-            </div>
+          {cat && body && (
+            <BodySwitch value={body} onChange={b => choose("body", b)} unavailable={BODY_ORDER.filter(b => !bodies.includes(b))} />
           )}
         </div>
         <label className="hq-box">

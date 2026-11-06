@@ -20,6 +20,7 @@ import { PanelGroup } from "./PanelGroup";
 import { ASSETS_CATS_HREF, studioHref } from "./hrefs";
 import { baseGlbUrl, catFileUrl, useCat } from "./useCatModels";
 import { defaultBody } from "./catLook";
+import { BodySwitch } from "./BodySwitch";
 
 const GEN_KIND = { left: "gen_left", front: "gen_front", back: "gen_back" } as const;
 
@@ -134,10 +135,7 @@ function Preview({ cat }: { cat: CatModelView }) {
       </section>
 
       <section className="hq-catstage" aria-label="3D 預覽">
-        {cat.variantStorage && <div className="hq-chips" role="group" aria-label="預覽體型">
-          {(["adult", "kitten"] as const).map(choice => <button key={choice} type="button" aria-pressed={body === choice}
-            className={body === choice ? "on" : ""} onClick={() => selectBody(choice)}>{BODY_LABELS[choice]}</button>)}
-        </div>}
+        {cat.variantStorage && <BodySwitch label="預覽體型" value={body} onChange={selectBody} />}
         {/* #118：還沒製作 glb 時不載入骨架示範貓；CatPage 會直接轉到製作glb工作區，這裡只是轉頁前的過渡 */}
         {!ready ? (
           <div className="hq-state hq-noglb" role="status">
