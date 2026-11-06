@@ -89,15 +89,14 @@ export function fromCatRow(r: CatRowIn): CatFields {
   };
 }
 
-export interface VideoMeta { durationSec: number; tags: string[]; reason: string | null }
+// 影片個性判讀已拿掉（2026-11-06）：ai_personality_tags、ai_reason 欄位留著不寫，用資料庫預設值
+export interface VideoMeta { durationSec: number }
 
 export const toCatVideoInserts = (catId: string, paths: string[], meta: Record<string, VideoMeta>) =>
   paths.map((path) => ({
     cat_id: catId,
     storage_path: path,
     duration_sec: Math.max(1, Math.ceil(meta[path]?.durationSec ?? 1)),
-    ai_personality_tags: meta[path]?.tags ?? [],
-    ai_reason: meta[path]?.reason ?? null,
   }));
 
 const str = (max: number) => z.string().max(max);
