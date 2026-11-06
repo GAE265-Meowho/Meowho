@@ -3,6 +3,7 @@
 // 照片由瀏覽器直傳 Storage（伺服器只簽上傳網址），避開 Vercel 約 4.5 MB 的請求大小上限。
 // 產生貼圖由本機 paint_worker.py --supabase 領取 meow_cat_model_jobs，完成後寫回 albedo_path／base_version。
 import "server-only";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { getAdminSupabase } from "@/lib/supabase/admin";
 import { getServerSupabase } from "@/lib/supabase/server";
 import { ImageGenError, imageConfig } from "@/lib/ai/image";
@@ -19,6 +20,7 @@ import type { FileKind } from "./local";
 import { confirmVariant, legacyVariants, prepareVariant, restoreVariant, variantTexture, type Variant, type Variants } from "./variants";
 
 import { ensureModelPhoto, isModelPhotoPath } from "@/lib/cat-model-photo";
+import { DEFAULT_ALBEDO } from "@/lib/cat-publish";
 export const PHOTO_BUCKET = "meow-cat-model-photos";
 export const MODEL_BUCKET = "meow-cat-models";
 export const BASE_DIR = "base/v1";
@@ -43,7 +45,7 @@ type Row = {
   albedo_path: string | null;
   prev_albedo_path: string | null;
   base_version: string | null;
-  meta: { seconds?: number; prev_base_version?: string | null } | null;
+  meta: { seconds?: number; prev_base_version?: string | null; auto_paint?: BodyType[] } | null;
   created_at: string;
   updated_at: string;
   /** 建立者（#102）：meow_profiles 只有本人或有「用戶權限管理」的管理員讀得到，讀不到時為 null */
@@ -71,9 +73,15 @@ type VariantRow = {
   confirmed_albedo: string | null;
 };
 
+/** 前台上架的預設 3D 貓（DEFAULT_ALBEDO）用母體自己的毛色，不是 Storage 裡的檔案，在 MeowHQ 視為還沒有紋理貼圖 */
+const realAlbedo = (path: string | null) => (path === DEFAULT_ALBEDO ? null : path);
+
+/** 貼圖路徑：bucket 裡的路徑轉公開網址；「/」開頭是網站內建的靜態檔（示範貓，public/hq-cat-models/）原樣使用 */
+const textureUrl = (path: string) => (path.startsWith("/") ? path : publicObjectUrl(MODEL_BUCKET, path));
+
 function variantViews(row: Row, records: VariantRow[] | null): NonNullable<CatModelView["bodyVariants"]> {
   const variants: Variants = records ? Object.fromEntries(records.map(v => [v.body_type, {
-    albedo: v.albedo_path, prev: v.prev_albedo_path, baseVersion: v.base_version,
+    albedo: realAlbedo(v.albedo_path), prev: realAlbedo(v.prev_albedo_path), baseVersion: v.base_version,
     prevBaseVersion: v.prev_base_version, confirmed: v.confirmed_albedo,
   }])) : legacyVariants({
     albedo: row.albedo_path, prev: row.prev_albedo_path, baseVersion: row.base_version,
@@ -85,8 +93,8 @@ function variantViews(row: Row, records: VariantRow[] | null): NonNullable<CatMo
     const variant = variants[body];
     if (!variant) continue;
     result[body] = {
-      albedoUrl: variant.albedo ? publicObjectUrl(MODEL_BUCKET, variant.albedo) : null,
-      prevUrl: variant.prev ? publicObjectUrl(MODEL_BUCKET, variant.prev) : null,
+      albedoUrl: variant.albedo ? textureUrl(variant.albedo) : null,
+      prevUrl: variant.prev ? textureUrl(variant.prev) : null,
       texture: variantTexture(variants, body), baseVersion: variant.baseVersion,
     };
   }
@@ -159,7 +167,25 @@ export async function sbListCats(): Promise<CatModelView[]> {
   if (error) ({ data, error } = await sb.from("meow_cat_models").select(WITH_CREATOR).order("updated_at", { ascending: false }));
   if (error) ({ data, error } = await sb.from("meow_cat_models").select("*").order("updated_at", { ascending: false }));
   if (error || !data) return [];
-  return (data as Row[]).map(r => viewFromRow(r));
+  const rows = data as Row[];
+  if (process.env.CAT_MODEL_VARIANTS_WORKER_READY !== "1" || !rows.length) return rows.map(r => viewFromRow(r));
+  // 雙體型：確認只寫在體型表，進度要看各體型；任務狀態要知道畫的是哪個體型
+  const ids = rows.map(r => r.id);
+  const { data: variants, error: variantError } = await sb.from("meow_cat_model_variants")
+    .select("model_id,body_type,albedo_path,prev_albedo_path,base_version,prev_base_version,confirmed_albedo").in("model_id", ids);
+  if (variantError) return rows.map(r => viewFromRow(r));
+  const jobIds = rows.filter(r => r.status === "queued" || r.status === "running" || r.status === "failed").map(r => r.id);
+  const { data: jobs } = jobIds.length
+    ? await sb.from("meow_cat_model_jobs").select("model_id,body_type,queued_at").in("model_id", jobIds).order("queued_at", { ascending: false })
+    : { data: [] };
+  const jobBody = new Map<string, BodyType | null>();
+  for (const j of (jobs ?? []) as { model_id: string; body_type: BodyType | null }[]) if (!jobBody.has(j.model_id)) jobBody.set(j.model_id, j.body_type);
+  return rows.map(r => ({
+    ...viewFromRow(r),
+    variantStorage: true,
+    jobBody: jobBody.get(r.id) ?? null,
+    bodyVariants: variantViews(r, ((variants ?? []) as (VariantRow & { model_id: string })[]).filter(v => v.model_id === r.id)),
+  }));
 }
 
 export async function sbGetCat(id: string): Promise<CatModelView | null> {
@@ -168,14 +194,16 @@ export async function sbGetCat(id: string): Promise<CatModelView | null> {
   let { data, error } = await sb.from("meow_cat_models").select(WITH_HOUSEHOLD).eq("id", id).maybeSingle();
   if (error) ({ data, error } = await sb.from("meow_cat_models").select("*").eq("id", id).maybeSingle());
   if (error || !data) return null;
-  // 製作glb工作區每 3 秒輪詢：帶上最新一筆任務的狀態與步驟
-  const { data: job } = await sb.from("meow_cat_model_jobs")
-    .select("status,step,error,queued_at,started_at,finished_at")
-    .eq("model_id", id).order("queued_at", { ascending: false }).limit(1).maybeSingle();
   const { data: variants, error: variantError } = await sb.from("meow_cat_model_variants").select("body_type,albedo_path,prev_albedo_path,base_version,prev_base_version,confirmed_albedo").eq("model_id", id);
   const variantStorage = !variantError && process.env.CAT_MODEL_VARIANTS_WORKER_READY === "1";
-  return { ...viewFromRow(data as Row, (job as JobRow | null) ?? null),
+  // 製作glb工作區每 3 秒輪詢：帶上最新一筆任務的狀態與步驟（body_type 欄位在雙體型遷移後才有）
+  const { data: job } = await sb.from("meow_cat_model_jobs")
+    .select(`status,step,error,queued_at,started_at,finished_at${variantStorage ? ",body_type" : ""}`)
+    .eq("model_id", id).order("queued_at", { ascending: false }).limit(1).maybeSingle();
+  const jobRow = (job as (JobRow & { body_type?: BodyType | null }) | null) ?? null;
+  return { ...viewFromRow(data as Row, jobRow),
     variantStorage,
+    jobBody: jobRow?.body_type ?? null,
     bodyVariants: variantViews(data as Row, variantStorage ? (variants as VariantRow[] | null) ?? [] : null) };
 }
 
@@ -318,6 +346,7 @@ export async function sbQueuePaint(id: string, view: unknown, fill: unknown, bod
       }
     }
   } else await keepConfirmedTexture(user.sb, id);
+  if (cat.variantStorage) await planPair(user.sb, id, selectedBody);
   const useAi = await applyAiLeftPhoto(user.sb, id);
   const viewUsed = useAi ? "left" : v;
   const job = { model_id: id, status: "queued", step: "排隊中（請確認 paint_worker.py --supabase 有在執行）", view: viewUsed, fill: f };
@@ -334,6 +363,16 @@ export async function sbQueuePaint(id: string, view: unknown, fill: unknown, bod
 
 type Sb = NonNullable<Awaited<ReturnType<typeof getServerSupabase>>>;
 
+/** 手動產生一個體型時，另一個體型還沒有貼圖就記在 meta.auto_paint，paint_worker 做完這筆接著做（成貓、幼貓一對） */
+async function planPair(sb: Sb, id: string, body: BodyType): Promise<void> {
+  const other: BodyType = body === "adult" ? "kitten" : "adult";
+  const { data } = await sb.from("meow_cat_models").select("meta").eq("id", id).maybeSingle();
+  const variant = await getVariant(sb, id, other);
+  const meta = (data as Pick<Row, "meta"> | null)?.meta ?? {};
+  const autoPaint = realAlbedo(variant?.albedo_path ?? null) ? [] : [other];
+  await sb.from("meow_cat_models").update({ meta: { ...meta, auto_paint: autoPaint } }).eq("id", id);
+}
+
 function fromVariantRow(row: VariantRow): Variant {
   return { albedo: row.albedo_path, prev: row.prev_albedo_path, baseVersion: row.base_version,
     prevBaseVersion: row.prev_base_version, confirmed: row.confirmed_albedo };
@@ -342,6 +381,20 @@ function fromVariantRow(row: VariantRow): Variant {
 function toVariantRow(variant: Variant) {
   return { albedo_path: variant.albedo, prev_albedo_path: variant.prev, base_version: variant.baseVersion,
     prev_base_version: variant.prevBaseVersion, confirmed_albedo: variant.confirmed, updated_at: new Date().toISOString() };
+}
+
+/**
+ * worker 會把最新畫好的體型貼圖也寫進主表；首頁待辦、儀表板只讀主表推導「待確認」，
+ * 所以主表指向的正是這個體型的貼圖時，確認／換版也要寫回主表，不然會一直停在 3/4。
+ */
+async function syncMainTexture(sb: Sb, id: string, row: Pick<Row, "albedo_path" | "meta" | "profile">, before: VariantRow, after: Variant): Promise<void> {
+  if (!row.albedo_path || row.albedo_path !== before.albedo_path) return;
+  await sb.from("meow_cat_models").update({
+    albedo_path: after.albedo, prev_albedo_path: after.prev, base_version: after.baseVersion,
+    meta: { ...(row.meta ?? {}), prev_base_version: after.prevBaseVersion },
+    profile: { ...(row.profile ?? {}), confirmed_albedo: after.confirmed },
+    updated_at: new Date().toISOString(),
+  }).eq("id", id);
 }
 
 async function getVariant(sb: Sb, id: string, body: BodyType): Promise<VariantRow | null> {
@@ -380,17 +433,19 @@ export async function sbConfirmTexture(id: string, body?: unknown): Promise<
 > {
   const user = await userClient();
   if (!user) return { ok: false, code: "permission_denied" };
-  const { data } = await user.sb.from("meow_cat_models").select("status,albedo_path,profile").eq("id", id).maybeSingle();
+  const { data } = await user.sb.from("meow_cat_models").select("status,albedo_path,meta,profile").eq("id", id).maybeSingle();
   if (!data) return { ok: false, code: "not_found" };
-  const row = data as Pick<Row, "status" | "albedo_path" | "profile">;
+  const row = data as Pick<Row, "status" | "albedo_path" | "meta" | "profile">;
   if (isJobActive(row.status)) return { ok: false, code: "busy" };
   if (body !== undefined && body !== "adult" && body !== "kitten") return { ok: false, code: "permission_denied" };
   if (body === "adult" || body === "kitten") {
     const existing = await getVariant(user.sb, id, body);
     if (!existing?.albedo_path) return { ok: false, code: "no_texture" };
+    const next = confirmVariant(fromVariantRow(existing));
     const { error } = await user.sb.from("meow_cat_model_variants")
-      .update(toVariantRow(confirmVariant(fromVariantRow(existing)))).eq("model_id", id).eq("body_type", body);
+      .update(toVariantRow(next)).eq("model_id", id).eq("body_type", body);
     if (error) return { ok: false, code: "permission_denied" };
+    await syncMainTexture(user.sb, id, row, existing, next);
     await audit(user.sb, "confirm_texture", id, "確認使用紋理貼圖", { body });
     return { ok: true };
   }
@@ -403,8 +458,64 @@ export async function sbConfirmTexture(id: string, body?: unknown): Promise<
   return { ok: true };
 }
 
+const BODIES: BodyType[] = ["adult", "kitten"];
+
+/**
+ * 每隻貓都要有成貓、幼貓一對紋理貼圖（idea 2：共用 AI 三視角，第 3 步才分流）。三視角都好了就排缺的體型。
+ * 同一隻貓同時只能有一筆任務（unique index），先排這隻貓年齡層的體型，其餘記在 meta.auto_paint，
+ * 由 paint_worker 做完一筆再排下一筆。排過的體型（成功或失敗）不再自動排，失敗由管理員在 MeowHQ 重新產生。
+ * 補花紋沿用這隻貓上次選的（沒有就不補）。回傳這次排入的體型；不需要或排不進去回 null。
+ */
+export async function sbAutoPaint(id: string, sb: Sb | SupabaseClient): Promise<BodyType | null> {
+  const { data } = await sb.from("meow_cat_models").select("status,photo_path,fill_pattern,profile,meta").eq("id", id).maybeSingle();
+  const row = data as Pick<Row, "status" | "photo_path" | "fill_pattern" | "profile" | "meta"> | null;
+  if (!row || isJobActive(row.status) || !viewsReady(generatedState(row.profile?.generated))) return null;
+  const { data: jobs } = await sb.from("meow_cat_model_jobs").select("body_type,status").eq("model_id", id);
+  const jobRows = (jobs ?? []) as { body_type: BodyType | null; status: JobStatus }[];
+  if (jobRows.some(j => j.status === "queued" || j.status === "running")) return null;
+  const { data: variants } = await sb.from("meow_cat_model_variants").select("body_type,albedo_path").eq("model_id", id);
+  const variantRows = (variants ?? []) as Pick<VariantRow, "body_type" | "albedo_path">[];
+  const primary = variantRows.find(v => v.albedo_path === DEFAULT_ALBEDO)?.body_type
+    ?? (typeof row.profile?.age_months === "number" ? bodyFor({ baseVersion: null, hasAlbedo: false, ageMonths: row.profile.age_months }) : undefined);
+  const pending = [...new Set([...(primary ? [primary] : []), ...BODIES])].filter(b =>
+    !jobRows.some(j => j.body_type === b) && !variantRows.some(v => v.body_type === b && realAlbedo(v.albedo_path)));
+  if (!pending.length) return null;
+  const [body, ...rest] = pending;
+  // worker 領工作時會讀 meta，所以先寫好剩下的體型再新增任務
+  const { error: metaError } = await sb.from("meow_cat_models").update({ meta: { ...(row.meta ?? {}), auto_paint: rest } }).eq("id", id);
+  if (metaError) return null;
+  await applyAiLeftPhoto(sb, id);
+  const { error } = await sb.from("meow_cat_model_jobs").insert({
+    model_id: id, status: "queued", step: "排隊中（自動產生，請確認 paint_worker.py --supabase 有在執行）",
+    view: "left", fill: row.fill_pattern ?? "none", body_type: body,
+  });
+  if (error) return null;
+  await sb.from("meow_cat_models").update({ status: "queued", updated_at: new Date().toISOString() }).eq("id", id);
+  return body;
+}
+
+/** MeowHQ「補排紋理貼圖」：掃全部的貓，缺成貓或幼貓貼圖的補進排程（管理員登入身分，RLS 檢查 virtual_assets） */
+export async function sbBackfillPaint(): Promise<
+  { ok: true; queued: { id: string; name: string; body: BodyType }[]; waiting: number } | { ok: false; code: "permission_denied" }
+> {
+  const user = await userClient();
+  if (!user) return { ok: false, code: "permission_denied" };
+  const { data, error } = await user.sb.from("meow_cat_models").select("id,name,profile");
+  if (error) return { ok: false, code: "permission_denied" };
+  const queued: { id: string; name: string; body: BodyType }[] = [];
+  let waiting = 0;
+  for (const row of (data ?? []) as Pick<Row, "id" | "name" | "profile">[]) {
+    if (!viewsReady(generatedState(row.profile?.generated))) { waiting++; continue; }
+    const body = await sbAutoPaint(row.id, user.sb);
+    if (!body) continue;
+    queued.push({ id: row.id, name: row.name, body });
+    await audit(user.sb, "generate_model", row.id, "補排紋理貼圖（成貓、幼貓一對）", { body, auto: true });
+  }
+  return { ok: true, queued, waiting };
+}
+
 /** 有 AI 左側面照時，讓 worker 用它上色；回傳是否改用 */
-async function applyAiLeftPhoto(sb: Sb, id: string): Promise<boolean> {
+async function applyAiLeftPhoto(sb: Sb | SupabaseClient, id: string): Promise<boolean> {
   const { data } = await sb.from("meow_cat_models").select("photo_path,profile").eq("id", id).maybeSingle();
   const row = data as Pick<Row, "photo_path" | "profile"> | null;
   const left = row?.profile?.generated?.views?.left;
@@ -489,9 +600,11 @@ export async function sbRestore(id: string, reason: string, body?: unknown): Pro
   if (body === "adult" || body === "kitten") {
     const existing = await getVariant(user.sb, id, body);
     if (!existing?.prev_albedo_path) return { ok: false, code: "no_previous" };
+    const next = restoreVariant(fromVariantRow(existing));
     const { error } = await user.sb.from("meow_cat_model_variants")
-      .update(toVariantRow(restoreVariant(fromVariantRow(existing)))).eq("model_id", id).eq("body_type", body);
+      .update(toVariantRow(next)).eq("model_id", id).eq("body_type", body);
     if (error) return { ok: false, code: "permission_denied" };
+    await syncMainTexture(user.sb, id, row, existing, next);
     await audit(user.sb, "restore_texture", id, text, { body });
     return { ok: true };
   }

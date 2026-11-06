@@ -2,7 +2,7 @@
 // AI 三視角照片（#110，依 Stitch「MeowHQ Cat Model Builder」設計）：新增貓咪頁步驟 02 與製作glb工作區「貼圖結果」共用。
 // 內容：年齡判斷列 → 四張卡片（原始照片＋AI 左側面／正面／背部；每張有狀態、重新產生、送出的指示可切換中｜EN）
 //      → 「進階生成參數與畫質設定」→「用量與費用清單」。產生在伺服器背景跑，畫面靠父層輪詢更新。
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { buildViewPrompt } from "@/lib/prompts/cat-views";
 import {
   AI_QUALITIES, AI_SIZES, GEN_VIEWS, GEN_VIEW_LABELS, IMAGE_PRICE, imageCostUsd, QUALITY_OUTPUT_TOKENS,
@@ -167,8 +167,19 @@ function UsagePanel({ cat }: { cat: CatModelView }) {
   );
 }
 
-export function AiViews({ cat, onStarted, settings, onSettings, uploadedTitle = "上傳的照片" }: {
-  cat: CatModelView; onStarted: () => void; settings?: AiSettings; onSettings?: (v: AiSettings) => void; uploadedTitle?: string;
+/** foldable：上傳照片、AI 三視角各自可收合（製作glb工作區用，預設展開；作法同「進階生成參數與畫質設定」） */
+function Section({ title, foldable, children }: { title: string; foldable: boolean; children: ReactNode }) {
+  if (!foldable) return <><h4 className="hq-ai-sub">{title}</h4>{children}</>;
+  return (
+    <details className="hq-ai-fold" open>
+      <summary>{title}</summary>
+      <div className="hq-ai-fold-body hq-ai-fold-stack">{children}</div>
+    </details>
+  );
+}
+
+export function AiViews({ cat, onStarted, settings, onSettings, uploadedTitle = "上傳的照片", foldable = false }: {
+  cat: CatModelView; onStarted: () => void; settings?: AiSettings; onSettings?: (v: AiSettings) => void; uploadedTitle?: string; foldable?: boolean;
 }) {
   const [own, setOwn] = useState<AiSettings>(DEFAULT_AI_SETTINGS);
   const value = settings ?? own;
@@ -194,39 +205,41 @@ export function AiViews({ cat, onStarted, settings, onSettings, uploadedTitle = 
     <div className="hq-aiviews">
       <Analysis cat={cat} />
       {/* #118：上傳的照片（原始＋其他角度 2、3）與 AI 三視角分兩區 */}
-      <h4 className="hq-ai-sub">{uploadedTitle}</h4>
-      <div className="hq-ai-grid" role="group" aria-label={uploadedTitle}>
-        <figure className="hq-ai-card" aria-label="原始照片">
-          <div className="hq-ai-card-head"><span>原始照片</span><span className="hq-tag mute">原始</span></div>
-          <div className="hq-ai-frame">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={catFileUrl(cat.id, "photo")} alt={`${cat.name} 的原始照片`} />
-          </div>
-          <p className="hq-hint">原樣保留，不送 AI 修改。</p>
-        </figure>
-        {EXTRA_SLOTS.filter(x => cat.extraPhotos.includes(x.view)).map(x => (
-          <figure key={x.view} className="hq-ai-card" aria-label={x.label}>
-            <div className="hq-ai-card-head"><span>{x.label}</span><span className="hq-tag mute">參考</span></div>
+      <Section title={uploadedTitle} foldable={foldable}>
+        <div className="hq-ai-grid" role="group" aria-label={uploadedTitle}>
+          <figure className="hq-ai-card" aria-label="原始照片">
+            <div className="hq-ai-card-head"><span>原始照片</span><span className="hq-tag mute">原始</span></div>
             <div className="hq-ai-frame">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={catFileUrl(cat.id, x.kind)} alt={x.label} />
+              <img src={catFileUrl(cat.id, "photo")} alt={`${cat.name} 的原始照片`} />
             </div>
-            <p className="hq-hint">產生 AI 三視角時當參考圖。</p>
+            <p className="hq-hint">原樣保留，不送 AI 修改。</p>
           </figure>
-        ))}
-      </div>
-      {!cat.extraPhotos.length && <p className="hq-hint">沒有上傳其他角度照片。</p>}
-      <h4 className="hq-ai-sub">AI 三視角</h4>
-      <div className="hq-ai-grid" role="group" aria-label="AI 三視角">
-        {GEN_VIEWS.map(v => <Card key={v} cat={cat} view={v} busy={running || sending} onRegenerate={view => start([view])} />)}
-      </div>
-      {nothingYet && (
-        <div className="hq-row">
-          <button type="button" className="hq-btn small" disabled={sending} onClick={() => start([...GEN_VIEWS])}>產生 AI 三視角</button>
+          {EXTRA_SLOTS.filter(x => cat.extraPhotos.includes(x.view)).map(x => (
+            <figure key={x.view} className="hq-ai-card" aria-label={x.label}>
+              <div className="hq-ai-card-head"><span>{x.label}</span><span className="hq-tag mute">參考</span></div>
+              <div className="hq-ai-frame">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={catFileUrl(cat.id, x.kind)} alt={x.label} />
+              </div>
+              <p className="hq-hint">產生 AI 三視角時當參考圖。</p>
+            </figure>
+          ))}
         </div>
-      )}
-      {running && <p className="hq-hint" role="status">AI 照片產生中，約需 20～60 秒，離開頁面也會繼續。</p>}
-      {error && <p className="hq-error" role="alert">{error}</p>}
+        {!cat.extraPhotos.length && <p className="hq-hint">沒有上傳其他角度照片。</p>}
+      </Section>
+      <Section title="AI 三視角" foldable={foldable}>
+        <div className="hq-ai-grid" role="group" aria-label="AI 三視角">
+          {GEN_VIEWS.map(v => <Card key={v} cat={cat} view={v} busy={running || sending} onRegenerate={view => start([view])} />)}
+        </div>
+        {nothingYet && (
+          <div className="hq-row">
+            <button type="button" className="hq-btn small" disabled={sending} onClick={() => start([...GEN_VIEWS])}>產生 AI 三視角</button>
+          </div>
+        )}
+        {running && <p className="hq-hint" role="status">AI 照片產生中，約需 20～60 秒，離開頁面也會繼續。</p>}
+        {error && <p className="hq-error" role="alert">{error}</p>}
+      </Section>
       <AiSettingsPanel value={value} onChange={onSettings ?? setOwn} />
       <UsagePanel cat={cat} />
     </div>

@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { bundledBasePublicPath, bundledEnabled, bundledFilePublicPath, getBundledCat, listBundledCats } from "./bundled";
 import { resolveCatSource } from "./repo";
-import { KITTEN_MAX_MONTHS } from "./types";
 
 describe("bundled 示範貓", () => {
   it("有至少一隻已完成的貓可預覽", () => {
@@ -21,11 +20,14 @@ describe("bundled 示範貓", () => {
     expect(getBundledCat("cat_99999999_999999")).toBeNull();
   });
 
-  it("幼貓骨架的示範小貓：體型 kitten、年齡在幼貓範圍內", () => {
-    const kitten = getBundledCat("cat_20261101_183700");
-    expect(kitten?.body).toBe("kitten");
-    expect(kitten?.ageMonths).toBeLessThanOrEqual(KITTEN_MAX_MONTHS);
-    expect(bundledFilePublicPath("cat_20261101_183700", "albedo")).toBe("/hq-cat-models/cats/cat_20261101_183700/paint_albedo.png");
+  it("好奇虎斑小貓併進第一隻虎斑貓：同一隻貓有成貓、幼貓兩個體型，預設成貓", () => {
+    expect(getBundledCat("cat_20261101_183700")).toBeNull();
+    const cat = getBundledCat("cat_20261030_140731")!;
+    expect(cat.body).toBe("adult");
+    expect(cat.variantStorage).toBe(true);
+    expect(cat.bodyVariants?.kitten).toMatchObject({ albedoUrl: "/hq-cat-models/cats/cat_20261030_140731/paint_albedo_kitten.png", baseVersion: "kitten-v1", texture: { state: "confirmed", previewBody: "kitten" } });
+    expect(cat.bodyVariants?.adult?.albedoUrl).toBe("/hq-cat-models/cats/cat_20261030_140731/paint_albedo.png");
+    expect(bundledFilePublicPath("cat_20261030_140731", "albedo_kitten")).toBe("/hq-cat-models/cats/cat_20261030_140731/paint_albedo_kitten.png");
     expect(bundledBasePublicPath("kitten")).toBe("/hq-cat-models/base/base_clips_kitten.glb");
   });
 

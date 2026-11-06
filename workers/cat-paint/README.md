@@ -28,6 +28,7 @@ cd ~/Meowho && git pull && sudo systemctl restart meow-paint
 ```
 
 ## 注意
+- **成貓、幼貓一對**：網站排第一筆時把另一個體型記在 `meow_cat_models.meta.auto_paint`，worker 做完一筆才排下一筆（同一隻貓同時只能有一筆任務）。舊版 worker 不會接著排，改版後請 `git pull` 並重啟 worker。
 - **同時只能有一個 paint worker**：VM 的 worker 在跑時，不要在本機再開 `paint_worker.py --supabase`。
 - **T4 只有 16 GB**：和房間 worker（`workers/room-convert`）共用同一台 VM 時，兩邊用檔案鎖 `/tmp/meowho-gpu.lock`（`fcntl.LOCK_EX`）輪流領工作；等鎖期間工作維持 `queued`，不會卡在 `running`（#200）。
 - `/mnt` 是 Azure 暫存磁碟，停止 VM 會清空；本 worker 全部裝在 repo 資料夾內。

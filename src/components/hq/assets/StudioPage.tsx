@@ -1,21 +1,23 @@
 "use client";
 // 製作GLB工作區（規格書 04 §2.3；#110 改名；#129 版面整理）
-// 左：虛擬貓咪檔案（2 份寬，捲動時固定，可收合）；右：製作 GLB 工作區（1 份寬）＝製作流程、任務進度、產生選項、紋理貼圖與確認、第 4 步。
+// 左：虛擬貓咪檔案（2 份寬，捲動時固定，可收合；貓咪資訊、上傳照片、AI 三視角各自可收合）；
+// 右：製作 GLB 工作區（1 份寬）＝製作流程、任務進度（成貓／幼貓各自狀態）、紋理貼圖（膠囊切換體型、確認、產生）、第 4 步。
 // #129：第 3 步產生的紋理貼圖要人工確認，才能進第 4 步；確認前與重新產生期間，貓咪頁繼續用已確認的貼圖。
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { composeReason } from "@/lib/hq/actions";
 import {
-  CAT_STATUS_LABELS, CAT_STATUS_TONE, CAT_STEPS, catStepStates, elapsedMinutes, FILL_LABELS, isJobActive, JOB_STAGES, jobStage,
-  PHOTO_VIEW_LABELS, queueStalled, textureOf, viewsReady,
-  type CatModelView, type FillPattern, type PhotoView,
+  BODY_LABELS, BODY_ORDER, CAT_STATUS_LABELS, CAT_STATUS_TONE, CAT_STEPS, catStepStates, elapsedMinutes, isJobActive, JOB_STAGES, jobStage,
+  queueStalled, textureOf, viewsReady,
+  type BodyType, type CatModelView,
 } from "@/lib/hq/cat-models/types";
 import { HqLoadError, HqSaveButton, HqSkeleton } from "../HqStates";
 import { HqNotFound } from "../HqLoginPage";
 import { ReasonField } from "../ReasonField";
 import { useHqToast } from "../HqToast";
 import { AiViews } from "./AiViews";
+import { BodySwitch } from "./BodySwitch";
 import { FLOW_ICONS, FlowStepper, type StepIcon } from "./FlowStepper";
 import { assetsHref, ASSETS_CATS_HREF } from "./hrefs";
 import { CAT_API, catFileUrl, postJson, useCat } from "./useCatModels";
@@ -38,8 +40,6 @@ const RESTORE_ERRORS: Record<string, string> = {
   not_found: "找不到這隻貓",
 };
 
-const VIEWS: PhotoView[] = ["front", "left", "right"];
-const FILLS: FillPattern[] = ["none", "tabby"];
 const POLL_MS = 3000;
 
 const STAGE_ICONS: StepIcon[] = ["queue", "cutout", "model", "paint", "pattern", "upload", "done"];
@@ -59,11 +59,35 @@ function Flow({ cat }: { cat: CatModelView }) {
   );
 }
 
-/** 任務進度：依 worker 回報的步驟，不顯示虛構百分比 */
+/** 成貓、幼貓各自的紋理貼圖狀態：任務只算在它畫的體型上；另一個體型沒貼圖時，做完這筆會接著做 */
+function bodyStatus(cat: CatModelView, body: BodyType): { text: string; tone: "" | "mute" | "warn" | "danger" } {
+  const jobBody = cat.jobBody ?? cat.body;
+  if (jobBody === body && cat.status === "queued") return { text: "排隊中", tone: "warn" };
+  if (jobBody === body && cat.status === "running") return { text: "產生中", tone: "warn" };
+  if (jobBody === body && cat.status === "failed") return { text: "失敗", tone: "danger" };
+  const t = cat.bodyVariants?.[body]?.texture;
+  if (t?.state === "confirmed") return { text: "已確認", tone: "" };
+  if (t?.state === "pending") return { text: "待確認", tone: "warn" };
+  return isJobActive(cat.status) ? { text: "接著產生", tone: "mute" } : { text: "尚未產生", tone: "mute" };
+}
+
+function PairStatus({ cat }: { cat: CatModelView }) {
+  return (
+    <ul className="hq-pairstatus" aria-label="成貓、幼貓紋理貼圖狀態">
+      {BODY_ORDER.map(body => {
+        const s = bodyStatus(cat, body);
+        return <li key={body}><span>{BODY_LABELS[body]}</span><span className={`hq-tag${s.tone ? ` ${s.tone}` : ""}`}>{s.text}</span></li>;
+      })}
+    </ul>
+  );
+}
+
+/** 任務進度：成貓、幼貓各自的狀態＋目前這筆任務的步驟（依 worker 回報，不顯示虛構百分比） */
 function Progress({ cat, now }: { cat: CatModelView; now: number }) {
   const stalled = queueStalled(cat.status, cat.jobQueuedAt, now);
   const stage = jobStage(cat, stalled);
-  if (!stage) return null;
+  if (!stage) return cat.variantStorage ? <section className="hq-box" aria-label="任務進度"><h3>任務進度</h3><PairStatus cat={cat} /></section> : null;
+  const jobBody = cat.variantStorage ? cat.jobBody ?? cat.body : null;
   const mins = elapsedMinutes(cat.jobStartedAt ?? cat.jobQueuedAt, now);
   const steps = JOB_STAGES.map((title, i) => ({
     title, icon: STAGE_ICONS[i],
@@ -73,12 +97,18 @@ function Progress({ cat, now }: { cat: CatModelView; now: number }) {
   return (
     <section className="hq-box" aria-label="任務進度">
       <h3>任務進度</h3>
-      <p>
-        <span className={`hq-tag${CAT_STATUS_TONE[cat.status] ? ` ${CAT_STATUS_TONE[cat.status]}` : ""}`}>{CAT_STATUS_LABELS[cat.status]}</span>
-        {cat.jobStep && <> {cat.jobStep}</>}
-      </p>
+      {cat.variantStorage && <PairStatus cat={cat} />}
       {/* 完成後只留摘要，步驟圖只在排隊、生成中、失敗時顯示 */}
-      {stage.index < 6 && <FlowStepper compact label="紋理貼圖任務進度" steps={steps} />}
+      {stage.index < 6 && (
+        <>
+          <p>
+            {jobBody && <strong>{BODY_LABELS[jobBody]}紋理貼圖：</strong>}
+            <span className={`hq-tag${CAT_STATUS_TONE[cat.status] ? ` ${CAT_STATUS_TONE[cat.status]}` : ""}`}>{CAT_STATUS_LABELS[cat.status]}</span>
+            {cat.jobStep && <> {cat.jobStep}</>}
+          </p>
+          <FlowStepper compact label="紋理貼圖任務進度" steps={steps} />
+        </>
+      )}
       {isJobActive(cat.status) && (
         <p className="hq-hint" role="status">
           {mins !== null && <>已經過 {mins} 分鐘。</>}AI 上色約需 3~6 分鐘；離開頁面任務照跑，回來可看到最新進度。
@@ -93,73 +123,43 @@ function Progress({ cat, now }: { cat: CatModelView; now: number }) {
   );
 }
 
-function Options({ cat, onDone, onSelectBody }: { cat: CatModelView; onDone: () => void; onSelectBody: (body: "adult" | "kitten") => void }) {
-  const [view, setView] = useState<PhotoView>(cat.photoView ?? "front");
-  const [fill, setFill] = useState<FillPattern>(cat.fillPattern ?? "none");
+/** 產生／重新產生這個體型的紋理貼圖：用 AI 左側面照上色、看不到的花紋不補（Tina 2026-11-06 拿掉產生選項） */
+function PaintButton({ cat, onDone }: { cat: CatModelView; onDone: () => void }) {
   const busy = isJobActive(cat.status) || cat.aiRunning.length > 0;
   const ready = viewsReady(cat);  // #135：三視角都成功才能產生
-  const aiLeft = cat.aiViews.includes("left");
-  const label = cat.status === "failed" ? "重試" : cat.hasAlbedo ? "重新產生紋理貼圖" : "產生紋理貼圖";
+  const failedHere = cat.status === "failed" && (cat.jobBody ?? cat.body) === cat.body;
+  const name = cat.variantStorage ? BODY_LABELS[cat.body] : "";
+  const label = failedHere ? "重試" : cat.hasAlbedo ? `重新產生${name}紋理貼圖` : `產生${name}紋理貼圖`;
 
   async function save() {
-    await postJson(`${CAT_API}/${cat.id}/paint`, { view, fill, ...(cat.variantStorage ? { body: cat.body } : {}) }, PAINT_ERRORS);
+    await postJson(`${CAT_API}/${cat.id}/paint`, { view: "left", fill: "none", ...(cat.variantStorage ? { body: cat.body } : {}) }, PAINT_ERRORS);
     onDone();
   }
 
   return (
-    <section className="hq-box" aria-label="產生選項">
-      <h3>產生選項</h3>
-      {cat.variantStorage && <div className="hq-field">
-        <span className="hq-label" id="opt-body">體型</span>
-        <div className="hq-chips" role="group" aria-labelledby="opt-body">
-          {(["adult", "kitten"] as const).map(body => <button key={body} type="button" className={cat.body === body ? "on" : ""}
-            aria-pressed={cat.body === body} onClick={() => onSelectBody(body)}>{body === "adult" ? "成貓" : "幼貓"}</button>)}
-        </div>
-      </div>}
-      {aiLeft ? (
-        // #110：有 AI 左側面照就用它上色，角度固定「左側」（頭朝左），不用再選
-        <div className="hq-field">
-          <span className="hq-label">上色照片</span>
-          <p className="hq-hint">使用 AI 左側面照（頭朝左）上色。</p>
-        </div>
-      ) : (
-        <div className="hq-field">
-          <span className="hq-label" id="opt-view">照片角度</span>
-          <div className="hq-chips" role="group" aria-labelledby="opt-view">
-            {VIEWS.map(v => <button key={v} type="button" className={view === v ? "on" : ""} aria-pressed={view === v} onClick={() => setView(v)}>{PHOTO_VIEW_LABELS[v]}</button>)}
-          </div>
-        </div>
-      )}
-      <div className="hq-field">
-        <span className="hq-label" id="opt-fill">補看不到的花紋</span>
-        <div className="hq-chips" role="group" aria-labelledby="opt-fill">
-          {FILLS.map(f => <button key={f} type="button" className={fill === f ? "on" : ""} aria-pressed={fill === f} onClick={() => setFill(f)}>{FILL_LABELS[f]}</button>)}
-        </div>
-        {/* 邏輯見 Meow/cat_base/step3b_fill.py 的 fill_pattern：取色範圍、8 條條紋、背線、壓暗 0.75 */}
-        <p className="hq-hint">{fill === "tabby"
-          ? "虎斑：只補照片看不到的背部與側腹。顏色取自這隻貓的肩膀與前腳（中間亮度當底色、最暗的當條紋色），畫上深色條紋與背線，越近肚子越淡。適合虎斑貓。"
-          : "不補：看不到的地方沿用 AI 上色結果，不加條紋。純色、白貓、三花請選這個。"}</p>
-      </div>
+    <>
       <div className="hq-row">
         <HqSaveButton onSave={save} disabled={busy || !ready}>{label}</HqSaveButton>
         {busy ? <span className="hq-hint">{cat.aiRunning.length ? "AI 三視角產生中，完成後才能產生紋理貼圖。" : "已有排隊中或生成中的任務。"}</span>
           : !ready && <span className="hq-hint" role="status">請先完成第 2 步「AI 三視角」（左側、正面、背部都成功），才能產生紋理貼圖。</span>}
       </div>
       {textureOf(cat).state === "pending" && !busy && <p className="hq-hint">重新產生會放棄這張還沒確認的紋理貼圖。</p>}
-    </section>
+    </>
   );
 }
 
-/** 第 3 步：目前紋理貼圖預覽＋確認使用／改用上一版 */
-function Texture({ cat, onDone }: { cat: CatModelView; onDone: (message: string) => void }) {
+/** 第 3 步：成貓／幼貓切換＋目前紋理貼圖預覽＋確認使用／改用上一版＋產生 */
+function Texture({ cat, onDone, onPainted, onSelectBody }: {
+  cat: CatModelView; onDone: (message: string) => void; onPainted: () => void; onSelectBody: (body: BodyType) => void;
+}) {
   const [open, setOpen] = useState(false);
   const [reason, setReason] = useState({ quick: "", extra: "" });
   const text = composeReason(reason.quick, reason.extra);
   const busy = isJobActive(cat.status);
   const t = textureOf(cat);
   const variant = cat.bodyVariants?.[cat.body];
-  const url = (kind: "albedo" | "albedo_prev") =>
-    (kind === "albedo" ? variant?.albedoUrl : variant?.prevUrl) ?? catFileUrl(cat.id, kind, cat.albedoVersion ?? undefined);
+  const albedoUrl = variant?.albedoUrl ?? catFileUrl(cat.id, "albedo", cat.albedoVersion ?? undefined);
+  const bodyName = cat.variantStorage ? BODY_LABELS[cat.body] : "";
 
   function close() { setOpen(false); setReason({ quick: "", extra: "" }); }
   async function restore() {
@@ -175,30 +175,23 @@ function Texture({ cat, onDone }: { cat: CatModelView; onDone: (message: string)
   return (
     <section className="hq-box" aria-label="紋理貼圖">
       <h3>紋理貼圖</h3>
-      {busy && <p role="status"><span className="hq-tag warn">生成中</span> {cat.jobStep ?? "排隊中"}</p>}
+      {cat.variantStorage && <BodySwitch label="紋理貼圖體型" value={cat.body} onChange={onSelectBody} />}
+      {busy && <p role="status"><span className="hq-tag warn">生成中</span> {cat.jobBody && cat.jobBody !== cat.body ? `${BODY_LABELS[cat.jobBody]}：` : ""}{cat.jobStep ?? "排隊中"}</p>}
       {cat.hasAlbedo ? (
         <figure className="hq-texture-preview" style={{ margin: 0 }}>
-          <a href={url("albedo")} target="_blank" rel="noreferrer" aria-label="放大看目前紋理貼圖">
+          <a href={albedoUrl} target="_blank" rel="noreferrer" aria-label="放大看目前紋理貼圖">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={url("albedo")} alt="目前的紋理貼圖" />
+            <img src={albedoUrl} alt={`目前的${bodyName}紋理貼圖`} />
           </a>
           <figcaption>{t.state === "pending" ? "新的紋理貼圖（待確認）" : "目前使用（已確認）"}・點圖放大</figcaption>
         </figure>
       ) : (
         <div className="hq-texture-empty" role="status">
-          <strong>{busy ? "第一張紋理貼圖生成中" : "還沒有紋理貼圖"}</strong>
-          {!busy && <span>{viewsReady(cat) ? "按上方「產生紋理貼圖」開始。" : "先完成 AI 三視角，再產生紋理貼圖。"}</span>}
+          <strong>{busy && (cat.jobBody ?? cat.body) === cat.body ? `${bodyName}紋理貼圖生成中` : `還沒有${bodyName}紋理貼圖`}</strong>
+          {!busy && <span>{viewsReady(cat) ? "按下方「產生紋理貼圖」開始。" : "先完成 AI 三視角，再產生紋理貼圖。"}</span>}
         </div>
       )}
-      {cat.hasPrevAlbedo && (
-        <div className="hq-texture-prev">
-          <figure>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={url("albedo_prev")} alt="上一版紋理貼圖" className="hq-thumb" style={{ width: "100%", height: "auto", aspectRatio: "1" }} />
-            <figcaption>上一版{t.preview === "albedo_prev" ? "（已確認，貓咪頁使用中）" : ""}</figcaption>
-          </figure>
-        </div>
-      )}
+      {t.preview === "albedo_prev" && <p className="hq-hint">貓咪頁目前使用上一版（已確認）。</p>}
       {t.state === "pending" && !busy && !open && (
         <div className="hq-row hq-actions">
           <HqSaveButton onSave={confirm}>確認使用</HqSaveButton>
@@ -220,6 +213,7 @@ function Texture({ cat, onDone }: { cat: CatModelView; onDone: (message: string)
           </div>
         </>
       )}
+      {!open && <PaintButton cat={cat} onDone={onPainted} />}
     </section>
   );
 }
@@ -246,9 +240,9 @@ function MakeGlb({ cat }: { cat: CatModelView }) {
 function CatProfile({ cat }: { cat: CatModelView }) {
   const gender = cat.gender === "male" ? "公" : cat.gender === "female" ? "母" : "未設定";
   return (
-    <section className="hq-studio-profile" aria-label="貓咪目前資訊">
-      <h3>目前資訊</h3>
-      <dl className="hq-dl">
+    <details className="hq-ai-fold" open aria-label="貓咪資訊">
+      <summary>貓咪資訊</summary>
+      <dl className="hq-dl hq-ai-fold-body hq-studio-dl">
         <dt>名稱</dt><dd>{cat.name}</dd>
         <dt>喵戶</dt><dd>{cat.household?.name ?? "—"}</dd>
         <dt>性別</dt><dd>{gender}</dd>
@@ -256,7 +250,7 @@ function CatProfile({ cat }: { cat: CatModelView }) {
         <dt>體重</dt><dd>{cat.weightKg === null ? "未填寫" : `${cat.weightKg} 公斤`}</dd>
         {cat.notes && <><dt>備註</dt><dd>{cat.notes}</dd></>}
       </dl>
-    </section>
+    </details>
   );
 }
 
@@ -285,7 +279,7 @@ function CatFile({ cat, onStarted }: { cat: CatModelView; onStarted: () => void 
       <div id="studio-cat-file-content" className="hq-studio-file-content" hidden={!expanded}>
         <CatProfile cat={cat} />
         {/* #110：原始照片＋AI 三視角 */}
-        <AiViews cat={cat} onStarted={onStarted} uploadedTitle="上傳照片" />
+        <AiViews cat={cat} onStarted={onStarted} uploadedTitle="上傳照片" foldable />
       </div>
     </section>
   );
@@ -330,8 +324,7 @@ function Studio({ cat, reload }: { cat: CatModelView; reload: () => void }) {
           <h2>製作 GLB 工作區</h2>
           <Flow cat={displayCat} />
           <Progress cat={cat} now={now} />
-          <Options cat={displayCat} onDone={submitted} onSelectBody={setSelectedBody} />
-          <Texture cat={displayCat} onDone={done} />
+          <Texture cat={displayCat} onDone={done} onPainted={submitted} onSelectBody={setSelectedBody} />
           <MakeGlb cat={displayCat} />
         </section>
       </div>

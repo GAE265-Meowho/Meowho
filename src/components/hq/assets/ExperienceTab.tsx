@@ -18,7 +18,9 @@ import { boxToSolid, clampFurniturePose, rotatedHalfExtents } from "@/lib/hq/flo
 import { houseScene } from "@/lib/hq/floorplans/scene";
 import type { FloorplanHouse, FloorplanSummary, PlanRoom, Point } from "@/lib/hq/floorplans/types";
 import { HqLoadError, HqSkeleton } from "../HqStates";
-import { catLook } from "./catLook";
+import { BODY_ORDER, type BodyType } from "@/lib/hq/cat-models/types";
+import { BodySwitch } from "./BodySwitch";
+import { catLook, defaultBody } from "./catLook";
 import { ExperienceItemPalette } from "./ExperienceItemPalette";
 import { FLOORPLAN_API } from "./floorplanApi";
 import type { InteractMode, PlaceAt, PlacedHouseholdItem } from "./FloorplanViewer";
@@ -137,7 +139,11 @@ export function ExperienceTab() {
   const space = videoRoom ? VIDEO + videoRoom.id : houseId;
   const house = useHouse(houseId);
   const cat = catOptions.find(c => c.id === catId) ?? null;
-  const look = cat ? catLook(cat) : null;
+  // 成貓／幼貓切換：只能選有確認貼圖的體型；網址帶 body，沒有或不能用就回到這隻貓的預設體型
+  const bodies = cat ? BODY_ORDER.filter(b => catLook(cat, b)) : [];
+  const wantedBody = params.get("body");
+  const body: BodyType | null = cat ? bodies.find(b => b === wantedBody) ?? defaultBody(cat) : null;
+  const look = cat && body ? catLook(cat, body) : null;
   const selectedItem = itemOptions.find(i => i.id === itemId) ?? null;
   const furnitureDirty = removedFurniture.length > 0 || Object.keys(furnitureMoves).length > 0;
 
@@ -147,11 +153,12 @@ export function ExperienceTab() {
 
   useEffect(() => { setPlaced([]); setRemovedFurniture([]); setFurnitureMoves({}); setInteractMode("point"); }, [houseId]);
 
-  const choose = (key: "cat" | "house", value: string) => {
+  const choose = (key: "cat" | "house" | "body", value: string) => {
     const next = new URLSearchParams(params.toString());
     next.set("tab", "experience");
     next.set(key, value);
     if (key === "house") setRoom(null);
+    if (key === "cat") next.delete("body");
     router.replace(`${pathname}?${next.toString()}`, { scroll: false });
   };
 
@@ -287,14 +294,17 @@ export function ExperienceTab() {
   return (
     <>
       <div className="hq-exp-pick">
-        <label className="hq-box">
-          <span className="hq-label">虛擬貓</span>
+        <div className="hq-box">
+          <label className="hq-label" htmlFor="hq-exp-cat">虛擬貓</label>
           {catOptions.length
-            ? <select className="hq-input" value={catId ?? ""} onChange={e => choose("cat", e.target.value)}>
+            ? <select id="hq-exp-cat" className="hq-input" value={catId ?? ""} onChange={e => choose("cat", e.target.value)}>
               {catOptions.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
             </select>
             : <span className="hq-hint">還沒有完成紋理貼圖的貓。<Link href={assetSectionHref("cats")}>到貓咪製作</Link></span>}
-        </label>
+          {cat && body && (
+            <BodySwitch value={body} onChange={b => choose("body", b)} unavailable={BODY_ORDER.filter(b => !bodies.includes(b))} />
+          )}
+        </div>
         <label className="hq-box">
           <span className="hq-label">室內空間</span>
           {houseOptions.length || videoOptions.length
@@ -314,43 +324,44 @@ export function ExperienceTab() {
           : !house || house.state === "loading" ? <HqSkeleton rows={4} />
             : house.state === "error" ? <HqLoadError onRetry={() => choose("house", houseId)} />
               : (
-                <>
-                  <div className="hq-row" style={{ gap: "0.5rem", flexWrap: "wrap", marginBottom: "0.75rem", alignItems: "center" }} role="group" aria-label="互動模式">
-                    <button type="button" className={`hq-btn ghost hq-exp-mode${interactMode === "point" ? " on" : ""}`}
-                      aria-label="點" aria-pressed={interactMode === "point"} onClick={() => setInteractMode("point")}
-                      title="點地板叫貓走，點床／沙發跳上去">
-                      <svg width={20} height={20} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                        <path d="M4 3.2 19.2 12l-6.4 1.5L10.2 21.5 4 3.2Z" />
-                      </svg>
-                    </button>
-                    <button type="button" className={`hq-btn ghost hq-exp-mode${interactMode === "hand" ? " on" : ""}`}
-                      aria-label="手掌" aria-pressed={interactMode === "hand"} onClick={() => setInteractMode("hand")}
-                      title="拖移用品與家具、承載拆合、右轉、移除">
-                      <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <path d="M8 11V6.5a1.5 1.5 0 0 1 3 0V11" />
-                        <path d="M11 10.5V5.5a1.5 1.5 0 0 1 3 0V11" />
-                        <path d="M14 10.5V6.8a1.5 1.5 0 0 1 3 0V12" />
-                        <path d="M17 11.5v-.7a1.5 1.5 0 0 1 3 0V14a6 6 0 0 1-6 6h-1.2a6 6 0 0 1-5.3-3.2L5.2 12A1.8 1.8 0 0 1 8 9.7" />
-                      </svg>
-                    </button>
-                    {placed.length > 0 && <button type="button" className="hq-btn ghost" onClick={() => setPlaced([])}>清空用品</button>}
-                    {furnitureDirty && (
-                      <button type="button" className="hq-btn ghost" onClick={restoreFurniture}>還原家具</button>
-                    )}
-                  </div>
-                  <p className="hq-hint">
-                    {interactMode === "point"
-                      ? "點模式：點地板叫貓走；點床、沙發、桌子會跳上去。右側用品仍可拖進房間放置。"
-                      : "手掌模式：拖家具（不穿牆）；桌上物可拆到地板或其他家具；↻ 右轉 90°；× 暫時移除。"}
-                  </p>
-                  <div className="hq-exp-stage">
-                    <FloorplanViewer key={`${houseId}:${cat?.id}`} rooms={house.data.rooms} selected={room} onPick={setRoom}
-                      cat={look} placedItems={placed} interactMode={interactMode}
-                      removedFurniture={removedFurniture} furnitureMoves={furnitureMoves}
-                      onMoveItem={moveItem} onRemoveItem={removeItem}
-                      onRemoveFurniture={removeFurniture} onMoveFurniture={moveFurniture}
-                      onRotateFurniture={rotateFurniture}
-                      onFloorDrop={dropItem} />
+                <div className="hq-exp-stage">
+                  <FloorplanViewer key={`${houseId}:${cat?.id}:${body}`} rooms={house.data.rooms} selected={room} onPick={setRoom}
+                    cat={look} placedItems={placed} interactMode={interactMode}
+                    removedFurniture={removedFurniture} furnitureMoves={furnitureMoves}
+                    onMoveItem={moveItem} onRemoveItem={removeItem}
+                    onRemoveFurniture={removeFurniture} onMoveFurniture={moveFurniture}
+                    onRotateFurniture={rotateFurniture}
+                    onFloorDrop={dropItem} />
+                  {/* 互動模式（箭頭、手掌）放在生活用品選單上方 */}
+                  <div className="hq-exp-side">
+                    <div className="hq-row hq-exp-tools" role="group" aria-label="互動模式">
+                      <button type="button" className={`hq-btn ghost hq-exp-mode${interactMode === "point" ? " on" : ""}`}
+                        aria-label="點" aria-pressed={interactMode === "point"} onClick={() => setInteractMode("point")}
+                        title="點地板叫貓走，點床／沙發跳上去">
+                        <svg width={20} height={20} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                          <path d="M4 3.2 19.2 12l-6.4 1.5L10.2 21.5 4 3.2Z" />
+                        </svg>
+                      </button>
+                      <button type="button" className={`hq-btn ghost hq-exp-mode${interactMode === "hand" ? " on" : ""}`}
+                        aria-label="手掌" aria-pressed={interactMode === "hand"} onClick={() => setInteractMode("hand")}
+                        title="拖移用品與家具、承載拆合、右轉、移除">
+                        <svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <path d="M8 11V6.5a1.5 1.5 0 0 1 3 0V11" />
+                          <path d="M11 10.5V5.5a1.5 1.5 0 0 1 3 0V11" />
+                          <path d="M14 10.5V6.8a1.5 1.5 0 0 1 3 0V12" />
+                          <path d="M17 11.5v-.7a1.5 1.5 0 0 1 3 0V14a6 6 0 0 1-6 6h-1.2a6 6 0 0 1-5.3-3.2L5.2 12A1.8 1.8 0 0 1 8 9.7" />
+                        </svg>
+                      </button>
+                      {placed.length > 0 && <button type="button" className="hq-btn ghost" onClick={() => setPlaced([])}>清空用品</button>}
+                      {furnitureDirty && (
+                        <button type="button" className="hq-btn ghost" onClick={restoreFurniture}>還原家具</button>
+                      )}
+                    </div>
+                    <p className="hq-hint">
+                      {interactMode === "point"
+                        ? "點模式：點地板叫貓走；點床、沙發、桌子會跳上去。下方用品仍可拖進房間放置。"
+                        : "手掌模式：拖家具（不穿牆）；桌上物可拆到地板或其他家具；↻ 右轉 90°；× 暫時移除。"}
+                    </p>
                     {catalog.state === "loading" ? <HqSkeleton rows={3} />
                       : catalog.state === "error" ? <p className="hq-hint" role="alert">生活用品選單載入失敗。</p>
                         : (
@@ -362,7 +373,7 @@ export function ExperienceTab() {
                           />
                         )}
                   </div>
-                </>
+                </div>
               )}
       </section>
     </>

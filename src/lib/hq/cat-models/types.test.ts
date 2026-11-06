@@ -134,6 +134,37 @@ describe("catProgress（#118；#129 改 4 步）", () => {
   });
 });
 
+describe("雙體型進度（成貓／幼貓各一條）", () => {
+  const tex = (state: "none" | "pending" | "confirmed") =>
+    ({ texture: { state, preview: state === "confirmed" ? "albedo" as const : null, previewBody: "adult" as const } });
+  // 主表留著舊的確認記錄（待確認），體型表已確認：要以體型表為準
+  const cat = {
+    hasAlbedo: true, status: "ready" as const, aiViews: ["left", "front", "back"], aiRunning: [] as string[], body: "kitten" as const,
+    texture: tex("pending").texture, variantStorage: true, jobBody: "kitten" as const,
+    bodyVariants: { kitten: tex("confirmed") },
+  };
+  it("確認寫在體型表：該體型顯示完成，另一體型還沒做停在第 2 步", async () => {
+    const { catProgresses } = await import("./types");
+    expect(catProgresses(cat).map(p => [p.body, p.text])).toEqual([["adult", "2/4 AI 三視角・完成"], ["kitten", "完成"]]);
+  });
+  it("任務狀態只算在它畫的體型上", async () => {
+    const { catProgresses } = await import("./types");
+    expect(catProgresses({ ...cat, status: "running", jobBody: "adult" }).map(p => p.text)).toEqual(["3/4 紋理貼圖・產生中", "完成"]);
+  });
+  it("兩個體型都確認才算「完成」組；待確認計數、貓咪頁連結看各體型", async () => {
+    const { catListGroup, countTexturePending, hasConfirmedLook } = await import("./types");
+    expect(catListGroup(cat)).toBe("other");
+    expect(catListGroup({ ...cat, bodyVariants: { adult: tex("confirmed"), kitten: tex("confirmed") } })).toBe("done");
+    expect(countTexturePending([cat])).toBe(0);
+    expect(countTexturePending([{ ...cat, bodyVariants: { adult: tex("pending") } }])).toBe(1);
+    expect(hasConfirmedLook(cat)).toBe(true);
+  });
+  it("沒有雙體型的舊站台：只有一條，沿用主表", async () => {
+    const { catProgresses } = await import("./types");
+    expect(catProgresses({ ...cat, variantStorage: false }).map(p => p.text)).toEqual(["3/4 紋理貼圖・待確認"]);
+  });
+});
+
 describe("貼圖確認（#129）", () => {
   const rows = { baseVersion: "adult-v1", prevBaseVersion: "kitten-v1", ageMonths: 12 };
   it("舊資料沒有確認欄位：目前版視為已確認", async () => {

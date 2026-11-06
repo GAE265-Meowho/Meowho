@@ -1,13 +1,13 @@
 import { after, NextResponse } from "next/server";
 import { copyFrontPhotoToModel, ensureModelPhoto, pickAngles } from "@/lib/cat-model-photo";
-import { sbStartViews } from "@/lib/hq/cat-models/supabase";
+import { sbAutoPaint, sbStartViews } from "@/lib/hq/cat-models/supabase";
 import { GEN_VIEWS } from "@/lib/hq/cat-models/types";
 import { defaultModelRows, modelIdAt } from "@/lib/cat-publish";
 import { getAdminSupabase } from "@/lib/supabase/admin";
 import { getServerSupabase } from "@/lib/supabase/server";
 
 // 中途的 3D 貓（規格 09 §5.1）：建立 profile 後由這裡建立這隻貓的 3D 模型，已經有就回傳原本那筆。
-// 目前：建「預設 3D 貓」（母體＋母體預設貼圖）＋自動跑 AI 三視角（#188）；紋理貼圖、動作 glb（Step 03、04）由管理員在 MeowHQ 手動觸發。
+// 目前：建「預設 3D 貓」（母體＋母體預設貼圖）＋自動跑 AI 三視角（#188），三視角好了自動排成貓、幼貓紋理貼圖（Step 03，sbAutoPaint）；動作 glb（Step 04）由管理員在 MeowHQ 手動觸發。
 //   要接時，把下面「建立預設 3D 貓」換成：建 status = 'queued' 的模型＋排入 MeowHQ 的三視角與 paint 工作，
 //   完成時把貼圖寫進 meow_cat_model_variants.albedo_path 並通知中途。詳見 docs/modules/household-cats.md「中途的 3D 貓」。
 // meow_cat_models 只有 MeowHQ（virtual_assets）能寫，所以用 service role；寫之前先用登入者身分確認是這隻貓的中途。
@@ -31,6 +31,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   if (existing) {
     // #181：舊資料的 photo_path 還是前台路徑時，順便搬到製作用 bucket
     await ensureModelPhoto(admin, existing.id, existing.photo_path ?? "");
+    await sbAutoPaint(existing.id, admin);
     return NextResponse.json({ modelId: existing.id, created: false });
   }
 
@@ -67,6 +68,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         views = true;
         after(async () => {
           try { await start.run(); } catch (e) { console.warn("[cats/model] AI 三視角產生失敗：", e instanceof Error ? e.message : e); }
+          try { await sbAutoPaint(mid, admin); } catch (e) { console.warn("[cats/model] 自動排紋理貼圖失敗：", e instanceof Error ? e.message : e); }
         });
       }
     }

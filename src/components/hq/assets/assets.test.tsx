@@ -100,13 +100,34 @@ describe("製作glb工作區", () => {
   }
   const renderStudio = () => render(<HqToastProvider><StudioPageBody id="cat_20261031_100000" /></HqToastProvider>);
 
-  it("三視角完成：按「產生紋理貼圖」送出選項（#129 改名）", async () => {
+  it("三視角完成：按「產生紋理貼圖」送出（固定 AI 左側面照、不補花紋；產生選項已移除）", async () => {
     const fetchMock = mockCat({ status: "draft", hasAlbedo: false, aiViews: ["left", "front", "back"] });
     renderStudio();
-    fireEvent.click(await screen.findByRole("button", { name: "虎斑" }));
-    fireEvent.click(screen.getByRole("button", { name: "產生紋理貼圖" }));
+    fireEvent.click(await screen.findByRole("button", { name: "產生紋理貼圖" }));
     await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/hq/cat-models/cat_20261031_100000/paint",
-      expect.objectContaining({ method: "POST", body: JSON.stringify({ view: "front", fill: "tabby" }) })));
+      expect.objectContaining({ method: "POST", body: JSON.stringify({ view: "left", fill: "none" }) })));
+    expect(screen.queryByRole("region", { name: "產生選項" })).toBeNull();
+    expect(screen.queryByText("補看不到的花紋")).toBeNull();
+  });
+  it("雙體型：紋理貼圖用膠囊切換成貓／幼貓，產生時帶選到的體型；任務進度列出兩個體型的狀態、沒有上一版預覽", async () => {
+    const texture = (body: "adult" | "kitten") => ({ state: "confirmed" as const, preview: "albedo" as const, previewBody: body });
+    const fetchMock = mockCat({
+      status: "queued", jobStatus: "queued", jobQueuedAt: new Date().toISOString(), jobStep: "排隊中", jobBody: "kitten",
+      aiViews: ["left", "front", "back"], variantStorage: true, hasPrevAlbedo: true,
+      bodyVariants: { adult: { albedoUrl: "https://x/a.png", prevUrl: "https://x/a0.png", baseVersion: "adult-v1", texture: texture("adult") } },
+    });
+    renderStudio();
+    const status = await screen.findByRole("list", { name: "成貓、幼貓紋理貼圖狀態" });
+    expect(within(status).getAllByRole("listitem").map(li => li.textContent)).toEqual(["成貓已確認", "幼貓排隊中"]);
+    const region = screen.getByRole("region", { name: "紋理貼圖" });
+    expect(within(region).queryByAltText("上一版紋理貼圖")).toBeNull();
+    const seg = within(region).getByRole("group", { name: "紋理貼圖體型" });
+    expect(within(seg).getByRole("button", { name: "成貓" })).toHaveAttribute("aria-pressed", "true");
+    fireEvent.click(within(seg).getByRole("button", { name: "幼貓" }));
+    expect(within(seg).getByRole("button", { name: "幼貓" })).toHaveAttribute("aria-pressed", "true");
+    expect(within(region).getByText("幼貓紋理貼圖生成中")).toBeInTheDocument();
+    expect(within(region).getByRole("button", { name: "產生幼貓紋理貼圖" })).toBeDisabled();
+    expect(fetchMock).not.toHaveBeenCalledWith(expect.stringContaining("/paint"), expect.anything());
   });
   it("#135 還沒產生 AI 三視角：產生紋理貼圖停用，提示先完成第 2 步", async () => {
     mockCat({ status: "draft", hasAlbedo: false });
@@ -121,10 +142,10 @@ describe("製作glb工作區", () => {
     expect(await screen.findByRole("button", { name: "產生紋理貼圖" })).toBeDisabled();
     expect(screen.getByText(/請先完成第 2 步「AI 三視角」/)).toBeInTheDocument();
   });
-  it("#110 有 AI 左側面照：不用選照片角度，說明用 AI 照片上色", async () => {
+  it("#110 有 AI 左側面照：不用選照片角度", async () => {
     mockCat({ status: "draft", hasAlbedo: false, aiViews: ["left", "front", "back"] });
     renderStudio();
-    expect(await screen.findByText("使用 AI 左側面照（頭朝左）上色。")).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "產生紋理貼圖" })).toBeEnabled();
     expect(screen.queryByRole("button", { name: "左側" })).toBeNull();
     // #129：標題只保留一個「製作 GLB 工作區」，頁面標題改為貓咪名稱
     expect(screen.getAllByRole("heading", { name: /製作 ?glb工作區|製作 GLB 工作區/i })).toHaveLength(1);
@@ -194,7 +215,7 @@ describe("製作glb工作區", () => {
     renderStudio();
     const texture = await screen.findByRole("region", { name: "紋理貼圖" });
     expect(within(texture).getByText("生成中")).toBeInTheDocument();
-    expect(within(texture).getByText("第一張紋理貼圖生成中")).toBeInTheDocument();
+    expect(within(texture).getByText("紋理貼圖生成中")).toBeInTheDocument();
     const progress = screen.getByRole("list", { name: "紋理貼圖任務進度" });
     expect(within(progress).getByText("AI 上色").closest("li")).toHaveAttribute("aria-current", "step");
   });
@@ -209,8 +230,11 @@ describe("製作glb工作區", () => {
     expect(within(file).getByText("4.2 公斤")).toBeInTheDocument();
     expect(within(file).getByRole("group", { name: "上傳照片" })).toBeInTheDocument();
     expect(within(file).getByRole("group", { name: "AI 三視角" })).toBeInTheDocument();
+    // 貓咪資訊、上傳照片、AI 三視角各自可收合（同「進階生成參數與畫質設定」），預設展開
+    const folds = [...file.querySelectorAll("details")].map(d => [d.querySelector("summary")?.textContent, d.open]);
+    expect(folds.slice(0, 3)).toEqual([["貓咪資訊", true], ["上傳照片", true], ["AI 三視角", true]]);
     expect(screen.getByRole("region", { name: "製作 GLB 工作區" })).toBeInTheDocument();
-    expect(screen.getByRole("region", { name: "產生選項" })).toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "產生選項" })).toBeNull();
     expect(screen.queryByRole("region", { name: "任務進度" })).toBeNull();
     // #129：貼圖預覽在右側工作區
     expect(within(screen.getByRole("region", { name: "製作 GLB 工作區" })).getByRole("region", { name: "紋理貼圖" })).toBeInTheDocument();

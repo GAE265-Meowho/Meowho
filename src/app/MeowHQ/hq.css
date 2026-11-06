@@ -343,9 +343,9 @@
 .hq-studio-file-head h2, .hq-studio-workspace > h2 { margin: 0; font-size: 1.15rem; }
 .hq-studio-file-content { display: flex; flex-direction: column; gap: 1rem; min-width: 0; }
 .hq-studio-file-content[hidden] { display: none; }
-.hq-studio-profile { border: 1px solid var(--hq-line); border-radius: 10px; padding: .75rem; }
-.hq-studio-profile h3 { margin: 0 0 .5rem; font-size: .95rem; }
-.hq-studio-profile .hq-dl { grid-template-columns: 4em minmax(0, 1fr); }
+.hq-dl.hq-studio-dl { grid-template-columns: 4em minmax(0, 1fr); margin: 0; }
+.hq-pairstatus { list-style: none; margin: 0 0 .5rem; padding: 0; display: flex; flex-wrap: wrap; gap: .5rem 1.25rem; }
+.hq-pairstatus li { display: inline-flex; align-items: center; gap: .4rem; font-weight: 600; }
 .hq-studio-file .hq-ai-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .hq-studio-file-toggle { display: none; min-height: 44px; }
 .hq-studio-workspace { display: flex; flex-direction: column; gap: 1rem; }
@@ -426,6 +426,7 @@
 .hq-ai-fold { border: 1px solid var(--hq-line); border-radius: 16px; background: var(--hq-card); }
 .hq-ai-fold > summary { cursor: pointer; padding: .7rem 1rem; font-weight: 600; }
 .hq-ai-fold-body { padding: 0 1rem .9rem; }
+.hq-ai-fold-stack { display: flex; flex-direction: column; gap: .75rem; }
 .hq-ai-fold-body.hq-row-2 { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; }
 .hq-ai-usage td, .hq-ai-usage th { font-size: .85rem; }
 @media (max-width: 1023px) { .hq-ai-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
@@ -516,6 +517,33 @@
 .hq-flowsteps.overview li:not(:last-child)::after { background: var(--hq-sage-soft); }
 .hq-flowsteps.overview .hq-flowno { color: var(--hq-sage-ink); }
 .hq-flow > .hq-flowsteps { flex: 1 1 100%; }
+.hq-flowlane { flex: 1 1 100%; min-width: 0; }
+.hq-flowlane + .hq-flowlane { padding-top: .75rem; border-top: 1px dashed var(--hq-line); }
+.hq-flowlane > h3 { margin: 0 0 .5rem; font-size: .95rem; color: var(--hq-sage-ink); }
+/* 步驟少（分流圖）：容器 300px 以上就橫向 */
+@container (min-width: 300px) {
+  .hq-flowsteps.short ol { flex-direction: row; }
+  .hq-flowsteps.short li { flex: 1 1 0; flex-direction: column; align-items: center; text-align: center; padding: 0 .4rem; }
+  .hq-flowsteps.short li:not(:last-child)::after { left: calc(50% + 28px); right: calc(-50% + 28px); top: 21px; bottom: auto; width: auto; height: 2px; }
+  .hq-flowsteps.short .hq-flowtext { align-items: center; padding-top: .55rem; }
+  .hq-flowsteps.short .hq-flowloop { display: block; position: absolute; top: .55rem; height: 1.6rem; border: 2px dashed color-mix(in srgb, var(--hq-caramel) 45%, transparent); border-bottom: 0; border-radius: 14px 14px 0 0; }
+  .hq-flowsteps.short .hq-flowloop span { position: absolute; left: 50%; top: -.75rem; transform: translateX(-50%); background: var(--hq-caramel-soft); color: var(--hq-caramel-ink); font-size: .78rem; padding: .1rem .7rem; border-radius: 999px; white-space: nowrap; }
+}
+/* 製作流程分流圖：照片與 AI 三視角成貓、幼貓共用，第 3 步起分成兩條 */
+.hq-flowfork { flex: 1 1 100%; min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr) 56px minmax(0, 1.15fr); align-items: center; }
+.hq-flowfork h3 { margin: 0 0 .5rem; font-size: .95rem; color: var(--hq-sage-ink); }
+.hq-flowfork h3 small { margin-left: .4rem; font-size: .8rem; font-weight: 400; color: var(--hq-sub); }
+.hq-flowfork-shared, .hq-flowfork-lane { min-width: 0; }
+.hq-flowfork-split { align-self: stretch; width: 100%; height: 100%; color: var(--hq-sage); }
+.hq-flowfork-lanes { display: flex; flex-direction: column; gap: .75rem; min-width: 0; }
+.hq-flowfork-lane + .hq-flowfork-lane { padding-top: .75rem; border-top: 1px dashed var(--hq-line); }
+.hq-flowfork-lane .hq-flowsteps { padding-top: 1.6rem; }
+@media (max-width: 1023px) {
+  .hq-flowfork { grid-template-columns: minmax(0, 1fr); row-gap: .75rem; }
+  .hq-flowfork-split { display: none; }
+  .hq-flowfork-lanes { padding-top: .75rem; border-top: 1px dashed var(--hq-line); }
+}
+.hq-progress-list { display: flex; flex-direction: column; align-items: flex-start; gap: .6rem; }
 @media (min-width: 1280px) { .hq-studio-file .hq-ai-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 .hq-catinfo .hq-row:has(> .hq-dl) > .hq-thumb { width: 100%; height: auto; aspect-ratio: 1; object-fit: cover; }
 @media (max-width: 1023px) { .hq-catinfo .hq-row:has(> .hq-dl) > .hq-thumb { width: 120px; } }
@@ -535,6 +563,19 @@
 .hq-exp-stage .hq-fp-3d { height: 520px; }
 .hq-root .hq-btn.hq-exp-mode { width: 44px; padding: 0; flex: 0 0 44px; }
 .hq-root .hq-btn.hq-exp-mode svg { display: block; }
+.hq-exp-side { display: flex; flex-direction: column; gap: .5rem; min-width: 0; }
+.hq-exp-side > .hq-hint { margin: 0; }
+.hq-exp-tools { gap: .5rem; flex-wrap: wrap; align-items: center; }
+/* 成貓／幼貓膠囊切換 */
+.hq-bodyseg { display: inline-flex; align-self: flex-start; padding: 3px; gap: 2px; border: 1px solid var(--hq-line); border-radius: 999px; background: var(--hq-card); }
+.hq-bodyseg button { min-width: 64px; min-height: 32px; padding: .2rem .9rem; border: 0; border-radius: 999px; background: transparent; font: inherit; font-size: .9rem; color: var(--hq-sub); cursor: pointer; transition: background .2s ease, color .2s ease; }
+.hq-bodyseg button[aria-pressed="true"] { background: var(--hq-sage); color: #fff; font-weight: 600; }
+.hq-bodyseg button:not([aria-pressed="true"]):not(:disabled):hover { background: var(--hq-sage-soft); color: var(--hq-sage-ink); }
+.hq-bodyseg button:focus-visible { outline: 2px solid var(--hq-sage); outline-offset: 2px; }
+.hq-bodyseg button:disabled { opacity: .45; cursor: not-allowed; }
+@media (pointer: coarse) { .hq-bodyseg button { min-height: 44px; } }
+@media (prefers-reduced-motion: reduce) { .hq-bodyseg button { transition: none; } }
+.hq-exp-pick .hq-bodyseg { margin-top: .5rem; }
 @media (max-width: 1023px) {
   .hq-exp-stage { grid-template-columns: minmax(0, 1fr); }
   .hq-exp-stage .hq-fp-3d { height: 360px; }
