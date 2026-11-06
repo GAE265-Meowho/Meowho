@@ -2,10 +2,10 @@
 
 | 項目 | 內容 |
 |---|---|
-| 文件版本 | **v0.4 修訂提案（2026/11/06）**：競賽 Demo 改為 **1 份完整 Before／After PDF＋1 份結構化 JSON**；移除雙 PDF、額外全景同意與依身分區分 PDF 的規則。基於 v0.3；180 秒實測仍待完成。 |
+| 文件版本 | **v0.5（2026/11/06）**：子哲採用 v0.4 的「1 份完整 Before／After PDF＋1 份結構化 JSON」，PDF 只給本人；並依 #263 審查補上失敗文字對照、重排只重跑健檢、工作保留影片路徑。180 秒實測仍待完成。 |
 | 對應 Issue | #241（整合）、#240（PDF 保存）、#242（影片清理）、#243（上傳限制）；上層 #62、#161 |
 | 角色 | 主站（子哲＋Claude Code）：migration、RPC、API、上傳、清理程式。Worker（Jerry）：WelfareLens 領件、分析、上傳成果、回寫 |
-| 相關決策 | 決策 006（大檔案放 Azure）、決策 007（影片清理與現有報告存取）。本次對 #240 雙 PDF／全景額外同意的修訂**須經團隊審閱後採納**；不變更影片清理上限。 |
+| 相關決策 | 決策 006（大檔案放 Azure）、決策 007（影片清理與現有報告存取）。#240 改成單一完整 PDF 已由子哲 2026-11-06 採用，決策 007 已同步；不變更影片清理上限。 |
 
 這份文件只定介面：資料表欄位、RPC 的參數與錯誤、檔案路徑、狀態怎麼轉。雙方照這份各自開工；欄位或名稱要改，先改這份再改程式。
 
@@ -106,7 +106,7 @@ sequenceDiagram
 | `summary`、`items`、`ready_at`、`error` | 0017 已有。`items` 格式見 §6.1；`error` 是給飼主看的中文原因，由主站依 `error_code` 對照產生 |
 | `warnings`（新） | jsonb 陣列，畫質等提醒，見 §6.2；有提醒不代表失敗 |
 | `json_path`（新） | `result.json` 的 Azure 路徑，格式見 §6.3 |
-| `pdf_path`（新） | **唯一完整 PDF**：真實居家視角 Before、AI 模擬 After、局部特寫與照護建議。必填，檔名 `report.pdf`；沿用網站既有報告存取規則，不另產角色專用 PDF（§6.4）。 |
+| `pdf_path`（新） | **唯一完整 PDF**：真實居家視角 Before、AI 模擬 After、局部特寫與照護建議。必填，檔名 `report.pdf`；**讀取連結只簽給本人**，報告分享給中途時只看網站上的文字、風險項目與裁切照，不另產角色專用 PDF（§6.4）。 |
 | `attempt`（新） | 寫入成果的那次 attempt，清理程式用它分辨哪些成果要留 |
 
 ## 4. RPC（都是 `security definer`，只開給 service role）
@@ -159,6 +159,7 @@ Worker 用 service role key 呼叫 PostgREST：`POST /rest/v1/rpc/<函式>`。
 - `p_code` 必須是 §4.6 的代碼之一，否則回 `env_result_invalid`。
 - `p_retryable = true`、代碼屬於可重試類別，而且 `attempt < max_attempts`：工作改回 `queued`（下一次領件 attempt +1），回傳 `'requeued'`。
 - 其他：工作改 `failed`、報告改 `failed`，回傳 `'failed'`；通知內容依代碼類別（§7）。
+- 報告的 `error` 由資料庫依 `p_code` 的類別寫 §7 的中文句子；`p_detail` 只寫進工作的 `error_detail` 給後台看，**不會出現在飼主畫面**。
 - **冪等**：同一個 attempt 已經回寫過 fail，再送一次回傳上次的結果（`'requeued'` 或 `'failed'`），不重發通知。
 - 租約已過期也回 `env_lease_expired`（這時工作會在下次領件時由主站處理）。
 
@@ -199,7 +200,7 @@ Worker 用 service role key 呼叫 PostgREST：`POST /rest/v1/rpc/<函式>`。
 
 - **Worker 用 Managed Identity**：獨立 CPU VM 開系統指派的 Managed Identity，只授權到單一容器（`Storage Blob Data Contributor`，範圍是容器而不是整個儲存帳戶）。建議再加 ABAC 條件：影片前綴只能讀、只能在 `homes/*/reports/*` 寫入、不能刪除。不用儲存帳戶金鑰，主站也不另外簽 SAS 給 Worker。
 - 前台只拿主站簽的短效 SAS（寫入 15 分鐘、讀取 10 分鐘）。
-- 前台查看報告或唯一 PDF：主站沿用網站既有的報告存取規則並簽短效讀取 SAS。資料庫只存路徑；Demo 不新增 PDF 專用的同意、撤回或依角色產製不同檔案的流程。
+- 前台查看報告：主站沿用網站既有的報告存取規則並簽短效讀取 SAS。**PDF 只簽給報告所屬喵戶的本人**；分享給中途時只看網站上的摘要、風險項目與裁切照，MeowHQ 後台也不提供 PDF 下載。資料庫只存路徑；Demo 不新增 PDF 專用的同意、撤回或依角色產製不同檔案的流程。
 
 測試與正式環境：
 
@@ -307,7 +308,12 @@ Worker 用 service role key 呼叫 PostgREST：`POST /rest/v1/rpc/<函式>`。
 
 ## 10. 待定
 
-#240 原「摘要 PDF＋本人專用全景 PDF」方案，本 v0.4 提議簡化成單一完整 PDF；待團隊確認後取代 v0.3 的雙 PDF 與額外同意規則。
+#240 改成單一完整 PDF（只給本人）已由子哲 2026-11-06 採用，取代 v0.3 的雙 PDF 與額外同意規則。
+
+#263 審查後補充（子哲 2026-11-06）：
+
+- 系統類失敗由主站重排時，**只重排健檢**；同一支影片的 3D 工作已經 `done` 就不再建新的 `meow_room_jobs`。
+- `meow_env_jobs` 另存 `video_path`，喵戶或影片列被刪後仍保留，讓清理程式能刪掉 Azure 上的原始影片；主站刪除喵戶時也一併刪 `homes/<喵戶>/` 整個資料夾。
 
 1. **180 秒影片實測時間**：Jerry 實測後回填，決定是否要調租約長度或續租間隔。
 
@@ -321,3 +327,4 @@ Worker 用 service role key 呼叫 PostgREST：`POST /rest/v1/rpc/<函式>`。
 | 2026-11-06 | 子哲 × Claude Code | v0.3，子哲同意 #240 修訂：新增本人專用全景 PDF（`full_pdf_path`、同意時間、撤回即刪），摘要 PDF 仍只放裁切照 | #250 |
 | 2026-11-06 | 子哲 × Claude Code | v0.2，依 Jerry 對 §9 的回覆：取消與冪等、失敗代碼分類、`warnings` 與 `result.json` 格式、Managed Identity、`meow_home_videos` 與清理條件 | #250 |
 | 2026-11-06 | Jerry × ChatGPT | v0.4 修訂提案：Demo 單一全景 PDF＋JSON，移除雙 PDF、額外同意與依身分分版規則，保留必要驗證及 AI 模擬標示 | #253 |
+| 2026-11-06 | 子哲 × Claude Code | v0.5，採用 v0.4 單一 PDF（只給本人）；依 #263 審查補失敗文字對照、重排只重跑健檢、工作保留影片路徑 | — |
