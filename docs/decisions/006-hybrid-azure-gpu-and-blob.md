@@ -9,7 +9,7 @@
   - **網站與一般 API 留在 Vercel**（`zing15s-projects/meowho`），**資料庫、登入、照片留在 Supabase**（決策 005）。
   - **大型檔案放 Azure Blob Storage**：子哲的 Azure 帳號，Southeast Asia、Hot 層、LRS。範圍：貓的影片、居家環境影像（建模完即刪，見決策 007）、3D 場景與 3D 貓模型。照片不搬。
   - **GPU 工作放 Azure GPU 主機**（Southeast Asia，NC4as_T4，可用 Spot）。工作流程：網站把工作寫進 Supabase 的工作表 → GPU 工作機領取 → 結果寫進 Blob → 更新 Supabase 狀態 → 網站讀取。
-  - LLM 不搬：照舊從 Vercel 呼叫（目前 Gemini；`src/lib/ai/` 可切換 Azure OpenAI）。
+  - LLM 不搬：照舊從 Vercel 呼叫（2026-11-06 起用 Azure OpenAI，`AI_PROVIDER=azure`；`src/lib/ai/` 仍可切換其他供應商）。
   - **可轉移規則（之後所有用到 Azure 的程式都要遵守）**：
     1. **存路徑，不存網址**：資料庫只記錄檔案在儲存空間內的路徑（例如 `cats/<cat_id>/videos/<uuid>.mp4`），讀取時才由程式換成有時效的網址。
     2. **透過儲存介面存取**：業務程式只呼叫 `src/lib/storage/` 的介面，不直接 import Azure SDK；供應商由環境變數選擇（同 `src/lib/ai/` 的做法）。
