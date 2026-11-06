@@ -62,13 +62,19 @@ export class RoomCat {
     this.actions = {};
   }
 
-  async load(url) {
-    const gltf = await new GLTFLoader().loadAsync(url);
+  // albedoUrl：這隻貓已確認的貼圖（虛擬體驗選的貓）；沒給或載入失敗就用母體預設花色
+  async load(url, albedoUrl) {
+    const [gltf, albedo] = await Promise.all([
+      new GLTFLoader().loadAsync(url),
+      albedoUrl ? new THREE.TextureLoader().loadAsync(albedoUrl).catch(() => null) : null,
+    ]);
+    if (albedo) { albedo.flipY = false; albedo.colorSpace = THREE.SRGBColorSpace; }  // 同 CatPreview
     const model = gltf.scene;
     model.traverse((o) => {
       if (!o.isMesh) return;
       o.frustumCulled = false;  // 骨架動畫的包圍盒不準，避免貓被裁掉
       o.material.metalness = 0; // 檔案沒寫金屬度時預設是 1，沒有環境貼圖會變全黑
+      if (albedo && o.material.name === "cat_fur") { o.material.map = albedo; o.material.needsUpdate = true; }
     });
     model.rotation.y = MODEL_YAW;
     this.cat.add(model);

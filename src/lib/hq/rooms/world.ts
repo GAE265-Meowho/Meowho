@@ -25,13 +25,14 @@ export interface RoomWorld {
   resetItems(): void;
 }
 
-export async function createRoomWorld({ viewer, threeScene, scene, layout, cameras, catUrl, unit, focus }: {
+export async function createRoomWorld({ viewer, threeScene, scene, layout, cameras, catUrl, albedoUrl, unit, focus }: {
   viewer: Viewer;
   threeScene: THREE.Scene;
   scene: RoomScene;
   layout: RoomLayout;
   cameras: RoomCamera[];
   catUrl: string;
+  albedoUrl?: string;
   unit: number;
   focus: (view: View) => void;
 }): Promise<RoomWorld> {
@@ -41,7 +42,7 @@ export async function createRoomWorld({ viewer, threeScene, scene, layout, camer
   const toWorld = (x: number, y: number, z: number) =>
     origin.clone().addScaledVector(e1, x * upm).addScaledVector(up, y * upm).addScaledVector(e2, z * upm);
 
-  const cat = await new RoomCat(layout).load(catUrl);
+  const cat = await new RoomCat(layout).load(catUrl, albedoUrl);
   cat.addTo(threeScene);
   cat.addObstacles(objects);
   cat.room = scene.room;

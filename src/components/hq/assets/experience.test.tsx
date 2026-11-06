@@ -31,6 +31,10 @@ const viewer = vi.hoisted(() => ({
 vi.mock("./FloorplanViewer", () => ({
   default: function FakeViewer(props: typeof viewer.last & object) { viewer.last = props; return <div data-testid="fake-viewer" />; },
 }));
+vi.mock("./RoomViewer", () => ({
+  default: function FakeRoomViewer(props: { base: string; cat: { albedoUrl: string } }) { video.last = props; return <div data-testid="fake-room-viewer">{props.base}</div>; },
+}));
+const video = vi.hoisted(() => ({ last: null as null | { base: string; cat: { albedoUrl: string } }, rooms: [] as unknown[] }));
 vi.mock("./ItemGlbThumb", () => ({
   ItemGlbThumb: () => <span data-testid="item-thumb" />,
 }));
@@ -73,12 +77,13 @@ function mockFetch(cats: unknown[], houses: unknown[]) {
     if (url.startsWith("/api/hq/cat-models")) return { ok: true, status: 200, json: async () => ({ cats }) };
     if (url === "/api/hq/floorplans") return { ok: true, status: 200, json: async () => ({ houses, storage: true }) };
     if (url === "/api/hq/items/categories") return { ok: true, status: 200, json: async () => ({ categories }) };
+    if (url === "/api/hq/rooms") return { ok: true, status: 200, json: async () => ({ rooms: video.rooms }) };
     if (url === "/api/hq/items") return { ok: true, status: 200, json: async () => ({ items }) };
     return { ok: true, status: 200, json: async () => ({ house: house(url.split("/").pop()!, url.endsWith(H2) ? "測試之家" : "子哲的家") }) };
   }));
 }
 
-beforeEach(() => { nav.replace.mockReset(); nav.params = new URLSearchParams("tab=experience"); viewer.last = null; });
+beforeEach(() => { video.rooms = []; video.last = null; nav.replace.mockReset(); nav.params = new URLSearchParams("tab=experience"); viewer.last = null; });
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
 describe("虛擬體驗（#150）", () => {
@@ -90,7 +95,7 @@ describe("虛擬體驗（#150）", () => {
     render(<ExperienceTab />);
     const catSelect = await screen.findByLabelText("虛擬貓");
     expect(within(catSelect).getAllByRole("option").map(o => o.textContent)).toEqual(["橘寶 Mango"]);
-    expect(within(screen.getByLabelText("喵戶")).getAllByRole("option").map(o => o.textContent)).toEqual(["子哲的家"]);
+    expect(within(screen.getByLabelText("室內空間")).getAllByRole("option").map(o => o.textContent)).toEqual(["子哲的家"]);
     expect(await screen.findByTestId("fake-viewer")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "橘寶 Mango 在 子哲的家" })).toBeInTheDocument();
     expect(viewer.last?.cat).toMatchObject({ body: "adult", baseUrl: "/api/hq/cat-models/base" });
@@ -101,11 +106,28 @@ describe("虛擬體驗（#150）", () => {
     nav.params = new URLSearchParams(`tab=experience&house=${H2}`);
     mockFetch([cat("cat_1", "橘寶 Mango"), cat("cat_3", "小黑")], [summary(H1, "子哲的家"), summary(H2, "測試之家")]);
     render(<ExperienceTab />);
-    const houseSelect = await screen.findByLabelText("喵戶");
+    const houseSelect = await screen.findByLabelText("室內空間");
     expect(houseSelect).toHaveValue(H2);
     await waitFor(() => expect(calls).toContain(`/api/hq/floorplans/${H2}`));
     fireEvent.change(screen.getByLabelText("虛擬貓"), { target: { value: "cat_3" } });
     expect(nav.replace).toHaveBeenCalledWith(`/MeowHQ/assets?tab=experience&house=${H2}&cat=cat_3`, { scroll: false });
+  });
+
+  it("室內空間也能選影片轉換完成的房間：改用 3D 高斯檢視器，貓帶貼圖", async () => {
+    video.rooms = [
+      { id: "room_20261105_120000", name: "男友房間", status: "ready", resultBase: "https://x/results/b" },
+      { id: "room_20261105_130000", name: "還在轉", status: "running", resultBase: null },
+    ];
+    nav.params = new URLSearchParams("tab=experience&house=video:room_20261105_120000");
+    mockFetch([cat("cat_1", "橘寶 Mango")], [summary(H1, "子哲的家")]);
+    render(<ExperienceTab />);
+    const select = await screen.findByLabelText("室內空間");
+    expect(within(select).getAllByRole("option").map(o => o.textContent)).toEqual(["子哲的家", "男友房間"]);
+    expect(select).toHaveValue("video:room_20261105_120000");
+    expect(await screen.findByTestId("fake-room-viewer")).toHaveTextContent("https://x/results/b");
+    expect(video.last?.cat.albedoUrl).toContain("cat_1");
+    expect(screen.getByRole("heading", { name: "橘寶 Mango 在 男友房間" })).toBeInTheDocument();
+    expect(calls.some(u => u.startsWith("/api/hq/floorplans/"))).toBe(false);
   });
 
   it("沒有可用的貓或喵戶：說明並連到貓咪製作／平面圖轉換", async () => {
@@ -113,7 +135,7 @@ describe("虛擬體驗（#150）", () => {
     render(<ExperienceTab />);
     expect(await screen.findByRole("link", { name: "到貓咪製作" })).toHaveAttribute("href", "/MeowHQ/assets");
     expect(screen.getByRole("link", { name: "到平面圖轉換" })).toHaveAttribute("href", "/MeowHQ/assets?tab=rooms-floorplan");
-    expect(screen.getByText("選好虛擬貓和喵戶後，貓會出現在房間裡")).toBeInTheDocument();
+    expect(screen.getByText("選好虛擬貓和室內空間後，貓會出現在房間裡")).toBeInTheDocument();
   });
 
   it("右側有用品選單，可依類別篩選；拖放會把用品放進場景；點選不會開放置模式", async () => {
