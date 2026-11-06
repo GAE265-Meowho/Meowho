@@ -64,6 +64,12 @@ alter table public.meow_room_models
 - 戶的狀態：任一房讀圖中 → `running`；全部完成 → `ready`；有房失敗 → `failed`。
 - 不使用 `meow_room_jobs`（不排隊）。
 
+### 4.1.1 平面圖戶名唯一（`0029_meow_room_floorplan_name_unique.sql`，#259，執行前須 Tina 確認）
+- 問題：`createHouse` 先 SELECT 再 INSERT，並發請求（重試、連按、多分頁）可能同時通過檢查，寫出兩筆同名戶。
+- 修正：`source = 'floorplan'` 時對 `name` 建 partial unique index（`meow_room_models_floorplan_name_uidx`）；影片轉換不受影響。
+- 既有重複：保留最早建立的那筆原名；較晚同名戶改成「截短原名·id 尾碼」（不刪列、不碰房間與 Azure 原圖），管理員可再手動清理。
+- 應用層：INSERT 收到 Postgres `23505` 且訊息含上述 index 名稱時回 `name_taken`（409）；主鍵撞名仍重試加尾碼。
+
 ### 4.2 `meta`（jsonb）
 ```jsonc
 {
