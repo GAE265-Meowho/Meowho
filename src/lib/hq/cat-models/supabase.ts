@@ -19,6 +19,7 @@ import type { FileKind } from "./local";
 import { confirmVariant, legacyVariants, prepareVariant, restoreVariant, variantTexture, type Variant, type Variants } from "./variants";
 
 import { ensureModelPhoto, isModelPhotoPath } from "@/lib/cat-model-photo";
+import { DEFAULT_ALBEDO } from "@/lib/cat-publish";
 export const PHOTO_BUCKET = "meow-cat-model-photos";
 export const MODEL_BUCKET = "meow-cat-models";
 export const BASE_DIR = "base/v1";
@@ -71,9 +72,12 @@ type VariantRow = {
   confirmed_albedo: string | null;
 };
 
+/** 前台上架的預設 3D 貓（DEFAULT_ALBEDO）用母體自己的毛色，不是 Storage 裡的檔案，在 MeowHQ 視為還沒有紋理貼圖 */
+const realAlbedo = (path: string | null) => (path === DEFAULT_ALBEDO ? null : path);
+
 function variantViews(row: Row, records: VariantRow[] | null): NonNullable<CatModelView["bodyVariants"]> {
   const variants: Variants = records ? Object.fromEntries(records.map(v => [v.body_type, {
-    albedo: v.albedo_path, prev: v.prev_albedo_path, baseVersion: v.base_version,
+    albedo: realAlbedo(v.albedo_path), prev: realAlbedo(v.prev_albedo_path), baseVersion: v.base_version,
     prevBaseVersion: v.prev_base_version, confirmed: v.confirmed_albedo,
   }])) : legacyVariants({
     albedo: row.albedo_path, prev: row.prev_albedo_path, baseVersion: row.base_version,
