@@ -1,6 +1,7 @@
 "use client";
-// 中途的貓咪頁（規格 09 §5.1、§5.2）：3D 貓預覽與確認、「準備出發找新主人」的兩項檢查。只有這隻貓的中途看得到。
-// 寫入都走 0017 的資料庫函式（meow_confirm_cat_model、meow_publish_cat），資料庫會再檢查一次。
+// 中途的貓咪頁（規格 09 §5.1）：3D 貓預覽與確認、「準備出發找新主人」。只有這隻貓的中途看得到。
+// 寫入都走資料庫函式（0017 meow_confirm_cat_model、0030 meow_publish_cat），資料庫會再檢查一次。
+// 0030 起中途不用出任務：任務在領養人按「進行領養任務」時才產生（lib/task-worker.ts）。
 // 3D 貓目前是預設 3D 貓（母體＋預設貼圖），由 /api/cats/[id]/model 建立；接真正流程見 lib/cat-publish.ts。
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useState } from "react";
@@ -19,7 +20,6 @@ type Model = { albedo: string | null; confirmed: boolean } | null;
 
 const ERRORS: Record<string, string> = {
   cat_model_not_confirmed: "3D 模型還沒確認。",
-  cat_tasks_not_ready: "任務還沒完成。",
   cat_not_preparing: "這隻貓已經出發了。",
 };
 const errText = (m: string) => Object.entries(ERRORS).find(([k]) => m.includes(k))?.[1] ?? `操作失敗：${m}`;
@@ -29,7 +29,6 @@ export function PublishPanel({ catId, catName, lifeStage, status }: { catId: str
   const body = bodyOf(lifeStage);
   const [model, setModel] = useState<Model | undefined>(undefined);
   const [check, setCheck] = useState<PublishCheck | null | undefined>(undefined);
-  const [askDefault, setAskDefault] = useState(false);
   const [published, setPublished] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -63,7 +62,7 @@ export function PublishPanel({ catId, catName, lifeStage, status }: { catId: str
   }
 
   async function publish() {
-    if (await rpc("meow_publish_cat")) { setAskDefault(false); setPublished(true); }
+    if (await rpc("meow_publish_cat")) setPublished(true);
   }
 
   if (published) return (
@@ -111,42 +110,16 @@ export function PublishPanel({ catId, catName, lifeStage, status }: { catId: str
           <h2 id="sec-publish">準備出發找新主人</h2>
           <ul className={s.checks}>
             <li className={check?.model_confirmed ? s.ok : ""}><Icon name={check?.model_confirmed ? "check" : "cat"} size={18} />3D 模型已確認</li>
-            <li className={check?.tasks_ready ? s.ok : ""}><Icon name={check?.tasks_ready ? "check" : "cat"} size={18} />任務完成</li>
           </ul>
           {list.missing.length > 0 && (
             <p className={f.lead}>還差：{list.missing.map((m, i) => <span key={m.key}>{i > 0 && "、"}<a href={m.href}>{m.label}</a></span>)}</p>
           )}
-          {askDefault ? (
-            <>
-              <p className={f.lead}>{catName}目前用的是系統預設任務。花 10 分鐘建立專屬任務，會更容易遇到合適的主人。</p>
-              <div className={f.actions}>
-                <CatButton size="sm" disabled={busy} onClick={publish}>先出發</CatButton>
-                <CatButton variant="ghost" size="sm" href={`/cats/${catId}/tasks`}>去建立任務</CatButton>
-              </div>
-            </>
-          ) : (
-            <div className={f.actions}>
-              <CatButton disabled={!list.canPublish || busy} onClick={() => (list.usesDefault ? setAskDefault(true) : publish())}>準備出發找新主人</CatButton>
-            </div>
-          )}
+          <div className={f.actions}>
+            <CatButton disabled={!list.canPublish || busy} onClick={publish}>準備出發找新主人</CatButton>
+          </div>
         </section>
       )}
 
-      {/* 用系統預設任務出發的貓，持續提示建立專屬任務（規格 09 §5.2） */}
-      {!preparing && list.usesDefault && (
-        <section className={f.card} aria-labelledby="sec-tasks-tip">
-          <h2 id="sec-tasks-tip">建立專屬任務</h2>
-          <p className={f.lead}>為{catName}量身打造任務，最能幫牠找到合適的主人。</p>
-          <div className={f.actions}><CatButton size="sm" href={`/cats/${catId}/tasks`}>建立專屬任務</CatButton></div>
-        </section>
-      )}
-      {!preparing && check?.tasks_ready === false && status === "adoptable" && (
-        <section className={f.card} aria-labelledby="sec-tasks-tip2">
-          <h2 id="sec-tasks-tip2">出領養任務</h2>
-          <p className={f.lead}>為{catName}量身打造任務，最能幫牠找到合適的主人。</p>
-          <div className={f.actions}><CatButton size="sm" href={`/cats/${catId}/tasks`}>建立專屬任務</CatButton></div>
-        </section>
-      )}
       {error && <p className={f.error} role="alert">{error}</p>}
     </>
   );

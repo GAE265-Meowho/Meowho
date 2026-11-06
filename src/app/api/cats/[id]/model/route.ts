@@ -35,7 +35,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     return NextResponse.json({ modelId: existing.id, created: false });
   }
 
-  const { data: cat } = await admin.from("meow_cats").select("id, name, life_stage, photo_paths, photo_angles, est_age_months").eq("id", id).maybeSingle();
+  const { data: cat } = await admin.from("meow_cats").select("id, name, life_stage, photo_paths, photo_angles, est_age_months, sex, care").eq("id", id).maybeSingle();
   if (!cat) return NextResponse.json({ error: "cat_not_found" }, { status: 404 });
 
   // 建立預設 3D 貓。id 用秒數，同一秒撞到就加序號

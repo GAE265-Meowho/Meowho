@@ -634,6 +634,54 @@ try {
   }
 }
 
+// 0030（領養任務改成領養人按下才產生）：0001→0018 後跑 0030 兩次。
+// 中途只確認 3D 模型就能出發；領養人準備任務會用年齡層預設任務存一版、重按回傳同一版；準備中的貓、未登入都不行
+{
+  const m = new PGlite();
+  const base = read("./stub_supabase.sql") + ["0001_meow", "0002_meow_hq", "0003_meow_site_assets", "0004_meow_cat_profile", "0005_meow_cat_models", "0006_meow_household_roles", "0007_meow_adoption_forms", "0008_meow_cat_favorites", "0009_meow_cat_returns", "0010_meow_adoption_notify", "0011_meow_threads", "0012_meow_thread_homed", "0013_meow_decline_reason_transfer", "0014_meow_room_models", "0014_meow_returns_in_threads", "0015_meow_room_floorplan", "0016_meow_cat_model_variants", "0017_meow_adoption_tasks", "0018_meow_task_templates_seed"]
+    .map((f) => read(`../migrations/${f}.sql`)).join("");
+  const id = (n) => `00000000-0000-0000-0000-0000000030${n}`;
+  const one = async (sql) => Object.values((await m.query(sql)).rows[0] ?? {})[0];
+  const eq = (name, expected, actual) =>
+    results.push({ name, status: String(actual) === String(expected) ? "PASS" : "FAIL", detail: String(actual) === String(expected) ? null : `預期 ${expected}，實際 ${actual}` });
+  // 用某人的身分執行；失敗時回傳錯誤代碼
+  const as = async (who, sql) => {
+    try {
+      const r = await m.query(`select set_config('request.jwt.claim.sub', '${who}', false)`).then(() => m.exec(`set role authenticated; ${sql}; reset role;`));
+      return r;
+    } catch (e) { await m.exec("reset role;").catch(() => {}); return e.message; }
+  };
+  try {
+    await m.exec(base);
+    await m.exec(read("../migrations/0030_meow_tasks_on_demand.sql"));
+    await m.exec(read("../migrations/0030_meow_tasks_on_demand.sql"));
+    await m.exec(`insert into auth.users (id, email) values ('${id("a0")}', 'f@t30.example'), ('${id("a1")}', 'm@t30.example');
+      insert into public.meow_profiles (id, email, display_name) values ('${id("a0")}', 'f@t30.example', 'f'), ('${id("a1")}', 'm@t30.example', 'm');
+      insert into public.meow_households (id, owner_id, name, caretaker_type, city, district) values ('${id("d0")}', '${id("a0")}', '中途', 'personal_foster', '桃園市', '龍潭區');
+      insert into public.meow_cats (id, household_id, name, sex, life_stage, status) values
+        ('${id("c0")}', '${id("d0")}', '妹妹', 'female', 'senior', 'preparing'),
+        ('${id("c1")}', '${id("d0")}', '準備中', 'male', 'adult', 'preparing');
+      insert into public.meow_cat_models (id, name, owner_type, owner_id, status, photo_path, cat_id) values ('cat_20261106_000000', '妹妹', 'member', '${id("a0")}', 'ready', '', '${id("c0")}');
+      insert into public.meow_cat_model_variants (model_id, body_type, albedo_path, confirmed_albedo) values ('cat_20261106_000000', 'adult', 'default', 'default');`);
+    await as(id("a0"), `select public.meow_publish_cat('${id("c0")}')`);
+    eq("TOD-1 中途沒出任務、3D 模型已確認就能出發", "adoptable", await one(`select status from public.meow_cats where id = '${id("c0")}'`));
+    eq("TOD-2 出發時不會自動建任務（等領養人按下才產生）", "0", await one(`select count(*) from public.meow_cat_task_versions where cat_id = '${id("c0")}'`));
+    await as(id("a1"), `select public.meow_prepare_cat_tasks('${id("c0")}')`);
+    await as(id("a1"), `select public.meow_prepare_cat_tasks('${id("c0")}')`);
+    eq("TOD-4 領養人按下：用老貓預設任務存一版，重按不會再多一版", "1|default|老貓的預設任務",
+      await one(`select count(*) || '|' || min(v.source) || '|' || min(t.title) from public.meow_cat_task_versions v join public.meow_task_templates t on t.id = v.template_id where v.cat_id = '${id("c0")}'`));
+    eq("TOD-5 任務組的目前版本指向這一版", "true",
+      await one(`select s.current_version_id = v.id from public.meow_cat_task_sets s join public.meow_cat_task_versions v on v.cat_id = s.cat_id where s.cat_id = '${id("c0")}'`));
+    eq("TOD-6 準備中的貓不能準備任務", "run_cat_not_ready", String(await as(id("a1"), `select public.meow_prepare_cat_tasks('${id("c1")}')`)).match(/run_cat_not_ready/)?.[0]);
+    eq("TOD-7 準備中的貓 3D 沒確認還是不能出發", "cat_model_not_confirmed", String(await as(id("a0"), `select public.meow_publish_cat('${id("c1")}')`)).match(/cat_model_not_confirmed/)?.[0]);
+    eq("TOD-8 已登入可以執行、未登入不行", "t|f",
+      await one(`select concat_ws('|', has_function_privilege('authenticated', 'public.meow_prepare_cat_tasks(uuid)', 'execute'), has_function_privilege('anon', 'public.meow_prepare_cat_tasks(uuid)', 'execute'))`));
+  } catch (e) {
+    console.error(`✗ 0030 測試中斷：${e.message}`);
+    process.exit(1);
+  }
+}
+
 let failed = 0;
 for (const r of results) {
   if (r.status === "FAIL") failed++;

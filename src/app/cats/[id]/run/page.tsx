@@ -2,6 +2,7 @@
 // 進行領養任務（規格 09 §7.3、§7.4）：要登入、有喵戶、有 3D 房間（缺哪一步就引導，做完回來）。
 // 同時只能進行一隻貓的任務；進度存在 meow_task_runs（可以分次完成），全部完成後產生試養報告，帶去和中途對話。
 // 寫入走 0017 的資料庫函式：meow_start_task_run、meow_abandon_task_run、meow_complete_task_run、meow_share_task_proof。
+// 任務在按「開始任務」時才產生（0030）：先呼叫 /api/cats/[id]/tasks/prepare（之後接渝茜的任務 worker，見 lib/task-worker.ts），再開始任務。
 // 3D：目前顯示這隻貓的 3D 模型＋文字情境；把貓放進「我的 3D 房間」演出動作，等房間轉換接上後在 TaskStage 處理（docs/modules/readiness.md）。
 import dynamic from "next/dynamic";
 import { useParams } from "next/navigation";
@@ -29,6 +30,8 @@ const ERRORS: Record<string, string> = {
   run_room_not_ready: "請先建立你家的 3D 房間。",
   run_in_progress: "你正在進行另一隻貓的領養任務，要先完成或放棄。",
   household_required: "請先建立喵戶。",
+  task_template_missing: "任務還在準備中，請稍後再試。",
+  prepare_failed: "任務還在準備中，請稍後再試。",
 };
 const errText = (m: string) => Object.entries(ERRORS).find(([k]) => m.includes(k))?.[1] ?? `操作失敗：${m}`;
 
@@ -38,7 +41,6 @@ export default function RunPage() {
   const { hasHome, pass } = useHouseholdGate();
   const sb = getBrowserSupabase();
   const [cat, setCat] = useState<{ name: string; status: string; lifeStage: string | null } | null | undefined>(undefined);
-  const [hasTasks, setHasTasks] = useState(false);
   const [homes, setHomes] = useState<string[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [roomId, setRoomId] = useState("");
@@ -73,15 +75,13 @@ export default function RunPage() {
 
   const load = useCallback(async () => {
     if (!sb || !user) return;
-    const [{ data: c }, { data: ver }, { data: myHomes }, { data: runs }, { data: model }] = await Promise.all([
+    const [{ data: c }, { data: myHomes }, { data: runs }, { data: model }] = await Promise.all([
       sb.from("meow_cats").select("name, status, life_stage").eq("id", catId).maybeSingle(),
-      sb.from("meow_cat_task_versions").select("id").eq("cat_id", catId).limit(1),
       sb.from("meow_households").select("id").eq("owner_id", user.id).order("created_at"),
       sb.from("meow_task_runs").select("id, cat_id, version_id, room_model_id, status, progress, started_at").eq("member_id", user.id).order("started_at", { ascending: false }).limit(20),
       sb.from("meow_cat_models").select("variants:meow_cat_model_variants(body_type, confirmed_albedo)").eq("cat_id", catId).maybeSingle(),
     ]);
     setCat(c ? { name: c.name, status: c.status, lifeStage: c.life_stage } : null);
-    setHasTasks(Boolean(ver?.length));
     const homeIds = (myHomes ?? []).map(h => h.id as string);
     setHomes(homeIds);
     if (homeIds.length) {
@@ -116,6 +116,10 @@ export default function RunPage() {
   async function start() {
     if (!sb) return;
     setBusy(true); setError(null);
+    const prep = await fetch(`/api/cats/${catId}/tasks/prepare`, {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ roomId }),
+    }).then(r => r.json()).catch(() => ({ error: "prepare_failed" })) as { versionId?: string; error?: string };
+    if (!prep.versionId) { setBusy(false); setError(errText(prep.error ?? "prepare_failed")); return; }
     const { data: rid, error: err } = await sb.rpc("meow_start_task_run", { p_cat_id: catId, p_room_id: roomId });
     setBusy(false);
     if (err) { setError(errText(err.message)); return; }
@@ -159,7 +163,7 @@ export default function RunPage() {
   else if (loading || hasHome !== true || cat === undefined) body = <p className={f.lead} role="status">載入中…</p>;
   else if (abandoning) body = <AbandonPanel catName={abandoning.cat_id === catId ? name : other?.name ?? "這隻貓"} run={abandoning}
     onCancel={() => setAbandoning(null)} onDone={async () => { const wasHere = abandoning.cat_id === catId; setAbandoning(null); if (wasHere) window.location.href = `/cats/${catId}`; else await load(); }} />;
-  else if (!cat || cat.status !== "adoptable" || !hasTasks) body = (
+  else if (!cat || cat.status !== "adoptable") body = (
     <section className={`${f.card} ${f.center}`}>
       <h2>{cat ? `${cat.name}目前不能進行領養任務` : "找不到這隻貓"}</h2>
       <div className={f.actions} style={{ justifyContent: "center" }}><CatButton variant="ghost" href="/#adopt">看看其他貓</CatButton></div>

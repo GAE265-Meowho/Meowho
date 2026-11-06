@@ -245,7 +245,7 @@ export function DoneStep({ form, catId, coverSrc, demo, onAnother }: {
       <div className={s.doneHero}>
         <Cover src={coverSrc} />
         <h2 className={s.h1} style={{ marginTop: 8 }}>{n}的名片建好了</h2>
-        <p className={s.lead} style={{ margin: 0 }}>{demo ? "示範模式：資料沒有儲存。" : "確認 3D 模型、出好領養任務，就能出發找新主人。"}</p>
+        <p className={s.lead} style={{ margin: 0 }}>{demo ? "示範模式：資料沒有儲存。" : "確認 3D 模型，就能出發找新主人。"}</p>
       </div>
       <section className={`${s.card} ${s.fill}`} aria-labelledby="fill">
         <svg width="72" height="72" viewBox="0 0 72 72" role="img" aria-label={`資料完整度 ${pct}%`} style={{ flex: "none" }}>
@@ -259,8 +259,7 @@ export function DoneStep({ form, catId, coverSrc, demo, onAnother }: {
         </div>
       </section>
       <div className={s.doneActions}>
-        {!demo && <CatButton href={`/cats/${catId}/tasks`}>出領養任務</CatButton>}
-        {!demo && <CatButton variant="ghost" ears={false} href={`/cats/${catId}`}>看 3D 模型</CatButton>}
+        {!demo && <CatButton href={`/cats/${catId}`}>看 3D 模型</CatButton>}
         <CatButton variant="ghost" ears={false} onClick={onAnother}>再新增一隻</CatButton>
       </div>
     </>
