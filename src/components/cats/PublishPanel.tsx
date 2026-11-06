@@ -8,7 +8,7 @@ import { useCallback, useEffect, useState } from "react";
 import f from "@/components/onboarding/intake.module.css";
 import CatButton from "@/components/ui/CatButton";
 import Icon from "@/components/ui/Icon";
-import { albedoSrc, bodyOf, catBaseUrl, publishChecklist, type PublishCheck } from "@/lib/cat-publish";
+import { DEFAULT_ALBEDO, albedoSrc, bodyOf, catBaseUrl, publishChecklist, type PublishCheck } from "@/lib/cat-publish";
 import { SUPABASE_URL } from "@/lib/supabase/config";
 import { getBrowserSupabase } from "@/lib/supabase/client";
 import { AiViewsPreview } from "./AiViewsPreview";
@@ -52,6 +52,14 @@ export function PublishPanel({ catId, catName, lifeStage, status }: { catId: str
     });
   }, [load, catId]);
 
+  // 還在用預設 3D 貓（母體自帶的虎斑貼圖）＝這隻貓的貼圖還在製作：先不給確認，每 20 秒看一次做好了沒
+  const making = model?.albedo === DEFAULT_ALBEDO && !model.confirmed;
+  useEffect(() => {
+    if (!making) return;
+    const t = setInterval(() => void load(), 20000);
+    return () => clearInterval(t);
+  }, [making, load]);
+
   async function rpc(fn: string): Promise<boolean> {
     if (!sb) return false;
     setBusy(true); setError(null);
@@ -83,7 +91,7 @@ export function PublishPanel({ catId, catName, lifeStage, status }: { catId: str
       <section className={f.card} id="model" aria-labelledby="sec-model">
         <h2 id="sec-model">3D 模型</h2>
         {model === undefined ? <p className={f.lead} role="status">載入中…</p>
-          : model === null ? <p className={f.lead} role="status">正在準備{catName}的 3D 模型…</p>
+          : model === null || making ? <p className={f.lead} role="status">正在製作{catName}的 3D 模型，做好後會出現在這裡，再請你確認像不像牠。</p>
           : (
             <>
               <div className={s.modelBox}>
