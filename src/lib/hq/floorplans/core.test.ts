@@ -3,12 +3,17 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createMemoryStore } from "@/lib/storage/memory";
 import type { MediaStore } from "@/lib/storage/types";
-import { addRoomPhoto, addUploadedRoom, createHouse, createPhotoUpload, removeRoomPhoto, dbFail, createRoomUpload, deleteHouse, deleteHouseRoom, getHouse, listHouses, renameHouseRoom, startRoomRead, type Db, type Deps, type FloorplanReader } from "./core";
+import { addRoomPhoto, addUploadedRoom, createHouse, createPhotoUpload, removeRoomPhoto, dbFail, isFloorplanNameTaken, createRoomUpload, deleteHouse, deleteHouseRoom, getHouse, listHouses, renameHouseRoom, startRoomRead, type Db, type Deps, type FloorplanReader } from "./core";
 import living from "./fixtures/living-room.json";
 
 type Row = Record<string, unknown>;
 let rows: Row[];
 let failWrites: boolean;
+/** 模擬並發：SELECT 同名時假装還沒寫入（兩個請求都查不到），靠 INSERT unique 擋 */
+let raceSelectEmpty: boolean;
+
+const NAME_UIDX_MSG = 'duplicate key value violates unique constraint "meow_room_models_floorplan_name_uidx"';
+const PK_MSG = 'duplicate key value violates unique constraint "meow_room_models_pkey"';
 
 /** 夠用的假資料表：select／insert／update／delete＋eq，update 要 .select() 才回傳筆數 */
 function fakeDb(): Db {
@@ -22,11 +27,15 @@ function fakeDb(): Db {
         select: () => q,
         eq: (k: string, v: unknown) => { filters.push([k, v]); return mode === "delete" ? finishDelete() : q; },
         order: () => q,
-        limit: async () => ({ data: rows.filter(match), error: null }),
+        limit: async () => ({ data: raceSelectEmpty ? [] : rows.filter(match), error: null }),
         maybeSingle: async () => ({ data: rows.find(match) ?? null, error: null }),
         insert: async (row: Row) => {
           if (failWrites) return { error: { code: "42501" } };
-          if (rows.some(r => r.id === row.id)) return { error: { code: "23505" } };
+          if (rows.some(r => r.id === row.id)) return { error: { code: "23505", message: PK_MSG } };
+          // 0029：平面圖戶名 partial unique
+          if (row.source === "floorplan" && rows.some(r => r.source === "floorplan" && r.name === row.name)) {
+            return { error: { code: "23505", message: NAME_UIDX_MSG } };
+          }
           rows.push({ ...row }); return { error: null };
         },
         update: (p: Row) => { mode = "update"; patch = p; return upd; },
@@ -63,7 +72,7 @@ async function upload(houseId = H, name?: string) {
   return { ticket: t, added: await addUploadedRoom(deps(), houseId, { roomId: t.roomId, path: t.path, name }) };
 }
 
-beforeEach(() => { rows = []; failWrites = false; store = createMemoryStore(); });
+beforeEach(() => { rows = []; failWrites = false; raceSelectEmpty = false; store = createMemoryStore(); });
 
 describe("一戶（Q11：一筆＝一戶）", () => {
   it("建立：source=floorplan、空房間；名稱必填；同一秒兩戶加尾碼", async () => {
@@ -74,6 +83,17 @@ describe("一戶（Q11：一筆＝一戶）", () => {
     expect(await createHouse(deps(), " 小美家 ")).toEqual({ ok: false, code: "name_taken" });
     expect(rows).toHaveLength(2);
     expect(rows[0]).toMatchObject({ source: "floorplan", status: "ready", created_by: "u-1", meta: { version: 1, next: 1, rooms: [] } });
+  });
+  it("並發建立同名戶：兩個請求都查不到時，只有一筆成功，另一筆 name_taken", async () => {
+    raceSelectEmpty = true;  // 模擬兩個 POST 同時通過 SELECT
+    const [a, b] = await Promise.all([createHouse(deps(), "子哲的家"), createHouse(deps(), "子哲的家")]);
+    const outcomes = [a, b].map(r => (r.ok ? "ok" : r.code)).sort();
+    expect(outcomes).toEqual(["name_taken", "ok"]);
+    expect(rows.filter(r => r.source === "floorplan" && r.name === "子哲的家")).toHaveLength(1);
+  });
+  it("影片轉換同名不擋平面圖戶名", async () => {
+    rows.push({ id: "room_20261101_100000", name: "子哲的家", source: "video", meta: {}, updated_at: "x" });
+    expect(await createHouse(deps(), "子哲的家")).toEqual({ ok: true, id: H });
   });
   it("沒有權限（RLS 擋下）：permission_denied", async () => {
     vi.spyOn(console, "error").mockImplementation(() => {});
@@ -98,6 +118,11 @@ describe("資料庫錯誤分類", () => {
     expect(dbFail({ code: "42501" }, "t")).toBe("permission_denied");
     expect(dbFail({}, "t")).toBe("permission_denied");
     quiet.mockRestore();
+  });
+  it("戶名 unique（0029）→ name_taken；主鍵 23505 不是戶名撞名", () => {
+    expect(isFloorplanNameTaken({ code: "23505", message: NAME_UIDX_MSG })).toBe(true);
+    expect(isFloorplanNameTaken({ code: "23505", message: PK_MSG })).toBe(false);
+    expect(isFloorplanNameTaken({ code: "42501" })).toBe(false);
   });
 });
 

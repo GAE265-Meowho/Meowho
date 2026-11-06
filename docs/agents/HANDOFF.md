@@ -1,9 +1,10 @@
 # HANDOFF — 接手的 agent 需要知道的事
 
 > 寫給「完全沒有上下文的下一個 agent」。只保留**現在仍然成立**的內容。
-> 最後更新：2026-11-06｜渝茜 × Claude Code（#237 虛擬飼養 DEMO）
+> 最後更新：2026-11-06｜Tina × Cursor（#259 平面圖戶名唯一）
 
 ## 目前狀態
+- **#259 平面圖轉換重複戶名（Tina × Cursor，進行中）**：分支 `fix/259-floorplan-unique-name`。`createHouse` 並發可能寫出兩筆同名「子哲的家」；加 `0029_meow_room_floorplan_name_unique.sql`（既有重複改名不刪＋`source='floorplan'` partial unique index），INSERT 撞 index 回 `name_taken`。**0029 執行前須 Tina 確認**；合併後在 SQL Editor 執行。
 - **#237 虛擬飼養 DEMO（渝茜 × Claude Code，審查中）**：PR #244、分支 `feat/237-catgame-demo`。`/cats/[id]/play`（DEMO 固定麻糬、虎斑），流程與真的接上／備案對照見 `docs/modules/readiness.md`「虛擬飼養 DEMO」。邏輯在 `src/lib/play/`（純函式＋測試），畫面在 `src/components/play/`，AI 在 `/api/play/{hazards,lines,advice}`。
   - 要設的環境變數（Vercel，都是既有名稱）：`AZURE_OPENAI_ENDPOINT`、`AZURE_OPENAI_API_KEY`、`AZURE_OPENAI_CHAT_DEPLOYMENT_NAME=gpt-6-luna`（沒設＝全部走規則備案）；選填 `NEXT_PUBLIC_ROOM_DEMO_BASE`（掃描房間 manifest 資料夾，沒設＝自動改用娃娃屋）；喵戶讀取用既有的 `NEXT_PUBLIC_SUPABASE_*`。
   - **尚未實測**（沙盒連不到）：Azure 三支 AI、Supabase 讀喵戶 `home`、`meow-items` 遠端 GLB（沙盒看到的是替代方塊）、掃描房間 `RoomViewer`。合併前請在 PR 預覽網址走一次：登入有喵戶的帳號、設好 Azure，確認台詞與危險清單是 AI 版（API 回 `source: "ai"`）。

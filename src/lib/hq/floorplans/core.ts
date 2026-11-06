@@ -34,9 +34,15 @@ type Common = "permission_denied" | "not_found" | "busy" | "db_not_ready";
  * 其他（多半是 RLS 擋下）回 permission_denied。真正的錯誤寫進伺服器紀錄（Vercel Logs）方便查。
  */
 const NOT_READY = new Set(["42P01", "42703", "PGRST204", "PGRST205"]);
+/** 0029 partial unique index：平面圖戶名撞名（與主鍵 23505 分開） */
+const FLOORPLAN_NAME_UIDX = "meow_room_models_floorplan_name_uidx";
 export function dbFail(error: { code?: string; message?: string }, where: string): "db_not_ready" | "permission_denied" {
   console.error(`[floorplans] ${where}:`, error.code, error.message);
   return error.code && NOT_READY.has(error.code) ? "db_not_ready" : "permission_denied";
+}
+/** Postgres 23505：戶名唯一約束 → name_taken；主鍵撞到才重試加尾碼 */
+export function isFloorplanNameTaken(error: { code?: string; message?: string } | null | undefined): boolean {
+  return error?.code === "23505" && !!error.message?.includes(FLOORPLAN_NAME_UIDX);
 }
 
 export async function listHouses({ sb, store }: Deps): Promise<{ ok: true; houses: FloorplanSummary[] } | Fail<"db_not_ready" | "permission_denied">> {
@@ -59,14 +65,14 @@ export async function listHouses({ sb, store }: Deps): Promise<{ ok: true; house
 export async function createHouse(deps: Deps, name: unknown): Promise<{ ok: true; id: string } | Fail<"name_required" | "name_taken" | "permission_denied" | "db_not_ready">> {
   const clean = cleanName(name);
   if (!clean) return { ok: false, code: "name_required" };
-  // 戶名不重複：也擋住網路慢時連按好幾次建立出同名的戶
+  // 先查同名（快速失敗）；真正擋並發靠 0029 unique index，INSERT 撞名轉 name_taken
   const { data: same } = await deps.sb.from(TABLE).select("id").eq("source", "floorplan").eq("name", clean).limit(1);
   if ((same as unknown[] | null)?.length) return { ok: false, code: "name_taken" };
   const now = deps.now ?? new Date();
   const base = newRoomId(now);
   const meta: FloorplanMeta = { version: 1, next: 1, rooms: [] };
   let last: { code?: string; message?: string } = {};
-  // 同一秒建立兩戶：id 加尾碼
+  // 同一秒建立兩戶：id 加尾碼（只重試主鍵 23505，戶名撞名直接 name_taken）
   for (let i = 1; i <= 5; i++) {
     const id = i === 1 ? base : `${base}_${i}`;
     const { error } = await deps.sb.from(TABLE).insert({
@@ -74,6 +80,7 @@ export async function createHouse(deps: Deps, name: unknown): Promise<{ ok: true
     });
     if (!error) return { ok: true, id };
     last = error;
+    if (isFloorplanNameTaken(error)) return { ok: false, code: "name_taken" };
     if (error.code !== "23505") break;
   }
   return { ok: false, code: dbFail(last, "create") };
