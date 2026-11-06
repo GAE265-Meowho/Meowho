@@ -7,7 +7,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { formatTaipeiDate } from "@/lib/hq/actions";
-import { resolveClip } from "@/lib/hq/cat-models/clips";
+import { clipPupil, resolveClip } from "@/lib/hq/cat-models/clips";
 import {
   BODY_LABELS, FILL_LABELS, GEN_VIEWS, GEN_VIEW_LABELS, PHOTO_VIEW_LABELS, textureOf, type BodyType, type CatModelView,
 } from "@/lib/hq/cat-models/types";
@@ -97,6 +97,10 @@ function Preview({ cat }: { cat: CatModelView }) {
     ? variant ? (texture.preview === "albedo" ? variant.albedoUrl : variant.prevUrl)
       : catFileUrl(cat.id, texture.preview, cat.albedoVersion ?? undefined)
     : null;
+
+  useEffect(() => {
+    setPupil(clipPupil(clip, body === "kitten" ? "kitten" : "adult"));
+  }, [clip, body]);
 
   function selectBody(next: BodyType) {
     setSelectedBody(next);

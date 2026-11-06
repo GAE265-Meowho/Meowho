@@ -4,8 +4,8 @@
 // 這裡調的數值只在這頁預覽，不會存回骨架。
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { useState } from "react";
-import { resolveClip } from "@/lib/hq/cat-models/clips";
+import { useEffect, useState } from "react";
+import { clipPupil, resolveClip } from "@/lib/hq/cat-models/clips";
 import { baseFileName, BODY_LABELS, type BodyType } from "@/lib/hq/cat-models/types";
 import { HqSkeleton } from "../HqStates";
 import { autoPupil, EYE_DEFAULTS, EYE_PRESETS, type EyeParams } from "./catEye";
@@ -49,6 +49,11 @@ export function BaseLab({ body }: { body: BodyType }) {
   const pupil = lightPupil ? autoPupil(light) : eye.pupil;
   const set = <K extends keyof EyeParams>(key: K, value: EyeParams[K]) => setEye(e => ({ ...e, [key]: value }));
   const label = `${BODY_LABELS[body]}骨架`;
+
+  useEffect(() => {
+    if (lightPupil) return;
+    set("pupil", clipPupil(clip, body));
+  }, [clip, body, lightPupil]);
 
   return (
     <>

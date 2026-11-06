@@ -9,8 +9,10 @@ export interface ClipDef {
   status: ClipStatus;
 }
 
-export const CLIP_LIBRARY_VERSION = 2;
+export const CLIP_LIBRARY_VERSION = 3;
 export const FALLBACK_CLIP = "idle";
+/** 預覽預設瞳孔寬窄（細縫 0 → 全圓 1）；與 catEye EYE_DEFAULTS.pupil 相同 */
+export const DEFAULT_PUPIL = 0.25;
 
 export const CLIP_LIBRARY: readonly ClipDef[] = [
   { code: "idle", label: "待機", status: "ready" },
@@ -24,6 +26,16 @@ export const CLIP_LIBRARY: readonly ClipDef[] = [
   { code: "rest", label: "休息", status: "planned" },
   { code: "groom", label: "理毛", status: "planned" },
 ];
+
+/** 特定體型＋動作的預設瞳孔（沒登記就用 DEFAULT_PUPIL）；切動作時預覽會套用，滑桿仍可手動改 */
+const CLIP_PUPIL: Readonly<Record<string, Partial<Record<"adult" | "kitten", number>>>> = {
+  sit: { kitten: 0.67 },
+};
+
+export function clipPupil(clip: string | null | undefined, body: "adult" | "kitten"): number {
+  if (!clip) return DEFAULT_PUPIL;
+  return CLIP_PUPIL[clip]?.[body] ?? DEFAULT_PUPIL;
+}
 
 export interface ClipItem extends ClipDef {
   /** 母體 glb 裡真的有這個動作，可以播放 */
