@@ -29,14 +29,16 @@
 |---|---|---|---|
 | 玩家背景 | 讀喵戶 `home`（住家型態、住家狀況、同住的人、現有寵物），不問作息與基本資料 | 登入＋有一般飼主喵戶時讀 `meow_households.home`（RLS） | 範例背景 `SAMPLE_HOME`；缺欄位補範例值（`normalizeHome`） |
 | 上傳房間 | 選檔或「用示範房間」，進度沿用 `ROOM_STAGES`（加速），檔案不離開瀏覽器 | A 掃描房間：`RoomViewer`＋`NEXT_PUBLIC_ROOM_DEMO_BASE`，物品清單＝`scene.json` 的 `objects[].label` | B 娃娃屋：`DEMO_DOLLHOUSE`（living-room.json＋書桌、電腦、茶几、水杯、櫃子、花瓶），物品清單＝家具＋門窗 |
-| 居家危險 | `POST /api/play/hazards`（物品清單；可帶截圖給 vision，前端目前不送） | Azure 聊天部署 | `ruleHazards` 規則對照（電線、窗戶、水杯、花瓶植物、大門、小東西） |
-| 採買 | 每月預算；皇家飼料（處方不顯示、待查價不能買、預設只列幼貓）；貓砂只講類型；基本用品 | `src/lib/hq/food/` 目錄 | — （全部公式，`costs.ts`） |
+| 居家危險 | `POST /api/play/hazards`（物品清單；可帶截圖給 vision，前端目前不送） | Azure 聊天部署 | `ruleHazards` 規則對照（電線、窗戶、水杯、花瓶植物、大門、布料家具、細繩） |
+| 採買 | 每月預算；照 catgame 原版 `SHOP_ITEMS`／`SHOP_FLAGS` 估價（貓砂類型、砂盆、碗、零食、醫療預備金、貓抓板／外出籠／逗貓棒／監視器）；飼料改用皇家目錄（處方不顯示、待查價不能買、預設只列幼貓，乾糧濕糧各一款） | `src/lib/hq/food/` 目錄 | — （全部公式，`costs.ts`） |
 | 擺用品 | 點選位置（手機）或拖進娃娃屋（桌機） | 餐碗組、貓砂盆的公開 GLB | 載入失敗畫同尺寸方塊（`FloorplanViewer` 的錯誤邊界） |
-| 三個節點 | 台詞＋選項 → 3D 貓動作（`goalFor`）→ 小遊戲 → 紀錄；每個節點加一段個人化台詞 `POST /api/play/lines`（約 8 秒逾時） | Azure | `ruleLines` |
-| 試養報告 | 發生的事、每個選擇、花費（一次性／每月／醫療／意外）、建議 `POST /api/play/advice` | Azure | `ruleAdvice` |
+| 三個節點 | 照 catgame 原版推進：台詞＋選項 → 3D 貓配合原版場景姿勢（`goalFor`）→ 小遊戲 → 小叮嚀（page）→ 紀錄；每個節點最後加一段個人化台詞 `POST /api/play/lines`（約 8 秒逾時） | Azure | `ruleLines` |
+| 試養報告 | 照原版 `fullReportHTML`：回憶、你和麻糬的 N 年、這一生發生的事、花費（一次性／每月累計／醫療／意外／其他）、做得好／可以再想想、原版規則建議＋AI 補充建議 `POST /api/play/advice`、收養之前問問自己 | Azure | `ruleAdvice` |
 
-- 節點 1「到家第一天」幼貓（外出籠、躲〈躲藏處〉、放飯、上廁所、第一次健康檢查）；節點 2「五年後」成貓（健檢、剪指甲、**整場唯一一次居家意外**）；節點 3「臨終前」成貓放慢（安寧照護、餵藥、告別、回顧）。
-- 小遊戲：外出籠、放飯、鏟屎、剪指甲、餵藥（React 重寫，2D 疊在 3D 上）。
+- 劇情照 catgame 原版（團隊專題專案 `catgame/src/24i-full-mochi.js` 的 `MOCHI_NODES`，`src/lib/play/story.ts`）：節點 1＝「第 1 天」（躲〈躲藏處〉、店員小安的叮嚀、第一次清砂盆、第一次健檢 1,000 元；原版的 `rand: ["dashout"]` 拿掉）；節點 2＝「五年後」（伴侶過敏三選一含送養結局、陪玩）＋**整場唯一一次居家意外**；節點 3＝「最後一週」「接下來的路」「最後一天」（居家安寧／住院／安樂、享年、`fullLifeWords`）。麻糬的外觀改成虎斑。
+- 〈通稱〉照原版 `FURN_WORD`／`homeWord`／`fullTx`（`furniture.ts`），用關鍵字把房間物品名稱對回原版家具 id。
+- 居家意外照原版 `FEV`（`events.ts`）：危險 key 對事件 `cable` 咬電線、`string` 吃塑膠繩、`cup`→`table` 跳上桌子、`scratch` 抓家具、`door`→`dashout` 衝出門；全部處理了用 `hairball`／`money`；原版沒有事件的窗戶、植物用一段通用劇情。
+- 小遊戲照原版（`src/components/play/catgame/minis.ts`，vanilla JS 包進 client component）：躲床底 `startHide`、鏟屎 `startScoop`、逗貓棒 `startPlay`；共用 `liveFrame`、`trackPointer`、`loopWith`、`miniMeter`、`catParts`…。
 - 3D 貓：後台兩隻虎斑示範貓（幼貓 `cat_20261101_183700`、成貓 `cat_20261030_140731`），網址規則同 `bundled.ts`（`src/lib/play/cats.ts`，測試檢查一致）。
 
 ## 我的 3D 房間與任務裡的 3D（規格 09 v0.6 §7.2、§7.3）——目前是示範房間，之後要接真正的流程
@@ -100,7 +102,7 @@
 
 ## 主要檔案
 - `src/components/Sections.tsx`（`TrialBoard`、`Steps`）
-- 虛擬飼養 DEMO（#237）：`src/app/cats/[id]/play/page.tsx`、`src/components/play/`（`PlayGame` 流程、`PlayStage` 3D、`RoomStep`、`ShopStep`、`NodeStep`、`ReportStep`、`Minis`）、`src/lib/play/`（`flow.ts` 狀態機、`story.ts` 劇情、`events.ts` 意外、`hazards.ts`、`costs.ts`、`room.ts`、`stage.ts`、`background.ts`、`lines.ts`、`report.ts`、`minigames.ts`、`items.ts`、`cats.ts`、`api.ts`、`handlers.ts`）、`src/app/api/play/{hazards,lines,advice}/route.ts`、`src/lib/ai/play.ts`、`src/lib/prompts/play.ts`
+- 虛擬飼養 DEMO（#237）：`src/app/cats/[id]/play/page.tsx`、`src/components/play/`（`PlayGame` 流程、`PlayStage` 3D、`RoomStep`、`ShopStep`、`NodeStep`、`ReportStep`、`catgame/` 原版小遊戲）、`src/lib/play/`（`flow.ts` 狀態機、`story.ts` 劇情、`events.ts` 意外、`furniture.ts` 通稱、`hazards.ts`、`costs.ts`、`room.ts`、`stage.ts`、`background.ts`、`lines.ts`、`report.ts`、`items.ts`、`cats.ts`、`api.ts`、`handlers.ts`）、`src/app/api/play/{hazards,lines,advice}/route.ts`、`src/lib/ai/play.ts`、`src/lib/prompts/play.ts`
 - `requirement/catsafe_ar_README.md`（團隊 AR 模組草稿，未放入 repo）
 
 ## 決策
@@ -112,11 +114,12 @@
 - 2026-11-04（子哲，spec 09 v0.6）：建立 3D 房間簡化成三步，環境檢查一律同時做、不詢問；處理完（成功或失敗）立即刪除原始檔，回到決策 007；可單獨做居家安全檢測，多份報告留成檢測紀錄。
 
 - 2026-11-06（渝茜，#237）：虛擬飼養 DEMO 縮成 3 個節點；居家意外整場只有一次、固定在節點 2，從 AI 辨認出而玩家沒處理的危險挑；遊戲狀態只放前端，不新增資料表；所有金額由 `src/lib/play/costs.ts` 公式算，AI 只寫文字。
+- 2026-11-06（渝茜，#237）：劇情、居家意外、採買估價、小遊戲、試養報告照 catgame 原版；原版沒有、但 DEMO 需要的（AI 危險清單、模擬上傳、擺用品、個人化台詞）保留。
 - 2026-11-06（渝茜，#237）：生活用品（餐碗組、貓砂盆）先用公開 bucket `meow-items` 的模型網址，尺寸與價格寫在 `src/lib/play/items.ts`；等子哲開放 `meow_items`／`meow_item_categories` 公開讀取後改讀後台（#237 已提醒）。
 
 ## 待確認
 - 影像生成方案。
-- 虛擬飼養 DEMO 的劇情台詞要和 catgame 原文對照（這次 agent 讀不到 catgame 專案檔，依 #237 描述改寫）。
+- ［已處理，2026-11-06］虛擬飼養 DEMO 的劇情與小遊戲已改成照 catgame 原版。
 - `meow_items` 是否開放公開讀取（子哲）；餐碗組路徑 `test_bowls_…` 是測試上傳，正式版換掉時 `items.ts` 也要改。
 - 7 天任務劇情格式（待和渝茜確認）。
 - 系統預設任務的內容與維護者。
@@ -138,3 +141,4 @@
 | 2026-11-04 | 子哲 × Claude Code | 建立 3D 房間拿掉環境檢查詢問；喵戶卡片按鈕依狀態切換；居家安全檢測報告頁與檢測紀錄 | （見 PR） |
 | 2026-11-04 | 珮瑜 × Claude Code | 前台我的 3D 房間接上影片轉換：上傳、建房間＋排工作＋環境報告、worker 寫私有 bucket 與通知、預覽與完成 | （見 PR） |
 | 2026-11-06 | 渝茜 × Claude Code | 虛擬飼養 DEMO `/cats/[id]/play`：3 個節點、AI 危險／台詞／建議（含規則備案）、採買花費公式、3D 娃娃屋擺用品、小遊戲、試養報告 | #244 |
+| 2026-11-06 | 渝茜 × Claude Code | 虛擬飼養 DEMO 劇情、事件、採買、小遊戲、試養報告改成照 catgame 原版 | #244 |
