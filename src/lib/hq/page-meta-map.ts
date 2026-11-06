@@ -71,7 +71,9 @@ export const HQ_PAGE_META_PATHS = {
     "src/lib/hq/rooms",
   ],
   "assets/rooms-video": [
+    "src/app/MeowHQ/assets/rooms",
     "src/components/hq/assets/RoomVideoTab.tsx",
+    "src/components/hq/assets/RoomVideoRoom.tsx",
     "src/components/hq/assets/RoomUpload.tsx",
     "src/components/hq/assets/RoomProgress.tsx",
   ],
@@ -152,6 +154,7 @@ export function resolvePageMetaKey(pathname: string, search = ""): HqPageMetaKey
   }
 
   if (path.startsWith("/MeowHQ/assets/floorplans")) return "assets/rooms-floorplan";
+  if (path.startsWith("/MeowHQ/assets/rooms/")) return "assets/rooms-video";
   if (path.startsWith("/MeowHQ/assets/cats") || path.startsWith("/MeowHQ/assets/bases")) return "assets/cats";
   if (path.startsWith("/MeowHQ/assets")) {
     const t = isAssetTab(tab) ? tab : "cats";

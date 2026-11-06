@@ -7,6 +7,8 @@ export const studioHref = (id: string) => `/MeowHQ/assets/cats/${id}/studio`;
 export const BASES_HREF = "/MeowHQ/assets/bases";
 /** 平面圖轉換（#138）：一戶的工作頁 */
 export const floorplanHref = (id: string) => `/MeowHQ/assets/floorplans/${id}`;
+/** 影片轉換（#93）：單間房的預覽頁 */
+export const roomVideoHref = (id: string) => `/MeowHQ/assets/rooms/${id}`;
 export const baseLabHref = (body: "adult" | "kitten") => `/MeowHQ/assets/bases/${body}`;
 
 /** 虛擬體驗元件管理的區塊（#113：左側選單第一層；?tab= 切換）。有 parent 的是該區塊頁裡的大卡片，不放選單 */

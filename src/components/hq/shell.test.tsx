@@ -146,7 +146,11 @@ describe("#113 虛擬體驗元件管理分組", () => {
     expect(screen.getByRole("link", { name: "貓咪製作" })).toHaveAttribute("aria-current", "page");
     cats.unmount();
     // #138：平面圖的戶算室內空間
-    render(assets("/MeowHQ/assets/floorplans/room_20261102_220000"));
+    const fp = render(assets("/MeowHQ/assets/floorplans/room_20261102_220000"));
+    expect(screen.getByRole("link", { name: "室內空間" })).toHaveAttribute("aria-current", "page");
+    fp.unmount();
+    // 影片轉換的單間房也算室內空間
+    render(assets("/MeowHQ/assets/rooms/room_20261106_100000"));
     expect(screen.getByRole("link", { name: "室內空間" })).toHaveAttribute("aria-current", "page");
   });
   it("沒有虛擬體驗元件管理權限就不顯示這個分組", () => {
