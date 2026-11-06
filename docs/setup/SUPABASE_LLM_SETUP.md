@@ -55,14 +55,17 @@ Meowho喵戶 使用**自己的 Supabase 專案**，不與其他 App 共用（決
 5. 應用程式還在「測試中」時，只有 **目標對象 → 測試使用者** 名單上的 Gmail 能登入：把組員與老師的 Gmail 加進去（或按「發布應用程式」）。
 
 ## 4. LLM 金鑰
-- **Gemini（目前使用）**：https://aistudio.google.com/apikey → Create API key → `GEMINI_API_KEY`
-- 其他供應商：設 `AI_PROVIDER=openai`／`azure`／`anthropic` 並填對應金鑰，變數名稱見 `.env.example`
+- **Azure OpenAI（2026-11-06 起使用）**：`AI_PROVIDER=azure`，加上下面的 `AZURE_OPENAI_ENDPOINT`、`AZURE_OPENAI_API_KEY`、`AZURE_OPENAI_CHAT_DEPLOYMENT_NAME`。
+  網站的 AI（對話建檔、照片辨識、婉拒草稿、領養任務草稿）都走 LangChain（`src/lib/ai/models.ts`），換供應商只改環境變數。
+  v1 端點（`.../openai/v1`）不帶 temperature（較新的部署只接受預設值）。
+- 其他供應商：設 `AI_PROVIDER=gemini`／`openai`／`anthropic` 並填對應金鑰（Gemini 是 `GEMINI_API_KEY`），變數名稱見 `.env.example`
+- 影片個性判讀已拿掉（2026-11-06），沒有只限 Gemini 的功能了。
 - **AI 三視角照片（#110，Azure 影像生成）**：與文字模型分開設定，`AI_PROVIDER` 維持原值也能用。需要
   `AZURE_OPENAI_ENDPOINT`（v1 網址 `https://<資源>.openai.azure.com/openai/v1`）、`AZURE_OPENAI_API_KEY`、
   `AZURE_OPENAI_IMAGE_DEPLOYMENT=gpt-image-2`（影像部署；`gpt-6-luna` 只能聊天、不能產生圖片），
   選填 `AZURE_OPENAI_IMAGE_QUALITY`（`low`／`medium`／`high`，預設 `low`）。沒設時，新增貓咪頁會顯示「尚未設定 AI 影像模型」。
 - **Azure 聊天模型**：`AZURE_OPENAI_CHAT_DEPLOYMENT_NAME=gpt-6-luna`（聊天部署名稱；舊名 `AZURE_OPENAI_DEPLOYMENT` 仍相容，不要兩個都設）。
-  MeowHQ 貓咪模型（AI 三視角的「看照片判斷年齡」）**固定用它**，不受 `AI_PROVIDER` 影響；全站其他聊天功能只有 `AI_PROVIDER=azure` 時才用它。
+  MeowHQ 貓咪模型（AI 三視角的「看照片判斷年齡」）與平面圖讀圖**固定用它**，不受 `AI_PROVIDER` 影響；全站其他聊天功能在 `AI_PROVIDER=azure`（目前設定）時也用它。
 
 ## 5. 填到 Vercel
 Vercel 專案 **`zing15s-projects/meowho`**（https://meowho.vercel.app，連動 `GAE265-Meowho/Meowho` 的 `main`）→ **Settings → Environment Variables**，Production＋Preview 都勾：
@@ -71,13 +74,12 @@ Vercel 專案 **`zing15s-projects/meowho`**（https://meowho.vercel.app，連動
 |---|---|---|
 | `NEXT_PUBLIC_SUPABASE_URL` | 步驟 1 | Config（`NEXT_PUBLIC_` 開頭不能選 Secret） |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | 步驟 1 | Config（本來就公開給前端，權限靠 RLS） |
-| `AI_PROVIDER` | `gemini` | Secret |
-| `GEMINI_API_KEY` | 步驟 4 | Secret |
+| `AI_PROVIDER` | `azure` | Secret |
 | `NEXT_PUBLIC_LOCAL_PHOTOS` | `0` | Config |
 | `AZURE_OPENAI_ENDPOINT` | Azure OpenAI 資源端點（#110） | Secret |
 | `AZURE_OPENAI_API_KEY` | Azure OpenAI 金鑰（#110） | Secret |
 | `AZURE_OPENAI_IMAGE_DEPLOYMENT` | `gpt-image-2`（#110） | Config |
-| `AZURE_OPENAI_CHAT_DEPLOYMENT_NAME` | `gpt-6-luna`（MeowHQ 貓咪模型判斷年齡固定用；全站聊天在 `AI_PROVIDER=azure` 時用） | Config |
+| `AZURE_OPENAI_CHAT_DEPLOYMENT_NAME` | `gpt-6-luna`（全站聊天與 MeowHQ 都用） | Config |
 
 儲存後到 **Deployments → 最新一筆 → Redeploy**，環境變數才會生效。
 - **Framework Preset 必須是 Next.js**（Settings → Build and Deployment）。設成 Other 時建置會成功，但每一頁都是 404。
