@@ -13,8 +13,8 @@ import CatButton from "@/components/ui/CatButton";
 import Required from "@/components/ui/Required";
 import { useHouseholdGate } from "@/components/useHouseholdGate";
 import { ACTIONS, parseContent, type TaskContent } from "@/lib/adoption-tasks";
-import { DEFAULT_ALBEDO, bodyOf } from "@/lib/cat-publish";
-import { baseFileName } from "@/lib/hq/cat-models/types";
+import { albedoSrc, bodyOf, catBaseUrl } from "@/lib/cat-publish";
+import { SUPABASE_URL } from "@/lib/supabase/config";
 import { getBrowserSupabase } from "@/lib/supabase/client";
 import { ABANDON_REASONS, abandonMissing, choose, isComplete, nextTask, parseProgress, proofLines, roomFurniture, taskScene, type RunProgress } from "@/lib/task-run";
 import s from "./run.module.css";
@@ -93,7 +93,7 @@ export default function RunPage() {
     }
     const body = bodyOf(c?.life_stage ?? null);
     const v = (model?.variants as { body_type: string; confirmed_albedo: string | null }[] | undefined)?.find(x => x.body_type === body);
-    setAlbedo(v?.confirmed_albedo ? (v.confirmed_albedo === DEFAULT_ALBEDO ? null : v.confirmed_albedo) : undefined);
+    setAlbedo(v?.confirmed_albedo ? albedoSrc(v.confirmed_albedo, SUPABASE_URL) : undefined);
 
     const all = (runs ?? []) as Run[];
     const active = all.find(r => r.status === "in_progress");
@@ -233,7 +233,7 @@ export default function RunPage() {
         <p className={s.meter} aria-label="進度">第 {cur?.day ?? 1} 天・完成 {finished}／{total} 個任務</p>
         <section className={f.card} aria-labelledby="task-title">
           <div className={s.stage}>
-            {albedo !== undefined && <CatPreview baseUrl={`/hq-cat-models/base/${baseFileName(bodyOf(cat.lifeStage))}`} body={bodyOf(cat.lifeStage)} albedoUrl={albedo} clip="idle" />}
+            {albedo !== undefined && <CatPreview baseUrl={catBaseUrl(bodyOf(cat.lifeStage))} body={bodyOf(cat.lifeStage)} albedoUrl={albedo} clip="idle" />}
           </div>
           {cur && (
             <>

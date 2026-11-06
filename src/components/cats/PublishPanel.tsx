@@ -7,8 +7,8 @@ import { useCallback, useEffect, useState } from "react";
 import f from "@/components/onboarding/intake.module.css";
 import CatButton from "@/components/ui/CatButton";
 import Icon from "@/components/ui/Icon";
-import { DEFAULT_ALBEDO, bodyOf, publishChecklist, type PublishCheck } from "@/lib/cat-publish";
-import { baseFileName } from "@/lib/hq/cat-models/types";
+import { albedoSrc, bodyOf, catBaseUrl, publishChecklist, type PublishCheck } from "@/lib/cat-publish";
+import { SUPABASE_URL } from "@/lib/supabase/config";
 import { getBrowserSupabase } from "@/lib/supabase/client";
 import { AiViewsPreview } from "./AiViewsPreview";
 import s from "./catPage.module.css";
@@ -88,7 +88,7 @@ export function PublishPanel({ catId, catName, lifeStage, status }: { catId: str
           : (
             <>
               <div className={s.modelBox}>
-                <CatPreview baseUrl={`/hq-cat-models/base/${baseFileName(body)}`} body={body} albedoUrl={model.albedo === DEFAULT_ALBEDO ? null : model.albedo} clip="idle" />
+                <CatPreview baseUrl={catBaseUrl(body)} body={body} albedoUrl={albedoSrc(model.albedo, SUPABASE_URL)} clip="idle" />
               </div>
               {model.confirmed
                 ? <p className={s.done}><Icon name="check" size={18} />{catName}的 3D 模型準備好了。</p>

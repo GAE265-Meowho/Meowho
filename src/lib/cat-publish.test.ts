@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DEFAULT_ALBEDO, aiViewsPhase, defaultModelRows, modelIdAt, publishChecklist } from "./cat-publish";
+import { DEFAULT_ALBEDO, aiViewsPhase, albedoSrc, catBaseUrl, defaultModelRows, modelIdAt, publishChecklist } from "./cat-publish";
 
 describe("準備出發找新主人的兩項檢查（規格 09 §5.2）", () => {
   it("兩項都完成才能按", () => {
@@ -46,5 +46,22 @@ describe("#188 前台 AI 三視角預覽狀態", () => {
     expect(aiViewsPhase(r({ views: { left: "a", front: "b", back: "c" } }))).toBe("done");
     expect(aiViewsPhase(r({ views: { left: "a", front: "b", back: "c" }, errors: { back: "逾時" } }))).toBe("failed");
     expect(aiViewsPhase(r({ views: { left: "a" } }))).toBe("failed");
+  });
+});
+
+describe("前台 3D 貓的貼圖與母體（和 MeowHQ 預覽一致）", () => {
+  const URL = "https://x.supabase.co/";
+  it("bucket 路徑轉成 meow-cat-models 的公開網址", () => {
+    expect(albedoSrc("cat_20261101_183700/paint_albedo.png", URL))
+      .toBe("https://x.supabase.co/storage/v1/object/public/meow-cat-models/cat_20261101_183700/paint_albedo.png");
+  });
+  it("預設貼圖、沒有貼圖回 null（用母體自己的貼圖）；完整網址原樣", () => {
+    expect(albedoSrc(DEFAULT_ALBEDO, URL)).toBeNull();
+    expect(albedoSrc(null, URL)).toBeNull();
+    expect(albedoSrc("https://cdn.example/a.png", URL)).toBe("https://cdn.example/a.png");
+  });
+  it("母體走 MeowHQ 同一支 API", () => {
+    expect(catBaseUrl("adult")).toBe("/api/hq/cat-models/base");
+    expect(catBaseUrl("kitten")).toBe("/api/hq/cat-models/base?body=kitten");
   });
 });

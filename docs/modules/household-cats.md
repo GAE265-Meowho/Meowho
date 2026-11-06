@@ -23,7 +23,8 @@
 - 中途新增貓時，貓是「準備中」（`meow_cats.status = 'preparing'`），前台看不到。
 - 建立 profile 後，`NewCatFlow`（#206 起取代 `IntakeChat`）呼叫 `POST /api/cats/[id]/model`；貓咪頁的 `PublishPanel` 發現還沒有 3D 貓時也會再呼叫一次（同一隻貓只建一筆）。
 - 這個 API 只建「預設 3D 貓」：`meow_cat_models` 一筆（`owner_type = 'member'`、`cat_id`＝這隻貓、`status = 'ready'`、`meta.source = 'default'`）＋ `meow_cat_model_variants` 一筆（體型依年齡層，`albedo_path = 'default'`）。
-- 預覽用母體 `public/hq-cat-models/base/` 加母體自己的貼圖（`albedo_path = 'default'` 時 `CatPreview` 收到 `albedoUrl = null`）。
+- 預覽用母體加母體自己的貼圖（`albedo_path = 'default'` 時 `CatPreview` 收到 `albedoUrl = null`）。
+- **前台預覽和 MeowHQ 一致（2026-11-06）**：`PublishPanel` 與試養頁的 `CatPreview` 母體改走 `/api/hq/cat-models/base`（`catBaseUrl`，和 MeowHQ 同一份母體，貼圖 UV 才對得上），貼圖用 `albedoSrc()` 把 `albedo_path`／`confirmed_albedo` 的 bucket 路徑轉成 `meow-cat-models` 公開網址。之前直接把路徑當網址，paint worker 做好的貼圖載入失敗，畫面退回母體的灰色預設貼圖。
 - **照片（#181，2026-11-04）**：建模型時把封面照片從 `meow-cat-photos` 複製到 `meow-cat-model-photos/<模型ID>/photo.<副檔名>`，`photo_path` 指向複製後的檔案（`src/lib/cat-model-photo.ts`）。之前建的舊模型 `photo_path` 還是前台路徑，MeowHQ 製作頁讀照片時（`sbFileRedirect`）或中途再呼叫 API 時會自動補複製。MeowHQ 貓咪模型列表、貓咪頁、製作glb工作區顯示所屬喵戶。目前 Step 02～04 由管理員在 MeowHQ 手動觸發，之後改自動。
 - **三個角度＋自動 AI 三視角（#188，2026-11-04）**：新增貓咪時依序上傳側面、正面、背面（`CatFields.angles`，必填；之後可再加生活照到 5 張）。建立後 `NewCatFlow` 帶 `{ angles }` 呼叫（#206 起角度照存 `meow_cats.photo_angles`，`pickAngles` 也會讀它） `POST /api/cats/[id]/model`：三張複製成 `<模型ID>/photo.*`、`photo_front.*`、`photo_back.*`（`profile.extra_photos`），三張都有就用 service role 呼叫 `sbStartViews(..., { client })` 在 `after()` 自動產生 AI 三視角（Step 02）。前台貓咪頁的「AI 三視角」（`AiViewsPreview`，`GET /api/cats/[id]/model/views`，只給中途、短時效網址）顯示進度與結果；MeowHQ 製作頁讀同一份 `profile.generated`。Step 03、04 仍由管理員在 MeowHQ 手動觸發。修改既有的貓（`angles = null`）只需要有照片，不要求三個角度。
 - 中途按「確認使用」→ `meow_confirm_cat_model()` 把 `albedo_path` 複製到 `confirmed_albedo`，「準備出發找新主人」的 3D 檢查就通過。
