@@ -6,6 +6,7 @@
 ## 目前狀態
 - **#239 幼貓坐下（Tina × Cursor，審查中）**：分支 `feat/239-kitten-sit-clip`。幼貓 `base_clips_kitten.glb` 含 idle／walk／sleep／sit（Meow `cat_base_kitten/stepC_clips.py`）；`clips.ts` 的 `clipPupil("sit","kitten")=0.67`，CatPage／BaseLab 切動作時套用。**合併後要上傳 Storage** `meow-cat-models/base/v1/base_clips_kitten.glb`。Meow 不是 git repo，腳本只在 Tina 電腦。
 - **#259 平面圖轉換重複戶名（Tina × Cursor，已合併 #261）**：`0029_meow_room_floorplan_name_unique.sql`（既有重複改名不刪＋`source='floorplan'` partial unique index），INSERT 撞 index 回 `name_taken`。**0029 執行前須 Tina 確認**。
+- **#237 newgame 版劇情（渝茜 × Claude Code，分支 `feat/237-newgame-story`，未開 PR）**：`story.ts` 改成 6 節點＋結尾，每節點後有「在家的時光」（`care.ts`），開場一定擺外出籠（`public/play/cat_carrier.glb`）；節點 5 居家意外讀居家安全清單，之後要換世安報告 API。設計稿在團隊專題 `newgame/`。
 - **#237 虛擬飼養 DEMO（渝茜 × Claude Code，審查中）**：PR #244、分支 `feat/237-catgame-demo`。`/cats/[id]/play`（DEMO 固定麻糬、虎斑），流程與真的接上／備案對照見 `docs/modules/readiness.md`「虛擬飼養 DEMO」。邏輯在 `src/lib/play/`（純函式＋測試），畫面在 `src/components/play/`，AI 在 `/api/play/{hazards,lines,advice}`。
   - 要設的環境變數（Vercel，都是既有名稱）：`AZURE_OPENAI_ENDPOINT`、`AZURE_OPENAI_API_KEY`、`AZURE_OPENAI_CHAT_DEPLOYMENT_NAME=gpt-6-luna`（沒設＝全部走規則備案）；選填 `NEXT_PUBLIC_ROOM_DEMO_BASE`（掃描房間 manifest 資料夾，沒設＝自動改用娃娃屋）；喵戶讀取用既有的 `NEXT_PUBLIC_SUPABASE_*`。
   - **尚未實測**（沙盒連不到）：Azure 三支 AI、Supabase 讀喵戶 `home`、`meow-items` 遠端 GLB（沙盒看到的是替代方塊）、掃描房間 `RoomViewer`。合併前請在 PR 預覽網址走一次：登入有喵戶的帳號、設好 Azure，確認台詞與危險清單是 AI 版（API 回 `source: "ai"`）。

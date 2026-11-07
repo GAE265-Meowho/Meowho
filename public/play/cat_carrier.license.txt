@@ -1,0 +1,11 @@
+Model Information:
+* title:	Cat Carrier
+* source:	https://sketchfab.com/3d-models/cat-carrier-0ca7a2d3a0634b45b1621de96f818867
+* author:	afiey.lab (https://sketchfab.com/afiey.lab)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Cat Carrier" (https://sketchfab.com/3d-models/cat-carrier-0ca7a2d3a0634b45b1621de96f818867) by afiey.lab (https://sketchfab.com/afiey.lab) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

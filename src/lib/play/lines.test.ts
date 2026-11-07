@@ -6,7 +6,7 @@ import { checkAdvice, ruleAdvice } from "./report";
 
 const home: PlayerHome = { dwelling: "公寓", living: "租屋", family: ["小孩"], pets: ["狗"], sample: false };
 const ctx = (over: Partial<LinesContext> = {}): LinesContext => ({
-  nodeId: "first-day", catName: "麻糬", home, labels: ["沙發"], ...over,
+  nodeId: "day1", catName: "麻糬", home, labels: ["沙發"], ...over,
 });
 
 describe("checkLines（AI 台詞檢查）", () => {
@@ -31,7 +31,7 @@ describe("checkLines（AI 台詞檢查）", () => {
 
 describe("ruleLines（規則備案）", () => {
   it("三個節點都產生得出來，且本身就通過檢查", () => {
-    for (const nodeId of ["first-day", "five-years", "farewell"] as const) {
+    for (const nodeId of ["day1", "year5", "farewell"] as const) {
       for (const h of [home, SAMPLE_HOME, { ...SAMPLE_HOME, family: [], pets: [] }]) {
         const lines = ruleLines(ctx({ nodeId, home: h }));
         expect(lines.length).toBeGreaterThan(0);
@@ -48,9 +48,10 @@ describe("ruleLines（規則備案）", () => {
 
 describe("報告建議", () => {
   const base = { catName: "麻糬", home, hazards: [{ key: "cable", label: "電線與插座", level: "high" as const, advice: "收好" }], handled: [], choices: [], overBudget: true };
-  it("規則建議會提到沒處理的危險與超支", () => {
+  it("規則建議會提到環境報告的居家安全建議與超支，但不寫家裡的物件名稱", () => {
     const tips = ruleAdvice(base);
-    expect(tips.join("")).toContain("電線與插座");
+    expect(tips.join("")).toContain("居家安全建議");
+    expect(tips.join("")).not.toContain("電線與插座");
     expect(tips.join("")).toContain("預算");
     expect(checkAdvice({ tips })).not.toBeNull();
   });

@@ -4,7 +4,8 @@
 //   → 做得好的地方／可以再想想的地方 → 給你的建議（原版規則）→ AI 依你的家補充的建議（DEMO，/api/play/advice，失敗時規則產生）
 //   → 收養之前，問問自己 → 前往認養這隻貓（DEMO 先連回貓咪頁）。
 // 金額全部由公式算（costs.ts、flow.ts），AI 不產生數字。原版的「配對參考」「看看這隻貓是誰」DEMO 不做（固定麻糬）。
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
+import { CARE_ACTS } from "@/lib/play/care";
 import CatButton from "@/components/ui/CatButton";
 import type { PlayerHome } from "@/lib/play/background";
 import { costTotal, money, type ShopPick } from "@/lib/play/costs";
@@ -69,6 +70,13 @@ export function ReportStep({ state, pick, monthly, home, catHref, onRestart }: {
             ? X.events.map(e => <li key={e.id}>{STORY.find(n => n.id === e.node)?.label}：{e.t}</li>)
             : <li>沒有發生意外，照顧得很好。</li>}
         </ul>
+      </section>
+
+      <section className={s.card} aria-labelledby="care-title">
+        <h2 id="care-title">照顧紀錄</h2>
+        <dl className={s.sum}>
+          {CARE_ACTS.map(a => <Fragment key={a.act}><dt>{a.label}</dt><dd>{X.care.log[a.act] ?? 0}／{X.care.rounds}</dd></Fragment>)}
+        </dl>
       </section>
 
       <section className={s.card} aria-labelledby="cost-title">

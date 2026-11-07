@@ -1,140 +1,179 @@
-// 虛擬飼養 DEMO（#237）：流程狀態機（照 catgame 原版劇情）與「意外只在節點 2、只發生一次、從沒處理的危險挑」
+// 虛擬飼養 DEMO（#237）：newgame 版流程狀態機——6 個節點＋結尾、每個節點後的「在家的時光」、節點 5 居家意外（送獸醫／虛驚）、節點 6 健檢。
 import { describe, expect, it } from "vitest";
-import { FEV, HAZ_FEV, pickNodeEvent } from "./events";
-import { initialPlay, playReducer, type PlayAction, type PlayState } from "./flow";
+import { careEffect, CARE_ACTS, skipEffect } from "./care";
+import { initialPlay, playReducer, STEPS, type PlayAction, type PlayState } from "./flow";
 import { ruleHazards, type Hazard } from "./hazards";
 import { DEMO_DOLLHOUSE, inventoryFromPlan } from "./room";
-import { fullLifeWords, STORY } from "./story";
+import { STORY, topRisk, VET_RISKS } from "./story";
 
 const labels = inventoryFromPlan(DEMO_DOLLHOUSE).labels;
 const hazards: Hazard[] = ruleHazards({ labels, hasWindow: true });
-const MINI: Record<string, unknown> = { hide: 0, scoop: { bagged: 6, total: 6, small: false }, play: { fun: 60, toy: "feather", match: true, rhythmOk: true } };
 
-/** 從頭玩到報告；choose(text) 決定每個選項選哪一個（預設第一個） */
-function playThrough(handled: string[], opts: { rand?: () => number; choose?: (labels: string[]) => number; mini?: Record<string, unknown> } = {}) {
-  const rand = opts.rand ?? (() => 0.3);
+interface Opts { hazards?: Hazard[]; doCare?: boolean; careGood?: boolean; choose?: (labels: string[]) => number }
+
+/** 從頭玩到報告；每個在家的時光都把 6 個動作做完（doCare）或全部跳過 */
+function playThrough(opts: Opts = {}) {
   let s: PlayState = initialPlay();
   const seen: string[] = [];
   const personal: string[] = [];
-  const go = (a: PlayAction) => { s = playReducer(s, a, rand); };
+  const homes: number[] = [];
+  const go = (a: PlayAction) => { s = playReducer(s, a); };
+  // 背景讀到空間後在背景算出居家危險（給故事事件用），不再有「上傳房間」「居家安全」兩關
+  go({ type: "setHazards", hazards: opts.hazards ?? hazards });
   go({ type: "next" }); go({ type: "next" });
-  go({ type: "setHazards", hazards });
-  handled.forEach(key => go({ type: "toggleHandled", key }));
-  go({ type: "next" }); go({ type: "next" });
-  go({ type: "startNodes", labels, once: 2700, monthly: 2000, shopPicks: [{ t: "每月存醫療預備金", good: true }], rand });
-  for (let guard = 0; guard < 300 && s.step === "node"; guard++) {
+  go({ type: "startNodes", labels, once: 2700, monthly: 2000, shopPicks: [{ t: "每月存醫療預備金", good: true }] });
+  for (let guard = 0; guard < 600 && s.step === "node"; guard++) {
     const c = s.cur!;
     if (c.kind === "lines") seen.push(...c.lines.map(l => l.t));
-    if (c.kind === "personal") personal.push(s.life.age.toString());
+    if (c.kind === "personal") personal.push(String(s.life.age));
     if (c.kind === "ask") go({ type: "choose", index: opts.choose ? opts.choose(c.options.map(o => o.l)) : 0 });
-    else if (c.kind === "mini") go({ type: "miniDone", result: (opts.mini ?? MINI)[c.mini] });
-    else go({ type: "next" });
+    else if (c.kind === "mini") go({ type: "miniDone", result: true });
+    else if (c.kind === "home") {
+      homes.push(s.nodeIndex);
+      if (opts.doCare ?? true) for (const { act } of CARE_ACTS) go({ type: "care", act, good: opts.careGood ?? true });
+      go({ type: "next" });
+    } else go({ type: "next" });
   }
-  return { s, seen, personal };
+  return { s, seen, personal, homes };
 }
 
-describe("流程（原版劇情）", () => {
-  it("從頭玩到試養報告；三個節點都有紀錄，每個節點有一段個人化台詞", () => {
-    const { s, personal } = playThrough([]);
+describe("步驟", () => {
+  it("上傳房間、居家安全兩關已拿掉：背景（讀你的喵戶空間）→ 採買 → 擺用品 → 飼養 → 報告", () => {
+    expect(STEPS).toEqual(["background", "shop", "place", "node", "report"]);
+    let s: PlayState = initialPlay();
+    expect(s.step).toBe("background");
+    s = playReducer(s, { type: "next" }); expect(s.step).toBe("shop");
+    s = playReducer(s, { type: "next" }); expect(s.step).toBe("place");
+  });
+  it("居家危險在背景設定，沒有關卡也會帶進故事（節點 5 取風險最高的一項）", () => {
+    let s: PlayState = initialPlay();
+    s = playReducer(s, { type: "setHazards", hazards });
+    s = playReducer(s, { type: "startNodes", labels, once: 0, monthly: 0 });
+    expect(s.life.risk).toEqual(topRisk(hazards));
+  });
+});
+
+describe("流程（newgame v0.5）", () => {
+  it("從頭玩到試養報告：6 個節點＋結尾，共 7 段", () => {
+    expect(STORY.map(n => n.id)).toEqual(["day1", "day3", "day30", "month8", "year5", "year10", "farewell"]);
+    const { s } = playThrough();
     expect(s.step).toBe("report");
-    expect(new Set(s.life.picks.map(p => p.node))).toEqual(new Set(["first-day", "five-years", "farewell"]));
-    expect(personal).toHaveLength(3);
+    expect(new Set(s.life.picks.map(p => p.node))).toEqual(new Set(STORY.map(n => n.id)));
   });
 
-  it("台詞照原版：小安的叮嚀、伴侶過敏、享年 15 歲；麻糬是虎斑", () => {
-    const { seen } = playThrough([]);
+  it("前 6 個節點結束後各有一輪在家的時光，結尾沒有", () => {
+    const { s, homes } = playThrough();
+    expect(homes).toEqual([0, 1, 2, 3, 4, 5]);
+    expect(s.life.care.rounds).toBe(6);
+  });
+
+  it("節點 1：貓躲進外出籠；台詞裡沒有床底", () => {
+    const { seen } = playThrough();
+    const all = seen.join("");
+    expect(all).toContain("鑽進你擺好的外出籠");
+    expect(all).not.toContain("床底");
+  });
+
+  it("每個動作每輪可以重複做（渝茜 2026-11-07：想重複就重複），數值有上限", () => {
+    let s = initialPlay();
+    s = { ...s, cur: { kind: "home" }, homeDone: [] };
+    s = playReducer(s, { type: "care", act: "scoop", good: true });
+    const once = s.life.care.hygiene;
+    s = playReducer(s, { type: "care", act: "scoop", good: true });
+    expect(s.life.care.hygiene).toBeGreaterThan(once);
+    expect(s.life.care.log.scoop).toBe(2);
+    expect(s.homeDone).toEqual(["scoop"]);
+    for (let i = 0; i < 20; i++) s = playReducer(s, { type: "care", act: "scoop", good: true });
+    expect(s.life.care.hygiene).toBe(100);
+  });
+
+  it("沒做的動作：換水、鏟屎、刷牙數值下降", () => {
+    const { s } = playThrough({ doCare: false });
+    expect(s.life.care.water).toBeLessThan(50);
+    expect(s.life.care.hygiene).toBeLessThan(50);
+    expect(s.life.care.teeth).toBeLessThan(50);
+  });
+
+  it("節點 3 選每天練刷牙：刷牙成功的牙齒值加成", () => {
+    expect(careEffect("brush", true, true).d.teeth).toBe(15);
+    expect(careEffect("brush", true, false).d.teeth).toBe(10);
+    expect(skipEffect("brush").d.teeth).toBe(-5);
+  });
+});
+
+describe("節點 5：居家意外", () => {
+  it("沒有玩家選擇；電線（最高等級）送獸醫，報告只寫一般說法、不寫風險名稱", () => {
+    const { s, seen } = playThrough();
     const all = seen.join("\n");
-    expect(all).toContain("虎斑毛球");
-    expect(all).not.toContain("白色的毛球");
-    expect(all).toContain("小貓一天要吃 3 到 4 餐");
-    expect(all).toContain("哈啾");
-    // 這一輪：伴侶過敏（你的戀愛）＋咬電線就醫（看醫生的日子）
-    expect(all).toContain("麻糬享年 15 歲。牠陪你走過了你的戀愛、看醫生的日子，和好多個普通的晚上。");
-  });
-
-  it("〈通稱〉換成範例房間的家具：躲藏處＝床底", () => {
-    const { seen } = playThrough([]);
-    expect(seen.join("")).toContain("鑽進了床底");
-    expect(seen.join("")).not.toMatch(/〈|〉/);
-  });
-
-  it("意外只在節點 2 發生，而且整場只發生一次", () => {
-    const { s } = playThrough([]);
-    expect(s.eventNodes).toEqual(["five-years"]);
+    expect(all).toContain("特別感興趣");
+    expect(all).toContain("你趕緊帶牠去動物醫院");
+    expect(all).toContain("保險起見做了檢查");
     expect(s.life.events).toHaveLength(1);
-    expect(s.life.events[0].node).toBe("five-years");
+    const pick = s.life.picks.find(p => p.node === "year5")!;
+    expect(pick.t).toBe("發生了一次居家意外，帶去看了獸醫。");
+    expect(s.life.cost.med).toBeGreaterThanOrEqual(2500);
+    for (const h of hazards) expect(pick.t).not.toContain(h.label);
+    expect(s.life.events[0].t).not.toMatch(/電線|窗戶/);
   });
 
-  it("意外從玩家沒有處理的危險裡挑，用原版 FEV 的事件（桌上的杯子 → 跳上桌子）", () => {
-    const keep = hazards.filter(h => h.key !== "cup").map(h => h.key);
-    const { s, seen } = playThrough(keep);
-    expect(s.event?.kind).toBe("accident");
-    expect(s.life.events[0]).toMatchObject({ id: "table", t: "跳上桌子" });
-    expect(seen.join("")).toContain("跳上了書桌");
+  it("抓家具、杯子、門：虛驚一場，在家觀察，沒有醫療費", () => {
+    const only = hazards.filter(h => !VET_RISKS.includes(h.key));
+    const cup = only.length ? only : [{ key: "scratch", label: "抓家具", level: "low", advice: "放貓抓板" } as Hazard];
+    const { s, seen } = playThrough({ hazards: cup });
+    const all = seen.join("\n");
+    expect(all).toContain("看起來沒事");
+    expect(all).not.toContain("動物醫院");
+    expect(s.life.picks.find(p => p.node === "year5")!.t).toBe("發生了一次居家虛驚，在家觀察。");
+    expect(s.life.events[0].id).toBe("scare");
   });
 
-  it("全部都處理了：改成毛球嘔吐或經濟吃緊，劇情先肯定玩家的準備", () => {
-    const all = hazards.map(h => h.key);
-    for (const r of [0.2, 0.8]) {
-      const { s, seen } = playThrough(all, { rand: () => r });
-      expect(s.event?.kind).toBe("minor");
-      expect(["hairball", "money"]).toContain(s.event?.id);
-      expect(seen.join("")).toContain("把家裡的危險都處理好了");
-    }
+  it("沒有風險清單：改演毛球小狀況，仍帶去看獸醫", () => {
+    const { seen, s } = playThrough({ hazards: [] });
+    expect(seen.join("\n")).toContain("吐了一團毛球");
+    expect(s.life.events[0].id).toBe("incident");
   });
 
-  it("花費分類：第一次健檢 1,000 算醫療；每月花費依月齡累計（原版 X.monthly × months）", () => {
-    const { s } = playThrough([], { choose: l => l.findIndex(x => x.includes("在家安寧")) >= 0 ? l.findIndex(x => x.includes("在家安寧")) : 0 });
+  it("topRisk 取等級最高的一項", () => {
+    const r = topRisk([
+      { key: "a", label: "A", level: "low", advice: "x" }, { key: "b", label: "B", level: "high", advice: "y" }, { key: "c", label: "C", level: "medium", advice: "z" },
+    ]);
+    expect(r?.key).toBe("b");
+    expect(topRisk([])).toBeNull();
+  });
+});
+
+describe("節點 6：熟齡健檢看累積數值", () => {
+  it("每個動作都有做：牙齒保養得很好，沒有洗牙", () => {
+    const { seen, s } = playThrough({ careGood: true });
+    expect(seen.join("\n")).toContain("牙齒保養得很好");
+    expect(seen.join("\n")).not.toContain("牙結石");
+    expect(s.life.picks.some(p => p.t === "安排了熟齡健檢。")).toBe(true);
+  });
+
+  it("都沒做：牙結石、洗牙費用、飲水值低要追蹤；用語不下診斷", () => {
+    const { seen, s } = playThrough({ doCare: false, choose: l => Math.max(0, l.findIndex(x => x.includes("增加飲水"))) });
+    const all = seen.join("\n");
+    expect(all).toContain("牙結石");
+    expect(all).toContain("指標偏高");
+    expect(all).not.toMatch(/腎臟病|糖尿病/);
+    expect(s.life.cost.med).toBeGreaterThanOrEqual(7500);
+  });
+});
+
+describe("結尾與花費", () => {
+  it("結尾：享年 15 歲，沒有選擇", () => {
+    const { seen } = playThrough();
+    expect(seen.join("\n")).toContain("麻糬享年 15 歲");
+  });
+
+  it("每月花費依月齡累計，不寫死", () => {
+    const { s } = playThrough();
     expect(s.life.cost.once).toBe(2700);
-    expect(s.life.cost.month).toBeCloseTo(2000 * (181.3 - 2), 5);
-    expect(s.life.cost.med).toBeGreaterThanOrEqual(1000);
-    expect(s.life.cost.other).toBeGreaterThanOrEqual(8000); // 伴侶過敏：空氣清淨機等 8,000（原版沒有分類＝其他）
+    expect(s.life.cost.month).toBeCloseTo(2000 * (180 - 2), 5);
   });
 
-  it("送養結局（原版 { end: true }）：直接進報告，不演後面的節點", () => {
-    const { s } = playThrough([], { choose: l => Math.max(0, l.findIndex(x => x.includes("找新主人"))) });
-    expect(s.step).toBe("report");
-    expect(s.life.abandoned).toBe(true);
-    expect(s.life.picks.some(p => p.node === "farewell")).toBe(false);
-  });
-
-  it("小遊戲結果照原版判定：躲床底硬抓（1）＝可以再想想", () => {
-    const { s } = playThrough([], { mini: { ...MINI, hide: 1 } });
-    expect(s.life.picks.find(p => p.t.startsWith("到家第一天"))).toMatchObject({ t: "到家第一天，硬把牠拉出來", good: false });
-  });
-
-  it("示範客廳沒有可關門的房間：伴侶過敏只剩兩個選項（原版 need）", () => {
-    let opts: string[] = [];
-    playThrough([], { choose: l => { if (l.some(x => x.includes("找新主人"))) opts = l; return 0; } });
-    expect(opts).toHaveLength(2);
-  });
-});
-
-describe("pickNodeEvent", () => {
-  const X = { labels, name: "麻糬" };
-  it("節點 1、3 一律回 null", () => {
-    expect(pickNodeEvent("first-day", hazards, [], X)).toBeNull();
-    expect(pickNodeEvent("farewell", hazards, [], X)).toBeNull();
-  });
-  it("有原版事件的危險優先、等級高的優先（電線 → 咬電線）", () => {
-    expect(pickNodeEvent("five-years", hazards, [], X, () => 0)?.id).toBe("cable");
-  });
-  it("對照表裡的事件都存在於 FEV", () => {
-    for (const id of Object.values(HAZ_FEV)) expect(FEV[id]).toBeDefined();
-  });
-  it("只剩沒有原版事件的危險（窗戶）：用通用劇情帶入建議", () => {
-    const ev = pickNodeEvent("five-years", hazards, hazards.filter(h => h.key !== "window").map(h => h.key), X);
-    expect(ev?.kind).toBe("accident");
-    expect(ev?.id).toBe("haz_window");
-  });
-  it("節點 1、3 的劇本裡沒有事件步驟", () => {
-    for (const n of [STORY[0], STORY[2]]) expect(JSON.stringify(n.steps)).not.toContain("events");
-  });
-});
-
-describe("fullLifeWords（原版）", () => {
-  it("只說這次真的經歷過的事", () => {
-    expect(fullLifeWords({ picks: [] })).toBe("到家的第一天、半夜的跑酷");
-    expect(fullLifeWords({ picks: [{ t: "伴侶過敏：一起找兩全的方法", good: true, node: "five-years" }] })).toBe("你的戀愛");
+  it("三個節點有個人化台詞：第 1 天、五年後、結尾", () => {
+    const { personal } = playThrough();
+    expect(personal).toHaveLength(3);
   });
 });
