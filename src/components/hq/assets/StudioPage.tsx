@@ -2,13 +2,13 @@
 // 製作GLB工作區（規格書 04 §2.3；#110 改名；#129 版面整理）
 // 左：虛擬貓咪檔案（2 份寬，捲動時固定，可收合；貓咪資訊、上傳照片、AI 三視角各自可收合）；
 // 右：製作 GLB 工作區（1 份寬）＝製作流程、任務進度（成貓／幼貓各自狀態）、紋理貼圖（膠囊切換體型、確認、產生）、第 4 步。
-// #129：第 3 步產生的紋理貼圖要人工確認，才能進第 4 步；確認前與重新產生期間，貓咪頁繼續用已確認的貼圖。
+// 成貓、幼貓紋理貼圖產生完成即採用，不再等人工確認；不滿意可重新產生或改用上一版。
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { composeReason } from "@/lib/hq/actions";
 import {
-  BODY_LABELS, BODY_ORDER, CAT_STATUS_LABELS, CAT_STATUS_TONE, CAT_STEPS, catStepStates, elapsedMinutes, isJobActive, JOB_STAGES, jobStage,
+  adoptTexture, BODY_LABELS, BODY_ORDER, CAT_STATUS_LABELS, CAT_STATUS_TONE, CAT_STEPS, catStepStates, elapsedMinutes, isJobActive, JOB_STAGES, jobStage,
   queueStalled, textureOf, viewsReady,
   type BodyType, type CatModelView,
 } from "@/lib/hq/cat-models/types";
@@ -28,11 +28,6 @@ const PAINT_ERRORS: Record<string, string> = {
   invalid_option: "照片角度或補花紋方式不正確",
   not_found: "找不到這隻貓",
 };
-const CONFIRM_ERRORS: Record<string, string> = {
-  busy: "生成中不能確認，請等任務結束",
-  no_texture: "還沒有紋理貼圖可以確認",
-  not_found: "找不到這隻貓",
-};
 const RESTORE_ERRORS: Record<string, string> = {
   reason_required: "請填寫原因",
   busy: "生成中不能換版，請等任務結束",
@@ -47,13 +42,11 @@ const STAGE_ICONS: StepIcon[] = ["queue", "cutout", "model", "paint", "pattern",
 /** 製作流程（4 步）：同一套步驟圖，工作區用精簡直向 */
 function Flow({ cat }: { cat: CatModelView }) {
   const states = catStepStates(cat);
-  const t = textureOf(cat);
   return (
     <section className="hq-box" aria-label="製作流程">
       <h3>製作流程</h3>
       <FlowStepper compact label="貓咪製作流程" steps={CAT_STEPS.map((s, i) => ({
         title: s.title, icon: FLOW_ICONS[i], state: states[i],
-        note: i === 2 && t.state === "pending" && !isJobActive(cat.status) ? "紋理貼圖待確認" : undefined,
       }))} />
     </section>
   );
@@ -66,8 +59,7 @@ function bodyStatus(cat: CatModelView, body: BodyType): { text: string; tone: ""
   if (jobBody === body && cat.status === "running") return { text: "產生中", tone: "warn" };
   if (jobBody === body && cat.status === "failed") return { text: "失敗", tone: "danger" };
   const t = cat.bodyVariants?.[body]?.texture;
-  if (t?.state === "confirmed") return { text: "已確認", tone: "" };
-  if (t?.state === "pending") return { text: "待確認", tone: "warn" };
+  if (t?.state === "confirmed" || t?.state === "pending") return { text: "完成", tone: "" };
   return isJobActive(cat.status) ? { text: "接著產生", tone: "mute" } : { text: "尚未產生", tone: "mute" };
 }
 
@@ -143,12 +135,11 @@ function PaintButton({ cat, onDone }: { cat: CatModelView; onDone: () => void })
         {busy ? <span className="hq-hint">{cat.aiRunning.length ? "AI 三視角產生中，完成後才能產生紋理貼圖。" : "已有排隊中或生成中的任務。"}</span>
           : !ready && <span className="hq-hint" role="status">請先完成第 2 步「AI 三視角」（左側、正面、背部都成功），才能產生紋理貼圖。</span>}
       </div>
-      {textureOf(cat).state === "pending" && !busy && <p className="hq-hint">重新產生會放棄這張還沒確認的紋理貼圖。</p>}
     </>
   );
 }
 
-/** 第 3 步：成貓／幼貓切換＋目前紋理貼圖預覽＋確認使用／改用上一版＋產生 */
+/** 第 3 步：成貓／幼貓切換＋目前紋理貼圖預覽＋改用上一版＋產生。產生完成即採用。 */
 function Texture({ cat, onDone, onPainted, onSelectBody }: {
   cat: CatModelView; onDone: (message: string) => void; onPainted: () => void; onSelectBody: (body: BodyType) => void;
 }) {
@@ -167,10 +158,6 @@ function Texture({ cat, onDone, onPainted, onSelectBody }: {
     close();
     onDone("已改用上一版紋理貼圖");
   }
-  async function confirm() {
-    await postJson(`${CAT_API}/${cat.id}/confirm`, cat.variantStorage ? { body: cat.body } : {}, CONFIRM_ERRORS);
-    onDone("已確認紋理貼圖");
-  }
 
   return (
     <section className="hq-box" aria-label="紋理貼圖">
@@ -183,7 +170,7 @@ function Texture({ cat, onDone, onPainted, onSelectBody }: {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={albedoUrl} alt={`目前的${bodyName}紋理貼圖`} />
           </a>
-          <figcaption>{t.state === "pending" ? "新的紋理貼圖（待確認）" : "目前使用（已確認）"}・點圖放大</figcaption>
+          <figcaption>目前使用・點圖放大</figcaption>
         </figure>
       ) : (
         <div className="hq-texture-empty" role="status">
@@ -191,13 +178,7 @@ function Texture({ cat, onDone, onPainted, onSelectBody }: {
           {!busy && <span>{viewsReady(cat) ? "按下方「產生紋理貼圖」開始。" : "先完成 AI 三視角，再產生紋理貼圖。"}</span>}
         </div>
       )}
-      {t.preview === "albedo_prev" && <p className="hq-hint">貓咪頁目前使用上一版（已確認）。</p>}
-      {t.state === "pending" && !busy && !open && (
-        <div className="hq-row hq-actions">
-          <HqSaveButton onSave={confirm}>確認使用</HqSaveButton>
-          <button type="button" className="hq-btn ghost" disabled={!cat.hasPrevAlbedo} onClick={() => setOpen(true)}>改用上一版</button>
-        </div>
-      )}
+      {t.preview === "albedo_prev" && <p className="hq-hint">貓咪頁目前使用上一版。</p>}
       {t.state === "confirmed" && !open && (
         <div className="hq-row">
           <button type="button" className="hq-btn ghost small" disabled={!cat.hasPrevAlbedo || busy} onClick={() => setOpen(true)}>改用上一版</button>
@@ -218,7 +199,7 @@ function Texture({ cat, onDone, onPainted, onSelectBody }: {
   );
 }
 
-/** 第 4 步：確認紋理貼圖前鎖住。目前動作 glb＝共用母體＋已確認的紋理貼圖，在瀏覽器即時組合，之後再加「選擇動作」 */
+/** 第 4 步：有紋理貼圖就能看動作。目前動作 glb＝共用母體＋目前紋理貼圖，在瀏覽器即時組合 */
 function MakeGlb({ cat }: { cat: CatModelView }) {
   const t = textureOf(cat);
   const locked = t.state !== "confirmed";
@@ -226,10 +207,10 @@ function MakeGlb({ cat }: { cat: CatModelView }) {
     <section className={`hq-box${locked ? " locked" : ""}`} aria-label="製作動作 glb">
       <h3>製作動作 glb</h3>
       {locked ? (
-        <p className="hq-hint" role="status">請先確認紋理貼圖。</p>
+        <p className="hq-hint" role="status">紋理貼圖完成後會自動套用。</p>
       ) : (
         <>
-          <p>已套用確認的紋理貼圖，可以到貓咪頁看動作。</p>
+          <p>已套用紋理貼圖，可以到貓咪頁看動作。</p>
           <div className="hq-row"><Link href={assetsHref(cat.id)} className="hq-btn">前往貓咪頁看動作</Link></div>
         </>
       )}
@@ -294,7 +275,7 @@ function Studio({ cat, reload }: { cat: CatModelView; reload: () => void }) {
   const variant = cat.bodyVariants?.[selectedBody];
   const displayCat: CatModelView = cat.variantStorage ? {
     ...cat, body: selectedBody, hasAlbedo: Boolean(variant?.albedoUrl), hasPrevAlbedo: Boolean(variant?.prevUrl),
-    texture: variant?.texture ?? { state: "none", preview: null, previewBody: selectedBody },
+    texture: adoptTexture(variant?.texture, selectedBody),
   } : cat;
   const active = isJobActive(cat.status) || cat.aiRunning.length > 0;
 

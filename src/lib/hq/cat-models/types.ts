@@ -133,10 +133,8 @@ export interface CatModelView {
 }
 
 /**
- * 貼圖確認（#129，2026/11/02 Tina 決定）：
- * 第 3 步產生的貼圖要人工確認，才能進第 4 步；重新產生期間與確認前，貓咪頁繼續用已確認的舊貼圖。
- * 已確認的貼圖一定是目前版或上一版（送出重新產生時會先丟掉未確認的貼圖，見 discardPending），
- * 所以畫面只要知道「預覽用哪一張、畫在哪個母體上」。
+ * 貼圖採用（#129 曾要人工確認；2026-11-07 Tina：成貓、幼貓產生完成即採用，不再等確認）。
+ * 畫面只要知道「預覽用哪一張、畫在哪個母體上」。pending 只會出現在改版前寫進資料的舊狀態，讀出來一律當已採用。
  */
 export type TextureState = "none" | "pending" | "confirmed";
 export interface TextureInfo {
@@ -147,29 +145,29 @@ export interface TextureInfo {
   previewBody: BodyType;
 }
 
+/** 產生完成的貼圖直接採用。舊資料若還標成待確認，預覽改看目前這張，不再停在上一版。 */
+export function adoptTexture(texture: TextureInfo | null | undefined, body: BodyType): TextureInfo {
+  if (!texture || texture.state === "none") return { state: "none", preview: null, previewBody: body };
+  if (texture.state === "pending") return { state: "confirmed", preview: "albedo", previewBody: body };
+  return texture;
+}
+
 export function textureOf(c: Pick<CatModelView, "texture" | "hasAlbedo" | "body">): TextureInfo {
-  return c.texture ?? (c.hasAlbedo ? { state: "confirmed", preview: "albedo", previewBody: c.body } : { state: "none", preview: null, previewBody: c.body });
+  if (c.texture) return adoptTexture(c.texture, c.body);
+  return c.hasAlbedo ? { state: "confirmed", preview: "albedo", previewBody: c.body } : { state: "none", preview: null, previewBody: c.body };
 }
 
 /**
- * 由路徑推導確認狀態。confirmed＝undefined 表示舊資料（還沒有確認欄位）：目前版視為已確認。
- * confirmed＝null 表示從來沒有確認過。
+ * 由路徑推導採用狀態。有目前版貼圖就採用它（2026-11-07 起不再因 confirmed 不同而停在待確認）。
+ * confirmed／prev 仍留給換版與舊資料寫回，不影響預覽。
  */
 export function textureInfo(input: {
   albedo: string | null; prev: string | null; confirmed: string | null | undefined;
   baseVersion: string | null; prevBaseVersion: string | null | undefined; ageMonths: number | null;
 }): TextureInfo {
-  const { albedo, prev, ageMonths } = input;
-  const confirmed = input.confirmed === undefined ? albedo : input.confirmed;
-  const currentBody = bodyFor({ baseVersion: input.baseVersion, hasAlbedo: Boolean(albedo), ageMonths });
-  if (!albedo) return { state: "none", preview: null, previewBody: currentBody };
-  if (confirmed === albedo) return { state: "confirmed", preview: "albedo", previewBody: currentBody };
-  const prevOk = Boolean(confirmed && prev && confirmed === prev);
-  return {
-    state: "pending",
-    preview: prevOk ? "albedo_prev" : null,
-    previewBody: prevOk ? bodyFor({ baseVersion: input.prevBaseVersion ?? null, hasAlbedo: true, ageMonths }) : currentBody,
-  };
+  const currentBody = bodyFor({ baseVersion: input.baseVersion, hasAlbedo: Boolean(input.albedo), ageMonths: input.ageMonths });
+  if (!input.albedo) return { state: "none", preview: null, previewBody: currentBody };
+  return { state: "confirmed", preview: "albedo", previewBody: currentBody };
 }
 
 /**
@@ -194,10 +192,10 @@ type TextureSource = Pick<CatModelView, "texture" | "hasAlbedo" | "body"> & {
 };
 export function bodyTextures(c: TextureSource): TextureInfo[] {
   if (!c.variantStorage) return [textureOf(c)];
-  return BODY_ORDER.map(body => c.bodyVariants?.[body]?.texture ?? { state: "none", preview: null, previewBody: body });
+  return BODY_ORDER.map(body => adoptTexture(c.bodyVariants?.[body]?.texture, body));
 }
 
-/** 待辦總覽：貼圖待確認的貓有幾隻（任一體型待確認就算） */
+/** 待辦總覽：舊資料若還標成待確認，讀取時已視為採用，所以這裡會是 0 */
 export const countTexturePending = (cats: readonly TextureSource[]) =>
   cats.filter(c => bodyTextures(c).some(t => t.state === "pending")).length;
 
@@ -383,6 +381,15 @@ export type ExtraView = (typeof EXTRA_VIEWS)[number];
 export const isExtraView = (v: unknown): v is ExtraView => (EXTRA_VIEWS as readonly unknown[]).includes(v);
 export const ownExtraPhotoPath = (id: string, view: ExtraView, path: string) => new RegExp(`^${id}/photo_${view}\\.(jpg|png|webp)$`).test(path);
 
+/** 列表與貓咪頁的年齡：未滿 1 歲用月，滿 1 歲用歲，有餘月就兩者都寫 */
+export function formatAge(ageMonths: number | null): string {
+  if (ageMonths === null) return "—";
+  const years = Math.floor(ageMonths / 12);
+  const months = ageMonths % 12;
+  if (!years) return `${ageMonths} 個月`;
+  return months ? `${years} 歲 ${months} 個月` : `${years} 歲`;
+}
+
 /** 年齡、體重：空白、負數、非數字都當沒填 */
 export function profileNumber(v: unknown): number | null {
   const x = typeof v === "string" && v.trim() === "" ? NaN : Number(v);
@@ -394,8 +401,8 @@ export const PHOTO_MIME = ["image/jpeg", "image/png", "image/webp"] as const;
 export const CAT_STEPS = [
   { title: "上傳照片", desc: "原始照片與基本資料" },
   { title: "AI 三視角", desc: "AI 產生左側面、正面、背部照片" },
-  { title: "產生紋理貼圖", desc: "AI 上色，確認後再進行下一步" },
-  { title: "製作動作 glb", desc: "確認貼圖，套用到 3D 動作貓" },
+  { title: "產生紋理貼圖", desc: "AI 上色，完成後自動套用" },
+  { title: "製作動作 glb", desc: "套用到 3D 動作貓" },
 ] as const;
 
 /** 列表「進度」欄（#118；#129 改 4 步）。tone 對應 .hq-tag 的樣式 */
@@ -404,7 +411,6 @@ export function catProgress(c: { hasAlbedo: boolean; body?: BodyType; texture?: 
   if (c.status === "queued" || c.status === "running") return { step: 3, text: "3/4 紋理貼圖・產生中", tone: "warn" };
   if (c.status === "failed") return { step: 3, text: "3/4 紋理貼圖・失敗", tone: "danger" };
   const t = textureOf({ texture: c.texture, hasAlbedo: c.hasAlbedo, body: c.body ?? "adult" });
-  if (t.state === "pending") return { step: 3, text: "3/4 紋理貼圖・待確認", tone: "warn" };
   if (t.state === "confirmed") return { step: 4, text: "完成", tone: "" };
   if (c.aiRunning.length) return { step: 2, text: "2/4 AI 三視角・產生中", tone: "warn" };
   if (c.aiViews.length) return { step: 2, text: "2/4 AI 三視角・完成", tone: "mute" };
@@ -419,7 +425,7 @@ type BodyProgressInput = Parameters<typeof catProgress>[0] & Pick<CatModelView, 
 export function catBodyProgress(c: BodyProgressInput, body: BodyType): CatProgress {
   const jobHere = (c.jobBody ?? c.body) === body;
   const jobState = isJobActive(c.status) || c.status === "failed";
-  const texture = c.bodyVariants?.[body]?.texture ?? { state: "none" as const, preview: null, previewBody: body };
+  const texture = adoptTexture(c.bodyVariants?.[body]?.texture, body);
   return catProgress({
     ...c, body, texture, hasAlbedo: texture.state !== "none",
     status: jobState && !jobHere ? "ready" : c.status,

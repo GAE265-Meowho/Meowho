@@ -339,16 +339,19 @@ def run_supabase(worker, sb, job, worker_id):
         # 上一版貼圖畫在哪個母體：MeowHQ「改用上一版」時母體要跟著換（兩個母體 UV 不同）
         meta = {**(model.get("meta") or {}), "seconds": secs, "albedo_size": list(tex.size), "mother": mother.folder.name,
                 "prev_base_version": old_base}
+        # 產生完成即採用，不再等 MeowHQ 按「確認使用」
+        profile = {**(model.get("profile") or {}), "confirmed_albedo": new_path}
         if job.get("body_type"):
             sb.upsert("meow_cat_model_variants", {
                 "model_id": model_id, "body_type": body, "albedo_path": new_path,
                 "prev_albedo_path": old_current, "base_version": mother.version,
                 "prev_base_version": old_base,
-                "confirmed_albedo": variant.get("confirmed_albedo") if variant else None,
+                "confirmed_albedo": new_path,
                 "updated_at": now_iso()})
         sb.patch("meow_cat_models", {"id": f"eq.{model_id}"}, {
             "status": "ready", "albedo_path": new_path, "prev_albedo_path": old_current,
-            "base_version": mother.version, "photo_view": view, "fill_pattern": fill, "meta": meta, "updated_at": now_iso()})
+            "base_version": mother.version, "photo_view": view, "fill_pattern": fill, "meta": meta,
+            "profile": profile, "updated_at": now_iso()})
         if old_prev and old_prev != old_current:
             sb.remove(MODEL_BUCKET, old_prev)
         sb.patch("meow_cat_model_jobs", {"id": f"eq.{job['id']}"}, {"status": "done", "step": "完成", "finished_at": now_iso()})
