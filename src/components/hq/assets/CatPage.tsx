@@ -1,7 +1,7 @@
 "use client";
 // 貓咪頁（規格書 04 §2.4）：每隻貓獨立一頁，看這隻貓的動作。上架／下架已移除（#100）。
 // 版面（#129）：原貓咪資訊 : 3D 動作預覽 : 播放與畫面 ＝ 1:2:1。
-// #129：預覽用「已確認」的紋理貼圖；新貼圖確認前、重新產生期間都繼續用舊的，前台不會突然沒有貓。
+// 預覽用目前的紋理貼圖。產生完成即採用，不再等人工確認。
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -9,7 +9,7 @@ import { useCallback, useEffect, useState } from "react";
 import { formatTaipeiDate } from "@/lib/hq/actions";
 import { clipPupil, resolveClip } from "@/lib/hq/cat-models/clips";
 import {
-  BODY_LABELS, FILL_LABELS, GEN_VIEWS, GEN_VIEW_LABELS, PHOTO_VIEW_LABELS, textureOf, type BodyType, type CatModelView,
+  adoptTexture, BODY_LABELS, formatAge, GEN_VIEWS, GEN_VIEW_LABELS, PHOTO_VIEW_LABELS, textureOf, type BodyType, type CatModelView,
 } from "@/lib/hq/cat-models/types";
 import { HqLoadError, HqSkeleton } from "../HqStates";
 import { HqNotFound } from "../HqLoginPage";
@@ -47,7 +47,7 @@ function GeneratedViews({ cat }: { cat: CatModelView }) {
   );
 }
 
-/** 3D 預覽目前使用的（已確認）紋理貼圖 */
+/** 3D 預覽目前使用的紋理貼圖 */
 function TextureCard({ url, body }: { url: string | null; body: BodyType }) {
   return (
     <PanelGroup title="貓咪紋理">
@@ -57,7 +57,7 @@ function TextureCard({ url, body }: { url: string | null; body: BodyType }) {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={url} alt={`${BODY_LABELS[body]}紋理貼圖`} />
           </a>
-          <figcaption>{BODY_LABELS[body]}・已確認・點圖放大</figcaption>
+          <figcaption>{BODY_LABELS[body]}・目前使用・點圖放大</figcaption>
         </figure>
       ) : <p className="hq-hint">還沒有{BODY_LABELS[body]}的紋理貼圖。</p>}
     </PanelGroup>
@@ -90,9 +90,9 @@ function Preview({ cat }: { cat: CatModelView }) {
   }, [params, router]);
 
   const variant = cat.variantStorage ? cat.bodyVariants?.[selectedBody] : undefined;
-  const texture = cat.variantStorage ? variant?.texture ?? null : textureOf(cat);
+  const body = cat.variantStorage ? selectedBody : cat.body;
+  const texture = adoptTexture(cat.variantStorage ? variant?.texture : textureOf(cat), body);
   const ready = texture?.preview !== null && texture?.preview !== undefined;
-  const body = cat.variantStorage ? selectedBody : texture?.previewBody ?? cat.body;
   const albedoUrl = !textureFailed && texture?.preview
     ? variant ? (texture.preview === "albedo" ? variant.albedoUrl : variant.prevUrl)
       : catFileUrl(cat.id, texture.preview, cat.albedoVersion ?? undefined)
@@ -118,10 +118,10 @@ function Preview({ cat }: { cat: CatModelView }) {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img className="hq-thumb" src={catFileUrl(cat.id, "photo")} alt={`${cat.name} 的原始照片`} width={96} height={96} />
             <dl className="hq-dl">
+              <dt>喵戶</dt><dd>{cat.household?.name ?? "—"}</dd>
+              <dt>年齡</dt><dd>{formatAge(cat.ageMonths)}</dd>
               <dt>體型骨架</dt><dd>{BODY_LABELS[body]}骨架</dd>
               <dt>照片角度</dt><dd>{cat.photoView ? PHOTO_VIEW_LABELS[cat.photoView] : "—"}</dd>
-              <dt>補花紋</dt><dd>{cat.fillPattern ? FILL_LABELS[cat.fillPattern] : "—"}</dd>
-              <dt>喵戶</dt><dd>{cat.household?.name ?? "—"}</dd>
               <dt>建立時間</dt><dd>{formatTaipeiDate(new Date(cat.createdAt))}</dd>
             </dl>
           </div>
@@ -207,11 +207,11 @@ function Preview({ cat }: { cat: CatModelView }) {
   );
 }
 
-/** #118：還沒有 3D（#129：還沒有確認過的紋理貼圖）的貓直接進製作glb工作區（從列表點進來或直接開網址都一樣） */
+/** 還沒有紋理貼圖的貓直接進製作glb工作區（從列表點進來或直接開網址都一樣） */
 function GoStudio({ cat }: { cat: CatModelView }) {
   const router = useRouter();
   const ready = cat.variantStorage
-    ? (["adult", "kitten"] as const).some(body => Boolean(cat.bodyVariants?.[body]?.texture.preview))
+    ? (["adult", "kitten"] as const).some(body => Boolean(cat.bodyVariants?.[body]?.albedoUrl) || adoptTexture(cat.bodyVariants?.[body]?.texture, body).preview !== null)
     : textureOf(cat).preview !== null;
   useEffect(() => { if (!ready) router.replace(studioHref(cat.id)); }, [ready, cat.id, router]);
   return null;

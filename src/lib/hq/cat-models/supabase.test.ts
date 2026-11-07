@@ -342,10 +342,10 @@ describe("貼圖確認（#129）", () => {
     expect(await sbRestore(ID, "新的不好看")).toEqual({ ok: true });
     expect(updateWith("albedo_path")).toMatchObject({ albedo_path: "a1.png", profile: { confirmed_albedo: "a1.png" } });
   });
-  it("讀取時帶出確認狀態：待確認時預覽用上一版", async () => {
+  it("讀取時帶出採用狀態：已畫好的貼圖直接用目前版", async () => {
     const { sbGetCat } = await import("./supabase");
     modelRow = row({ status: "ready", albedo_path: "a2.png", prev_albedo_path: "a1.png", base_version: "adult-v1", meta: { prev_base_version: "kitten-v1" }, profile: { confirmed_albedo: "a1.png" } });
-    expect((await sbGetCat(ID))?.texture).toEqual({ state: "pending", preview: "albedo_prev", previewBody: "kitten" });
+    expect((await sbGetCat(ID))?.texture).toEqual({ state: "confirmed", preview: "albedo", previewBody: "adult" });
   });
 });
 

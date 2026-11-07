@@ -114,17 +114,27 @@ describe("貓咪頁工作區（#96）", () => {
     await waitFor(() => expect(nav.replace).toHaveBeenCalledWith(`/MeowHQ/assets/cats/${cat.id}/studio`));
     expect(screen.queryByTestId("fake-preview")).toBeNull();
   });
-  it("#129 新紋理貼圖待確認：預覽繼續用已確認的上一版與它的母體", async () => {
+  it("已產生的貼圖直接預覽目前版，不再停在待確認的上一版", async () => {
     current.over = { hasPrevAlbedo: true, texture: { state: "pending", preview: "albedo_prev", previewBody: "kitten" } };
     render(<HqToastProvider><CatPage id={cat.id} /></HqToastProvider>);
     await screen.findByTestId("fake-preview");
-    expect(preview.last.albedoUrl).toBe(`/api/hq/cat-models/${cat.id}/file/albedo_prev`);
-    expect(preview.last.body).toBe("kitten");
+    expect(preview.last.albedoUrl).toBe(`/api/hq/cat-models/${cat.id}/file/albedo`);
+    expect(preview.last.body).toBe("adult");
   });
-  it("#129 第一次產生、還沒確認：轉到製作glb工作區", async () => {
-    current.over = { texture: { state: "pending", preview: null, previewBody: "adult" } };
+  it("還沒有貼圖：轉到製作glb工作區", async () => {
+    current.over = { hasAlbedo: false, texture: { state: "none", preview: null, previewBody: "adult" } };
     render(<HqToastProvider><CatPage id={cat.id} /></HqToastProvider>);
     await waitFor(() => expect(nav.replace).toHaveBeenCalledWith(`/MeowHQ/assets/cats/${cat.id}/studio`));
+  });
+  it("原貓咪資訊：喵戶在最上、有年齡、沒有補花紋", async () => {
+    current.over = { ageMonths: 15 * 12, household: { id: "h1", name: "子哲中途" }, fillPattern: "tabby", photoView: "left" };
+    render(<HqToastProvider><CatPage id={cat.id} /></HqToastProvider>);
+    const info = await screen.findByRole("region", { name: "原貓咪資訊" });
+    const labels = [...info.querySelectorAll(".hq-dl dt")].map(dt => dt.textContent);
+    expect(labels).toEqual(["喵戶", "年齡", "體型骨架", "照片角度", "建立時間"]);
+    expect(within(info).getByText("子哲中途")).toBeInTheDocument();
+    expect(within(info).getByText("15 歲")).toBeInTheDocument();
+    expect(within(info).queryByText("補花紋")).toBeNull();
   });
   it("#118 資訊區顯示其他角度照片", async () => {
     current.over = { extraPhotos: ["front", "back"] };

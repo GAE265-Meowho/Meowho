@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import {
-  BODY_LABELS, BODY_ORDER, CAT_STEPS, catListGroup, catProgresses, hasConfirmedLook, isJobActive, formatCatTime, type CatListGroup, type CatModelView,
+  BODY_LABELS, BODY_ORDER, CAT_STEPS, catListGroup, catProgresses, formatAge, hasConfirmedLook, isJobActive, formatCatTime, type CatListGroup, type CatModelView,
 } from "@/lib/hq/cat-models/types";
 import { FLOW_ICONS, FlowStepper } from "./FlowStepper";
 import { paginate, type ListQuery } from "@/lib/hq/listing";
@@ -67,14 +67,6 @@ function ProgressCell({ cat, body }: { cat: CatModelView; body?: "adult" | "kitt
       {!selected.length && <span className="hq-hint">—</span>}
     </span>
   );
-}
-
-function formatAge(ageMonths: number | null): string {
-  if (ageMonths === null) return "—";
-  const years = Math.floor(ageMonths / 12);
-  const months = ageMonths % 12;
-  if (!years) return `${ageMonths} 個月`;
-  return months ? `${years} 歲 ${months} 個月` : `${years} 歲`;
 }
 
 const BACKFILL_ERRORS: Record<string, string> = {
@@ -173,8 +165,8 @@ export function CatsTab({ query, update }: { query: ListQuery & { page: number }
       {/* 流程（#110 Stitch；#129 改 4 步）：上傳照片 → AI 三視角 → 紋理貼圖 → 動作 glb；兩隻體型骨架移到另一頁，用按鈕進入 */}
       <details className="hq-flow" open>
         <summary><strong>製作流程</strong></summary>
-        {/* #129：改為 4 步；第 3 步的紋理貼圖要人工確認才能進第 4 步，不滿意回到第 3 步重新產生。
-            每隻貓都要做成貓、幼貓一對：照片與 AI 三視角共用，第 3 步起分流，紋理貼圖與動作 glb 各自產生、各自確認 */}
+        {/* 4 步；成貓、幼貓貼圖產生完成即採用，不需要再確認。
+            每隻貓都要做成貓、幼貓一對：照片與 AI 三視角共用，第 3 步起分流，紋理貼圖與動作 glb 自動產生 */}
         <div className="hq-flowfork">
           <div className="hq-flowfork-shared">
             <h3>共用<small>成貓、幼貓用同一組</small></h3>
@@ -187,7 +179,7 @@ export function CatsTab({ query, update }: { query: ListQuery & { page: number }
           <div className="hq-flowfork-lanes">
             {BODY_ORDER.map(body => (
               <div key={body} className="hq-flowfork-lane">
-                <h3>{BODY_LABELS[body]}模型<small>各自產生、各自確認</small></h3>
+                <h3>{BODY_LABELS[body]}模型<small>自動產生</small></h3>
                 <FlowStepper overview short start={3} label={`${BODY_LABELS[body]}製作流程`} loop={{ from: 1, to: 0, text: "不滿意可重新產生紋理貼圖" }}
                   steps={CAT_STEPS.slice(2).map((s, i) => ({ title: s.title, desc: s.desc, icon: FLOW_ICONS[i + 2], state: "todo" }))} />
               </div>

@@ -118,7 +118,7 @@ describe("製作glb工作區", () => {
     });
     renderStudio();
     const status = await screen.findByRole("list", { name: "成貓、幼貓紋理貼圖狀態" });
-    expect(within(status).getAllByRole("listitem").map(li => li.textContent)).toEqual(["成貓已確認", "幼貓排隊中"]);
+    expect(within(status).getAllByRole("listitem").map(li => li.textContent)).toEqual(["成貓完成", "幼貓排隊中"]);
     const region = screen.getByRole("region", { name: "紋理貼圖" });
     expect(within(region).queryByAltText("上一版紋理貼圖")).toBeNull();
     const seg = within(region).getByRole("group", { name: "紋理貼圖體型" });
@@ -199,16 +199,13 @@ describe("製作glb工作區", () => {
     renderStudio();
     expect(await screen.findByRole("link", { name: "前往貓咪頁看動作" })).toHaveAttribute("href", "/MeowHQ/assets/cats/cat_20261031_100000");
   });
-  it("#129 紋理貼圖待確認：第 4 步鎖住，按「確認使用」送出確認", async () => {
-    const fetchMock = mockCat({ status: "ready", hasPrevAlbedo: true, texture: { state: "pending", preview: "albedo_prev", previewBody: "adult" } });
+  it("舊的待確認貼圖直接採用：第 4 步可看動作，不再要求確認使用", async () => {
+    mockCat({ status: "ready", hasPrevAlbedo: true, texture: { state: "pending", preview: "albedo_prev", previewBody: "adult" } });
     renderStudio();
     const step4 = await screen.findByRole("region", { name: "製作動作 glb" });
-    expect(within(step4).getByText("請先確認紋理貼圖。")).toBeInTheDocument();
-    expect(within(step4).queryByRole("link")).toBeNull();
-    expect(screen.getByText("新的紋理貼圖（待確認）・點圖放大")).toBeInTheDocument();
-    expect(screen.getByText("重新產生會放棄這張還沒確認的紋理貼圖。")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "確認使用" }));
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith("/api/hq/cat-models/cat_20261031_100000/confirm", expect.objectContaining({ method: "POST" })));
+    expect(within(step4).getByRole("link", { name: "前往貓咪頁看動作" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "確認使用" })).toBeNull();
+    expect(screen.getByText("目前使用・點圖放大")).toBeInTheDocument();
   });
   it("#129 生成中：貼圖區顯示「生成中」與目前步驟；首次生成顯示空狀態", async () => {
     mockCat({ status: "running", hasAlbedo: false, jobStatus: "running", jobStep: "AI 上色", jobStartedAt: new Date().toISOString() });

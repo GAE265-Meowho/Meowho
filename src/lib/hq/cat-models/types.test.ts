@@ -120,11 +120,11 @@ describe("catProgress（#118；#129 改 4 步）", () => {
     expect(catProgress({ ...base, status: "failed" })).toEqual({ step: 3, text: "3/4 紋理貼圖・失敗", tone: "danger" });
     expect(catProgress({ ...base, hasAlbedo: true, status: "ready" })).toEqual({ step: 4, text: "完成", tone: "" });
   });
-  it("貼圖待確認：停在第 3 步", async () => {
+  it("貼圖產生完成即採用，舊的待確認也算完成", async () => {
     const { catProgress, catStepStates } = await import("./types");
     const pending = { ...base, hasAlbedo: true, status: "ready" as const, texture: { state: "pending" as const, preview: null, previewBody: "adult" as const } };
-    expect(catProgress(pending)).toEqual({ step: 3, text: "3/4 紋理貼圖・待確認", tone: "warn" });
-    expect(catStepStates(pending)).toEqual(["done", "done", "active", "todo"]);
+    expect(catProgress(pending)).toEqual({ step: 4, text: "完成", tone: "" });
+    expect(catStepStates(pending)).toEqual(["done", "done", "done", "done"]);
     expect(catStepStates({ ...base, status: "failed" })).toEqual(["done", "done", "failed", "todo"]);
     expect(catStepStates({ ...base, hasAlbedo: true, status: "ready" })).toEqual(["done", "done", "done", "done"]);
   });
@@ -151,17 +151,18 @@ describe("雙體型進度（成貓／幼貓各一條）", () => {
     const { catProgresses } = await import("./types");
     expect(catProgresses({ ...cat, status: "running", jobBody: "adult" }).map(p => p.text)).toEqual(["3/4 紋理貼圖・產生中", "完成"]);
   });
-  it("兩個體型都確認才算「完成」組；待確認計數、貓咪頁連結看各體型", async () => {
+  it("兩個體型都有貼圖才算「完成」組；舊的待確認直接採用，不再另計", async () => {
     const { catListGroup, countTexturePending, hasConfirmedLook } = await import("./types");
     expect(catListGroup(cat)).toBe("other");
     expect(catListGroup({ ...cat, bodyVariants: { adult: tex("confirmed"), kitten: tex("confirmed") } })).toBe("done");
+    expect(catListGroup({ ...cat, bodyVariants: { adult: tex("pending"), kitten: tex("confirmed") } })).toBe("done");
     expect(countTexturePending([cat])).toBe(0);
-    expect(countTexturePending([{ ...cat, bodyVariants: { adult: tex("pending") } }])).toBe(1);
+    expect(countTexturePending([{ ...cat, bodyVariants: { adult: tex("pending") } }])).toBe(0);
     expect(hasConfirmedLook(cat)).toBe(true);
   });
-  it("沒有雙體型的舊站台：只有一條，沿用主表", async () => {
+  it("沒有雙體型的舊站台：只有一條，有貼圖就算完成", async () => {
     const { catProgresses } = await import("./types");
-    expect(catProgresses({ ...cat, variantStorage: false }).map(p => p.text)).toEqual(["3/4 紋理貼圖・待確認"]);
+    expect(catProgresses({ ...cat, variantStorage: false }).map(p => p.text)).toEqual(["完成"]);
   });
 });
 
@@ -175,13 +176,13 @@ describe("貼圖確認（#129）", () => {
     const { textureInfo } = await import("./types");
     expect(textureInfo({ ...rows, albedo: null, prev: null, confirmed: null }).state).toBe("none");
   });
-  it("新貼圖待確認：預覽用已確認的上一版，母體跟著上一版", async () => {
+  it("新貼圖直接採用目前版，不再停在上一版", async () => {
     const { textureInfo } = await import("./types");
-    expect(textureInfo({ ...rows, albedo: "a2", prev: "a1", confirmed: "a1" })).toEqual({ state: "pending", preview: "albedo_prev", previewBody: "kitten" });
+    expect(textureInfo({ ...rows, albedo: "a2", prev: "a1", confirmed: "a1" })).toEqual({ state: "confirmed", preview: "albedo", previewBody: "adult" });
   });
-  it("第一次產生、從未確認：待確認且沒有可預覽的貼圖", async () => {
+  it("第一次產生就採用目前版", async () => {
     const { textureInfo } = await import("./types");
-    expect(textureInfo({ ...rows, albedo: "a1", prev: null, confirmed: null })).toEqual({ state: "pending", preview: null, previewBody: "adult" });
+    expect(textureInfo({ ...rows, albedo: "a1", prev: null, confirmed: null })).toEqual({ state: "confirmed", preview: "albedo", previewBody: "adult" });
   });
   it("確認後：目前版", async () => {
     const { textureInfo } = await import("./types");
@@ -195,10 +196,10 @@ describe("貼圖確認（#129）", () => {
     expect(discardPending({ albedo: "a1", prev: null, confirmed: null, baseVersion: null, prevBaseVersion: null })).toBeNull();
     expect(discardPending({ albedo: "a2", prev: "a1", confirmed: undefined, baseVersion: null, prevBaseVersion: null })).toBeNull();
   });
-  it("待辦：計算待確認的貓", async () => {
+  it("待辦：舊的待確認已視為採用，不再計入", async () => {
     const { countTexturePending } = await import("./types");
     const t = (state: "none" | "pending" | "confirmed") => ({ hasAlbedo: true, body: "adult" as const, texture: { state, preview: null, previewBody: "adult" as const } });
-    expect(countTexturePending([t("pending"), t("confirmed"), t("pending"), { hasAlbedo: true, body: "adult" as const }])).toBe(2);
+    expect(countTexturePending([t("pending"), t("confirmed"), t("pending"), { hasAlbedo: true, body: "adult" as const }])).toBe(0);
   });
 });
 

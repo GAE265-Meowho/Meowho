@@ -190,9 +190,58 @@ const WITH_CREATOR = "*, creator:meow_profiles!created_by(display_name,email)";
 /** #181：前台的貓帶出所屬喵戶 */
 const WITH_HOUSEHOLD = `${WITH_CREATOR}, cat:meow_cats!cat_id(household:meow_households!meow_cats_household_id_fkey(id,name))`;
 
+/**
+ * 產生完成即採用（2026-11-07）：已畫好的貼圖若還停在待確認，把 confirmed 改成目前版。
+ * 預設貼圖（default）不是真的紋理，不採用。
+ */
+async function adoptTextures(sb: SupabaseClient, onlyId?: string): Promise<void> {
+  const variantQuery = sb.from("meow_cat_model_variants").select("model_id,body_type,albedo_path,confirmed_albedo");
+  const { data: variants, error } = onlyId ? await variantQuery.eq("model_id", onlyId) : await variantQuery;
+  if (!error) {
+    for (const v of (variants ?? []) as { model_id: string; body_type: BodyType; albedo_path: string | null; confirmed_albedo: string | null }[]) {
+      const albedo = realAlbedo(v.albedo_path);
+      if (!albedo || v.confirmed_albedo === albedo) continue;
+      await sb.from("meow_cat_model_variants").update({ confirmed_albedo: albedo, updated_at: new Date().toISOString() })
+        .eq("model_id", v.model_id).eq("body_type", v.body_type);
+    }
+  }
+  const modelQuery = sb.from("meow_cat_models").select("id,albedo_path,profile");
+  const { data: models } = onlyId ? await modelQuery.eq("id", onlyId) : await modelQuery;
+  for (const row of (models ?? []) as Pick<Row, "id" | "albedo_path" | "profile">[]) {
+    const albedo = realAlbedo(row.albedo_path);
+    if (!albedo || row.profile?.confirmed_albedo === albedo) continue;
+    await sb.from("meow_cat_models").update({
+      profile: { ...(row.profile ?? {}), confirmed_albedo: albedo }, updated_at: new Date().toISOString(),
+    }).eq("id", row.id);
+  }
+}
+
+/**
+ * 開啟列表或貓咪頁時：已畫好的貼圖直接採用；三視角已完成、還缺成貓或幼貓貼圖的，排進自動產生。
+ * 兩個體型都有貼圖的不再重畫。失敗不擋讀取。
+ */
+async function settleGenerated(sb: SupabaseClient, onlyId?: string): Promise<void> {
+  try {
+    await adoptTextures(sb, onlyId);
+    if (onlyId) {
+      await sbAutoPaint(onlyId, sb);
+      return;
+    }
+    const { data, error } = await sb.from("meow_cat_models").select("id,profile");
+    if (error || !data) return;
+    for (const row of data as Pick<Row, "id" | "profile">[]) {
+      if (!viewsReady(generatedState(row.profile?.generated))) continue;
+      await sbAutoPaint(row.id, sb);
+    }
+  } catch (e) {
+    console.warn("[cat-models] 自動採用貼圖失敗：", e instanceof Error ? e.message : e);
+  }
+}
+
 export async function sbListCats(): Promise<CatModelView[]> {
   const sb = await client();
   if (!sb) return [];
+  await settleGenerated(sb);
   // 帶出建立者；萬一關聯查詢失敗（例如 schema cache 還沒更新），退回不帶建立者，列表不能因此變空
   let { data, error } = await sb.from("meow_cat_models").select(WITH_HOUSEHOLD).order("updated_at", { ascending: false });
   if (error) ({ data, error } = await sb.from("meow_cat_models").select(WITH_CREATOR).order("updated_at", { ascending: false }));
@@ -222,6 +271,8 @@ export async function sbListCats(): Promise<CatModelView[]> {
 export async function sbGetCat(id: string): Promise<CatModelView | null> {
   const sb = await client();
   if (!sb) return null;
+  // 只採用已畫好的貼圖。自動排程不放在這裡：產生紋理貼圖會先讀這隻貓，若先排進去，接著的手動產生會被當成忙碌。
+  try { await adoptTextures(sb, id); } catch (e) { console.warn("[cat-models] 自動採用貼圖失敗：", e instanceof Error ? e.message : e); }
   let { data, error } = await sb.from("meow_cat_models").select(WITH_HOUSEHOLD).eq("id", id).maybeSingle();
   if (error) ({ data, error } = await sb.from("meow_cat_models").select("*").eq("id", id).maybeSingle());
   if (error || !data) return null;
@@ -526,12 +577,13 @@ export async function sbAutoPaint(id: string, sb: Sb | SupabaseClient): Promise<
   return body;
 }
 
-/** MeowHQ「補排紋理貼圖」：掃全部的貓，缺成貓或幼貓貼圖的補進排程（管理員登入身分，RLS 檢查 virtual_assets） */
+/** MeowHQ「補排紋理貼圖」：已畫好的先採用；掃全部的貓，缺成貓或幼貓貼圖的補進排程（管理員登入身分，RLS 檢查 virtual_assets） */
 export async function sbBackfillPaint(): Promise<
   { ok: true; queued: { id: string; name: string; body: BodyType }[]; waiting: number } | { ok: false; code: "permission_denied" }
 > {
   const user = await userClient();
   if (!user) return { ok: false, code: "permission_denied" };
+  await adoptTextures(user.sb);
   const { data, error } = await user.sb.from("meow_cat_models").select("id,name,profile");
   if (error) return { ok: false, code: "permission_denied" };
   const queued: { id: string; name: string; body: BodyType }[] = [];

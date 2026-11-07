@@ -54,6 +54,9 @@ describe("已建立的貓咪模型列表（#102）", () => {
       expect(lane).toHaveTextContent("產生紋理貼圖");
       expect(lane).not.toHaveTextContent("AI 三視角");
     }
+    expect(screen.getByRole("heading", { name: /成貓模型/ })).toHaveTextContent("自動產生");
+    expect(screen.getByRole("heading", { name: /幼貓模型/ })).toHaveTextContent("自動產生");
+    expect(screen.queryByText("各自確認")).toBeNull();
     expect(screen.getByRole("button", { name: "補排紋理貼圖" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "新增貓咪" })).toHaveAttribute("href", "/MeowHQ/assets/cats/new");
     expect(screen.getByRole("link", { name: "3D 貓咪體型預覽" })).toHaveAttribute("href", "/MeowHQ/assets/bases");

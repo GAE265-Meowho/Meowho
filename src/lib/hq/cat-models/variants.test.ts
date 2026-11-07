@@ -15,7 +15,7 @@ describe("#104 同一隻貓的兩種體型", () => {
     expect(variants.kitten?.prev).toBeNull();
     expect(variants.adult?.albedo).toBe("adult.png");
     expect(variants.adult?.confirmed).toBe("adult.png");
-    expect(variantTexture(variants, "kitten").preview).toBeNull();
+    expect(variantTexture(variants, "kitten").preview).toBe("albedo");
     expect(variantTexture(variants, "adult").preview).toBe("albedo");
   });
 
