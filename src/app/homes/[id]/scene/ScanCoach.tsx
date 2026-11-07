@@ -12,7 +12,7 @@ const CHECK = [
   ["請其他人和寵物離開畫面", "會動的東西會變成模糊的鬼影"],
   ["相機切到 0.5x 超廣角、橫拿手機", "一次拍到更多，畫面比較容易接起來"],
   ["長按畫面鎖定對焦和曝光", "iPhone：長按到畫面出現黃色的「AE/AF 鎖定」"],
-  ["畫質設成 1080p 30fps", "iPhone：設定 › 相機 › 錄影。檔案要在 50 MB 以內"],
+  ["畫質設成 1080p 30fps", "iPhone：設定 › 相機 › 錄影"],
   ["擦一下鏡頭", "指紋會讓整段影片霧霧的"],
   ["床、桌子整個拍進去", "貓要跳上去，家具的四邊都要入鏡"],
   ["收好證件和信件", "影片處理完就會刪除，但入鏡的個人資料先收起來比較安心"],
@@ -149,7 +149,7 @@ export default function ScanCoach({ actions, onPick }: { actions: React.ReactNod
         </ol>
         <div className={r.spec}>
           <div><b>約 1 分鐘</b><span>影片長度</span></div>
-          <div><b>50 MB</b><span>檔案上限</span></div>
+          <div><b>3 分鐘</b><span>最長</span></div>
           <div><b>1080p</b><span>30fps</span></div>
         </div>
       </section>

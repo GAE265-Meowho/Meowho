@@ -1,7 +1,8 @@
 "use client";
 // 建立我家的 3D 房間（規格 09 v0.6 §7.2、§8；#60、#61）：房間掃描教練（ScanCoach）＋隱私說明 →「開始製作」或「上傳影片」→ 背景建房間，同時做環境安全檢查。
 // 環境檢查一律做、不再詢問（子哲 2026-11-04）；3D 房間和環境報告處理完（成功或失敗）立即刪除居家原始影片和照片（決策 007）。
-// 「開始製作」用手機錄影、「上傳影片」選檔 → 瀏覽器直傳私有 bucket meow-home-videos → /api/homes/[id]/room 建 queued 的房間和環境報告
+// 「開始製作」用手機錄影、「上傳影片」選檔 → /api/homes/[id]/videos 簽網址、瀏覽器直傳 Azure 私有容器（#273）
+//   → /api/homes/[id]/room 建 queued 的房間和環境報告
 //   （上傳前先在手機上檢查影片，VideoCheck；建議重拍的不能上傳）
 //   → workers/room-convert 轉成 3D（約 20 分鐘，好了會通知）→ 這頁預覽，按「完成」呼叫 meow_finish_home_room，之後才能開始領養任務。
 // 房間已經有了（喵戶卡片的「查看模型」）也進這頁。?next= 是建好後要回去的那一步（例如某隻貓的領養任務）。
@@ -15,8 +16,9 @@ import f from "@/components/onboarding/intake.module.css";
 import CatButton from "@/components/ui/CatButton";
 import Icon from "@/components/ui/Icon";
 import { safeNext } from "@/lib/household-gate";
-import { HOME_VIDEO_BUCKET, homeSceneBase, UPLOAD_PRIVACY } from "@/lib/home-room";
-import { checkVideo, MAX_VIDEO_BYTES, videoExt } from "@/lib/hq/rooms/types";
+import { putUpload, videoDuration } from "@/components/onboarding/media";
+import { checkHomeVideo, HOME_VIDEO_ERROR, homeSceneBase, type HomeVideoError, UPLOAD_PRIVACY } from "@/lib/home-room";
+import type { UploadTarget } from "@/lib/storage/types";
 import { getBrowserSupabase } from "@/lib/supabase/client";
 import ScanCoach from "./ScanCoach";
 import VideoCheck from "./VideoCheck";
@@ -41,7 +43,8 @@ export default function ScenePage() {
   const [step, setStep] = useState<Step>("guide");
   const [error, setError] = useState<string | null>(null);
   // 選好、還沒上傳的影片：先在手機上檢查（VideoCheck），合格才上傳
-  const [video, setVideo] = useState<File | null>(null);
+  const [video, setVideo] = useState<{ file: File; durationSec: number } | null>(null);
+  const [pct, setPct] = useState(0);
 
   useEffect(() => {
     const n = new URLSearchParams(window.location.search).get("next");
@@ -57,28 +60,30 @@ export default function ScenePage() {
       .then(({ data }) => setRoom(data?.[0] ?? null));
   }, [loading, sb, user, id]);
 
-  function pick(file: File | undefined) {
+  async function pick(file: File | undefined) {
     if (!file) return;
-    const problem = checkVideo(file.type, file.size);
-    if (problem) {
-      setError(problem === "video_too_large" ? `影片超過 ${MAX_VIDEO_BYTES / 1024 / 1024} MB，請把畫質設成 1080p、拍 1 分鐘左右。` : "請上傳 mp4 或 mov 影片。");
-      setVideo(null); setStep("guide");
-      return;
-    }
-    setError(null); setVideo(file); setStep("checking");
+    const durationSec = await videoDuration(file);
+    const problem = checkHomeVideo({ mime: file.type, sizeBytes: file.size, durationSec });
+    if (problem) { setError(HOME_VIDEO_ERROR[problem]); setVideo(null); setStep("guide"); return; }
+    setError(null); setVideo({ file, durationSec }); setStep("checking");
   }
 
-  async function upload(file: File) {
+  const post = <T,>(url: string, body: unknown): Promise<T | null> =>
+    fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).then(x => x.json()).catch(() => null);
+
+  async function upload({ file, durationSec }: { file: File; durationSec: number }) {
     // 示範模式（沒有資料庫）：直接當作做好了
     if (!sb) { setStep("done"); return; }
-    setStep("uploading"); setError(null);
-    const path = `${id}/${crypto.randomUUID()}.${videoExt(file.type)}`;
-    const { error: upError } = await sb.storage.from(HOME_VIDEO_BUCKET).upload(path, file, { contentType: file.type });
-    if (upError) { setError("影片上傳失敗，請再試一次。"); setStep("guide"); return; }
-    const res = await fetch(`/api/homes/${id}/room`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ videoPath: path }) })
-      .then(x => x.json()).catch(() => null);
+    setStep("uploading"); setError(null); setPct(0);
+    const target = await post<{ path?: string; upload?: UploadTarget; error?: string }>(`/api/homes/${id}/videos`, { mime: file.type, sizeBytes: file.size, durationSec });
+    if (!target?.path || !target.upload) {
+      setError(HOME_VIDEO_ERROR[target?.error as HomeVideoError] ?? "影片上傳失敗，請再試一次。"); setStep("guide"); return;
+    }
+    try { await putUpload(target.upload, file, { onProgress: setPct }); }
+    catch { setError("影片上傳失敗，請再試一次。"); setStep("guide"); return; }
+    // 房間沒建成時，伺服器會刪掉剛傳的影片（決策 007）
+    const res = await post<{ roomId?: string; error?: string }>(`/api/homes/${id}/room`, { videoPath: target.path });
     if (!res?.roomId || res.error) {
-      await sb.storage.from(HOME_VIDEO_BUCKET).remove([path]);  // 沒建成房間的影片不留（決策 007）
       setError(res?.error === "room_busy" ? "上一支影片還在處理中，好了會通知你。" : "房間建立失敗，請再試一次。");
       setStep("guide"); return;
     }
@@ -133,11 +138,11 @@ export default function ScenePage() {
     </>
   );
   else if (step === "checking" && video) body = (
-    <VideoCheck file={video} onUpload={() => upload(video)} onRetake={() => camera.current?.click()} onOther={() => picker.current?.click()} />
+    <VideoCheck file={video.file} onUpload={() => upload(video)} onRetake={() => camera.current?.click()} onOther={() => picker.current?.click()} />
   );
   else if (step === "uploading") body = (
     <section className={`${f.card} ${f.center}`} role="status">
-      <h2>影片上傳中</h2>
+      <h2>影片上傳中 {pct}%</h2>
       <p className={f.lead}>上傳完成前請不要關掉這頁。</p>
     </section>
   );
