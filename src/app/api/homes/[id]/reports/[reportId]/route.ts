@@ -65,9 +65,23 @@ export async function GET(_req: Request, { params }: Context) {
     && prefix !== null && report.json_path === prefix + "result.json";
 
   if (!published) {
-    // Legacy demo rows are marked "ready" but have no output files.
-    // Never present them as real AI analysis or issue read URLs.
-    return json({ report: { ...base, published: false }, summary: null, warnings: [], items: [], pdfUrl: null });
+    // P1 explicitly preserves standalone demonstration reports (Issue #273).
+    // Their "ready" status predates the Worker and contains no actual Blob assets.
+    // Keep the sample summary/items visible, clearly tagged as a demo, and never sign URLs.
+    const isDemo = report.status === "ready" && report.attempt == null
+      && report.pdf_path == null && report.json_path == null;
+    if (isDemo) {
+      return json({
+        report: { ...base, published: false, demo: true },
+        summary: typeof report.summary === "string" ? report.summary : "",
+        warnings: [],
+        items: parseReportItems(report.items).map(item => ({
+          key: item.key, label: item.label, level: item.level, note: item.note, cropUrl: null,
+        })),
+        pdfUrl: null,
+      });
+    }
+    return json({ report: { ...base, published: false, demo: false }, summary: null, warnings: [], items: [], pdfUrl: null });
   }
 
   const store = getMediaStore();
@@ -88,7 +102,7 @@ export async function GET(_req: Request, { params }: Context) {
     ]);
 
     return json({
-      report: { ...base, published: true },
+      report: { ...base, published: true, demo: false },
       summary: typeof report.summary === "string" ? report.summary : "",
       warnings: Array.isArray(report.warnings) ? report.warnings : [],
       items,
