@@ -50,6 +50,30 @@ export function SafetyReportDetails({ householdId, reportId }: { householdId: st
     return <p role="status">這筆報告尚未發布完整的 AI 分析成果，暫時無法查看。</p>;
   }
 
+  // P1 PDF-first experience: the MeowHome "查看報告" link already routes to /safety.
+  // The iframe, "open" and "download" routes each re-authorize the owner and
+  // generate a fresh short-lived Azure SAS on every request, so old tabs still work.
+  if (report.published && pdfUrl) {
+    const pdfEndpoint = "/api/homes/" + encodeURIComponent(householdId)
+      + "/reports/" + encodeURIComponent(reportId) + "/pdf";
+    return (
+      <section className={k.pdfPanel} aria-label="WelfareLens 居家安全報告">
+        <iframe className={k.pdfViewer} title="WelfareLens 完整居家安全報告 PDF"
+          src={pdfEndpoint} referrerPolicy="no-referrer" loading="eager" />
+        <div className={k.pdfActions}>
+          <a className={k.pdfLink} href={pdfEndpoint + "?download=1"}>
+            下載 PDF
+          </a>
+          <a className={k.pdfOpen} href={pdfEndpoint} target="_blank"
+            rel="noopener noreferrer" referrerPolicy="no-referrer">
+            另開 PDF 檢視
+          </a>
+        </div>
+        <p className={k.source}>部分手機瀏覽器不支援內嵌 PDF，可選「另開 PDF 檢視」。改善後畫面為 AI 模擬示意，不代表現場已完成改善。</p>
+      </section>
+    );
+  }
+
   return (
     <div className={k.details}>
       {report.demo && <p role="note"><b>示範報告（非真實 AI 分析）</b>：以下內容是預設範例，不代表你的居家環境已完成檢測。</p>}
