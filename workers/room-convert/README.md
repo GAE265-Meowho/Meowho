@@ -34,15 +34,19 @@ pip install -r requirements.txt torch torchvision "transformers>=4.56"
 NEXT_PUBLIC_SUPABASE_URL=
 SUPABASE_SERVICE_ROLE_KEY=
 GEMINI_API_KEY=            # AI 辨識房間有哪些物品，必填
+AZURE_STORAGE_ACCOUNT=meowhomedia   # 前台居家影片（#273），跟主站同名
+AZURE_STORAGE_KEY=                  # 儲存帳戶 key1，向子哲索取
+AZURE_STORAGE_CONTAINER=media-dev   # 正式站上傳的影片在 media
 ```
+第一次用要 `pip3 install -r requirements.txt`（多了 `azure-storage-blob`）。
 ```bash
 cd workers/room-convert
 caffeinate -i python3 pipeline/room_worker.py --supabase    # 開著終端機分頁，Ctrl+C 結束
 ```
 - M4 一支 80 秒影片約 17～20 分鐘；轉換時 CPU／GPU 吃滿，電腦睡眠會暫停。
-- 成功後刪除原始影片、影格與中間檔；失敗時保留雲端影片，可把狀態改回 `queued` 重試。
+- 後台房間：成功後刪除原始影片、影格與中間檔；失敗時保留雲端影片，可把狀態改回 `queued` 重試。
 - 後台房間：成果路徑用隨機名稱（bucket 是公開的）。
-- 前台我的 3D 房間（`owner_household_id` 有值）：影片從 `meow-home-videos` 讀、成果寫私有 `meow-home-scenes/<喵戶>/<房間>/`，完成或失敗都通知喵戶長；環境報告還沒好時影片留給報告那邊刪。
+- 前台我的 3D 房間（`owner_household_id` 有值）：影片從 Azure `homes/<喵戶>/videos/…` 讀，下載後再檢查 mp4／mov、300 MB、180 秒（#243）；成果寫私有 `meow-home-scenes/<喵戶>/<房間>/`，完成或失敗都通知喵戶長。**影片不刪**，由主站的清理程式在 3D 和健檢都結束後刪（#242）。
 
 ## 只在本機轉一支影片
 ```bash

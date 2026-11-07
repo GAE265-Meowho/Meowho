@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import * as homeRoom from "./home-room";
-import { homeTools, isHomeVideoPath, safetyRecords, UPLOAD_PRIVACY, demoReportRow } from "./home-room";
+import { checkHomeVideo, homeTools, homeVideoPath, isHomeVideoPath, MAX_HOME_VIDEO_BYTES, MAX_HOME_VIDEO_SEC, safetyRecords, UPLOAD_PRIVACY, demoReportRow } from "./home-room";
 
 const room = (status: string, completed_at: string | null = null) => ({ status, completed_at });
 const report = (status: string, room_model_id: string | null = null, created_at = "2026-11-04T00:00:00Z", items: unknown[] = []) =>
@@ -96,15 +96,37 @@ describe("示範報告（AI 環境安全檢查接上前）", () => {
   });
 });
 
-describe("飼主上傳的影片路徑", () => {
+describe("飼主上傳的影片路徑（Azure，#273）", () => {
   const home = "11111111-2222-3333-4444-555555555555";
   const uuid = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee";
+  it("路徑是 homes/<喵戶>/videos/<影片 id>.<mp4|mov>", () => {
+    expect(homeVideoPath(home, uuid, "video/mp4")).toBe(`homes/${home}/videos/${uuid}.mp4`);
+    expect(homeVideoPath(home, uuid, "video/quicktime")).toBe(`homes/${home}/videos/${uuid}.mov`);
+  });
   it("只接受這個喵戶底下的 uuid.mp4／mov", () => {
-    expect(isHomeVideoPath(home, `${home}/${uuid}.mp4`)).toBe(true);
-    expect(isHomeVideoPath(home, `${home}/${uuid}.mov`)).toBe(true);
-    expect(isHomeVideoPath(home, `other/${uuid}.mp4`)).toBe(false);
-    expect(isHomeVideoPath(home, `${home}/../x/${uuid}.mp4`)).toBe(false);
-    expect(isHomeVideoPath(home, `${home}/${uuid}.webm`)).toBe(false);
+    expect(isHomeVideoPath(home, `homes/${home}/videos/${uuid}.mp4`)).toBe(true);
+    expect(isHomeVideoPath(home, `homes/${home}/videos/${uuid}.mov`)).toBe(true);
+    expect(isHomeVideoPath(home, `${home}/${uuid}.mp4`)).toBe(false);  // 舊的 Supabase 路徑
+    expect(isHomeVideoPath(home, `homes/other/videos/${uuid}.mp4`)).toBe(false);
+    expect(isHomeVideoPath(home, `homes/${home}/videos/../x/${uuid}.mp4`)).toBe(false);
+    expect(isHomeVideoPath(home, `homes/${home}/videos/${uuid}.webm`)).toBe(false);
     expect(isHomeVideoPath(home, null)).toBe(false);
+  });
+});
+
+describe("影片限制（#243：mp4／mov、300 MB、180 秒）", () => {
+  const ok = { mime: "video/mp4", sizeBytes: 30 * 1024 * 1024, durationSec: 111 };
+  it("合規的影片通過", () => {
+    expect(checkHomeVideo(ok)).toBeNull();
+    expect(checkHomeVideo({ ...ok, mime: "video/quicktime", sizeBytes: MAX_HOME_VIDEO_BYTES, durationSec: MAX_HOME_VIDEO_SEC })).toBeNull();
+  });
+  it("格式、大小、長度不對都擋下", () => {
+    expect(checkHomeVideo({ ...ok, mime: "video/webm" })).toBe("unsupported_type");
+    expect(checkHomeVideo({ ...ok, mime: undefined })).toBe("unsupported_type");
+    expect(checkHomeVideo({ ...ok, sizeBytes: MAX_HOME_VIDEO_BYTES + 1 })).toBe("too_large");
+    expect(checkHomeVideo({ ...ok, sizeBytes: 0 })).toBe("too_large");
+    expect(checkHomeVideo({ ...ok, durationSec: MAX_HOME_VIDEO_SEC + 0.5 })).toBe("too_long");
+    expect(checkHomeVideo({ ...ok, durationSec: 0 })).toBe("invalid_duration");
+    expect(checkHomeVideo({ ...ok, durationSec: "111" })).toBe("invalid_duration");
   });
 });

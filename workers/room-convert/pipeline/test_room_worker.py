@@ -105,16 +105,25 @@ class FakeSupabase:
         self.calls.append(("remove", bucket, path))
 
 
-class HomeRooms(unittest.TestCase):
-    """前台我的 3D 房間：私有 bucket、通知喵戶長、環境報告好了才刪影片。"""
-    HOME = "11111111-2222-3333-4444-555555555555"
+class FakeBlob:
+    def __init__(self, calls):
+        self.calls = calls
 
-    def run_job(self, ok, report_pending):
+    def download(self, path, target):
+        self.calls.append(("azure", path, None))
+        target.write_bytes(b"video")
+
+
+class HomeRooms(unittest.TestCase):
+    """前台我的 3D 房間：影片從 Azure 讀、成果放私有 bucket、通知喵戶長、影片不刪（#273）。"""
+    HOME = "11111111-2222-3333-4444-555555555555"
+    PATH = f"homes/{HOME}/videos/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee.mp4"
+
+    def run_job(self, ok, blob=True, check=None):
         sb = FakeSupabase({
             "meow_room_jobs?status=eq.queued": [{"id": "j1", "room_id": "room_20261104_120000"}],
-            "meow_room_models?id=eq.room_20261104_120000&select": [{"video_path": f"{self.HOME}/v.mp4", "meta": {}, "owner_household_id": self.HOME}],
+            "meow_room_models?id=eq.room_20261104_120000&select": [{"video_path": self.PATH, "meta": {}, "owner_household_id": self.HOME}],
             "meow_households": [{"owner_id": "u1"}],
-            "meow_env_reports": [{"id": "r1"}] if report_pending else [],
         })
 
         def fake_convert(video, room_id, on_step, result, log_path):
@@ -123,17 +132,22 @@ class HomeRooms(unittest.TestCase):
             result.mkdir(parents=True)
             (result / "scene.json").write_text('{"objects": [{"label": "bed"}, {"label": "bed"}, {"label": "lamp"}]}')
 
-        old = room_worker.convert
+        old = room_worker.convert, room_worker.check_home_video
         room_worker.convert = fake_convert
+        room_worker.check_home_video = check or (lambda video: None)
         try:
-            room_worker.run_next_supabase(sb)
+            room_worker.run_next_supabase(sb, FakeBlob(sb.calls) if blob else None)
         finally:
-            room_worker.convert = old
+            room_worker.convert, room_worker.check_home_video = old
         return sb.calls
 
-    def test_ready_uploads_privately_and_waits_for_report(self):
-        calls = self.run_job(ok=True, report_pending=True)
-        self.assertIn(("download", "meow-home-videos", f"{self.HOME}/v.mp4"), calls)
+    def failed_error(self, calls):
+        return next(b for m, p, b in calls if m == "PATCH" and b and b.get("status") == "error")["error"]
+
+    def test_ready_reads_azure_uploads_privately_keeps_video(self):
+        calls = self.run_job(ok=True)
+        self.assertIn(("azure", self.PATH, None), calls)
+        self.assertFalse([c for c in calls if c[0] == "download"])  # 不碰 Supabase 的影片 bucket
         self.assertIn(("upload", "meow-home-scenes", f"{self.HOME}/room_20261104_120000/scene.json"), calls)
         ready = next(b for m, p, b in calls if m == "PATCH" and b and b.get("status") == "ready")
         self.assertEqual(ready["result_path"], f"{self.HOME}/room_20261104_120000")
@@ -141,14 +155,37 @@ class HomeRooms(unittest.TestCase):
         self.assertNotIn("video_path", ready)
         note = next(b for m, p, b in calls if m == "POST" and p == "meow_notifications")
         self.assertEqual((note["user_id"], note["link"]), ("u1", f"/homes/{self.HOME}/scene"))
-        self.assertFalse([c for c in calls if c[0] == "remove"])  # 報告還沒好，影片留著
+        self.assertFalse([c for c in calls if c[0] == "remove"])
 
-    def test_failed_deletes_video_when_report_done(self):
-        calls = self.run_job(ok=False, report_pending=False)
-        self.assertIn(("remove", "meow-home-videos", f"{self.HOME}/v.mp4"), calls)
-        self.assertTrue(any(m == "PATCH" and b and b.get("raw_deleted_at") for m, p, b in calls))
+    def test_failed_notifies_and_keeps_video(self):
+        calls = self.run_job(ok=False)
+        self.assertFalse([c for c in calls if c[0] == "remove"])
+        self.assertFalse(any(m == "PATCH" and b and "raw_deleted_at" in b for m, p, b in calls))
         note = next(b for m, p, b in calls if m == "POST" and p == "meow_notifications")
         self.assertEqual(note["type"], "home_room_failed")
+
+    def test_video_check_failure_fails_job(self):
+        def too_long(video):
+            raise RuntimeError("影片超過 180 秒")
+        calls = self.run_job(ok=True, check=too_long)
+        self.assertEqual(self.failed_error(calls), "影片超過 180 秒")
+
+    def test_without_azure_config_fails_clearly(self):
+        calls = self.run_job(ok=True, blob=False)
+        self.assertIn("Azure", self.failed_error(calls))
+
+
+class CheckHomeVideo(unittest.TestCase):
+    def test_rejects_wrong_format_and_unreadable(self):
+        with tempfile.TemporaryDirectory() as d:
+            webm = Path(d) / "v.webm"
+            webm.write_bytes(b"x")
+            with self.assertRaisesRegex(RuntimeError, "mp4"):
+                room_worker.check_home_video(webm)
+            bad = Path(d) / "v.mp4"
+            bad.write_bytes(b"not a video")
+            with self.assertRaisesRegex(RuntimeError, "讀不到"):
+                room_worker.check_home_video(bad)
 
 
 if __name__ == "__main__":
