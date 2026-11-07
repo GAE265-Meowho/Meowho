@@ -11,7 +11,7 @@ type RiskItem = {
   cropUrl: string | null;
 };
 type Result = {
-  report: { id: string; status: string; published: boolean; error: string | null };
+  report: { id: string; status: string; published: boolean; demo?: boolean; error: string | null };
   summary: string | null;
   items: RiskItem[];
   warnings: Array<{ code?: string; message?: string }>;
@@ -46,12 +46,13 @@ export function SafetyReportDetails({ householdId, reportId }: { householdId: st
     return <p role="alert">{report.error ?? "安全檢測未完成，請重新上傳影片。"}</p>;
   }
   if (report.status !== "ready") return <p role="status">安全報告仍在處理中。</p>;
-  if (!report.published) {
-    return <p role="status">這筆是舊版示範或尚未正式發布的紀錄，沒有可驗證的 AI 分析成果。</p>;
+  if (!report.published && !report.demo) {
+    return <p role="status">這筆報告尚未發布完整的 AI 分析成果，暫時無法查看。</p>;
   }
 
   return (
     <div className={k.details}>
+      {report.demo && <p role="note"><b>示範報告（非真實 AI 分析）</b>：以下內容是預設範例，不代表你的居家環境已完成檢測。</p>}
       {summary && <p>{summary}</p>}
       {items.length === 0 ? <p>本次沒有提供可確認的風險項目；這不代表環境絕對安全。</p> : (
         <ul className={k.items}>
@@ -82,7 +83,8 @@ export function SafetyReportDetails({ householdId, reportId }: { householdId: st
           看完整居家安全報告（PDF）
         </a>
       )}
-      {!pdfUrl && <p className={k.source}>完整 PDF 只提供給喵戶本人；被分享者可查看風險摘要與裁切照。</p>}
+      {!pdfUrl && !report.demo && <p className={k.source}>完整 PDF 只提供給喵戶本人；被分享者可查看風險摘要與裁切照。</p>}
+      {report.demo && <p className={k.source}>示範資料不含裁切照或 PDF。真實報告需由上傳影片後的 WelfareLens Worker 產生。</p>}
       <p className={k.source}>這是輔助評估，不是獸醫診斷；AI 模擬改善不代表現場已完成改善。連結過期可重新載入頁面。</p>
     </div>
   );
