@@ -42,11 +42,11 @@ export function memoryMoments(X: Pick<Life, "picks" | "name">): string[] {
  * 原版 fullAdvice。DEMO 沒有作息題與序章問題，條件依手上的資料改寫：
  *   作息、出差（沒有問）→ 不出；急診預備金：沒存醫療預備金或動用過；房東：喵戶的住家狀況是租屋；過敏：DEMO 不問（不出）。
  */
-export function fullAdvice(X: Pick<Life, "flags">, shop: { fund: number | null }, home: Pick<PlayerHome, "living">): string[] {
+export function fullAdvice(X: Pick<Life, "flags" | "care">, shop: { fund: number | null }, home: Pick<PlayerHome, "living">): string[] {
   const A: string[] = [];
   if (!shop.fund || X.flags.fundUsed) A.push("先存一筆 2 到 3 萬元的急診預備金，就醫時壓力會小很多。");
   if (X.flags.scolded) A.push("貓在砂盆外尿尿時，先排除身體問題，再檢查貓砂、砂盆位置和乾淨程度。不要處罰。");
-  if (!X.flags.brushOk) A.push("刷牙從幼貓期開始練最容易，每天幾分鐘就好。");
+  if (!X.flags.brushDaily || X.care.teeth < 60) A.push("刷牙從幼貓期開始練最容易，每天幾分鐘就好。");
   if (home.living === "租屋") A.push("養之前先問房東，確定未來幾年都能養。");
   if (!A.length) A.push("你的作息和準備都很不錯。實際收養前，再和中途聊聊這隻貓的習慣。");
   return A;
@@ -66,8 +66,10 @@ export interface AdviceContext {
 export function ruleAdvice(ctx: AdviceContext): string[] {
   const tips: string[] = [];
   const open = ctx.hazards.filter(h => !ctx.handled.includes(h.key));
-  if (open.length) tips.push(`家裡還有「${open.slice(0, 2).map(h => h.label).join("、")}」沒處理，接貓回家前先照建議處理好。`);
-  else tips.push("家裡的危險你都先處理了，這是接貓回家最重要的準備。");
+  // newgame：試養報告不寫家裡的物件與位置，只說還有幾項
+  // 居家安全建議由環境報告顯示，這裡只提醒要照報告處理
+  if (open.length) tips.push("環境報告裡有幾項居家安全建議，接貓回家前先照報告處理好。");
+  else tips.push("你的家目前沒有發現明顯的居家危險，接貓回家前還是再檢查一次。");
   const wrong = ctx.choices.filter(c => c.good === false);
   if (wrong.length) tips.push(`回頭想想「${wrong[0].text}」這個選擇，下次可以怎麼做。`);
   if (ctx.overBudget) tips.push("每月花費超過你的預算，建議先調整用品或預留一筆貓咪預備金。");

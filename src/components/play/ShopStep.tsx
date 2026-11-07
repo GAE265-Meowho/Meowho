@@ -6,13 +6,13 @@
 import { useMemo, useState } from "react";
 import Required from "@/components/ui/Required";
 import { formatFoodPrice } from "@/lib/hq/food/catalog";
-import { SHOP_FLAGS, SHOP_ITEMS, money, playFoods, shopCost, type ShopFlagKey, type ShopItemKey, type ShopPick } from "@/lib/play/costs";
+import { SHOP_FLAGS, SHOP_ITEMS, flagPrice, money, playFoods, shopCost, shopOpts, type PlayShop, type ShopFlagKey, type ShopItemKey, type ShopPick } from "@/lib/play/costs";
 import s from "./play.module.css";
 
-export function ShopStep({ pick, onChange }: { pick: ShopPick; onChange: (p: ShopPick) => void }) {
+export function ShopStep({ pick, shop, onChange }: { pick: ShopPick; shop?: PlayShop; onChange: (p: ShopPick) => void }) {
   const [kittenOnly, setKittenOnly] = useState(true);
   const foods = useMemo(() => playFoods(kittenOnly ? "kitten" : null), [kittenOnly]);
-  const costs = shopCost(pick, "kitten");
+  const costs = shopCost(pick, "kitten", shop);
   const set = (patch: Partial<ShopPick>) => onChange({ ...pick, ...patch });
 
   return (
@@ -57,7 +57,7 @@ export function ShopStep({ pick, onChange }: { pick: ShopPick; onChange: (p: Sho
           <h2 id={`shop-${k}`}>{it.name}<Required /></h2>
           {"note" in it && <p className={s.lead}>{it.note}</p>}
           <div className={s.list} role="radiogroup" aria-labelledby={`shop-${k}`}>
-            {it.opts.map(([label, price], i) => (
+            {shopOpts(k, shop).map(([label, price], i) => (
               <label key={label} className={s.check}>
                 <input type="radio" name={`shop-${k}`} checked={pick[k] === i} onChange={() => set({ [k]: i })} />
                 {label}・{money(price)} 元{it.per === "month" ? "／月" : ""}
@@ -70,10 +70,10 @@ export function ShopStep({ pick, onChange }: { pick: ShopPick; onChange: (p: Sho
       <section className={s.card} aria-labelledby="flags-title">
         <h2 id="flags-title">其他用品</h2>
         <div className={s.list}>
-          {(Object.entries(SHOP_FLAGS) as [ShopFlagKey, readonly [string, number]][]).map(([k, [label, price]]) => (
+          {(Object.entries(SHOP_FLAGS) as [ShopFlagKey, readonly [string, number]][]).map(([k, [label]]) => (
             <label key={k} className={s.check}>
               <input type="checkbox" checked={pick[k]} onChange={e => set({ [k]: e.target.checked })} />
-              {label}・{money(price)} 元
+              {label}・{money(flagPrice(k, shop))} 元
             </label>
           ))}
         </div>

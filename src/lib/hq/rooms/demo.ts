@@ -8,6 +8,8 @@ export interface RoomLayout extends RoomFrame { nx: number; ny: number; cell: nu
 export interface RoomObject {
   id: string;
   label: string;
+  /** 中文名稱（label 可能是英文 bed） */
+  name_zh?: string;
   box: { center: Vec3; size: Vec3; yaw: number };
   affordance: { jump_on: boolean; hide_under: boolean; push: boolean; play: boolean };
   physics: { body: string; surface: string; mass_kg?: number; hull?: number[][] };

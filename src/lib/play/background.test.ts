@@ -23,6 +23,22 @@ describe("normalizeHome（喵戶 home → 玩家背景）", () => {
     expect(h.sample).toBe(false);
   });
 
+  it("表單的「自己住」「沒有」是選項不是人和寵物：一個人住＝同住的人空陣列，沒有寵物＝空陣列，劇情才不會出現「自己住笑著說」「家裡的沒有」", () => {
+    const h = normalizeHome({ dwelling: "apartment", living: "rent", family: ["自己住"], pets: ["沒有"] });
+    expect(h.family).toEqual([]);
+    expect(h.pets).toEqual([]);
+    expect(homeSummary(h)).toContain("一個人住");
+    expect(homeSummary(h)).toContain("沒有其他寵物");
+  });
+  it("「其他」沒填內容時家人寫成「家人」，有填就用填的；寵物同理", () => {
+    expect(normalizeHome({ dwelling: "apartment", family: ["其他"], familyOther: "", pets: [] }).family).toEqual(["家人"]);
+    expect(normalizeHome({ dwelling: "apartment", family: ["其他"], familyOther: "表姊", pets: [] }).family).toEqual(["表姊"]);
+    expect(normalizeHome({ dwelling: "apartment", family: [], pets: ["其他動物"], petsOther: "" }).pets).toEqual(["小動物"]);
+  });
+  it("自己住和其他同住的人同時勾時只留其他人", () => {
+    expect(normalizeHome({ dwelling: "apartment", family: ["自己住", "小孩"], pets: [] }).family).toEqual(["小孩"]);
+  });
+
   it("空陣列是有效回答（一個人住、沒有寵物），不補範例；不認得的代碼丟掉", () => {
     const h = normalizeHome({ dwelling: "castle", living: null, family: [], pets: ["恐龍", "貓"] });
     expect(h.dwelling).toBe(SAMPLE_HOME.dwelling);
