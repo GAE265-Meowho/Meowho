@@ -121,12 +121,25 @@ describe("GET owner / keeper safety report", () => {
     expect(state.signed).toEqual([]);
   });
 
-  it("never signs old ready demo reports without a real PDF and JSON", async () => {
+  it("keeps P1 standalone demo items visible without signing any Blob URLs", async () => {
     state.report = { ...publishedReport(), pdf_path: null, json_path: null, attempt: null };
     const res = await GET(request(), ctx);
     const body = await res.json();
     expect(body.report.published).toBe(false);
-    expect(body.summary).toBeNull();
+    expect(body.report.demo).toBe(true);
+    expect(body.summary).toBe("已觀察到電線");
+    expect(body.items).toEqual([{ key: "cable", label: "電線", level: "high", note: "先整理", cropUrl: null }]);
+    expect(body.pdfUrl).toBeNull();
+    expect(state.signed).toEqual([]);
+  });
+
+  it("does not pass off an incomplete real attempt as a demo report", async () => {
+    state.report = { ...publishedReport(), pdf_path: null };
+    const body = await (await GET(request(), ctx)).json();
+    expect(body.report.published).toBe(false);
+    expect(body.report.demo).toBe(false);
+    expect(body.items).toEqual([]);
+    expect(body.pdfUrl).toBeNull();
     expect(state.signed).toEqual([]);
   });
 
