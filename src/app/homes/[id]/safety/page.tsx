@@ -14,15 +14,14 @@ import s from "@/components/me/me.module.css";
 import f from "@/components/onboarding/intake.module.css";
 import CatButton from "@/components/ui/CatButton";
 import Icon from "@/components/ui/Icon";
-import { SAFETY_ONLY_PRIVACY, SHOOTING_TIPS, demoReportRow, safetyRecords, type ReportRow } from "@/lib/home-room";
+import { SAFETY_ONLY_PRIVACY, SHOOTING_TIPS, safetyRecords, type ReportRow } from "@/lib/home-room";
+import { reportAttemptPrefix, validReportPdfPath } from "@/lib/home-safety/report-access";
+import { SafetyReportDetails } from "./SafetyReportDetails";
 import { getBrowserSupabase } from "@/lib/supabase/client";
 import r from "../scene/scene.module.css";
 import k from "./safety.module.css";
 
-type Row = ReportRow & { summary: string | null };
-type Item = { key?: string; label?: string; level?: string; note?: string };
-
-const LEVEL_LABEL: Record<string, string> = { high: "高風險", medium: "要注意", low: "低風險" };
+type Row = ReportRow & { summary: string | null; pdf_path: string | null; json_path: string | null; attempt: number | null };
 const day = (iso: string) => new Date(iso).toLocaleDateString("zh-TW", { year: "numeric", month: "long", day: "numeric" });
 
 export default function SafetyPage() {
@@ -32,13 +31,21 @@ export default function SafetyPage() {
   const [rows, setRows] = useState<Row[] | undefined>(undefined);
   const [picked, setPicked] = useState<string | null>(null);
   const [again, setAgain] = useState(false);
-  const [making, setMaking] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!sb) return;
-    const { data } = await sb.from("meow_env_reports").select("id, status, room_model_id, created_at, items, summary").eq("household_id", id).order("created_at", { ascending: false });
-    setRows((data ?? []) as Row[]);
+    const { data, error } = await sb.from("meow_env_reports")
+      .select("id, status, room_model_id, created_at, items, summary, pdf_path, json_path, attempt")
+      .eq("household_id", id).order("created_at", { ascending: false });
+    if (error) { setRows([]); return; }
+    // Hide legacy "ready" demo rows that have no actual Worker result.json/PDF.
+    // The report API checks the same contract before signing any private URL.
+    setRows(((data ?? []) as Row[]).filter(row => {
+      if (row.status !== "ready") return true;
+      const prefix = reportAttemptPrefix(id, row.id, row.attempt);
+      return validReportPdfPath(prefix, row.pdf_path)
+        && prefix !== null && row.json_path === prefix + "result.json";
+    }));
   }, [sb, id]);
 
   useEffect(() => {
@@ -46,20 +53,6 @@ export default function SafetyPage() {
     if (loading || !user) return;
     load();
   }, [loading, sb, user, load]);
-
-  // 「開始檢測」「上傳影片或照片」：目前直接產生示範報告，新報告加進檢測紀錄
-  async function check() {
-    setMaking(true); setError(null);
-    if (!sb) {
-      // 示範模式（沒有資料庫）：只在畫面上加一份
-      setRows(v => [{ id: crypto.randomUUID(), ...demoReportRow(id, null, new Date()) }, ...(v ?? [])]);
-    } else {
-      const res = await fetch(`/api/homes/${id}/safety`, { method: "POST" }).then(x => x.json()).catch(() => null);
-      if (!res?.reportId) { setError("安全檢測失敗，請再試一次。"); setMaking(false); return; }
-      await load();
-    }
-    setPicked(null); setAgain(false); setMaking(false);
-  }
 
   const records = rows ? safetyRecords(rows) : [];
   const busy = rows?.some(x => x.status === "queued" || x.status === "running") ?? false;
@@ -73,7 +66,7 @@ export default function SafetyPage() {
     </section>
   );
   else if (rows === undefined) body = <p className={f.lead} role="status">載入中…</p>;
-  else if (making || (busy && (again || !shown))) body = (
+  else if (busy && (again || !shown)) body = (
     <section className={`${f.card} ${f.center}`} role="status">
       <h2>正在產生你家的安全報告</h2>
       <p className={f.lead}>你可以先離開，好了會通知你。</p>
@@ -81,24 +74,12 @@ export default function SafetyPage() {
     </section>
   );
   else if (shown && !again) {
-    const items = (Array.isArray(shown.items) ? shown.items : []) as Item[];
     body = (
       <>
         <section className={f.card} aria-labelledby="report-title">
           <h2 id="report-title">{day(shown.created_at)}的安全報告</h2>
-          <p className={k.source}>{shown.source}・{shown.riskCount ? `${shown.riskCount} 個要注意的地方` : "沒有發現要注意的地方"}</p>
-          {shown.summary && <p className={f.lead}>{shown.summary}</p>}
-          {items.length > 0 && (
-            <ul className={k.items}>
-              {items.map((it, i) => (
-                <li key={it.key ?? i}>
-                  <b>{it.label ?? "風險項目"}</b>
-                  {it.level && LEVEL_LABEL[it.level] && <span className={k.level}>{LEVEL_LABEL[it.level]}</span>}
-                  {it.note && <p>{it.note}</p>}
-                </li>
-              ))}
-            </ul>
-          )}
+          <p className={k.source}>{shown.source}・{shown.riskCount} 項風險觀察</p>
+          <SafetyReportDetails householdId={id} reportId={shown.id} />
           <div className={f.actions}>
             {busy
               ? <CatButton disabled>安全檢測處理中</CatButton>
@@ -140,11 +121,9 @@ export default function SafetyPage() {
 
       {/* 單獨檢測前的說明是業務規則要求的聲明（決策 007），用一般內文字級 */}
       <p className={f.lead}>{SAFETY_ONLY_PRIVACY}</p>
-      {error && <p className={f.error} role="alert">{error}</p>}
-      {/* 錄影、上傳還沒接：兩個按鈕都直接產生示範報告 */}
+      <p className={f.lead}>單獨上傳檢測仍在整合中，現在不會產生示範報告。請先從「我的 3D 房間」上傳影片，系統完成後可回到此頁查看安全報告。</p>
       <div className={f.actions}>
-        <CatButton onClick={check}><Icon name="video" size={18} />開始檢測</CatButton>
-        <CatButton variant="ghost" onClick={check}><Icon name="plus" size={18} />上傳影片或照片</CatButton>
+        <CatButton href={"/homes/" + id + "/scene"}><Icon name="video" size={18} />前往我的 3D 房間</CatButton>
       </div>
       {again && <div className={f.actions}><CatButton variant="ghost" onClick={() => setAgain(false)}>回到報告</CatButton></div>}
     </>
