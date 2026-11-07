@@ -81,7 +81,20 @@ export default function SafetyPage() {
         <section className={f.card} aria-labelledby="report-title">
           <h2 id="report-title">{day(shown.created_at)}的安全報告</h2>
           <p className={k.source}>{shown.source}・{shown.riskCount ? `${shown.riskCount} 個要注意的地方` : "沒有發現要注意的地方"}</p>
-          <SafetyReportDetails householdId={id} reportId={shown.id} />
+          {!sb ? (
+            <div className={k.details}>
+              <p role="note"><b>示範報告（非真實 AI 分析）</b>：以下為預設範例，不代表你的居家環境已檢測。</p>
+              {shown.summary && <p>{shown.summary}</p>}
+              <ul className={k.items}>
+                {(Array.isArray(shown.items) ? shown.items as Array<{ key?: string; label?: string; level?: string; note?: string }> : []).map((item, i) => (
+                  <li key={item.key ?? i}>
+                    <b>{item.label ?? "示範項目"}</b>
+                    {item.note && <p>{item.note}</p>}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : <SafetyReportDetails householdId={id} reportId={shown.id} />}
           <div className={f.actions}>
             {busy
               ? <CatButton disabled>安全檢測處理中</CatButton>
