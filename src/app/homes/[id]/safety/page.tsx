@@ -1,11 +1,6 @@
 "use client";
-// 居家安全檢測（規格 09 v0.6 §7.2、§8；#62）：
-// - 有產生好的報告（喵戶卡片的「查看報告」）：顯示最新一份，下方列出檢測紀錄（日期、來源、風險項目數量），可點選看舊的；「再檢測一次」走單獨檢測。
-// - 還沒有報告：單獨檢測的畫面，只做檢查、不建 3D 房間。
-// ⚠ 單獨檢測的上傳與 AI 風險偵測後端還沒做：按鈕直接產生一份示範報告（/api/homes/[id]/safety，內容在 lib/home-room.ts）。
-//   接上時：原始檔放私有 bucket `meow-home-videos`，伺服器建 `meow_env_reports`（room_model_id = null、status = 'queued'），
-//   產生報告與風險裁切照（`meow-home-risk-crops`）後，成功或失敗都立即刪除原始檔（決策 007）。舊報告不覆蓋，每份都留成檢測紀錄。
-// 報告只有本人讀得到（RLS），分享給中途要在對話串主動分享（meow_share_env_report）。
+// v0.5：只列出已發布的 Worker 報告。摘要、裁切照、私有 PDF 皆經安全報告 API 讀取。
+// 單獨檢測的 Azure 上傳仍待 #263/#274 整合；不得產生假 ready 報告。
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/components/Auth";
@@ -134,7 +129,7 @@ export default function SafetyPage() {
       <SiteHeader />
       <main className={s.page}>
         <h1 className={f.title}>居家安全檢測</h1>
-        {!sb && <p className={f.warn}>示範模式：還沒連接資料庫，報告不會儲存。</p>}
+        {!sb && <p className={f.warn}>目前未連接資料庫，無法讀取或建立安全報告。</p>}
         {body}
       </main>
       <TabBar />
