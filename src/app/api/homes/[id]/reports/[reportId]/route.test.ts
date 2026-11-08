@@ -93,11 +93,12 @@ describe("GET owner / keeper safety report", () => {
     expect(res.status).toBe(200);
     expect(res.headers.get("cache-control")).toContain("no-store");
     expect(body.report.published).toBe(true);
-    expect(body.pdfUrl).toContain("report.pdf");
-    expect(body.items[0].cropUrl).toContain("cable.jpg");
-    expect(state.signed).toEqual([PATH + "crops/cable.jpg", PATH + "report.pdf"]);
+    expect(body.pdfUrl).toBe("/api/homes/" + HOME + "/reports/" + ID + "/pdf");
+    expect(body.items[0].cropUrl).toBe("/api/homes/" + HOME + "/reports/" + ID + "/crops/cable");
+    expect(state.signed).toEqual([]);
     expect(JSON.stringify(body)).not.toContain("crop_path");
     expect(JSON.stringify(body)).not.toContain("json_path");
+    expect(JSON.stringify(body)).not.toContain("private.invalid");
   });
 
   it("lets a verified keeper read summary/crops but not PDF", async () => {
@@ -108,7 +109,7 @@ describe("GET owner / keeper safety report", () => {
     expect(res.status).toBe(200);
     expect(body.summary).toBe("已觀察到電線");
     expect(body.pdfUrl).toBeNull();
-    expect(state.signed).toEqual([PATH + "crops/cable.jpg"]);
+    expect(state.signed).toEqual([]);
   });
 
   it("does not sign paths from another report or attempt", async () => {
@@ -163,6 +164,16 @@ describe("GET owner / keeper safety report", () => {
     ] };
     const res = await GET(request(), ctx);
     expect((await res.json()).items[0].cropUrl).toBeNull();
-    expect(state.signed).toEqual([PATH + "report.pdf"]);
+    expect(state.signed).toEqual([]);
+  });
+
+  it.each(["queued", "running", "failed"])("does not return asset URLs while %s", async status => {
+    state.report = { ...publishedReport(), status };
+    const res = await GET(request(), ctx);
+    const body = await res.json();
+    expect(res.status).toBe(200);
+    expect(body.pdfUrl).toBeNull();
+    expect(body.items).toEqual([]);
+    expect(state.signed).toEqual([]);
   });
 });

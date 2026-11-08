@@ -75,7 +75,6 @@ export default function SafetyPage() {
     </section>
   );
   else if (shown && !again) {
-    const items = (Array.isArray(shown.items) ? shown.items : []) as Item[];
     body = (
       <>
         <section className={f.card} aria-labelledby="report-title">

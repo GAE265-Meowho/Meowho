@@ -94,13 +94,16 @@
 - 領養任務：`meow_task_templates`（系統預設任務，依年齡層）、`meow_cat_task_sets`（中途草稿）、`meow_cat_task_versions`（存了就不改）
 - 進行任務：`meow_task_runs`（進度、試養報告）、`meow_task_abandons`（放棄任務標籤，只有中途讀得到）
 - 我的 3D 房間：`meow_room_models`（`owner_household_id`、`completed_at`、`raw_deleted_at`；`env_check` 11/04 起不再使用，之後的 migration 再移除）；私有 bucket `meow-home-videos`、`meow-home-scenes`
-- 環境報告：`meow_env_reports`、`meow_env_report_shares`、`meow_env_report_advice`；私有 bucket `meow-home-risk-crops`。同一個喵戶可以有多份（檢測紀錄），單獨檢測的 `room_model_id` 為 null
+- 環境報告：`meow_env_reports`、`meow_env_report_shares`、`meow_env_report_advice`；Worker 的 `result.json`、`report.pdf`、裁切圖保存於私有 Azure Blob 容器（測試 `media-dev`／正式 `media`）的 attempt prefix，資料庫只存路徑。同一個喵戶可以有多份（檢測紀錄），單獨檢測的 `room_model_id` 為 null。
 
 ## API／主要函式
 - 0017：`meow_save_cat_tasks()`、`meow_publish_cat()`、`meow_cat_publish_check()`、`meow_start_task_run()`、`meow_abandon_task_run()`、`meow_complete_task_run()`、`meow_share_task_proof()`、`meow_thread_task_status()`、`meow_finish_home_room()`、`meow_share_env_report()`
+- 安全報告（#277，Draft）：`GET /api/homes/[id]/reports/[reportId]` 以使用者 session/RLS 驗證本人或已分享的中途，只回摘要、項目、同源裁切圖 URL 與本人專用的同源 PDF URL；`GET .../[reportId]/pdf` 與 `GET .../[reportId]/crops/[key]` 每次重新授權後 redirect 至短效 Blob URL。PDF 直送 Azure，不經 Vercel Function。回傳格式與環境容器選擇見 `docs/spec/10_居家環境健檢Worker契約.md` §5.1。
+- Storage Adapter：`getMediaStore().readUrl()` 使用部署設定的單一 `AZURE_STORAGE_CONTAINER`；測試／Preview 應為 `media-dev`，正式為 `media`。不得自動跨容器 fallback。共用 Supabase 下，真實報告只可由指向 `media-dev` 且具有合法 owner session 的測試環境讀取。
 - 待建立：環境影片風險偵測、情境劇本 AI 生成、任務 AI 摘要、Demo 加速模式
 
 ## 主要檔案
+- 安全報告：`src/app/api/homes/[id]/reports/[reportId]/route.ts`、`pdf/route.ts`、`crops/[key]/route.ts`、`src/app/homes/[id]/safety/SafetyReportDetails.tsx`、`src/lib/home-safety/report-access.ts`
 - `src/components/Sections.tsx`（`TrialBoard`、`Steps`）
 - 虛擬飼養 DEMO（#237）：`src/app/cats/[id]/play/page.tsx`、`src/components/play/`（`PlayGame` 流程、`PlayStage` 3D、`RoomStep`、`ShopStep`、`NodeStep`、`ReportStep`、`catgame/` 原版小遊戲）、`src/lib/play/`（`flow.ts` 狀態機、`story.ts` 劇情、`events.ts` 意外、`furniture.ts` 通稱、`hazards.ts`、`costs.ts`、`room.ts`、`stage.ts`、`background.ts`、`lines.ts`、`report.ts`、`items.ts`、`cats.ts`、`api.ts`、`handlers.ts`）、`src/app/api/play/{hazards,lines,advice}/route.ts`、`src/lib/ai/play.ts`、`src/lib/prompts/play.ts`
 - `requirement/catsafe_ar_README.md`（團隊 AR 模組草稿，未放入 repo）

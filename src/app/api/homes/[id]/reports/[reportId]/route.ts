@@ -3,7 +3,7 @@ import { getServerSupabase } from "@/lib/supabase/server";
 import { getMediaStore } from "@/lib/storage/server";
 import {
   isReportUuid, parseReportItems, reportAttemptPrefix,
-  REPORT_READ_TTL_SECONDS, validReportCropPath, validReportPdfPath,
+  validReportCropPath, validReportPdfPath,
 } from "@/lib/home-safety/report-access";
 
 // One endpoint for safety page, adoption tasks and shared report viewers.
@@ -87,29 +87,24 @@ export async function GET(_req: Request, { params }: Context) {
   const store = getMediaStore();
   if (!store) return json({ error: "media_unavailable" }, 503);
 
-  try {
-    const parsedItems = parseReportItems(report.items);
-    const [items, pdfUrl] = await Promise.all([
-      Promise.all(parsedItems.map(async item => {
-        const cropUrl = validReportCropPath(prefix, item.key, item.cropPath)
-          ? await store.readUrl(item.cropPath, REPORT_READ_TTL_SECONDS)
-          : null;
-        // Internal path stays server-side.
-        return { key: item.key, label: item.label, level: item.level, note: item.note, cropUrl };
-      })),
-      // PDF only for the household owner. Keepers see summary/crops only.
-      isOwner ? store.readUrl(report.pdf_path, REPORT_READ_TTL_SECONDS) : Promise.resolve(null),
-    ]);
+  const parsedItems = parseReportItems(report.items);
+  const items = parsedItems.map(item => ({
+    key: item.key, label: item.label, level: item.level, note: item.note,
+    // Return only a same-origin capability URL. The crop route rechecks the
+    // current user and report share before redirecting to a short-lived Blob URL.
+    cropUrl: validReportCropPath(prefix, item.key, item.cropPath)
+      ? `/api/homes/${encodeURIComponent(householdId)}/reports/${encodeURIComponent(reportId)}/crops/${encodeURIComponent(item.key)}`
+      : null,
+  }));
+  const pdfUrl = isOwner
+    ? `/api/homes/${encodeURIComponent(householdId)}/reports/${encodeURIComponent(reportId)}/pdf`
+    : null;
 
-    return json({
-      report: { ...base, published: true, demo: false },
-      summary: typeof report.summary === "string" ? report.summary : "",
-      warnings: Array.isArray(report.warnings) ? report.warnings : [],
-      items,
-      pdfUrl,
-    });
-  } catch {
-    // Do not leak storage keys, signed URLs, or internal SDK errors.
-    return json({ error: "media_unavailable" }, 503);
-  }
+  return json({
+    report: { ...base, published: true, demo: false },
+    summary: typeof report.summary === "string" ? report.summary : "",
+    warnings: Array.isArray(report.warnings) ? report.warnings : [],
+    items,
+    pdfUrl,
+  });
 }

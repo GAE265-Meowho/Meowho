@@ -1,9 +1,10 @@
 # HANDOFF — 接手的 agent 需要知道的事
 
 > 寫給「完全沒有上下文的下一個 agent」。只保留**現在仍然成立**的內容。
-> 最後更新：2026-11-06｜Tina × Cursor（#239 幼貓坐下）
+> 最後更新：2026-11-08｜Jerry0808 × Codex（#273 C＋D）
 
 ## 目前狀態
+- **WelfareLens 報告 API／PDF-first 安全評估頁（#273 C＋D，Jerry0808 × Codex，進行中）**：沿用 Draft PR #277、`feat/273-env-report-view`。摘要 API 僅回同源受控資源路由；PDF 和裁切照路由每次驗證後 redirect 到短效 Blob URL；PDF 限喵戶本人，keeper 只能讀已分享摘要／裁切照。文件契約 v0.6 已補 API 格式與測試/正式容器邊界，未改 Worker Schema 或 `0031`。離線測試含本次 35 項相關測試通過；完整 `npm test` 1089 PASS、1 個既有 `src/lib/play/cats.test.ts` 幼貓索引失敗（其餘檔案操作測試須把 TMP 指到工作區）；typecheck PASS、lint 0 errors。`build` 受限於 Google Fonts DNS/連線；手機與真實 Supabase/Azure owner session 尚未驗證。下一步：取得網路可用的建置環境與合法測試 session，完成 build、手機與真實 Blob 驗收後更新 #277 審查狀態。
 - **#239 幼貓坐下（Tina × Cursor，審查中）**：分支 `feat/239-kitten-sit-clip`。幼貓 `base_clips_kitten.glb` 含 idle／walk／sleep／sit（Meow `cat_base_kitten/stepC_clips.py`）；`clips.ts` 的 `clipPupil("sit","kitten")=0.67`，CatPage／BaseLab 切動作時套用。**合併後要上傳 Storage** `meow-cat-models/base/v1/base_clips_kitten.glb`。Meow 不是 git repo，腳本只在 Tina 電腦。
 - **#259 平面圖轉換重複戶名（Tina × Cursor，已合併 #261）**：`0029_meow_room_floorplan_name_unique.sql`（既有重複改名不刪＋`source='floorplan'` partial unique index），INSERT 撞 index 回 `name_taken`。**0029 執行前須 Tina 確認**。
 - **#237 虛擬飼養 DEMO（渝茜 × Claude Code，審查中）**：PR #244、分支 `feat/237-catgame-demo`。`/cats/[id]/play`（DEMO 固定麻糬、虎斑），流程與真的接上／備案對照見 `docs/modules/readiness.md`「虛擬飼養 DEMO」。邏輯在 `src/lib/play/`（純函式＋測試），畫面在 `src/components/play/`，AI 在 `/api/play/{hazards,lines,advice}`。
