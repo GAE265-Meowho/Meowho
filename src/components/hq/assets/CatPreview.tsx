@@ -23,16 +23,21 @@ export const DEFAULT_TARGET: [number, number, number] = [0, 0.23, 0];
 // 對齊 cat_base/stepC_clips.py 預覽：target≈(0,0.06,-0.02)、斜前相機
 export const SLEEP_CAMERA: [number, number, number] = [1.05, 0.45, 0.7];
 export const SLEEP_TARGET: [number, number, number] = [0, 0.08, 0];
+/** 坐下身體變矮：拉近並把視線放在身體中段，避免貓腳下方留一大塊空白 */
+export const SIT_CAMERA: [number, number, number] = [0.72, 0.38, 0.72];
+export const SIT_TARGET: [number, number, number] = [0, 0.16, 0];
 
 /** 幼貓母體體長約 0.22 m（成貓約 0.45 m）：相機、目標照比例縮小，不然幼貓縮在畫面下方 */
 const KITTEN_SCALE = 0.5;
 export function framing(body: BodyType, clip?: string | null) {
   const s = body === "kitten" ? KITTEN_SCALE : 1;
   const scale = (v: [number, number, number]) => v.map(x => x * s) as [number, number, number];
-  const sleep = clip === "sleep";
+  const pose = clip === "sleep" ? "sleep" : clip === "sit" ? "sit" : "stand";
+  const camera = pose === "sleep" ? SLEEP_CAMERA : pose === "sit" ? SIT_CAMERA : DEFAULT_CAMERA;
+  const target = pose === "sleep" ? SLEEP_TARGET : pose === "sit" ? SIT_TARGET : DEFAULT_TARGET;
   return {
-    camera: scale(sleep ? SLEEP_CAMERA : DEFAULT_CAMERA),
-    target: scale(sleep ? SLEEP_TARGET : DEFAULT_TARGET),
+    camera: scale(camera),
+    target: scale(target),
     minDistance: 0.3 * s,
     maxDistance: 3 * s,
   };

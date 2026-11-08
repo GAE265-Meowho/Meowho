@@ -298,6 +298,10 @@
 .hq-catpage { display: grid; grid-template-columns: minmax(0, 7fr) minmax(300px, 3fr); gap: 1rem; min-height: 420px; }
 .hq-catstage { display: flex; flex-direction: column; gap: .6rem; min-width: 0; min-height: 0; }
 .hq-catstage .hq-canvas { flex: 1; height: auto; min-height: 0; }
+/* 貓咪頁的 3D 預覽不拉滿整欄，避免貓腳下方留下大塊空白 */
+.hq-catstage .hq-canvas.hq-catlive { flex: none; height: min(380px, 46dvh); min-height: 240px; }
+.hq-catstage .hq-texture-preview { max-width: 280px; }
+.hq-catstage .hq-texture-preview img { width: 100%; max-height: 240px; }
 .hq-catside { display: flex; flex-direction: column; gap: .75rem; min-width: 0; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding-right: .25rem; }
 .hq-group { flex: none; border: 1px solid var(--hq-line); border-radius: 10px; background: var(--hq-card); }
 .hq-group > summary { cursor: pointer; min-height: 44px; padding: .6rem .85rem; font-weight: 600; font-size: .98rem; }

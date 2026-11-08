@@ -47,20 +47,27 @@ function GeneratedViews({ cat }: { cat: CatModelView }) {
   );
 }
 
-/** 3D 預覽目前使用的紋理貼圖 */
-function TextureCard({ url, body }: { url: string | null; body: BodyType }) {
+/** 中間欄的紋理預覽：預設收合，展開才看目前體型的貼圖 */
+function TextureFold({ url, body }: { url: string | null; body: BodyType }) {
+  const [open, setOpen] = useState(false);
   return (
-    <PanelGroup title="貓咪紋理">
-      {url ? (
-        <figure className="hq-texture-preview" style={{ margin: 0 }}>
-          <a href={url} target="_blank" rel="noreferrer" aria-label="放大看紋理貼圖">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={url} alt={`${BODY_LABELS[body]}紋理貼圖`} />
-          </a>
-          <figcaption>{BODY_LABELS[body]}・目前使用・點圖放大</figcaption>
-        </figure>
-      ) : <p className="hq-hint">還沒有{BODY_LABELS[body]}的紋理貼圖。</p>}
-    </PanelGroup>
+    <details className="hq-group" open={open} onToggle={e => {
+      const next = e.currentTarget.open;
+      setOpen(value => value === next ? value : next);
+    }}>
+      <summary>貓咪紋理</summary>
+      <div className="hq-group-body">
+        {url ? (
+          <figure className="hq-texture-preview" style={{ margin: 0 }}>
+            <a href={url} target="_blank" rel="noreferrer" aria-label="放大看紋理貼圖">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={url} alt={`${BODY_LABELS[body]}紋理貼圖`} />
+            </a>
+            <figcaption>{BODY_LABELS[body]}・目前使用・點圖放大</figcaption>
+          </figure>
+        ) : <p className="hq-hint">還沒有{BODY_LABELS[body]}的紋理貼圖。</p>}
+      </div>
+    </details>
   );
 }
 
@@ -135,10 +142,10 @@ function Preview({ cat }: { cat: CatModelView }) {
           )}
         </PanelGroup>
         <GeneratedViews cat={cat} />
-        <TextureCard url={texture?.preview ? albedoUrl : null} body={body} />
       </section>
 
       <section className="hq-catstage" aria-label="3D 預覽">
+        <TextureFold url={texture?.preview ? albedoUrl : null} body={body} />
         {cat.variantStorage && <BodySwitch label="預覽體型" value={body} onChange={selectBody} />}
         {/* #118：還沒製作 glb 時不載入骨架示範貓；CatPage 會直接轉到製作glb工作區，這裡只是轉頁前的過渡 */}
         {!ready ? (
@@ -156,7 +163,7 @@ function Preview({ cat }: { cat: CatModelView }) {
                 <p className="hq-hint">{failed}。請確認{BODY_LABELS[body]}骨架 glb 已上傳（本機：CAT_STUDIO_ROOT 底下的 {body === "kitten" ? "cat_base_kitten" : "cat_base"}/work/base_clips.glb）。</p>
               </div>
             ) : (
-              <div className="hq-canvas" data-testid="cat-canvas">
+              <div className="hq-canvas hq-catlive" data-testid="cat-canvas">
                 <CatPreview
                   key={viewKey} baseUrl={baseGlbUrl(body)} body={body} albedoUrl={albedoUrl} clip={clip}
                   speed={speed} paused={paused} blink={blink} pupil={pupil} light={light} follow={follow}
