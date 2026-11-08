@@ -6,6 +6,7 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getAdminSupabase } from "@/lib/supabase/admin";
 import { getServerSupabase } from "@/lib/supabase/server";
+import { after } from "next/server";
 import { ImageGenError, imageConfig } from "@/lib/ai/image";
 import { azureEdit, failAll, generateViews } from "./ai-views";
 import { analyzeAge } from "./ai-analyze";
@@ -241,7 +242,9 @@ async function settleGenerated(sb: SupabaseClient, onlyId?: string): Promise<voi
 export async function sbListCats(): Promise<CatModelView[]> {
   const sb = await client();
   if (!sb) return [];
-  await settleGenerated(sb);
+  // 採用貼圖、自動排紋理貼圖要對每隻貓依序跑好幾次資料庫來回（貓多時 10 秒以上），放到回應之後背景執行，
+  // 不擋清單讀取（#285）。結果在下次開清單或貓咪頁時看到
+  after(() => settleGenerated(sb));
   // 帶出建立者；萬一關聯查詢失敗（例如 schema cache 還沒更新），退回不帶建立者，列表不能因此變空
   let { data, error } = await sb.from("meow_cat_models").select(WITH_HOUSEHOLD).order("updated_at", { ascending: false });
   if (error) ({ data, error } = await sb.from("meow_cat_models").select(WITH_CREATOR).order("updated_at", { ascending: false }));
