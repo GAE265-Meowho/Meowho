@@ -22,7 +22,8 @@ export const CLIP_LIBRARY: readonly ClipDef[] = [
   { code: "eat", label: "吃飯", status: "planned" },
   { code: "toilet", label: "上廁所", status: "planned" },
   { code: "cuddle", label: "撒嬌", status: "planned" },
-  { code: "jump", label: "跳躍", status: "ready" },
+  { code: "jump_a", label: "跳躍-(下往上跳) A", status: "ready" },
+  { code: "jump_b", label: "跳躍-(往前跳) B", status: "ready" },
   { code: "rest", label: "休息", status: "planned" },
   { code: "groom", label: "理毛", status: "planned" },
 ];
