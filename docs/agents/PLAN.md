@@ -19,7 +19,8 @@
 ## 任務（tracer-bullet，每張可獨立 Demo）
 
 - 虛擬飼養 DEMO（#237，渝茜 × Claude Code，2026-11-06）：審查中；PR #244、分支 `feat/237-catgame-demo`。`/cats/[id]/play` 3 個節點、AI 危險／台詞／建議（規則備案）、採買花費、3D 娃娃屋擺用品、小遊戲、試養報告；Azure／喵戶讀取／遠端 GLB／掃描房間未在沙盒實測。
-- 貓咪頁預覽改正方形、紋理移到預覽下方（#289，Tina × Claude Code，2026-11-08）：審查中；分支 `feat/289-catpage-square-preview`。
+- 跳躍 B 加往前位移、跳躍預覽鏡頭拉遠（#291，Tina × Claude Code，2026-11-08）：審查中；分支 `fix/291-jump-b-forward`。
+- 貓咪頁預覽改正方形、紋理移到預覽下方（#289，Tina × Claude Code，2026-11-08）：完成（PR #290 已合併）。
 - 幼貓新增跳躍（#287，Tina × Claude Code，2026-11-08）：完成（PR #288 已合併）。幼貓母體多 `jump_a`（跳躍-(下往上跳) A）、`jump_b`（跳躍-(往前跳) B），動作庫兩個都 ready。
 - 貓咪清單載入很慢（#285，Tina × Claude Code，2026-11-08）：完成（PR #286 已合併；清單 13.5 秒 → 2～3 秒）；分支 `fix/285-cat-list-slow`。`sbListCats` 的自動採用／排程改到 `after()` 背景執行。
 - 幼貓坐下重做（#283，Tina × Claude Code，2026-11-08）：完成（PR #284 已合併；Storage 沒有幼貓檔，直接用 repo 版）；分支 `fix/283-kitten-sit-redo`。對齊 360° 驗收 GIF，換 `base_clips_kitten.glb`；合併後上傳 Storage 幼貓 GLB。
