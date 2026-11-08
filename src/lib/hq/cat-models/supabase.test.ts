@@ -44,8 +44,11 @@ function fakeClient() {
 
 vi.mock("@/lib/supabase/server", () => ({ getServerSupabase: async () => fakeClient() }));
 vi.mock("@/lib/supabase/admin", () => ({ getAdminSupabase: () => null }));
+/** next/server 的 after()：記下背景工作，測試自己決定何時執行 */
+const afterTasks: (() => unknown)[] = [];
+vi.mock("next/server", () => ({ after: (task: () => unknown) => { afterTasks.push(task); } }));
 
-const { sbStartViews, sbCreateCat, sbPhotoUpload, sbQueuePaint, sbRestore, sbConfirmTexture, sbAutoPaint, sbBackfillPaint, sbGetCat } = await import("./supabase");
+const { sbStartViews, sbCreateCat, sbPhotoUpload, sbQueuePaint, sbRestore, sbConfirmTexture, sbAutoPaint, sbBackfillPaint, sbGetCat, sbListCats } = await import("./supabase");
 /** 找寫入某個欄位的 update（同一次操作可能有好幾筆 update） */
 const updateWith = (key: string) => calls.find(c => c.op === "update" && key in (c.args[0] as object))?.args[0] as Record<string, unknown> | undefined;
 
@@ -369,5 +372,18 @@ describe("sbRestore（改用上一版）", () => {
     expect(await sbRestore(ID, "顏色不對")).toEqual({ ok: true });
     expect(calls.find(c => c.op === "update")?.args[0]).toMatchObject({ albedo_path: "b.png", prev_albedo_path: "a.png", base_version: null });
     expect(calls.find(c => c.op === "rpc")?.args[1]).toMatchObject({ p_action: "restore_texture", p_reason: "顏色不對" });
+  });
+});
+
+describe("sbListCats 不被自動採用／排程卡住（#285）", () => {
+  beforeEach(() => { calls.length = 0; afterTasks.length = 0; modelRow = null; jobRows = []; });
+
+  it("清單先回傳，採用貼圖與自動排程放到 after() 背景執行", async () => {
+    variantRows = [{ model_id: ID, body_type: "kitten", albedo_path: `${ID}/albedo_kitten.png`, confirmed_albedo: null }];
+    await sbListCats();
+    expect(calls.some(c => c.op === "update")).toBe(false);
+    expect(afterTasks).toHaveLength(1);
+    await afterTasks[0]();
+    expect(updateWith("confirmed_albedo")).toMatchObject({ confirmed_albedo: `${ID}/albedo_kitten.png` });
   });
 });
