@@ -23,6 +23,9 @@ export const DEFAULT_TARGET: [number, number, number] = [0, 0.23, 0];
 // 對齊 cat_base/stepC_clips.py 預覽：target≈(0,0.06,-0.02)、斜前相機
 export const SLEEP_CAMERA: [number, number, number] = [1.05, 0.45, 0.7];
 export const SLEEP_TARGET: [number, number, number] = [0, 0.08, 0];
+/** 跳躍（#291）：最高離地約一個身高、B 還會往前撲約一個體長，鏡頭拉遠、目標提高，整段都在畫面內 */
+export const JUMP_CAMERA: [number, number, number] = [1.3, 0.75, 1.3];
+export const JUMP_TARGET: [number, number, number] = [0, 0.34, 0];
 
 /** 幼貓母體體長約 0.22 m（成貓約 0.45 m）：相機、目標照比例縮小，不然幼貓縮在畫面下方 */
 const KITTEN_SCALE = 0.5;
@@ -30,9 +33,10 @@ export function framing(body: BodyType, clip?: string | null) {
   const s = body === "kitten" ? KITTEN_SCALE : 1;
   const scale = (v: [number, number, number]) => v.map(x => x * s) as [number, number, number];
   const sleep = clip === "sleep";
+  const jump = clip?.startsWith("jump") ?? false;
   return {
-    camera: scale(sleep ? SLEEP_CAMERA : DEFAULT_CAMERA),
-    target: scale(sleep ? SLEEP_TARGET : DEFAULT_TARGET),
+    camera: scale(sleep ? SLEEP_CAMERA : jump ? JUMP_CAMERA : DEFAULT_CAMERA),
+    target: scale(sleep ? SLEEP_TARGET : jump ? JUMP_TARGET : DEFAULT_TARGET),
     minDistance: 0.3 * s,
     maxDistance: 3 * s,
   };
@@ -215,7 +219,7 @@ function Exposure({ light }: { light: number }) {
 export default function CatPreview(props: CatPreviewProps & { onError?: (e: Error) => void }) {
   const { light = 1, onError, body = "adult", clip = null, ...rest } = props;
   const view = framing(body, clip);
-  // clip 改變時重建 Canvas，才能套用 sleep／站姿不同的預設取景
+  // clip 改變時重建 Canvas，才能套用 sleep／跳躍／站姿不同的預設取景
   return (
     <Canvas
       key={`${body}-${clip ?? "none"}`}
