@@ -26,6 +26,16 @@ export const SLEEP_TARGET: [number, number, number] = [0, 0.08, 0];
 /** 跳躍（#291）：最高離地約一個身高、B 還會往前撲約一個體長，鏡頭拉遠、目標提高，整段都在畫面內 */
 export const JUMP_CAMERA: [number, number, number] = [1.3, 0.75, 1.3];
 export const JUMP_TARGET: [number, number, number] = [0, 0.34, 0];
+/** 跳躍 C（#293）：從櫃子往下跳，要看得到櫃面與落地點 */
+export const DOWN_CAMERA: [number, number, number] = [1.9, 1.1, 1.9];
+export const DOWN_TARGET: [number, number, number] = [0, 0.4, -0.16];
+/** 跳躍 C 的櫃子（glTF 座標、公尺；貓面向 +Z）。和 Meow/cat_base_kitten/stepC_clips.py 的 DOWN_HEIGHT 0.32、
+ *  起跳點（往後 0.13 m）一致：櫃面高 0.32、前緣在 z = -0.06，貓前腳站在櫃子邊 */
+export const CABINET = { position: [0, 0.16, -0.26] as [number, number, number], size: [0.4, 0.32, 0.4] as [number, number, number], color: "#b08a64" };
+/** 這個動作要不要畫道具（目前只有幼貓跳躍 C 的櫃子） */
+export function propFor(clip: string | null | undefined, body: BodyType) {
+  return clip === "jump_c" && body === "kitten" ? CABINET : null;
+}
 
 /** 幼貓母體體長約 0.22 m（成貓約 0.45 m）：相機、目標照比例縮小，不然幼貓縮在畫面下方 */
 const KITTEN_SCALE = 0.5;
@@ -33,10 +43,11 @@ export function framing(body: BodyType, clip?: string | null) {
   const s = body === "kitten" ? KITTEN_SCALE : 1;
   const scale = (v: [number, number, number]) => v.map(x => x * s) as [number, number, number];
   const sleep = clip === "sleep";
+  const down = clip === "jump_c";
   const jump = clip?.startsWith("jump") ?? false;
   return {
-    camera: scale(sleep ? SLEEP_CAMERA : jump ? JUMP_CAMERA : DEFAULT_CAMERA),
-    target: scale(sleep ? SLEEP_TARGET : jump ? JUMP_TARGET : DEFAULT_TARGET),
+    camera: scale(sleep ? SLEEP_CAMERA : down ? DOWN_CAMERA : jump ? JUMP_CAMERA : DEFAULT_CAMERA),
+    target: scale(sleep ? SLEEP_TARGET : down ? DOWN_TARGET : jump ? JUMP_TARGET : DEFAULT_TARGET),
     minDistance: 0.3 * s,
     maxDistance: 3 * s,
   };
@@ -219,6 +230,7 @@ function Exposure({ light }: { light: number }) {
 export default function CatPreview(props: CatPreviewProps & { onError?: (e: Error) => void }) {
   const { light = 1, onError, body = "adult", clip = null, ...rest } = props;
   const view = framing(body, clip);
+  const prop = propFor(clip, body);
   // clip 改變時重建 Canvas，才能套用 sleep／跳躍／站姿不同的預設取景
   return (
     <Canvas
@@ -235,6 +247,12 @@ export default function CatPreview(props: CatPreviewProps & { onError?: (e: Erro
       <PreviewBoundary onError={e => onError?.(e)}>
         <Suspense fallback={null}>
           <CatModel {...rest} body={body} clip={clip} />
+          {prop && (
+            <mesh position={prop.position}>
+              <boxGeometry args={prop.size} />
+              <meshStandardMaterial color={prop.color} roughness={0.8} />
+            </mesh>
+          )}
         </Suspense>
       </PreviewBoundary>
       <OrbitControls target={view.target} enableDamping minDistance={view.minDistance} maxDistance={view.maxDistance} />

@@ -1,6 +1,6 @@
 // 貓咪預覽取景（#291）：跳躍動作鏡頭拉遠、目標提高，整段跳躍都在畫面內
 import { describe, expect, it } from "vitest";
-import { framing } from "./CatPreview";
+import { CABINET, framing, propFor } from "./CatPreview";
 
 const dist = (v: { camera: number[]; target: number[] }) => Math.hypot(...v.camera.map((c, i) => c - v.target[i]));
 
@@ -19,5 +19,23 @@ describe("framing", () => {
   it("其他動作維持原本取景", () => {
     expect(framing("kitten", "walk")).toEqual(framing("kitten", null));
     expect(framing("kitten", "sleep").target[1]).toBeLessThan(framing("kitten", null).target[1]);
+  });
+});
+
+describe("跳躍 C 櫃子（#293）", () => {
+  it("只有 jump_c 畫櫃子；尺寸和 stepC_clips.py 一致（高 0.32 m，前緣在貓起跳點前方）", () => {
+    expect(propFor("jump_c", "kitten")).toEqual(CABINET);
+    expect(propFor("jump_b", "kitten")).toBeNull();
+    expect(propFor("jump_c", "adult")).toBeNull();
+    expect(CABINET.size[1]).toBeCloseTo(0.32);
+    // glTF 座標：貓面向 +Z；櫃子在貓後方（z 為負），櫃面頂端 = 高度
+    expect(CABINET.position[1] + CABINET.size[1] / 2).toBeCloseTo(0.32);
+    expect(CABINET.position[2] + CABINET.size[2] / 2).toBeLessThan(0);
+  });
+  it("jump_c 鏡頭比其他跳躍更遠，看得到櫃子與落地點", () => {
+    const c = framing("kitten", "jump_c");
+    const b = framing("kitten", "jump_b");
+    expect(dist(c)).toBeGreaterThan(dist(b));
+    expect(c.maxDistance).toBeGreaterThanOrEqual(dist(c));
   });
 });
