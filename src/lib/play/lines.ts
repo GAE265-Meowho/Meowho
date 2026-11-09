@@ -33,13 +33,13 @@ export function ruleLines(ctx: LinesContext): Line[] {
   const places = { hide: homeWord("躲藏處", ctx.labels) ?? "角落", sofa: homeWord("高處", ctx.labels) ?? "窗台" };
   const fam = home.family;
   const out: Line[] = [];
-  if (ctx.nodeId === "first-day") {
+  if (ctx.nodeId === "day1") {
     if (has(home.pets, "狗")) out.push({ speaker: "家裡的狗", text: `家裡的狗聞到新味道，在房門口走來走去。你先把牠們隔開，讓兩邊從交換氣味開始認識。` });
     else if (has(home.pets, "貓")) out.push({ speaker: N, text: `原本的貓隔著門低吼了一聲。你決定先讓${c}待在這個房間，等兩隻都習慣彼此的味道再見面。` });
     if (has(fam, "小孩")) out.push({ speaker: "小孩", text: `「牠好小喔！」小孩蹲在旁邊，你提醒他小聲一點，等${c}自己走過來。` });
     else if (fam.length) out.push({ speaker: fam[0], text: `${fam[0]}探頭看了看${places.hide}：「牠會不會一直都不出來？」你說：「給牠一點時間。」` });
     else out.push({ speaker: N, text: `${home.dwelling}的晚上很安靜，只有你和${c}。你把燈調暗一點，讓牠安心。` });
-  } else if (ctx.nodeId === "five-years") {
+  } else if (ctx.nodeId === "year5") {
     if (has(fam, "長輩")) out.push({ speaker: "長輩", text: `長輩每天早上都會跟${c}說早安，牠也會跑過去蹭蹭腳。` });
     else if (fam.length) out.push({ speaker: fam[0], text: `「${c}今天又霸佔${places.sofa}了。」${fam[0]}笑著說，乖乖坐到旁邊。` });
     if (home.pets.length) out.push({ speaker: N, text: `五年下來，${c}和家裡的${home.pets[0]}已經會一起曬太陽了。` });

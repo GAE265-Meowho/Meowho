@@ -18,7 +18,7 @@ export function playFoods(stage: Stage | null): PlayFood[] {
     .map(product => ({ product, canBuy: canVirtuallyBuy(product, false) }));
 }
 
-type Opt = readonly [string, number];
+export type Opt = readonly [string, number];
 interface ShopItem { name: string; opts: readonly Opt[]; per: "month" | "once"; note?: string }
 
 /** 原版 SHOP_ITEMS（飼料除外，改用皇家目錄） */
@@ -31,9 +31,28 @@ export const SHOP_ITEMS = {
 } as const satisfies Record<string, ShopItem>;
 export type ShopItemKey = keyof typeof SHOP_ITEMS;
 
-/** 原版 SHOP_FLAGS：勾選就買（一次性） */
-export const SHOP_FLAGS = { scratcher: ["貓抓板", 300], carrier: ["外出籠", 800], toy: ["逗貓棒", 200], cam: ["監視器", 1500] } as const;
+/** 原版 SHOP_FLAGS：勾選就買（一次性）。外出籠是中途送的（免費、一定會擺），不在清單裡 */
+export const SHOP_FLAGS = { scratcher: ["貓抓板", 300], toy: ["逗貓棒", 200], cam: ["監視器", 1500] } as const;
 export type ShopFlagKey = keyof typeof SHOP_FLAGS;
+
+/** 擺進房間的模型（網址與公尺尺寸） */
+export interface PlayModel { url: string; widthM: number; depthM: number; heightM: number }
+
+/** 後台有模型的用品：外出籠、餐碗、貓砂盆（擺進房間）、逗貓棒（3D 逗貓的玩具） */
+export type PlayModelKey = "carrier" | "bowl" | "litter_box" | "toy";
+
+/** 後台生活用品（catalog.ts 算出來）：後台有就用後台，沒有就沿用這個檔案與 items.ts 裡寫的 */
+export interface PlayShop {
+  /** 貓抓板、逗貓棒的價格 */
+  flags: Partial<Record<ShopFlagKey, number>>;
+  /** 砂盆、碗的選項（品名、價格），後台之後補上傳更多品項會自動變多 */
+  opts: Partial<Record<ShopItemKey, readonly Opt[]>>;
+  /** 外出籠、餐碗組、貓砂盆的 3D 模型 */
+  models?: Partial<Record<PlayModelKey, PlayModel>>;
+}
+export const flagPrice = (k: ShopFlagKey, shop?: PlayShop): number => shop?.flags[k] ?? SHOP_FLAGS[k][1];
+/** 採買項目的選項：後台有就用後台，沒有就用原版 */
+export const shopOpts = (k: ShopItemKey, shop?: PlayShop): readonly Opt[] => shop?.opts[k] ?? SHOP_ITEMS[k].opts;
 
 /** 每天的份量（公克）：估算值，實際以包裝建議與獸醫說明為準。乾糧加濕食時各一半 */
 const DAILY_GRAMS: Record<"dry" | "wet", Record<Stage, number>> = {
@@ -62,15 +81,15 @@ export interface ShopPick {
   wetId: string | null;
   /** SHOP_ITEMS 各項選第幾個；null＝還沒選 */
   litter: number | null; box: number | null; bowls: number | null; treat: number | null; fund: number | null;
-  scratcher: boolean; carrier: boolean; toy: boolean; cam: boolean;
+  scratcher: boolean; toy: boolean; cam: boolean;
   /** 玩家填的每月預算（新台幣） */
   budget: number;
 }
 
-/** 原版 onbOpen 的預設：貓抓板、外出籠、逗貓棒預設勾選，監視器不勾，其他都要自己選 */
+/** 原版 onbOpen 的預設：貓抓板、逗貓棒預設勾選，監視器不勾，其他都要自己選 */
 export const emptyShop = (): ShopPick => ({
   dryId: null, wetId: null, litter: null, box: null, bowls: null, treat: null, fund: null,
-  scratcher: true, carrier: true, toy: true, cam: false, budget: 0,
+  scratcher: true, toy: true, cam: false, budget: 0,
 });
 
 const buyable = (id: string | null, cat: "dry" | "wet") => {
@@ -89,15 +108,15 @@ export interface ShopCosts {
 }
 
 /** 原版 shopCost：once＝砂盆、碗＋勾選的用品；month＝飼料＋貓砂＋零食＋預備金 */
-export function shopCost(sh: ShopPick, stage: Stage): ShopCosts {
+export function shopCost(sh: ShopPick, stage: Stage, shop?: PlayShop): ShopCosts {
   let once = 0, month = 0;
   const missing: string[] = [];
   for (const [k, it] of Object.entries(SHOP_ITEMS) as [ShopItemKey, ShopItem][]) {
-    const i = sh[k];
-    if (i === null || !it.opts[i]) { missing.push(it.name); continue; }
-    if (it.per === "once") once += it.opts[i][1]; else month += it.opts[i][1];
+    const i = sh[k], opts = shopOpts(k, shop);
+    if (i === null || !opts[i]) { missing.push(it.name); continue; }
+    if (it.per === "once") once += opts[i][1]; else month += opts[i][1];
   }
-  for (const [k, [, p]] of Object.entries(SHOP_FLAGS) as [ShopFlagKey, readonly [string, number]][]) if (sh[k]) once += p;
+  for (const k of Object.keys(SHOP_FLAGS) as ShopFlagKey[]) if (sh[k]) once += flagPrice(k, shop);
   const dry = buyable(sh.dryId, "dry"), wet = buyable(sh.wetId, "wet");
   const share = dry && wet ? 0.5 : 1;
   const parts = [dry && foodMonthly(dry.referencePrice!, "dry", stage, share), wet && foodMonthly(wet.referencePrice!, "wet", stage, share)];

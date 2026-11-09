@@ -5,6 +5,8 @@ import { Impacts } from "./audio";
 import { RoomCat } from "./cat";
 import { cameraForward, dropTarget, placeObjects, type PlacedObject, type RoomCamera, type RoomLayout, type RoomScene } from "./demo";
 import { RoomPhysics } from "./physics";
+import { footprintCells } from "@/lib/play/scene-items";
+import { CATCH_M, isCaught, type SceneCatCommand } from "@/lib/play/scene-cat";
 
 const PUSH_IMPULSE = 0.48;  // 牛頓秒，貓撥杯子的力道；0.34 時杯子會停在桌緣
 const PAW_REACH_M = 0.22;   // 貓站在杯子後方多遠
@@ -23,6 +25,15 @@ export interface RoomWorld {
   jumpOnBed(): void;
   pushCup(): void;
   resetItems(): void;
+  /** 虛擬飼養：照劇情讓貓躲起來、走到某處、跳上家具（座標是地板座標，公尺） */
+  command(cmd: SceneCatCommand): void;
+  /** 畫面上的點 → 地板座標（公尺）；沒打到地板回 null */
+  floorAt(ndc: THREE.Vector2): [number, number] | null;
+  /** 3D 逗貓：貓追著玩具跑、撲；撲到玩具時呼叫 onCatch(是否抓到)。toy 為 null 表示玩具不在場 */
+  play(on: ((caught: boolean) => void) | null): void;
+  setToy(at: [number, number] | null): void;
+  /** 虛擬用品（地板座標，公尺）：貓繞過去、不會穿過 */
+  setItems(items: { x: number; z: number; widthM: number; depthM: number }[]): void;
 }
 
 export async function createRoomWorld({ viewer, threeScene, scene, layout, cameras, catUrl, albedoUrl, unit, focus }: {
@@ -81,11 +92,38 @@ export async function createRoomWorld({ viewer, threeScene, scene, layout, camer
   cat.onBored = () => (bed ? cat.jumpOn(bed, bed.surfaces![0].top_y) : false);
   const cup = movable.find(m => m.ob.label === "cup");
 
+  // 3D 逗貓：貓閒下來就追玩具，撲的瞬間玩具還在附近才算抓到
+  let onPlay: ((caught: boolean) => void) | null = null;
+  let toy: [number, number] | null = null;
+  const chase = { cool: 0 };
+
   return {
     hasBed: Boolean(bed),
     hasCup: Boolean(cup),
 
     update(dt) {
+      cat.sprint = Boolean(onPlay && toy);
+      if (onPlay && toy && cat.visible) {
+        // 3D 逗貓：貓衝刺到玩具旁邊（路徑上的最近空地板），碰得到（30 公分內）才撲；撲的瞬間還碰得到才算抓到
+        chase.cool -= dt;
+        cat.timer = Math.max(cat.timer, 1);  // 追玩具時不要自己跑去閒晃
+        const me = cat.cat.position;
+        const dist = Math.hypot(me.x / upm - toy[0], me.z / upm - toy[1]);
+        if (cat.state !== "jump" && cat.state !== "paw" && !cat.surface) {
+          if (dist <= CATCH_M && cat.state === "idle") {
+            if (chase.cool <= 0) {
+              cat.paw(new THREE.Vector2(toy[0] * upm, toy[1] * upm), () => {
+                const p = cat.cat.position;
+                onPlay?.(toy ? isCaught([p.x / upm, p.z / upm], toy) : false);
+              });
+              chase.cool = 1.2;
+            }
+          } else if (dist > CATCH_M) {
+            const k = cat.nearestFree(toy[0] * upm, toy[1] * upm, 12);
+            if (k !== undefined && k >= 0 && (cat.state === "idle" || !cat.dest || cat.dest.distanceTo(cat.centerOf(k)) > 1e-3)) cat.goTo(k);
+          }
+        }
+      }
       if (cat.visible) {
         cat.update(dt);
         viewer.forceRenderNextFrame();  // 檢視器預設只在相機移動時重畫
@@ -130,6 +168,43 @@ export async function createRoomWorld({ viewer, threeScene, scene, layout, camer
       const spot = new THREE.Vector2(cx - dir.x * PAW_REACH_M, cz - dir.y * PAW_REACH_M).multiplyScalar(upm);
       const paw = () => cat.paw(new THREE.Vector2(cx, cz).multiplyScalar(upm), hit);
       if (!(desk && cat.jumpOn(desk, desk.surfaces![0].top_y, viewer.camera, spot, paw))) hit();
+    },
+
+    command(cmd) {
+      cat.visible = cmd.kind !== "hidden";
+      if (cmd.kind === "go") {
+        const k = cat.nearestFree(cmd.x * upm, cmd.z * upm, 12);
+        if (k !== undefined && k >= 0) cat.goTo(k);
+      } else if (cmd.kind === "jump") {
+        const o = objects.find(x => x.id === cmd.object);
+        if (o) cat.jumpOn(o, o.surfaces?.[0]?.top_y ?? o.size_m[1], viewer.camera);
+      } else if (cmd.kind === "roam" && cat.surface) {
+        cat.jumpDown();
+      }
+      viewer.forceRenderNextFrame();
+    },
+
+    floorAt(ndc) {
+      const ray = new THREE.Raycaster();
+      ray.setFromCamera(ndc, viewer.camera);
+      const hit = ray.ray.intersectPlane(cat.floor, new THREE.Vector3());
+      if (!hit) return null;
+      const local = cat.frame.worldToLocal(hit);
+      return [local.x / upm, local.z / upm];
+    },
+
+    play(on) {
+      onPlay = on;
+      if (!on) cat.sprint = false;
+      chase.cool = 0.5;
+    },
+
+    setToy(at) {
+      toy = at;
+    },
+
+    setItems(list) {
+      cat.blockCells(list.flatMap(it => footprintCells(layout, it)));
     },
 
     resetItems() {

@@ -1,7 +1,7 @@
 // 虛擬飼養 DEMO（#237）：飼料清單（處方飼料不顯示）與花費公式（照 catgame 原版 SHOP_ITEMS／shopCost；所有金額都由公式算）
 import { describe, expect, it } from "vitest";
 import { FOOD_PRODUCTS } from "@/lib/hq/food/catalog";
-import { SHOP_FLAGS, SHOP_ITEMS, costTotal, emptyShop, foodMonthly, packGrams, playFoods, shopCost, type ShopPick } from "./costs";
+import { SHOP_FLAGS, SHOP_ITEMS, costTotal, emptyShop, foodMonthly, packGrams, playFoods, shopCost, shopOpts, type ShopPick } from "./costs";
 
 describe("playFoods（飼料清單）", () => {
   it("處方飼料（requiresVetDiagnosis）一律不顯示", () => {
@@ -37,17 +37,42 @@ describe("花費公式", () => {
 
   it("原版 shopCost：once＝砂盆＋碗＋勾選用品；month＝飼料＋貓砂＋零食＋預備金", () => {
     const c = shopCost(full(), "kitten");
-    const flags = SHOP_FLAGS.scratcher[1] + SHOP_FLAGS.carrier[1] + SHOP_FLAGS.toy[1];
+    const flags = SHOP_FLAGS.scratcher[1] + SHOP_FLAGS.toy[1];
     expect(c.once).toBe(SHOP_ITEMS.box.opts[0][1] + SHOP_ITEMS.bowls.opts[0][1] + flags);
     expect(c.food).toBe(foodMonthly(dry.referencePrice!, "dry", "kitten"));
     expect(c.month).toBe(c.food! + SHOP_ITEMS.litter.opts[1][1] + SHOP_ITEMS.treat.opts[1][1] + SHOP_ITEMS.fund.opts[1][1]);
     expect(c.missing).toEqual([]);
   });
-  it("原版估價：貓砂 礦砂 400／豆腐砂 500／木屑砂 350；外出籠 800；監視器 1,500", () => {
+  it("原版估價：貓砂 礦砂 400／豆腐砂 500／木屑砂 350；監視器 1,500", () => {
     expect(SHOP_ITEMS.litter.opts.map(o => o[1])).toEqual([400, 500, 350]);
-    expect(SHOP_FLAGS.carrier[1]).toBe(800);
     expect(SHOP_FLAGS.cam[1]).toBe(1500);
   });
+  it("外出籠是中途送的：不在採買清單，也不算進花費", () => {
+    expect("carrier" in SHOP_FLAGS).toBe(false);
+    expect("carrier" in emptyShop()).toBe(false);
+  });
+  it("後台價格（貓抓板、逗貓棒）會換掉原版估價，沒給的項目沿用原版", () => {
+    const base = shopCost(full(), "kitten").once;
+    const withPrices = shopCost(full(), "kitten", { flags: { scratcher: 1199, toy: 15 }, opts: {} }).once;
+    expect(withPrices - base).toBe((1199 - SHOP_FLAGS.scratcher[1]) + (15 - SHOP_FLAGS.toy[1]));
+    expect(shopCost(full(), "kitten", { flags: { toy: 15 }, opts: {} }).once - base).toBe(15 - SHOP_FLAGS.toy[1]);
+    expect(shopCost(full(), "kitten", { flags: {}, opts: {} }).once).toBe(base);
+  });
+  it("後台價格只影響有勾選的用品", () => {
+    const off = full({ scratcher: false, toy: false });
+    expect(shopCost(off, "kitten", { flags: { scratcher: 1199, toy: 15 }, opts: {} }).once).toBe(shopCost(off, "kitten").once);
+  });
+  it("砂盆、碗：後台有選項就用後台的，沒有就用原版", () => {
+    const shop = { flags: {}, opts: { box: [["貓砂盆", 1127]], bowls: [["餐碗組", 399]] } } as const;
+    expect(shopOpts("box", shop)).toEqual([["貓砂盆", 1127]]);
+    expect(shopOpts("box", { flags: {}, opts: {} })).toBe(SHOP_ITEMS.box.opts);
+    expect(shopOpts("litter")).toBe(SHOP_ITEMS.litter.opts);
+    const c = shopCost(full({ box: 0, bowls: 0 }), "kitten", shop);
+    expect(c.once).toBe(1127 + 399 + SHOP_FLAGS.scratcher[1] + SHOP_FLAGS.toy[1]);
+    // 選到後台沒有的第幾個（後台品項變少）時視為還沒選
+    expect(shopCost(full({ box: 3 }), "kitten", shop).missing).toContain("砂盆");
+  });
+
   it("乾糧加濕食：各算一半份量", () => {
     const c = shopCost(full({ wetId: wet.id }), "kitten");
     expect(c.food).toBe(foodMonthly(dry.referencePrice!, "dry", "kitten", 0.5)! + foodMonthly(wet.referencePrice!, "wet", "kitten", 0.5)!);

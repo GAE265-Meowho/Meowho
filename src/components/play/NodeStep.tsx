@@ -59,7 +59,7 @@ export function NodeStep({ state, personal, onNext, onChoose }: {
           {notes.map((n, i) => <li key={`n${i}`}><span>{n.t}{n.spent && !n.t.includes("元") ? `　${money(n.spent)} 元` : ""}</span></li>)}
         </ul>
         <div className={s.actions}>
-          <CatButton onClick={onNext}>{last ? "看試養報告" : "前往下一個節點"}</CatButton>
+          <CatButton onClick={onNext}>{last ? "看試養報告" : node.home ? "回家照顧牠" : "前往下一個節點"}</CatButton>
         </div>
       </section>
     );
@@ -88,6 +88,8 @@ export function NodeStep({ state, personal, onNext, onChoose }: {
       </section>
     );
   }
+
+  if (cur.kind === "home") return null;
 
   if (cur.kind === "mini") {
     return (

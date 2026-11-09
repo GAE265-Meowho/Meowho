@@ -11,6 +11,7 @@ const JUMP_LAND = 0.6;      // 秒，落地後停一下再回到待機
 const JUMP_ARC_M = 0.2;     // 拋物線比直線高多少
 const PAW_HIT = 0.22;       // 秒，撲出去多久後碰到物品
 const PAW_END = 0.8;        // 秒，撲完回到待機
+const SPRINT_SPEED_M = 1.9;  // 公尺/秒，追玩具時衝刺
 const RUN_SPEED_M = 0.8;    // 搖桿推到底時的速度
 const WALL_GAP_M = 0.12;    // 搖桿控制時離牆多遠
 const RUN_AT = 0.8;         // 搖桿推多遠開始跑
@@ -51,6 +52,7 @@ export class RoomCat {
     this.arrive = null;   // 走到目的地後要做的事
     this.queued = null;   // 落地後才走的目的地
     this.stick = null;    // 搖桿輸入 { dir（本地 x,z，單位向量）, mag（0~1）}
+    this.sprint = false;  // 追玩具時衝刺（跑步動作、較快的速度與轉身）
     this.autoIn = AUTO_MIN;
     this.onBored = null;  // 閒晃時想找事做就呼叫，回傳 true 表示開始做了
     /** @type {{ min: number[], max: number[] } | null} */
@@ -222,6 +224,14 @@ export class RoomCat {
             else this.walkable[this.idx(i, j)] = 0;
           }
     }
+    this.cells = [...this.walkable.keys()].filter((k) => this.walkable[k]);
+  }
+
+  // 虛擬用品（外出籠、碗、貓砂盆）佔的格子（j * nx + i）設成不能走；換清單時先還原成房間原本的樣子
+  blockCells(indices) {
+    this.baseWalkable ??= Uint8Array.from(this.walkable);
+    this.walkable.set(this.baseWalkable);
+    for (const k of indices) this.walkable[k] = 0;
     this.cells = [...this.walkable.keys()].filter((k) => this.walkable[k]);
   }
 
@@ -456,7 +466,7 @@ export class RoomCat {
   turnToward(dir, dt) {
     let diff = Math.atan2(dir.x, dir.y) - this.heading;
     diff = Math.atan2(Math.sin(diff), Math.cos(diff));
-    this.heading += Math.sign(diff) * Math.min(Math.abs(diff), TURN_SPEED * dt);
+    this.heading += Math.sign(diff) * Math.min(Math.abs(diff), TURN_SPEED * (this.sprint ? 3 : 1) * dt);
     this.cat.rotation.y = this.heading;
     return diff;
   }
@@ -542,10 +552,14 @@ export class RoomCat {
     // 先轉向再走：角度差大時放慢，像貓在原地轉身
     const diff = this.turnToward(to, dt);
 
-    const speed = WALK_SPEED_M * this.upm * Math.max(0.15, Math.cos(Math.min(Math.abs(diff), Math.PI / 2)));
+    const base = this.sprint ? SPRINT_SPEED_M : WALK_SPEED_M;
+    const speed = base * this.upm * Math.max(0.15, Math.cos(Math.min(Math.abs(diff), Math.PI / 2)));
     const step = Math.min(dist, speed * dt);
     this.cat.position.x += Math.sin(this.heading) * step;
     this.cat.position.z += Math.cos(this.heading) * step;
-    if (this.actions.walk) this.actions.walk.timeScale = speed / (WALK_SPEED_M * this.upm);
+    if (this.sprint) {  // 衝刺：跑步動作
+      this.playClip("run", false, 0.12);
+      if (this.actions.run) this.actions.run.timeScale = 1.2;
+    } else if (this.actions.walk) this.actions.walk.timeScale = speed / (WALK_SPEED_M * this.upm);
   }
 }

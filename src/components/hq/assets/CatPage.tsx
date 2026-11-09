@@ -135,43 +135,46 @@ function Preview({ cat }: { cat: CatModelView }) {
           )}
         </PanelGroup>
         <GeneratedViews cat={cat} />
-        <TextureCard url={texture?.preview ? albedoUrl : null} body={body} />
       </section>
 
-      <section className="hq-catstage" aria-label="3D 預覽">
-        {cat.variantStorage && <BodySwitch label="預覽體型" value={body} onChange={selectBody} />}
-        {/* #118：還沒製作 glb 時不載入骨架示範貓；CatPage 會直接轉到製作glb工作區，這裡只是轉頁前的過渡 */}
-        {!ready ? (
-          <div className="hq-state hq-noglb" role="status">
-            <p>還沒有{BODY_LABELS[body]}的紋理貼圖。</p>
-            <Link href={`${studioHref(cat.id)}?body=${body}`} className="hq-btn">前往製作{BODY_LABELS[body]}貼圖</Link>
-          </div>
-        ) : (
-          <>
-            {textureFailed ? (
-              <div className="hq-state" role="alert">貼圖載入失敗，請重新整理後再試。</div>
-            ) : failed ? (
-              <div className="hq-state" role="alert">
-                <p>3D 預覽載入失敗</p>
-                <p className="hq-hint">{failed}。請確認{BODY_LABELS[body]}骨架 glb 已上傳（本機：CAT_STUDIO_ROOT 底下的 {body === "kitten" ? "cat_base_kitten" : "cat_base"}/work/base_clips.glb）。</p>
-              </div>
-            ) : (
-              <div className="hq-canvas" data-testid="cat-canvas">
-                <CatPreview
-                  key={viewKey} baseUrl={baseGlbUrl(body)} body={body} albedoUrl={albedoUrl} clip={clip}
-                  speed={speed} paused={paused} blink={blink} pupil={pupil} light={light} follow={follow}
-                  onInfo={setInfo} onTextureError={() => setTextureFailed(true)} onError={e => setFailed(e.message || "未知錯誤")}
-                />
-              </div>
-            )}
-            {info && (
-              <p className="hq-hint" role="status">
-                {info.eyes} 顆眼球、{info.bones} 根骨頭
-                {info.morphs.length > 0 && `、形狀鍵 ${info.morphs.join(" / ")}`}
-              </p>
-            )}
-          </>
-        )}
+      {/* #289：預覽是正方形（中間欄多寬就多高），貓咪紋理放在預覽下方、跟著預覽體型切換 */}
+      <section className="hq-catstage hq-catstage-square" aria-label="3D 預覽">
+        <div className="hq-catview">
+          {cat.variantStorage && <BodySwitch label="預覽體型" value={body} onChange={selectBody} />}
+          {/* #118：還沒製作 glb 時不載入骨架示範貓；CatPage 會直接轉到製作glb工作區，這裡只是轉頁前的過渡 */}
+          {!ready ? (
+            <div className="hq-state hq-noglb" role="status">
+              <p>還沒有{BODY_LABELS[body]}的紋理貼圖。</p>
+              <Link href={`${studioHref(cat.id)}?body=${body}`} className="hq-btn">前往製作{BODY_LABELS[body]}貼圖</Link>
+            </div>
+          ) : (
+            <>
+              {textureFailed ? (
+                <div className="hq-state" role="alert">貼圖載入失敗，請重新整理後再試。</div>
+              ) : failed ? (
+                <div className="hq-state" role="alert">
+                  <p>3D 預覽載入失敗</p>
+                  <p className="hq-hint">{failed}。請確認{BODY_LABELS[body]}骨架 glb 已上傳（本機：CAT_STUDIO_ROOT 底下的 {body === "kitten" ? "cat_base_kitten" : "cat_base"}/work/base_clips.glb）。</p>
+                </div>
+              ) : (
+                <div className="hq-canvas" data-testid="cat-canvas">
+                  <CatPreview
+                    key={viewKey} baseUrl={baseGlbUrl(body)} body={body} albedoUrl={albedoUrl} clip={clip}
+                    speed={speed} paused={paused} blink={blink} pupil={pupil} light={light} follow={follow}
+                    onInfo={setInfo} onTextureError={() => setTextureFailed(true)} onError={e => setFailed(e.message || "未知錯誤")}
+                  />
+                </div>
+              )}
+              {info && (
+                <p className="hq-hint" role="status">
+                  {info.eyes} 顆眼球、{info.bones} 根骨頭
+                  {info.morphs.length > 0 && `、形狀鍵 ${info.morphs.join(" / ")}`}
+                </p>
+              )}
+            </>
+          )}
+        </div>
+        <TextureCard url={texture?.preview ? albedoUrl : null} body={body} />
       </section>
 
       <section className="hq-catside" aria-label="參數">
