@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { BOUNDS, nextPlan, randomSpot, standBy, stepToward, wanderClips, type Plan } from "./cat-actions";
+import { BOUNDS, nextPlan, randomSpot, stepToward, wanderClips, type Plan } from "./cat-actions";
 import { confirmedLook } from "./cat-publish";
 
 /** 固定序列的亂數，測試才穩定 */
@@ -25,13 +25,11 @@ describe("nextPlan", () => {
     const p = nextPlan(seq(0.99, 0.5, 0.5), ALL, at, { to: null, face: null, clip: "sleep", seconds: 10 });
     expect(p.to).not.toBeNull();
   });
-  it("上廁所先走到貓砂盆旁邊、面向貓砂盆", () => {
+  it("排到的動作在原地做", () => {
     const pool = wanderClips(ALL);
     const i = pool.indexOf("toilet");
     const p = nextPlan(seq((i + 0.5) / pool.length, 0.5), ALL, at, null);
-    expect(p.clip).toBe("toilet");
-    expect(p.to).toEqual(standBy("litter"));
-    expect(p.face).toEqual({ x: -0.8, z: 0.75 });
+    expect(p).toMatchObject({ to: null, clip: "toilet" });
   });
   it("沒有走路動作就都在原地", () => {
     const p = nextPlan(seq(0.1, 0.5), ["idle", "sit"], at, { to: null, face: null, clip: "sit", seconds: 5 });

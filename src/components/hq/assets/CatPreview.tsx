@@ -15,7 +15,7 @@ import { createCatEyeMaterial, setCatEyeParams, type EyeParams } from "./catEye"
 import type { BodyType } from "@/lib/hq/cat-models/types";
 import { FALLBACK_CLIP } from "@/lib/hq/cat-models/clips";
 import { headDownPose, PROCEDURAL_CLIPS } from "@/lib/hq/floorplans/story";
-import { headingTo, nextPlan, ROOM_ITEMS, stepToward, type Plan, type Pt } from "@/lib/cat-actions";
+import { headingTo, nextPlan, stepToward, type Plan, type Pt } from "@/lib/cat-actions";
 
 /** 程式版吃飯、喝水會壓的骨頭（成貓、幼貓骨架同名），由上而下 */
 const EAT_BONES = ["neck0", "neck1", "head0"] as const;
@@ -50,67 +50,6 @@ export function propFor(clip: string | null | undefined, body: BodyType) {
  *  否則貓播預設待機站在地上，會卡在櫃子裡 */
 export function visibleProp(clip: string | null | undefined, body: BodyType, loadedClips: string[] | null) {
   return clip && loadedClips?.includes(clip) ? propFor(clip, body) : null;
-}
-
-/** 空間白模（貓咪頁）：地板＋背後兩面牆，貓才不會像浮在空中。牆放在鏡頭對面的角落、只畫正面，
- *  轉到牆後面時牆會自動消失，不會擋住貓。距離要比成貓跳躍 C 的櫃子後緣（z ≈ -0.87）更遠 */
-// 地板與牆做得比可看範圍大很多（8 公尺、牆高 2.4），轉到邊緣也只看得到白模，不會露出預覽框的底色
-export const ROOM = { wall: 1.2, size: 8, height: 2.4, floor: "#e9d9c0", walls: "#f6eddc" };
-export function roomLayout(body: BodyType) {
-  const s = body === "kitten" ? KITTEN_SCALE : 1;
-  const d = ROOM.wall * s, w = ROOM.size * s, h = ROOM.height * s;
-  return {
-    floor: { position: [0, 0, 0] as [number, number, number], size: [w, w] as [number, number] },
-    back: { position: [0, h / 2, -d] as [number, number, number], size: [w, h] as [number, number] },
-    left: { position: [-d, h / 2, 0] as [number, number, number], size: [w, h] as [number, number] },
-    shadowScale: 1.2 * s,
-    /** 從右前上方往下打，影子落在貓的左後方（牆那邊） */
-    light: [1.2 * s, 2.6 * s, 1.6 * s] as [number, number, number],
-  };
-}
-
-/** 白模裡的餐碗、貓砂盆（wander 模式；同色系的簡單形狀） */
-function RoomItems({ body }: { body: BodyType }) {
-  const s = body === "kitten" ? KITTEN_SCALE : 1;
-  const { bowl, litter } = ROOM_ITEMS;
-  return (
-    <group scale={s}>
-      <mesh position={[bowl.x, 0.025, bowl.z]} castShadow receiveShadow>
-        <cylinderGeometry args={[bowl.r, bowl.r * 0.75, 0.05, 24]} />
-        <meshStandardMaterial color="#fffaf1" roughness={0.6} />
-      </mesh>
-      <mesh position={[litter.x, litter.h / 2, litter.z]} castShadow receiveShadow>
-        <boxGeometry args={[litter.w, litter.h, litter.d]} />
-        <meshStandardMaterial color="#fffaf1" roughness={0.8} />
-      </mesh>
-    </group>
-  );
-}
-
-function Room({ body, items = false }: { body: BodyType; items?: boolean }) {
-  const r = roomLayout(body);
-  return (
-    <group>
-      {items && <RoomItems body={body} />}
-      <mesh position={r.floor.position} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-        <planeGeometry args={r.floor.size} />
-        <meshStandardMaterial color={ROOM.floor} roughness={0.95} />
-      </mesh>
-      <mesh position={r.back.position} receiveShadow>
-        <planeGeometry args={r.back.size} />
-        <meshStandardMaterial color={ROOM.walls} roughness={0.95} />
-      </mesh>
-      <mesh position={r.left.position} rotation={[0, Math.PI / 2, 0]} receiveShadow>
-        <planeGeometry args={r.left.size} />
-        <meshStandardMaterial color={ROOM.walls} roughness={0.95} />
-      </mesh>
-      {/* 打在地板和牆上的影子，讓貓看起來站在地上 */}
-      <directionalLight castShadow position={r.light} intensity={0.9}
-        shadow-mapSize={[1024, 1024]} shadow-bias={-0.0005} shadow-normalBias={0.01}
-        shadow-camera-left={-r.shadowScale} shadow-camera-right={r.shadowScale}
-        shadow-camera-top={r.shadowScale} shadow-camera-bottom={-r.shadowScale} shadow-camera-near={0.1} shadow-camera-far={8 * r.shadowScale} />
-    </group>
-  );
 }
 
 /** 幼貓母體體長約 0.22 m（成貓約 0.45 m）：相機、目標照比例縮小，不然幼貓縮在畫面下方 */
@@ -262,11 +201,6 @@ export function CatModel({ baseUrl, albedoUrl, clip, speed = 1, paused = false, 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [matL, matR, pupil, eyeKey]);
   useEffect(() => () => { mixer.stopAllAction(); }, [mixer]);
-  // 空間白模（room）開陰影時，貓投影在地板與牆上；沒開陰影的畫面不受影響
-  useEffect(() => {
-    rig.root.traverse(o => { if ((o as THREE.Mesh).isMesh) { o.castShadow = true; o.frustumCulled = false; } });
-  }, [rig]);
-
   useFrame((state, delta) => {
     mixer.timeScale = speed;
     const e = eat.current;
@@ -327,21 +261,16 @@ class PreviewBoundary extends Component<{ children: ReactNode; onError: (e: Erro
 /** 成貓走路速度（公尺／秒）；幼貓照比例縮小 */
 const WALK_SPEED = 0.28;
 const TURN_SPEED = 5;
-/** wander 模式的預設鏡頭：看得到整個白模角落；使用者仍可自由縮放、轉視角 */
+/** wander 模式的預設鏡頭：拉遠一點，貓走到哪都在畫面裡；縮放只能是預設距離的 0.5 到 2 倍，視角可以自由轉 */
 export function wanderView(body: BodyType) {
   const s = body === "kitten" ? KITTEN_SCALE : 1;
-  return {
-    camera: [2.3 * s, 1.45 * s, 2.3 * s] as [number, number, number], target: [0.12 * s, 0.12 * s, 0.12 * s] as [number, number, number],
-    minDistance: 0.6 * s, maxDistance: 3.8 * s,
-  };
-}
-/** wander 模式鏡頭可轉的範圍：只能在牆對面這一側（預設 45°），不能轉到牆後面、拉到正上方或拉太遠，才不會看到白模外面 */
-export function wanderLimits(body: BodyType) {
-  const deg = THREE.MathUtils.degToRad;
-  return { ...wanderView(body), minAzimuthAngle: deg(8), maxAzimuthAngle: deg(82), minPolarAngle: deg(35), maxPolarAngle: deg(82) };
+  const camera: [number, number, number] = [2.3 * s, 1.45 * s, 2.3 * s];
+  const target: [number, number, number] = [0.12 * s, 0.12 * s, 0.12 * s];
+  const d = Math.hypot(camera[0] - target[0], camera[1] - target[1], camera[2] - target[2]);
+  return { camera, target, minDistance: d / 2, maxDistance: d * 2 };
 }
 
-/** 貓自己在白模裡走動、隨機做動作（lib/cat-actions.ts 的 nextPlan）；載入完動作清單才開始 */
+/** 貓自己走動、隨機做動作（lib/cat-actions.ts 的 nextPlan）；載入完動作清單才開始 */
 function Wanderer({ body, model, onInfo }: { body: BodyType; model: Omit<CatPreviewProps, "clip" | "onInfo">; onInfo?: (info: PreviewInfo) => void }) {
   const s = body === "kitten" ? KITTEN_SCALE : 1;
   const group = useRef<THREE.Group>(null);
@@ -395,14 +324,9 @@ function Exposure({ light }: { light: number }) {
   return null;
 }
 
-/**
- * room：加上空間白模（地板＋背後兩面牆）。
- * wander：貓咪頁用，沒有動作按鈕（可以縮放、轉視角）；貓在白模裡自己走動、隨機做動作（clip 不用給）。會自動加上白模與餐碗、貓砂盆。
- */
-export default function CatPreview(props: CatPreviewProps & { onError?: (e: Error) => void; room?: boolean; wander?: boolean }) {
+/** wander：貓咪頁用，沒有動作按鈕；貓自己走動、隨機做動作（clip 不用給）。視角可以自由轉，縮放限制在預設距離的 0.5 到 2 倍 */
+export default function CatPreview(props: CatPreviewProps & { onError?: (e: Error) => void; wander?: boolean }) {
   const { light = 1, onError, body = "adult", clip = null, wander = false, ...rest } = props;
-  const room = props.room || wander;
-  delete (rest as { room?: boolean }).room;
   const view = wander ? { ...framing(body, null), ...wanderView(body) } : framing(body, clip);
   const [loadedClips, setLoadedClips] = useState<string[] | null>(null);
   const prop = visibleProp(clip, body, loadedClips);
@@ -410,7 +334,6 @@ export default function CatPreview(props: CatPreviewProps & { onError?: (e: Erro
   return (
     <Canvas
       key={wander ? `${body}-wander` : `${body}-${clip ?? "none"}`}
-      shadows={room}
       camera={{ position: view.camera, fov: 30, near: 0.01, far: 50 }}
       gl={{ antialias: true, toneMapping: THREE.ACESFilmicToneMapping }}
       onCreated={({ camera }) => camera.lookAt(...view.target)}
@@ -418,12 +341,9 @@ export default function CatPreview(props: CatPreviewProps & { onError?: (e: Erro
       style={{ width: "100%", height: "100%", touchAction: "none" }}
     >
       <Exposure light={light} />
-      {/* 白模的背景用牆色：萬一看到邊也不是黃色底 */}
-      {room && <color attach="background" args={[ROOM.walls]} />}
       <Environment />
       <directionalLight position={[3, 4, 5]} intensity={1.5} />
       <PreviewBoundary onError={e => onError?.(e)}>
-        {room && <Room body={body} items={wander} />}
         <Suspense fallback={null}>
           {wander ? <Wanderer body={body} model={rest} onInfo={rest.onInfo} /> : <CatModel {...rest} body={body} clip={clip} onInfo={info => { setLoadedClips(info.clips); rest.onInfo?.(info); }} />}
           {!wander && prop && (
@@ -434,12 +354,8 @@ export default function CatPreview(props: CatPreviewProps & { onError?: (e: Erro
           )}
         </Suspense>
       </PreviewBoundary>
-      {/* 有白模時不讓鏡頭轉到地板下面 */}
-      {/* 有白模時不讓鏡頭轉到地板下面 */}
-      <OrbitControls target={view.target} enableDamping minDistance={view.minDistance} maxDistance={view.maxDistance}
-        {...(wander ? { minAzimuthAngle: wanderLimits(body).minAzimuthAngle, maxAzimuthAngle: wanderLimits(body).maxAzimuthAngle,
-          minPolarAngle: wanderLimits(body).minPolarAngle, maxPolarAngle: wanderLimits(body).maxPolarAngle, enablePan: false }
-          : room ? { maxPolarAngle: Math.PI / 2 - 0.08 } : {})} />
+      {/* wander 模式不能平移，貓才不會被拖出畫面 */}
+      <OrbitControls target={view.target} enableDamping minDistance={view.minDistance} maxDistance={view.maxDistance} {...(wander ? { enablePan: false } : {})} />
     </Canvas>
   );
 }
