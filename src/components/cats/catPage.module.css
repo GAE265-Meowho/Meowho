@@ -81,8 +81,6 @@
 
 /* 中途的貓咪頁：3D 模型、準備出發找新主人（規格 09 §5） */
 .modelBox { width: 100%; aspect-ratio: 4 / 3; overflow: hidden; border-radius: 22px; background: var(--yellow-soft); }
-.wanderBox { aspect-ratio: 16 / 9; }
-@media (max-width: 767px) { .wanderBox { aspect-ratio: 4 / 3; } }
 .done { margin: 0; display: flex; align-items: center; gap: 6px; font-weight: 700; color: var(--ink); }
 .checks { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; }
 .checks li { display: flex; align-items: center; gap: 8px; color: var(--ink-soft); }

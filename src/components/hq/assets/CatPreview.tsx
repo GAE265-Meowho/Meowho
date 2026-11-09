@@ -15,7 +15,7 @@ import { createCatEyeMaterial, setCatEyeParams, type EyeParams } from "./catEye"
 import type { BodyType } from "@/lib/hq/cat-models/types";
 import { FALLBACK_CLIP } from "@/lib/hq/cat-models/clips";
 import { headDownPose, PROCEDURAL_CLIPS } from "@/lib/hq/floorplans/story";
-import { headingTo, nextPlan, stepToward, type Plan, type Pt } from "@/lib/cat-actions";
+import { nextIdle, type IdleStep } from "@/lib/cat-actions";
 
 /** 程式版吃飯、喝水會壓的骨頭（成貓、幼貓骨架同名），由上而下 */
 const EAT_BONES = ["neck0", "neck1", "head0"] as const;
@@ -258,64 +258,18 @@ class PreviewBoundary extends Component<{ children: ReactNode; onError: (e: Erro
   render() { return this.state.failed ? null : this.props.children; }
 }
 
-/** 成貓走路速度（公尺／秒）；幼貓照比例縮小 */
-const WALK_SPEED = 0.28;
-const TURN_SPEED = 5;
-/** wander 模式的預設鏡頭：拉遠一點，貓走到哪都在畫面裡；縮放只能是預設距離的 0.5 到 2 倍，視角可以自由轉 */
-export function wanderView(body: BodyType) {
-  const s = body === "kitten" ? KITTEN_SCALE : 1;
-  const camera: [number, number, number] = [2.3 * s, 1.45 * s, 2.3 * s];
-  const target: [number, number, number] = [0.12 * s, 0.12 * s, 0.12 * s];
-  const d = Math.hypot(camera[0] - target[0], camera[1] - target[1], camera[2] - target[2]);
-  return { camera, target, minDistance: d / 2, maxDistance: d * 2 };
-}
-
-/** 貓自己走動、隨機做動作（lib/cat-actions.ts 的 nextPlan）；載入完動作清單才開始 */
-function Wanderer({ body, model, onInfo }: { body: BodyType; model: Omit<CatPreviewProps, "clip" | "onInfo">; onInfo?: (info: PreviewInfo) => void }) {
-  const s = body === "kitten" ? KITTEN_SCALE : 1;
-  const group = useRef<THREE.Group>(null);
+/** 貓站在原地自己隨機換動作（lib/cat-actions.ts 的 nextIdle）；載入完動作清單才開始 */
+function AutoCat({ body, model, onInfo }: { body: BodyType; model: Omit<CatPreviewProps, "clip" | "onInfo">; onInfo?: (info: PreviewInfo) => void }) {
   const [clips, setClips] = useState<string[] | null>(null);
-  const [clip, setClip] = useState("idle");
-  const st = useRef<{ at: Pt; heading: number; shown: number; plan: Plan | null; walking: boolean; left: number }>({
-    at: { x: 0.25, z: 0.3 }, heading: 0, shown: 0, plan: null, walking: false, left: 0,
-  });
-  useFrame((_, delta) => {
-    const g = group.current;
-    if (!clips || !g) return;
-    const dt = Math.min(delta, 0.1);
-    const t = st.current;
-    const start = (last: Plan | null) => {
-      t.plan = nextPlan(Math.random, clips, t.at, last);
-      t.walking = Boolean(t.plan.to);
-      t.left = t.plan.seconds;
-    };
-    if (!t.plan) start(null);
-    const plan = t.plan!;
-    let want: string;
-    if (t.walking && plan.to) {
-      const r = stepToward(t.at, plan.to, WALK_SPEED, dt);
-      t.at = r.at;
-      if (r.heading !== null) t.heading = r.heading;
-      want = "walk";
-      if (r.arrived) { t.walking = false; if (plan.face) t.heading = headingTo(t.at, plan.face); }
-    } else {
-      want = plan.clip;
-      t.left -= dt;
-      if (t.left <= 0) start(plan);
-    }
-    // 轉身用固定角速度，不會一下子轉過去
-    let diff = t.heading - t.shown;
-    diff = Math.atan2(Math.sin(diff), Math.cos(diff));
-    t.shown += Math.sign(diff) * Math.min(Math.abs(diff), TURN_SPEED * dt);
-    g.position.set(t.at.x * s, 0, t.at.z * s);
-    g.rotation.set(0, t.shown, 0);
-    if (want !== clip) setClip(want);
-  });
-  return (
-    <group ref={group} position={[st.current.at.x * s, 0, st.current.at.z * s]}>
-      <CatModel {...model} body={body} clip={clip} follow={false} onInfo={info => { setClips(info.clips); onInfo?.(info); }} />
-    </group>
-  );
+  const [step, setStep] = useState<IdleStep | null>(null);
+  useEffect(() => {
+    if (!clips) return;
+    const now = step ?? nextIdle(Math.random, clips, null);
+    if (!step) { setStep(now); return; }
+    const t = setTimeout(() => setStep(nextIdle(Math.random, clips, now)), now.seconds * 1000);
+    return () => clearTimeout(t);
+  }, [clips, step]);
+  return <CatModel {...model} body={body} clip={step?.clip ?? FALLBACK_CLIP} onInfo={info => { setClips(info.clips); onInfo?.(info); }} />;
 }
 
 function Exposure({ light }: { light: number }) {
@@ -324,16 +278,17 @@ function Exposure({ light }: { light: number }) {
   return null;
 }
 
-/** wander：貓咪頁用，沒有動作按鈕；貓自己走動、隨機做動作（clip 不用給）。視角可以自由轉，縮放限制在預設距離的 0.5 到 2 倍 */
-export default function CatPreview(props: CatPreviewProps & { onError?: (e: Error) => void; wander?: boolean }) {
-  const { light = 1, onError, body = "adult", clip = null, wander = false, ...rest } = props;
-  const view = wander ? { ...framing(body, null), ...wanderView(body) } : framing(body, clip);
+/** autoplay：貓咪頁用，沒有動作按鈕；貓站在原地自己隨機換動作（clip 不用給）。取景與縮放、轉視角和一般預覽相同 */
+export default function CatPreview(props: CatPreviewProps & { onError?: (e: Error) => void; autoplay?: boolean }) {
+  const { light = 1, onError, body = "adult", clip = null, autoplay = false, ...rest } = props;
+  // autoplay 固定用站姿取景：動作一直換，跟著換鏡頭會一直跳
+  const view = framing(body, autoplay ? null : clip);
   const [loadedClips, setLoadedClips] = useState<string[] | null>(null);
   const prop = visibleProp(clip, body, loadedClips);
   // clip 改變時重建 Canvas，才能套用 sleep／跳躍／站姿不同的預設取景
   return (
     <Canvas
-      key={wander ? `${body}-wander` : `${body}-${clip ?? "none"}`}
+      key={autoplay ? `${body}-auto` : `${body}-${clip ?? "none"}`}
       camera={{ position: view.camera, fov: 30, near: 0.01, far: 50 }}
       gl={{ antialias: true, toneMapping: THREE.ACESFilmicToneMapping }}
       onCreated={({ camera }) => camera.lookAt(...view.target)}
@@ -345,8 +300,8 @@ export default function CatPreview(props: CatPreviewProps & { onError?: (e: Erro
       <directionalLight position={[3, 4, 5]} intensity={1.5} />
       <PreviewBoundary onError={e => onError?.(e)}>
         <Suspense fallback={null}>
-          {wander ? <Wanderer body={body} model={rest} onInfo={rest.onInfo} /> : <CatModel {...rest} body={body} clip={clip} onInfo={info => { setLoadedClips(info.clips); rest.onInfo?.(info); }} />}
-          {!wander && prop && (
+          {autoplay ? <AutoCat body={body} model={rest} onInfo={rest.onInfo} /> : <CatModel {...rest} body={body} clip={clip} onInfo={info => { setLoadedClips(info.clips); rest.onInfo?.(info); }} />}
+          {!autoplay && prop && (
             <mesh position={prop.position}>
               <boxGeometry args={prop.size} />
               <meshStandardMaterial color={prop.color} roughness={0.8} />
@@ -354,8 +309,7 @@ export default function CatPreview(props: CatPreviewProps & { onError?: (e: Erro
           )}
         </Suspense>
       </PreviewBoundary>
-      {/* wander 模式不能平移，貓才不會被拖出畫面 */}
-      <OrbitControls target={view.target} enableDamping minDistance={view.minDistance} maxDistance={view.maxDistance} {...(wander ? { enablePan: false } : {})} />
+      <OrbitControls target={view.target} enableDamping minDistance={view.minDistance} maxDistance={view.maxDistance} />
     </Canvas>
   );
 }
