@@ -10,12 +10,13 @@ import * as THREE from "three";
 import { FLOOR_TEXTURE, kitScale, kitUrl } from "@/lib/hq/floorplans/kit";
 import { goalForBox, idleAction, stepActor, worldOf, type Actor, type Goal } from "@/lib/hq/floorplans/catjump";
 import { blocked, CAT_SCALE, freeSpot, obstacles, type Obstacle } from "@/lib/hq/floorplans/catwalk";
-import { bubbleOf, passableItem, stepItems, stepSpot, stepStory, STORY_START, withoutItem, type NeedIcon, type Spot, type Story, type StoryState } from "@/lib/hq/floorplans/story";
+import { bubbleOf, isBowlSet, NOSE_REACH_M, passableItem, stepItems, stepSpot, stepStory, STORY_START, withoutItem, type NeedIcon, type Spot, type Story, type StoryState } from "@/lib/hq/floorplans/story";
 import { expandRemovedIndices, type FurnitureMove, type FurnitureSupport } from "@/lib/hq/floorplans/experience-furniture";
 import { boxToSolid, clampFurniturePose, rotatedHalfExtents, type SolidBody } from "@/lib/hq/floorplans/experience-physics";
 import { focusScenes, houseScene, sceneBounds, type RoomScene, type SceneBox } from "@/lib/hq/floorplans/scene";
 import type { BodyType } from "@/lib/hq/cat-models/types";
 import { CatModel } from "./CatPreview";
+import { bowlSlotsOf, detectBowlSlots, setBowlSlots } from "./bowlSlotsDetect";
 import { readItemDragId } from "./itemDrag";
 import type { PlanRoom } from "@/lib/hq/floorplans/types";
 
@@ -337,6 +338,13 @@ function PlacedItemModel({ item, room, dragEnabled, onMove, onRotate, onRemove }
 
   const worldY = (elev: number) => elev + prepared.base;
 
+  // 餐碗組（#304）：讀模型顏色找飼料碗與水碗，給貓咪故事線用
+  useEffect(() => {
+    if (!isBowlSet(item.name)) return;
+    setBowlSlots(item.key, detectBowlSlots(prepared.m, prepared.scale));
+    return () => setBowlSlots(item.key, null);
+  }, [item.key, item.name, prepared]);
+
   useEffect(() => {
     if (dragging.current) return;
     group.current?.position.set(item.x, worldY(item.y), item.z);
@@ -652,7 +660,9 @@ function CatActor({ s, look, click, pos, extraObs, forceClip = null, speed = 1, 
     const item = stepItems(step, items).sort((p, q) => Math.hypot(p.x - a.x, p.z - a.z) - Math.hypot(q.x - a.x, q.z - a.z))[0];
     // 做動作中固定站位；其他時候跟著用品重算（被拖走、換一個）
     if (st.phase !== "doing" || !item || spot.current?.item !== item.key) {
-      spot.current = item ? stepSpot(step, item, a, (x, z) => blocked(x, z, s, withoutItem(world.obs, item))) : null;
+      spot.current = item
+        ? stepSpot(step, item, a, (x, z) => blocked(x, z, s, withoutItem(world.obs, item)), { reach: NOSE_REACH_M[look.body], slots: bowlSlotsOf(item.key) })
+        : null;
     }
     const sp = spot.current;
     const near = !!sp && !a.jump && a.on === null && Math.hypot(a.x - sp.x, a.z - sp.z) < 0.12;

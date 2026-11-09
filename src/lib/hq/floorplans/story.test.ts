@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  REST_SECONDS, STORY_START, bubbleOf, headDownPose, isFoodBowl, isLitterBox, isWaterBowl, passableItem, stepItems,
+  NOSE_REACH_M, REST_SECONDS, STORY_START, bubbleOf, defaultBowlSlots, headDownPose, isBowlSet, isFoodBowl, isLitterBox, isWaterBowl, passableItem, stepItems,
   stepSpot, stepStory, storyById, storyProgress, withoutItem, type StoryState,
 } from "./story";
 
@@ -28,26 +28,53 @@ describe("故事線清單（#297）", () => {
     const onTable = { ...bowl, key: "b2", support: { furnitureIndex: 0, localX: 0, localZ: 0 } };
     expect(stepItems(eat, [bowl, onTable, { ...bowl, key: "w", name: "水碗" }]).map(b => b.key)).toEqual(["b1"]);
     expect(passableItem(daily, "貓砂盆")).toBe(true);
-    expect(passableItem(daily, "餐碗組")).toBe(false);
+    expect(passableItem(daily, "餐碗組")).toBe(true);
+    expect(passableItem(daily, "外出籠")).toBe(false);
     expect(passableItem(null, "貓砂盆")).toBe(false);
   });
 });
 
 describe("站的位置", () => {
-  it("碗：挑離貓最近、站得下的一邊，面向碗", () => {
-    const spot = stepSpot(eat, bowl, { x: 2, z: 4 }, () => false)!;
+  const single = { key: "w1", name: "水碗", x: 2, z: 2, widthM: 0.2, depthM: 0.2 };
+  it("單一碗：站在碗中心往外 reach、離貓最近的一邊，面向碗", () => {
+    const spot = stepSpot(drink, single, { x: 2, z: 4 }, () => false, { reach: 0.2 })!;
     expect(spot.x).toBeCloseTo(2);
-    expect(spot.z).toBeCloseTo(2.36);
+    expect(spot.z).toBeCloseTo(2.2);
     expect(spot.heading).toBeCloseTo(Math.PI);
-    expect(spot.item).toBe("b1");
+    expect(spot.item).toBe("w1");
+  });
+  it("幼貓鼻子比較短，站得更近", () => {
+    expect(NOSE_REACH_M.kitten).toBeLessThan(NOSE_REACH_M.adult);
+    const spot = stepSpot(drink, single, { x: 2, z: 4 }, () => false, { reach: NOSE_REACH_M.kitten })!;
+    expect(spot.z).toBeCloseTo(2 + NOSE_REACH_M.kitten);
   });
   it("最近的一邊被擋住換別邊；全擋住回傳 null", () => {
     expect(stepSpot(eat, bowl, { x: 2, z: 4 }, (_x, z) => z > 1.9)!.z).toBeLessThan(2);
     expect(stepSpot(eat, bowl, { x: 2, z: 4 }, () => true)).toBeNull();
   });
-  it("碗轉 90 度時，左右兩邊改用碗的深度", () => {
-    const spot = stepSpot(drink, { ...bowl, rotY: 90 }, { x: 4, z: 2 }, () => false)!;
-    expect(Math.hypot(spot.x - 2, spot.z - 2)).toBeCloseTo(0.36);
+  it("餐碗組：吃飯站飼料碗前、喝水站水碗前；只從短邊靠近", () => {
+    const set = { key: "s", name: "餐碗組", x: 2, z: 2, widthM: 0.52, depthM: 0.34 };
+    const slots = { food: [-0.13, 0] as [number, number], water: [0.13, 0] as [number, number] };
+    const e = stepSpot(eat, set, { x: 2, z: 4 }, () => false, { reach: 0.2, slots })!;
+    expect(e.x).toBeCloseTo(1.87);
+    expect(e.z).toBeCloseTo(2.2);
+    const d = stepSpot(drink, set, { x: 4, z: 2 }, () => false, { reach: 0.2, slots })!;
+    expect(d.x).toBeCloseTo(2.13);       // 貓從右邊來也不會從長邊伸過去
+    expect(Math.abs(d.z - 2)).toBeCloseTo(0.2);
+  });
+  it("餐碗組轉 180 度：碗的位置跟著轉", () => {
+    const set = { key: "s", name: "餐碗組", x: 2, z: 2, widthM: 0.52, depthM: 0.34, rotY: 180 };
+    const slots = { food: [-0.13, 0] as [number, number], water: [0.13, 0] as [number, number] };
+    expect(stepSpot(eat, set, { x: 2, z: 4 }, () => false, { reach: 0.2, slots })!.x).toBeCloseTo(2.13);
+  });
+  it("沒辨識到碗位置：沿長邊左右各四分之一", () => {
+    expect(defaultBowlSlots({ widthM: 0.52, depthM: 0.34 })).toEqual({ food: [-0.13, 0], water: [0.13, 0] });
+    expect(defaultBowlSlots({ widthM: 0.3, depthM: 0.6 })).toEqual({ food: [0, -0.15], water: [0, 0.15] });
+  });
+  it("餐碗組也算喝水的用品", () => {
+    expect(isBowlSet("餐碗組")).toBe(true);
+    expect(drink.match("餐碗組")).toBe(true);
+    expect(drink.match("陶瓷飯碗")).toBe(false);
   });
   it("貓砂盆：站正中央、面朝貓砂盆正面", () => {
     const box = { key: "l", name: "貓砂盆", x: 1, z: 1, widthM: 0.34, depthM: 0.5 };
