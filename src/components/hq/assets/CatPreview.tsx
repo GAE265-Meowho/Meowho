@@ -326,10 +326,13 @@ class PreviewBoundary extends Component<{ children: ReactNode; onError: (e: Erro
 /** 成貓走路速度（公尺／秒）；幼貓照比例縮小 */
 const WALK_SPEED = 0.28;
 const TURN_SPEED = 5;
-/** wander 模式的固定鏡頭：看得到整個白模角落，使用者不能轉 */
+/** wander 模式的預設鏡頭：看得到整個白模角落；使用者仍可自由縮放、轉視角 */
 export function wanderView(body: BodyType) {
   const s = body === "kitten" ? KITTEN_SCALE : 1;
-  return { camera: [2.3 * s, 1.45 * s, 2.3 * s] as [number, number, number], target: [0.12 * s, 0.12 * s, 0.12 * s] as [number, number, number] };
+  return {
+    camera: [2.3 * s, 1.45 * s, 2.3 * s] as [number, number, number], target: [0.12 * s, 0.12 * s, 0.12 * s] as [number, number, number],
+    minDistance: 0.4 * s, maxDistance: 5 * s,
+  };
 }
 
 /** 貓自己在白模裡走動、隨機做動作（lib/cat-actions.ts 的 nextPlan）；載入完動作清單才開始 */
@@ -388,7 +391,7 @@ function Exposure({ light }: { light: number }) {
 
 /**
  * room：加上空間白模（地板＋背後兩面牆）。
- * wander：貓咪頁用，使用者不操作、鏡頭固定；貓在白模裡自己走動、隨機做動作（clip 不用給）。會自動加上白模與餐碗、貓砂盆。
+ * wander：貓咪頁用，沒有動作按鈕（可以縮放、轉視角）；貓在白模裡自己走動、隨機做動作（clip 不用給）。會自動加上白模與餐碗、貓砂盆。
  */
 export default function CatPreview(props: CatPreviewProps & { onError?: (e: Error) => void; room?: boolean; wander?: boolean }) {
   const { light = 1, onError, body = "adult", clip = null, wander = false, ...rest } = props;
@@ -424,9 +427,9 @@ export default function CatPreview(props: CatPreviewProps & { onError?: (e: Erro
         </Suspense>
       </PreviewBoundary>
       {/* 有白模時不讓鏡頭轉到地板下面 */}
-      {/* wander 模式鏡頭固定，使用者不能轉 */}
-      {!wander && <OrbitControls target={view.target} enableDamping minDistance={view.minDistance} maxDistance={view.maxDistance}
-        {...(room ? { maxPolarAngle: Math.PI / 2 - 0.08 } : {})} />}
+      {/* 有白模時不讓鏡頭轉到地板下面 */}
+      <OrbitControls target={view.target} enableDamping minDistance={view.minDistance} maxDistance={view.maxDistance}
+        {...(room ? { maxPolarAngle: Math.PI / 2 - 0.08 } : {})} />
     </Canvas>
   );
 }
