@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cameraForward, dropTarget, placeObjects, resultFiles, roomSplats, roomUnit, sortCameras, type RoomCamera, type RoomObject, type RoomScene } from "./demo";
+import { cameraForward, clampInRoom, dropTarget, placeObjects, resultFiles, roomSplats, roomUnit, sortCameras, type RoomCamera, type RoomObject, type RoomScene } from "./demo";
 
 const cam = (img_name: string, position: RoomCamera["position"] = [0, 0, 0]): RoomCamera => ({
   img_name, position, rotation: [[1, 0, 0.1], [0, 1, 0.2], [0, 0, 0.3]],
@@ -54,5 +54,16 @@ describe("展示房間", () => {
   it("下載清單照 worker 上傳的檔案：有 room_cut 就是挖空的房間加可推倒的物品", () => {
     expect(resultFiles(scene)).toEqual(["scene.json", "scene.cameras.json", "scene.layout.json", "thumb.jpg", "objects/room_cut.splat", "objects/cup.movable.splat"]);
     expect(resultFiles({ ...scene, assets: { room: "scene.splat" } }).slice(4)).toEqual(["scene.splat"]);
+  });
+
+  it("鏡頭夾在牆內和地板上方，房間斜的也照牆的方向夾", () => {
+    const room = { min: [0, 0] as [number, number], max: [4, 3] as [number, number] };
+    expect(clampInRoom([2, 1.2, 1.5], room)).toEqual([2, 1.2, 1.5]);
+    expect(clampInRoom([9, -1, -5], room)).toEqual([3.85, 0.2, 0.15]);
+    expect(clampInRoom([2, 5, 1.5], room)[1]).toBe(2.2);
+    const yaw = Math.PI / 6, c = Math.cos(yaw), s = Math.sin(yaw);
+    const [x, , z] = clampInRoom([10 * c, 1, 10 * s], { ...room, yaw });  // 沿牆方向走 10 m，停在 3.85 m
+    expect(x * c + z * s).toBeCloseTo(3.85);
+    expect(-x * s + z * c).toBeCloseTo(0.15);
   });
 });

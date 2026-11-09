@@ -7,7 +7,7 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { HqSkeleton } from "@/components/hq/HqStates";
 import {
-  cameraForward, roomSplats, roomUnit, sortCameras,
+  cameraForward, clampInRoom, roomSplats, roomUnit, sortCameras,
   type RoomCamera, type RoomLayout, type RoomScene,
 } from "@/lib/hq/rooms/demo";
 import { createRoomWorld, type RoomWorld } from "@/lib/hq/rooms/world";
@@ -201,6 +201,17 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
         controls.target.add(delta);
         active.forceRenderNextFrame();
       };
+      // 走動、滾輪、右鍵平移都可能走出房間，每幀把鏡頭拉回牆內（看得到牆和地板背面就破功）
+      const toFloor = (p: THREE.Vector3): [number, number, number] => {
+        const d = p.clone().sub(forigin).divideScalar(layout.units_per_meter);
+        return [d.dot(fe1), d.dot(fup), d.dot(fe2)];
+      };
+      const keepInRoom = () => {
+        const [x, y, z] = clampInRoom(toFloor(active.camera.position), scene.room);
+        const inside = forigin.clone().addScaledVector(fe1, x * layout.units_per_meter)
+          .addScaledVector(fup, y * layout.units_per_meter).addScaledVector(fe2, z * layout.units_per_meter);
+        if (inside.distanceToSquared(active.camera.position) > 1e-12) move(inside.sub(active.camera.position));
+      };
       el.addEventListener("wheel", e => {
         e.preventDefault();
         move(directions().fwd.multiplyScalar(-Math.sign(e.deltaY) * unit * 0.03));
@@ -231,6 +242,7 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
             move(d.normalize().multiplyScalar(unit * WALK_SPEED * (fast ? RUN_FACTOR : 1) * dt));
           }
         }
+        if (!tween) keepInRoom();
         frame = requestAnimationFrame(tick);
       };
       frame = requestAnimationFrame(tick);
