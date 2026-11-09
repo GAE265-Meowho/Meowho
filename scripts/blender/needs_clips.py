@@ -175,12 +175,13 @@ REST_HEAD = (0.0, -1.0, 0.0)
 REST_TAIL = [(-0.2, 0.95, -0.25), (-0.5, 0.85, -0.1), (-0.8, 0.55, 0.0), (-0.97, 0.1, 0.0),
              (-0.85, -0.5, 0.0), (-0.55, -0.83, 0.0), (-0.25, -0.97, 0.0)]
 # 理毛（2026-11-09 重做，參考 Tina 的三張舔毛照）：縮成一團趴著（香盒坐），後腳完全收在肚子下、尾巴貼地繞到身體前側；
-# 右前腳手肘撐地、前臂立起、腳掌彎回嘴邊；左前腳平放；頭低下偏向右前腳，閉眼一下一下舔
+# 左前腳手肘撐地、前臂立起、腳掌彎回嘴邊；右前腳前臂平放、往內橫在胸前；頭低下偏向左前腳，閉眼一下一下舔
+# （Tina 2026-11-09：照片裡舔的是貓的左前腳、頭往左偏；X 正＝貓的左邊）
 GROOM_HIND = [(0.3, -0.9, -0.3), (0.06, 0.97, -0.25), (0.0, -1.0, -0.03), (0.0, -0.4, -0.92), (0.0, -1.0, -0.1)]     # 大腿往前收、小腿往後折、腳掌平貼往前（收在肚子下）
 GROOM_FRONT_FLAT = [(0.03, 0.4, -0.92), (-0.15, -0.99, -0.05), (-0.1, -1.0, 0.0)]       # 左前腳：手肘往後下、前臂往前略往內平放
-GROOM_PAW_UP = (0.12, 0.3, 0.95)                  # 舔的那隻腳：掌骨從腕往上、略往後往內，掌心朝嘴
-GROOM_NECK = [(-0.05, -0.8, 0.6), (-0.2, -0.75, -0.62)]
-GROOM_HEAD = (-0.32, -0.45, -0.83)                # 頭低下、偏向右前腳
+GROOM_PAW_UP = (-0.12, 0.3, 0.95)                 # 舔的那隻腳（左）：掌骨從腕往上、略往後往內（往右），掌心朝嘴
+GROOM_NECK = [(0.05, -0.75, 0.66), (0.15, -0.85, -0.5)]
+GROOM_HEAD = (0.45, -0.72, -0.53)                 # 頭往下約 30°、往左偏向左前腳（正面看得到臉）
 GROOM_TAIL = [(-0.25, 0.6, -0.76), (-0.85, 0.3, -0.2), (-0.65, -0.76, 0.0), (-0.25, -0.97, 0.0),
               (-0.05, -1.0, 0.0), (0.1, -1.0, 0.0), (0.25, -0.97, 0.0)]                  # 尾巴貼地從屁股繞到右側、沿著身體往前
 GROOM_LICK_SEC = 0.55                             # 舔一下的時間
@@ -265,13 +266,13 @@ def _belly_drop(p, body, pose_spine):
 
 
 def clip_groom(p, body, blink_keys):
-    """理毛（2026-11-09 重做，參考 Tina 的舔毛照）：香盒坐，肚子貼地、後腳收在肚子下、左前腳往前平放、尾巴沿右側繞到前面；
-    右前腳手肘撐地、前臂立起、腳掌彎在嘴邊，頭低下偏向腳掌，閉眼一下一下舔（頭往下帶、嘴微開），每 4 下停一拍。4 秒循環"""
+    """理毛（2026-11-09 重做，參考 Tina 的舔毛照）：香盒坐，肚子貼地、後腳收在肚子下、右前腳橫放在胸前、尾巴沿右側繞到前面；
+    左前腳手肘撐地、前臂立起、腳掌彎在嘴邊，頭低下偏向左前腳，閉眼一下一下舔（頭往下帶、嘴微開），每 4 下停一拍。4 秒循環"""
     n = 4 * FPS
     k, _ = _begin(p, n)
     keys = range(0, n + 1, 2)
     W = p.rig.matrix_world
-    paw_len = p.rig.data.bones["leg_front_right_bot0"].length
+    paw_len = p.rig.data.bones["leg_front_left_bot0"].length
     floor = 0.012 * k                                 # 腳掌骨頭離地（腳掌有厚度）
 
     def lick_phase(f):
@@ -313,22 +314,22 @@ def clip_groom(p, body, blink_keys):
             p.aim(f"leg_hind_{lr}_bot0", f, (0.0, -1.0, -0.02))
             p.aim(f"leg_hind_{lr}_ankle", f, (0.0, -0.5, -0.87))
             p.aim(f"leg_hind_{lr}_toe", f, (0.0, -1.0, -0.05))
-        # 左前腳：手腕落在肩膀前下方的地上，手肘往後；掌骨往內收在胸前（參考照的另一隻前腳）
-        sh = joint("leg_front_left_top0")
-        p.reach("leg_front_left_top0", "leg_front_left_top1", f,
-                snap(Vector((sh.x + 0.01 * k, sh.y - 0.02 * k, floor))), (0.4, 1.0, 0.3))
-        p.aim("leg_front_left_bot0", f, (-0.88, -0.47, 0.0))      # 前臂平貼地面、往內橫放在胸前（Tina：注意左手角度）
-        p.aim("leg_front_left_ankle", f, (-0.7, -0.4, -0.6))      # 腳掌往下收
-        p.aim("leg_front_left_toe", f, (-0.85, -0.5, -0.15))
-        # 右前腳：掌骨從手腕往上彎回嘴邊；手腕＝嘴巴下方一個掌骨長，上臂＋前臂兩節 IK，手肘往後下撐地
+        # 右前腳：手腕落在肩膀前下方的地上，手肘往後；前臂平貼地面、往內（往左）橫放在胸前，腳掌往下收
+        sh = joint("leg_front_right_top0")
+        p.reach("leg_front_right_top0", "leg_front_right_top1", f,
+                snap(Vector((sh.x - 0.01 * k, sh.y - 0.02 * k, floor))), (-0.4, 1.0, 0.3))
+        p.aim("leg_front_right_bot0", f, (0.88, -0.47, 0.0))
+        p.aim("leg_front_right_ankle", f, (0.7, -0.4, -0.6))
+        p.aim("leg_front_right_toe", f, (0.85, -0.5, -0.15))
+        # 左前腳（舔的那隻）：掌骨從手腕往上彎回嘴邊；手腕＝嘴巴下方一個掌骨長，上臂＋前臂兩節 IK，手肘往後下撐地
         mouth = joint("jaw", "tail")
         up = Vector(GROOM_PAW_UP).normalized()
         wrist = mouth - up * paw_len * 0.95
         wrist.z = max(wrist.z, floor)
-        p.reach("leg_front_right_top0", "leg_front_right_top1", f, snap(wrist), (0.0, 0.6, -0.8))
-        p.aim("leg_front_right_bot0", f, tuple(round(c, 2) for c in (mouth - wrist).normalized()))
-        p.set("leg_front_right_ankle", f, forward=-40)  # 腳掌往內彎
-        p.set("leg_front_right_toe", f, forward=-30)
+        p.reach("leg_front_left_top0", "leg_front_left_top1", f, snap(wrist), (0.0, 0.6, -0.8))
+        p.aim("leg_front_left_bot0", f, tuple(round(c, 2) for c in (mouth - wrist).normalized()))
+        p.set("leg_front_left_ankle", f, forward=-40)  # 腳掌往內彎
+        p.set("leg_front_left_toe", f, forward=-30)
         for i, d in enumerate(GROOM_TAIL):
             p.aim(f"tail{i}", f, d)
 
