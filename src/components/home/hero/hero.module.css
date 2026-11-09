@@ -167,11 +167,6 @@
   flex: none;
 }
 
-.sent {
-  margin: 10px 0 0;
-  font-size: 13px;
-  color: var(--orange-deep);
-}
 
 .secondary {
   display: flex;

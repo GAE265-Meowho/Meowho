@@ -69,3 +69,32 @@ export function describe(env: Env): string {
   if (!p || !isConfigured(env)) return "規則式解析（未設定 AI 金鑰）";
   return `${p}：${resolveModel(env, p, "text")}`;
 }
+
+/** Embedding（幫我找貓的意思座標，規格 11）：OpenAI／Azure 固定縮成 1024 維，存進資料庫時和模型名稱一起記，換模型就重算 */
+export const EMBEDDING_DIMS = 1024;
+const DEFAULT_EMBEDDING: Partial<Record<Provider, string>> = { openai: "text-embedding-3-large", gemini: "gemini-embedding-001" };
+
+/** 這次用哪個 Embedding 模型；Anthropic 沒有 Embedding、Azure 沒設部署名稱時回傳 null（改用備案排序） */
+export function resolveEmbedding(env: Env): { provider: Provider; model: string; dims: number | null; key: string } | null {
+  const provider = resolveProvider(env);
+  if (!provider || !isConfigured(env)) return null;
+  const model = provider === "azure" ? (env.AZURE_OPENAI_EMBEDDING_DEPLOYMENT ?? "").trim() : (env.AI_EMBEDDING_MODEL ?? DEFAULT_EMBEDDING[provider] ?? "").trim();
+  if (!model) return null;
+  const dims = provider === "gemini" ? null : EMBEDDING_DIMS;
+  return { provider, model, dims, key: `${provider}:${model}${dims ? `@${dims}` : ""}` };
+}
+
+/**
+ * Foundry 的專案網址（https://<資源>.services.ai.azure.com/api/projects/<專案>）不能直接呼叫模型：
+ * 換成同一個資源的 OpenAI 相容端點 https://<資源>.openai.azure.com/openai/v1。其他網址原樣回傳。
+ */
+export function azureModelEndpoint(endpoint: string | undefined): string {
+  const raw = (endpoint ?? "").trim().replace(/\/+$/, "");
+  try {
+    const u = new URL(raw);
+    if (u.hostname.endsWith(".services.ai.azure.com") && u.pathname.startsWith("/api/projects")) {
+      return `https://${u.hostname.split(".")[0]}.openai.azure.com/openai/v1`;
+    }
+  } catch { /* 不是網址就原樣回傳，交給呼叫端報錯 */ }
+  return raw;
+}
