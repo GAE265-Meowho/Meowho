@@ -316,10 +316,10 @@ def clip_groom(p, body, blink_keys):
         # 左前腳：手腕落在肩膀前下方的地上，手肘往後；掌骨往內收在胸前（參考照的另一隻前腳）
         sh = joint("leg_front_left_top0")
         p.reach("leg_front_left_top0", "leg_front_left_top1", f,
-                snap(Vector((sh.x + 0.005 * k, sh.y - 0.035 * k, floor))), (0.3, 1.0, 0.0))
-        p.aim("leg_front_left_bot0", f, (-0.6, -0.8, -0.02))      # 前臂往內收在胸前，腳掌露在下巴下方
-        p.set("leg_front_left_ankle", f)
-        p.set("leg_front_left_toe", f)
+                snap(Vector((sh.x + 0.01 * k, sh.y - 0.02 * k, floor))), (0.4, 1.0, 0.3))
+        p.aim("leg_front_left_bot0", f, (-0.88, -0.47, 0.0))      # 前臂平貼地面、往內橫放在胸前（Tina：注意左手角度）
+        p.aim("leg_front_left_ankle", f, (-0.7, -0.4, -0.6))      # 腳掌往下收
+        p.aim("leg_front_left_toe", f, (-0.85, -0.5, -0.15))
         # 右前腳：掌骨從手腕往上彎回嘴邊；手腕＝嘴巴下方一個掌骨長，上臂＋前臂兩節 IK，手肘往後下撐地
         mouth = joint("jaw", "tail")
         up = Vector(GROOM_PAW_UP).normalized()
