@@ -682,6 +682,40 @@ try {
   }
 }
 
+// 0032（幫我找貓的意思座標，規格 11）：0001→0018 後跑 0032 兩次。只有伺服器能讀寫，前端角色讀寫都被擋；貓刪掉座標跟著刪
+{
+  const m = new PGlite();
+  const base = read("./stub_supabase.sql") + ["0001_meow", "0002_meow_hq", "0003_meow_site_assets", "0004_meow_cat_profile", "0005_meow_cat_models", "0006_meow_household_roles", "0007_meow_adoption_forms", "0008_meow_cat_favorites", "0009_meow_cat_returns", "0010_meow_adoption_notify", "0011_meow_threads", "0012_meow_thread_homed", "0013_meow_decline_reason_transfer", "0014_meow_room_models", "0014_meow_returns_in_threads", "0015_meow_room_floorplan", "0016_meow_cat_model_variants", "0017_meow_adoption_tasks", "0018_meow_task_templates_seed"]
+    .map((f) => read(`../migrations/${f}.sql`)).join("");
+  const id = (n) => `00000000-0000-0000-0000-0000000032${n}`;
+  const one = async (sql) => Object.values((await m.query(sql)).rows[0] ?? {})[0];
+  const eq = (name, expected, actual) =>
+    results.push({ name, status: String(actual) === String(expected) ? "PASS" : "FAIL", detail: String(actual) === String(expected) ? null : `預期 ${expected}，實際 ${actual}` });
+  const as = async (role, sql) => {
+    try { const r = await m.exec(`set role ${role}; ${sql}; reset role;`); return r; }
+    catch (e) { await m.exec("reset role;").catch(() => {}); return e.message; }
+  };
+  try {
+    await m.exec(base);
+    await m.exec(read("../migrations/0032_meow_cat_embeddings.sql"));
+    await m.exec(read("../migrations/0032_meow_cat_embeddings.sql"));
+    await m.exec(`insert into auth.users (id, email) values ('${id("a0")}', 'f@t32.example');
+      insert into public.meow_profiles (id, email, display_name) values ('${id("a0")}', 'f@t32.example', 'f');
+      insert into public.meow_households (id, owner_id, name, caretaker_type, city, district) values ('${id("d0")}', '${id("a0")}', '中途', 'personal_foster', '桃園市', '龍潭區');
+      insert into public.meow_cats (id, household_id, name, sex, life_stage, status) values ('${id("c0")}', '${id("d0")}', '橘子', 'male', 'adult', 'adoptable');
+      insert into public.meow_cat_embeddings (cat_id, model, content_hash, embedding) values ('${id("c0")}', 'text-embedding-3-large@1024', 'h1', array_fill(0.1::real, array[1024]));`);
+    eq("EMB-1 伺服器寫得進 1024 維的座標", "1024", await one(`select cardinality(embedding) from public.meow_cat_embeddings where cat_id = '${id("c0")}'`));
+    eq("EMB-2 太短的向量寫不進去", "check", /violates check constraint/.test(String(await as("postgres", `update public.meow_cat_embeddings set embedding = array[0.1]::real[] where cat_id = '${id("c0")}'`))) ? "check" : "no");
+    eq("EMB-3 登入的會員讀不到座標", "denied", /permission denied/.test(String(await as("authenticated", "select * from public.meow_cat_embeddings"))) ? "denied" : "allowed");
+    eq("EMB-4 未登入的訪客寫不進座標", "denied", /permission denied/.test(String(await as("anon", `delete from public.meow_cat_embeddings`))) ? "denied" : "allowed");
+    await m.exec(`delete from public.meow_cats where id = '${id("c0")}'`);
+    eq("EMB-5 貓刪掉，座標跟著刪", "0", await one("select count(*) from public.meow_cat_embeddings"));
+  } catch (e) {
+    console.error(`✗ 0032 測試中斷：${e.message}`);
+    process.exit(1);
+  }
+}
+
 let failed = 0;
 for (const r of results) {
   if (r.status === "FAIL") failed++;
