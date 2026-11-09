@@ -96,7 +96,7 @@ export interface CatPreviewProps {
 
 type EyeMesh = THREE.Mesh & { userData: { restQuat: THREE.Quaternion } };
 
-function Environment() {
+export function Environment() {
   const gl = useThree(s => s.gl);
   const scene = useThree(s => s.scene);
   useEffect(() => {

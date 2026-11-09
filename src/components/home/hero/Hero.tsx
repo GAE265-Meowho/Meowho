@@ -5,6 +5,8 @@ import Icon from "@/components/ui/Icon";
 import TypeSearch from "./TypeSearch";
 import styles from "./hero.module.css";
 
+const SHOW_INTENTS = false;
+
 const intents = [
   {
     icon: "house",
@@ -96,7 +98,8 @@ export default function Hero() {
         </div>
       </section>
 
-      <section className={`wrap ${styles.intent}`} aria-labelledby="intent-title">
+      {/* 「喵～你今天想做什麼呢？」三張入口卡：2026-11-09 先隱藏，要恢復把 SHOW_INTENTS 改成 true */}
+      {SHOW_INTENTS && <section className={`wrap ${styles.intent}`} aria-labelledby="intent-title">
         <h2 id="intent-title">喵～你今天想做什麼呢？</h2>
         <div className={styles.intentGrid}>
           {intents.map((item) => (
@@ -114,7 +117,7 @@ export default function Hero() {
             </Link>
           ))}
         </div>
-      </section>
+      </section>}
     </>
   );
 }
