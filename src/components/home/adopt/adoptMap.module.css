@@ -1,294 +1,289 @@
-.wrap {
-  display: grid;
-  grid-template-columns: minmax(0, 1.9fr) minmax(0, 1fr);
-  gap: 22px;
-  align-items: start;
+.pickerWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
-/* Let both columns shrink; the map scrolls inside its own frame on phones */
-.wrap > * {
-  min-width: 0;
+.pickLead {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.picker {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.region {
+  min-height: 168px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 12px;
+  border-radius: 28px;
+  border: 1.5px solid var(--line);
+  background: var(--card);
+  box-shadow: 0 6px 0 -1px var(--line);
+  text-align: left;
+  transition: transform 0.15s ease;
+}
+
+.region:hover {
+  transform: translateY(-2px);
+}
+
+.mini {
+  display: block;
+  width: 100%;
+  height: 72px;
+  border-radius: 16px;
+  background: var(--map-sea);
+}
+
+.regionLabel {
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  line-height: 1.2;
+}
+
+.regionName {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.regionNote,
+.regionCount {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.regionNote {
+  color: var(--ink-soft);
+}
+
+.regionCount {
+  margin-top: auto;
+  color: var(--orange-deep);
+}
+
+.islands {
+  grid-column: 1 / -1;
+  max-width: 280px;
 }
 
 .mapCard {
   border-radius: 32px;
-  background: #fff8ea;
+  background: var(--card);
   box-shadow: 0 6px 0 -1px var(--line);
-  padding: 8px 8px 14px;
+  padding: 14px;
 }
 
-.map svg {
+.mapHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.kicker {
+  margin: 0;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: var(--yellow);
+  color: var(--ink);
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.back {
+  min-height: var(--tap);
+  border-radius: 999px;
+  border: 1.5px solid var(--orange);
+  background: var(--card);
+  color: var(--orange-deep);
+  font-weight: 700;
+  padding: 6px 16px;
+}
+
+.stage {
+  position: relative;
+}
+
+.map {
   display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 24px;
+}
+
+.map text,
+.mini text {
+  font-family: inherit;
+}
+
+.marker {
+  position: absolute;
+  width: clamp(44px, 7.2%, 62px);
+  height: auto;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  transform: translate(-50%, -72%);
+}
+
+.marker svg {
   width: 100%;
   height: auto;
 }
 
-/* ---------- Houses ---------- */
-.house {
-  cursor: pointer;
-  outline: none;
-  transition: opacity 0.25s ease;
+.cityLabel,
+.markLabel,
+.islandLabel,
+.compass {
+  position: absolute;
+  z-index: 1;
+  margin: 0;
+  font-weight: 700;
+  pointer-events: none;
+  line-height: 1.2;
 }
 
-.body {
-  transition: transform 0.25s ease;
+.cityLabel {
+  font-size: 14px;
+  color: var(--ink-soft);
+  transform: translate(-50%, -50%);
 }
 
-.house:hover .body,
-.house:focus-visible .body,
-.house.on .body {
-  transform: translateY(-4px);
+.islandLabel,
+.compass {
+  font-size: 16px;
+  color: var(--ink);
+  transform: translate(-50%, 0);
 }
 
-.dim {
-  opacity: 0.32;
+.markLabel {
+  font-size: 12px;
+  color: var(--caramel);
+  transform: translate(-50%, 8px);
 }
 
-.tagFill {
-  fill: #fffdf8;
-  stroke: #ead9bd;
-  stroke-width: 1.2;
-  transition: fill 0.2s ease;
-}
-
-.tagText {
-  fill: var(--ink);
-}
-
-.on .tagFill {
-  fill: var(--ink);
-  stroke: var(--ink);
-}
-
-.on .tagText {
-  fill: #fff;
-}
-
-/* Houses with no cats waiting keep the map quiet: tag only on hover / focus / select */
-.tag {
-  transition: opacity 0.2s ease, transform 0.2s ease;
-}
-
-.quiet .tag {
-  opacity: 0;
-  transform: translateY(6px);
-}
-
-.quiet:hover .tag,
-.quiet:focus-visible .tag,
-.quiet.on .tag {
-  opacity: 1;
+.compass {
   transform: none;
 }
 
-.house:focus-visible .tagFill {
-  stroke: var(--orange);
-  stroke-width: 3;
+.dim {
+  opacity: 0.38;
 }
 
-/* ---------- Legend ---------- */
-.legend {
-  list-style: none;
-  margin: 0;
-  padding: 8px 12px 0;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px 16px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--ink-soft);
-}
-
-.legend li {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.legend i {
-  width: 14px;
-  height: 14px;
-  border-radius: 4px;
-  border: 1.5px solid;
-  transform: rotate(45deg) scale(0.85);
-}
-
-/* ---------- Side panel ---------- */
-.panel {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 22px;
-  border-radius: 28px;
+.preview {
+  position: absolute;
+  z-index: 2;
+  width: 210px;
+  display: grid;
+  grid-template-columns: 68px 1fr;
+  gap: 4px 8px;
+  padding: 8px;
+  border-radius: 20px;
   background: var(--card);
-  box-shadow: 0 6px 0 -1px var(--line);
+  box-shadow: var(--shadow), 0 6px 0 -1px var(--line);
+  text-align: left;
 }
 
-.kind {
-  align-self: flex-start;
-  margin: 0;
-  padding: 3px 12px;
-  border-radius: 999px;
-  font-size: 12.5px;
-  font-weight: 700;
-  background: var(--paper);
+.preview[data-side="up"] {
+  left: 50%;
+  bottom: calc(100% - 2px);
+  transform: translateX(-50%);
 }
 
-.kind[data-kind="waiting"] {
-  background: var(--yellow);
+.preview[data-side="left"] {
+  right: 8px;
+  bottom: calc(100% - 2px);
 }
 
-.kind[data-kind="fresh"] {
-  background: var(--pink-soft);
+.preview[data-side="right"] {
+  left: 8px;
+  bottom: calc(100% - 2px);
 }
 
-.panel h3 {
-  margin: 2px 0 0;
-  font-size: 22px;
-}
-
-.meta {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  margin: 0;
-  font-size: 13.5px;
-  color: var(--ink-soft);
-}
-
-.meta svg {
-  color: var(--orange);
-}
-
-.intro {
-  margin: 4px 0;
-  line-height: 1.8;
-}
-
-.sub {
-  margin: 6px 0 0;
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--orange-deep);
-}
-
-.cats {
-  list-style: none;
-  margin: 0 0 8px;
-  padding: 0;
-  display: grid;
-  gap: 8px;
-}
-
-.cats li {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 8px 10px;
-  border-radius: 18px;
-  background: var(--paper);
-  transition: opacity 0.2s ease;
-}
-
-.catDim {
-  opacity: 0.45;
-}
-
-.thumb {
-  position: relative;
-  display: grid;
-  place-items: center;
-  color: var(--orange-deep);
-  flex: none;
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
-  overflow: hidden;
+.shot,
+.ph {
+  grid-row: 1 / span 3;
+  width: 68px;
+  height: 68px;
+  border-radius: 16px;
   background: var(--yellow-soft);
-  box-shadow: 0 0 0 2.5px var(--yellow);
 }
 
-.thumb img {
+.shot {
   display: block;
-  width: 100%;
-  height: 100%;
   object-fit: cover;
 }
 
-.catText {
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
+.ph {
+  display: grid;
+  place-items: center;
+  color: var(--orange-deep);
 }
 
-.catText strong {
+.preview strong {
   font-size: 16px;
+  line-height: 1.3;
 }
 
-.catText small {
-  font-size: 12.5px;
+.where,
+.tagline {
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.where {
   color: var(--ink-soft);
 }
 
-.showCard {
-  min-height: var(--tap);
-  flex: none;
-  border: 1.5px solid var(--orange);
+.tagline {
+  font-weight: 700;
+}
+
+.empty {
+  position: absolute;
+  left: 50%;
+  top: 16px;
+  transform: translateX(-50%);
+  margin: 0;
+  padding: 8px 16px;
   border-radius: 999px;
   background: var(--card);
-  padding: 5px 12px;
-  font-size: 12.5px;
+  box-shadow: 0 6px 0 -1px var(--line);
+  font-size: 16px;
   font-weight: 700;
-  color: var(--orange-deep);
-}
-
-.showCard:hover {
-  background: var(--caramel);
-  color: #fff;
-}
-
-.none {
-  margin: 4px 0 8px;
-  color: var(--ink-soft);
-}
-
-.latest {
-  margin: 8px 0 0;
-  padding: 10px 14px;
-  border-left: 4px solid var(--yellow);
-  border-radius: 0 14px 14px 0;
-  background: var(--paper);
-  font-size: 14px;
-  line-height: 1.7;
-}
-
-.latest small {
-  display: block;
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--orange-deep);
-}
-
-@media (max-width: 960px) {
-  .wrap {
-    grid-template-columns: 1fr;
-  }
 }
 
 @media (max-width: 767px) {
-  /* Tags stay readable: let the map be wider than the screen and pan sideways */
-  .map {
-    overflow-x: auto;
-    scrollbar-width: none;
+  .picker {
+    grid-template-columns: 1fr 1fr;
   }
 
-  .map svg {
-    width: 640px;
+  .islands {
     max-width: none;
   }
 
-  .panel {
-    padding: 18px;
+  .preview {
+    width: 180px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .region {
+    transition: none;
+  }
+
+  .region:hover {
+    transform: none;
   }
 }

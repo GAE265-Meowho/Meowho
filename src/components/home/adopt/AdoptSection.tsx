@@ -1,14 +1,15 @@
 "use client";
 /* eslint-disable @next/next/no-img-element */
-// 帶我回家（#57）：首頁列出資料庫裡的待領養貓，等最久的排前面；地圖依喵戶分組。
+// 帶我回家（#57）：首頁列出資料庫裡的待領養貓，等最久的排前面。
+// 地圖依縣市＋行政區把同一批卡片放到北／中／南／東／離島。
 // 沒連資料庫（示範模式）時用 lib/cats.ts 的示意資料。
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import CatPerch from "@/components/journey/CatPerch";
 import CatButton from "@/components/ui/CatButton";
 import Icon from "@/components/ui/Icon";
-import { FEED_SELECT, feedHomes, toFeedCat, type FeedCat, type FeedRow } from "@/lib/adopt-feed";
+import { FEED_SELECT, toFeedCat, type FeedCat, type FeedRow } from "@/lib/adopt-feed";
+import { parseLocation } from "@/lib/adopt-map";
 import { cats as demoCats, type CatFilter } from "@/lib/cats";
-import { households as demoHomes, type Household } from "@/lib/households";
 import { getBrowserSupabase } from "@/lib/supabase/client";
 import SectionHead from "../SectionHead";
 import AdoptMap from "./AdoptMap";
@@ -24,12 +25,17 @@ const filters: { key: CatFilter | "all"; label: string }[] = [
 ];
 
 /** 示範模式：示意資料轉成跟資料庫一樣的格式（貓沒有 id，用名字代替） */
-function demoFeed(): { cats: FeedCat[]; homes: Household[] } {
-  const cats = demoCats.map((c): FeedCat => ({
-    id: c.name, name: c.name, sex: c.sex, stage: c.age, district: c.district, waitDays: c.waitDays, neutered: c.neutered,
-    tags: c.tags, diary: c.diary, photo: c.photo.src, filters: c.filters, home: null,
-  }));
-  return { cats, homes: demoHomes };
+function demoFeed(): FeedCat[] {
+  return demoCats.map((c): FeedCat => {
+    const loc = parseLocation(c.district);
+    return {
+      id: c.name, name: c.name, sex: c.sex, stage: c.age,
+      district: loc ? `${loc.city}${loc.district}` : c.district,
+      city: loc?.city ?? "", area: loc?.district ?? "", coat: c.coat,
+      waitDays: c.waitDays, neutered: c.neutered,
+      tags: c.tags, diary: c.diary, photo: c.photo.src, filters: c.filters, home: null,
+    };
+  });
 }
 
 export default function AdoptSection() {
@@ -41,15 +47,10 @@ export default function AdoptSection() {
 
   useEffect(() => {
     const sb = getBrowserSupabase();
-    if (!sb) { setCats(demoFeed().cats); return; }
+    if (!sb) { setCats(demoFeed()); return; }
     sb.from("meow_cats").select(FEED_SELECT).eq("status", "adoptable").order("created_at").limit(30)
       .then(({ data }) => setCats(((data ?? []) as unknown as FeedRow[]).map((r) => toFeedCat(r))));
   }, []);
-
-  const homes = useMemo<Household[]>(
-    () => (!cats ? [] : live ? feedHomes(cats).map((h) => ({ ...h, owner: h.foster, kind: "waiting" as const })) : demoFeed().homes),
-    [cats, live],
-  );
 
   const matches = (id: string) => {
     const c = cats?.find((x) => x.id === id);
@@ -84,7 +85,7 @@ export default function AdoptSection() {
             <span>貓也在找你</span>
           </>
         }
-        lead="每一隻都附上中途寫下的真實日常，等最久的排在最前面。用卡片一隻隻認識，或切到地圖看看哪些喵戶有貓在等家。"
+        lead="每一隻都附上中途寫下的真實日常，等最久的排在最前面。用卡片一隻隻認識，或切到地圖，依縣市與行政區找比較近的貓。"
       />
 
       <div className={styles.toolbar}>
@@ -124,7 +125,7 @@ export default function AdoptSection() {
         ) : cats.length === 0 ? (
           <p className={styles.count}>目前還沒有待領養的貓。</p>
         ) : view === "map" ? (
-          <AdoptMap households={homes} cats={cats} matches={matches} onShowCard={showCard} />
+          <AdoptMap cats={cats} matches={matches} onShowCard={showCard} />
         ) : (
           <ul className={styles.grid}>
             {list.map((c) => (

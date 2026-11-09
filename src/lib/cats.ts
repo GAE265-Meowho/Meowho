@@ -10,6 +10,8 @@ export type AdoptableCat = {
   waitDays: number;
   neutered: boolean;
   tags: string[];
+  /** 毛色文字，給地圖精靈對色。跟這張卡片的照片一致，不是另一份貓資料。 */
+  coat: string;
   /** One line from the 中途's diary — the real day-to-day, not a sales pitch. */
   diary: string;
   affinity: number;
@@ -28,6 +30,7 @@ export const cats: AdoptableCat[] = [
     waitDays: 302,
     neutered: true,
     tags: ["黏人", "需要處方飼料"],
+    coat: "三花",
     diary: "按時吃泌尿道處方飼料，喝水量比上週多。",
     affinity: 5,
     energy: 2,
@@ -42,6 +45,7 @@ export const cats: AdoptableCat[] = [
     waitDays: 210,
     neutered: true,
     tags: ["安靜", "獨立", "愛曬太陽"],
+    coat: "黑白",
     diary: "白天幾乎都在窗邊睡，晚上會來床邊陪睡。",
     affinity: 3,
     energy: 2,
@@ -56,6 +60,7 @@ export const cats: AdoptableCat[] = [
     waitDays: 150,
     neutered: true,
     tags: ["慢熟", "每天點眼藥"],
+    coat: "銀虎斑",
     diary: "眼藥水分兩次點，點完給一口肉泥就不生氣了。",
     affinity: 2,
     energy: 2,
@@ -70,6 +75,7 @@ export const cats: AdoptableCat[] = [
     waitDays: 96,
     neutered: true,
     tags: ["親人", "愛踩踏", "怕吸塵器"],
+    coat: "橘白",
     diary: "食慾穩定，每天追逗貓棒兩回合，週三吐了一次毛球。",
     affinity: 5,
     energy: 4,
@@ -84,6 +90,7 @@ export const cats: AdoptableCat[] = [
     waitDays: 64,
     neutered: true,
     tags: ["溫和", "愛被梳毛"],
+    coat: "奶油",
     diary: "很享受梳毛時間，會發出很大聲的呼嚕。",
     affinity: 4,
     energy: 3,
@@ -98,6 +105,7 @@ export const cats: AdoptableCat[] = [
     waitDays: 38,
     neutered: false,
     tags: ["好奇", "愛玩紙箱"],
+    coat: "白",
     diary: "第一次自己鑽進紙箱，玩到直接在裡面睡著。",
     affinity: 4,
     energy: 5,
