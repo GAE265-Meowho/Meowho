@@ -22,7 +22,7 @@
 .black { --fur: var(--ink); --mark: var(--ink); --belly: var(--ink); }
 
 .shadow { fill: var(--ink); opacity: 0.12; }
-.body, .face, .ear, .paws ellipse { fill: var(--fur); stroke: var(--ink); stroke-width: 2.4; }
+.body, .face, .ear, .paws ellipse { fill: var(--fur); stroke: var(--ink); stroke-width: 3.2; }
 .belly, .muzzle { fill: var(--belly); }
 .inner { fill: var(--pink); }
 .eye { fill: var(--yellow); transform-box: fill-box; transform-origin: center; }
@@ -39,84 +39,16 @@
 .point .muzzle { fill: var(--coat-cream); }
 .white .body, .white .face, .white .ear { stroke: var(--ink); }
 
-.rays line { stroke: var(--yellow-deep); stroke-width: 2; stroke-linecap: round; }
-.rays circle { fill: var(--yellow); }
-.bubble circle { fill: var(--card); stroke: var(--line); }
-.bubble text, .zzz { font-size: 12px; font-weight: 700; fill: var(--ink); }
-.heart { fill: var(--pink); }
-.bush { fill: var(--mint-soft); stroke: var(--map-hill); }
-.bowl { fill: var(--orange-soft); stroke: var(--caramel); }
-
-.actor, .tailWrap, .paws, .head, .rays, .bubble, .zzz { transform-box: fill-box; }
-
-.lively .actor { animation: hop 0.72s ease-in-out infinite; transform-origin: 48px 74px; }
-.lively .tailWrap { animation: wag 0.28s ease-in-out infinite; transform-origin: 24px 58px; }
-.sun .actor { animation: loaf 2.4s ease-in-out infinite; transform-origin: 48px 74px; }
-.sun .rays { animation: spin 9s linear infinite; transform-origin: 78px 16px; }
-.meow .mouth { animation: talk 0.42s ease-in-out infinite; }
-.meow .bubble { animation: pop 1.1s ease-in-out infinite; transform-origin: 78px 18px; }
-.gentle .actor { animation: sway 2.8s ease-in-out infinite; transform-origin: 48px 74px; }
-.gentle .eye, .idle .eye, .clingy .eye { animation: blink 3.6s infinite; }
-.knead .paws { animation: knead 0.55s ease-in-out infinite; transform-origin: center; }
-.curious .head { animation: tilt 1.5s ease-in-out infinite; transform-origin: 52px 42px; }
-.eat .head { animation: nom 0.38s ease-in-out infinite; transform-origin: 52px 46px; }
-.clingy .actor { animation: lean 1.7s ease-in-out infinite; transform-origin: 48px 74px; }
-.clingy .heart { animation: pop 1.4s ease-in-out infinite; transform-origin: center; }
-.sleepy .eye { transform: scaleY(0.15); }
-.sleepy .actor { animation: breathe 3s ease-in-out infinite; transform-origin: 48px 70px; }
-.sleepy .zzz { animation: pop 2s ease-in-out infinite; }
-.shy .actor { transform: translate(6px, 2px); }
-
-@keyframes hop {
-  0%, 100% { transform: translateY(0) rotate(0deg); }
-  35% { transform: translateY(-12px) rotate(-8deg); }
-  70% { transform: translateY(-1px) rotate(5deg); }
-}
-@keyframes wag {
-  50% { transform: rotate(22deg); }
-}
-@keyframes loaf {
-  0%, 100% { transform: scale(1.04, 0.9) translateY(4px); }
-  50% { transform: scale(1.08, 0.84) translateY(6px); }
-}
-@keyframes spin { to { transform: rotate(360deg); } }
-@keyframes talk {
-  50% { transform: scaleY(1.8); }
-}
-@keyframes pop {
-  0%, 100% { transform: scale(0.92); opacity: 0.8; }
-  50% { transform: scale(1.08); opacity: 1; }
-}
-@keyframes sway {
-  0%, 100% { transform: rotate(-4deg); }
-  50% { transform: rotate(4deg); }
-}
-@keyframes blink {
-  0%, 86%, 100% { transform: scaleY(1); }
-  93% { transform: scaleY(0.12); }
-}
-@keyframes knead {
-  0%, 100% { transform: translateY(0) scaleY(1); }
-  50% { transform: translateY(3px) scaleY(0.75); }
-}
-@keyframes tilt {
-  0%, 100% { transform: rotate(0deg); }
-  40% { transform: rotate(-14deg); }
-  70% { transform: rotate(8deg); }
-}
-@keyframes nom {
-  50% { transform: rotate(8deg) translateY(2px); }
-}
-@keyframes lean {
-  0%, 100% { transform: rotate(-2deg) translateX(0); }
-  50% { transform: rotate(3deg) translateX(3px); }
-}
-@keyframes breathe {
-  50% { transform: scale(1.03, 0.96); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .actor, .tailWrap, .paws, .head, .rays, .bubble, .zzz, .heart, .eye, .mouth {
-    animation: none;
-  }
-}
+.cueText { font-size: 12px; font-weight: 800; fill: var(--ink); }
+.bubble { fill: #fff; stroke: var(--ink); stroke-width: 1.6; stroke-linejoin: round; }
+.sun { fill: var(--yellow); stroke: var(--ink); stroke-width: 1.4; }
+.sunRay { stroke: var(--yellow-deep); stroke-width: 2; stroke-linecap: round; }
+.yarn { fill: var(--orange-soft); stroke: var(--ink); stroke-width: 1.4; }
+.yarnLine { fill: none; stroke: var(--caramel); stroke-width: 1.2; }
+.comb { fill: var(--caramel); stroke: var(--ink); stroke-width: 1.4; }
+.combTeeth { fill: none; stroke: var(--ink); stroke-width: 1.6; stroke-linecap: round; }
+.heart { fill: var(--pink); stroke: var(--ink); stroke-width: 1.3; }
+.paw { fill: var(--orange-soft); stroke: var(--ink); stroke-width: 1.3; }
+.bowl { fill: var(--orange-soft); stroke: var(--ink); stroke-width: 1.4; }
+.bowlRim { fill: none; stroke: var(--caramel); stroke-width: 1.3; }
+.hide { fill: var(--mint-soft); stroke: var(--ink); stroke-width: 1.4; stroke-linejoin: round; }

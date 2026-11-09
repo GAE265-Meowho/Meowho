@@ -24,6 +24,23 @@ function shortTown(name: string) {
   return name.replace(/(區|鄉|鎮|市)$/, "");
 }
 
+function seaTitle(region: RegionId, countyName: string, polys: Polygon[]) {
+  let minX = Infinity;
+  let maxX = -Infinity;
+  let minY = Infinity;
+  for (const poly of polys) {
+    for (const [lng, lat] of poly[0] ?? []) {
+      if (countyName === "金門縣" && lng > 119) continue;
+      const point = projectPoint(region, lng, lat, countyName);
+      minX = Math.min(minX, point.x);
+      maxX = Math.max(maxX, point.x);
+      minY = Math.min(minY, point.y);
+    }
+  }
+  if (!Number.isFinite(minY)) return null;
+  return { x: (minX + maxX) / 2, y: Math.max(22, minY - 36) };
+}
+
 function shortCity(name: string) {
   if (name === "連江縣") return "馬祖・連江";
   if (name === "新竹市" || name === "新竹縣" || name === "嘉義市" || name === "嘉義縣") return name;
@@ -81,7 +98,10 @@ export default function RegionCanvas({ region, variant = "full" }: Props) {
             return <text key={`${district.c}-${district.n}`} x={at.x} y={at.y} textAnchor="middle" className={styles.townMark}>{shortTown(district.n)}</text>;
           })}
           {counties.map((county) => {
-            const at = projectPoint(region, county.l[0], county.l[1], county.n);
+            const at = region === "islands"
+              ? seaTitle(region, county.n, county.p)
+              : projectPoint(region, county.l[0], county.l[1], county.n);
+            if (!at) return null;
             return <text key={county.n} x={at.x} y={at.y} textAnchor="middle" className={styles.cityMark}>{shortCity(county.n)}</text>;
           })}
         </g>

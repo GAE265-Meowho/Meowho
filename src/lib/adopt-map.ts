@@ -1,6 +1,6 @@
 // 帶我回家地圖（縣市＋行政區）。公開位置只到區中心，路名與門牌一律丟掉（FR-02-07）。
 // 北／中／南／東照常見分區；澎湖、金門、連江不塞進東部，另外標成「離島」。
-import { containsCounty } from "./geo/region-bounds";
+import { containsCounty, shapeAnchor } from "./geo/region-bounds";
 import { TW_CITIES, TW_DISTRICTS } from "./geo/tw-districts";
 
 export type RegionId = "north" | "central" | "south" | "east" | "islands";
@@ -282,62 +282,21 @@ export function isOnLand(_region: RegionId, lat: number, lng: number, city?: str
   return containsCounty(norm(city ?? ""), lng, lat);
 }
 
-function ensureInside(region: Exclude<RegionId, "islands">, lat: number, lng: number, city: MapLatLng, cityName: string): MapLatLng {
-  if (isOnLand(region, lat, lng, cityName)) return { lat, lng };
-  let t = 0.72;
-  for (let i = 0; i < 10; i++) {
-    const next = { lat: city.lat + (lat - city.lat) * t, lng: city.lng + (lng - city.lng) * t };
-    if (isOnLand(region, next.lat, next.lng, cityName)) return next;
-    t *= 0.62;
-  }
-  return city;
-}
-
-const SPREAD: Record<string, number> = {
-  新北市: 0.1, 桃園市: 0.07, 台南市: 0.07, 高雄市: 0.07, 屏東縣: 0.09,
-  南投縣: 0.08, 花蓮縣: 0.1, 台東縣: 0.1, 宜蘭縣: 0.06, 苗栗縣: 0.06,
-  彰化縣: 0.05, 雲林縣: 0.05, 嘉義縣: 0.05, 新竹縣: 0.045,
-  澎湖縣: 0.08, 連江縣: 0.1, 金門縣: 0.025,
-};
-
-function hash(text: string) {
-  let h = 2166136261;
-  for (const ch of text) {
-    h ^= ch.charCodeAt(0);
-    h = Math.imul(h, 16777619);
-  }
-  return h >>> 0;
-}
-
-function clampIsland(city: string, lat: number, lng: number): MapLatLng {
-  const box = ISLAND_BOX[city];
-  if (!box) return { lat, lng };
-  return {
-    lat: Math.min(box.latMax - 0.02, Math.max(box.latMin + 0.02, lat)),
-    lng: Math.min(box.lngMax - 0.015, Math.max(box.lngMin + 0.015, lng)),
-  };
-}
-
-/** 縣市中心；有行政區就用該區的點。不認得的區名（路名）停在縣市，不往外猜。 */
+/**
+ * 落在該行政區界線的代表點，和地圖上的區名同一處。
+ * 路名、門牌不認得，就停在縣市，不往外猜。
+ */
 export function anchorOf(cityRaw: string, districtRaw = ""): MapLatLng | null {
   const city = norm(cityRaw);
   const district = districtRaw.trim();
+  const known = Boolean(district && TW_DISTRICTS[city]?.includes(district));
+  const fromShape = shapeAnchor(city, known ? district : "");
+  if (fromShape) return fromShape;
   const origin = CITY_POINTS[city];
   if (!origin) return null;
-  if (!district) return origin;
-  const known = DISTRICT_POINTS[`${city}|${district}`];
-  if (known) return known;
-  if (!TW_DISTRICTS[city]?.includes(district)) return origin;
-  const region = regionOf(city);
-  const spread = SPREAD[city] ?? 0.04;
-  const h = hash(`${city}|${district}`);
-  const angle = ((h % 360) * Math.PI) / 180;
-  const ring = 0.42 + ((h >>> 9) % 50) / 100;
-  const lat = origin.lat + Math.sin(angle) * spread * ring;
-  const lng = origin.lng + Math.cos(angle) * spread * ring;
-  if (region === "islands") return clampIsland(city, lat, lng);
-  if (!region) return origin;
-  return ensureInside(region, lat, lng, origin, city);
+  if (!known) return origin;
+  const listed = DISTRICT_POINTS[`${city}|${district}`];
+  return listed ?? origin;
 }
 
 const LABEL_NUDGE: Record<string, MapPoint> = {
@@ -417,39 +376,52 @@ export function landmarkDots(region: RegionId): (Landmark & MapPoint)[] {
   }));
 }
 
-/** 同一縣市的行政區在全區比例下會擠在一起；沿原方向拉開，北仍在北、西仍在西。 */
-function loosenDistricts<T extends { city: string; x: number; y: number }>(spots: T[]): T[] {
-  const groups = new Map<string, T[]>();
-  for (const spot of spots) {
-    const list = groups.get(spot.city) ?? [];
-    list.push(spot);
-    groups.set(spot.city, list);
-  }
-  for (const group of groups.values()) {
-    if (group.length < 2) continue;
-    const cx = group.reduce((sum, spot) => sum + spot.x, 0) / group.length;
-    const cy = group.reduce((sum, spot) => sum + spot.y, 0) / group.length;
-    let nearest = Infinity;
-    for (let i = 0; i < group.length; i++) {
-      for (let j = i + 1; j < group.length; j++) {
-        nearest = Math.min(nearest, Math.hypot(group[i].x - group[j].x, group[i].y - group[j].y));
-      }
-    }
-    if (!Number.isFinite(nearest) || nearest === 0 || nearest >= 54) continue;
-    const scale = Math.min(2.6, 54 / nearest);
-    for (const spot of group) {
-      spot.x = cx + (spot.x - cx) * scale;
-      spot.y = cy + (spot.y - cy) * scale;
-    }
-  }
-  return spots;
-}
-
 function fan(index: number, total: number) {
   if (total <= 1) return { dx: 0, dy: 0 };
   const angle = -Math.PI / 2 + (2 * Math.PI * index) / total;
-  const radius = total > 5 ? 22 : 16;
-  return { dx: Math.cos(angle) * radius, dy: Math.sin(angle) * radius * 0.75 };
+  const radius = total > 4 ? 28 : 22;
+  return { dx: Math.cos(angle) * radius, dy: Math.sin(angle) * radius * 0.72 };
+}
+
+export type MapCat<T> = T & MapPoint & { placeKey: string };
+
+export type MapMarker<T> =
+  | { type: "pile"; placeKey: string; city: string; district: string; count: number; x: number; y: number }
+  | { type: "cat"; placeKey: string; cat: MapCat<T> };
+
+/** 同一行政區兩隻以上先收成一顆；展開後才把每隻貓散開，仍以該區為中心。 */
+export function layoutCats<T extends { id: string; city: string; district: string }>(
+  cats: readonly T[],
+  region: RegionId,
+  expanded: ReadonlySet<string>,
+): MapMarker<T>[] {
+  const groups = new Map<string, T[]>();
+  for (const cat of cats) {
+    if (regionOf(cat.city) !== region || !anchorOf(cat.city, cat.district)) continue;
+    const placeKey = `${norm(cat.city)}|${cat.district.trim()}`;
+    const list = groups.get(placeKey);
+    if (list) list.push(cat);
+    else groups.set(placeKey, [cat]);
+  }
+  const markers: MapMarker<T>[] = [];
+  for (const [placeKey, group] of groups) {
+    const sample = group[0];
+    const anchor = anchorOf(sample.city, sample.district)!;
+    const origin = project(region, anchor.lat, anchor.lng, { city: sample.city, district: sample.district });
+    if (group.length >= 2 && !expanded.has(placeKey)) {
+      markers.push({ type: "pile", placeKey, city: norm(sample.city), district: sample.district.trim(), count: group.length, x: origin.x, y: origin.y });
+      continue;
+    }
+    group.forEach((cat, index) => {
+      const offset = fan(index, group.length);
+      markers.push({
+        type: "cat",
+        placeKey,
+        cat: { ...cat, placeKey, x: origin.x + offset.dx, y: origin.y + offset.dy },
+      });
+    });
+  }
+  return markers;
 }
 
 /** 把貓放到所選區域。沒有公開縣市、或不在這個區域的，不放上地圖。 */
@@ -457,22 +429,6 @@ export function placeCats<T extends { id: string; city: string; district: string
   cats: readonly T[],
   region: RegionId,
 ): (T & MapPoint)[] {
-  const groups = new Map<string, T[]>();
-  for (const cat of cats) {
-    if (regionOf(cat.city) !== region || !anchorOf(cat.city, cat.district)) continue;
-    const key = `${norm(cat.city)}|${cat.district.trim()}`;
-    const list = groups.get(key);
-    if (list) list.push(cat);
-    else groups.set(key, [cat]);
-  }
-  const placed: (T & MapPoint)[] = [];
-  for (const group of groups.values()) {
-    group.forEach((cat, index) => {
-      const anchor = anchorOf(cat.city, cat.district)!;
-      const p = project(region, anchor.lat, anchor.lng, { city: cat.city, district: cat.district });
-      const offset = fan(index, group.length);
-      placed.push({ ...cat, x: p.x + offset.dx, y: p.y + offset.dy });
-    });
-  }
-  return loosenDistricts(placed);
+  return layoutCats(cats, region, new Set(cats.map((cat) => `${norm(cat.city)}|${cat.district.trim()}`)))
+    .flatMap((marker) => (marker.type === "cat" ? [marker.cat] : []));
 }

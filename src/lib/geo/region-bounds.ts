@@ -55,3 +55,13 @@ export function countiesIn(cities: readonly string[]) {
 export function districtsIn(cities: readonly string[]) {
   return DISTRICTS.filter((item) => cities.includes(item.c));
 }
+
+/** 地圖落點用界線資料裡的代表點，和畫面上的行政區名稱同一處。 */
+export function shapeAnchor(city: string, district = ""): { lat: number; lng: number } | null {
+  if (district) {
+    const town = DISTRICTS.find((item) => item.c === city && item.n === district);
+    if (town) return { lng: town.l[0], lat: town.l[1] };
+  }
+  const county = COUNTIES.find((item) => item.n === city);
+  return county ? { lng: county.l[0], lat: county.l[1] } : null;
+}

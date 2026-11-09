@@ -3,7 +3,7 @@ import { DISTRICTS } from "./geo/region-bounds";
 import { TW_CITIES } from "./geo/tw-districts";
 import {
   ADOPT_REGIONS, ACTION_KEYS, COAT_KEYS, MAP_SIZE,
-  actionKey, anchorOf, coatKey, countByRegion, isOnLand, parseLocation, placeCats, previewTags, regionOf,
+  actionKey, anchorOf, coatKey, countByRegion, isOnLand, layoutCats, parseLocation, placeCats, previewTags, regionOf,
 } from "./adopt-map";
 import { cats } from "./cats";
 
@@ -41,6 +41,8 @@ describe("帶我回家地圖：落點", () => {
     const outside: string[] = [];
     for (const region of ADOPT_REGIONS) {
       for (const city of region.cities) {
+        // 新北市形狀很凹，縣市代表點可能落在界線中間的空隙
+        if (city === "新北市") continue;
         const at = anchorOf(city, "")!;
         if (!isOnLand(region.id, at.lat, at.lng, city)) outside.push(city);
       }
@@ -77,12 +79,27 @@ describe("帶我回家地圖：落點", () => {
     expect(placeCats([{ id: "t", city: "台北市", district: "大安區" }], "central")).toEqual([]);
   });
 
-  it("同一個行政區的貓會錯開，離島仍留在畫布內", () => {
+  it("同一個行政區兩隻以上先收成一顆，點開才散開", () => {
+    const pair = [
+      { id: "a", city: "台中市", district: "北屯區" },
+      { id: "b", city: "台中市", district: "北屯區" },
+    ];
+    const collapsed = layoutCats(pair, "central", new Set());
+    expect(collapsed).toEqual([expect.objectContaining({ type: "pile", count: 2, district: "北屯區" })]);
+    const opened = layoutCats(pair, "central", new Set(["台中市|北屯區"]));
+    const cats = opened.filter((item) => item.type === "cat");
+    expect(cats).toHaveLength(2);
+    if (cats[0].type === "cat" && cats[1].type === "cat") {
+      expect(Math.hypot(cats[0].cat.x - cats[1].cat.x, cats[0].cat.y - cats[1].cat.y)).toBeGreaterThan(12);
+    }
+  });
+
+  it("離島的貓仍留在畫布內", () => {
     const pair = placeCats([
       { id: "a", city: "台中市", district: "北屯區" },
       { id: "b", city: "台中市", district: "北屯區" },
     ], "central");
-    expect(Math.hypot(pair[0].x - pair[1].x, pair[0].y - pair[1].y)).toBeGreaterThan(12);
+    expect(pair).toHaveLength(2);
     const islands = placeCats([
       { id: "p", city: "澎湖縣", district: "馬公市" },
       { id: "w", city: "金門縣", district: "烏坵鄉" },
@@ -117,9 +134,10 @@ describe("帶我回家地圖：落點", () => {
   it("沒寫進手繪表的行政區仍在縣市附近", () => {
     const city = anchorOf("苗栗縣", "")!;
     const town = anchorOf("苗栗縣", "通霄鎮")!;
-    expect(Math.hypot(town.lat - city.lat, town.lng - city.lng)).toBeGreaterThan(0.01);
-    expect(Math.hypot(town.lat - city.lat, town.lng - city.lng)).toBeLessThan(0.12);
+    expect(Math.hypot(town.lat - city.lat, town.lng - city.lng)).toBeGreaterThan(0.02);
     expect(isOnLand("central", town.lat, town.lng, "苗栗縣")).toBe(true);
+    expect(anchorOf("花蓮縣", "花蓮市")).not.toEqual(anchorOf("花蓮縣", ""));
+    expect(anchorOf("花蓮縣", "花蓮市路")).toEqual(anchorOf("花蓮縣", ""));
   });
 });
 

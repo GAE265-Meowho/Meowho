@@ -4,7 +4,7 @@
 import { useState } from "react";
 import Icon from "@/components/ui/Icon";
 import {
-  ADOPT_REGIONS, MAP_SIZE, actionKey, coatKey, countByRegion, placeCats, previewTags, regionOf,
+  ADOPT_REGIONS, MAP_SIZE, actionKey, coatKey, countByRegion, layoutCats, previewTags, regionOf,
   type RegionId,
 } from "@/lib/adopt-map";
 import type { FeedCat } from "@/lib/adopt-feed";
@@ -47,6 +47,7 @@ function Preview({ cat, side }: { cat: FeedCat; side: "up" | "left" | "right" })
 export default function AdoptMap({ cats, matches, onShowCard }: Props) {
   const [region, setRegion] = useState<RegionId | null>(null);
   const [open, setOpen] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const counts = countByRegion(cats.map((cat) => cat.city));
 
   if (!region) {
@@ -59,7 +60,7 @@ export default function AdoptMap({ cats, matches, onShowCard }: Props) {
               key={item.id}
               type="button"
               className={`${styles.region} ${item.id === "islands" ? styles.islands : ""}`}
-              onClick={() => setRegion(item.id)}
+              onClick={() => { setRegion(item.id); setExpanded(new Set()); setOpen(null); }}
             >
               <RegionCanvas region={item.id} variant="mini" />
               <span className={styles.regionLabel}>{item.label}</span>
@@ -76,14 +77,13 @@ export default function AdoptMap({ cats, matches, onShowCard }: Props) {
   const spec = ADOPT_REGIONS.find((item) => item.id === region)!;
   const size = MAP_SIZE[region];
   const here = cats.filter((cat) => regionOf(cat.city) === region);
-  const spots = placeCats(here.map((cat) => ({ ...cat, district: cat.area })), region);
-  const byId = new Map(spots.map((spot) => [spot.id, spot]));
+  const markers = layoutCats(here.map((cat) => ({ ...cat, district: cat.area })), region, expanded);
 
   return (
     <div className={styles.mapCard}>
       <div className={styles.mapHead}>
         <p className={styles.kicker}>{spec.name}{spec.note ? `・${spec.note}` : ""}</p>
-        <button type="button" className={styles.back} onClick={() => { setRegion(null); setOpen(null); }}>
+        <button type="button" className={styles.back} onClick={() => { setRegion(null); setOpen(null); setExpanded(new Set()); }}>
           換地區
         </button>
       </div>
@@ -91,26 +91,40 @@ export default function AdoptMap({ cats, matches, onShowCard }: Props) {
         <RegionCanvas region={region} />
         <span className={styles.compass} style={{ right: 22, bottom: 14, top: "auto" }}>北</span>
         {here.length === 0 && <p className={styles.empty} role="status">這裡還沒有等家的貓</p>}
-        {here.map((cat) => {
-          const spot = byId.get(cat.id);
-          if (!spot) return null;
+        {markers.map((marker) => {
+          if (marker.type === "pile") {
+            const where = `${marker.city}${marker.district}`;
+            return (
+              <button
+                key={marker.placeKey}
+                type="button"
+                className={styles.pile}
+                style={{ left: `${(marker.x / size.width) * 100}%`, top: `${(marker.y / size.height) * 100}%`, zIndex: 3 }}
+                aria-expanded={false}
+                aria-label={`${where}，這區有 ${marker.count} 隻`}
+                onClick={() => setExpanded((cur) => new Set(cur).add(marker.placeKey))}
+              >
+                這區有 {marker.count} 隻
+              </button>
+            );
+          }
+          const cat = marker.cat;
           const shown = open === cat.id;
           return (
             <button
               key={cat.id}
               type="button"
               className={`${styles.marker} ${matches(cat.id) ? "" : styles.dim}`}
-              style={{ left: `${(spot.x / size.width) * 100}%`, top: `${(spot.y / size.height) * 100}%`, zIndex: shown ? 5 : 2 }}
-              aria-label={`${cat.name}，${cat.district || cat.city}，回到卡片`}
+              style={{ left: `${(cat.x / size.width) * 100}%`, top: `${(cat.y / size.height) * 100}%`, zIndex: shown ? 5 : 2 }}
+              aria-label={`${cat.name}，${here.find((item) => item.id === cat.id)?.district || cat.city}，回到卡片`}
               onMouseEnter={() => setOpen(cat.id)}
               onMouseLeave={() => setOpen((cur) => (cur === cat.id ? null : cur))}
               onFocus={() => setOpen(cat.id)}
               onBlur={() => setOpen((cur) => (cur === cat.id ? null : cur))}
               onClick={() => onShowCard(cat.id)}
             >
-              <span className={styles.badge} aria-hidden />
-              <CatSprite coat={coatKey(cat.coat)} action={actionKey(cat.tags)} />
-              {shown && <Preview cat={cat} side={sideFor(spot.x, size.width)} />}
+              <CatSprite coat={coatKey(cat.coat)} action={actionKey(cat.tags)} cue={cat.tags.join("、")} />
+              {shown && <Preview cat={{ ...cat, district: here.find((item) => item.id === cat.id)?.district ?? cat.district }} side={sideFor(cat.x, size.width)} />}
             </button>
           );
         })}

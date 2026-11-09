@@ -171,10 +171,9 @@
   opacity: 0.4;
 }
 
-.marker {
+.marker,
+.pile {
   position: absolute;
-  width: clamp(72px, 11%, 96px);
-  height: auto;
   margin: 0;
   padding: 0;
   border: 0;
@@ -182,22 +181,26 @@
   transform: translate(-50%, -72%);
 }
 
-.badge {
-  position: absolute;
-  left: 50%;
-  top: 54%;
-  z-index: 0;
-  width: 74%;
-  height: 74%;
-  border-radius: 50%;
-  background: #fff;
-  box-shadow: 0 0 0 3px var(--ink), 0 5px 0 var(--caramel-deep);
-  transform: translate(-50%, -46%);
+.marker {
+  width: clamp(68px, 9%, 84px);
+  height: auto;
+}
+
+.pile {
+  min-height: var(--tap);
+  width: auto;
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--yellow);
+  font-size: 14px;
+  font-weight: 800;
+  box-shadow: 0 4px 0 var(--caramel-deep);
+  transform: translate(-50%, -50%);
 }
 
 .marker svg {
-  position: relative;
-  z-index: 1;
+  display: block;
   width: 100%;
   height: auto;
 }
