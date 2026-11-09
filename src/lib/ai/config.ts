@@ -83,3 +83,18 @@ export function resolveEmbedding(env: Env): { provider: Provider; model: string;
   const dims = provider === "gemini" ? null : EMBEDDING_DIMS;
   return { provider, model, dims, key: `${provider}:${model}${dims ? `@${dims}` : ""}` };
 }
+
+/**
+ * Foundry 的專案網址（https://<資源>.services.ai.azure.com/api/projects/<專案>）不能直接呼叫模型：
+ * 換成同一個資源的 OpenAI 相容端點 https://<資源>.openai.azure.com/openai/v1。其他網址原樣回傳。
+ */
+export function azureModelEndpoint(endpoint: string | undefined): string {
+  const raw = (endpoint ?? "").trim().replace(/\/+$/, "");
+  try {
+    const u = new URL(raw);
+    if (u.hostname.endsWith(".services.ai.azure.com") && u.pathname.startsWith("/api/projects")) {
+      return `https://${u.hostname.split(".")[0]}.openai.azure.com/openai/v1`;
+    }
+  } catch { /* 不是網址就原樣回傳，交給呼叫端報錯 */ }
+  return raw;
+}

@@ -81,7 +81,7 @@ Vercel 專案 **`zing15s-projects/meowho`**（https://meowho.vercel.app，連動
 | `AZURE_OPENAI_IMAGE_DEPLOYMENT` | `gpt-image-2`（#110） | Config |
 | `AZURE_OPENAI_CHAT_DEPLOYMENT_NAME` | `gpt-6-luna`（全站聊天與 MeowHQ 都用） | Config |
 | `AZURE_OPENAI_EMBEDDING_DEPLOYMENT` | `text-embedding-3-large`（幫我找貓的意思座標，規格 11；固定 1024 維） | Config |
-| `AZURE_OPENAI_EMBEDDING_ENDPOINT` | 選填：Embedding 部署在另一個 Azure 資源（例如 Foundry 專案）時才設，格式同 `AZURE_OPENAI_ENDPOINT` | Secret |
+| `AZURE_OPENAI_EMBEDDING_ENDPOINT` | 選填：Embedding 部署在另一個 Azure 資源（例如 Foundry 專案）時才設。填 `https://<資源>.openai.azure.com/openai/v1`；填 Foundry 的專案網址（`…services.ai.azure.com/api/projects/…`）也可以，程式會自動換成同一個資源的這個網址 | Secret |
 | `AZURE_OPENAI_EMBEDDING_API_KEY` | 選填：同上，那個資源的金鑰 | Secret |
 
 儲存後到 **Deployments → 最新一筆 → Redeploy**，環境變數才會生效。

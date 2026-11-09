@@ -3,7 +3,7 @@ import "server-only";
 // 各供應商套件用動態 import，只載入實際用到的那一家。
 import type { BaseChatModel } from "@langchain/core/language_models/chat_models";
 import type { Embeddings } from "@langchain/core/embeddings";
-import { describe, isAzureV1, isConfigured, resolveEmbedding, resolveModel, resolveProvider, withProvider, type Provider, type Task } from "./config";
+import { azureModelEndpoint, describe, isAzureV1, isConfigured, resolveEmbedding, resolveModel, resolveProvider, withProvider, type Provider, type Task } from "./config";
 
 /** provider：指定這次固定用哪家（不指定＝全站 AI_PROVIDER） */
 export const isAIConfigured = (provider?: Provider) => isConfigured(withProvider(process.env, provider));
@@ -65,7 +65,8 @@ export async function getEmbeddings(): Promise<{ model: Embeddings; key: string 
     }
     case "azure": {
       // Embedding 部署在另一個 Azure 資源（例如 Foundry 專案）時，用 AZURE_OPENAI_EMBEDDING_ENDPOINT／_API_KEY；沒設就沿用聊天模型的
-      const endpoint = (env.AZURE_OPENAI_EMBEDDING_ENDPOINT || env.AZURE_OPENAI_ENDPOINT || "").trim();
+      // Foundry 的專案網址會自動換成同一個資源的 OpenAI 相容端點
+      const endpoint = azureModelEndpoint(env.AZURE_OPENAI_EMBEDDING_ENDPOINT || env.AZURE_OPENAI_ENDPOINT);
       const apiKey = env.AZURE_OPENAI_EMBEDDING_API_KEY || env.AZURE_OPENAI_API_KEY;
       if (isAzureV1(endpoint)) {
         // v1 端點是 OpenAI 相容 API：部署名稱當 model

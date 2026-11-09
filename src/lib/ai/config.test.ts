@@ -1,5 +1,5 @@
 import { describe as d, it, expect } from "vitest";
-import { describe, isAzureV1, withProvider, isConfigured, resolveEmbedding, resolveModel, resolveProvider } from "./config";
+import { azureModelEndpoint, describe, isAzureV1, withProvider, isConfigured, resolveEmbedding, resolveModel, resolveProvider } from "./config";
 
 d("AI 供應商設定", () => {
   it("沒有任何金鑰 → 未設定", () => {
@@ -65,5 +65,13 @@ d("Embedding 模型（幫我找貓）", () => {
   it("OpenAI 預設 text-embedding-3-large；Anthropic 沒有 Embedding", () => {
     expect(resolveEmbedding({ AI_PROVIDER: "openai", OPENAI_API_KEY: "k" })?.key).toBe("openai:text-embedding-3-large@1024");
     expect(resolveEmbedding({ AI_PROVIDER: "anthropic", ANTHROPIC_API_KEY: "k" })).toBeNull();
+  });
+});
+
+d("Foundry 專案網址", () => {
+  it("專案網址換成同一個資源的 OpenAI 相容端點；其他網址原樣", () => {
+    expect(azureModelEndpoint("https://meow-res.services.ai.azure.com/api/projects/proj-default")).toBe("https://meow-res.openai.azure.com/openai/v1");
+    expect(azureModelEndpoint("https://meow-res.openai.azure.com/openai/v1/")).toBe("https://meow-res.openai.azure.com/openai/v1");
+    expect(azureModelEndpoint(undefined)).toBe("");
   });
 });
