@@ -561,7 +561,7 @@
 .hq-fp-rooms li.on { background: var(--hq-sage-soft); }
 .hq-fp-room { display: flex; align-items: center; gap: .6rem; background: none; border: 0; padding: 0; font: inherit; color: inherit; cursor: pointer; text-align: left; min-width: 0; }
 .hq-fp-3dbox { margin-bottom: 1rem; }
-.hq-exp-pick { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1rem; margin-bottom: 1rem; }
+.hq-exp-pick { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; margin-bottom: 1rem; }
 @media (max-width: 639px) { .hq-exp-pick { grid-template-columns: minmax(0, 1fr); } }
 .hq-exp-stage { display: grid; grid-template-columns: minmax(0, 1fr) minmax(260px, 320px); gap: 1rem; align-items: start; }
 .hq-exp-stage .hq-fp-3d { height: 520px; }
@@ -570,6 +570,21 @@
 .hq-exp-side { display: flex; flex-direction: column; gap: .5rem; min-width: 0; }
 .hq-exp-side > .hq-hint { margin: 0; }
 .hq-exp-tools { gap: .5rem; flex-wrap: wrap; align-items: center; }
+/* 故事線（#297）：貓頭上的「肚子餓」對話框，跟著貓走；尾巴指向貓，輕輕上下飄 */
+.hq-exp-bubble { position: relative; display: grid; place-items: center; width: 44px; height: 40px; border-radius: 14px;
+  background: var(--hq-card, #fff); color: var(--hq-caramel, #A0521F); border: 1.5px solid var(--hq-caramel, #A0521F);
+  box-shadow: 0 4px 12px rgba(47, 43, 39, .14); animation: hq-exp-bob 1.6s ease-in-out infinite; }
+.hq-exp-bubble::after { content: ""; position: absolute; left: 50%; bottom: -7px; width: 10px; height: 10px; margin-left: -5px;
+  background: inherit; border-right: 1.5px solid var(--hq-caramel, #A0521F); border-bottom: 1.5px solid var(--hq-caramel, #A0521F); transform: rotate(45deg); }
+@keyframes hq-exp-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+@media (prefers-reduced-motion: reduce) { .hq-exp-bubble { animation: none; } }
+.hq-exp-story { display: flex; flex-direction: column; gap: .5rem; padding: .75rem; border: 1px solid var(--hq-line); border-radius: 12px; background: var(--hq-card); }
+.hq-exp-story .hq-hint { margin: 0; }
+.hq-exp-story .hq-btn { align-self: flex-start; }
+.hq-exp-steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .5rem; margin: 0; padding: 0; list-style: none; }
+.hq-exp-step { padding: .3rem .5rem; border-radius: 999px; text-align: center; font-size: .85rem; background: var(--hq-bg); color: var(--hq-sub); border: 1px solid var(--hq-line); }
+.hq-exp-step.active { background: var(--hq-caramel-soft); color: var(--hq-caramel-ink); border-color: transparent; font-weight: 500; }
+.hq-exp-step.done { background: var(--hq-sage-soft); color: var(--hq-sage-ink); border-color: transparent; }
 /* 成貓／幼貓膠囊切換 */
 .hq-bodyseg { display: inline-flex; align-self: flex-start; padding: 3px; gap: 2px; border: 1px solid var(--hq-line); border-radius: 999px; background: var(--hq-card); }
 .hq-bodyseg button { min-width: 64px; min-height: 32px; padding: .2rem .9rem; border: 0; border-radius: 999px; background: transparent; font: inherit; font-size: .9rem; color: var(--hq-sub); cursor: pointer; transition: background .2s ease, color .2s ease; }

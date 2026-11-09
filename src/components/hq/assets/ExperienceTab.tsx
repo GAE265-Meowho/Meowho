@@ -5,6 +5,7 @@
 // 室內空間也可以選影片轉換完成的房間（house=video:<房間 id>）：改用 3D 高斯檢視器，貓用選的那隻的貼圖；用品、手掌模式只有平面圖空間有。
 // 生活用品（#197）：右側選單類別篩選＋小圖示，只能拖進房間放置；已放用品可拖移，上方 × 可刪除。點地板只叫貓走。
 // 讀圖家具：手掌模式可拖移／承載／右轉、× 移除（session；換喵戶／重整會回來）。
+// 故事線（#297）：上方選「貓咪的吃喝拉撒」→ 貓依序肚子餓、口渴、想上廁所，頭上冒對話框；放上對應用品後自己走去做（story.ts）。
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -16,6 +17,7 @@ import {
 } from "@/lib/hq/floorplans/experience-furniture";
 import { boxToSolid, clampFurniturePose, rotatedHalfExtents } from "@/lib/hq/floorplans/experience-physics";
 import { houseScene } from "@/lib/hq/floorplans/scene";
+import { STORIES, STORY_START, storyById, storyProgress, type StoryState } from "@/lib/hq/floorplans/story";
 import type { FloorplanHouse, FloorplanSummary, PlanRoom, Point } from "@/lib/hq/floorplans/types";
 import { HqLoadError, HqSkeleton } from "../HqStates";
 import { BODY_ORDER, type BodyType } from "@/lib/hq/cat-models/types";
@@ -112,6 +114,14 @@ function roomSize(walls: PlanRoom["walls"]): [number, number] {
   return [Math.max(...xs) - shift[0], Math.max(...ys) - shift[1]];
 }
 
+/** 故事線步驟名稱與提示（對應 story.ts 的 clip） */
+const STEP_NAMES: Record<string, string> = { eat: "吃飯", drink: "喝水", toilet: "上廁所" };
+const STEP_HINTS: Record<string, string> = {
+  eat: "貓肚子餓了：把「餐碗組」拖到地板上，貓會自己走過去吃。",
+  drink: "貓口渴了：把水碗或飲水機拖到地板上，貓會自己去喝。",
+  toilet: "貓想上廁所：把「貓砂盆」拖到地板上，貓會自己走進去。",
+};
+
 export function ExperienceTab() {
   const router = useRouter();
   const pathname = usePathname();
@@ -126,6 +136,8 @@ export function ExperienceTab() {
   const [placed, setPlaced] = useState<PlacedHouseholdItem[]>([]);
   const [removedFurniture, setRemovedFurniture] = useState<string[]>([]);
   const [furnitureMoves, setFurnitureMoves] = useState<Record<string, FurnitureMove>>({});
+  const [plot, setPlot] = useState<StoryState>(STORY_START);
+  const [replay, setReplay] = useState(0);
 
   // 只列出有確認貼圖的貓、有讀圖完成房間的喵戶
   const catOptions = useMemo(() => (cats.state === "ready" ? cats.data.filter(c => catLook(c)) : []), [cats]);
@@ -145,6 +157,8 @@ export function ExperienceTab() {
   const wantedBody = params.get("body");
   const body: BodyType | null = cat ? bodies.find(b => b === wantedBody) ?? defaultBody(cat) : null;
   const look = cat && body ? catLook(cat, body) : null;
+  const story = storyById(params.get("story"));
+  const progress = story ? storyProgress(story, plot) : [];
   const selectedItem = itemOptions.find(i => i.id === itemId) ?? null;
   const furnitureDirty = removedFurniture.length > 0 || Object.keys(furnitureMoves).length > 0;
 
@@ -153,11 +167,14 @@ export function ExperienceTab() {
   }, [itemId, itemOptions]);
 
   useEffect(() => { setPlaced([]); setRemovedFurniture([]); setFurnitureMoves({}); setInteractMode("point"); }, [houseId]);
+  // 換貓、換喵戶、換故事線或重新開始：故事從頭來
+  useEffect(() => { setPlot(STORY_START); }, [houseId, catId, body, story?.id, replay]);
 
-  const choose = (key: "cat" | "house" | "body", value: string) => {
+  const choose = (key: "cat" | "house" | "body" | "story", value: string) => {
     const next = new URLSearchParams(params.toString());
     next.set("tab", "experience");
-    next.set(key, value);
+    if (value) next.set(key, value);
+    else next.delete(key);
     if (key === "house") setRoom(null);
     if (key === "cat") next.delete("body");
     router.replace(`${pathname}?${next.toString()}`, { scroll: false });
@@ -319,6 +336,13 @@ export function ExperienceTab() {
             </select>
             : <span className="hq-hint">還沒有完成的室內空間。<Link href={assetSectionHref("rooms-floorplan")}>到平面圖轉換</Link>、<Link href={assetSectionHref("rooms-video")}>到影片轉換</Link></span>}
         </label>
+        <label className="hq-box">
+          <span className="hq-label">故事線</span>
+          <select className="hq-input" value={story?.id ?? ""} onChange={e => choose("story", e.target.value)}>
+            <option value="">自由活動</option>
+            {STORIES.map(st => <option key={st.id} value={st.id}>{st.name}</option>)}
+          </select>
+        </label>
       </div>
 
       <section className="hq-box" aria-label="3D 虛擬體驗">
@@ -330,13 +354,13 @@ export function ExperienceTab() {
             : house.state === "error" ? <HqLoadError onRetry={() => choose("house", houseId)} />
               : (
                 <div className="hq-exp-stage">
-                  <FloorplanViewer key={`${houseId}:${cat?.id}:${body}`} rooms={house.data.rooms} selected={room} onPick={setRoom}
+                  <FloorplanViewer key={`${houseId}:${cat?.id}:${body}:${story?.id ?? ""}:${replay}`} rooms={house.data.rooms} selected={room} onPick={setRoom}
                     cat={look} placedItems={placed} interactMode={interactMode}
                     removedFurniture={removedFurniture} furnitureMoves={furnitureMoves}
                     onMoveItem={moveItem} onRotateItem={rotateItem} onRemoveItem={removeItem}
                     onRemoveFurniture={removeFurniture} onMoveFurniture={moveFurniture}
                     onRotateFurniture={rotateFurniture}
-                    onFloorDrop={dropItem} />
+                    onFloorDrop={dropItem} story={story} onStory={setPlot} />
                   {/* 互動模式（箭頭、手掌）放在生活用品選單上方 */}
                   <div className="hq-exp-side">
                     <div className="hq-row hq-exp-tools" role="group" aria-label="互動模式">
@@ -362,6 +386,24 @@ export function ExperienceTab() {
                         <button type="button" className="hq-btn ghost" onClick={restoreFurniture}>還原家具</button>
                       )}
                     </div>
+                    {story && (
+                      <div className="hq-exp-story" role="group" aria-label={`故事線：${story.name}`}>
+                        <ol className="hq-exp-steps">
+                          {story.steps.map((st, i) => (
+                            <li key={st.clip} className={`hq-exp-step ${progress[i]}`}>
+                              {progress[i] === "done" ? "完成" : progress[i] === "active" ? "進行中" : "待"}｜{STEP_NAMES[st.clip]}
+                            </li>
+                          ))}
+                        </ol>
+                        <p className="hq-hint">
+                          {plot.phase === "done" ? "故事完成，貓吃飽喝足也上完廁所了。"
+                            : plot.phase === "need" ? STEP_HINTS[story.steps[plot.step].clip]
+                              : plot.phase === "rest" ? "休息一下，等等會有下一個需求。"
+                                : `${STEP_NAMES[story.steps[plot.step].clip]}中…`}
+                        </p>
+                        <button type="button" className="hq-btn ghost" onClick={() => setReplay(n => n + 1)}>重新開始</button>
+                      </div>
+                    )}
                     <p className="hq-hint">
                       {interactMode === "point"
                         ? "點模式：點地板叫貓走；點床、沙發、桌子會跳上去。下方用品仍可拖進房間放置。"

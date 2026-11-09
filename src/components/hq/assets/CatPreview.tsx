@@ -13,6 +13,11 @@ import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment
 import { clone as cloneSkinned } from "three/examples/jsm/utils/SkeletonUtils.js";
 import { createCatEyeMaterial, setCatEyeParams, type EyeParams } from "./catEye";
 import type { BodyType } from "@/lib/hq/cat-models/types";
+import { FALLBACK_CLIP } from "@/lib/hq/cat-models/clips";
+import { headDownPose, PROCEDURAL_CLIPS } from "@/lib/hq/floorplans/story";
+
+/** 程式版吃飯、喝水會壓的骨頭（成貓、幼貓骨架同名），由上而下 */
+const EAT_BONES = ["neck0", "neck1", "head0"] as const;
 
 export const CROSSFADE_SECONDS = 0.4;
 export const MAX_GAZE = THREE.MathUtils.degToRad(28);
@@ -140,6 +145,10 @@ export function CatModel({ baseUrl, albedoUrl, clip, speed = 1, paused = false, 
   const mixer = useMemo(() => new THREE.AnimationMixer(rig.root), [rig]);
   const actions = useMemo(() => Object.fromEntries(gltf.animations.map(c => [c.name, mixer.clipAction(c)])), [gltf, mixer]);
   const current = useRef<THREE.AnimationAction | null>(null);
+  // 程式版吃飯／喝水（#297）：骨架 glb 還沒有這個動作時，播 idle 再把頭頸往下壓（story.ts 的 headDownPose）
+  const procClip = clip && PROCEDURAL_CLIPS.has(clip) && !actions[clip] ? clip : null;
+  const neck = useMemo(() => EAT_BONES.map(n => rig.root.getObjectByName(n)).filter((b): b is THREE.Object3D => !!b), [rig]);
+  const eat = useRef({ w: 0, t: 0, clip: "eat", saved: null as THREE.Quaternion[] | null });
 
   useEffect(() => {
     onInfo?.({
@@ -154,7 +163,7 @@ export function CatModel({ baseUrl, albedoUrl, clip, speed = 1, paused = false, 
 
   // 動作切換：淡入淡出
   useEffect(() => {
-    const next = clip ? actions[clip] : undefined;
+    const next = clip ? actions[clip] ?? (clip === "eat" || clip === "drink" || clip === "toilet" ? actions[FALLBACK_CLIP] : undefined) : undefined;
     const prev = current.current;
     if (!next || next === prev) return;
     next.reset().play();
@@ -194,7 +203,26 @@ export function CatModel({ baseUrl, albedoUrl, clip, speed = 1, paused = false, 
 
   useFrame((state, delta) => {
     mixer.timeScale = speed;
+    const e = eat.current;
+    // 上一格加過的低頭先還原，避免沒有被動作控制的骨頭一直累加
+    if (e.saved) neck.forEach((b, i) => b.quaternion.copy(e.saved![i]));
     if (!paused) mixer.update(delta);
+    if (procClip) e.clip = procClip;
+    e.w = Math.max(0, Math.min(1, e.w + (procClip ? 1 : -1) * delta * 2.5));
+    e.t = procClip ? e.t + delta * speed : 0;
+    if (e.w > 0 && neck.length) {
+      e.saved = neck.map(b => b.quaternion.clone());
+      const pose = headDownPose(e.clip, e.t, e.w);
+      rig.root.updateMatrixWorld(true);
+      const axis = new THREE.Vector3(1, 0, 0).applyQuaternion(rig.root.getWorldQuaternion(new THREE.Quaternion()));
+      neck.forEach(b => {
+        // 繞貓身體的左右軸轉（模型正面朝 +Z，正角度＝鼻子朝下）：換到骨頭自己的座標再乘上去
+        const parent = b.parent!.getWorldQuaternion(new THREE.Quaternion());
+        const turn = new THREE.Quaternion().setFromAxisAngle(axis, pose[b.name as keyof typeof pose] ?? 0);
+        b.quaternion.premultiply(parent.clone().invert().multiply(turn).multiply(parent));
+        b.updateMatrixWorld(true);
+      });
+    } else e.saved = null;
     // 眨眼拉桿：和動作內建的眨眼取較大值
     if (blink > 0) {
       for (const m of rig.morphs) {

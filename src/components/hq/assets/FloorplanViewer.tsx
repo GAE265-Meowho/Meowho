@@ -9,7 +9,8 @@ import { Component, Suspense, useEffect, useMemo, useRef, useState, type DragEve
 import * as THREE from "three";
 import { FLOOR_TEXTURE, kitScale, kitUrl } from "@/lib/hq/floorplans/kit";
 import { goalForBox, idleAction, stepActor, worldOf, type Actor, type Goal } from "@/lib/hq/floorplans/catjump";
-import { CAT_SCALE, freeSpot, obstacles, type Obstacle } from "@/lib/hq/floorplans/catwalk";
+import { blocked, CAT_SCALE, freeSpot, obstacles, type Obstacle } from "@/lib/hq/floorplans/catwalk";
+import { bubbleOf, passableItem, stepItems, stepSpot, stepStory, STORY_START, withoutItem, type NeedIcon, type Spot, type Story, type StoryState } from "@/lib/hq/floorplans/story";
 import { expandRemovedIndices, type FurnitureMove, type FurnitureSupport } from "@/lib/hq/floorplans/experience-furniture";
 import { boxToSolid, clampFurniturePose, rotatedHalfExtents, type SolidBody } from "@/lib/hq/floorplans/experience-physics";
 import { focusScenes, houseScene, sceneBounds, type RoomScene, type SceneBox } from "@/lib/hq/floorplans/scene";
@@ -579,13 +580,19 @@ export interface ViewerCat { baseUrl: string; albedoUrl: string; body: BodyType 
  * 規則在 catwalk.ts、catjump.ts（純函式、可測）；貓放大 CAT_SCALE 倍（真實比例在整間房的鏡頭裡太小）。
  * pos：貓的世界座標，給鏡頭跟隨用。
  */
-function CatActor({ s, look, click, pos, extraObs, forceClip = null, speed = 1 }: {
+function CatActor({ s, look, click, pos, extraObs, forceClip = null, speed = 1, story = null, items = [], onStory }: {
   s: RoomScene; look: ViewerCat; click: (RoomClick & { at: number }) | null; pos: React.RefObject<THREE.Vector3>;
   extraObs: Obstacle[];
   /** 停下來時固定播這個動作（例如 sleep），不自己閒逛（#237 虛擬飼養劇情） */
   forceClip?: string | null;
   /** 走路與動作速度倍率（#237：老貓放慢） */
   speed?: number;
+  /** 故事線（#297，MeowHQ 虛擬體驗）；null＝不跑（前台試養遊戲） */
+  story?: Story | null;
+  /** 這間房已放的生活用品（故事線找碗、貓砂盆用） */
+  items?: PlacedHouseholdItem[];
+  /** 故事線狀態改變時通知（畫面顯示進度） */
+  onStory?: (st: StoryState) => void;
 }) {
   const world = useMemo(() => worldOf(s, [...obstacles(s), ...extraObs]), [s, extraObs]);
   const start = useMemo(() => freeSpot(s, world.obs) ?? { x: s.size[0] / 2, z: s.size[1] / 2 }, [s, world]);
@@ -594,21 +601,32 @@ function CatActor({ s, look, click, pos, extraObs, forceClip = null, speed = 1 }
   const goal = useRef<Goal | null>(null);
   const idle = useRef(0);
   const [clip, setClip] = useState("idle");
+  const plot = useRef<StoryState>(STORY_START);
+  const spot = useRef<Spot | null>(null);
+  /** 目前的 goal 是故事線給的（不是玩家點的） */
+  const storyGoal = useRef(false);
+  const [bubble, setBubble] = useState<NeedIcon | null>(null);
+  const [bubbleLabel, setBubbleLabel] = useState("");
   useEffect(() => {
     if (!click) return;
+    storyGoal.current = false;
     goal.current = (click.box !== null && goalForBox(world, click.box, click.x, click.z)) || { x: click.x, z: click.z, surface: null };
     idle.current = 0;
   }, [click, world]);
   useFrame((_, delta) => {
     const dt = Math.min(delta, 0.1) * speed;
+    if (story) storyStep(story, dt);
     const { actor, done } = stepActor(cat.current, goal.current, world, dt);
     let next = clip;
     if (done) goal.current = null;
+    const doing = story && plot.current.phase === "doing" ? story.steps[plot.current.step] : null;
+    if (doing && spot.current) actor.heading = spot.current.heading;
     if (actor.moving || actor.jump) { idle.current = 0; next = "walk"; }
     else if (forceClip) next = forceClip;
+    else if (doing) { idle.current = 0; next = doing.clip; }
     else {
       idle.current += dt;
-      if (next === "walk") next = "idle";
+      if (next === "walk" || next === "eat" || next === "drink" || next === "toilet") next = "idle";
       if (idle.current > 6 && next !== "sleep") {
         const what = idleAction(actor, world);
         if (what.sleep) next = "sleep";
@@ -621,13 +639,72 @@ function CatActor({ s, look, click, pos, extraObs, forceClip = null, speed = 1 }
     ref.current?.rotation.set(0, actor.heading, 0);
     ref.current?.getWorldPosition(pos.current);
     if (next !== clip) setClip(next);
+    const need = story ? bubbleOf(story, plot.current) : null;
+    if ((need?.icon ?? null) !== bubble) { setBubble(need?.icon ?? null); setBubbleLabel(need?.label ?? ""); }
   });
+
+  /** 故事線一格：找這一步最近的用品與站位 → 推進狀態 → 需要時叫貓走過去 */
+  function storyStep(story: Story, dt: number) {
+    const a = cat.current;
+    const st = plot.current;
+    if (st.phase === "done") return;
+    const step = story.steps[st.step];
+    const item = stepItems(step, items).sort((p, q) => Math.hypot(p.x - a.x, p.z - a.z) - Math.hypot(q.x - a.x, q.z - a.z))[0];
+    // 做動作中固定站位；其他時候跟著用品重算（被拖走、換一個）
+    if (st.phase !== "doing" || !item || spot.current?.item !== item.key) {
+      spot.current = item ? stepSpot(step, item, a, (x, z) => blocked(x, z, s, withoutItem(world.obs, item))) : null;
+    }
+    const sp = spot.current;
+    const near = !!sp && !a.jump && a.on === null && Math.hypot(a.x - sp.x, a.z - sp.z) < 0.12;
+    // 走到了：故事線給的目標收掉（貼著用品時可能差幾公分到不了 ARRIVE_M，不收會一直原地踏步）
+    if (near && storyGoal.current) { goal.current = null; storyGoal.current = false; }
+    const arrived = near && !goal.current;
+    // 做到一半被玩家叫走：回到走過去
+    const base = st.phase === "doing" && goal.current ? { ...st, phase: "going" as const, t: 0 } : st;
+    const nextSt = stepStory(story, base, { has: !!item, spot: !!sp, arrived, dt });
+    if (nextSt.step !== st.step || nextSt.phase !== st.phase) onStory?.(nextSt);
+    plot.current = nextSt;
+    if (nextSt.phase !== "going" || !sp || arrived) { storyGoal.current = false; return; }
+    // 走過去：玩家點的地方走完了才接手；站位變了就改目標
+    const g = goal.current;
+    if (!g || (storyGoal.current && Math.hypot(g.x - sp.x, g.z - sp.z) > 0.05)) {
+      goal.current = { x: sp.x, z: sp.z, surface: null };
+      storyGoal.current = true;
+    }
+  }
+
   return (
     <group ref={ref} position={[start.x, 0, start.z]} scale={CAT_SCALE}>
       <Suspense fallback={null}>
         <CatModel baseUrl={look.baseUrl} albedoUrl={look.albedoUrl} clip={clip} follow={false} speed={speed} />
       </Suspense>
+      {bubble && (
+        <Html position={[0, look.body === "kitten" ? 0.42 : 0.62, 0]} center zIndexRange={[40, 30]} style={{ pointerEvents: "none" }}>
+          <div className="hq-exp-bubble" role="status" aria-label={bubbleLabel}>
+            <NeedGlyph icon={bubble} />
+          </div>
+        </Html>
+      )}
     </group>
+  );
+}
+
+/** 故事線對話框裡的線條圖示（不用 emoji） */
+function NeedGlyph({ icon }: { icon: NeedIcon }) {
+  return (
+    <svg width={26} height={26} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      {icon === "bowl" && <>
+        <path d="M3 11.5h18a8 8 0 0 1-8 7.5h-2a8 8 0 0 1-8-7.5Z" />
+        <path d="M7.5 19.5h9" />
+        <circle cx={9} cy={8.6} r={1.1} /><circle cx={12.4} cy={7.4} r={1.1} /><circle cx={15.4} cy={9} r={1.1} />
+      </>}
+      {icon === "water" && <path d="M12 3.5c3.3 4 5.5 7 5.5 9.8a5.5 5.5 0 0 1-11 0C6.5 10.5 8.7 7.5 12 3.5Z" />}
+      {icon === "litter" && <>
+        <path d="M3.5 11h17l-1.6 7.5a1.5 1.5 0 0 1-1.5 1.2H6.6a1.5 1.5 0 0 1-1.5-1.2L3.5 11Z" />
+        <path d="M7 11c1-1.6 2.2-1.6 3.2 0M11.8 11c1-1.6 2.2-1.6 3.2 0" />
+        <path d="M14.5 6.2c.6-1.3 2.2-1.3 2.8 0M16 3.8v.2M18.6 5v.2M13 5v.2" />
+      </>}
+    </svg>
   );
 }
 
@@ -680,7 +757,7 @@ export type PlaceAt = { roomId: string; x: number; z: number; y: number; support
 /** point＝點地板／床叫貓；hand＝拖移已放用品／落地家具（不叫貓） */
 export type InteractMode = "point" | "hand";
 
-export default function FloorplanViewer({ rooms, selected, onPick, cat, placedItems = [], interactMode = "point", removedFurniture, furnitureMoves, onMoveItem, onRotateItem, onRemoveItem, onRemoveFurniture, onMoveFurniture, onRotateFurniture, onFloorDrop, catGoal = null, catClip = null, catSpeed = 1, onItemError }: {
+export default function FloorplanViewer({ rooms, selected, onPick, cat, placedItems = [], interactMode = "point", removedFurniture, furnitureMoves, onMoveItem, onRotateItem, onRemoveItem, onRemoveFurniture, onMoveFurniture, onRotateFurniture, onFloorDrop, catGoal = null, catClip = null, catSpeed = 1, onItemError, story = null, onStory }: {
   rooms: PlanRoom[]; selected: string | null; onPick: (id: string) => void;
   /** 虛擬體驗（#150）：放一隻貓進去；有貓時只顯示單間（沒有「全部」），點地板叫貓走過去 */
   cat?: ViewerCat | null;
@@ -714,6 +791,10 @@ export default function FloorplanViewer({ rooms, selected, onPick, cat, placedIt
   catSpeed?: number;
   /** 生活用品模型載入失敗、已改成方塊（#237） */
   onItemError?: (key: string) => void;
+  /** 故事線（#297，MeowHQ 虛擬體驗）：例如「貓咪的吃喝拉撒」；null＝自由活動 */
+  story?: Story | null;
+  /** 故事線進度改變 */
+  onStory?: (st: StoryState) => void;
 }) {
   const removedList = useMemo(
     () => (removedFurniture ? [...removedFurniture] : []),
@@ -804,7 +885,7 @@ export default function FloorplanViewer({ rooms, selected, onPick, cat, placedIt
                       </Suspense>
                     </ItemBoundary>
                   ))}
-                  {cat && <CatActor key={`${s.id}:${cat.albedoUrl}`} s={s} look={cat} click={catClick} pos={catPos} extraObs={itemObstacles(roomItems)} forceClip={catClip} speed={catSpeed} />}
+                  {cat && <CatActor key={`${s.id}:${cat.albedoUrl}`} s={s} look={cat} click={catClick} pos={catPos} extraObs={itemObstacles(roomItems.filter(i => !passableItem(story, i.name)))} forceClip={catClip} speed={catSpeed} story={story} items={roomItems} onStory={onStory} />}
                 </Room>
               );
             })}

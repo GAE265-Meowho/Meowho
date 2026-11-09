@@ -95,6 +95,7 @@
 | 23-21 | MeowHQ 平面圖轉換 PR 1：一戶清單、上傳房間平面圖（Azure Blob）、原圖預覽；後續 AI 讀圖、3D、放貓、線框修正 | admin-moderation | — | P2 | #138 | Tina × Claude Code | 進行中（上傳、AI 讀圖、實景照片、3D 娃娃屋完成；家具模型庫與貼牆擺放審查中） |
 | 23-21b | 平面圖戶名並發重複：partial unique index＋23505→name_taken；既有重複改名不刪 | admin-moderation | 23-21 | P2 | #259 | Tina × Cursor | 進行中（分支 fix/259-floorplan-unique-name；0029 待 Tina 確認後執行） |
 | 23-22 | MeowHQ 虛擬體驗：選虛擬貓＋選喵戶，貓放進 3D 室內空間走動（第一版）；之後跳上家具、遊戲玩法 | admin-moderation | — | P2 | #150 | Tina × Claude Code | 審查中 |
+| 23-23 | MeowHQ 虛擬體驗故事線「貓咪的吃喝拉撒」＋成貓／幼貓 eat、drink、toilet 動作 | admin-moderation | 23-22 | P2 | #297 | Tina × Claude Code | 審查中 |
 | 23-15 | MeowHQ 登入頁依 Stitch 改版、瀏覽器標題改 MeoWho｜喵戶總部 | admin-moderation | — | P2 | #116 | Tina × Claude Code | 完成（#117 已合併） |
 | 23-14 | MeowHQ AI 三視角第二階段：worker 同時用三張照片上色；製作glb工作區選擇要產生的動作 | admin-moderation | 23-13 | P2 | 待建立 | — | 待辦 |
 | 23-11 | MeowHQ 貓咪模型：同一隻貓可切換成貓／幼貓體型 | admin-moderation | 23-10 | P2 | #104 | Tina × Codex | 審查中 |
