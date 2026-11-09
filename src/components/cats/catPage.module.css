@@ -27,6 +27,7 @@
 
 .summary { display: flex; flex-direction: column; gap: 12px; }
 .name { margin: 0; font-size: clamp(30px, 4vw, 44px); line-height: 1.25; letter-spacing: 0.06em; color: var(--ink); }
+.intro { margin: 0; color: var(--orange-deep); font-size: 17px; font-weight: 700; line-height: 1.6; }
 .meta { margin: 0; color: var(--ink-soft); font-size: 16px; }
 .home { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin: 0; color: var(--ink); font-weight: 700; }
 .home span { color: var(--ink-soft); font-weight: 400; font-size: 15px; }
