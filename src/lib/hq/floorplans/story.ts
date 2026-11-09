@@ -60,10 +60,14 @@ export const passableItem = (story: Story | null, name: string) =>
   !!story?.steps.some(s => s.match(name));
 
 /**
- * 吃喝時鼻尖在貓身體中心前方多遠（公尺，已含 CAT_SCALE 1.2）：量自 Meow/needs_clips.py 的 eat 動作
- * （成貓鼻尖在 root 前 0.165 m、幼貓 0.079 m）。貓站在「碗中心往外這麼遠」的地方，頭剛好在碗上方。
+ * 貓站在碗外、頭伸進碗（#318，Tina：不要穿越碗盆）。數字量自 Meow/needs_clips.py 的 eat 動作，已含 CAT_SCALE 1.2：
+ * 前腳掌在身體中心前方 PAW_AHEAD_M，鼻尖再往前約 5 cm。貓站在離碗中心 standOff(body) 的地方 → 腳掌剛好在碗外、鼻尖在碗裡。
  */
-export const NOSE_REACH_M = { adult: 0.2, kitten: 0.095 } as const;
+export const BOWL_RADIUS_M = 0.085;
+export const PAW_AHEAD_M = { adult: 0.217, kitten: 0.086 } as const;
+/** 同一組餐碗組的兩個碗中心距離以內（碗墊長邊一半左右） */
+const SAME_SET_M = 0.35;
+export const standOff = (body: keyof typeof PAW_AHEAD_M) => BOWL_RADIUS_M + PAW_AHEAD_M[body] + 0.015;
 
 /** 餐碗組裡兩個碗的中心（用品自己的座標、公尺、未旋轉；+Z＝正面） */
 export interface BowlSlots { food: [number, number]; water: [number, number] }
@@ -75,7 +79,8 @@ export function defaultBowlSlots(item: Pick<ItemLike, "widthM" | "depthM">): Bow
   return alongX ? { food: [-off, 0], water: [off, 0] } : { food: [0, -off], water: [0, off] };
 }
 
-export interface Spot { x: number; z: number; heading: number; item: string }
+/** 站的位置；target＝要把頭伸過去的碗中心（貓砂盆＝用品中心） */
+export interface Spot { x: number; z: number; heading: number; item: string; target: { x: number; z: number } }
 
 /**
  * 做這一步要站的位置。
@@ -84,7 +89,8 @@ export interface Spot { x: number; z: number; heading: number; item: string }
  * inside：用品正中央，面朝用品正面（+Z）。都站不下回傳 null。isBlocked 同 catwalk.blocked（障礙不含這個用品）。
  */
 export function stepSpot(
-  step: StoryStep, item: ItemLike, from: { x: number; z: number }, isBlocked: (x: number, z: number) => boolean,
+  step: StoryStep, item: ItemLike, from: { x: number; z: number },
+  isBlocked: (x: number, z: number, target: { x: number; z: number }) => boolean,
   opts: { reach?: number; slots?: BowlSlots | null } = {},
 ): Spot | null {
   const rot = ((item.rotY ?? 0) * Math.PI) / 180;
@@ -93,21 +99,56 @@ export function stepSpot(
   const toRoom = (lx: number, lz: number) => ({ x: item.x + lx * c + lz * s, z: item.z - lx * s + lz * c });
   if (step.approach === "inside") {
     const front = toRoom(0, 1);
-    return { x: item.x, z: item.z, heading: headingTo(front.x - item.x, front.z - item.z), item: item.key };
+    return { x: item.x, z: item.z, heading: headingTo(front.x - item.x, front.z - item.z), item: item.key, target: { x: item.x, z: item.z } };
   }
   const set = !!step.slot && isBowlSet(item.name);
   const [tx, tz] = set ? (opts.slots ?? defaultBowlSlots(item))[step.slot!] : [0, 0];
   const target = toRoom(tx, tz);
-  const reach = opts.reach ?? NOSE_REACH_M.adult;
+  const reach = opts.reach ?? standOff("adult");
   // 餐碗組：兩個碗沿長邊排，只從短邊（碗的前後）靠近
   const alongX = item.widthM >= item.depthM;
   const dirs: [number, number][] = set ? (alongX ? [[0, 1], [0, -1]] : [[1, 0], [-1, 0]]) : [[0, 1], [0, -1], [1, 0], [-1, 0]];
   const p = dirs
     .map(([dx, dz]) => toRoom(tx + dx * reach, tz + dz * reach))
-    .filter(q => !isBlocked(q.x, q.z))
+    .filter(q => !isBlocked(q.x, q.z, target))
     .sort((a, b) => Math.hypot(a.x - from.x, a.z - from.z) - Math.hypot(b.x - from.x, b.z - from.z))[0];
   if (!p) return null;
-  return { x: p.x, z: p.z, heading: headingTo(target.x - p.x, target.z - p.z), item: item.key };
+  return { x: p.x, z: p.z, heading: headingTo(target.x - p.x, target.z - p.z), item: item.key, target };
+}
+
+/**
+ * 碗的碰撞（#318）：餐碗組＝兩個碗各一個方塊（碗墊可以踩），單一碗＝整個用品；放在家具上的不算。
+ * 故事線開著時這些用品不走一般的用品障礙（passableItem），改用這裡的。
+ */
+export function bowlObstacles(story: Story, items: readonly (ItemLike & { support?: unknown })[], slotsOf: (key: string) => BowlSlots | null): Obstacle[] {
+  const out: Obstacle[] = [];
+  for (const item of items) {
+    if (item.support || !story.steps.some(st => st.approach === "side" && st.match(item.name))) continue;
+    const rot = ((item.rotY ?? 0) * Math.PI) / 180;
+    if (isBowlSet(item.name)) {
+      const slots = slotsOf(item.key) ?? defaultBowlSlots(item);
+      const c = Math.cos(rot), s = Math.sin(rot);
+      for (const [lx, lz] of [slots.food, slots.water]) {
+        out.push({ x: item.x + lx * c + lz * s, z: item.z - lx * s + lz * c, hx: BOWL_RADIUS_M, hz: BOWL_RADIUS_M, rotY: rot });
+      }
+    } else {
+      out.push({ x: item.x, z: item.z, hx: item.widthM / 2, hz: item.depthM / 2, rotY: rot });
+    }
+  }
+  return out;
+}
+
+/**
+ * 最後靠近時拿掉「要吃的那個碗」（含同一組的另一個碗）的碰撞：貓的碰撞半徑（0.2 m）比真正身體寬，
+ * 不拿掉幼貓站不到碗邊、也會卡在旁邊那個碗的角上。
+ * 只在貓已經在站位那一側、離碗 near 公尺內才拿掉，這時只剩直直往碗走，不會從碗的另一邊穿過去。
+ */
+export function dropTargetBowl(obs: readonly Obstacle[], spot: Spot | null, cat: { x: number; z: number }, near = 0.6): Obstacle[] {
+  if (!spot) return [...obs];
+  const t = spot.target;
+  const sameSide = (cat.x - t.x) * (spot.x - t.x) + (cat.z - t.z) * (spot.z - t.z) > 0;
+  if (!sameSide || Math.hypot(cat.x - t.x, cat.z - t.z) > near) return [...obs];
+  return obs.filter(o => Math.hypot(o.x - t.x, o.z - t.z) > SAME_SET_M);
 }
 
 /** 障礙清單拿掉這個用品（貓要靠近它） */
