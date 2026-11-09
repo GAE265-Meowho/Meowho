@@ -187,6 +187,14 @@ export function project(region: RegionId, lat: number, lng: number, hint?: { cit
   return projectFrame(lat, lng, FRAMES[region]);
 }
 
+/** 界線頂點用的投影。金門的烏坵離本島很遠，單獨拉到離島圖的海上，不跟連江疊在一起。 */
+export function mapPoint(region: RegionId, lat: number, lng: number, city: string): MapPoint {
+  if (region === "islands" && norm(city) === "金門縣" && lng > 119) {
+    return { x: 530 + ((lng - 119.44) / 0.03) * 28, y: 78 - ((lat - 24.99) / 0.02) * 18 };
+  }
+  return project(region, lat, lng, { city });
+}
+
 /** 縣市代表點（人口較集中的一側，不是幾何中心遠到外海）。 */
 const CITY_POINTS: Record<string, MapLatLng> = {
   台北市: { lat: 25.038, lng: 121.564 },
@@ -399,7 +407,7 @@ function spreadAround<T>(cats: MapCat<T>[], cx: number, cy: number): MapCat<T>[]
 }
 
 /** 不同行政區但畫面上疊在一起時，收成「附近有 N 隻」，點開再散開。 */
-function clusterNearby<T>(markers: MapMarker<T>[], expanded: ReadonlySet<string>): MapMarker<T>[] {
+function clusterNearby<T extends { id: string }>(markers: MapMarker<T>[], expanded: ReadonlySet<string>): MapMarker<T>[] {
   const piles = markers.filter((marker) => marker.type === "pile");
   const cats = markers.flatMap((marker) => (marker.type === "cat" ? [marker.cat] : []));
   const seen = new Array(cats.length).fill(false);

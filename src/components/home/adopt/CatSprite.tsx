@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import type { ActionKey, CoatKey } from "@/lib/adopt-map";
 import styles from "./catSprite.module.css";
 
@@ -53,23 +54,23 @@ export default function CatSprite({ coat, action, cue = "" }: Props) {
 }
 
 function Cue({ action, cue }: { action: ActionKey; cue: string }) {
-  if (action === "idle") return null;
-  const comb = cue.includes("梳毛");
-  return (
-    <g className={styles.cue} transform="translate(82 6)">
-      {action === "meow" && <Meow />}
-      {action === "sun" && <Sun />}
-      {action === "lively" && <Yarn />}
-      {comb && <Comb />}
-      {action === "gentle" && !comb && <Heart />}
-      {action === "knead" && <Paws />}
-      {action === "curious" && <Ask />}
-      {action === "eat" && <Bowl />}
-      {action === "clingy" && <Heart />}
-      {action === "shy" && <Hide />}
-      {action === "sleepy" && <Sleep />}
-    </g>
-  );
+  if (cue.includes("叫")) return <Mark><Meow /></Mark>;
+  if (cue.includes("曬")) return <Mark><Sun /></Mark>;
+  if (cue.includes("梳")) return <Mark><Comb /></Mark>;
+  if (cue.includes("好奇")) return <Mark><Ask /></Mark>;
+  if (cue.includes("慢熟") || cue.includes("慢熱")) return <Mark><Shy /></Mark>;
+  if (cue.includes("怕生") || cue.includes("膽小")) return <Mark><Hide /></Mark>;
+  if (cue.includes("踏") || cue.includes("踩")) return <Mark><Paws /></Mark>;
+  if (cue.includes("貪吃")) return <Mark><Bowl /></Mark>;
+  if (cue.includes("活潑") || cue.includes("愛玩")) return <Mark><Yarn /></Mark>;
+  if (cue.includes("慵懶") || cue.includes("安靜")) return <Mark><Sleep /></Mark>;
+  if (cue.includes("獨立")) return <Mark><Alone /></Mark>;
+  if (action === "clingy" || cue.includes("黏") || cue.includes("親人") || cue.includes("撒嬌") || cue.includes("溫和") || cue.includes("輕柔") || cue.includes("被抱")) return <Mark><Heart /></Mark>;
+  return null;
+}
+
+function Mark({ children }: { children: ReactNode }) {
+  return <g className={styles.cue} transform="translate(86 0)">{children}</g>;
 }
 
 function Meow() {
@@ -125,12 +126,7 @@ function Paws() {
 }
 
 function Ask() {
-  return (
-    <g>
-      <circle cx="14" cy="14" r="10" className={styles.bubble} />
-      <text x="14" y="18" textAnchor="middle" className={styles.cueText}>?</text>
-    </g>
-  );
+  return <text x="4" y="22" className={styles.ask}>?</text>;
 }
 
 function Bowl() {
@@ -142,10 +138,30 @@ function Bowl() {
   );
 }
 
+function Shy() {
+  return (
+    <g>
+      <path d="M1 2 L9 10 L1 18" className={styles.shy} />
+      <path d="M22 2 L14 10 L22 18" className={styles.shy} />
+      <ellipse cx="4" cy="22" rx="3.4" ry="1.8" className={styles.blushFill} />
+      <ellipse cx="19" cy="22" rx="3.4" ry="1.8" className={styles.blushFill} />
+    </g>
+  );
+}
+
+function Alone() {
+  return <circle cx="14" cy="14" r="4" className={styles.yarn} />;
+}
+
 function Hide() {
-  return <path d="M2 22 14 8l12 14z" className={styles.hide} />;
+  return (
+    <g>
+      <path d="M2 20 14 8l12 12v6H2z" className={styles.hide} />
+      <circle cx="14" cy="16" r="2" className={styles.pupil} />
+    </g>
+  );
 }
 
 function Sleep() {
-  return <text x="4" y="18" className={styles.cueText}>z z</text>;
+  return <text x="2" y="18" className={styles.cueText}>z z</text>;
 }

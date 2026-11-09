@@ -40,6 +40,9 @@
 .white .body, .white .face, .white .ear { stroke: var(--ink); }
 
 .cueText { font-size: 12px; font-weight: 800; fill: var(--ink); }
+.ask { font-size: 26px; font-weight: 800; fill: var(--ink); }
+.shy { fill: none; stroke: var(--ink); stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.blushFill { fill: var(--pink); opacity: 0.9; }
 .bubble { fill: #fff; stroke: var(--ink); stroke-width: 1.6; stroke-linejoin: round; }
 .sun { fill: var(--yellow); stroke: var(--ink); stroke-width: 1.4; }
 .sunRay { stroke: var(--yellow-deep); stroke-width: 2; stroke-linecap: round; }
