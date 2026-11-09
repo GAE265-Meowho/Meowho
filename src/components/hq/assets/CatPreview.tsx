@@ -54,7 +54,8 @@ export function visibleProp(clip: string | null | undefined, body: BodyType, loa
 
 /** 空間白模（貓咪頁）：地板＋背後兩面牆，貓才不會像浮在空中。牆放在鏡頭對面的角落、只畫正面，
  *  轉到牆後面時牆會自動消失，不會擋住貓。距離要比成貓跳躍 C 的櫃子後緣（z ≈ -0.87）更遠 */
-export const ROOM = { wall: 1.2, size: 4, height: 1.6, floor: "#e9d9c0", walls: "#f6eddc" };
+// 地板與牆做得比可看範圍大很多（8 公尺、牆高 2.4），轉到邊緣也只看得到白模，不會露出預覽框的底色
+export const ROOM = { wall: 1.2, size: 8, height: 2.4, floor: "#e9d9c0", walls: "#f6eddc" };
 export function roomLayout(body: BodyType) {
   const s = body === "kitten" ? KITTEN_SCALE : 1;
   const d = ROOM.wall * s, w = ROOM.size * s, h = ROOM.height * s;
@@ -331,8 +332,13 @@ export function wanderView(body: BodyType) {
   const s = body === "kitten" ? KITTEN_SCALE : 1;
   return {
     camera: [2.3 * s, 1.45 * s, 2.3 * s] as [number, number, number], target: [0.12 * s, 0.12 * s, 0.12 * s] as [number, number, number],
-    minDistance: 0.4 * s, maxDistance: 5 * s,
+    minDistance: 0.6 * s, maxDistance: 3.8 * s,
   };
+}
+/** wander 模式鏡頭可轉的範圍：只能在牆對面這一側（預設 45°），不能轉到牆後面、拉到正上方或拉太遠，才不會看到白模外面 */
+export function wanderLimits(body: BodyType) {
+  const deg = THREE.MathUtils.degToRad;
+  return { ...wanderView(body), minAzimuthAngle: deg(8), maxAzimuthAngle: deg(82), minPolarAngle: deg(35), maxPolarAngle: deg(82) };
 }
 
 /** 貓自己在白模裡走動、隨機做動作（lib/cat-actions.ts 的 nextPlan）；載入完動作清單才開始 */
@@ -412,6 +418,8 @@ export default function CatPreview(props: CatPreviewProps & { onError?: (e: Erro
       style={{ width: "100%", height: "100%", touchAction: "none" }}
     >
       <Exposure light={light} />
+      {/* 白模的背景用牆色：萬一看到邊也不是黃色底 */}
+      {room && <color attach="background" args={[ROOM.walls]} />}
       <Environment />
       <directionalLight position={[3, 4, 5]} intensity={1.5} />
       <PreviewBoundary onError={e => onError?.(e)}>
@@ -429,7 +437,9 @@ export default function CatPreview(props: CatPreviewProps & { onError?: (e: Erro
       {/* 有白模時不讓鏡頭轉到地板下面 */}
       {/* 有白模時不讓鏡頭轉到地板下面 */}
       <OrbitControls target={view.target} enableDamping minDistance={view.minDistance} maxDistance={view.maxDistance}
-        {...(room ? { maxPolarAngle: Math.PI / 2 - 0.08 } : {})} />
+        {...(wander ? { minAzimuthAngle: wanderLimits(body).minAzimuthAngle, maxAzimuthAngle: wanderLimits(body).maxAzimuthAngle,
+          minPolarAngle: wanderLimits(body).minPolarAngle, maxPolarAngle: wanderLimits(body).maxPolarAngle, enablePan: false }
+          : room ? { maxPolarAngle: Math.PI / 2 - 0.08 } : {})} />
     </Canvas>
   );
 }
