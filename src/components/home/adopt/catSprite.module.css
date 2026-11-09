@@ -22,14 +22,14 @@
 .black { --fur: var(--ink); --mark: var(--ink); --belly: var(--ink); }
 
 .shadow { fill: var(--ink); opacity: 0.12; }
-.body, .face, .ear, .paws ellipse { fill: var(--fur); stroke: var(--line); stroke-width: 1; }
+.body, .face, .ear, .paws ellipse { fill: var(--fur); stroke: var(--ink); stroke-width: 2.4; }
 .belly, .muzzle { fill: var(--belly); }
 .inner { fill: var(--pink); }
 .eye { fill: var(--yellow); transform-box: fill-box; transform-origin: center; }
 .pupil { fill: var(--ink); }
 .nose { fill: var(--pink); }
 .mouth { fill: none; stroke: var(--ink); stroke-width: 1.2; stroke-linecap: round; }
-.tail { fill: none; stroke: var(--fur); stroke-width: 5; stroke-linecap: round; }
+.tail { fill: none; stroke: var(--fur); stroke-width: 7; stroke-linecap: round; }
 .stripes { fill: none; stroke: var(--mark); stroke-width: 1.7; stroke-linecap: round; opacity: 0.9; }
 .patches ellipse { fill: var(--mark); }
 .calico .patches ellipse:nth-child(2),
@@ -37,7 +37,7 @@
 .calico .patches ellipse:nth-child(1) { fill: var(--ink); }
 .point .ear, .point .face { fill: var(--mark); }
 .point .muzzle { fill: var(--coat-cream); }
-.white .body, .white .face, .white .ear { stroke: var(--coat-gray); }
+.white .body, .white .face, .white .ear { stroke: var(--ink); }
 
 .rays line { stroke: var(--yellow-deep); stroke-width: 2; stroke-linecap: round; }
 .rays circle { fill: var(--yellow); }

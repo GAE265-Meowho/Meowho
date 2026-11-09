@@ -4,7 +4,7 @@
 import { useState } from "react";
 import Icon from "@/components/ui/Icon";
 import {
-  ADOPT_REGIONS, MAP_SIZE, actionKey, coatKey, countByRegion, landmarkDots, placeCats, previewTags, regionOf,
+  ADOPT_REGIONS, MAP_SIZE, actionKey, coatKey, countByRegion, placeCats, previewTags, regionOf,
   type RegionId,
 } from "@/lib/adopt-map";
 import type { FeedCat } from "@/lib/adopt-feed";
@@ -90,11 +90,6 @@ export default function AdoptMap({ cats, matches, onShowCard }: Props) {
       <div className={styles.stage}>
         <RegionCanvas region={region} />
         <span className={styles.compass} style={{ right: 22, bottom: 14, top: "auto" }}>北</span>
-        {landmarkDots(region).map((mark) => (
-          <span key={mark.id} className={styles.markLabel} style={{ left: `${(mark.x / size.width) * 100}%`, top: `${((mark.y + 16) / size.height) * 100}%` }}>
-            {mark.name}
-          </span>
-        ))}
         {here.length === 0 && <p className={styles.empty} role="status">這裡還沒有等家的貓</p>}
         {here.map((cat) => {
           const spot = byId.get(cat.id);
@@ -113,6 +108,7 @@ export default function AdoptMap({ cats, matches, onShowCard }: Props) {
               onBlur={() => setOpen((cur) => (cur === cat.id ? null : cur))}
               onClick={() => onShowCard(cat.id)}
             >
+              <span className={styles.badge} aria-hidden />
               <CatSprite coat={coatKey(cat.coat)} action={actionKey(cat.tags)} />
               {shown && <Preview cat={cat} side={sideFor(spot.x, size.width)} />}
             </button>

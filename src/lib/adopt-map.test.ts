@@ -2,9 +2,10 @@ import { describe, expect, it } from "vitest";
 import { DISTRICTS } from "./geo/region-bounds";
 import { TW_CITIES } from "./geo/tw-districts";
 import {
-  ADOPT_REGIONS, ACTION_KEYS, COAT_KEYS, LANDMARKS, MAP_SIZE,
-  actionKey, anchorOf, coatKey, countByRegion, isOnLand, landmarkDots, parseLocation, placeCats, previewTags, regionOf,
+  ADOPT_REGIONS, ACTION_KEYS, COAT_KEYS, MAP_SIZE,
+  actionKey, anchorOf, coatKey, countByRegion, isOnLand, parseLocation, placeCats, previewTags, regionOf,
 } from "./adopt-map";
+import { cats } from "./cats";
 
 describe("帶我回家地圖：地區", () => {
   it("二十二個縣市各屬一個地區，離島獨立標出", () => {
@@ -97,17 +98,20 @@ describe("帶我回家地圖：落點", () => {
     expect(islands.map((s) => s.id).sort()).toEqual(["e", "p", "w"]);
   });
 
-  it("地標落在該區畫布內", () => {
-    for (const region of ADOPT_REGIONS) {
-      const size = MAP_SIZE[region.id];
-      for (const mark of landmarkDots(region.id)) {
-        expect(mark.x, mark.name).toBeGreaterThan(4);
-        expect(mark.x, mark.name).toBeLessThan(size.width - 4);
-        expect(mark.y, mark.name).toBeGreaterThan(4);
-        expect(mark.y, mark.name).toBeLessThan(size.height - 4);
-      }
-    }
-    expect(new Set(LANDMARKS.map((m) => m.region)).size).toBe(ADOPT_REGIONS.length);
+  it("北、中、東、離島的新卡片會落到該區，並依毛色與個性選精靈", () => {
+    const wanted = ["海苔", "桂圓", "山風", "潮潮"] as const;
+    const rows = wanted.map((name) => {
+      const cat = cats.find((item) => item.name === name)!;
+      const loc = parseLocation(cat.district)!;
+      const spot = placeCats([{ id: name, city: loc.city, district: loc.district }], regionOf(loc.city)!)[0];
+      return { name, region: regionOf(loc.city), coat: coatKey(cat.coat), action: actionKey(cat.tags), onMap: Boolean(spot) };
+    });
+    expect(rows).toEqual([
+      { name: "海苔", region: "north", coat: "gray", action: "meow", onMap: true },
+      { name: "桂圓", region: "central", coat: "orange", action: "lively", onMap: true },
+      { name: "山風", region: "east", coat: "tabby", action: "gentle", onMap: true },
+      { name: "潮潮", region: "islands", coat: "calico", action: "sun", onMap: true },
+    ]);
   });
 
   it("沒寫進手繪表的行政區仍在縣市附近", () => {

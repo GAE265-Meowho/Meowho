@@ -173,7 +173,7 @@
 
 .marker {
   position: absolute;
-  width: clamp(44px, 7.2%, 62px);
+  width: clamp(72px, 11%, 96px);
   height: auto;
   margin: 0;
   padding: 0;
@@ -182,7 +182,22 @@
   transform: translate(-50%, -72%);
 }
 
+.badge {
+  position: absolute;
+  left: 50%;
+  top: 54%;
+  z-index: 0;
+  width: 74%;
+  height: 74%;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 0 3px var(--ink), 0 5px 0 var(--caramel-deep);
+  transform: translate(-50%, -46%);
+}
+
 .marker svg {
+  position: relative;
+  z-index: 1;
   width: 100%;
   height: auto;
 }
