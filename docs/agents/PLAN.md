@@ -19,6 +19,7 @@
 ## 任務（tracer-bullet，每張可獨立 Demo）
 
 - 虛擬飼養 DEMO（#237，渝茜 × Claude Code，2026-11-06）：審查中；PR #244、分支 `feat/237-catgame-demo`。`/cats/[id]/play` 3 個節點、AI 危險／台詞／建議（規則備案）、採買花費、3D 娃娃屋擺用品、小遊戲、試養報告；Azure／喵戶讀取／遠端 GLB／掃描房間未在沙盒實測。
+- 理毛動作重做（#319，Tina × Claude Code，2026-11-09）：審查中；分支 `fix/319-groom-redo`。合併後成貓 glb 要再上傳 Storage。
 - 跳躍腰部摺痕、成貓從櫃子往下跳重新規劃（#300，Tina × Claude Code，2026-11-09）：審查中；分支 `fix/300-jump-waist-fold`。合併後成貓 glb 要再上傳 Storage。
 - 母體 glb 快取版本號、沒有跳躍 C 不畫櫃子（#298，Tina × Claude Code，2026-11-09）：完成（PR #299 已合併）。
 - 成貓新增跳躍 A、B、C（#295，Tina × Claude Code，2026-11-09）：完成（PR #296 已合併；Tina 11:33 已上傳 Storage 成貓檔）。
