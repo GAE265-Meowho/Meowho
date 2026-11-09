@@ -124,6 +124,51 @@
 .map text,
 .mini text {
   font-family: inherit;
+  pointer-events: none;
+}
+
+.wave {
+  fill: none;
+  stroke: var(--map-sea-deep);
+  stroke-width: 3;
+  opacity: 0.8;
+}
+
+.piece { stroke: none; }
+.tone0 { fill: var(--map-a); }
+.tone1 { fill: var(--map-b); }
+.tone2 { fill: var(--map-c); }
+.tone3 { fill: var(--map-d); }
+.tone4 { fill: var(--map-e); }
+.tone5 { fill: var(--map-f); }
+.alt { fill-opacity: 0.78; }
+
+.districtHalo,
+.districtEdge,
+.countyEdge {
+  fill: none;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.districtHalo { stroke: #fffaf3; stroke-width: 3.2px; }
+.districtEdge { stroke: var(--caramel); stroke-width: 1.35px; opacity: 0.9; }
+.countyEdge { stroke: var(--caramel-deep); stroke-width: 3.4px; opacity: 0.9; }
+
+.cityMark {
+  font-size: 22px;
+  font-weight: 800;
+  fill: var(--caramel-deep);
+  opacity: 0.55;
+  letter-spacing: 0.08em;
+}
+
+.townMark {
+  font-size: 12px;
+  font-weight: 700;
+  fill: var(--ink);
+  opacity: 0.4;
 }
 
 .marker {

@@ -1,15 +1,6 @@
-import {
-  islandBoxes, landPath, landmarkDots, MAP_SIZE, project,
-  type LandmarkKind, type RegionId,
-} from "@/lib/adopt-map";
+import { landmarkDots, MAP_SIZE, project, regionSpec, type LandmarkKind, type RegionId } from "@/lib/adopt-map";
+import { COUNTY_TONE, countiesIn, districtsIn, type Polygon, type Ring } from "@/lib/geo/region-bounds";
 import styles from "./adoptMap.module.css";
-
-const HILLS: Partial<Record<RegionId, [number, number][]>> = {
-  north: [[24.72, 121.42], [24.95, 121.62]],
-  central: [[24.05, 120.98], [23.86, 120.91]],
-  south: [[23.15, 120.72], [22.85, 120.68]],
-  east: [[23.55, 121.32], [22.95, 121.18]],
-};
 
 function Mark({ kind }: { kind: LandmarkKind }) {
   switch (kind) {
@@ -162,12 +153,42 @@ function Mark({ kind }: { kind: LandmarkKind }) {
   }
 }
 
+function projectPoint(region: RegionId, lng: number, lat: number, city: string) {
+  if (city === "金門縣" && lng > 119) {
+    return { x: 530 + ((lng - 119.44) / 0.03) * 28, y: 78 - ((lat - 24.99) / 0.02) * 18 };
+  }
+  return project(region, lat, lng, { city });
+}
+
+function ringPath(region: RegionId, ring: Ring, city: string) {
+  return `${ring.map(([lng, lat], index) => {
+    const p = projectPoint(region, lng, lat, city);
+    return `${index === 0 ? "M" : "L"}${p.x.toFixed(1)} ${p.y.toFixed(1)}`;
+  }).join("")}Z`;
+}
+
+function shapePath(region: RegionId, polys: Polygon[], city: string) {
+  return polys.map((poly) => poly.map((ring) => ringPath(region, ring, city)).join("")).join("");
+}
+
+function shortTown(name: string) {
+  return name.replace(/(區|鄉|鎮|市)$/, "");
+}
+
+function shortCity(name: string) {
+  if (name === "連江縣") return "馬祖・連江";
+  if (name === "新竹市" || name === "新竹縣" || name === "嘉義市" || name === "嘉義縣") return name;
+  return name.replace(/[市縣]$/, "");
+}
+
 type Props = { region: RegionId; variant?: "full" | "mini" };
 
 export default function RegionCanvas({ region, variant = "full" }: Props) {
   const size = MAP_SIZE[region];
-  const d = landPath(region);
   const full = variant === "full";
+  const cities = regionSpec(region).cities;
+  const counties = countiesIn(cities);
+  const districts = full ? districtsIn(cities) : [];
   return (
     <svg
       viewBox={`0 0 ${size.width} ${size.height}`}
@@ -175,29 +196,46 @@ export default function RegionCanvas({ region, variant = "full" }: Props) {
       preserveAspectRatio={full ? "xMidYMid meet" : "xMidYMid slice"}
       aria-hidden
     >
-      <rect width={size.width} height={size.height} fill="var(--map-sea)" />
-      <path d={`M0 ${size.height * 0.72} C ${size.width * 0.2} ${size.height * 0.66}, ${size.width * 0.4} ${size.height * 0.8}, ${size.width} ${size.height * 0.7}`} fill="none" stroke="var(--map-sea-deep)" strokeWidth="3" opacity="0.7" />
-      {region === "islands" ? (
-        <>
-          {islandBoxes().map((box) => (
-            <g key={box.id}>
-              <ellipse cx={box.x + box.w / 2} cy={box.y + box.h / 2} rx={box.w / 2} ry={box.h / 2} fill="var(--map-land)" />
-            </g>
-          ))}
-          {full && (
-            <g>
-              <ellipse cx="548" cy="86" rx="22" ry="14" fill="var(--map-land)" />
-            </g>
-          )}
-        </>
-      ) : d && (
-        <>
-          <path d={d} fill="var(--map-land)" stroke="var(--map-land)" strokeWidth="16" strokeLinejoin="round" />
-          {(HILLS[region] ?? []).map(([lat, lng]) => {
-            const p = project(region, lat, lng);
-            return <ellipse key={`${lat}-${lng}`} cx={p.x} cy={p.y} rx="54" ry="26" fill="var(--map-hill)" opacity="0.95" />;
+      <defs>
+        <filter id={`map-sticker-${region}`} x="-8%" y="-8%" width="116%" height="116%">
+          <feDropShadow dx="0" dy="3" stdDeviation="1.6" floodColor="#c4a07a" floodOpacity="0.28" />
+        </filter>
+      </defs>
+      <rect width={size.width} height={size.height} rx={full ? 0 : 28} fill="var(--map-sea)" />
+      <path className={styles.wave} d={`M0 ${size.height * 0.78} C ${size.width * 0.25} ${size.height * 0.72}, ${size.width * 0.55} ${size.height * 0.86}, ${size.width} ${size.height * 0.74}`} />
+      <g filter={`url(#map-sticker-${region})`}>
+        {districts.map((district, index) => (
+          <path
+            key={`${district.c}-${district.n}`}
+            className={`${styles.piece} ${styles[`tone${COUNTY_TONE[district.c] ?? 0}`]} ${index % 2 ? styles.alt : ""}`}
+            d={shapePath(region, district.p, district.c)}
+            fillRule="evenodd"
+          />
+        ))}
+        {!full && counties.map((county) => (
+          <path key={county.n} className={`${styles.piece} ${styles[`tone${COUNTY_TONE[county.n] ?? 0}`]}`} d={shapePath(region, county.p, county.n)} fillRule="evenodd" />
+        ))}
+      </g>
+      {districts.map((district) => (
+        <path key={`halo-${district.c}-${district.n}`} className={styles.districtHalo} d={shapePath(region, district.p, district.c)} fillRule="evenodd" />
+      ))}
+      {districts.map((district) => (
+        <path key={`line-${district.c}-${district.n}`} className={styles.districtEdge} d={shapePath(region, district.p, district.c)} fillRule="evenodd" />
+      ))}
+      {counties.map((county) => (
+        <path key={`edge-${county.n}`} className={styles.countyEdge} d={shapePath(region, county.p, county.n)} fillRule="evenodd" />
+      ))}
+      {full && (
+        <g className={styles.watermarks}>
+          {districts.map((district) => {
+            const at = projectPoint(region, district.l[0], district.l[1], district.c);
+            return <text key={`${district.c}-${district.n}`} x={at.x} y={at.y} textAnchor="middle" className={styles.townMark}>{shortTown(district.n)}</text>;
           })}
-        </>
+          {counties.map((county) => {
+            const at = projectPoint(region, county.l[0], county.l[1], county.n);
+            return <text key={county.n} x={at.x} y={at.y} textAnchor="middle" className={styles.cityMark}>{shortCity(county.n)}</text>;
+          })}
+        </g>
       )}
       {full && (
         <g transform={`translate(${size.width - 36} ${size.height - 36})`}>
@@ -205,7 +243,7 @@ export default function RegionCanvas({ region, variant = "full" }: Props) {
         </g>
       )}
       {full && landmarkDots(region).map((mark) => (
-        <g key={mark.id} transform={`translate(${mark.x} ${mark.y})`} opacity="0.92">
+        <g key={mark.id} transform={`translate(${mark.x} ${mark.y})`} opacity="0.95">
           <Mark kind={mark.kind} />
         </g>
       ))}

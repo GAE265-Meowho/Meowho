@@ -4,7 +4,7 @@
 import { useState } from "react";
 import Icon from "@/components/ui/Icon";
 import {
-  ADOPT_REGIONS, MAP_SIZE, actionKey, cityDots, coatKey, countByRegion, islandBoxes, landmarkDots, placeCats, previewTags, regionOf,
+  ADOPT_REGIONS, MAP_SIZE, actionKey, coatKey, countByRegion, landmarkDots, placeCats, previewTags, regionOf,
   type RegionId,
 } from "@/lib/adopt-map";
 import type { FeedCat } from "@/lib/adopt-feed";
@@ -90,23 +90,6 @@ export default function AdoptMap({ cats, matches, onShowCard }: Props) {
       <div className={styles.stage}>
         <RegionCanvas region={region} />
         <span className={styles.compass} style={{ right: 22, bottom: 14, top: "auto" }}>北</span>
-        {region === "islands" && islandBoxes().map((box) => (
-          <span
-            key={box.id}
-            className={styles.islandLabel}
-            style={{ left: `${((box.x + box.w / 2) / size.width) * 100}%`, top: `${((box.y + 8) / size.height) * 100}%` }}
-          >
-            {box.label}
-          </span>
-        ))}
-        {region === "islands" && (
-          <span className={styles.markLabel} style={{ left: `${(548 / size.width) * 100}%`, top: `${(62 / size.height) * 100}%` }}>烏坵</span>
-        )}
-        {cityDots(region).map((city) => (
-          <span key={city.name} className={styles.cityLabel} style={{ left: `${(city.x / size.width) * 100}%`, top: `${(city.y / size.height) * 100}%` }}>
-            {city.name}
-          </span>
-        ))}
         {landmarkDots(region).map((mark) => (
           <span key={mark.id} className={styles.markLabel} style={{ left: `${(mark.x / size.width) * 100}%`, top: `${((mark.y + 16) / size.height) * 100}%` }}>
             {mark.name}

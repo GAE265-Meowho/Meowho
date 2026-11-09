@@ -1,5 +1,6 @@
 // 帶我回家地圖（縣市＋行政區）。公開位置只到區中心，路名與門牌一律丟掉（FR-02-07）。
 // 北／中／南／東照常見分區；澎湖、金門、連江不塞進東部，另外標成「離島」。
+import { containsCounty } from "./geo/region-bounds";
 import { TW_CITIES, TW_DISTRICTS } from "./geo/tw-districts";
 
 export type RegionId = "north" | "central" | "south" | "east" | "islands";
@@ -135,26 +136,26 @@ type Frame = {
 
 // 畫布長寬接近該區的實際南北／東西比例，陸地才不會縮成海中央的一小團。
 export const MAP_SIZE: Record<RegionId, { width: number; height: number }> = {
-  north: { width: 900, height: 660 },
-  central: { width: 720, height: 880 },
-  south: { width: 540, height: 960 },
-  east: { width: 440, height: 900 },
+  north: { width: 900, height: 860 },
+  central: { width: 820, height: 800 },
+  south: { width: 560, height: 940 },
+  east: { width: 460, height: 1000 },
   islands: { width: 860, height: 520 },
 };
 
 const FRAMES: Record<Exclude<RegionId, "islands">, Frame> = {
-  north: { latMin: 24.50, latMax: 25.32, lngMin: 120.80, lngMax: 122.08, ...MAP_SIZE.north, pad: 40, originX: 0, originY: 0 },
-  central: { latMin: 23.42, latMax: 24.78, lngMin: 120.12, lngMax: 121.32, ...MAP_SIZE.central, pad: 36, originX: 0, originY: 0 },
-  south: { latMin: 21.72, latMax: 23.78, lngMin: 119.95, lngMax: 121.02, ...MAP_SIZE.south, pad: 32, originX: 0, originY: 0 },
-  east: { latMin: 22.12, latMax: 24.58, lngMin: 120.88, lngMax: 121.82, ...MAP_SIZE.east, pad: 36, originX: 0, originY: 0 },
+  north: { latMin: 24.22, latMax: 25.36, lngMin: 120.78, lngMax: 122.10, ...MAP_SIZE.north, pad: 32, originX: 0, originY: 0 },
+  central: { latMin: 23.36, latMax: 24.82, lngMin: 119.92, lngMax: 121.55, ...MAP_SIZE.central, pad: 32, originX: 0, originY: 0 },
+  south: { latMin: 21.82, latMax: 23.72, lngMin: 119.95, lngMax: 121.12, ...MAP_SIZE.south, pad: 28, originX: 0, originY: 0 },
+  east: { latMin: 21.86, latMax: 24.48, lngMin: 120.66, lngMax: 121.86, ...MAP_SIZE.east, pad: 28, originX: 0, originY: 0 },
 };
 
 interface IslandBox { label: string; latMin: number; latMax: number; lngMin: number; lngMax: number; x: number; y: number; w: number; h: number }
 
 const ISLAND_BOX: Record<string, IslandBox> = {
-  澎湖縣: { label: "澎湖", latMin: 23.12, latMax: 23.78, lngMin: 119.38, lngMax: 119.72, x: 36, y: 58, w: 250, h: 400 },
-  金門縣: { label: "金門", latMin: 24.40, latMax: 24.54, lngMin: 118.18, lngMax: 118.50, x: 318, y: 148, w: 230, h: 250 },
-  連江縣: { label: "馬祖・連江", latMin: 25.90, latMax: 26.44, lngMin: 119.86, lngMax: 120.56, x: 586, y: 46, w: 236, h: 420 },
+  澎湖縣: { label: "澎湖", latMin: 23.14, latMax: 23.82, lngMin: 119.28, lngMax: 119.74, x: 36, y: 58, w: 250, h: 400 },
+  金門縣: { label: "金門", latMin: 24.36, latMax: 24.56, lngMin: 118.12, lngMax: 118.52, x: 318, y: 150, w: 230, h: 250 },
+  連江縣: { label: "馬祖・連江", latMin: 25.92, latMax: 26.42, lngMin: 119.88, lngMax: 120.55, x: 586, y: 46, w: 236, h: 420 },
 };
 
 export function islandBoxes(): { id: string; label: string; x: number; y: number; w: number; h: number }[] {
@@ -276,62 +277,17 @@ const DISTRICT_POINTS: Record<string, MapLatLng> = {
   "連江縣|東引鄉": { lat: 26.366, lng: 120.493 },
 };
 
-const LAND: Record<Exclude<RegionId, "islands">, [number, number][]> = {
-  north: [
-    [24.60, 120.84], [24.82, 120.88], [25.00, 121.02], [25.14, 121.20], [25.25, 121.40],
-    [25.23, 121.58], [25.17, 121.84], [25.02, 121.98], [24.80, 121.98], [24.60, 121.86],
-    [24.48, 121.68], [24.48, 121.20], [24.55, 120.98], [24.60, 120.86],
-  ],
-  central: [
-    [24.74, 120.64], [24.55, 120.50], [24.40, 120.42], [24.20, 120.38], [23.98, 120.32],
-    [23.70, 120.14], [23.46, 120.16], [23.46, 120.62], [23.68, 120.98], [23.95, 121.24],
-    [24.36, 121.26], [24.58, 121.02], [24.72, 120.86], [24.76, 120.70],
-  ],
-  south: [
-    [23.72, 120.22], [23.45, 120.04], [23.08, 120.00], [22.72, 120.06], [22.42, 120.20],
-    [22.12, 120.40], [21.84, 120.66], [21.80, 120.94], [22.08, 121.00], [22.55, 120.94],
-    [23.08, 120.92], [23.58, 120.96], [23.74, 120.58], [23.74, 120.28],
-  ],
-  east: [
-    [24.52, 121.40], [24.16, 121.30], [23.70, 121.32], [23.18, 121.10], [22.68, 120.96],
-    [22.22, 120.94], [22.18, 121.30], [22.62, 121.50], [23.15, 121.60], [23.72, 121.64],
-    [24.12, 121.74], [24.42, 121.64], [24.54, 121.48],
-  ],
-};
-
-function landRing(region: Exclude<RegionId, "islands">): MapPoint[] {
-  return LAND[region].map(([lat, lng]) => project(region, lat, lng));
+/** 真正的縣市界（region-bounds.json）。路名不會被拿來判斷。 */
+export function isOnLand(_region: RegionId, lat: number, lng: number, city?: string): boolean {
+  return containsCounty(norm(city ?? ""), lng, lat);
 }
 
-function pointInPolygon(x: number, y: number, poly: MapPoint[]): boolean {
-  let inside = false;
-  for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
-    const xi = poly[i].x;
-    const yi = poly[i].y;
-    const xj = poly[j].x;
-    const yj = poly[j].y;
-    const hit = yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi + 0.00001) + xi;
-    if (hit) inside = !inside;
-  }
-  return inside;
-}
-
-export function isOnLand(region: RegionId, lat: number, lng: number, city?: string): boolean {
-  if (region === "islands") {
-    const box = city ? ISLAND_BOX[norm(city)] : undefined;
-    if (!box) return false;
-    const p = project(region, lat, lng, { city });
-    return p.x >= box.x && p.x <= box.x + box.w && p.y >= box.y && p.y <= box.y + box.h;
-  }
-  return pointInPolygon(project(region, lat, lng).x, project(region, lat, lng).y, landRing(region));
-}
-
-function ensureInside(region: Exclude<RegionId, "islands">, lat: number, lng: number, city: MapLatLng): MapLatLng {
-  if (isOnLand(region, lat, lng)) return { lat, lng };
+function ensureInside(region: Exclude<RegionId, "islands">, lat: number, lng: number, city: MapLatLng, cityName: string): MapLatLng {
+  if (isOnLand(region, lat, lng, cityName)) return { lat, lng };
   let t = 0.72;
   for (let i = 0; i < 10; i++) {
     const next = { lat: city.lat + (lat - city.lat) * t, lng: city.lng + (lng - city.lng) * t };
-    if (isOnLand(region, next.lat, next.lng)) return next;
+    if (isOnLand(region, next.lat, next.lng, cityName)) return next;
     t *= 0.62;
   }
   return city;
@@ -381,13 +337,7 @@ export function anchorOf(cityRaw: string, districtRaw = ""): MapLatLng | null {
   const lng = origin.lng + Math.cos(angle) * spread * ring;
   if (region === "islands") return clampIsland(city, lat, lng);
   if (!region) return origin;
-  return ensureInside(region, lat, lng, origin);
-}
-
-export function landPath(region: RegionId): string | null {
-  if (region === "islands") return null;
-  const ring = landRing(region);
-  return `${ring.map((p, i) => `${i === 0 ? "M" : "L"}${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(" ")} Z`;
+  return ensureInside(region, lat, lng, origin, city);
 }
 
 const LABEL_NUDGE: Record<string, MapPoint> = {

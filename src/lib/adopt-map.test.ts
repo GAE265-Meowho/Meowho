@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { DISTRICTS } from "./geo/region-bounds";
 import { TW_CITIES } from "./geo/tw-districts";
 import {
   ADOPT_REGIONS, ACTION_KEYS, COAT_KEYS, LANDMARKS, MAP_SIZE,
@@ -30,6 +31,11 @@ describe("帶我回家地圖：地區", () => {
 });
 
 describe("帶我回家地圖：落點", () => {
+  it("行政區界資料涵蓋台中的 29 個區", () => {
+    expect(DISTRICTS.filter((item) => item.c === "台中市")).toHaveLength(29);
+    expect(DISTRICTS.filter((item) => item.c === "澎湖縣").map((item) => item.n)).toContain("馬公市");
+  });
+
   it("縣市與手繪行政區都在該區陸地或離島框裡", () => {
     const outside: string[] = [];
     for (const region of ADOPT_REGIONS) {
