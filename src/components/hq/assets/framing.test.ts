@@ -1,6 +1,6 @@
 // 貓咪預覽取景（#291）：跳躍動作鏡頭拉遠、目標提高，整段跳躍都在畫面內
 import { describe, expect, it } from "vitest";
-import { CABINET, CABINET_ADULT, framing, propFor } from "./CatPreview";
+import { CABINET, CABINET_ADULT, framing, propFor, visibleProp } from "./CatPreview";
 
 const dist = (v: { camera: number[]; target: number[] }) => Math.hypot(...v.camera.map((c, i) => c - v.target[i]));
 
@@ -47,5 +47,15 @@ describe("成貓跳躍 C 櫃子（#295）", () => {
     const edge = CABINET_ADULT.position[2] + CABINET_ADULT.size[2] / 2;
     expect(edge).toBeLessThan(-0.06);
     expect(edge).toBeGreaterThan(-0.1);
+  });
+});
+
+describe("visibleProp（#298）", () => {
+  it("載入的 glb 有 jump_c 才畫櫃子；還沒載入或舊檔沒有 jump_c 就不畫（不會出現貓卡在櫃子裡）", () => {
+    expect(visibleProp("jump_c", "adult", null)).toBeNull();
+    expect(visibleProp("jump_c", "adult", ["idle", "walk", "sleep", "sit"])).toBeNull();
+    expect(visibleProp("jump_c", "adult", ["idle", "jump_c"])).toEqual(CABINET_ADULT);
+    expect(visibleProp("jump_c", "kitten", ["jump_c"])).toEqual(CABINET);
+    expect(visibleProp("jump_b", "kitten", ["jump_b"])).toBeNull();
   });
 });
