@@ -179,9 +179,11 @@ REST_TAIL = [(-0.2, 0.95, -0.25), (-0.5, 0.85, -0.1), (-0.8, 0.55, 0.0), (-0.97,
 # （Tina 2026-11-09：照片裡舔的是貓的左前腳、頭往左偏；X 正＝貓的左邊）
 GROOM_HIND = [(0.3, -0.9, -0.3), (0.06, 0.97, -0.25), (0.0, -1.0, -0.03), (0.0, -0.4, -0.92), (0.0, -1.0, -0.1)]     # 大腿往前收、小腿往後折、腳掌平貼往前（收在肚子下）
 GROOM_FRONT_FLAT = [(0.03, 0.4, -0.92), (-0.15, -0.99, -0.05), (-0.1, -1.0, 0.0)]       # 左前腳：手肘往後下、前臂往前略往內平放
-GROOM_PAW_UP = (-0.12, 0.3, 0.95)                 # 舔的那隻腳（左）：掌骨從腕往上、略往後往內（往右），掌心朝嘴
+GROOM_FOREARM = (-0.35, -0.6, 0.72)              # 舔的那隻腳（左）的掌骨：往前、往內斜斜抬起約 45°（不是垂直立起）
+GROOM_PAW = [(-0.2, -0.2, 0.96), (-0.1, 0.35, 0.93)]     # 腳腕往上彎、腳掌往回勾向嘴（ankle、toe）
+GROOM_YAW = 0.45                                  # 頭往左偏（X 分量）
 GROOM_NECK = [(0.05, -0.75, 0.66), (0.15, -0.85, -0.5)]
-GROOM_HEAD = (0.45, -0.72, -0.53)                 # 頭往下約 30°、往左偏向左前腳（正面看得到臉）
+GROOM_HEAD_DOWN = 35                              # 頭往下幾度（正面看得到臉）
 GROOM_TAIL = [(-0.25, 0.6, -0.76), (-0.85, 0.3, -0.2), (-0.65, -0.76, 0.0), (-0.25, -0.97, 0.0),
               (-0.05, -1.0, 0.0), (0.1, -1.0, 0.0), (0.25, -0.97, 0.0)]                  # 尾巴貼地從屁股繞到右側、沿著身體往前
 GROOM_LICK_SEC = 0.55                             # 舔一下的時間
@@ -267,13 +269,16 @@ def _belly_drop(p, body, pose_spine):
 
 def clip_groom(p, body, blink_keys):
     """理毛（2026-11-09 重做，參考 Tina 的舔毛照）：香盒坐，肚子貼地、後腳收在肚子下、右前腳橫放在胸前、尾巴沿右側繞到前面；
-    左前腳手肘撐地、前臂立起、腳掌彎在嘴邊，頭低下偏向左前腳，閉眼一下一下舔（頭往下帶、嘴微開），每 4 下停一拍。4 秒循環"""
+    頭往左下低、閉眼；左前腳前臂斜斜抬起約 45°（不垂直）、腳腕往上彎、腳掌送到嘴前——上臂與手肘用 IK 跟著調整位置；
+    一下一下舔（頭往下帶、嘴微開），每 4 下停一拍。4 秒循環"""
     n = 4 * FPS
     k, _ = _begin(p, n)
     keys = range(0, n + 1, 2)
     W = p.rig.matrix_world
-    paw_len = p.rig.data.bones["leg_front_left_bot0"].length
     floor = 0.012 * k                                 # 腳掌骨頭離地（腳掌有厚度）
+    bones = p.rig.data.bones
+    fore_len = bones["leg_front_left_bot0"].length
+    paw_len = bones["leg_front_left_ankle"].length + bones["leg_front_left_toe"].length
 
     def lick_phase(f):
         t = f / FPS
@@ -281,14 +286,17 @@ def clip_groom(p, body, blink_keys):
             return 0.0
         return max(0.0, sin(pi * (t % GROOM_LICK_SEC) / GROOM_LICK_SEC))
 
+    def unit(*v):
+        v = Vector(v).normalized()
+        return (round(v.x, 3), round(v.y, 3), round(v.z, 3))
+
     def spine(f, lick=0.0):
         for bone in ("body", "body_top0", "body_top1", "body_bot", "pelvis"):
             p.set(bone, f)
         p.aim("neck0", f, GROOM_NECK[0], level="rest")
         p.aim("neck1", f, GROOM_NECK[1], level="rest")
-        a = radians(round(GROOM_BOB * lick))          # 舔的時候頭往下帶
-        hx, hy, hz = GROOM_HEAD
-        p.aim("head0", f, (hx, round(hy * cos(a) + hz * sin(a), 2), round(hz * cos(a) - hy * sin(a), 2)), level="rest")
+        a = radians(GROOM_HEAD_DOWN + GROOM_BOB * lick)   # 舔的時候頭往下帶
+        p.aim("head0", f, unit(GROOM_YAW, -cos(a), -sin(a)), level="rest")
         p.set("jaw", f, up=-round(10 * lick))         # 嘴微開
 
     def joint(bone, end="head"):
@@ -301,10 +309,14 @@ def clip_groom(p, body, blink_keys):
 
     p.move_root(0, dz=0.0)
     drop = _belly_drop(p, body, spine) + 0.004 * k
+    fore = Vector(GROOM_FOREARM).normalized()
+    paw_dir = Vector(GROOM_PAW[0]).normalized()
 
     def pose(f):
         lick = lick_phase(f)
         p.move_root(f, dz=drop)
+        spine(f, 0.0)                                  # 腳掌位置跟著「沒在舔」的頭；舔的時候只有頭動
+        mouth = joint("jaw", "tail")
         spine(f, lick)
         for lr, out in SIDES:
             # 後腳：腳跟（top1 尾端）落在髖關節後下方的地上，膝蓋往前；蹠骨與腳掌往前平貼地面（收在肚子下）
@@ -321,20 +333,24 @@ def clip_groom(p, body, blink_keys):
         p.aim("leg_front_right_bot0", f, (0.88, -0.47, 0.0))
         p.aim("leg_front_right_ankle", f, (0.7, -0.4, -0.6))
         p.aim("leg_front_right_toe", f, (0.85, -0.5, -0.15))
-        # 左前腳（舔的那隻）：掌骨從手腕往上彎回嘴邊；手腕＝嘴巴下方一個掌骨長，上臂＋前臂兩節 IK，手肘往後下撐地
-        mouth = joint("jaw", "tail")
-        up = Vector(GROOM_PAW_UP).normalized()
-        wrist = mouth - up * paw_len * 0.95
-        wrist.z = max(wrist.z, floor)
-        p.reach("leg_front_left_top0", "leg_front_left_top1", f, snap(wrist), (0.0, 0.6, -0.8))
-        p.aim("leg_front_left_bot0", f, tuple(round(c, 2) for c in (mouth - wrist).normalized()))
-        p.set("leg_front_left_ankle", f, forward=-40)  # 腳掌往內彎
-        p.set("leg_front_left_toe", f, forward=-30)
+        # 左前腳（舔的那隻）：腳掌尖端到嘴前，往回推出腕、前臂；前臂固定斜 45°，上臂＋手肘用兩節 IK 對到前臂起點
+        tip = mouth + Vector((0.0, -0.006 * k, -0.004 * k))
+        wrist = tip - paw_dir * paw_len
+        elbow_end = wrist - fore * fore_len
+        elbow_end.z = max(elbow_end.z, floor)
+        p.reach("leg_front_left_top0", "leg_front_left_top1", f, snap(elbow_end), (0.1, 1.0, -0.6))
+        p.aim("leg_front_left_bot0", f, tuple(round(c, 3) for c in (wrist - elbow_end).normalized()))
+        p.aim("leg_front_left_ankle", f, GROOM_PAW[0])
+        p.aim("leg_front_left_toe", f, GROOM_PAW[1])
         for i, d in enumerate(GROOM_TAIL):
             p.aim(f"tail{i}", f, d)
 
     for f in keys:
         pose(f)
+    p.cache.clear()
+    bpy.context.scene.frame_set(0)
+    d = (joint("leg_front_left_toe", "tail") - joint("jaw", "tail")).length
+    print(f"  理毛：腳掌尖端離嘴 {d * 100:.1f} cm")
     blink_keys(body, [(0, 0.95), (n, 0.95)])          # 閉眼
     return n
 
