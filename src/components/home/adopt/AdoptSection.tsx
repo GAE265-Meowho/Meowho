@@ -165,9 +165,6 @@ export default function AdoptSection() {
                     </p>
                   )}
                   <div className={styles.actions}>
-                    <CatButton href="/#trial" variant="ghost" size="sm">
-                      7 天虛擬飼養
-                    </CatButton>
                     <CatButton href={live ? `/cats/${c.id}` : "/#adopt"} size="sm">
                       認識{c.name}
                     </CatButton>

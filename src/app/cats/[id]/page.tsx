@@ -111,8 +111,9 @@ export default function CatPage() {
               <div className={s.tags}>{cat.personalityTags.map(t => <span key={t} className={s.tag}>{t}</span>)}</div>
             )}
             <div className={f.actions}>
-              {/* 任務在領養人按下後才產生（0030），待領養的貓都有這顆；沒登入按下去先登入（規格 09 §6） */}
-              {adoptable && !isOwner && <CatButton href={`/cats/${id}/run`}>進行領養任務</CatButton>}
+              {/* 待領養的貓都有這顆，進渝茜的領養任務（/play，#237）；要演哪隻貓由 src/lib/play/source.ts 決定。
+                  原本的任務頁 /cats/[id]/run（0030 任務進度、試養報告）保留，問卷頁與對話串的「去做任務」仍連到那裡。 */}
+              {adoptable && !isOwner && <CatButton href={`/cats/${id}/play`}>進行領養任務</CatButton>}
               {adoptable && formOpen && !isOwner && <CatButton variant="ghost" href={`/cats/${id}/apply`}>填寫領養問卷</CatButton>}
               {adoptable && !isOwner && <MessageButton catId={id} />}
               {!isOwner && <FavoriteButton catId={id} />}
