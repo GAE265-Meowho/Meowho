@@ -4,7 +4,7 @@
 > 最後更新：2026-11-09｜Jerry0808 × Codex（#273 驗收追蹤）
 
 ## 目前狀態
-- **WelfareLens 報告 API／PDF-first 安全評估頁（#273 C＋D，Jerry0808 × Codex，進行中）**：Draft PR #277、`feat/273-env-report-view`。離線 API/授權/UI 測試通過；PDF/crop 經授權路由 307 轉向短效 SAS（瀏覽器會收到 SAS URL，勿視為隱藏）；真實 Preview 環境與 Owner session 驗收仍待完成。
+- **WelfareLens 報告 API／PDF-first 安全評估頁（#273 C＋D，Jerry0808 × Codex，進行中）**：Draft PR #277、`feat/273-env-report-view`。離線 API/授權/UI 測試通過；PDF/crop 經授權路由 307 轉向短效 SAS（瀏覽器會收到 SAS URL，勿視為隱藏）；最新 head 的 Vercel check PASS；Preview 未登入 report/PDF/crop 實測 401 與 private,no-store。Owner session、Preview 的 Supabase project／Azure container／SAS 設定仍待核驗。
 - **#283 幼貓坐下重做（Tina × Claude Code）**：分支 `fix/283-kitten-sit-redo`。`base_clips_kitten.glb` 的 sit 對齊 `Meow/cat_base_kitten/work/preview/虎斑小貓360度旋轉動畫.gif`；坐姿參數集中在 `cat_base_kitten/stepC_clips.py` 開頭的 `SIT_*`。**合併後要上傳 Storage** `meow-cat-models/base/v1/base_clips_kitten.glb`。Meow 不是 git repo，腳本只在 Tina 電腦。
 - **#259 平面圖轉換重複戶名（Tina × Cursor，已合併 #261）**：`0029_meow_room_floorplan_name_unique.sql`（既有重複改名不刪＋`source='floorplan'` partial unique index），INSERT 撞 index 回 `name_taken`。**0029 執行前須 Tina 確認**。
 - **#237 newgame 版劇情（渝茜 × Claude Code，分支 `feat/237-newgame-story`，未開 PR）**：`story.ts` 改成 6 節點＋結尾，每節點後有「在家的時光」（`care.ts`），開場一定擺外出籠（`public/play/cat_carrier.glb`）；節點 5 居家意外讀居家安全清單，之後要換世安報告 API。設計稿在團隊專題 `newgame/`。
