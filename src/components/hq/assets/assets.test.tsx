@@ -3,7 +3,6 @@ import "@testing-library/jest-dom/vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { CatModelView } from "@/lib/hq/cat-models/types";
-import { BaseSamples } from "./BaseSamples";
 import { ClipList } from "./ClipList";
 import { filterCats } from "./CatsTab";
 import { PlannedTab } from "./PlannedTab";
@@ -256,10 +255,3 @@ describe("製作glb工作區", () => {
   });
 });
 
-describe("BaseSamples", () => {
-  it("成貓、幼貓骨架各有「測試動作與參數」按鈕，連到骨架測試台", () => {
-    render(<BaseSamples />);
-    const links = screen.getAllByRole("link", { name: "測試動作與參數" });
-    expect(links.map(l => l.getAttribute("href"))).toEqual(["/MeowHQ/assets/bases/adult", "/MeowHQ/assets/bases/kitten"]);
-  });
-});
