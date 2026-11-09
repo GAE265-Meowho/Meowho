@@ -99,7 +99,7 @@
 | 23-24 | 故事線辨識餐碗組的飼料碗／水碗、站對位置；母體補齊撒嬌、休息、理毛 | admin-moderation | 23-23 | P2 | #304 | Tina × Claude Code | 審查中 |
 | 23-15 | MeowHQ 登入頁依 Stitch 改版、瀏覽器標題改 MeoWho｜喵戶總部 | admin-moderation | — | P2 | #116 | Tina × Claude Code | 完成（#117 已合併） |
 | 23-14 | MeowHQ AI 三視角第二階段：worker 同時用三張照片上色；製作glb工作區選擇要產生的動作 | admin-moderation | 23-13 | P2 | 待建立 | — | 待辦 |
-| 23-16 | MeowHQ 3D 貓咪體型預覽新增大貓（大貓｜成貓｜幼貓三分頁、貓咪資訊）；大貓只做預覽 | admin-moderation | 23-13 | P2 | #302 | Tina × Claude Code | 審查中 |
+| 23-16 | MeowHQ 3D 貓咪體型預覽新增大貓（大貓｜成貓｜幼貓三分頁、貓咪資訊）；大貓只做預覽 | admin-moderation | 23-13 | P2 | #302 | Tina × Claude Code | 完成（#305 已合併；肚子鼓包修正見 fix/302-large-cat-belly） |
 | 23-11 | MeowHQ 貓咪模型：同一隻貓可切換成貓／幼貓體型 | admin-moderation | 23-10 | P2 | #104 | Tina × Codex | 審查中 |
 | 28-1 | 首頁、頁首頁尾改用 meowwho-v2 新版 UI；內頁版型待續 | matching | 26 | P1 | #64 | 子哲 × Claude | 完成（#65 已合併） |
 | 29 | 部署改為 Vercel meowho、Supabase 改為獨立專案（決策 005）的文件 | account | — | P1 | #66 | 子哲 × Claude | 審查中 |
