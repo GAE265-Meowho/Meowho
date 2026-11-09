@@ -160,7 +160,7 @@
   font-size: 22px;
   font-weight: 800;
   fill: var(--caramel-deep);
-  opacity: 0.55;
+  opacity: 0.72;
   letter-spacing: 0.08em;
 }
 
@@ -178,12 +178,36 @@
   padding: 0;
   border: 0;
   background: transparent;
-  transform: translate(-50%, -72%);
 }
 
 .marker {
-  width: clamp(68px, 9%, 84px);
+  width: 44px;
+  height: 44px;
+  overflow: visible;
+  transform: translate(-50%, -50%);
+  transition: transform 0.16s ease;
+}
+
+.marker svg {
+  display: block;
+  width: 78px;
   height: auto;
+  position: absolute;
+  left: 50%;
+  top: 46%;
+  transform: translate(-50%, -58%);
+  pointer-events: none;
+}
+
+.marker:hover,
+.marker:focus-visible {
+  z-index: 8;
+  transform: translate(-50%, -50%) scale(1.22);
+}
+
+.marker:hover svg,
+.marker:focus-visible svg {
+  filter: drop-shadow(0 0 5px #fff) drop-shadow(0 0 8px var(--yellow));
 }
 
 .pile {
@@ -197,12 +221,6 @@
   font-weight: 800;
   box-shadow: 0 4px 0 var(--caramel-deep);
   transform: translate(-50%, -50%);
-}
-
-.marker svg {
-  display: block;
-  width: 100%;
-  height: auto;
 }
 
 .cityLabel,
@@ -342,11 +360,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .region {
-    transition: none;
-  }
-
-  .region:hover {
-    transform: none;
-  }
+  .marker { transition: none; }
+  .marker:hover,
+  .marker:focus-visible { transform: translate(-50%, -50%); }
 }

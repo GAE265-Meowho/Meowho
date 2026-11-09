@@ -379,18 +379,66 @@ export function landmarkDots(region: RegionId): (Landmark & MapPoint)[] {
 function fan(index: number, total: number) {
   if (total <= 1) return { dx: 0, dy: 0 };
   const angle = -Math.PI / 2 + (2 * Math.PI * index) / total;
-  const radius = total > 4 ? 28 : 22;
+  const radius = 34 + total * 6;
   return { dx: Math.cos(angle) * radius, dy: Math.sin(angle) * radius * 0.72 };
 }
 
 export type MapCat<T> = T & MapPoint & { placeKey: string };
 
 export type MapMarker<T> =
-  | { type: "pile"; placeKey: string; city: string; district: string; count: number; x: number; y: number }
+  | { type: "pile"; placeKey: string; city: string; district: string; count: number; x: number; y: number; near: boolean }
   | { type: "cat"; placeKey: string; cat: MapCat<T> };
 
+const NEAR_PX = 50;
+
+function spreadAround<T>(cats: MapCat<T>[], cx: number, cy: number): MapCat<T>[] {
+  return cats.map((cat, index) => {
+    const offset = fan(index, cats.length);
+    return { ...cat, x: cx + offset.dx, y: cy + offset.dy };
+  });
+}
+
+/** 不同行政區但畫面上疊在一起時，收成「附近有 N 隻」，點開再散開。 */
+function clusterNearby<T>(markers: MapMarker<T>[], expanded: ReadonlySet<string>): MapMarker<T>[] {
+  const piles = markers.filter((marker) => marker.type === "pile");
+  const cats = markers.flatMap((marker) => (marker.type === "cat" ? [marker.cat] : []));
+  const seen = new Array(cats.length).fill(false);
+  const out: MapMarker<T>[] = [...piles];
+  for (let i = 0; i < cats.length; i++) {
+    if (seen[i]) continue;
+    const stack = [i];
+    const group = [];
+    seen[i] = true;
+    while (stack.length) {
+      const current = stack.pop()!;
+      group.push(cats[current]);
+      for (let j = 0; j < cats.length; j++) {
+        if (seen[j] || cats[j].placeKey === cats[current].placeKey) continue;
+        const near = Math.hypot(cats[current].x - cats[j].x, cats[current].y - cats[j].y) < NEAR_PX;
+        if (near) {
+          seen[j] = true;
+          stack.push(j);
+        }
+      }
+    }
+    if (group.length < 2) {
+      out.push({ type: "cat", placeKey: group[0].placeKey, cat: group[0] });
+      continue;
+    }
+    const placeKey = `near:${group.map((cat) => cat.id).sort().join(",")}`;
+    const x = group.reduce((sum, cat) => sum + cat.x, 0) / group.length;
+    const y = group.reduce((sum, cat) => sum + cat.y, 0) / group.length;
+    if (!expanded.has(placeKey)) {
+      out.push({ type: "pile", placeKey, city: "", district: "", count: group.length, x, y, near: true });
+      continue;
+    }
+    for (const cat of spreadAround(group, x, y)) out.push({ type: "cat", placeKey, cat });
+  }
+  return out;
+}
+
 /** 同一行政區兩隻以上先收成一顆；展開後才把每隻貓散開，仍以該區為中心。 */
-export function layoutCats<T extends { id: string; city: string; district: string }>(
+function layoutDistricts<T extends { id: string; city: string; district: string }>(
   cats: readonly T[],
   region: RegionId,
   expanded: ReadonlySet<string>,
@@ -409,7 +457,7 @@ export function layoutCats<T extends { id: string; city: string; district: strin
     const anchor = anchorOf(sample.city, sample.district)!;
     const origin = project(region, anchor.lat, anchor.lng, { city: sample.city, district: sample.district });
     if (group.length >= 2 && !expanded.has(placeKey)) {
-      markers.push({ type: "pile", placeKey, city: norm(sample.city), district: sample.district.trim(), count: group.length, x: origin.x, y: origin.y });
+      markers.push({ type: "pile", placeKey, city: norm(sample.city), district: sample.district.trim(), count: group.length, x: origin.x, y: origin.y, near: false });
       continue;
     }
     group.forEach((cat, index) => {
@@ -424,11 +472,20 @@ export function layoutCats<T extends { id: string; city: string; district: strin
   return markers;
 }
 
-/** 把貓放到所選區域。沒有公開縣市、或不在這個區域的，不放上地圖。 */
+/** 畫面上用的標記：同區收合，疊在一起的不同區再收成「附近有 N 隻」。 */
+export function layoutCats<T extends { id: string; city: string; district: string }>(
+  cats: readonly T[],
+  region: RegionId,
+  expanded: ReadonlySet<string>,
+): MapMarker<T>[] {
+  return clusterNearby(layoutDistricts(cats, region, expanded), expanded);
+}
+
+/** 把貓放到所選區域。地理位置不把「附近」再收起來。 */
 export function placeCats<T extends { id: string; city: string; district: string }>(
   cats: readonly T[],
   region: RegionId,
 ): (T & MapPoint)[] {
-  return layoutCats(cats, region, new Set(cats.map((cat) => `${norm(cat.city)}|${cat.district.trim()}`)))
-    .flatMap((marker) => (marker.type === "cat" ? [marker.cat] : []));
+  const expanded = new Set(cats.map((cat) => `${norm(cat.city)}|${cat.district.trim()}`));
+  return layoutDistricts(cats, region, expanded).flatMap((marker) => (marker.type === "cat" ? [marker.cat] : []));
 }

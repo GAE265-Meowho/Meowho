@@ -24,21 +24,58 @@ function shortTown(name: string) {
   return name.replace(/(區|鄉|鎮|市)$/, "");
 }
 
-function seaTitle(region: RegionId, countyName: string, polys: Polygon[]) {
+function ringPoints(region: RegionId, ring: Ring, city: string) {
+  return ring.map(([lng, lat]) => projectPoint(region, lng, lat, city));
+}
+
+function pointInRing(x: number, y: number, ring: { x: number; y: number }[]) {
+  let hit = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const a = ring[i];
+    const b = ring[j];
+    const cross = a.y > y !== b.y > y && x < ((b.x - a.x) * (y - a.y)) / (b.y - a.y + 1e-6) + a.x;
+    if (cross) hit = !hit;
+  }
+  return hit;
+}
+
+/** 台北留在市內；其他縣市名貼在形狀外側，並留在畫面裡。 */
+function countyNamePoint(
+  region: RegionId,
+  countyName: string,
+  polys: Polygon[],
+  label: [number, number],
+  width: number,
+  height: number,
+) {
+  const inside = projectPoint(region, label[0], label[1], countyName);
+  if (countyName === "台北市") return inside;
+  const ring = (polys[0]?.[0] ?? []).length ? ringPoints(region, polys[0][0], countyName) : [];
+  if (ring.length < 3) return inside;
   let minX = Infinity;
   let maxX = -Infinity;
   let minY = Infinity;
-  for (const poly of polys) {
-    for (const [lng, lat] of poly[0] ?? []) {
-      if (countyName === "金門縣" && lng > 119) continue;
-      const point = projectPoint(region, lng, lat, countyName);
-      minX = Math.min(minX, point.x);
-      maxX = Math.max(maxX, point.x);
-      minY = Math.min(minY, point.y);
-    }
+  let maxY = -Infinity;
+  for (const point of ring) {
+    minX = Math.min(minX, point.x);
+    maxX = Math.max(maxX, point.x);
+    minY = Math.min(minY, point.y);
+    maxY = Math.max(maxY, point.y);
   }
-  if (!Number.isFinite(minY)) return null;
-  return { x: (minX + maxX) / 2, y: Math.max(22, minY - 36) };
+  const midX = (minX + maxX) / 2;
+  const midY = (minY + maxY) / 2;
+  const gap = 20;
+  const candidates = [
+    { x: midX, y: minY - gap, room: minY },
+    { x: midX, y: maxY + gap, room: height - maxY },
+    { x: minX - gap, y: midY, room: minX },
+    { x: maxX + gap, y: midY, room: width - maxX },
+  ];
+  const fit = candidates
+    .map((item) => ({ ...item, x: Math.min(width - 36, Math.max(36, item.x)), y: Math.min(height - 28, Math.max(28, item.y)) }))
+    .filter((item) => !pointInRing(item.x, item.y, ring))
+    .sort((a, b) => b.room - a.room);
+  return fit[0] ?? inside;
 }
 
 function shortCity(name: string) {
@@ -98,10 +135,7 @@ export default function RegionCanvas({ region, variant = "full" }: Props) {
             return <text key={`${district.c}-${district.n}`} x={at.x} y={at.y} textAnchor="middle" className={styles.townMark}>{shortTown(district.n)}</text>;
           })}
           {counties.map((county) => {
-            const at = region === "islands"
-              ? seaTitle(region, county.n, county.p)
-              : projectPoint(region, county.l[0], county.l[1], county.n);
-            if (!at) return null;
+            const at = countyNamePoint(region, county.n, county.p, county.l, size.width, size.height);
             return <text key={county.n} x={at.x} y={at.y} textAnchor="middle" className={styles.cityMark}>{shortCity(county.n)}</text>;
           })}
         </g>

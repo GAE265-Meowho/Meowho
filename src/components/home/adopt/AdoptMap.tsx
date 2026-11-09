@@ -93,7 +93,6 @@ export default function AdoptMap({ cats, matches, onShowCard }: Props) {
         {here.length === 0 && <p className={styles.empty} role="status">這裡還沒有等家的貓</p>}
         {markers.map((marker) => {
           if (marker.type === "pile") {
-            const where = `${marker.city}${marker.district}`;
             return (
               <button
                 key={marker.placeKey}
@@ -101,10 +100,10 @@ export default function AdoptMap({ cats, matches, onShowCard }: Props) {
                 className={styles.pile}
                 style={{ left: `${(marker.x / size.width) * 100}%`, top: `${(marker.y / size.height) * 100}%`, zIndex: 3 }}
                 aria-expanded={false}
-                aria-label={`${where}，這區有 ${marker.count} 隻`}
+                aria-label={marker.near ? `附近有 ${marker.count} 隻` : `${marker.city}${marker.district}，這區有 ${marker.count} 隻`}
                 onClick={() => setExpanded((cur) => new Set(cur).add(marker.placeKey))}
               >
-                這區有 {marker.count} 隻
+                {marker.near ? `附近有 ${marker.count} 隻` : `這區有 ${marker.count} 隻`}
               </button>
             );
           }

@@ -139,6 +139,23 @@ describe("帶我回家地圖：落點", () => {
     expect(anchorOf("花蓮縣", "花蓮市")).not.toEqual(anchorOf("花蓮縣", ""));
     expect(anchorOf("花蓮縣", "花蓮市路")).toEqual(anchorOf("花蓮縣", ""));
   });
+
+  it("畫面上疊在一起的不同行政區會收成附近有幾隻", () => {
+    const pair = [
+      { id: "a", city: "台北市", district: "中正區" },
+      { id: "b", city: "台北市", district: "大同區" },
+    ];
+    const marks = layoutCats(pair, "north", new Set());
+    const piled = marks.find((item) => item.type === "pile" && item.near);
+    if (piled && piled.type === "pile") expect(piled.count).toBe(2);
+    else {
+      const cats = marks.filter((item) => item.type === "cat");
+      expect(cats).toHaveLength(2);
+      if (cats[0].type === "cat" && cats[1].type === "cat") {
+        expect(Math.hypot(cats[0].cat.x - cats[1].cat.x, cats[0].cat.y - cats[1].cat.y)).toBeGreaterThanOrEqual(50);
+      }
+    }
+  });
 });
 
 describe("帶我回家地圖：毛色與動作", () => {
