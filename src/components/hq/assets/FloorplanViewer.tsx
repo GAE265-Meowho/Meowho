@@ -10,7 +10,7 @@ import * as THREE from "three";
 import { FLOOR_TEXTURE, kitScale, kitUrl } from "@/lib/hq/floorplans/kit";
 import { goalForBox, idleAction, stepActor, worldOf, type Actor, type Goal } from "@/lib/hq/floorplans/catjump";
 import { blocked, CAT_SCALE, freeSpot, obstacles, type Obstacle } from "@/lib/hq/floorplans/catwalk";
-import { bubbleOf, isBowlSet, NOSE_REACH_M, passableItem, stepItems, stepSpot, stepStory, STORY_START, withoutItem, type NeedIcon, type Spot, type Story, type StoryState } from "@/lib/hq/floorplans/story";
+import { bowlObstacles, bubbleOf, dropTargetBowl, isBowlSet, passableItem, standOff, stepItems, stepSpot, stepStory, STORY_START, withoutItem, type NeedIcon, type Spot, type Story, type StoryState } from "@/lib/hq/floorplans/story";
 import { expandRemovedIndices, type FurnitureMove, type FurnitureSupport } from "@/lib/hq/floorplans/experience-furniture";
 import { boxToSolid, clampFurniturePose, rotatedHalfExtents, type SolidBody } from "@/lib/hq/floorplans/experience-physics";
 import { focusScenes, houseScene, sceneBounds, type RoomScene, type SceneBox } from "@/lib/hq/floorplans/scene";
@@ -623,12 +623,21 @@ function CatActor({ s, look, click, pos, extraObs, forceClip = null, speed = 1, 
   }, [click, world]);
   useFrame((_, delta) => {
     const dt = Math.min(delta, 0.1) * speed;
-    if (story) storyStep(story, dt);
-    const { actor, done } = stepActor(cat.current, goal.current, world, dt);
+    // 故事線（#318）：碗有自己的碰撞（餐碗組＝兩個碗），最後靠近時拿掉要吃的那個
+    const bowls = story ? bowlObstacles(story, items, bowlSlotsOf) : [];
+    if (story) storyStep(story, dt, bowls);
+    const walkWorld = bowls.length ? { ...world, obs: [...world.obs, ...dropTargetBowl(bowls, spot.current, cat.current)] } : world;
+    const { actor, done } = stepActor(cat.current, goal.current, walkWorld, dt);
     let next = clip;
     if (done) goal.current = null;
     const doing = story && plot.current.phase === "doing" ? story.steps[plot.current.step] : null;
-    if (doing && spot.current) actor.heading = spot.current.heading;
+    if (doing && spot.current) {
+      // 做動作時慢慢貼到站位上（走路停下時可能差幾公分），頭才會剛好在碗上方
+      const k = Math.min(1, dt * 6);
+      actor.x += (spot.current.x - actor.x) * k;
+      actor.z += (spot.current.z - actor.z) * k;
+      actor.heading = spot.current.heading;
+    }
     if (actor.moving || actor.jump) { idle.current = 0; next = "walk"; }
     else if (forceClip) next = forceClip;
     else if (doing) { idle.current = 0; next = doing.clip; }
@@ -652,7 +661,7 @@ function CatActor({ s, look, click, pos, extraObs, forceClip = null, speed = 1, 
   });
 
   /** 故事線一格：找這一步最近的用品與站位 → 推進狀態 → 需要時叫貓走過去 */
-  function storyStep(story: Story, dt: number) {
+  function storyStep(story: Story, dt: number, bowls: Obstacle[]) {
     const a = cat.current;
     const st = plot.current;
     if (st.phase === "done") return;
@@ -661,13 +670,18 @@ function CatActor({ s, look, click, pos, extraObs, forceClip = null, speed = 1, 
     // 做動作中固定站位；其他時候跟著用品重算（被拖走、換一個）
     if (st.phase !== "doing" || !item || spot.current?.item !== item.key) {
       spot.current = item
-        ? stepSpot(step, item, a, (x, z) => blocked(x, z, s, withoutItem(world.obs, item)), { reach: NOSE_REACH_M[look.body], slots: bowlSlotsOf(item.key) })
+        ? stepSpot(step, item, a, (x, z, target) => {
+          // 站位檢查：牆、家具用貓的碰撞半徑；其他碗用貓身體的半寬（要吃的那個碗不算，站位本來就緊貼它）
+          const others = bowls.filter(o => Math.hypot(o.x - target.x, o.z - target.z) > 1e-3);
+          return blocked(x, z, s, withoutItem(world.obs, item)) || (others.length > 0 && blocked(x, z, s, others, 0.12));
+        }, { reach: standOff(look.body), slots: bowlSlotsOf(item.key) })
         : null;
     }
     const sp = spot.current;
     const near = !!sp && !a.jump && a.on === null && Math.hypot(a.x - sp.x, a.z - sp.z) < 0.12;
     // 走到了：故事線給的目標收掉（貼著用品時可能差幾公分到不了 ARRIVE_M，不收會一直原地踏步）
-    if (near && storyGoal.current) { goal.current = null; storyGoal.current = false; }
+    const close = !!sp && Math.hypot(a.x - sp.x, a.z - sp.z) < 0.05;
+    if (near && storyGoal.current && (close || !a.moving)) { goal.current = null; storyGoal.current = false; }
     const arrived = near && !goal.current;
     // 做到一半被玩家叫走：回到走過去
     const base = st.phase === "doing" && goal.current ? { ...st, phase: "going" as const, t: 0 } : st;
