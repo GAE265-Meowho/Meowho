@@ -1,5 +1,5 @@
 // 貓咪動作庫（規格書 04 §2.6）：動作屬於母體 base_clips.glb，所有貓共用。
-// 母體補入新動作時：在 cat_base/stepC_clips.py 新增 clip_xxx（吃喝拉撒在 Meow/needs_clips.py，成貓幼貓共用；副本 scripts/blender/needs_clips.py），並把這裡對應動作的 status 改成 "ready"、CLIP_LIBRARY_VERSION +1。
+// 母體補入新動作時：在 cat_base/stepC_clips.py 新增 clip_xxx（吃喝拉撒、撒嬌、休息、理毛在 Meow/needs_clips.py，成貓幼貓共用；副本 scripts/blender/needs_clips.py），並把這裡對應動作的 status 改成 "ready"、CLIP_LIBRARY_VERSION +1。
 
 export type ClipStatus = "ready" | "planned";
 
@@ -9,7 +9,7 @@ export interface ClipDef {
   status: ClipStatus;
 }
 
-export const CLIP_LIBRARY_VERSION = 6;
+export const CLIP_LIBRARY_VERSION = 7;
 export const FALLBACK_CLIP = "idle";
 /** 預覽預設瞳孔寬窄（細縫 0 → 全圓 1）；與 catEye EYE_DEFAULTS.pupil 相同 */
 export const DEFAULT_PUPIL = 0.25;
@@ -22,12 +22,12 @@ export const CLIP_LIBRARY: readonly ClipDef[] = [
   { code: "eat", label: "吃飯", status: "ready" },
   { code: "drink", label: "喝水", status: "ready" },
   { code: "toilet", label: "上廁所", status: "ready" },
-  { code: "cuddle", label: "撒嬌", status: "planned" },
+  { code: "cuddle", label: "撒嬌", status: "ready" },
   { code: "jump_a", label: "跳躍-(下往上跳) A", status: "ready" },
   { code: "jump_b", label: "跳躍-(往前跳) B", status: "ready" },
   { code: "jump_c", label: "跳躍-(從櫃子往下跳) C", status: "ready" },
-  { code: "rest", label: "休息", status: "planned" },
-  { code: "groom", label: "理毛", status: "planned" },
+  { code: "rest", label: "休息", status: "ready" },
+  { code: "groom", label: "理毛", status: "ready" },
 ];
 
 /** 特定體型＋動作的預設瞳孔（沒登記就用 DEFAULT_PUPIL）；切動作時預覽會套用，滑桿仍可手動改 */

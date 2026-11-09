@@ -2,6 +2,7 @@
 // 「貓咪的吃喝拉撒」：肚子餓 → 口渴 → 想上廁所，依序發生。每一步：房間地板上沒有對應用品 → 貓頭上冒對話框；
 // 放上用品 → 貓自己走過去、播對應動作（eat／drink／toilet），做完休息一下再進下一步。全部做完就結束（這次體驗不再重來）。
 // 座標同 catwalk.ts（一間房的左上角＝原點，公尺）。用品正面朝自己的 +Z（同家具模型庫）。
+// 餐碗組（#304）：一組裡有飼料碗與水碗，吃飯站到飼料碗前、喝水站到水碗前；碗的位置由畫面讀模型顏色辨識（bowl-slots.ts）。
 import { headingTo, type Obstacle } from "./catwalk";
 
 /** 對話框圖示（FloorplanViewer 畫成線條 SVG，不用 emoji） */
@@ -17,14 +18,18 @@ export interface StoryStep {
   match: (name: string) => boolean;
   /** 做多久（秒） */
   seconds: number;
-  /** side＝站在用品旁邊面向它（碗）；inside＝走進用品中間、面朝用品正面（貓砂盆） */
+  /** side＝鼻子伸到碗上方、面向碗；inside＝走進用品中間、面朝用品正面（貓砂盆） */
   approach: "side" | "inside";
+  /** 餐碗組裡要用哪個碗（eat＝飼料碗、drink＝水碗） */
+  slot?: "food" | "water";
 }
 
 export interface Story { id: string; name: string; steps: StoryStep[] }
 
 export const isFoodBowl = (name: string) => /碗/.test(name) && !/水碗/.test(name);
 export const isWaterBowl = (name: string) => /水碗|水盆|飲水機/.test(name);
+/** 一組裡有飼料碗＋水碗 */
+export const isBowlSet = (name: string) => /碗組|雙碗/.test(name);
 export const isLitterBox = (name: string) => /砂盆|貓砂屋|便盆/.test(name);
 
 export const STORIES: readonly Story[] = [
@@ -32,8 +37,8 @@ export const STORIES: readonly Story[] = [
     id: "daily",
     name: "貓咪的吃喝拉撒",
     steps: [
-      { clip: "eat", label: "肚子餓了，想吃飯", icon: "bowl", match: isFoodBowl, seconds: 8, approach: "side" },
-      { clip: "drink", label: "口渴了，想喝水", icon: "water", match: isWaterBowl, seconds: 6, approach: "side" },
+      { clip: "eat", label: "肚子餓了，想吃飯", icon: "bowl", match: isFoodBowl, seconds: 8, approach: "side", slot: "food" },
+      { clip: "drink", label: "口渴了，想喝水", icon: "water", match: n => isWaterBowl(n) || isBowlSet(n), seconds: 6, approach: "side", slot: "water" },
       { clip: "toilet", label: "想上廁所", icon: "litter", match: isLitterBox, seconds: 8, approach: "inside" },
     ],
   },
@@ -43,8 +48,6 @@ export const storyById = (id: string | null | undefined): Story | null => STORIE
 
 /** 做完一步、下一個需求冒出來之前的空檔（秒）：讓貓先閒晃一下 */
 export const REST_SECONDS = 5;
-/** 用品邊緣到貓身體中心的距離：貓碰撞半徑 0.2＋一點，頭剛好伸到碗上方 */
-const SIDE_GAP_M = 0.26;
 
 export interface ItemLike { key: string; name: string; x: number; z: number; widthM: number; depthM: number; rotY?: number; support?: unknown }
 
@@ -52,17 +55,38 @@ export interface ItemLike { key: string; name: string; x: number; z: number; wid
 export const stepItems = <T extends ItemLike>(step: StoryStep, items: readonly T[]): T[] =>
   items.filter(i => !i.support && step.match(i.name));
 
-/** 走進去做的用品（貓砂盆）不當障礙，貓才走得進去 */
+/** 故事線用得到的用品不當障礙：貓砂盆要走進去、碗要把頭伸過去（碗很矮，貓腳踩到碗墊邊也合理） */
 export const passableItem = (story: Story | null, name: string) =>
-  !!story?.steps.some(s => s.approach === "inside" && s.match(name));
+  !!story?.steps.some(s => s.match(name));
+
+/**
+ * 吃喝時鼻尖在貓身體中心前方多遠（公尺，已含 CAT_SCALE 1.2）：量自 Meow/needs_clips.py 的 eat 動作
+ * （成貓鼻尖在 root 前 0.165 m、幼貓 0.079 m）。貓站在「碗中心往外這麼遠」的地方，頭剛好在碗上方。
+ */
+export const NOSE_REACH_M = { adult: 0.2, kitten: 0.095 } as const;
+
+/** 餐碗組裡兩個碗的中心（用品自己的座標、公尺、未旋轉；+Z＝正面） */
+export interface BowlSlots { food: [number, number]; water: [number, number] }
+
+/** 讀不到模型顏色時的預設：沿長邊左右各一個碗，飼料碗在 -、水碗在 + */
+export function defaultBowlSlots(item: Pick<ItemLike, "widthM" | "depthM">): BowlSlots {
+  const alongX = item.widthM >= item.depthM;
+  const off = (alongX ? item.widthM : item.depthM) * 0.25;
+  return alongX ? { food: [-off, 0], water: [off, 0] } : { food: [0, -off], water: [0, off] };
+}
 
 export interface Spot { x: number; z: number; heading: number; item: string }
 
 /**
- * 做這一步要站的位置。side：用品四邊各試一點，挑站得下、離貓最近的，面向用品；
+ * 做這一步要站的位置。
+ * side：目標點＝碗中心（餐碗組用 slots 指定的那個碗）；貓站在目標點往外 reach 的地方、面向目標點，
+ *   試四個方向（餐碗組只試短邊兩側，不從另一個碗那邊伸過去），挑站得下、離貓最近的。
  * inside：用品正中央，面朝用品正面（+Z）。都站不下回傳 null。isBlocked 同 catwalk.blocked（障礙不含這個用品）。
  */
-export function stepSpot(step: StoryStep, item: ItemLike, from: { x: number; z: number }, isBlocked: (x: number, z: number) => boolean): Spot | null {
+export function stepSpot(
+  step: StoryStep, item: ItemLike, from: { x: number; z: number }, isBlocked: (x: number, z: number) => boolean,
+  opts: { reach?: number; slots?: BowlSlots | null } = {},
+): Spot | null {
   const rot = ((item.rotY ?? 0) * Math.PI) / 180;
   const c = Math.cos(rot), s = Math.sin(rot);
   // 用品自己的座標 (lx, lz) → 房間座標（catwalk.blocked 轉換的反向）
@@ -71,14 +95,19 @@ export function stepSpot(step: StoryStep, item: ItemLike, from: { x: number; z: 
     const front = toRoom(0, 1);
     return { x: item.x, z: item.z, heading: headingTo(front.x - item.x, front.z - item.z), item: item.key };
   }
-  const hx = item.widthM / 2, hz = item.depthM / 2;
-  const sides: [number, number][] = [[0, hz + SIDE_GAP_M], [0, -(hz + SIDE_GAP_M)], [hx + SIDE_GAP_M, 0], [-(hx + SIDE_GAP_M), 0]];
-  const p = sides
-    .map(([lx, lz]) => toRoom(lx, lz))
+  const set = !!step.slot && isBowlSet(item.name);
+  const [tx, tz] = set ? (opts.slots ?? defaultBowlSlots(item))[step.slot!] : [0, 0];
+  const target = toRoom(tx, tz);
+  const reach = opts.reach ?? NOSE_REACH_M.adult;
+  // 餐碗組：兩個碗沿長邊排，只從短邊（碗的前後）靠近
+  const alongX = item.widthM >= item.depthM;
+  const dirs: [number, number][] = set ? (alongX ? [[0, 1], [0, -1]] : [[1, 0], [-1, 0]]) : [[0, 1], [0, -1], [1, 0], [-1, 0]];
+  const p = dirs
+    .map(([dx, dz]) => toRoom(tx + dx * reach, tz + dz * reach))
     .filter(q => !isBlocked(q.x, q.z))
     .sort((a, b) => Math.hypot(a.x - from.x, a.z - from.z) - Math.hypot(b.x - from.x, b.z - from.z))[0];
   if (!p) return null;
-  return { x: p.x, z: p.z, heading: headingTo(item.x - p.x, item.z - p.z), item: item.key };
+  return { x: p.x, z: p.z, heading: headingTo(target.x - p.x, target.z - p.z), item: item.key };
 }
 
 /** 障礙清單拿掉這個用品（貓要靠近它） */

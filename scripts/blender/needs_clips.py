@@ -153,4 +153,133 @@ def clip_toilet(p, body, blink_keys):
     return n
 
 
-NEED_CLIPS = {"eat": clip_eat, "drink": clip_drink, "toilet": clip_toilet}
+# ---------- 撒嬌、休息、理毛（2026-11-09 補齊動作庫規劃中的動作）----------
+# 休息：母雞蹲（香盒坐）／人面獅身：肚子貼地、頭抬著，前腳往前平放，後腳收在身體兩側，尾巴貼地繞到右側，眼睛半瞇
+REST_FRONT = [(0.0, 0.25, -0.97), (0.0, -1.0, -0.05), (0.0, -1.0, 0.0)]              # 上臂往下、前臂與掌往前平放
+REST_HIND = [(0.5, -0.7, -0.5), (0.12, 0.8, -0.6), (0.0, -1.0, -0.04), (0.0, -0.3, 0.95), (0.0, -1.0, -0.35)]   # 同幼貓坐姿的後腳
+REST_NECK = [(0.0, -0.55, 0.83), (0.0, -0.9, 0.42)]
+REST_HEAD = (0.0, -1.0, 0.0)
+REST_TAIL = [(-0.2, 0.95, -0.25), (-0.5, 0.85, -0.1), (-0.8, 0.55, 0.0), (-0.97, 0.1, 0.0),
+             (-0.85, -0.5, 0.0), (-0.55, -0.83, 0.0), (-0.25, -0.97, 0.0)]
+# 理毛：休息姿勢，左前腳抬到嘴邊，頭往下偏向腳掌舔
+GROOM_HEAD = (0.25, -0.55, -0.8)
+GROOM_NECK = [(0.1, -0.6, 0.79), (0.2, -0.85, 0.1)]
+GROOM_LICK_SEC = 0.45
+# 撒嬌：站著，尾巴豎直、尾尖往前勾，頭左右歪著蹭、身體前後輕晃，慢慢眨眼
+CUDDLE_TAIL = [(0.0, 0.3, 0.95), (0.0, 0.1, 1.0), (0.0, 0.0, 1.0), (0.0, 0.0, 1.0),
+               (0.0, -0.15, 0.99), (0.0, -0.5, 0.87), (0.0, -0.85, 0.53)]
+CUDDLE_ROLL = 18                   # 頭左右歪的角度（度）
+CUDDLE_SWAY = 0.012                # 身體前後晃（成貓公尺）
+
+
+def _ground(p, body, frames, dz0, skip_tail=True):
+    """讓第 0 格最低點（不含尾巴）貼地：已經用 move_root(dz=dz0) 打過的格數改成 dz0 + 位移"""
+    bpy.context.scene.frame_set(0)
+    bpy.context.view_layer.update()
+    ev = body.evaluated_get(bpy.context.evaluated_depsgraph_get())
+    mesh = ev.to_mesh()
+    tail = {g.index for g in body.vertex_groups if g.name.startswith("tail")} if skip_tail else set()
+    low = min((body.matrix_world @ mesh.vertices[v.index].co).z for v in body.data.vertices
+              if not v.groups or max(v.groups, key=lambda g: g.weight).group not in tail)
+    ev.to_mesh_clear()
+    for f in frames:
+        p.move_root(f, dz=dz0 - low)
+    return dz0 - low
+
+
+def _rest_pose(p, f, k, breath, groom=False):
+    p.set("body", f, up=round(1.0 * breath, 1))
+    for bone in ("body_top0", "body_top1"):
+        p.set(bone, f)
+    for lr, out in SIDES:
+        leg = f"leg_front_{lr}"
+        if not (groom and lr == "left"):
+            for part, d in zip(("top0", "top1", "bot0"), REST_FRONT):
+                p.aim(f"{leg}_{part}", f, (d[0] * out, d[1], d[2]))
+            p.set(f"{leg}_ankle", f)
+            p.set(f"{leg}_toe", f)
+        for part, d in zip(("top0", "top1", "bot0", "ankle", "toe"), REST_HIND):
+            p.aim(f"leg_hind_{lr}_{part}", f, (d[0] * out, d[1], d[2]))
+    for i, d in enumerate(REST_TAIL):
+        p.aim(f"tail{i}", f, d)
+
+
+def _lie_down(p, body, n, keys, pose):
+    """先在所有格數擺好、再整段往下貼地（不含尾巴）"""
+    for f in keys:
+        p.move_root(f, dz=0.0)
+        pose(f)
+    _ground(p, body, keys, 0.0)
+
+
+def clip_rest(p, body, blink_keys):
+    """休息：肚子貼地的母雞蹲，頭抬著平視，前腳往前平放、後腳收在兩側，尾巴繞到身側；呼吸起伏、眼睛半瞇。4 秒循環"""
+    n = 4 * FPS
+    k, _ = _begin(p, n)
+    keys = range(0, n + 1, 10)
+
+    def pose(f):
+        breath = sin(f / n * 4 * pi)
+        _rest_pose(p, f, k, breath)
+        p.aim("neck0", f, REST_NECK[0], level="rest")
+        p.aim("neck1", f, REST_NECK[1], level="rest")
+        p.aim("head0", f, REST_HEAD, level="rest")
+
+    _lie_down(p, body, n, keys, pose)
+    blink_keys(body, [(0, 0.55), (50, 0.55), (56, 1), (66, 0.55), (n, 0.55)])
+    return n
+
+
+def clip_groom(p, body, blink_keys):
+    """理毛：趴著（同休息），左前腳抬到嘴邊，頭往下偏向腳掌，規律舔毛；眼睛半閉。4 秒循環"""
+    n = 4 * FPS
+    k, _ = _begin(p, n)
+    keys = range(0, n + 1, 3)
+
+    def pose(f):
+        t = f / FPS
+        lick = round(10 * max(0.0, sin(2 * pi * t / GROOM_LICK_SEC)))     # 舔一下頭往上帶
+        _rest_pose(p, f, k, 0.0, groom=True)
+        p.aim("neck0", f, GROOM_NECK[0], level="rest")
+        p.aim("neck1", f, GROOM_NECK[1], level="rest")
+        a = radians(lick)
+        hx, hy, hz = GROOM_HEAD
+        p.aim("head0", f, (hx, round(hy * cos(a) - hz * sin(a), 2), round(hz * cos(a) + hy * sin(a), 2)), level="rest")
+        # 左前腳：手腕拉到下巴前下方，掌心朝嘴
+        bpy.context.view_layer.update()
+        W = p.rig.matrix_world
+        jaw = W @ p.rig.pose.bones["jaw"].tail
+        target = jaw + Vector((0.004 * k, -0.01 * k, -0.045 * k))
+        target = Vector((round(target.x, 3), round(target.y, 3), round(target.z, 3)))
+        p.reach("leg_front_left_top0", "leg_front_left_top1", f, target, (0.2, 1.0, -0.3))
+        p.aim("leg_front_left_bot0", f, (-0.25, -0.35, 0.9))
+        p.set("leg_front_left_ankle", f)
+        p.set("leg_front_left_toe", f)
+
+    _lie_down(p, body, n, keys, pose)
+    blink_keys(body, [(0, 0.75), (n, 0.75)])
+    return n
+
+
+def clip_cuddle(p, body, blink_keys):
+    """撒嬌：站著，尾巴豎直、尾尖往前勾，頭左右歪著蹭，身體前後輕晃，耳朵微往後，慢慢眨眼。4 秒循環"""
+    n = 4 * FPS
+    k, rest = _begin(p, n)
+    for f in range(0, n + 1, 4):
+        t = f / n * 2 * pi
+        p.move_root(f, dz=0.0, forward=round(CUDDLE_SWAY * k * sin(t), 4))
+        roll = round(CUDDLE_ROLL * sin(t * 2))
+        p.aim("neck0", f, (0.0, -0.45, 0.89), level="rest")
+        p.aim("neck1", f, (0.0, -0.85, 0.53), level="rest")
+        p.world("head0", f, roll=roll, yaw=round(-8 * sin(t * 2)))
+        p.set("ear_left", f, side=-8)
+        p.set("ear_right", f, side=8)
+        _plant_legs(p, f, rest)
+        for i, d in enumerate(CUDDLE_TAIL):
+            p.aim(f"tail{i}", f, (round(0.08 * sin(t * 2 - i * 0.4), 2), d[1], d[2]))
+    blink_keys(body, [(0, 0), (20, 0), (32, 1), (44, 0), (80, 0), (92, 1), (104, 0), (n, 0)])   # 慢慢眨眼
+    return n
+
+
+NEED_CLIPS = {"eat": clip_eat, "drink": clip_drink, "toilet": clip_toilet,
+              "cuddle": clip_cuddle, "rest": clip_rest, "groom": clip_groom}
