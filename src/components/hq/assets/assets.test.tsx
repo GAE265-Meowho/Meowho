@@ -27,9 +27,9 @@ describe("ClipList（UT 動作清單）", () => {
   it("列出動作庫全部動作：已有的可點，規劃中的灰色不可點並標示規劃中", () => {
     const pick = vi.fn();
     render(<ClipList available={["idle", "walk", "sleep"]} current="idle" onPick={pick} />);
-    expect(screen.getAllByRole("button")).toHaveLength(12);
+    expect(screen.getAllByRole("button")).toHaveLength(13);
     expect(screen.getByRole("button", { name: "待機" })).toHaveAttribute("aria-pressed", "true");
-    const eat = screen.getByRole("button", { name: /吃飯/ });
+    const eat = screen.getByRole("button", { name: /撒嬌/ });
     expect(eat).toBeDisabled();
     expect(eat).toHaveTextContent("規劃中");
     fireEvent.click(screen.getByRole("button", { name: "走路" }));

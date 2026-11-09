@@ -113,6 +113,8 @@ export const HQ_PAGE_META_PATHS = {
     "src/lib/hq/floorplans/catwalk.test.ts",
     "src/lib/hq/floorplans/catjump.ts",
     "src/lib/hq/floorplans/catjump.test.ts",
+    "src/lib/hq/floorplans/story.ts",
+    "src/lib/hq/floorplans/story.test.ts",
   ],
 } as const satisfies Record<string, readonly string[]>;
 
