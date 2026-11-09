@@ -84,7 +84,7 @@ export default function AdoptSection() {
             <span>貓也在找你</span>
           </>
         }
-        lead="每一隻都附上中途寫下的真實日常，等最久的排在最前面。用卡片一隻隻認識，或切到地圖看看哪些喵戶有貓在等家。"
+        lead="每一隻貓貓的真實日常，讓貓找到你你也找到貓。"
       />
 
       <div className={styles.toolbar}>
