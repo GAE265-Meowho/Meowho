@@ -32,9 +32,13 @@ export const DOWN_TARGET: [number, number, number] = [0, 0.4, -0.16];
 /** 跳躍 C 的櫃子（glTF 座標、公尺；貓面向 +Z）。和 Meow/cat_base_kitten/stepC_clips.py 的 DOWN_HEIGHT 0.32、
  *  起跳點（往後 0.13 m）一致：櫃面高 0.32、前緣在 z = -0.06，貓前腳站在櫃子邊 */
 export const CABINET = { position: [0, 0.16, -0.26] as [number, number, number], size: [0.4, 0.32, 0.4] as [number, number, number], color: "#b08a64" };
-/** 這個動作要不要畫道具（目前只有幼貓跳躍 C 的櫃子） */
+/** 成貓跳躍 C（#295）：Meow/cat_base/stepC_clips.py 的 DOWN_HEIGHT 0.64、起跳點往後 0.26 m；
+ *  成貓前腳掌比幼貓更前面，櫃子前緣放在 z = -0.07，貓前腳剛好站在櫃子邊 */
+export const CABINET_ADULT = { position: [0, 0.32, -0.47] as [number, number, number], size: [0.7, 0.64, 0.8] as [number, number, number], color: "#b08a64" };
+/** 這個動作要不要畫道具（目前只有跳躍 C 的櫃子） */
 export function propFor(clip: string | null | undefined, body: BodyType) {
-  return clip === "jump_c" && body === "kitten" ? CABINET : null;
+  if (clip !== "jump_c") return null;
+  return body === "kitten" ? CABINET : CABINET_ADULT;
 }
 
 /** 幼貓母體體長約 0.22 m（成貓約 0.45 m）：相機、目標照比例縮小，不然幼貓縮在畫面下方 */
