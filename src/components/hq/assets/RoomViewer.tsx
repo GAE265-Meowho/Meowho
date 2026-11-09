@@ -4,12 +4,16 @@
 import * as GS from "@mkkellogg/gaussian-splats-3d";
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { HqSkeleton } from "@/components/hq/HqStates";
 import {
   cameraForward, roomSplats, roomUnit, sortCameras,
   type RoomCamera, type RoomLayout, type RoomScene,
 } from "@/lib/hq/rooms/demo";
 import { createRoomWorld, type RoomWorld } from "@/lib/hq/rooms/world";
+import { placeScanItems, type SceneItem } from "@/lib/play/scene-items";
+import { sceneCatCommand } from "@/lib/play/scene-cat";
+import type { CatAction } from "@/lib/play/stage";
 
 const ALPHA_THRESHOLD = 5;  // 丟掉幾乎透明的高斯，手機比較順
 const WALK_SPEED = 0.15;    // 每秒走幾個房間單位
@@ -23,14 +27,61 @@ async function readJson<T>(url: string): Promise<T> {
   return res.json() as Promise<T>;
 }
 
-/** cat：虛擬體驗選的貓（母體＋貼圖）；不給就用成貓母體預設花色 */
-export default function RoomViewer({ base, cat }: { base: string; cat?: { baseUrl: string; albedoUrl: string } | null }) {
+const gltf = new GLTFLoader();
+const modelCache = new Map<string, Promise<THREE.Object3D>>();
+
+/** 把一個用品（GLB）放成「底部中心在原點、尺寸剛好是公尺 w × h × d」的物件；載入失敗畫同尺寸方塊 */
+async function itemObject(it: SceneItem): Promise<THREE.Object3D> {
+  const box = new THREE.Group();
+  try {
+    if (!modelCache.has(it.url)) modelCache.set(it.url, gltf.loadAsync(it.url).then(g => g.scene));
+    const model = (await modelCache.get(it.url)!).clone(true);
+    const b = new THREE.Box3().setFromObject(model);
+    const size = b.getSize(new THREE.Vector3());
+    if (!(size.x > 0 && size.y > 0 && size.z > 0)) throw new Error("empty model");
+    model.scale.set(it.widthM / size.x, it.heightM / size.y, it.depthM / size.z);
+    const nb = new THREE.Box3().setFromObject(model);
+    model.position.set(-(nb.min.x + nb.max.x) / 2, -nb.min.y, -(nb.min.z + nb.max.z) / 2);
+    box.add(model);
+  } catch {
+    modelCache.delete(it.url);
+    const m = new THREE.Mesh(new THREE.BoxGeometry(it.widthM, it.heightM, it.depthM), new THREE.MeshStandardMaterial({ color: 0xc9a27a }));
+    m.position.y = it.heightM / 2;
+    box.add(m);
+  }
+  return box;
+}
+
+interface ItemStage { scene: RoomScene; layout: RoomLayout; viewer: GS.Viewer; frame: THREE.Group; toyFrame: THREE.Group }
+
+const TOY_SHOW = 6;  // 逗貓玩具在畫面上放大幾倍（真實的老鼠只有 5 公分，看不到）
+
+export interface RoomWand { toy: SceneItem; onCatch: (caught: boolean) => void }
+
+/**
+ * cat：虛擬體驗選的貓（母體＋貼圖）；不給就用成貓母體預設花色
+ * items：要擺進房間的虛擬用品（外出籠、餐碗、貓砂盆），位置由 placeScanItems 算在地板上，換了清單會即時更新
+ * story：虛擬飼養的貓配合劇情（action＝null 躲起來、carrier 走到外出籠、sleep 跳上床…），換了（at 不同）就執行
+ * wand：3D 逗貓。給了就停用拖曳轉頭，玩具跟著滑鼠／手指在地板上移動，貓追著撲；每次撲完呼叫 onCatch(是否抓到)
+ * controls：false 時不顯示拍攝點與貓咪動作按鈕（虛擬飼養用；拖曳、WASD、點地板仍可用）
+ */
+export default function RoomViewer({ base, cat, items, controls = true, story, wand }: {
+  base: string; cat?: { baseUrl: string; albedoUrl: string } | null; items?: readonly SceneItem[]; controls?: boolean;
+  story?: { action: CatAction | null; at: number } | null; wand?: RoomWand | null;
+}) {
   const host = useRef<HTMLDivElement>(null);
   const goTo = useRef<(step: number) => void>(() => {});
   const world = useRef<RoomWorld | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [spot, setSpot] = useState({ index: 0, total: 0 });
   const [actions, setActions] = useState({ cat: false, bed: false, cup: false });
+  const itemStage = useRef<ItemStage | null>(null);
+  const [itemsReady, setItemsReady] = useState(false);
+  const [worldReady, setWorldReady] = useState(false);
+  const orbit = useRef<{ enabled: boolean } | null>(null);
+  const wandOn = useRef(false);
+  const onCatch = useRef<RoomWand["onCatch"] | null>(null);
+  onCatch.current = wand?.onCatch ?? null;
 
   useEffect(() => {
     const el = host.current;
@@ -86,6 +137,20 @@ export default function RoomViewer({ base, cat }: { base: string; cat?: { baseUr
       if (cancelled) return;
       viewer.start();
       const active = viewer;
+      // 虛擬用品：和貓同一套地板座標（x 沿 e1、y 向上、z 沿 e2，單位＝每公尺 units_per_meter）
+      const [fe1, fup, fe2, forigin] = (["e1", "up", "e2", "origin"] as const).map(k => new THREE.Vector3(...layout[k]));
+      const itemFrame = new THREE.Group();
+      itemFrame.matrixAutoUpdate = false;
+      itemFrame.matrix.makeBasis(fe1, fup, fe2).setPosition(forigin);
+      itemFrame.updateMatrixWorld(true);
+      threeScene.add(itemFrame, new THREE.HemisphereLight(0xffffff, 0x808080, 1.6));
+      const toyFrame = new THREE.Group();
+      toyFrame.matrixAutoUpdate = false;
+      toyFrame.matrix.copy(itemFrame.matrix);
+      toyFrame.updateMatrixWorld(true);
+      threeScene.add(toyFrame);
+      itemStage.current = { scene, layout, viewer: active, frame: itemFrame, toyFrame };
+      setItemsReady(true);
       const controls = active.controls;
       controls.enableZoom = false;  // 滾輪改成前後走
       controls.minPolarAngle = 0.02;
@@ -96,6 +161,7 @@ export default function RoomViewer({ base, cat }: { base: string; cat?: { baseUr
       const tweenTo = (to: ReturnType<typeof view>) => {
         tween = { from: { pos: active.camera.position.clone(), look: controls.target.clone() }, to, start: performance.now() };
       };
+      orbit.current = controls as unknown as { enabled: boolean };
       goTo.current = step => {
         index = (index + step + cameras.length) % cameras.length;
         setSpot({ index, total: cameras.length });
@@ -113,10 +179,12 @@ export default function RoomViewer({ base, cat }: { base: string; cat?: { baseUr
       });
       if (cancelled) return;
       world.current = roomWorld;
+      setWorldReady(Boolean(roomWorld));
       if (roomWorld) setActions({ cat: true, bed: roomWorld.hasBed, cup: roomWorld.hasCup });
       let downAt: [number, number] | null = null;
       el.addEventListener("pointerdown", e => { downAt = [e.clientX, e.clientY]; }, { signal: abort.signal });
       el.addEventListener("pointerup", e => {
+        if (wandOn.current) return;  // 逗貓時玩具跟著手指，不用點地板叫貓
         if (!downAt || Math.hypot(e.clientX - downAt[0], e.clientY - downAt[1]) > 6) return;  // 拖曳是轉頭
         const r = el.getBoundingClientRect();
         roomWorld?.walkTo(new THREE.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1));
@@ -187,11 +255,96 @@ export default function RoomViewer({ base, cat }: { base: string; cat?: { baseUr
       cancelAnimationFrame(frame);
       goTo.current = () => {};
       world.current = null;
+      orbit.current = null;
+      setWorldReady(false);
+      itemStage.current = null;
+      setItemsReady(false);
       // dispose 會試著把容器從 body 移除，這裡的容器不在 body 底下
       viewer?.dispose().catch(() => {}).finally(() => stage.remove());
       if (!viewer) stage.remove();
     };
   }, [base, cat?.baseUrl, cat?.albedoUrl]);
+
+  // 虛擬用品清單變了就重擺（讀完房間後才做）
+  useEffect(() => {
+    const st = itemStage.current;
+    if (!itemsReady || !st) return;
+    let stale = false;
+    const list = items ?? [];
+    const spots = placeScanItems(st.scene, st.layout, list);
+    world.current?.setItems(list.map((it, i) => ({ x: spots[i].x, z: spots[i].z, widthM: it.widthM, depthM: it.depthM })));
+    Promise.all(list.map(itemObject)).then(objs => {
+      if (stale || itemStage.current !== st) return;
+      st.frame.clear();
+      const upm = st.layout.units_per_meter;
+      objs.forEach((o, i) => {
+        const g = new THREE.Group();
+        g.scale.setScalar(upm);
+        g.position.set(spots[i].x * upm, 0, spots[i].z * upm);
+        g.add(o);
+        st.frame.add(g);
+      });
+      st.viewer.forceRenderNextFrame();
+    });
+    return () => { stale = true; };
+  }, [items, itemsReady, worldReady]);
+
+  // 劇情動作：貓躲起來、走到用品旁、跳上家具（逗貓時由玩具帶著貓跑，不套用）
+  useEffect(() => {
+    const st = itemStage.current;
+    if (!worldReady || !story || wand || !st) return;
+    const placed = placeScanItems(st.scene, st.layout, items ?? []);
+    world.current?.command(sceneCatCommand(story.action, st.scene.objects, placed));
+    // items 變了不用重走；只在劇情動作換了（story.at）或房間讀好、逗貓結束時執行
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [story?.at, story?.action, worldReady, itemsReady, wand]);
+
+  // 3D 逗貓：玩具跟著指標在地板上移動，貓追著撲
+  const wandUrl = wand?.toy.url ?? null;
+  useEffect(() => {
+    const st = itemStage.current, w = world.current, el = host.current;
+    if (!wand || !worldReady || !itemsReady || !st || !w || !el) return;
+    let stale = false;
+    const toy = wand.toy;
+    const upm = st.layout.units_per_meter;
+    const group = new THREE.Group();
+    group.scale.setScalar(upm);
+    group.visible = false;
+    st.toyFrame.add(group);
+    itemObject({ ...toy, widthM: toy.widthM * TOY_SHOW, depthM: toy.depthM * TOY_SHOW, heightM: toy.heightM * TOY_SHOW }).then(o => { if (!stale) group.add(o); });
+    wandOn.current = true;
+    if (orbit.current) orbit.current.enabled = false;
+    w.command({ kind: "roam" });  // 躲起來的貓也要出來玩
+    w.play(caught => onCatch.current?.(caught));
+    const [minX, minZ] = st.scene.room.min, [maxX, maxZ] = st.scene.room.max;
+    const move = (e: PointerEvent) => {
+      if (!(e.target instanceof Node) || !el.contains(e.target)) return;
+      const r = el.getBoundingClientRect();
+      const at = w.floorAt(new THREE.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1));
+      if (!at) return;
+      const x = Math.min(maxX - 0.1, Math.max(minX + 0.1, at[0])), z = Math.min(maxZ - 0.1, Math.max(minZ + 0.1, at[1]));
+      group.position.set(x * upm, 0, z * upm);
+      group.visible = true;
+      w.setToy([x, z]);
+      st.viewer.forceRenderNextFrame();
+    };
+    // 檢視器的內建控制可能攔下事件，所以在 window 的捕獲階段接，再確認指標在房間畫面上
+    addEventListener("pointermove", move, true);
+    addEventListener("pointerdown", move, true);
+    return () => {
+      stale = true;
+      wandOn.current = false;
+      if (orbit.current) orbit.current.enabled = true;
+      removeEventListener("pointermove", move, true);
+      removeEventListener("pointerdown", move, true);
+      w.play(null);
+      w.setToy(null);
+      st.toyFrame.remove(group);
+      st.viewer.forceRenderNextFrame();
+    };
+    // wand 物件每次渲染都是新的，只看玩具網址
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [wandUrl, worldReady, itemsReady]);
 
   if (status === "error") {
     return <div className="hq-state"><p>房間載入失敗，請稍後再試。</p></div>;
@@ -201,18 +354,22 @@ export default function RoomViewer({ base, cat }: { base: string; cat?: { baseUr
       <div ref={host} className="hq-roomviewer-host">
         {status === "loading" && <div className="hq-roomviewer-loading"><HqSkeleton rows={3} /></div>}
       </div>
-      <div className="hq-roomviewer-bar">
-        <button type="button" className="hq-btn ghost" onClick={() => goTo.current(-1)} disabled={status !== "ready"}>上一個拍攝點</button>
-        <span>{status === "ready" ? `拍攝點 ${spot.index + 1}／${spot.total}` : "載入中"}</span>
-        <button type="button" className="hq-btn ghost" onClick={() => goTo.current(1)} disabled={status !== "ready"}>下一個拍攝點</button>
-      </div>
-      <div className="hq-roomviewer-bar">
-        <button type="button" className="hq-btn ghost" onClick={() => world.current?.callCat()} disabled={!actions.cat}>叫貓過來</button>
-        <button type="button" className="hq-btn ghost" onClick={() => world.current?.jumpOnBed()} disabled={!actions.bed}>跳上床</button>
-        <button type="button" className="hq-btn ghost" onClick={() => world.current?.pushCup()} disabled={!actions.cup}>推倒杯子</button>
-        <button type="button" className="hq-btn ghost" onClick={() => world.current?.resetItems()} disabled={!actions.cup}>重置物品</button>
-      </div>
-      <p className="hq-hint">拖曳轉頭，WASD 走動，Q／E 下降上升，Shift 加速，滾輪前後走，點地板叫貓過去。</p>
+      {controls && (
+        <>
+        <div className="hq-roomviewer-bar">
+          <button type="button" className="hq-btn ghost" onClick={() => goTo.current(-1)} disabled={status !== "ready"}>上一個拍攝點</button>
+          <span>{status === "ready" ? `拍攝點 ${spot.index + 1}／${spot.total}` : "載入中"}</span>
+          <button type="button" className="hq-btn ghost" onClick={() => goTo.current(1)} disabled={status !== "ready"}>下一個拍攝點</button>
+        </div>
+        <div className="hq-roomviewer-bar">
+          <button type="button" className="hq-btn ghost" onClick={() => world.current?.callCat()} disabled={!actions.cat}>叫貓過來</button>
+          <button type="button" className="hq-btn ghost" onClick={() => world.current?.jumpOnBed()} disabled={!actions.bed}>跳上床</button>
+          <button type="button" className="hq-btn ghost" onClick={() => world.current?.pushCup()} disabled={!actions.cup}>推倒杯子</button>
+          <button type="button" className="hq-btn ghost" onClick={() => world.current?.resetItems()} disabled={!actions.cup}>重置物品</button>
+        </div>
+        <p className="hq-hint">拖曳轉頭，WASD 走動，Q／E 下降上升，Shift 加速，滾輪前後走，點地板叫貓過去。</p>
+        </>
+      )}
     </section>
   );
 }

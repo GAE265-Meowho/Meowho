@@ -8,3 +8,5 @@ open3d>=0.18
 # transformers>=4.56
 # plan_objects.py（AI 辨識物品，必要）
 google-genai>=1.30
+# room_worker.py --supabase：前台居家影片放 Azure Blob（#273）
+azure-storage-blob>=12.19

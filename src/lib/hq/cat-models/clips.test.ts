@@ -25,6 +25,23 @@ describe("buildClipItems", () => {
   it("動作庫標示 ready 但 glb 裡沒有時不可播", () => {
     expect(buildClipItems(["idle"]).find(i => i.code === "walk")?.available).toBe(false);
   });
+  it("跳躍 A、B（#287）：幼貓母體有 jump_a、jump_b 可播，成貓母體還沒有時灰色不可點", () => {
+    const kitten = buildClipItems(["idle", "walk", "sleep", "sit", "jump_a", "jump_b"]);
+    expect(kitten.find(i => i.code === "jump_a")).toMatchObject({ label: "跳躍-(下往上跳) A", status: "ready", available: true });
+    expect(kitten.find(i => i.code === "jump_b")).toMatchObject({ label: "跳躍-(往前跳) B", status: "ready", available: true });
+    const adult = buildClipItems(["idle", "walk", "sleep", "sit"]);
+    expect(adult.filter(i => i.code.startsWith("jump")).map(i => i.available)).toEqual([false, false, false]);
+  });
+  it("跳躍 C（#293）：從櫃子往下跳，幼貓母體有 jump_c 可播", () => {
+    expect(buildClipItems(["idle", "jump_c"]).find(i => i.code === "jump_c"))
+      .toMatchObject({ label: "跳躍-(從櫃子往下跳) C", status: "ready", available: true });
+  });
+  it("成貓跳躍（#295）：成貓母體有 jump_a、jump_b、jump_c 時三個都可點", () => {
+    const adult = buildClipItems(["idle", "walk", "sleep", "sit", "jump_a", "jump_b", "jump_c"]);
+    expect(adult.filter(i => i.code.startsWith("jump")).map(i => [i.code, i.available])).toEqual([
+      ["jump_a", true], ["jump_b", true], ["jump_c", true],
+    ]);
+  });
   it("坐下：成貓母體有 sit 可播，幼貓母體沒有時灰色不可點", () => {
     expect(buildClipItems(["idle", "walk", "sleep", "sit"]).find(i => i.code === "sit"))
       .toMatchObject({ label: "坐下", status: "ready", available: true });

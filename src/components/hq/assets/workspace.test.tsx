@@ -87,6 +87,20 @@ describe("貓咪頁工作區（#96）", () => {
     expect(screen.queryByTestId("fake-preview")).toBeNull();
     expect(screen.getByRole("link", { name: "前往製作幼貓貼圖" })).toHaveAttribute("href", `/MeowHQ/assets/cats/${cat.id}/studio?body=kitten`);
   });
+  it("#289 切換成貓／幼貓時，預覽下方的貓咪紋理跟著換", async () => {
+    const tex = (body: "adult" | "kitten") => ({
+      albedoUrl: `https://example.test/${body}.png`, prevUrl: null,
+      texture: { state: "confirmed", preview: "albedo", previewBody: body }, baseVersion: `${body}-v1`,
+    });
+    current.over = { variantStorage: true, bodyVariants: { adult: tex("adult"), kitten: tex("kitten") } };
+    render(<HqToastProvider><CatPage id={cat.id} /></HqToastProvider>);
+    await screen.findByTestId("fake-preview");
+    const stage = screen.getByRole("region", { name: "3D 預覽" });
+    expect(within(stage).getByAltText("成貓紋理貼圖")).toHaveAttribute("src", "https://example.test/adult.png");
+    fireEvent.click(screen.getByRole("button", { name: "幼貓" }));
+    expect(within(stage).getByAltText("幼貓紋理貼圖")).toHaveAttribute("src", "https://example.test/kitten.png");
+    expect(within(stage).queryByAltText("成貓紋理貼圖")).toBeNull();
+  });
   it("#129 三欄：原貓咪資訊｜3D 預覽｜播放與畫面、動作", async () => {
     render(<HqToastProvider><CatPage id={cat.id} /></HqToastProvider>);
     await screen.findByTestId("fake-preview");
@@ -95,7 +109,13 @@ describe("貓咪頁工作區（#96）", () => {
     expect(within(stage).getByTestId("cat-canvas")).toBeInTheDocument();
     expect(groupTitles(panel)).toEqual(["播放與畫面", "動作"]);
     const info = screen.getByRole("region", { name: "原貓咪資訊" });
-    expect(groupTitles(info)).toEqual(["原貓咪資訊", "AI 三視角", "貓咪紋理"]); // 已產生的三視角與紋理依序放在原貓咪資訊下方
+    expect(groupTitles(info)).toEqual(["原貓咪資訊", "AI 三視角"]); // 已產生的三視角放在原貓咪資訊下方
+    // #289：貓咪紋理移到中間欄、3D 預覽下方；預覽外框是正方形
+    expect(groupTitles(stage)).toEqual(["貓咪紋理"]);
+    const canvas = within(stage).getByTestId("cat-canvas");
+    const texture = within(stage).getByAltText("成貓紋理貼圖");
+    expect(canvas.compareDocumentPosition(texture) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(stage).toHaveClass("hq-catstage-square");
     // DOM 順序＝桌面欄位順序：資訊、預覽、參數
     const order = [info, stage, panel];
     expect(order.every((el, i) => i === 0 || (order[i - 1].compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING))).toBe(true);

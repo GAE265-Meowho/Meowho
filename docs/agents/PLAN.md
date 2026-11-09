@@ -2,7 +2,7 @@
 
 > GitHub Issues 是任務的正式來源；本檔是給 agent 快速掌握全局的鏡像與排程。
 > 狀態只用：`待辦`、`進行中`、`審查中`、`完成`、`卡住`。開工改「進行中」並填負責人，收工更新。
-> 最後更新：2026-11-08｜Jerry0808 × Codex（#273 C＋D）
+> 最後更新：2026-11-09｜Jerry0808 × Codex（#273 驗收追蹤）
 
 ## 里程碑
 
@@ -18,9 +18,17 @@
 
 ## 任務（tracer-bullet，每張可獨立 Demo）
 
-- WelfareLens 安全報告讀取 API＋PDF-first 評估頁（#273 C＋D，Jerry0808 × Codex）：進行中；沿用 Draft PR #277／`feat/273-env-report-view`。離線授權與 UI 測試已補；真實 Supabase/Azure owner session、手機顯示和完整 build 尚未驗證。
+- WelfareLens 安全報告讀取 API＋PDF-first 評估頁（#273 C＋D，Jerry0808 × Codex）：進行中；沿用 Draft PR #277／`feat/273-env-report-view`。離線授權與 UI 測試已補；main 合併衝突已在 PR 分支解決；build 已 PASS；真實 Supabase/Azure owner session 與手機顯示仍 BLOCKED。
 - 虛擬飼養 DEMO（#237，渝茜 × Claude Code，2026-11-06）：審查中；PR #244、分支 `feat/237-catgame-demo`。`/cats/[id]/play` 3 個節點、AI 危險／台詞／建議（規則備案）、採買花費、3D 娃娃屋擺用品、小遊戲、試養報告；Azure／喵戶讀取／遠端 GLB／掃描房間未在沙盒實測。
-- 幼貓新增「坐下」動作（#239，Tina × Cursor，2026-11-06）：審查中；分支 `feat/239-kitten-sit-clip`。幼貓母體含 sit；預覽瞳孔 0.67；合併後上傳 Storage 幼貓 GLB。
+- 母體 glb 快取版本號、沒有跳躍 C 不畫櫃子（#298，Tina × Claude Code，2026-11-09）：審查中；分支 `fix/298-base-cache-bust`。
+- 成貓新增跳躍 A、B、C（#295，Tina × Claude Code，2026-11-09）：完成（PR #296 已合併；Tina 11:33 已上傳 Storage 成貓檔）。
+- 幼貓新增從櫃子往下跳（#293，Tina × Claude Code，2026-11-09）：完成（PR #294 已合併）。
+- 跳躍 B 加往前位移、跳躍預覽鏡頭拉遠（#291，Tina × Claude Code，2026-11-08）：完成（PR #292 已合併）。
+- 貓咪頁預覽改正方形、紋理移到預覽下方（#289，Tina × Claude Code，2026-11-08）：完成（PR #290 已合併）。
+- 幼貓新增跳躍（#287，Tina × Claude Code，2026-11-08）：完成（PR #288 已合併）。幼貓母體多 `jump_a`（跳躍-(下往上跳) A）、`jump_b`（跳躍-(往前跳) B），動作庫兩個都 ready。
+- 貓咪清單載入很慢（#285，Tina × Claude Code，2026-11-08）：完成（PR #286 已合併；清單 13.5 秒 → 2～3 秒）；分支 `fix/285-cat-list-slow`。`sbListCats` 的自動採用／排程改到 `after()` 背景執行。
+- 幼貓坐下重做（#283，Tina × Claude Code，2026-11-08）：完成（PR #284 已合併；Storage 沒有幼貓檔，直接用 repo 版）；分支 `fix/283-kitten-sit-redo`。對齊 360° 驗收 GIF，換 `base_clips_kitten.glb`；合併後上傳 Storage 幼貓 GLB。
+- 幼貓新增「坐下」動作（#239，Tina × Cursor，2026-11-06）：完成（PR #268 已合併，坐姿由 #283 重做）；分支 `feat/239-kitten-sit-clip`。幼貓母體含 sit；預覽瞳孔 0.67；合併後上傳 Storage 幼貓 GLB。
 - 成貓新增「坐下」動作（#239，Tina × Cursor，2026-11-06）：完成；PR #248／#254 已合併、Storage 已更新。`clip_sit` 端坐＋後腿貼地。
 - 成貓 sleep 睡姿更新（#221，Tina × Cursor，2026-11-06）：完成；PR #236 已合併、分支 `fix/221-adult-sleep-clip`。bundled 成貓母體 `base_clips.glb` 換成 cat_base 最新 sleep；幼貓不動；`CatPreview` sleep 取景。
 - MeowHQ Dashboard UI/UX 優化（#226，Tina × Cursor，2026-11-05）：審查中；PR #227、分支 `ui/226-hq-dashboard-ui`（併含 #224）。
@@ -127,6 +135,7 @@
 
 ## 建議（agent 發現、尚未有人認領）
 
+- （渝茜提出，2026-11-07，尚未認領）虛擬飼養改版：①環境報告先行，進遊戲時有報告就跳過「上傳房間」「居家安全」；②逗貓、餵飼料、換水改 3D（貓用位置移動，不需撲跳動作）。細節在 `docs/modules/readiness.md`「虛擬飼養改版待辦」
 - #56 領養人 profile 在 GitHub 指派給清俊，但 `21_第一週衝刺_Scope.md` 寫在子哲範圍；背景標記「自填」要用它的資料，負責人待組內確認
 - （#237 發現）`.env.example` 有一段 KPI Dashboard 的註解是亂碼（編碼錯誤），建議重存成 UTF-8
 - （#237 發現）`FloorplanViewer.tsx` 有 3 個既有的 lint 警告（hooks 依賴、未用的 `room` 參數），沒有在 #237 處理

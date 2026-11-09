@@ -9,7 +9,7 @@ export interface ClipDef {
   status: ClipStatus;
 }
 
-export const CLIP_LIBRARY_VERSION = 3;
+export const CLIP_LIBRARY_VERSION = 5;
 export const FALLBACK_CLIP = "idle";
 /** 預覽預設瞳孔寬窄（細縫 0 → 全圓 1）；與 catEye EYE_DEFAULTS.pupil 相同 */
 export const DEFAULT_PUPIL = 0.25;
@@ -22,7 +22,9 @@ export const CLIP_LIBRARY: readonly ClipDef[] = [
   { code: "eat", label: "吃飯", status: "planned" },
   { code: "toilet", label: "上廁所", status: "planned" },
   { code: "cuddle", label: "撒嬌", status: "planned" },
-  { code: "jump", label: "跳躍", status: "planned" },
+  { code: "jump_a", label: "跳躍-(下往上跳) A", status: "ready" },
+  { code: "jump_b", label: "跳躍-(往前跳) B", status: "ready" },
+  { code: "jump_c", label: "跳躍-(從櫃子往下跳) C", status: "ready" },
   { code: "rest", label: "休息", status: "planned" },
   { code: "groom", label: "理毛", status: "planned" },
 ];

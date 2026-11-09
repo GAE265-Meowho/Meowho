@@ -6,6 +6,7 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getAdminSupabase } from "@/lib/supabase/admin";
 import { getServerSupabase } from "@/lib/supabase/server";
+import { after } from "next/server";
 import { ImageGenError, imageConfig } from "@/lib/ai/image";
 import { azureEdit, failAll, generateViews } from "./ai-views";
 import { analyzeAge } from "./ai-analyze";
@@ -241,7 +242,9 @@ async function settleGenerated(sb: SupabaseClient, onlyId?: string): Promise<voi
 export async function sbListCats(): Promise<CatModelView[]> {
   const sb = await client();
   if (!sb) return [];
-  await settleGenerated(sb);
+  // 採用貼圖、自動排紋理貼圖要對每隻貓依序跑好幾次資料庫來回（貓多時 10 秒以上），放到回應之後背景執行，
+  // 不擋清單讀取（#285）。結果在下次開清單或貓咪頁時看到
+  after(() => settleGenerated(sb));
   // 帶出建立者；萬一關聯查詢失敗（例如 schema cache 還沒更新），退回不帶建立者，列表不能因此變空
   let { data, error } = await sb.from("meow_cat_models").select(WITH_HOUSEHOLD).order("updated_at", { ascending: false });
   if (error) ({ data, error } = await sb.from("meow_cat_models").select(WITH_CREATOR).order("updated_at", { ascending: false }));
@@ -329,8 +332,12 @@ export async function sbBaseRedirect(body: BodyType = "adult"): Promise<string |
   if (!sb) return null;
   const name = baseFileName(body);
   const { data, error } = await sb.storage.from(MODEL_BUCKET).list(BASE_DIR, { search: name, limit: 10 });
-  if (error || !data?.some(f => f.name === name)) return null;
-  return publicObjectUrl(MODEL_BUCKET, `${BASE_DIR}/${name}`);
+  const file = data?.find(f => f.name === name);
+  if (error || !file) return null;
+  // 網址帶檔案更新時間（#298）：Storage 換新檔後網址跟著變，瀏覽器不會沿用快取的舊 glb
+  const version = file.updated_at ?? file.created_at;
+  const url = publicObjectUrl(MODEL_BUCKET, `${BASE_DIR}/${name}`);
+  return version ? `${url}?v=${encodeURIComponent(version)}` : url;
 }
 
 export type UploadTicket = { ok: true; id: string; bucket: string; path: string; token: string };

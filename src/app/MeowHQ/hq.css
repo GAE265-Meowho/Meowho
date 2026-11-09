@@ -661,3 +661,14 @@
   .hq-cards { grid-template-columns: 1fr; }
   .hq-dash-top-meta { width: 100%; margin-left: 0; }
 }
+/* 貓咪頁（#289）：中間欄＝體型切換＋正方形 3D 預覽＋貓咪紋理，桌機中間欄自己捲動；骨架測試台不套用 */
+.hq-catstage-square { overflow-y: auto; overscroll-behavior: contain; padding-right: .25rem; }
+.hq-catview { display: flex; flex-direction: column; gap: .6rem; flex: none; }
+.hq-catstage-square .hq-canvas { flex: none; height: auto; aspect-ratio: 1 / 1; }
+.hq-catstage-square .hq-texture-preview { max-width: 360px; }
+/* 平板、手機：中間欄拆開，預覽黏在頂列下方排第一，紋理接在原貓咪資訊之後 */
+@media (max-width: 1023px) {
+  .hq-catpage > .hq-catstage-square { display: contents; }
+  .hq-catstage-square > .hq-catview { order: -1; position: sticky; top: 56px; z-index: 5; background: var(--hq-bg); padding: .5rem 0; }
+  .hq-catstage-square .hq-canvas { aspect-ratio: auto; height: max(240px, 42dvh); }
+}

@@ -23,7 +23,7 @@ export const HazardsRequest = z.object({
 export type HazardsRequest = z.infer<typeof HazardsRequest>;
 
 export const LinesRequest = z.object({
-  nodeId: z.enum(["first-day", "five-years", "farewell"]),
+  nodeId: z.enum(["day1", "day3", "day30", "month8", "year5", "year10", "farewell"]),
   catName: z.string().trim().min(1).max(12),
   home: HomeReq,
   labels: z.array(label).max(40),

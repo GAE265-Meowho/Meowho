@@ -61,9 +61,9 @@
 |---|---|---|
 | 誰的房間 | 示範房間，`owner_household_id` 為 null | 飼主自己家，`owner_household_id`＝喵戶 id |
 | 誰能寫 `meow_room_models`／`meow_room_jobs` | 有 `virtual_assets` 權限的管理員（RLS） | 會員**不能**直接寫，只能讀、刪自己的；建立要經伺服器（service role），先用登入者身分確認是自己的喵戶 |
-| 原始影片 | 私有 bucket `meow-room-videos` | 私有 bucket `meow-home-videos`，路徑第一層是喵戶 id（`<household_id>/…`）；喵戶長自己上傳，不用簽網址（0017 的 policy 寫錯會一律擋下，0022 修正）；50 MB、mp4／mov |
+| 原始影片 | 私有 bucket `meow-room-videos` | Azure 私有容器（`media-dev`／`media`）`homes/<household_id>/videos/<影片 id>.<mp4|mov>`（#273）；主站確認是喵戶長後簽短效上傳網址，瀏覽器直傳；300 MB、180 秒、mp4／mov（#243）。11/07 以前的影片在 Supabase `meow-home-videos`，先不刪，有容量警告再刪 |
 | 成果 | **公開** bucket `meow-room-models` | **私有** bucket `meow-home-scenes`（`<household_id>/…`），只有自己讀得到；前台用短時效 signed URL 讀，**不能放公開 bucket** |
-| 原始檔刪除 | 轉完刪 | 3D 房間和環境報告**都處理完（成功或失敗）立即刪**，並寫 `raw_deleted_at`（決策 007） |
+| 原始檔刪除 | 轉完刪 | 3D 房間和環境報告**都處理完（成功或失敗）**後，由主站的清理程式刪並寫 `raw_deleted_at`（決策 007、#242）；兩支 worker 都不刪 |
 | 環境報告 | 沒有 | 建房間時一律同時建一筆 `meow_env_reports`（`room_model_id`＝房間、`status = 'queued'`） |
 | 後台看得到嗎 | 看得到 | 看不到（0017 改了 `virtual_assets` policy，只管 `owner_household_id is null`） |
 
@@ -71,9 +71,9 @@
 
 | 步驟 | 要改的地方 | 說明 |
 |---|---|---|
-| 1. 上傳 | `src/app/homes/[id]/scene/page.tsx` | 「上傳影片」選檔、「開始製作」用手機錄影（`<input type="file" accept="video/*" capture>`）；瀏覽器用 `sb.storage.from("meow-home-videos").upload("<household_id>/<房間 id>.<副檔名>")` 直傳；格式檢查沿用 `src/lib/hq/rooms/types.ts` 的 `checkVideo()`。上傳中顯示 §8「正在建立你家的 3D 房間。你可以先離開，好了會通知你。」 |
+| 1. 上傳 | `src/app/homes/[id]/scene/page.tsx` | 「上傳影片」選檔、「開始製作」用手機錄影（`<input type="file" accept="video/*" capture>`）；`POST /api/homes/[id]/videos` 簽 Azure 上傳網址（`getMediaStore().uploadUrl`），瀏覽器直傳；格式、大小、長度用 `src/lib/home-room.ts` 的 `checkHomeVideo()`，前台和 API 各檢查一次。上傳中顯示 §8「正在建立你家的 3D 房間。你可以先離開，好了會通知你。」 |
 | 2. 建房間＋排工作 | `src/app/api/homes/[id]/room/route.ts` | 收 `{ videoPath }`，確認路徑在這個喵戶底下；用 service role 建 `meow_room_models`（`status = 'queued'`、`source = 'video'`、`video_path`、`owner_household_id`）＋`meow_room_jobs`（`queued`）＋`meow_env_reports`（`queued`、`room_model_id`）。房間 id 沿用 `newRoomId()`／`roomIdAt()` 格式 |
-| 3. worker | `workers/room-convert/pipeline/room_worker.py --supabase`（目前在珮瑜的 Mac 上跑） | 能領 `owner_household_id` 不是 null 的工作：從 `meow-home-videos` 讀影片、成果寫到 `meow-home-scenes/<household_id>/<房間 id>/`、`result_path` 填這個路徑；成功改 `ready`、失敗改 `failed` 並寫原因；處理完刪影片、寫 `raw_deleted_at`；寫 `meow_notifications` 給喵戶長（連到 `/homes/<id>/scene`）。物品清單放 `meta.objects[].label`（`roomFurniture()` 會讀，名稱要對得到 `placeFor()` 的關鍵字：沙發、床、櫃、椅、書桌、衣櫃、桌、門） |
+| 3. worker | `workers/room-convert/pipeline/room_worker.py --supabase`（目前在珮瑜的 Mac 上跑） | 能領 `owner_household_id` 不是 null 的工作：從 Azure 讀影片（下載後再檢查一次 #243 的限制）、成果寫到 `meow-home-scenes/<household_id>/<房間 id>/`、`result_path` 填這個路徑；成功改 `ready`、失敗改 `failed` 並寫原因；不刪影片（#242）；寫 `meow_notifications` 給喵戶長（連到 `/homes/<id>/scene`）。物品清單放 `meta.objects[].label`（`roomFurniture()` 會讀，名稱要對得到 `placeFor()` 的關鍵字：沙發、床、櫃、椅、書桌、衣櫃、桌、門） |
 | 4. 環境報告 | 同一個 worker 或另一支 | 產生 `items`（`[{key, label, level: high/medium/low, note, crop_path}]`）、`summary`，風險裁切照放 `meow-home-risk-crops/<報告 id>/`，改 `ready`／`failed` |
 | 5. 處理中與預覽 | `scene/page.tsx`、新的預覽頁 | `homeTools()` 已經會依 `queued`／`running` 停用按鈕；`ready` 後預覽（沿用 #93 的房間檢視器，manifest 從 `meow-home-scenes` 的 signed URL 讀），按「完成」呼叫 `meow_finish_home_room(房間, null)`，之後才能開始領養任務（`meow_start_task_run` 要 `completed_at`） |
 | 6. 單獨檢測 | `src/app/api/homes/[id]/safety/route.ts`、`safety/page.tsx` | 同樣上傳到 `meow-home-videos`，只建 `meow_env_reports`（`room_model_id = null`） |
@@ -81,13 +81,71 @@
 | 8. 任務裡的 3D（之後） | `src/app/cats/[id]/run/page.tsx` 的舞台（`s.stage`） | 換成房間檢視器＋把貓放進房間，依任務的 `action` 和 `placeFor` 找到的家具播動作；`textOnly` 時維持文字情境 |
 
 **進度（2026-11-04 珮瑜）**：第 1、2、3、5 步已接上（`feat/161-home-room-video`）。
-- 上傳路徑是 `<household_id>/<隨機 uuid>.mp4|mov`（`isHomeVideoPath()` 檢查），房間 id 由伺服器產生；同一個喵戶已有 `queued`／`running` 的房間時回 `409 room_busy`。
+- 上傳路徑是 `homes/<household_id>/videos/<隨機 uuid>.mp4|mov`（2026-11-07 起放 Azure，#273；`isHomeVideoPath()` 檢查；#263 合併後 uuid 改成 `meow_home_videos.id`）；建房間失敗時 API 會刪掉剛傳的影片，房間 id 由伺服器產生；同一個喵戶已有 `queued`／`running` 的房間時回 `409 room_busy`。
 - 預覽讀檔走 `GET /api/homes/[id]/room/[roomId]/[...file]`：用登入者身分查房間（RLS），換 10 分鐘 signed URL 再轉過去；檢視器沿用 `RoomViewer`。
 - worker（`workers/room-convert`）看 `owner_household_id` 分流；成果路徑 `meow-home-scenes/<household_id>/<房間 id>/`；物品清單從 `scene.json` 轉成中文（`catalog.py` 的 `NAMES_ZH`）寫進 `meta.objects`；完成、失敗都寫通知（`home_room_ready`／`home_room_failed`）。
-- **給做環境報告（第 4 步）的人**：影片在 `meow_room_models.video_path`（`meow-home-videos`）。房間 worker 處理完時若報告還是 `queued`／`running`，影片會留著；報告處理完時若房間已不是 `queued`／`running`，就由報告那邊刪影片、把房間的 `video_path` 設 null、寫 `raw_deleted_at`。
+- **給做環境報告（第 4 步）的人**：影片在 `meow_room_models.video_path`（Azure）。兩支 worker 都不刪影片，由主站的清理程式刪（#242，2026-11-07 起）。
 - 0017 已建好上面的 bucket、policy、欄位；0022 修正兩條 storage policy（子查詢的 `name` 對到喵戶名稱，喵戶長上傳一律被擋），2026-11-05 珮瑜已在正式資料庫執行。要改資料庫時新開 migration，執行前給子哲確認。
 - 要一直保持通過的測試：`src/lib/home-room.test.ts`（按鈕狀態、檢測紀錄）、`src/lib/task-run.test.ts`（家具替換）。
 - AI 摘要（`meow_task_runs.summary`）還沒做：完成任務後由伺服器（service role）寫入，對話框的試養報告已經會顯示。
+
+## 虛擬飼養改版待辦（渝茜提出，2026-11-07，尚未開工）
+
+> 以後問「虛擬飼養之後要改什麼」就看這一節。README 的「文件」表有連到這裡。
+
+### A. 正式流程（渝茜 2026-11-07；✅ 已拿掉兩關，尚未 commit）
+- 順序：飼養人先上傳環境（上傳完顯示環境報告）→ 首頁挑貓 → 直接進遊戲。
+- ✅ **「上傳房間」「居家安全」兩關已從遊戲拿掉**：`flow.ts` 的 `STEPS` 現在是 `background → shop → place → node → report`，進度列「你的家／採買／擺用品／飼養／報告」。`RoomStep.tsx` 已刪。
+  - 空間：進頁面時在背景自動讀（`PlayGame.tsx`：自己的房間 ＞ 公開示範房間 ＞ 範例娃娃屋，見下方「房間資料來源」），讀到前「你的家」的按鈕不能按（「讀取你的空間…」）。
+  - 居家安全建議：由**環境報告**顯示，不再在遊戲裡勾「我會處理」。試養報告不寫家裡的物件與位置（2026-11-07 紀錄的決策不變），只提醒「環境報告裡有幾項居家安全建議，接貓回家前先照報告處理好」（`report.ts` 的 `ruleAdvice`）。
+  - **居家危險資料仍保留**，只給故事事件用：房間讀到後在背景先用規則對照（`ruleHazards`）算出危險，再請 `/api/play/hazards`（AI）覆蓋；節點 5 居家意外取風險最高的一項（`topRisk`）。`state.handled` 現在永遠是空的（API 的 `handled` 欄位保留不動）。
+  - 之後接世安的環境報告 API：把 `PlayGame.tsx` 裡「居家危險」那段 effect 的來源換成報告資料即可。
+- 採買、擺用品**保留**（渝茜確認）。
+- 還沒做：進場判斷「有沒有環境報告」。目前一律當作有（讀自己的房間或公開示範房間）；沒有環境報告時要導去上傳環境。卡點：`/me` 的「生成 3D 環境」還顯示「安全檢測處理中」，沒有可讀的報告 API。
+
+### 房間資料來源（2026-11-07 issue 回覆，子哲／世安）
+- 房間 3D 成果在 Supabase 私有 bucket `meow-home-scenes`，只有喵戶長本人讀得到（決策 007），Azure 只放原始影片；所以用別人的帳號讀會 404，不是壞掉。
+- 公開示範房間（不屬於任何喵戶）：房間 id `room_20261107_031215_1`（名稱「子哲的家（11/07 影片）」），resultBase `https://onebpkbkrnnwamwsoelo.supabase.co/storage/v1/object/public/meow-room-models/results/5c7534dca1c6b2c0/`，含 `scene.json`、`scene.layout.json`、`scene.cameras.json`、`thumb.jpg`、`objects/room_cut.splat` 和 5 個可推動小物 splat。
+- 沒有 `scene.splat` 是正常的：有 `room_cut.splat` 時檢視器改讀 `room_cut`（`RoomViewer` 已支援）。
+- 房間有 30 樣物件。可跳上去：床、書桌、椅子、抽屜櫃、冰箱；可躲下面：書桌、椅子。電風扇切出 8 個，有幾個很小可能是誤判，演出時略過。
+- ✅ 已改（2026-11-07，尚未 commit）：掃描房間資料夾網址由 `pickScanBase`（`src/lib/play/room.ts`）決定：**自己的房間**（`DEFAULT_ROOM_ID` `room_20261107_031215`，子哲喵戶的私有房間，只有房間主人查得到）＞ 環境變數 `NEXT_PUBLIC_ROOM_DEMO_BASE` ＞ **公開示範房間**（`DEMO_ROOM_ID` `room_20261107_031215_1`、`DEMO_ROOM_BASE`）。其他帳號原本讀不到私有房間所以退回平面圖娃娃屋，現在會看到 3D 掃描房間。
+- scene.json 的 `objects[].label` 是英文（bed、desk…），中文在 `name_zh`；`inventoryFromScan` 優先用 `name_zh`，沒有才用 `label`。
+- ✅ 已做（2026-11-07，尚未 commit）**擺的虛擬用品會出現在 3D 掃描房間裡**：玩家在「擺用品」選「床旁」「房間角落」等，`src/lib/play/scene-items.ts` 的 `placeScanItems` 換成房間地板座標（公尺，同貓和物品箱子的 x 沿 e1、z 沿 e2），在房間內、能走的地板上、不重疊；`RoomViewer`（後台元件）新增 `items` 屬性，用和貓一樣的座標框架把 GLB 放進去，模型依後台登錄的寬深高縮放（載入失敗畫同尺寸方塊）。`RoomObject` 加了 `name_zh`（中文名稱）。
+- ✅ 遊戲裡的 3D 房間**不再顯示拍攝點與貓咪動作按鈕**（上一個／下一個拍攝點、叫貓過來、跳上床、推倒杯子、重置物品）：`RoomViewer` 新增 `controls` 屬性（預設 true，後台頁面不變），`PlayStage` 傳 `controls={false}`；拖曳轉頭、WASD、點地板叫貓仍可用。
+- ✅ 已做（2026-11-07，尚未 commit）**3D 逗貓（掃描房間）**：在家的時光按「逗貓」、或節點裡的逗貓小遊戲，改在 3D 掃描房間玩（娃娃屋仍用原本 2D）。玩具是後台「逗貓棒」的老鼠模型（`PlayShop.models.toy`，後台沒有就用 `items.ts` 的 `PLAY_TOY`），畫面上放大 6 倍；玩具跟著滑鼠／手指在地板上移動（`RoomWorld.floorAt`），貓用位置移動追過去、撲（沿用 `RoomCat.playWith`，不需要撲跳動畫），貓衝刺（跑步動作、約 1.9 公尺/秒）到玩具旁，碰得到（30 公分內）才撲，撲的瞬間貓與玩具仍在 30 公分內才算抓到（隔很遠不算）；每抓到一次開心度 +17（3 次過 50 算成功），沒有時間限制，按「先到這裡」結束，結果格式與 2D 逗貓相同（`catchResult`）。元件：`ScanWand.tsx`（計時、抓到次數、開心度）、`RoomViewer` 新增 `wand` 屬性（逗貓時停用拖曳轉頭）。純函式與測試：`scene-cat.ts`／`scene-cat.test.ts`。
+- ✅ 已做（2026-11-07，尚未 commit）**劇情動作接上 3D 掃描房間的貓（B4）**：`RoomViewer` 新增 `story` 屬性，`sceneCatCommand` 把劇情的貓動作換成房間裡的指令：沒有動作＝貓不在場（隱藏）；carrier／eat／litter＝走到擺好的外出籠／餐碗／貓砂盆；hide＝走到可躲的家具底下（沒有就隱藏）；sleep／sofa／high＝跳上床／沙發／最高的家具；explore／idle＝照常閒晃。`RoomWorld.command` 執行（走路、跳、隱藏）。餵飼料、換水仍是 2D 計時條（之後才改 3D）。
+- ✅ 已做（2026-11-07，尚未 commit）**貓不再穿過擺進房間的用品**：`footprintCells`（`scene-items.ts`，含 4 公分邊距）算出用品佔的格子，`RoomWorld.setItems` → `RoomCat.blockCells` 設成不能走（換清單時先還原）；走向外出籠、碗、砂盆時會停在旁邊。
+- ✅ 已做（2026-11-07，尚未 commit）**餵貓、換水、剪指甲、刷牙、外出籠改回原版 catgame 小遊戲**（搬自 `catgame/src/20-mini-feed、21-mini-water、22-mini-nail、13-mini-brush、16-mini-carrier`，不用計時條）；結果格式照原版，`careGood` 依結果判定成功（`care.test.ts`）；刷牙訓練階段依做過幾次逐階升級。3D 逗貓修了「指標事件被檢視器攔下」與「貓在閒晃時不來追」。
+- ✅ 已做（2026-11-07，尚未 commit）**在家的時光的動作可以重複做**（渝茜）：`flow.ts` 的 `care` 不再擋已做過的動作，`HomeStep` 不再停用按鈕（顯示「已做，可再做」）；每次都套用效果，數值夾在 0~100，所以重複只會到上限。「沒做的動作扣數值」仍以這一輪有沒有做過一次判斷。
+- 還沒做：B5（沒有環境報告時導去上傳環境）。劇情動作用瀏覽器實測了外出籠與逗貓，其他動作（跳床、躲床底、貓砂盆）只有純函式測試，建議在有完整家具的房間再走一遍。
+- 公開示範房間沒有窗戶，所以居家安全清單不會出現「窗戶」「電線」那幾項（依房間物品產生）。
+- 之後接新流程（環境先上傳）時：玩家自己的房間要放在 `pickScanBase` 的第一順位，公開示範房間只當沒有房間時的備案。
+
+### C. 花費與用品串後台（渝茜 2026-11-07 確認；✅ 已做，尚未 commit）
+- 原則：**後台有就用後台，後台沒有就先用程式裡自己寫的；後台之後補上傳，遊戲自動抓到，不用改程式。**
+- 資料流：後台 `meow_items` → 伺服器 API `GET /api/play/items`（service role 代讀，因為 RLS 只給管理員；只回類別名稱、品名、價格、模型網址、尺寸；沒設定金鑰或失敗回 `{ items: [] }`）→ `src/lib/play/catalog.ts`（`toPlayCatalog`、`playShop`）→ 前台 `PlayGame.tsx` 的 `usePlayShop`。不需要等子哲開放 `meow_items` 公開讀取。
+- 對照表（用**後台類別名稱**比對，在 `catalog.ts`）：
+
+| 後台類別 | 遊戲裡怎麼用 | 後台沒有時 |
+|---|---|---|
+| 貓抓板、逗貓棒 | 勾選用品的價格（同類多個取最便宜） | 原版 300、200 |
+| 貓砂盆 → 砂盆、餐碗水碗 → 碗 | **每個後台品項就是一個選項**（品名、價格，價格由低到高）；後台補上傳更多品項選項自動變多 | 原版選項（砂盆 4 個、碗 3 個） |
+| 外出籠、餐碗水碗、貓砂盆 | 擺進房間的 3D 模型網址與公尺尺寸（網址和三個尺寸都有才採用） | `items.ts` 寫死的模型 |
+| 外出籠 | **免費**（中途送的），價格不計，不在採買清單 | 同左 |
+| 貓砂、零食、醫療預備金、監視器 | 沒有後台品項，維持原版估價 | 原版 |
+
+- 新增後台類別要讓遊戲抓到：在 `catalog.ts` 的 `FLAG_CATEGORY`／`OPTS_CATEGORY`／`MODEL_CATEGORY` 加一列。**類別名稱要和後台一字不差**（現在是「貓抓板」「逗貓棒」「貓砂盆」「餐碗水碗」「外出籠」）。
+- 現況：後台貓砂盆 1,127、餐碗組 399 各只有一個品項，所以砂盆、碗目前只剩一個選項（原版有 4、3 個）；之後後台補上傳（例如有蓋、飲水機）就會變多。
+- 測試：`catalog.test.ts`、`costs.test.ts`、`items.test.ts`。本機 `.env.local` 沒有 `SUPABASE_SERVICE_ROLE_KEY`，只在瀏覽器驗證了備案；後台資料實際生效要在有金鑰的環境（Vercel）確認。
+- 逗貓棒（老鼠）模型（`meow-items/87c99fc9-…/model.glb`，0.054 × 0.024 × 0.028 公尺）已能由 API 帶回，3D 逗貓小遊戲做的時候再接。
+
+### B. 小遊戲改 3D（逗貓、餵飼料、換水）
+- 現況：三個都是 2D 小遊戲。逗貓在 `catgame/minis.ts` 的 `startPlay`；餵貓（放飯）、換水、剪指甲、刷牙、外出籠都已換成原版 catgame 小遊戲（拖飼料袋、洗水碗、剪指甲、刷牙五階段、放零食引進籠子），在 `catgame/minis.ts`（原本的停在綠線計時條 `CareMini.tsx` 已刪）。
+- 逗貓：在 3D 房間放一支 3D 逗貓棒跟著滑鼠或手指移動；貓依位置追逐。**3D 貓模型沒有撲、跳動作也沒關係，用「位置移動」做**（貓平移、轉向、短距離位移當作撲），開心度由撲中次數算。
+- 餵飼料、倒水：需要碗、飼料、水的 3D 物件，貓走到碗邊（`stage.ts` 已有貓走向外出籠的做法可參考）。現在不好改，先記錄；做的時候沿用逗貓的「位置移動」做法。
+- 逗貓棒模型：渝茜已在後台「生活用品」上傳，品項「老鼠」（英文 mickey，id `5ab12238-f07c-44ba-abf5-83631dfbe45a`），模型 `https://onebpkbkrnnwamwsoelo.supabase.co/storage/v1/object/public/meow-items/87c99fc9-da88-4882-94e3-7f3bc3c00d09/model.glb`，尺寸 0.054 × 0.024 × 0.028 公尺（寬×深×高），價格未填。程式要從後台 `meow_items` 讀，但前台沒登入時讀不到（只有管理員 API `/api/hq/items` 讀得到），在子哲開放公開讀取前，先像 `items.ts` 那樣寫死網址與尺寸。
+- ✅ 已處理（2026-11-07）：後台「外出籠」尺寸原本登錄成原始模型單位 2.216 × 3.428 × 2.046，已用 SQL 改成 0.33 × 0.51 × 0.31 公尺（與 `items.ts` 一致），改讀後台時外出籠不會變巨大。
+- 前置：確認 `PlayStage.tsx` 的 3D 貓可由程式直接設位置、方向，不依賴動畫片段。
 
 ## 資料表（Supabase）
 - ［已失效］`env_reports`、`virtual_sessions`、`virtual_tasks`（規劃名稱，改用下列 0017 的表）
@@ -105,7 +163,7 @@
 ## 主要檔案
 - 安全報告：`src/app/api/homes/[id]/reports/[reportId]/route.ts`、`pdf/route.ts`、`crops/[key]/route.ts`、`src/app/homes/[id]/safety/SafetyReportDetails.tsx`、`src/lib/home-safety/report-access.ts`
 - `src/components/Sections.tsx`（`TrialBoard`、`Steps`）
-- 虛擬飼養 DEMO（#237）：`src/app/cats/[id]/play/page.tsx`、`src/components/play/`（`PlayGame` 流程、`PlayStage` 3D、`RoomStep`、`ShopStep`、`NodeStep`、`ReportStep`、`catgame/` 原版小遊戲）、`src/lib/play/`（`flow.ts` 狀態機、`story.ts` 劇情、`events.ts` 意外、`furniture.ts` 通稱、`hazards.ts`、`costs.ts`、`room.ts`、`stage.ts`、`background.ts`、`lines.ts`、`report.ts`、`items.ts`、`cats.ts`、`api.ts`、`handlers.ts`）、`src/app/api/play/{hazards,lines,advice}/route.ts`、`src/lib/ai/play.ts`、`src/lib/prompts/play.ts`
+- 虛擬飼養 DEMO（#237）：`src/app/cats/[id]/play/page.tsx`、`src/components/play/`（`PlayGame` 流程、`PlayStage` 3D、`ShopStep`、`NodeStep`、`ReportStep`、`catgame/` 原版小遊戲）、`src/lib/play/`（`flow.ts` 狀態機、`story.ts` 劇情、`events.ts` 意外、`furniture.ts` 通稱、`hazards.ts`、`costs.ts`、`room.ts`、`stage.ts`、`background.ts`、`lines.ts`、`report.ts`、`items.ts`、`cats.ts`、`api.ts`、`handlers.ts`）、`src/app/api/play/{hazards,lines,advice}/route.ts`、`src/lib/ai/play.ts`、`src/lib/prompts/play.ts`
 - `requirement/catsafe_ar_README.md`（團隊 AR 模組草稿，未放入 repo）
 
 ## 決策
@@ -121,6 +179,7 @@
 - 2026-11-06（渝茜，#237）：生活用品（餐碗組、貓砂盆）先用公開 bucket `meow-items` 的模型網址，尺寸與價格寫在 `src/lib/play/items.ts`；等子哲開放 `meow_items`／`meow_item_categories` 公開讀取後改讀後台（#237 已提醒）。
 
 ## 待確認
+- 虛擬飼養改版（環境報告先行、跳過前兩關、小遊戲改 3D）：見上方「虛擬飼養改版待辦」，發起人渝茜。
 - 影像生成方案。
 - ［已處理，2026-11-06］虛擬飼養 DEMO 的劇情與小遊戲已改成照 catgame 原版。
 - `meow_items` 是否開放公開讀取（子哲）；餐碗組路徑 `test_bowls_…` 是測試上傳，正式版換掉時 `items.ts` 也要改。

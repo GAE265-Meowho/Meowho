@@ -1,16 +1,19 @@
 // 虛擬飼養 DEMO（#237）：整個流程的狀態機（純函式，畫面只負責顯示與派送動作）。
-// 步驟：背景 → 上傳房間 → AI 辨認危險 → 預算與採買 → 擺用品 → 三個節點 → 試養報告。
+// 步驟：背景（讀喵戶的空間）→ 預算與採買 → 擺用品 → 節點 → 試養報告。
+// 「上傳房間」「居家安全」兩關已拿掉（渝茜 2026-11-07）：空間直接從背景資料抓，居家安全建議由環境報告顯示；
+// 居家危險仍在背景算出來（setHazards）只給故事事件用（節點 5 取風險最高的一項）。
 // 節點內照 catgame 原版的推進（24b expNext／expChoose／expMiniDone、24k expNextRound）：
 //   依序執行劇本步驟——場景、氣泡、花費紀錄、fn 直接處理；連續的台詞合成一段顯示；遇到選項、小遊戲就停下來等玩家；
 //   選了選項把 then 插到最前面；小遊戲結束把 then(結果) 插到最前面；{ end } 是送養結局，直接進報告。
 //   每段開始依月齡差累計每月花費（原版 X.monthly × months）；順序：主線 → 居家意外（只有節點 2）→ 個人化台詞（DEMO）→ 小叮嚀 → 飼養紀錄。
-import { pickNodeEvent, type NodeEvent } from "./events";
+import { addCare, careEffect, CARE_ACTS, skipEffect, type CareAct } from "./care";
 import { fullTx } from "./furniture";
 import type { Hazard } from "./hazards";
 import { money } from "./costs";
-import { STORY, type Ask, type CatPose, type Fx, type Life, type MiniId, type NodeId, type Speaker, type Step } from "./story";
+import { STORY, topRisk, type Ask, type CatPose, type Fx, type Life, type MiniId, type NodeId, type Speaker, type Step } from "./story";
+import { newCare } from "./care";
 
-export const STEPS = ["background", "room", "hazards", "shop", "place", "node", "report"] as const;
+export const STEPS = ["background", "shop", "place", "node", "report"] as const;
 export type Step_ = (typeof STEPS)[number];
 
 export interface Line { who?: Speaker; t: string; health?: boolean }
@@ -21,7 +24,9 @@ export type Cur =
   | { kind: "mini"; mini: MiniId; then: (r: unknown) => Step[] }
   | { kind: "personal" }
   | { kind: "page"; title: string; tip: string }
-  | { kind: "log" };
+  | { kind: "log" }
+  /** 在家的時光：6 個動作按鈕 */
+  | { kind: "home" };
 
 export interface PlayState {
   step: Step_;
@@ -36,10 +41,8 @@ export interface PlayState {
   hazards: Hazard[];
   /** 玩家勾選要處理的危險 key */
   handled: string[];
-  /** 節點 2 的居家意外（整場最多一件） */
-  event: NodeEvent | null;
-  /** 曾經插入事件的節點（測試用：確認只發生在節點 2、只有一次） */
-  eventNodes: NodeId[];
+  /** 這一輪在家的時光已經做過的動作 */
+  homeDone: CareAct[];
   /** 每月固定開銷（採買步驟用公式算好傳進來） */
   monthly: number;
 }
@@ -47,12 +50,13 @@ export interface PlayState {
 export const newLife = (labels: string[] = []): Life => ({
   name: "麻糬", age: 2, trust: 30, stress: 40, flags: {}, picks: [], notes: [], events: [],
   cost: { once: 0, month: 0, med: 0, acc: 0, other: 0 }, abandoned: false, labels,
+  care: newCare(), risk: null,
 });
 
 export const initialPlay = (): PlayState => ({
   step: "background", nodeIndex: 0, queue: [], cur: null, pageShown: false,
   scene: { bg: "room", time: "day", cat: "sit" }, bub: null, life: newLife(),
-  hazards: [], handled: [], event: null, eventNodes: [], monthly: 0,
+  hazards: [], handled: [], homeDone: [], monthly: 0,
 });
 
 export type PlayAction =
@@ -61,16 +65,18 @@ export type PlayAction =
   | { type: "setHazards"; hazards: Hazard[] }
   | { type: "toggleHandled"; key: string }
   /** 開始三個節點：labels＝房間物品清單；once／monthly＝採買公式算好的金額；shopPicks＝原版 fullBegin 依採買記下的紀錄 */
-  | { type: "startNodes"; labels: string[]; once: number; monthly: number; shopPicks?: { t: string; good: boolean | null }[]; rand?: () => number }
+  | { type: "startNodes"; labels: string[]; once: number; monthly: number; shopPicks?: { t: string; good: boolean | null }[] }
   | { type: "choose"; index: number }
   | { type: "miniDone"; result: unknown }
+  /** 在家的時光：做完一個動作（good＝小遊戲成功） */
+  | { type: "care"; act: CareAct; good: boolean }
   | { type: "restart" };
 
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 const nodeId = (s: PlayState): NodeId => STORY[s.nodeIndex].id;
 
 function cloneLife(l: Life): Life {
-  return { ...l, flags: { ...l.flags }, picks: [...l.picks], notes: [...l.notes], events: [...l.events], cost: { ...l.cost }, labels: l.labels };
+  return { ...l, flags: { ...l.flags }, picks: [...l.picks], notes: [...l.notes], events: [...l.events], cost: { ...l.cost }, labels: l.labels, care: { ...l.care, log: { ...l.care.log } } };
 }
 
 /** 原版 expApplyMeta＋expFx：花費（分醫療、意外、其他）、信任、壓力、旗標、紀錄 */
@@ -131,7 +137,7 @@ function run(prev: PlayState): PlayState {
 }
 
 /** 進入節點：累計每月花費、組這一段要演的步驟（主線 → 居家意外 → 個人化台詞） */
-function enterNode(prev: PlayState, nodeIndex: number, rand: () => number): PlayState {
+function enterNode(prev: PlayState, nodeIndex: number): PlayState {
   const s: PlayState = { ...prev, life: cloneLife(prev.life), nodeIndex, pageShown: false, bub: null };
   const node = STORY[nodeIndex], X = s.life;
   const prevAge = nodeIndex > 0 ? STORY[nodeIndex - 1].age : node.age;
@@ -140,19 +146,30 @@ function enterNode(prev: PlayState, nodeIndex: number, rand: () => number): Play
   if (months >= 1) X.notes.push({ t: `每月固定開銷約 ${money(s.monthly)} 元 × ${Math.round(months)} 個月（估算）`, node: node.id, spent: Math.round(s.monthly * months) });
   X.age = node.age;
   const q: Step[] = [...node.steps];
-  const ev = s.eventNodes.length ? null : pickNodeEvent(node.id, s.hazards, s.handled, X, rand);
-  if (ev) {
-    s.event = ev;
-    s.eventNodes = [...s.eventNodes, node.id];
-    q.push({ k: "fn", fn: L => { L.events.push({ node: node.id, id: ev.id, t: ev.title }); return ev.steps(L); } });
-  }
-  q.push({ k: "personal" });
+  if (node.personal) q.push({ k: "personal" });
   s.queue = q;
   s.scene = { bg: "room", time: "day", cat: "sit" };
   return run(s);
 }
 
-export function playReducer(s: PlayState, a: PlayAction, rand: () => number = Math.random): PlayState {
+/** 這一輪在家的時光結束：沒做的動作扣數值，輪數加一 */
+function endHome(s: PlayState): PlayState {
+  const life = cloneLife(s.life);
+  for (const { act } of CARE_ACTS) {
+    if (s.homeDone.includes(act)) continue;
+    const e = skipEffect(act);
+    life.care = addCare(life.care, e.d);
+    if (e.fx.stress) life.stress = clamp(life.stress + e.fx.stress, 0, 100);
+  }
+  life.care.rounds += 1;
+  return { ...s, life, homeDone: [] };
+}
+
+function advance(s: PlayState): PlayState {
+  return !s.life.abandoned && s.nodeIndex + 1 < STORY.length ? enterNode(s, s.nodeIndex + 1) : { ...s, step: "report", cur: null };
+}
+
+export function playReducer(s: PlayState, a: PlayAction): PlayState {
   switch (a.type) {
     case "restart": return initialPlay();
     case "goto": return { ...s, step: a.step };
@@ -162,8 +179,9 @@ export function playReducer(s: PlayState, a: PlayAction, rand: () => number = Ma
     case "startNodes": {
       const life = newLife(a.labels);
       life.cost.once = a.once;
-      (a.shopPicks ?? []).forEach(p => life.picks.push({ ...p, node: "first-day" }));
-      return enterNode({ ...s, step: "node", life, monthly: a.monthly, event: null, eventNodes: [] }, 0, a.rand ?? rand);
+      (a.shopPicks ?? []).forEach(p => life.picks.push({ ...p, node: "day1" }));
+      life.risk = topRisk(s.hazards);
+      return enterNode({ ...s, step: "node", life, monthly: a.monthly, homeDone: [] }, 0);
     }
     case "choose": {
       if (s.cur?.kind !== "ask") return s;
@@ -172,6 +190,16 @@ export function playReducer(s: PlayState, a: PlayAction, rand: () => number = Ma
       const n: PlayState = { ...s, life: cloneLife(s.life), queue: [...(o.then ?? []), ...s.queue] };
       apply(n, o);
       return run(n);
+    }
+    case "care": {
+      if (s.cur?.kind !== "home") return s;
+      const life = cloneLife(s.life);
+      const e = careEffect(a.act, a.good, Boolean(life.flags.brushDaily));
+      life.care = addCare(life.care, e.d);
+      life.care.log[a.act] = (life.care.log[a.act] ?? 0) + 1;
+      if (e.fx.trust) life.trust = clamp(life.trust + e.fx.trust, 0, 100);
+      if (e.fx.stress) life.stress = clamp(life.stress + e.fx.stress, 0, 100);
+      return { ...s, life, homeDone: s.homeDone.includes(a.act) ? s.homeDone : [...s.homeDone, a.act] };
     }
     case "miniDone": {
       if (s.cur?.kind !== "mini") return s;
@@ -184,8 +212,10 @@ export function playReducer(s: PlayState, a: PlayAction, rand: () => number = Ma
       }
       if (!s.cur) return run(s);
       if (s.cur.kind === "log") {
-        return !s.life.abandoned && s.nodeIndex + 1 < STORY.length ? enterNode(s, s.nodeIndex + 1, rand) : { ...s, step: "report", cur: null };
+        if (STORY[s.nodeIndex].home && !s.life.abandoned) return { ...s, cur: { kind: "home" }, homeDone: [] };
+        return advance(s);
       }
+      if (s.cur.kind === "home") return advance(endHome(s));
       if (s.cur.kind === "lines" || s.cur.kind === "page" || s.cur.kind === "personal") return run(s);
       return s; // 選項、小遊戲要等玩家操作
     }

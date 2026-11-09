@@ -27,7 +27,7 @@ describe("ClipList（UT 動作清單）", () => {
   it("列出動作庫全部動作：已有的可點，規劃中的灰色不可點並標示規劃中", () => {
     const pick = vi.fn();
     render(<ClipList available={["idle", "walk", "sleep"]} current="idle" onPick={pick} />);
-    expect(screen.getAllByRole("button")).toHaveLength(10);
+    expect(screen.getAllByRole("button")).toHaveLength(12);
     expect(screen.getByRole("button", { name: "待機" })).toHaveAttribute("aria-pressed", "true");
     const eat = screen.getByRole("button", { name: /吃飯/ });
     expect(eat).toBeDisabled();
@@ -36,6 +36,18 @@ describe("ClipList（UT 動作清單）", () => {
     expect(pick).toHaveBeenCalledWith("walk");
     fireEvent.click(eat);
     expect(pick).toHaveBeenCalledTimes(1);
+  });
+  it("跳躍分成 A、B 兩顆（#287）：幼貓可點；成貓母體沒有時灰色、標示此體型尚無（不是規劃中）", () => {
+    render(<ClipList available={["idle", "walk", "sleep", "sit", "jump_a", "jump_b"]} current="jump_b" onPick={() => {}} />);
+    expect(screen.queryByRole("button", { name: /^跳躍$/ })).toBeNull();
+    expect(screen.getByRole("button", { name: "跳躍-(下往上跳) A" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "跳躍-(往前跳) B" })).toHaveAttribute("aria-pressed", "true");
+    cleanup();
+    render(<ClipList available={["idle", "walk", "sleep", "sit"]} current="idle" onPick={() => {}} />);
+    const b = screen.getByRole("button", { name: /跳躍-\(往前跳\) B/ });
+    expect(b).toBeDisabled();
+    expect(b).toHaveTextContent("此體型尚無");
+    expect(b).not.toHaveTextContent("規劃中");
   });
   it("母體補入新動作後自動可點", () => {
     render(<ClipList available={["idle", "walk", "sleep", "eat"]} current={null} onPick={() => {}} />);

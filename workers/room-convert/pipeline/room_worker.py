@@ -8,8 +8,9 @@
 本機資料夾內容：room.json（狀態）、source.*（原始影片）、result/（成果）。
 本機模式每間房間一個資料夾；Supabase 模式讀 meow_room_jobs：
   後台房間（owner_household_id 是 null）：影片在 meow-room-videos，成果傳到公開的 meow-room-models。
-  前台我的 3D 房間（有 owner_household_id）：影片在 meow-home-videos，成果傳到私有的 meow-home-scenes/<喵戶>/<房間>/，
-    完成或失敗都通知喵戶長；環境報告由另一支 worker 做，兩邊都處理完才刪影片（決策 007）。
+  前台我的 3D 房間（有 owner_household_id）：影片在 Azure 私有容器 homes/<喵戶>/videos/…（#273，.env.worker 設
+    AZURE_STORAGE_ACCOUNT／KEY／CONTAINER），下載後再檢查一次格式、大小、長度（#243）；成果傳到私有的
+    meow-home-scenes/<喵戶>/<房間>/，完成或失敗都通知喵戶長。影片不刪，由主站的清理程式刪（#242）。
 後台房間成功後刪除原始影片、影格和中間檔（決策 007）；失敗時保留影片，可以把狀態改回 queued 重試。
 """
 import argparse
@@ -31,7 +32,8 @@ ROOT = Path(__file__).resolve().parent.parent
 POLL_SECONDS = 5
 VIDEO_BUCKET = "meow-room-videos"
 RESULT_BUCKET = "meow-room-models"
-HOME_VIDEO_BUCKET = "meow-home-videos"
+MAX_HOME_VIDEO_BYTES = 300 * 1024 * 1024  # 跟主站 src/lib/home-room.ts 一致（#243）
+MAX_HOME_VIDEO_SEC = 180
 HOME_RESULT_BUCKET = "meow-home-scenes"
 RESULT_FILES = ["scene.json", "scene.cameras.json", "scene.layout.json"]
 THUMB = "thumb.jpg"
@@ -147,6 +149,35 @@ class Supabase:
         self.request("DELETE", f"/storage/v1/object/{bucket}/{quote(path)}")
 
 
+class AzureBlob:
+    """前台居家影片的 Azure 私有容器（決策 006）。本機用儲存帳戶金鑰；搬上 VM 再改 Managed Identity。"""
+
+    def __init__(self, account, key, container):
+        from azure.storage.blob import ContainerClient
+        self.client = ContainerClient(f"https://{account}.blob.core.windows.net", container,
+                                      credential={"account_name": account, "account_key": key})
+
+    def download(self, path, target):
+        with open(target, "wb") as f:
+            self.client.download_blob(path).readinto(f)
+
+
+def check_home_video(video):
+    """主站簽網址前檢查過，下載後再檢查一次（#243），擋掉被換掉或壞掉的檔案。"""
+    if video.suffix.lower() not in (".mp4", ".mov"):
+        raise RuntimeError("影片格式不對，只收 mp4／mov")
+    if video.stat().st_size > MAX_HOME_VIDEO_BYTES:
+        raise RuntimeError("影片超過 300 MB")
+    import cv2
+    cap = cv2.VideoCapture(str(video))
+    fps, frames = cap.get(cv2.CAP_PROP_FPS), cap.get(cv2.CAP_PROP_FRAME_COUNT)
+    cap.release()
+    if not (fps > 0 and frames > 0):  # 讀不到時 OpenCV 回 -1
+        raise RuntimeError("讀不到影片")
+    if frames / fps > MAX_HOME_VIDEO_SEC + 1:  # 影格數換算的秒數會有些微誤差，多給 1 秒
+        raise RuntimeError("影片超過 180 秒")
+
+
 def now():
     return datetime.now(timezone.utc).isoformat()
 
@@ -170,8 +201,8 @@ def object_labels(scene_json):
     return [{"label": NAMES_ZH.get(l, l)} for l in dict.fromkeys(l for l in labels if l)]
 
 
-def finish_home(sb, room_id, household, video_path, ok):
-    """前台房間處理完：通知喵戶長；環境報告也處理完了才刪影片並寫 raw_deleted_at，否則留給報告那支 worker 刪。"""
+def finish_home(sb, room_id, household, ok):
+    """前台房間處理完：通知喵戶長。影片不刪，由主站的清理程式在 3D 和健檢都結束後刪（#242）。"""
     try:
         owner = sb.rest("GET", f"meow_households?id=eq.{household}&select=owner_id")[0]["owner_id"]
         sb.rest("POST", "meow_notifications", {
@@ -181,15 +212,6 @@ def finish_home(sb, room_id, household, video_path, ok):
             "link": f"/homes/{household}/scene"})
     except (OSError, IndexError, KeyError) as e:
         print(f"[worker] {room_id}：通知沒送出：{e}", flush=True)
-    try:
-        pending = sb.rest("GET", f"meow_env_reports?room_model_id=eq.{room_id}&status=in.(queued,running)&select=id")
-        if pending:
-            print(f"[worker] {room_id}：環境報告還沒好，影片留給報告那邊刪", flush=True)
-            return
-        sb.remove(HOME_VIDEO_BUCKET, video_path)
-        sb.rest("PATCH", f"meow_room_models?id=eq.{room_id}", {"video_path": None, "raw_deleted_at": now()})
-    except OSError as e:
-        print(f"[worker] {room_id}：雲端影片沒刪掉，請手動刪除 {HOME_VIDEO_BUCKET}/{video_path}：{e}", flush=True)
 
 
 def report_failed(sb, room_row, job_row, error):
@@ -209,7 +231,7 @@ def fail_stale(sb):
         report_failed(sb, f"meow_room_models?id=eq.{job['room_id']}", f"meow_room_jobs?id=eq.{job['id']}", "worker 中斷")
 
 
-def run_next_supabase(sb):
+def run_next_supabase(sb, blob=None):
     job = claim(sb)
     if not job:
         return False
@@ -219,7 +241,7 @@ def run_next_supabase(sb):
     print(f"[worker] 開始 {room_id}", flush=True)
     work = ROOT / "rooms" / "worker_tmp" / room_id
     set_step = lambda step: sb.rest("PATCH", job_row, {"step": step})
-    household = video_path = None
+    household = None
     try:
         sb.rest("PATCH", room_row, {"status": "running", "updated_at": now()})
         work.mkdir(parents=True, exist_ok=True)
@@ -229,7 +251,13 @@ def run_next_supabase(sb):
             raise RuntimeError("沒有影片，可能已經轉換過")
         video = work / Path(video_path).name
         set_step("下載影片")
-        sb.download(HOME_VIDEO_BUCKET if household else VIDEO_BUCKET, video_path, video)
+        if household:
+            if not blob:
+                raise RuntimeError(".env.worker 沒有設定 Azure，讀不到前台影片")
+            blob.download(video_path, video)
+            check_home_video(video)
+        else:
+            sb.download(VIDEO_BUCKET, video_path, video)
         convert(video, room_id, set_step, work / "result", work / "worker.log")
         set_step("上傳成果")
         # 前台：私有 bucket，路徑第一層要是喵戶 id（RLS 才讀得到）；後台：bucket 是公開的，用隨機名稱讓人猜不到網址
@@ -241,13 +269,13 @@ def run_next_supabase(sb):
         meta = {**(row.get("meta") or {}), **({"thumb": THUMB} if (work / "result" / THUMB).exists() else {})}
         if household:
             meta["objects"] = object_labels(work / "result" / "scene.json")
-        # 前台的影片要等環境報告也好了才刪（finish_home），這裡先不清 video_path
+        # 前台的 video_path 留著，主站的清理程式刪影片時才清
         sb.rest("PATCH", room_row, {"status": "ready", "result_path": result_path, "meta": meta, "updated_at": now(),
                                     **({} if household else {"video_path": None})})
         sb.rest("PATCH", job_row, {"status": "done", "step": None, "finished_at": now()})
         print(f"[worker] {room_id}：ready", flush=True)
         if household:
-            finish_home(sb, room_id, household, video_path, ok=True)
+            finish_home(sb, room_id, household, ok=True)
         else:
             try:  # 房間已經 ready，影片刪不掉只留警告，不能再改成失敗
                 sb.remove(VIDEO_BUCKET, video_path)
@@ -256,8 +284,8 @@ def run_next_supabase(sb):
     except Exception as e:  # 任何錯誤都要回報，不然工作會卡在 running；後台失敗時保留雲端影片，方便重試
         print(f"[worker] {room_id}：failed {e!r}", flush=True)
         report_failed(sb, room_row, job_row, str(e) or "轉換失敗")
-        if household and video_path:  # 前台失敗也要刪影片（決策 007），飼主重新拍一次
-            finish_home(sb, room_id, household, video_path, ok=False)
+        if household:  # 通知飼主重新拍一次；影片由主站的清理程式刪
+            finish_home(sb, room_id, household, ok=False)
     finally:
         shutil.rmtree(work, ignore_errors=True)
     return True
@@ -314,12 +342,16 @@ def main():
         if not url or not key:
             ap.error(f"請在 {args.env} 設定 NEXT_PUBLIC_SUPABASE_URL 和 SUPABASE_SERVICE_ROLE_KEY")
         sb = Supabase(url, key)
+        account, blob_key, container = env.get("AZURE_STORAGE_ACCOUNT"), env.get("AZURE_STORAGE_KEY"), env.get("AZURE_STORAGE_CONTAINER")
+        blob = AzureBlob(account, blob_key, container) if account and blob_key and container else None
+        if not blob:
+            print(f"[worker] {args.env} 沒有設定 AZURE_STORAGE_ACCOUNT／KEY／CONTAINER，前台的房間會失敗", flush=True)
         try:
             fail_stale(sb)
         except OSError as e:
             print(f"[worker] 檢查上次中斷的工作失敗：{e}", flush=True)
-        work = lambda: run_next_supabase(sb)
-        print(f"[worker] 等待 Supabase 的工作", flush=True)
+        work = lambda: run_next_supabase(sb, blob)
+        print(f"[worker] 等待 Supabase 的工作（前台影片讀 Azure {container or '未設定'}）", flush=True)
     else:
         if not args.root:
             ap.error("本機模式要指定工作資料夾，或加 --supabase")
