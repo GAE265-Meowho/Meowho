@@ -4,6 +4,7 @@
 // 年齡顯示年齡層＋大約年紀，例如「幼貓（約 3 個月）」（#206）。從中途領養來的貓，飼主在這裡提出退養請求（#109）。
 // 待領養貓可以「傳訊息給喵戶長」（#70，#128），對話在「領養管理」。
 // 準備中的貓只有中途看得到（0017 RLS）；中途在這裡確認 3D 模型、按「準備出發找新主人」（規格 09 §5）。
+// 有確認過的 3D 模型就顯示 3D 貓，可以按動作按鈕互動（Cat3D）；中途看自己的貓時改由 PublishPanel 顯示。
 // 新增貓流程（0024，#206）存的介紹、第一週、個性量表、照顧起來、基本資料也顯示在這裡（lib/cat-profile/profile-view.ts）。
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -13,6 +14,7 @@ import { ReturnRequest } from "@/components/cats/CatReturn";
 import { FavoriteButton } from "@/components/cats/FavoriteButton";
 import { MessageButton } from "@/components/cats/MessageButton";
 import { CatCare, CatPairs, CatTraits, CatWeek } from "@/components/cats/CatProfile";
+import { Cat3D } from "@/components/cats/Cat3D";
 import { PublishPanel } from "@/components/cats/PublishPanel";
 import s from "@/components/cats/catPage.module.css";
 import f from "@/components/onboarding/intake.module.css";
@@ -131,9 +133,9 @@ export default function CatPage() {
           </div>
         </section>
 
-        {isOwner && (cat.rawStatus === "preparing" || adoptable) && (
-          <PublishPanel catId={id} catName={cat.name} lifeStage={cat.lifeStage} status={cat.rawStatus} />
-        )}
+        {isOwner && (cat.rawStatus === "preparing" || adoptable)
+          ? <PublishPanel catId={id} catName={cat.name} lifeStage={cat.lifeStage} status={cat.rawStatus} />
+          : <Cat3D catId={id} catName={cat.name} />}
 
         {view && (adoptable || cat.rawStatus === "preparing") && <CatWeek name={cat.name} lines={view.week} />}
         {view && <CatTraits traits={view.traits} />}
