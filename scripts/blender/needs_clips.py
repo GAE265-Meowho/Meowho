@@ -13,13 +13,15 @@ from mathutils import Vector
 FPS = 30
 SIDES = (("left", 1), ("right", -1))
 
-# 吃飯時鼻尖最低到離地多高（成貓公尺，幼貓乘 √k）：太低會穿過地板；幼貓頭比例大，會自動少蹲一點、脖子少伸一點
-NOSE_MIN = 0.045
+# 吃飯時鼻尖要到的位置（骨架公尺，成貓幼貓相同：網頁上碗的大小不分體型）：
+# 前腳掌再往前 NOSE_AHEAD（腳掌踩在碗外、鼻子伸進碗裡）、離地 NOSE_HEIGHT（碗裡飼料／水面）。#304 Tina：貓不要踩進碗
+NOSE_AHEAD = 0.07
+NOSE_HEIGHT = 0.045
 EAT_DROP = 0.06                    # 整隻往下蹲多少（成貓公尺）
 EAT_FRONT_DROP = 0.07              # 胸口再多壓低多少（成貓公尺）
 EAT_NECK = [(0.0, -0.55, -0.83), (0.0, -0.35, -0.94)]
 EAT_HEAD = (0.0, -0.25, -0.97)     # 頭朝下（鼻尖朝碗）
-FLAT_NECK = [(0.0, -0.9, -0.44), (0.0, -0.85, -0.53)]   # 脖子少伸時往這個方向收
+FLAT_NECK = [(0.0, -1.0, -0.05), (0.0, -0.97, -0.25)]  # 脖子往前平伸（鼻子伸遠）
 FLAT_HEAD = (0.0, -0.6, -0.8)
 EAT_CHEW_DEG, EAT_CHEW_SEC = 6, 0.8        # 吃飯：每 0.8 秒咀嚼點頭一次
 DRINK_CHEW_DEG, DRINK_CHEW_SEC = 3, 0.35   # 喝水：快速小幅度舔水
@@ -107,14 +109,25 @@ def _eat_like(p, body, blink_keys, chew_deg, chew_sec):
         _head_down(p, f, nod, r)
         _plant_legs(p, f, rest)
 
-    # 從完整幅度往下試：先少蹲、再少伸脖子，挑鼻尖不低於 NOSE_MIN 的最大幅度
-    tries = [(m, 1.0) for m in (1.0, 0.85, 0.7, 0.55, 0.4, 0.25, 0.1, 0.0)] + [(0.0, r) for r in (0.8, 0.6, 0.4, 0.2, 0.0)]
-    for m, r in tries:
-        p.cache.clear()
-        if _nose_z(p, lambda f: pose(f, m, r)) >= NOSE_MIN * k ** 0.5:
-            break
+    # 試不同蹲低幅度 m 與脖子方向 r（0＝往前平伸、1＝往下），挑鼻尖最接近目標、前腳掌沒離地的組合
+    toe = p.rig.matrix_world @ p.rig.data.bones["leg_front_left_toe"].tail_local
+    goal_y, goal_z = toe.y - NOSE_AHEAD, NOSE_HEIGHT
+    best = None
+    for m in (0.0, 0.25, 0.5, 0.75, 1.0, 1.25, 1.5):
+        for r in (0.0, 0.25, 0.5, 0.75, 1.0):
+            p.cache.clear()
+            pose(0, m, r)
+            bpy.context.scene.frame_set(0)
+            bpy.context.view_layer.update()
+            W = p.rig.matrix_world
+            nose = W @ p.rig.pose.bones["head0"].tail
+            paw = W @ p.rig.pose.bones["leg_front_left_toe"].tail
+            err = abs(nose.y - goal_y) + abs(nose.z - goal_z) + max(0.0, paw.z - toe.z - 0.004) * 10
+            if best is None or err < best[0]:
+                best = (err, m, r, nose.y - toe.y, nose.z)
+    _, m, r, ahead, height = best
     p.cache.clear()
-    print(f"  蹲低 {m:.2f}、脖子 {r:.2f}")
+    print(f"  蹲低 {m:.2f}、脖子 {r:.2f}：鼻尖在前腳掌前 {-ahead * 100:.1f} cm、離地 {height * 100:.1f} cm")
     for f in range(0, n + 1, 2):
         t = f / FPS
         nod = round(chew_deg * max(0.0, sin(2 * pi * t / chew_sec)))   # 角度取整數，Poser 快取才不會每格都重算
