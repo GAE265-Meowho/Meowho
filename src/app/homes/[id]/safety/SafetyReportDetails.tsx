@@ -50,32 +50,26 @@ export function SafetyReportDetails({ householdId, reportId }: { householdId: st
     return <p role="status">這筆報告尚未發布完整的 AI 分析成果，暫時無法查看。</p>;
   }
 
-  // P1 PDF-first experience: the MeowHome "查看報告" link already routes to /safety.
-  // The iframe, "open" and "download" routes each re-authorize the owner and
-  // generate a fresh short-lived Azure SAS on every request, so old tabs still work.
-  if (report.published && pdfUrl) {
-    const pdfEndpoint = "/api/homes/" + encodeURIComponent(householdId)
-      + "/reports/" + encodeURIComponent(reportId) + "/pdf";
-    return (
-      <section className={k.pdfPanel} aria-label="WelfareLens 居家安全報告">
-        <iframe className={k.pdfViewer} title="WelfareLens 完整居家安全報告 PDF"
-          src={pdfEndpoint} referrerPolicy="no-referrer" loading="eager" />
-        <div className={k.pdfActions}>
-          <a className={k.pdfLink} href={pdfEndpoint + "?download=1"}>
-            下載 PDF
-          </a>
-          <a className={k.pdfOpen} href={pdfEndpoint} target="_blank"
-            rel="noopener noreferrer" referrerPolicy="no-referrer">
-            另開 PDF 檢視
-          </a>
-        </div>
-        <p className={k.source}>部分手機瀏覽器不支援內嵌 PDF，可選「另開 PDF 檢視」。改善後畫面為 AI 模擬示意，不代表現場已完成改善。</p>
-      </section>
-    );
-  }
+  // The PDF stays first for owners, while retaining the existing readable risk
+  // cards below it. Every action uses the same-origin route, which rechecks
+  // ownership and requests a fresh short-lived URL on each navigation.
+  const pdfEndpoint = "/api/homes/" + encodeURIComponent(householdId)
+    + "/reports/" + encodeURIComponent(reportId) + "/pdf";
 
   return (
     <div className={k.details}>
+      {report.published && pdfUrl && (
+        <section className={k.pdfPanel} aria-label="WelfareLens 居家安全報告">
+          <iframe className={k.pdfViewer} title="WelfareLens 完整居家安全報告 PDF"
+            src={pdfEndpoint} referrerPolicy="no-referrer" loading="eager" />
+          <div className={k.pdfActions}>
+            <a className={k.pdfLink} href={pdfEndpoint + "?download=1"}>下載 PDF</a>
+            <a className={k.pdfOpen} href={pdfEndpoint} target="_blank"
+              rel="noopener noreferrer" referrerPolicy="no-referrer">另開 PDF 檢視</a>
+          </div>
+          <p className={k.source}>部分手機瀏覽器不支援內嵌 PDF，可選「另開 PDF 檢視」。改善後畫面為 AI 模擬示意，不代表現場已完成改善。</p>
+        </section>
+      )}
       {report.demo && <p role="note"><b>示範報告（非真實 AI 分析）</b>：以下內容是預設範例，不代表你的居家環境已完成檢測。</p>}
       {summary && <p>{summary}</p>}
       {items.length === 0 ? <p>本次沒有提供可確認的風險項目；這不代表環境絕對安全。</p> : (
@@ -87,11 +81,7 @@ export function SafetyReportDetails({ householdId, reportId }: { householdId: st
                 <span className={k.level}>{LEVEL[item.level]}</span>
               </div>
               {item.note && <p>{item.note}</p>}
-              {item.cropUrl && (
-                // Private Azure SAS only works until its expiry; reloading refreshes it.
-                // eslint-disable-next-line @next/next/no-img-element
-                <img className={k.crop} src={item.cropUrl} alt={item.label + "的風險裁切照"} referrerPolicy="no-referrer" loading="lazy" />
-              )}
+              {item.cropUrl && <ReportCrop key={item.key} item={item} />}
             </li>
           ))}
         </ul>
@@ -102,14 +92,20 @@ export function SafetyReportDetails({ householdId, reportId }: { householdId: st
           <ul>{warnings.map((w, i) => <li key={w.code ?? i}>{w.message ?? "部分畫面仍需補拍確認。"}</li>)}</ul>
         </div>
       )}
-      {pdfUrl && (
-        <a className={k.pdfLink} href={pdfUrl} target="_blank" rel="noopener noreferrer" referrerPolicy="no-referrer">
-          看完整居家安全報告（PDF）
-        </a>
-      )}
       {!pdfUrl && !report.demo && <p className={k.source}>完整 PDF 只提供給喵戶本人；被分享者可查看風險摘要與裁切照。</p>}
       {report.demo && <p className={k.source}>示範資料不含裁切照或 PDF。真實報告需由上傳影片後的 WelfareLens Worker 產生。</p>}
       <p className={k.source}>這是輔助評估，不是獸醫診斷；AI 模擬改善不代表現場已完成改善。連結過期可重新載入頁面。</p>
     </div>
+  );
+}
+
+function ReportCrop({ item }: { item: RiskItem }) {
+  const [attempt, setAttempt] = useState(0);
+  const [failed, setFailed] = useState(false);
+  if (failed) return <button type="button" onClick={() => { setFailed(false); setAttempt(value => value + 1); }}>裁切照載入失敗，點此重新載入</button>;
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img key={attempt} className={k.crop} src={item.cropUrl ?? undefined} alt={item.label + "的風險裁切照"}
+      referrerPolicy="no-referrer" loading="lazy" onError={() => setFailed(true)} />
   );
 }

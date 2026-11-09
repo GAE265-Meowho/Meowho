@@ -6,7 +6,7 @@ const API_URL = "/api/homes/home-1/reports/report-1";
 const ready = {
   report: { id: "report-1", status: "ready", published: true, demo: false, error: null },
   summary: "已完成安全評估",
-  items: [],
+  items: [{ key: "cable", label: "電線", level: "high", note: "先整理", cropUrl: "/api/crop" }],
   warnings: [],
   pdfUrl: API_URL + "/pdf",
 };
@@ -29,6 +29,8 @@ describe("SafetyReportDetails PDF-first states", () => {
     const open = screen.getByRole("link", { name: "另開 PDF 檢視" });
     expect(open.getAttribute("href")).toBe(API_URL + "/pdf");
     expect(open.getAttribute("target")).toBe("_blank");
+    expect(await screen.findByText("電線")).toBeTruthy();
+    expect(screen.getByAltText("電線的風險裁切照").getAttribute("src")).toBe("/api/crop");
   });
 
   it("does not show broken PDF actions for a demo report", async () => {
@@ -68,5 +70,25 @@ describe("SafetyReportDetails PDF-first states", () => {
     await waitFor(() => expect(screen.getByTitle("WelfareLens 完整居家安全報告 PDF")).toBeTruthy());
     expect(screen.getByTitle("WelfareLens 完整居家安全報告 PDF").getAttribute("src")).toBe(API_URL + "/pdf");
     expect(fetch).toHaveBeenCalledWith(API_URL, expect.objectContaining({ cache: "no-store", credentials: "same-origin" }));
+  });
+
+  it("keeps summary and crops for a shared keeper without any PDF action", async () => {
+    vi.mocked(fetch).mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ ...ready, pdfUrl: null }),
+    } as Response);
+    render(<SafetyReportDetails householdId="home-1" reportId="report-1" />);
+    expect(await screen.findByText("電線")).toBeTruthy();
+    expect(screen.getByAltText("電線的風險裁切照")).toBeTruthy();
+    expect(screen.queryByTitle("WelfareLens 完整居家安全報告 PDF")).toBeNull();
+    expect(screen.queryByRole("link", { name: "下載 PDF" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "另開 PDF 檢視" })).toBeNull();
+  });
+
+  it("offers a retry when a crop request fails", async () => {
+    render(<SafetyReportDetails householdId="home-1" reportId="report-1" />);
+    const image = await screen.findByAltText("電線的風險裁切照");
+    image.dispatchEvent(new Event("error"));
+    expect(await screen.findByRole("button", { name: "裁切照載入失敗，點此重新載入" })).toBeTruthy();
   });
 });

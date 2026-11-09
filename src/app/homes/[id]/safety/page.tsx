@@ -10,7 +10,7 @@ import s from "@/components/me/me.module.css";
 import f from "@/components/onboarding/intake.module.css";
 import CatButton from "@/components/ui/CatButton";
 import Icon from "@/components/ui/Icon";
-import { SAFETY_ONLY_PRIVACY, SHOOTING_TIPS, demoReportRow, safetyRecords, type ReportRow } from "@/lib/home-room";
+import { SAFETY_ONLY_PRIVACY, SHOOTING_TIPS, demoReportRow, safetyBusyLabel, safetyRecords, type ReportRow } from "@/lib/home-room";
 import { getBrowserSupabase } from "@/lib/supabase/client";
 import { SafetyReportDetails } from "./SafetyReportDetails";
 import r from "../scene/scene.module.css";
@@ -96,7 +96,7 @@ export default function SafetyPage() {
           ) : <SafetyReportDetails householdId={id} reportId={shown.id} />}
           <div className={f.actions}>
             {busy
-              ? <CatButton disabled>安全檢測處理中</CatButton>
+              ? <CatButton disabled>{safetyBusyLabel(shown.status === "ready")}</CatButton>
               : <CatButton onClick={() => setAgain(true)}><Icon name="check" size={18} />再檢測一次</CatButton>}
             <CatButton variant="ghost" href="/me">回到我的喵戶</CatButton>
           </div>

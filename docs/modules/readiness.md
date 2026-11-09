@@ -156,7 +156,7 @@
 
 ## API／主要函式
 - 0017：`meow_save_cat_tasks()`、`meow_publish_cat()`、`meow_cat_publish_check()`、`meow_start_task_run()`、`meow_abandon_task_run()`、`meow_complete_task_run()`、`meow_share_task_proof()`、`meow_thread_task_status()`、`meow_finish_home_room()`、`meow_share_env_report()`
-- 安全報告（#277，Draft）：`GET /api/homes/[id]/reports/[reportId]` 以使用者 session/RLS 驗證本人或已分享的中途，只回摘要、項目、同源裁切圖 URL 與本人專用的同源 PDF URL；`GET .../[reportId]/pdf` 與 `GET .../[reportId]/crops/[key]` 每次重新授權後 redirect 至短效 Blob URL。PDF 直送 Azure，不經 Vercel Function。回傳格式與環境容器選擇見 `docs/spec/10_居家環境健檢Worker契約.md` §5.1。
+- 安全報告（#277，Draft）：`GET /api/homes/[id]/reports/[reportId]` 以使用者 session/RLS 驗證本人或已分享的中途，只回摘要、項目、同源裁切圖 URL 與本人專用的同源 PDF URL；`GET .../[reportId]/pdf` 與 `GET .../[reportId]/crops/[key]` 每次重新授權後 redirect 至短效 Blob URL。PDF 直送 Azure，不經 Vercel Function。Owner 頁面先顯示 PDF，再保留風險卡片；Keeper 僅顯示授權摘要／裁切圖。裁切圖載入失敗可重新請求同源路由。舊 queued 報告與 ready 報告並存時，已完成報告仍標示可查看。回傳格式與環境容器選擇見 `docs/spec/10_居家環境健檢Worker契約.md` §5.1。真實 Owner／Azure Preview 驗收仍待合法測試 session。
 - Storage Adapter：`getMediaStore().readUrl()` 使用部署設定的單一 `AZURE_STORAGE_CONTAINER`；測試／Preview 應為 `media-dev`，正式為 `media`。不得自動跨容器 fallback。共用 Supabase 下，真實報告只可由指向 `media-dev` 且具有合法 owner session 的測試環境讀取。
 - 待建立：環境影片風險偵測、情境劇本 AI 生成、任務 AI 摘要、Demo 加速模式
 
