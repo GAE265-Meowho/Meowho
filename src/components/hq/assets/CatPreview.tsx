@@ -40,6 +40,11 @@ export function propFor(clip: string | null | undefined, body: BodyType) {
   if (clip !== "jump_c") return null;
   return body === "kitten" ? CABINET : CABINET_ADULT;
 }
+/** 實際要畫的道具（#298）：載入的 glb 真的有這個動作才畫；還沒載入、或舊檔沒有這個動作時不畫，
+ *  否則貓播預設待機站在地上，會卡在櫃子裡 */
+export function visibleProp(clip: string | null | undefined, body: BodyType, loadedClips: string[] | null) {
+  return clip && loadedClips?.includes(clip) ? propFor(clip, body) : null;
+}
 
 /** 幼貓母體體長約 0.22 m（成貓約 0.45 m）：相機、目標照比例縮小，不然幼貓縮在畫面下方 */
 const KITTEN_SCALE = 0.5;
@@ -234,7 +239,8 @@ function Exposure({ light }: { light: number }) {
 export default function CatPreview(props: CatPreviewProps & { onError?: (e: Error) => void }) {
   const { light = 1, onError, body = "adult", clip = null, ...rest } = props;
   const view = framing(body, clip);
-  const prop = propFor(clip, body);
+  const [loadedClips, setLoadedClips] = useState<string[] | null>(null);
+  const prop = visibleProp(clip, body, loadedClips);
   // clip 改變時重建 Canvas，才能套用 sleep／跳躍／站姿不同的預設取景
   return (
     <Canvas
@@ -250,7 +256,7 @@ export default function CatPreview(props: CatPreviewProps & { onError?: (e: Erro
       <directionalLight position={[3, 4, 5]} intensity={1.5} />
       <PreviewBoundary onError={e => onError?.(e)}>
         <Suspense fallback={null}>
-          <CatModel {...rest} body={body} clip={clip} />
+          <CatModel {...rest} body={body} clip={clip} onInfo={info => { setLoadedClips(info.clips); rest.onInfo?.(info); }} />
           {prop && (
             <mesh position={prop.position}>
               <boxGeometry args={prop.size} />

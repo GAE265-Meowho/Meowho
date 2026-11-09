@@ -332,8 +332,12 @@ export async function sbBaseRedirect(body: BodyType = "adult"): Promise<string |
   if (!sb) return null;
   const name = baseFileName(body);
   const { data, error } = await sb.storage.from(MODEL_BUCKET).list(BASE_DIR, { search: name, limit: 10 });
-  if (error || !data?.some(f => f.name === name)) return null;
-  return publicObjectUrl(MODEL_BUCKET, `${BASE_DIR}/${name}`);
+  const file = data?.find(f => f.name === name);
+  if (error || !file) return null;
+  // 網址帶檔案更新時間（#298）：Storage 換新檔後網址跟著變，瀏覽器不會沿用快取的舊 glb
+  const version = file.updated_at ?? file.created_at;
+  const url = publicObjectUrl(MODEL_BUCKET, `${BASE_DIR}/${name}`);
+  return version ? `${url}?v=${encodeURIComponent(version)}` : url;
 }
 
 export type UploadTicket = { ok: true; id: string; bucket: string; path: string; token: string };
