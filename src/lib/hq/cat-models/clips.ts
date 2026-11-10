@@ -9,7 +9,7 @@ export interface ClipDef {
   status: ClipStatus;
 }
 
-export const CLIP_LIBRARY_VERSION = 7;
+export const CLIP_LIBRARY_VERSION = 8;
 export const FALLBACK_CLIP = "idle";
 /** 預覽預設瞳孔寬窄（細縫 0 → 全圓 1）；與 catEye EYE_DEFAULTS.pupil 相同 */
 export const DEFAULT_PUPIL = 0.25;
@@ -28,6 +28,8 @@ export const CLIP_LIBRARY: readonly ClipDef[] = [
   { code: "jump_c", label: "跳躍-(從櫃子往下跳) C", status: "ready" },
   { code: "rest", label: "休息", status: "ready" },
   { code: "groom", label: "理毛", status: "ready" },
+  // #331 奔跑貓（cat_runner_tabby.glb）專用；成貓、幼貓、大貓母體目前沒有
+  { code: "run", label: "奔跑", status: "ready" },
 ];
 
 /** 特定體型＋動作的預設瞳孔（沒登記就用 DEFAULT_PUPIL）；切動作時預覽會套用，滑桿仍可手動改 */

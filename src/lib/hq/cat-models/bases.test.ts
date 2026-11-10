@@ -2,8 +2,20 @@ import { describe, expect, it } from "vitest";
 import { BASE_TABS, baseInfo, baseTabHref, isPreviewBody, previewBaseUrl, previewDownloadUrl, previewFileName, previewFraming, resolveBaseTab } from "./bases";
 
 describe("體型預覽分頁（#302）", () => {
-  it("三個分頁依序為大貓、成貓、幼貓", () => {
-    expect(BASE_TABS.map(t => [t.value, t.label])).toEqual([["large", "大貓"], ["adult", "成貓"], ["kitten", "幼貓"]]);
+  it("分頁依序為大貓、成貓、幼貓、奔跑貓（#331）", () => {
+    expect(BASE_TABS.map(t => [t.value, t.label])).toEqual([["large", "大貓"], ["adult", "成貓"], ["kitten", "幼貓"], ["runner", "奔跑貓"]]);
+  });
+
+  it("奔跑貓（#331）：public 靜態檔、成貓取景、參考照片、不自動套用", () => {
+    expect(isPreviewBody("runner")).toBe(true);
+    expect(previewBaseUrl("runner")).toBe("/hq-cat-models/base/cat_runner_tabby.glb");
+    expect(previewDownloadUrl("runner")).toBe("/hq-cat-models/base/cat_runner_tabby.glb");
+    expect(previewFileName("runner")).toBe("cat_runner_tabby.glb");
+    expect(previewFraming("runner")).toBe("adult");
+    const info = baseInfo("runner");
+    expect(info.label).toBe("奔跑貓");
+    expect(info.photos.map(p => p.src)).toEqual(["/hq-cat-models/base/runner_ref_side.jpg", "/hq-cat-models/base/runner_ref_3q.jpg"]);
+    expect(info.autoApply).toBe(false);
   });
 
   it("網址 ?body= 不合法或沒填時預設大貓", () => {

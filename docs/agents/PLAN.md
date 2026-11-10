@@ -89,6 +89,7 @@
 | 23-12 | ~~MeowHQ 貓咪頁補傳正面／背部花紋照片~~（2026-11-02 Tina 決定不做：其他角度照片改在新增貓咪一起上傳；讀取部分併入 #110） | admin-moderation | 23-10 | P2 | #107 | Tina × Claude Code | 完成 |
 | 23-13 | MeowHQ AI 三視角照片（第一階段）、貼圖工作頁改名製作glb工作區；新增貓咪頁依 Stitch 改兩步驟、體型骨架預覽獨立一頁 | admin-moderation | 23-10 | P2 | #110 | Tina × Claude Code | 完成（#111 已合併） |
 | 23-14 | MeowHQ 左側選單改成 Stitch 分組＋圖示樣式；虛擬體驗元件管理區塊移到左側子選單 | admin-moderation | — | P2 | #113 | Tina × Claude Code | 完成（#114 已合併） |
+| 23-17 | MeowHQ 體型預覽新增奔跑貓（低多邊形橘白虎斑、奔跑動作） | admin-moderation | 23-16 | P3 | #331 | Tina × Claude Code | 完成 |
 | 23-16 | MeowHQ 還沒有 3D 的貓直接進製作glb工作區；列表動作數改進度欄；工作區顯示其他角度照片 2、3 | admin-moderation | 23-13 | P2 | #118 | Tina × Claude Code | 審查中 |
 | 23-17 | MeowHQ 新增貓咪頁移除樣品照、三張照片同列、加入性別並保留照片與資料 | admin-moderation | 23-13 | P2 | #120 | Tina × Codex | 完成（#121 已合併） |
 | 23-18 | MeowHQ 工作室左右分區、手機可收合虛擬貓咪檔案；新增貓咪名稱與性別同列 | admin-moderation | 23-17 | P2 | #123 | Tina × Codex | 審查中（待 PR） |
