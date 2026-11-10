@@ -1,14 +1,14 @@
 # HANDOFF — 接手的 agent 需要知道的事
 
 > 寫給「完全沒有上下文的下一個 agent」。只保留**現在仍然成立**的內容。
-> 最後更新：2026-11-10｜Jerry0808 × Codex（#326 通知與佇列隔離）；Tina × Claude Code（#330 幼貓吃飯喝水）
+> 最後更新：2026-11-10｜Jerry0808 × Codex（#326 通知與佇列隔離）；Tina × Claude Code（#336 成貓吃飯喝水 v2）
 
 ## 目前狀態
 - **WelfareLens #326 安全報告通知**：分支 `feat/326-env-report-notifications`，從最新 `origin/main`（`f328073`）建立；Draft PR [#327](https://github.com/GAE265-Meowho/Meowho/pull/327) 等子哲審查。通知 migration 是 `0033_meow_env_notifications.sql`（0032 已由 `meow_cat_embeddings` 使用）；本機 PGlite 測試通過，尚未部署。不可更改 #277、0031、Worker v05 或既有 `a1` 產物。
 - **#326 佇列隔離**：只完成設計，待子哲批准後才能實作。建議 Job 記錄受限 `blob_container`，create RPC 明確標記、scoped claim 僅領取相同容器；舊無 scope 工作先封鎖領取並人工盤點。詳見 `docs/modules/readiness.md`。
 - **WelfareLens 報告 API／PDF-first 安全評估頁（#273 C＋D，Jerry0808 × Codex，進行中）**：Draft PR #277、`feat/273-env-report-view`。離線 API/授權/UI 測試通過；PDF/crop 經授權路由 307 轉向短效 SAS（瀏覽器會收到 SAS URL，勿視為隱藏）；最新 head 的 Vercel check PASS；Preview 未登入 report/PDF/crop 實測 401 與 private,no-store。Owner session、Preview 的 Supabase project／Azure container／SAS 設定仍待核驗。
 - **#302 大貓體型預覽（Tina × Claude Code）**：分支 `feat/302-bases-large-cat`。`/MeowHQ/assets/bases?body=large|adult|kitten` 三分頁；大貓母體是 public 靜態檔 `base_clips_large.glb`（不走 Storage／母體 API），只有 idle、walk，沒有眼球。製作檔與腳本在 Tina 電腦 `Meow/配件模型/cat_base_large/`。大貓**尚未**進 `BodyType`／worker／資料表。
-- **#330 成貓、幼貓吃飯喝水重做（Tina × Claude Code）**：分支 `fix/330-kitten-eat-drink`。`base_clips.glb`、`base_clips_kitten.glb` 的 eat、drink 改由 `scripts/clips/eat_drink.mjs <glb> <glb> adult|kitten` 直接用各自骨架烘焙（參數在腳本 `BODIES`，不再用 `needs_clips.py`）。**之後若在 Tina 電腦用 `cat_base*/stepC_clips.py` 重新匯出 glb，eat、drink 會被蓋回舊版，匯出後要再跑一次這支腳本**。**合併後要上傳 Storage** `meow-cat-models/base/v1/base_clips.glb` 與 `base_clips_kitten.glb`（網站成貓優先用 Storage 版）。
+- **#336 成貓吃飯喝水 v2（Tina × Claude Code）**：分支 `fix/336-adult-eat-drink-v2`。`scripts/clips/eat_drink.mjs` 的 `BODIES.adult` 改用側面平面 IK（`ik:'planar'`，腿只繞 X 轉、不 roll）與新參數；成貓只寫旋轉與 root 位移。`base_clips.glb` 以 Tina 14:05 的 groom v3 版為底，**只換 eat、drink**（groom v3 一起進 repo）。成貓骨架頸根在肩關節上方 16 cm、頸根到鼻尖 14 cm，背線不折時鼻尖到不了 4.5 cm＋前 7 cm；Tina 選折衷 B（吃飯 6.6 cm／前 7 cm，喝水 6.1 cm）。幼貓 `base_clips_kitten.glb` 的 groom v3 在 Tina 本機 Meowho，未含在此分支。**重新匯出 glb 後要再跑 `node scripts/clips/eat_drink.mjs <glb> <glb> adult`**；合併後上傳 Storage `meow-cat-models/base/v1/base_clips.glb`。
 - **#283 幼貓坐下重做（Tina × Claude Code）**：分支 `fix/283-kitten-sit-redo`。`base_clips_kitten.glb` 的 sit 對齊 `Meow/cat_base_kitten/work/preview/虎斑小貓360度旋轉動畫.gif`；坐姿參數集中在 `cat_base_kitten/stepC_clips.py` 開頭的 `SIT_*`。**合併後要上傳 Storage** `meow-cat-models/base/v1/base_clips_kitten.glb`。Meow 不是 git repo，腳本只在 Tina 電腦。
 - **#259 平面圖轉換重複戶名（Tina × Cursor，已合併 #261）**：`0029_meow_room_floorplan_name_unique.sql`（既有重複改名不刪＋`source='floorplan'` partial unique index），INSERT 撞 index 回 `name_taken`。**0029 執行前須 Tina 確認**。
 - **#237 newgame 版劇情（渝茜 × Claude Code，分支 `feat/237-newgame-story`，未開 PR）**：`story.ts` 改成 6 節點＋結尾，每節點後有「在家的時光」（`care.ts`），開場一定擺外出籠（`public/play/cat_carrier.glb`）；節點 5 居家意外讀居家安全清單，之後要換世安報告 API。設計稿在團隊專題 `newgame/`。

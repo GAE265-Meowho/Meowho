@@ -59,4 +59,4 @@ pipeline/room_demo.sh 影片.mp4 房間名稱
 ## 注意
 - 只有完整品質（房間每秒 3 張影格、訓練 7000 步），2026-11-03 起刪除快速模式。
 - 不要提交 `rooms/`、影片、影格、`.ply`／`.splat`、`.env.worker`（已在 `.gitignore`）。
-- Azure VM（Linux）尚未驗證；VM 目前跑貓咪貼圖 worker，T4 不要同時跑兩種。
+- 和貓咪上色 worker（`workers/cat-paint`）共用同一台 VM 時，兩邊用檔案鎖 `/tmp/meowho-gpu.lock` 輪流領工作（#200）；等鎖期間工作維持 `queued`。
