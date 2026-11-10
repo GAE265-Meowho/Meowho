@@ -165,6 +165,14 @@
 - 0017：`meow_save_cat_tasks()`、`meow_publish_cat()`、`meow_cat_publish_check()`、`meow_start_task_run()`、`meow_abandon_task_run()`、`meow_complete_task_run()`、`meow_share_task_proof()`、`meow_thread_task_status()`、`meow_finish_home_room()`、`meow_share_env_report()`
 - 待建立：環境影片風險偵測、情境劇本 AI 生成、任務 AI 摘要、Demo 加速模式
 
+## #326 安全報告通知與佇列隔離
+
+- 通知方案 A 在本 PR 新增 `0033_meow_env_notifications.sql`，**只在本機 PGlite 驗證，尚未部署**。`meow_env_jobs` 首次轉為 `done`／`failed` 時，由同交易的 `SECURITY DEFINER` trigger 建立通知；只用該 job 的 `report_id`、相同的 `household_id` 關聯 `meow_households.owner_id`。不讀取或修改分享資料。
+- `meow_notifications.dedupe_key` nullable + partial unique index 作為去重：`env_job:<job UUID>:done|failed`。`queued`／`running`（含 requeued）不通知，job 狀態列鎖及 unique key 保護重複／併發終態呼叫；`already_done` 不會更新狀態。`claim` 判定 source 無效或租約耗盡而終結時也會通知。Worker RPC 簽章、回傳 JSON 與授權未改；匿名／authenticated 無權呼叫。
+- 失敗通知說明為「請稍後重新檢測；若畫面提示影片不符合拍攝須知，再重新拍攝即可。」避免系統錯誤時一律要求重拍。既有 `/notifications` 頁使用通用 `title/body/link` 顯示，RLS 僅允許讀本人通知，無需增加新 UI／權限。3D 房間 Worker 現行做法位於 `workers/room-convert/pipeline/room_worker.py`：終結後透過 service-role REST 查 household owner 再直接 POST notification，沒有通知冪等鍵；本 PR 不更動該流程。
+- **佇列隔離建議（等待子哲批准，未實作）**：在 `meow_env_jobs` 增加 nullable、受限的 `blob_container`（只允許 `media-dev`／`media`），新 `meow_create_home_processing` overload 由主站環境設定明確寫入；新 `meow_env_claim_scoped(worker, container)` 僅領取相同 `blob_container`。Worker claim 回傳維持 v05 現有 JSON 欄位與路徑格式；Worker 需有容器 allowlist，且核對傳入 scope 與實際 Azure client container 一致。舊 `meow_env_claim(worker)` 簽章保留但需改為 fail-closed（不領任何工作）；無 scope 舊 Job 先維持不可領取，盤點容器後另行核准回填。
+- **部署順序**：先確認沒有舊版常駐 Worker，再合併 migration，子哲審 SQL 後手動部署；舊 claim 立即 fail-closed；接著部署會從 server env 選容器的主站版本與 scoped Worker。用兩筆新測試 job 驗證交叉拒領後，才可分別安排正式 Worker。這會要求 Worker 做最小 claim 協定更新，但不改 v05 的 job 輸出 schema。測試涵蓋 `media-dev` Worker 只領 dev、`media` Worker 只領 prod、錯誤／空 scope 不領取、舊 Job 隔離、輸出契約相容及 attempt/prefix 隔離。任何回填、`--once` 或常駐執行均需子哲同意；不覆寫／重跑既有 `a1`。
+
 ## 主要檔案
 - `src/components/Sections.tsx`（`TrialBoard`、`Steps`）
 - 虛擬飼養 DEMO（#237）：`src/app/cats/[id]/play/page.tsx`、`src/components/play/`（`PlayGame` 流程、`PlayStage` 3D、`ShopStep`、`NodeStep`、`ReportStep`、`catgame/` 原版小遊戲）、`src/lib/play/`（`flow.ts` 狀態機、`story.ts` 劇情、`events.ts` 意外、`furniture.ts` 通稱、`hazards.ts`、`costs.ts`、`room.ts`、`stage.ts`、`background.ts`、`lines.ts`、`report.ts`、`items.ts`、`cats.ts`、`api.ts`、`handlers.ts`）、`src/app/api/play/{hazards,lines,advice}/route.ts`、`src/lib/ai/play.ts`、`src/lib/prompts/play.ts`

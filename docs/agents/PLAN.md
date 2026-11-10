@@ -18,6 +18,8 @@
 
 ## 任務（tracer-bullet，每張可獨立 Demo）
 
+- WelfareLens 安全報告通知／佇列隔離設計（#326，Jerry0808 × Codex，2026-11-10）：通知 migration `0033` 已本機實作與 PGlite 驗證，待建立獨立 PR／子哲審查，禁止自行部署；佇列採 job container scope + scoped claim 的建議待批准，尚未實作。
+
 - 虛擬飼養 DEMO（#237，渝茜 × Claude Code，2026-11-06）：審查中；PR #244、分支 `feat/237-catgame-demo`。`/cats/[id]/play` 3 個節點、AI 危險／台詞／建議（規則備案）、採買花費、3D 娃娃屋擺用品、小遊戲、試養報告；Azure／喵戶讀取／遠端 GLB／掃描房間未在沙盒實測。
 - 跳躍腰部摺痕、成貓從櫃子往下跳重新規劃（#300，Tina × Claude Code，2026-11-09）：審查中；分支 `fix/300-jump-waist-fold`。合併後成貓 glb 要再上傳 Storage。
 - 母體 glb 快取版本號、沒有跳躍 C 不畫櫃子（#298，Tina × Claude Code，2026-11-09）：完成（PR #299 已合併）。

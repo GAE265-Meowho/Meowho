@@ -1,9 +1,11 @@
 # HANDOFF — 接手的 agent 需要知道的事
 
 > 寫給「完全沒有上下文的下一個 agent」。只保留**現在仍然成立**的內容。
-> 最後更新：2026-11-08｜Tina × Claude Code（#283 幼貓坐下重做）
+> 最後更新：2026-11-10｜Jerry0808 × Codex（#326 通知與佇列隔離）
 
 ## 目前狀態
+- **WelfareLens #326 安全報告通知**：分支 `feat/326-env-report-notifications`，從最新 `origin/main`（`f328073`）建立。通知 migration 是 `0033_meow_env_notifications.sql`（0032 已由 `meow_cat_embeddings` 使用）；本機 PGlite 測試通過，尚未部署，待建立獨立 PR 及子哲審核。不可更改 #277、0031、Worker v05 或既有 `a1` 產物。
+- **#326 佇列隔離**：只完成設計，待子哲批准後才能實作。建議 Job 記錄受限 `blob_container`，create RPC 明確標記、scoped claim 僅領取相同容器；舊無 scope 工作先封鎖領取並人工盤點。詳見 `docs/modules/readiness.md`。
 - **#302 大貓體型預覽（Tina × Claude Code）**：分支 `feat/302-bases-large-cat`。`/MeowHQ/assets/bases?body=large|adult|kitten` 三分頁；大貓母體是 public 靜態檔 `base_clips_large.glb`（不走 Storage／母體 API），只有 idle、walk，沒有眼球。製作檔與腳本在 Tina 電腦 `Meow/配件模型/cat_base_large/`。大貓**尚未**進 `BodyType`／worker／資料表。
 - **#283 幼貓坐下重做（Tina × Claude Code）**：分支 `fix/283-kitten-sit-redo`。`base_clips_kitten.glb` 的 sit 對齊 `Meow/cat_base_kitten/work/preview/虎斑小貓360度旋轉動畫.gif`；坐姿參數集中在 `cat_base_kitten/stepC_clips.py` 開頭的 `SIT_*`。**合併後要上傳 Storage** `meow-cat-models/base/v1/base_clips_kitten.glb`。Meow 不是 git repo，腳本只在 Tina 電腦。
 - **#259 平面圖轉換重複戶名（Tina × Cursor，已合併 #261）**：`0029_meow_room_floorplan_name_unique.sql`（既有重複改名不刪＋`source='floorplan'` partial unique index），INSERT 撞 index 回 `name_taken`。**0029 執行前須 Tina 確認**。
