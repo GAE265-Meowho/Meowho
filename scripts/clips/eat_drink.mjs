@@ -65,6 +65,50 @@ export function pose(objs, rest, scene, p){
   }
   scene.updateMatrixWorld(true);
 }
+// ---------- 成貓 v2：側面平面 IK（只繞 X 轉，不 roll）----------
+const yzAng=v=>Math.atan2(v.z,v.y);   // 繞 +X 轉 θ：此角度 +θ
+// 側面平面（繞 X）兩節 IK：a、b 只繞 X 轉，c 尾端落到 T；side=+1 中間關節往前（+Z）、-1 往後
+function planarIk(a,b,cTip,T,side){
+  const A=wp(a), B=wp(b), C=wp(cTip);
+  const yz=v=>new THREE.Vector2(v.z,v.y);
+  const L1=yz(B).distanceTo(yz(A)), L2=yz(C).distanceTo(yz(B));
+  const t=yz(T).sub(yz(A)); let D=Math.min(t.length(), L1+L2-1e-6); D=Math.max(D,Math.abs(L1-L2)+1e-6);
+  const al=Math.acos(Math.max(-1,Math.min(1,(L1*L1+D*D-L2*L2)/(2*L1*D))));
+  const base=Math.atan2(t.y,t.x); // angle in (z,y) plane
+  // 腿朝下時，cross(A→T, A→B) > 0 代表中間關節在前（+Z）
+  let best=null;
+  for(const sg of [1,-1]){ const ang=base+sg*al; const d=new THREE.Vector2(Math.cos(ang),Math.sin(ang)).multiplyScalar(L1);
+    const cross=t.x*d.y-t.y*d.x; if(!best||cross*side>best.c) best={Bn:d.add(yz(A)),c:cross*side}; }
+  const Bw=new THREE.Vector3(B.x,best.Bn.y,best.Bn.x);
+  rotWorld(a,X, yzAng(Bw.clone().sub(A))-yzAng(B.clone().sub(A)));
+  const B2=wp(b), C2=wp(cTip);
+  rotWorld(b,X, yzAng(T.clone().sub(B2))-yzAng(C2.clone().sub(B2)));
+}
+// p: drop, bodyP（body 繞 X）, hipP（body_bot 反向，維持臀部）, a0, a1（兩節前胸）, n0, n1, h
+function poseAdult(objs, rest, scene, p){
+  objs.root.position.y -= p.drop; scene.updateMatrixWorld(true);
+  if(p.bodyP) rotWorld(objs.body,X,p.bodyP);
+  if(p.hipP) rotWorld(objs.body_bot,X,p.hipP);
+  rotWorld(objs.body_top0,X,p.a0); rotWorld(objs.body_top1,X,p.a1);
+  rotWorld(objs.neck0,X,p.n0); rotWorld(objs.neck1,X,p.n1); rotWorld(objs.head0,X,p.h);
+  for(const lr of ['left','right']){
+    const f='leg_front_'+lr, h='leg_hind_'+lr;
+    // 前腳：前臂 bot0 從站姿腳掌位置往後倒 fa（手肘往後），肩胛 top0＋上臂 top1 平面 IK 接到手肘（肩關節往前），
+    // 再把前臂轉到腳掌站姿位置；腳踝、腳趾維持站姿方向（腳掌平貼、不翻）
+    const ank=rest[f+'_ankle'].p.clone(), elb0=rest[f+'_bot0'].p.clone();
+    const Lf=new THREE.Vector2(elb0.z-ank.z, elb0.y-ank.y).length(); const ang0=Math.atan2(elb0.z-ank.z, elb0.y-ank.y);
+    const fa=ang0-(p.fa||0);
+    const E=new THREE.Vector3(elb0.x, ank.y+Lf*Math.cos(fa), ank.z+Lf*Math.sin(fa));
+    planarIk(objs[f+'_top0'],objs[f+'_top1'],objs[f+'_bot0'],E,1);
+    { const B=wp(objs[f+'_bot0']), C=wp(objs[f+'_ankle']); rotWorld(objs[f+'_bot0'],X, yzAng(ank.clone().sub(B))-yzAng(C.clone().sub(B))); }
+    setWorldQuat(objs[f+'_ankle'],rest[f+'_ankle'].q.clone()); setWorldQuat(objs[f+'_toe'],rest[f+'_toe'].q.clone());
+    // 後腳：大腿 top0＋小腿 top1，膝蓋往前；跗蹠 bot0 維持站姿方向
+    planarIk(objs[h+'_top0'],objs[h+'_top1'],objs[h+'_bot0'],rest[h+'_bot0'].p.clone(),1);
+    setWorldQuat(objs[h+'_bot0'],rest[h+'_bot0'].q.clone());
+  }
+  scene.updateMatrixWorld(true);
+}
+
 const [src,dst,body='kitten']=process.argv.slice(2);
 const {io,doc}=await load(src); const {scene,objs,map}=build(doc); const rest=capture(objs,scene);
 const FPS=30, N=120, STEP=2, Y=new THREE.Vector3(0,1,0);
@@ -73,20 +117,27 @@ const FPS=30, N=120, STEP=2, Y=new THREE.Vector3(0,1,0);
 const BODIES={
   // 幼貓：頭大脖子短，微蹲就夠；鼻尖離地約 4 cm、在前腳掌前方約 4 cm
   kitten:{BASE:{drop:0.009, spine:0.15, n0:0.5, n1:0.28}, CLIPS:{ eat:{h:0.25, nod:6, sec:0.8}, drink:{h:0.33, nod:3, sec:0.4} }},
-  // 成貓：站姿鼻尖離地 37 cm，前半身要真的蹲下；前傾分給兩節脊椎、脖子往前伸（n0、n1 負＝往上抬回），避免脖子折痕、頭縮進胸口
-  // 鼻尖離地約 6 cm、在前腳掌前方約 7 cm（腳踩在碗外，#304）
-  adult:{BASE:{drop:0.07, spine:0.7, spine1:0.6, n0:-0.35, n1:-0.2}, CLIPS:{ eat:{h:0.3, nod:6, sec:0.8}, drink:{h:0.4, nod:3, sec:0.4} }},
+  // 成貓 v2（#336）：舊版（兩節脊椎 0.7／0.6、脖子往回抬、最小旋轉 IK）肩膀折尖角、胸口塌、上臂被扭、前腿外八，已作廢。
+  // 新版：微蹲 9 cm；body 前傾 0.2（body_bot 反向 0.2 維持臀部）、body_top0 0.38、body_top1 0.31，背是緩弧；
+  // 腿只繞貓的左右軸（X）在側面平面解 IK（不 roll、不外八）：前腳前臂往後倒 0.14（手肘往後）、肩胛＋上臂接手肘、腳踝腳趾維持站姿方向；
+  // 後腳大腿＋小腿、膝蓋往前，跗蹠維持站姿方向。
+  // 成貓骨架頸根在肩關節上方 16 cm、頸根到鼻尖只有 14 cm，在背線不折的前提下鼻尖到不了 4.5 cm＋前 7 cm；
+  // Tina 2026-11-10 選折衷 B：吃飯鼻尖離地約 6.6 cm、在前腳掌前約 7 cm；喝水頭再低 0.1（約 6.1 cm）。身體兩者相同。
+  adult:{ik:'planar', BASE:{drop:0.09, bodyP:0.20, hipP:-0.20, a0:0.38, a1:0.31, fa:0.14, n0:0.11, n1:0.21},
+    CLIPS:{ eat:{h:-0.18, nod:6, sec:0.8}, drink:{h:-0.08, nod:3, sec:0.4} }},
 };
-const {BASE,CLIPS}=BODIES[body];
+const {BASE,CLIPS,ik:IK='min'}=BODIES[body];
 const buf=doc.getRoot().listBuffers()[0];
 for(const [name,c] of Object.entries(CLIPS)){
   const anim=doc.getRoot().listAnimations().find(a=>a.getName()===name);
-  const chans=anim.listChannels().filter(ch=>ch.getTargetPath()!=='weights');
+  const chans=anim.listChannels().filter(ch=>{ const t=ch.getTargetPath(); if(t==='weights') return false;
+    if(IK!=='planar') return true;
+    return t==='rotation' || (t==='translation' && ch.getTargetNode().getName()==='root'); });   // 成貓只寫旋轉與 root 位移，不寫 scale
   const times=[], vals=chans.map(()=>[]);
   for(let f=0; f<=N; f+=STEP){ const t=f/FPS; times.push(t);
     reset(objs); scene.updateMatrixWorld(true);
     const nod=THREE.MathUtils.degToRad(c.nod*Math.max(0,Math.sin(2*Math.PI*t/c.sec)));
-    pose(objs,rest,scene,{...BASE,h:c.h+nod});
+    if(IK==='planar') poseAdult(objs,rest,scene,{...BASE,h:c.h+nod}); else pose(objs,rest,scene,{...BASE,h:c.h+nod});
     for(let i=0;i<7;i++){ const b=objs['tail'+i]; if(!b) continue;
       if(i<2) rotWorld(b,X,THREE.MathUtils.degToRad(12));                       // 尾巴根部放低
       rotWorld(b,Y,THREE.MathUtils.degToRad((3+i)*Math.sin(2*Math.PI*t/4 - i*0.4))); }  // 慢慢擺
