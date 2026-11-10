@@ -63,3 +63,12 @@
   .cg :global(.bar > i) { transition: none; }
   .cg :global(.tail), .cg :global(.blink), .cg :global(.breathe) { animation: none; }
 }
+
+/* 手機：小遊戲從下方升起，佔滿寬度，按鈕好按 */
+@media (max-width: 640px) {
+  .cg :global(.scrim) { align-items: flex-end; padding: 0; }
+  .cg :global(.modal) { max-width: none; max-height: 92dvh; border-radius: 22px 22px 0 0; padding: 16px 16px max(16px, env(safe-area-inset-bottom)); gap: 10px; }
+  .cg :global(.modal h2) { font-size: 19px; }
+  .cg :global(.small) { font-size: 14px; line-height: 1.6; }
+  .cg :global(.modal button) { min-height: 48px; }
+}

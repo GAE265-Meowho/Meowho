@@ -92,6 +92,22 @@ export const emptyShop = (): ShopPick => ({
   scratcher: true, toy: true, cam: false, budget: 0,
 });
 
+/** 採買的預設：貓砂、砂盆、碗、零食、預備金、貓抓板、逗貓棒都幫玩家備好（不給選），只有飼料要自己選 */
+export const defaultShop = (): ShopPick => ({
+  dryId: null, wetId: null, litter: 0, box: 0, bowls: 0, treat: 1, fund: 1,
+  scratcher: true, toy: true, cam: false, budget: 0,
+});
+
+/** 後台的選項比預設少時，把預設的序號收進範圍（使用者沒得選，不該因此變成「還沒選」） */
+export function clampShop(p: ShopPick, shop?: PlayShop): ShopPick {
+  const next = { ...p };
+  for (const k of Object.keys(SHOP_ITEMS) as ShopItemKey[]) {
+    const n = shopOpts(k, shop).length, v = p[k];
+    if (v !== null && n > 0 && v >= n) next[k] = n - 1;
+  }
+  return (Object.keys(SHOP_ITEMS) as ShopItemKey[]).every(k => next[k] === p[k]) ? p : next;
+}
+
 const buyable = (id: string | null, cat: "dry" | "wet") => {
   const p = id ? getFoodProduct(id) : undefined;
   return p && p.category === cat && !p.requiresVetDiagnosis && canVirtuallyBuy(p, false) && p.referencePrice ? p : null;

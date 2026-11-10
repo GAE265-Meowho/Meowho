@@ -183,3 +183,123 @@
 @media (prefers-reduced-motion: reduce) {
   .bar span { transition: none; }
 }
+
+/* ---------- 全螢幕（擺用品、飼養）：3D 房間佔滿整個螢幕，劇情與選項是底下的卡片，手機優先 ---------- */
+.srOnly { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.page[data-immersive="true"] {
+  position: fixed; inset: 0; z-index: 900; max-width: none; margin: 0; padding: 0; gap: 0; overflow: hidden;
+  background: var(--yellow-soft); width: 100%; height: 100dvh;
+}
+.page[data-immersive="true"] .stage { position: absolute; inset: 0; border-radius: 0; }
+.page[data-immersive="true"] .stage :global(.hq-roomviewer),
+.page[data-immersive="true"] .stage :global(.hq-fp-3dwrap) { height: 100%; }
+.page[data-immersive="true"] .stage :global(.hq-fp-3d) { height: 100%; border: 0; border-radius: 0; }
+.page[data-immersive="true"] .stage :global(.hq-roomviewer-host) { height: 100%; }
+.page[data-immersive="true"] .stage :global(.hq-roomviewer-bar) { display: none; }
+.page[data-immersive="true"] .stageLoading { height: 100%; }
+.page[data-immersive="true"] .stageTag { display: none; }
+
+.hud {
+  position: absolute; z-index: 5; top: 0; left: 0; right: 0; display: flex; justify-content: space-between; align-items: flex-start; gap: 8px;
+  padding: max(10px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) 0 max(12px, env(safe-area-inset-left)); pointer-events: none;
+}
+.hud > * { pointer-events: auto; }
+.hudInfo { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; min-width: 0; }
+.hudRow { display: flex; flex-wrap: wrap; gap: 6px; min-width: 0; }
+.hudChip {
+  padding: 5px 12px; border-radius: 999px; background: var(--card); color: var(--ink); font-size: 14px; font-weight: 700;
+  box-shadow: 0 2px 0 var(--line); max-width: 60vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.exit {
+  display: inline-flex; align-items: center; justify-content: center; min-height: 44px; min-width: 44px; padding: 0 16px; border-radius: 999px;
+  background: var(--card); color: var(--ink); border: 2px solid var(--line); font-weight: 700; font-size: 14px; text-decoration: none; flex: 0 0 auto;
+}
+.exit:focus-visible, .peekBtn:focus-visible { outline: 3px solid var(--orange); outline-offset: 2px; }
+
+.sheet {
+  position: absolute; z-index: 4; left: 0; right: 0; bottom: 0; max-height: 56dvh; overflow-y: auto; overscroll-behavior: contain;
+  display: flex; flex-direction: column; align-items: center; gap: 8px; pointer-events: none;
+  padding: 0 max(10px, env(safe-area-inset-right)) max(10px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
+}
+.sheet > * { pointer-events: auto; width: 100%; max-width: 640px; }
+.sheet .card { padding: 16px 16px 14px; gap: 12px; border-radius: 24px; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.16); }
+.sheet .card h2 { font-size: 19px; }
+.sheet .text { font-size: 16px; line-height: 1.75; }
+.sheet .actions { position: sticky; bottom: -14px; z-index: 1; padding: 8px 0 4px; background: var(--card); }
+.sheet .chipBtn { min-height: 40px; padding: 4px 12px; }
+.sheet .lead { font-size: 14px; line-height: 1.6; }
+.sheet .chips { gap: 6px; }
+.sheet .option { min-height: 48px; }
+.peekBtn {
+  align-self: flex-end; width: auto; min-height: 44px; padding: 0 16px; border-radius: 999px; border: 2px solid var(--line);
+  background: var(--card); color: var(--ink); font: inherit; font-size: 14px; font-weight: 700; cursor: pointer; box-shadow: 0 2px 0 var(--line);
+}
+.sheet[data-peek="true"] > :not(.peekBtn) { display: none; }
+@media (min-width: 900px) {
+  .sheet { max-height: 44dvh; padding-bottom: 20px; }
+  .sheet .text { font-size: 17px; }
+}
+@media (max-height: 520px) { .sheet { max-height: 70dvh; } }
+
+/* ---------- 手機：一般頁面（你的家、採買、報告） ---------- */
+@media (max-width: 480px) {
+  .page { padding: 14px 14px max(120px, calc(90px + env(safe-area-inset-bottom))); gap: 14px; }
+  .steps { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-inline: -14px; padding-inline: 14px; }
+  .steps::-webkit-scrollbar { display: none; }
+  .steps li { white-space: nowrap; flex: 0 0 auto; }
+  .card { border-radius: 24px; padding: 16px 14px; }
+  .facts { gap: 8px; }
+  .facts div { padding: 8px 12px; border-radius: 16px; }
+  .facts dd { font-size: 15px; }
+  .actions > * { flex: 1 1 100%; }
+  .input { max-width: none; }
+}
+
+.careGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.careGrid .option { text-align: center; padding: 8px 10px; font-weight: 700; }
+
+.kit { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+.kit li { display: flex; justify-content: space-between; gap: 12px; padding: 8px 12px; border-radius: 14px; background: var(--paper); color: var(--ink); font-size: 15px; }
+.kit li span:last-child { color: var(--ink-soft); white-space: nowrap; }
+
+/* 信任（愛心）與壓力（火焰）：五顆，實心＝有、空心＝沒有 */
+.meters {
+  display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: center; padding: 5px 12px; border-radius: 999px;
+  background: var(--card); box-shadow: 0 2px 0 var(--line); max-width: calc(100vw - 100px);
+}
+.meter5 { display: inline-flex; align-items: center; gap: 6px; color: var(--ink); font-size: 13px; }
+.meter5 b { font-weight: 700; }
+.icons { display: inline-flex; gap: 1px; }
+.icon { width: 18px; height: 18px; fill: none; stroke-width: 1.6; stroke-linejoin: round; }
+.heart { stroke: #d6455a; }
+.heart[data-on="true"] { fill: #e8586d; }
+.flame { stroke: #d9710f; }
+.flame[data-on="true"] { fill: #f28a1d; }
+@media (max-width: 380px) { .icon { width: 16px; height: 16px; } .meters { gap: 2px 8px; padding: 4px 10px; } }
+
+/* 貓頭頂的小對話框（表情符號）：3D 房間由 RoomViewer 算位置，這裡只管長相 */
+.stage :global(.hq-roomviewer-bubble) {
+  position: absolute; z-index: 3; display: none; transform: translate(-50%, -100%); pointer-events: none;
+  padding: 4px 12px; border-radius: 18px; background: #fff; box-shadow: 0 3px 10px rgba(0, 0, 0, 0.25); font-size: 28px; line-height: 1.3;
+  animation: bubbleBob 1.6s ease-in-out infinite;
+}
+.stage :global(.hq-roomviewer-bubble)::after {
+  content: ""; position: absolute; left: 50%; bottom: -8px; width: 14px; height: 14px; background: #fff; transform: translateX(-50%) rotate(45deg);
+  border-radius: 0 0 4px 0;
+}
+.bubbleFixed {
+  position: absolute; z-index: 3; left: 50%; top: 34%; transform: translateX(-50%); padding: 4px 12px; border-radius: 18px; background: #fff;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.25); font-size: 28px; line-height: 1.3; pointer-events: none;
+}
+@keyframes bubbleBob { 0%, 100% { margin-top: 0; } 50% { margin-top: -6px; } }
+@media (prefers-reduced-motion: reduce) { .stage :global(.hq-roomviewer-bubble) { animation: none; } }
+
+/* 在家的時光：畫面上方一排圖示（沒做＝白底不透明，做過＝半透明）；右下角只放「結束今天，繼續故事」 */
+.careBar { position: absolute; z-index: 5; top: calc(max(10px, env(safe-area-inset-top)) + 92px); left: 0; right: 0; display: flex; justify-content: center; gap: 8px; padding: 0 10px; pointer-events: none; }
+.careIcon {
+  pointer-events: auto; width: 44px; height: 44px; padding: 0; border-radius: 50%; border: 2px solid var(--line); background: #fff; font-size: 22px; line-height: 1;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2); cursor: pointer; transition: opacity 0.2s;
+}
+.careIcon[data-done="true"] { opacity: 0.4; background: rgba(255, 255, 255, 0.5); }
+.careIcon:focus-visible { outline: 3px solid var(--orange); outline-offset: 2px; }
+.sheet .homeFinish { display: flex; justify-content: flex-end; width: 100%; max-width: none; }

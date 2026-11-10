@@ -4,7 +4,7 @@ import { careEffect, CARE_ACTS, skipEffect } from "./care";
 import { initialPlay, playReducer, STEPS, type PlayAction, type PlayState } from "./flow";
 import { ruleHazards, type Hazard } from "./hazards";
 import { DEMO_DOLLHOUSE, inventoryFromPlan } from "./room";
-import { STORY, topRisk, VET_RISKS } from "./story";
+import { STORY, topRisk, VET_RISKS, type CatTraits } from "./story";
 
 const labels = inventoryFromPlan(DEMO_DOLLHOUSE).labels;
 const hazards: Hazard[] = ruleHazards({ labels, hasWindow: true });
@@ -12,7 +12,7 @@ const hazards: Hazard[] = ruleHazards({ labels, hasWindow: true });
 interface Opts { hazards?: Hazard[]; doCare?: boolean; careGood?: boolean; choose?: (labels: string[]) => number }
 
 /** 從頭玩到報告；每個在家的時光都把 6 個動作做完（doCare）或全部跳過 */
-function playThrough(opts: Opts = {}) {
+function playThrough(opts: Opts & { startMonths?: number; cat?: CatTraits } = {}) {
   let s: PlayState = initialPlay();
   const seen: string[] = [];
   const personal: string[] = [];
@@ -21,13 +21,14 @@ function playThrough(opts: Opts = {}) {
   // 背景讀到空間後在背景算出居家危險（給故事事件用），不再有「上傳房間」「居家安全」兩關
   go({ type: "setHazards", hazards: opts.hazards ?? hazards });
   go({ type: "next" }); go({ type: "next" });
-  go({ type: "startNodes", catName: "麻糬", labels, once: 2700, monthly: 2000, shopPicks: [{ t: "每月存醫療預備金", good: true }] });
+  go({ type: "startNodes", catName: "麻糬", labels, once: 2700, monthly: 2000, shopPicks: [{ t: "每月存醫療預備金", good: true }], startMonths: opts.startMonths, cat: opts.cat });
   for (let guard = 0; guard < 600 && s.step === "node"; guard++) {
     const c = s.cur!;
     if (c.kind === "lines") seen.push(...c.lines.map(l => l.t));
     if (c.kind === "personal") personal.push(String(s.life.age));
     if (c.kind === "ask") go({ type: "choose", index: opts.choose ? opts.choose(c.options.map(o => o.l)) : 0 });
     else if (c.kind === "mini") go({ type: "miniDone", result: true });
+    else if (c.kind === "relocate") go({ type: "relocated" });
     else if (c.kind === "home") {
       homes.push(s.nodeIndex);
       if (opts.doCare ?? true) for (const { act } of CARE_ACTS) go({ type: "care", act, good: opts.careGood ?? true });
@@ -177,3 +178,83 @@ describe("結尾與花費", () => {
     expect(personal).toHaveLength(3);
   });
 });
+
+describe("年紀大的貓", () => {
+  const texts = (r: ReturnType<typeof playThrough>) => r.seen.join("|");
+  it("14 歲的貓：結尾不超過 20 歲、年紀往上、劇情不再寫小貓", () => {
+    const r = playThrough({ startMonths: 168 });
+    expect(r.s.life.age).toBeLessThanOrEqual(240);
+    expect(r.s.life.age).toBeGreaterThan(168);
+    expect(texts(r)).toContain("享年 20 歲");
+    expect(texts(r)).not.toContain("毛球就咻地鑽進");
+    expect(texts(r)).not.toContain("小貓");
+    expect(texts(r)).not.toContain("十歲了");
+  });
+  it("2 個月的小貓：照原本劇本，結尾 15 歲", () => {
+    const r = playThrough();
+    expect(texts(r)).toContain("享年 15 歲");
+    expect(texts(r)).toContain("10 歲了");
+    expect(texts(r)).toContain("小貓");
+  });
+});
+
+describe("跟著這隻貓的資料走", () => {
+  const all = (cat: CatTraits) => playThrough({ cat }).seen.join("|");
+  it("花色：橘貓寫橘貓、三花寫三花貓、沒填只寫貓，不再固定虎斑", () => {
+    expect(all({ coat: "橘貓", sex: "unknown", neutered: null })).toContain("小小的橘貓");
+    expect(all({ coat: "三花", sex: "unknown", neutered: null })).toContain("小小的三花貓");
+    expect(all({ coat: null, sex: "unknown", neutered: null })).toContain("小小的貓");
+    expect(all({ coat: "橘貓", sex: "male", neutered: null })).not.toContain("虎斑");
+  });
+  it("結紮主題：公貓看到噴尿、母貓看到半夜叫，然後去看醫生", () => {
+    const m = all({ coat: null, sex: "male", neutered: null }), f = all({ coat: null, sex: "female", neutered: null });
+    expect(m).toContain("噴尿"); expect(m).toContain("公貓差不多"); expect(m).not.toContain("半夜一直叫");
+    expect(f).toContain("半夜一直叫"); expect(f).toContain("母貓差不多"); expect(f).not.toContain("牆角、紙箱旁噴尿");
+    expect(all({ coat: null, sex: "unknown", neutered: null })).not.toMatch(/公貓差不多|母貓差不多/);
+  });
+  it("已經結紮：沒有結紮主題，節點 4 是平凡的一天，不收手術費", () => {
+    const r = playThrough({ cat: { coat: null, sex: "male", neutered: true } });
+    const t = r.seen.join("|");
+    expect(t).toContain("今天沒有什麼特別的事"); expect(t).toContain("已經結紮了"); expect(t).not.toContain("明天帶牠去給醫生看看");
+    const open = playThrough({ cat: { coat: null, sex: "male", neutered: false } });
+    expect(open.s.life.cost.med - r.s.life.cost.med).toBe(3500);
+  });
+  it("成貓：不管有沒有結紮資料，節點 4 都是平凡的一天", () => {
+    const t = playThrough({ startMonths: 36, cat: { coat: null, sex: "male", neutered: null } }).seen.join("|");
+    expect(t).toContain("今天沒有什麼特別的事"); expect(t).not.toContain("結紮了嗎");
+    expect(t).not.toContain("明天帶牠去給醫生看看");
+  });
+
+});
+
+describe("起始心情來自中途評論", () => {
+  it("startNodes 帶 mood 就用它當一開始的信任與壓力", () => {
+    const s = playReducer(initialPlay(), { type: "startNodes", catName: "小花", labels: [], once: 0, monthly: 0, mood: { trust: 55, stress: 22 } });
+    expect(s.life.trust).toBe(55); expect(s.life.stress).toBe(22);
+  });
+});
+
+describe("第 3 天：砂盆搬家", () => {
+  it("選分開放：等玩家重新擺好貓砂盆才往下演；放一起也要搬", () => {
+    for (const [idx, mode] of [[0, "apart"], [1, "together"]] as const) {
+      let s = playReducer(initialPlay(), { type: "startNodes", catName: "小花", labels: [], once: 0, monthly: 0 });
+      while (s.cur?.kind !== "ask" || s.nodeIndex !== 1) s = playReducer(s, s.cur?.kind === "ask" ? { type: "choose", index: 0 } : s.cur?.kind === "home" ? { type: "next" } : { type: "next" });
+      s = playReducer(s, { type: "choose", index: idx });
+      expect(s.cur).toMatchObject({ kind: "relocate", mode });
+      s = playReducer(s, { type: "relocated" });
+      expect(s.cur?.kind).toBe("lines");
+    }
+  });
+});
+
+describe("在家的時光：做好才算完成", () => {
+  it("做壞只記下試過，不算完成；結束時不再重複扣沒做的分", () => {
+    let s = playReducer(initialPlay(), { type: "startNodes", catName: "小花", labels: [], once: 0, monthly: 0 });
+    while (s.cur?.kind !== "home") s = playReducer(s, s.cur?.kind === "ask" ? { type: "choose", index: 0 } : s.cur?.kind === "mini" ? { type: "miniDone", result: true } : s.cur?.kind === "relocate" ? { type: "relocated" } : { type: "next" });
+    s = playReducer(s, { type: "care", act: "feed", good: false });
+    expect(s.homeDone).not.toContain("feed"); expect(s.homeTried).toContain("feed");
+    s = playReducer(s, { type: "care", act: "water", good: true });
+    expect(s.homeDone).toContain("water");
+  });
+});
+

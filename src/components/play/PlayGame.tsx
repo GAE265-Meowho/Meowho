@@ -13,8 +13,11 @@ import CatButton from "@/components/ui/CatButton";
 import { houseScene } from "@/lib/hq/floorplans/scene";
 import { SAMPLE_HOME } from "@/lib/play/background";
 import { catKicker } from "@/lib/play/player-data";
+import { nodeLabel } from "@/lib/play/timeline";
+import { catBubble } from "@/lib/play/needs";
+import { StatusMeters } from "./StatusMeters";
 import type { PlayCatSource } from "@/lib/play/source";
-import { emptyShop, money, playFoods, shopCost, type PlayShop, type ShopPick } from "@/lib/play/costs";
+import { clampShop, defaultShop, money, playFoods, shopCost, type PlayShop, type ShopPick } from "@/lib/play/costs";
 import { playShop, type PlayCatalogItem } from "@/lib/play/catalog";
 import { initialPlay, playReducer, type PlayAction } from "@/lib/play/flow";
 import { homeWord } from "@/lib/play/furniture";
@@ -27,8 +30,8 @@ import { goalFor, itemSpots, type CatAction } from "@/lib/play/stage";
 import { STORY, type CatPose, type NodeId } from "@/lib/play/story";
 import { CARE_ACTS, careGood, type CareAct } from "@/lib/play/care";
 import { CatgameMini } from "./catgame/CatgameMini";
-import type { MiniCtx, RhythmKey, ToyKey } from "./catgame/minis";
-import { HomeStep } from "./HomeStep";
+import type { MiniCtx } from "./catgame/minis";
+import { CareBar, HomeStep } from "./HomeStep";
 import { NodeStep } from "./NodeStep";
 import { PlayStage } from "./PlayStage";
 import { ScanWand } from "./ScanWand";
@@ -46,7 +49,6 @@ const POSE_ACTION: Record<CatPose, CatAction | null> = {
   sit: "idle", carrier: "carrier", underbed: "hide", hide: "hide", sofa: "sofa", zoom: "explore", frail: "sleep", bed: "sleep", table: "idle", none: null,
 };
 /** 原版 newGame：喜歡的玩具、玩的節奏開局隨機抽（玩家看不到）；DEMO 一開始只有羽毛逗貓棒 */
-const pickOne = <T,>(xs: readonly T[]) => xs[Math.floor(Math.random() * xs.length)];
 
 /** 後台生活用品的價格、選項、模型（伺服器 API 代讀）；讀不到或後台沒有就回空，沿用程式裡寫的 */
 function usePlayShop(): PlayShop {
@@ -86,8 +88,7 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
   const [room, setRoom] = useState<RoomState | null>(null);
   const hazardsAsked = useRef(false);
   const roomLoading = useRef(false);
-  const [pick, setPick] = useState<ShopPick>(emptyShop);
-  const taste = useRef<{ toyPref: ToyKey; rhythm: RhythmKey } | null>(null);
+  const [pick, setPick] = useState<ShopPick>(defaultShop);
   const [placed, setPlaced] = useState<PlacedHouseholdItem[]>([]);
   const [placing, setPlacing] = useState<PlayItem["id"]>("carrier");
   /** 掃描房間：RoomViewer 不能放模型，先記下選的位置（家具名稱） */
@@ -96,16 +97,20 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
   const top = useRef<HTMLHeadingElement>(null);
   /** 在家的時光：正在玩哪一個動作的小遊戲 */
   const [careAct, setCareAct] = useState<CareAct | null>(null);
+  /** 手機：把下方的劇情卡收起來，看整個 3D 房間 */
+  const [peek, setPeek] = useState(false);
 
   const catName = cat.name;
   // 這隻貓到家時的月齡：有生日／估計月齡用真實的，沒填用劇本原本的 2 個月；體型 12 個月以下用幼貓、以上用成貓
   const startMonths = cat.months ?? 2;
+  const catTraits = useMemo(() => ({ coat: cat.coat, sex: cat.sex, neutered: cat.neutered }), [cat.coat, cat.sex, cat.neutered]);
   const bodyAt = (months: number): "kitten" | "adult" => (months < 12 ? "kitten" : "adult");
   const labels = useMemo(() => room?.inventory.labels ?? [], [room]);
   const places = useMemo(() => ({ hide: homeWord("躲藏處", labels) ?? "角落", high: homeWord("高處", labels) ?? "", sofa: "沙發" }), [labels]);
   const node = STORY[state.nodeIndex];
   const cur = state.cur;
   const shop = shopCost(pick, "kitten", backShop);
+  useEffect(() => { setPick(p => clampShop(p, backShop)); }, [backShop]);
   const shopMissing = [...(pick.budget ? [] : ["每月預算"]), ...shop.missing];
 
   // 每月預算：建喵戶時填的，自動帶進採買步驟（還是可以改）
@@ -181,7 +186,7 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
   const careAction: CatAction | null = careAct === "scoop" ? "litter" : careAct === "play" ? "explore" : careAct === "feed" ? "eat" : null;
   const action: CatAction | null = state.step !== "node" ? "idle"
     : careAction ? careAction
-    : miniId === "hide" ? "hide" : miniId === "scoop" ? "litter" : miniId === "play" ? "explore" : POSE_ACTION[state.scene.cat];
+    : miniId === "scoop" ? "litter" : POSE_ACTION[state.scene.cat];
   const sceneKey = state.step === "node" ? `${state.nodeIndex}:${state.scene.bg}:${state.scene.time}:${state.scene.cat}:${miniId}:${careAct}` : state.step;
   const goal = useMemo<(RoomClick & { at: number }) | null>(() => {
     if (state.step !== "node" || !action) return null;
@@ -196,7 +201,10 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [sceneKey]);
   // 3D 逗貓（掃描房間）：在家的時光按「逗貓」或節點裡的逗貓小遊戲
-  const scanWand = kind === "scan" && state.step === "node" && (careAct === "play" || miniId === "play");
+  const playMini = state.step === "node" && cur?.kind === "mini" && cur.mini === "play";
+  // 示範娃娃屋沒有 3D 逗貓：劇情裡的逗貓直接略過
+  useEffect(() => { if (playMini && kind !== "scan") dispatch({ type: "miniDone", result: {} }); }, [playMini, kind]);
+  const scanWand = kind === "scan" && state.step === "node" && (careAct === "play" || playMini);
   const [catches, setCatches] = useState(0);
   const toy = useMemo(() => ({ id: "toy", near: null, ...resolvePlayToy(backShop) }), [backShop]);
   const wand = useMemo(() => (scanWand ? { toy, onCatch: (c: boolean) => { if (c) setCatches(n => n + 1); } } : null), [scanWand, toy]);
@@ -205,14 +213,13 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
   const look = action === null ? null : cat.look(state.step === "node" || state.step === "report" ? bodyAt(state.life.age) : cat.body);
 
   const startNodes = () => {
-    taste.current = { toyPref: pickOne(["feather", "mouse", "ribbon"] as const), rhythm: pickOne(["quick", "slow"] as const) };
     // 原版 fullBegin：依採買記下幾件事
     const shopPicks: { t: string; good: boolean | null }[] = [];
     if (!pick.scratcher) shopPicks.push({ t: "採買時沒有買貓抓板", good: null });
     if (pick.dryId && !pick.wetId) shopPicks.push({ t: "只準備了乾糧，貓喝水可能不夠", good: null });
     if (pick.fund) shopPicks.push({ t: "每月存醫療預備金", good: true });
     // 外出籠是中途送的，一定要擺、不計花費
-    dispatch({ type: "startNodes", catName, labels, once: shop.once, monthly: shop.month, shopPicks, startMonths }); 
+    dispatch({ type: "startNodes", catName, labels, once: shop.once, monthly: shop.month, shopPicks, startMonths, cat: catTraits, mood: cat.mood }); 
   };
   // 網址加 ?quick=1：跳過背景、採買、擺用品，直接進第 1 個節點（試玩用）。房間用背景自動讀到的空間
   const quickDone = useRef(false);
@@ -224,8 +231,8 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
     (async () => {
       const lab = r.inventory.labels;
       const foods = playFoods("kitten").filter(f => f.canBuy);
-      const qp: ShopPick = { ...emptyShop(), dryId: foods.find(f => f.product.category === "dry")?.product.id ?? null, wetId: foods.find(f => f.product.category === "wet")?.product.id ?? null,
-        litter: 0, box: 0, bowls: 0, treat: 1, fund: 1, budget: extras?.budget ?? 5000 };
+      const qp: ShopPick = { ...defaultShop(), dryId: foods.find(f => f.product.category === "dry")?.product.id ?? null, wetId: foods.find(f => f.product.category === "wet")?.product.id ?? null,
+        budget: extras?.budget ?? 5000 };
       setPick(qp);
       const qs = shopCost(qp, "kitten", backShop);
       if (r.kind === "dollhouse") {
@@ -237,17 +244,16 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
         }
         setPlaced(list);
       } else setScanSpots(Object.fromEntries(playItems.map((it, i) => [it.id, `${lab[i] ?? "房間"}旁`])));
-      taste.current = { toyPref: pickOne(["feather", "mouse", "ribbon"] as const), rhythm: pickOne(["quick", "slow"] as const) };
       dispatch({ type: "setHazards", hazards: ruleHazards({ labels: lab.slice(0, 40), hasWindow: r.inventory.hasWindow }) });
-      dispatch({ type: "startNodes", catName, labels: lab, once: qs.once, monthly: qs.month, shopPicks: [], startMonths });
+      dispatch({ type: "startNodes", catName, labels: lab, once: qs.once, monthly: qs.month, shopPicks: [], startMonths, cat: catTraits, mood: cat.mood });
     })();
-  }, [home, room, state.step, backShop, playItems, extras, catName, startMonths]);
+  }, [home, room, state.step, backShop, playItems, extras, catName, startMonths, catTraits, cat.mood]);
 
   const miniCtx: MiniCtx = {
-    age: state.life.age, toys: ["feather"],
+    age: state.life.age,
     // 刷牙訓練階段：每做一次升一階（原版從「碰碰嘴邊」開始，最後到牙刷全口）
     brushLevel: Math.min(4, state.life.care.log.brush ?? 0),
-    cat: { body: 5, trust: state.life.trust, stress: state.life.stress, toyPref: taste.current?.toyPref ?? "feather", rhythm: taste.current?.rhythm ?? "quick", tabby: cat.tabby },
+    cat: { body: 5, trust: state.life.trust, stress: state.life.stress, tabby: cat.tabby },
   };
 
   const placeAt = (id: PlayItem["id"], at: { x: number; z: number; y: number; support: PlaceAt["support"] }) => {
@@ -276,19 +282,61 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
     if (other) setPlacing(other.id);
   };
 
+  // 第 3 天：砂盆和碗「放在一起／分開」是真的搬東西——放一起就自動搬到碗旁，分開就請玩家重選一個位置
+  const bowlSpot = scanSpots.bowl ?? null;
+  const apartSpots = useMemo(() => {
+    if (kind === "scan") return spotList.filter(p => p.label !== bowlSpot && p.label !== scanSpots.litter_box);
+    const bowl = spots.find(x => x.id === "bowl");
+    return itemSpots(ROOM_SCENE, playItem("litter_box"), spots.filter(x => x.id !== "litter_box"), FURNITURE_NAMES)
+      .filter(p => !bowl || Math.hypot(p.x - bowl.x, p.z - bowl.z) > 1.2).slice(0, 6);
+  }, [kind, spotList, bowlSpot, scanSpots.litter_box, spots, playItem]);
+  const relocateMode = state.step === "node" && cur?.kind === "relocate" ? cur.mode : null;
+  useEffect(() => {
+    if (relocateMode !== "together") return;
+    if (kind === "scan" && bowlSpot) setScanSpots(v => ({ ...v, litter_box: bowlSpot }));
+    dispatch({ type: "relocated" });
+  }, [relocateMode, kind, bowlSpot]);
+  const moveLitter = (p: { x: number; z: number; label: string }) => {
+    if (kind === "scan") setScanSpots(v => ({ ...v, litter_box: p.label }));
+    else placeAt("litter_box", { x: p.x, z: p.z, y: 0, support: null });
+    dispatch({ type: "relocated" });
+  };
+
   const stepIndex = STEP_LABELS.findIndex(([k]) => k === state.step);
   const showStage = room && (state.step === "place" || state.step === "node");
+  // 擺用品、飼養時 3D 房間佔滿整個螢幕，劇情與選項變成底下的卡片
+  const immersive = Boolean(showStage);
+  // 貓頭頂的小對話框：劇情的情緒，或在家的時光裡牠現在最想要的
+  const bubble = state.step === "node" ? catBubble({ storyBub: cur?.kind === "home" ? null : state.bub, home: cur?.kind === "home", busy: careAct !== null, done: state.homeDone, canPlay: kind === "scan" }) : null;
+  // 有對話框時把鏡頭轉向貓，不然框只能貼在畫面邊緣
+  const lookKey = state.step === "node" && bubble && !careAct ? `${state.nodeIndex}:${cur?.kind}:${bubble}:${state.life.care.rounds}` : null;
+  const canPeek = state.step === "place" || (state.step === "node" && cur?.kind !== "mini" && !careAct);
+  useEffect(() => { setPeek(false); }, [state.step, state.nodeIndex, cur]);
 
   return (
-    <div className={s.page}>
-      <h1 className={s.title} ref={top}><span>{catName}的</span><span>虛擬飼養</span></h1>
-      <ol className={s.steps} aria-label="進度">
-        {STEP_LABELS.map(([k, label], i) => <li key={k} aria-current={i === stepIndex ? "step" : undefined}>{label}</li>)}
-      </ol>
+    <div className={s.page} data-immersive={immersive ? "true" : undefined}>
+      <h1 className={immersive ? s.srOnly : s.title} ref={top}><span>{catName}的</span><span>虛擬飼養</span></h1>
+      {immersive ? (
+        <div className={s.hud}>
+          <div className={s.hudInfo}>
+            <div className={s.hudRow}>
+              <span className={s.hudChip}>{catName}・{STEP_LABELS[stepIndex]?.[1]}</span>
+              {state.step === "node" && <span className={s.hudChip}>{nodeLabel(node, state.startMonths)}</span>}
+            </div>
+            {state.step === "node" && <StatusMeters trust={state.life.trust} stress={state.life.stress} />}
+          </div>
+          <a className={s.exit} href={catHref} onClick={e => { if (!window.confirm("要離開虛擬飼養嗎？目前的進度不會保留。")) e.preventDefault(); }}>離開</a>
+        </div>
+      ) : (
+        <ol className={s.steps} aria-label="進度">
+          {STEP_LABELS.map(([k, label], i) => <li key={k} aria-current={i === stepIndex ? "step" : undefined}>{label}</li>)}
+        </ol>
+      )}
+
+      {immersive && state.step === "node" && cur?.kind === "home" && !careAct && <CareBar state={state} canPlay={kind === "scan"} onAct={setCareAct} />}
 
       {showStage && (
-        <PlayStage kind={kind} scanBase={scanBase} look={look} placed={placed} scanItems={scanItems} story={story} wand={wand}
-          tag={state.step === "node" ? node.label : undefined}
+        <PlayStage kind={kind} scanBase={scanBase} look={look} bubble={bubble} bubbleInset={peek || (cur?.kind === "home" && !careAct) ? 0.08 : 0.48} lookKey={lookKey} placed={placed} scanItems={scanItems} story={story} wand={wand}
           goal={goal} clip={clip} speed={state.step === "node" ? node.speed : 1}
           onDrop={state.step === "place" && kind === "dollhouse"
             ? (id, at) => { if (playItems.some(i => i.id === id)) placeAt(id as PlayItem["id"], at); }
@@ -334,6 +382,8 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
         </>
       )}
 
+      {immersive && <div className={s.sheet} data-peek={peek ? "true" : undefined}>
+      {canPeek && <button type="button" className={s.peekBtn} aria-pressed={peek} onClick={() => setPeek(p => !p)}>{peek ? "回到劇情" : "看看房間"}</button>}
       {state.step === "place" && (
         <section className={s.card} aria-labelledby="place-title">
           <h2 id="place-title">把外出籠、餐碗和貓砂盆放進房間</h2>
@@ -366,13 +416,23 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
         <NodeStep state={state} personal={personal}
           onNext={() => dispatch({ type: "next" })} onChoose={i => dispatch({ type: "choose", index: i })} />
       )}
+      {relocateMode === "apart" && (
+        <section className={s.card} aria-labelledby="relocate-title">
+          <h2 id="relocate-title">把貓砂盆搬到別的地方</h2>
+          <p className={s.lead}>選一個離餐碗遠一點、安靜的位置：</p>
+          <div className={s.chips} role="group" aria-label="貓砂盆的新位置">
+            {apartSpots.map(p => <button key={p.label} type="button" className={s.chipBtn} onClick={() => moveLitter(p)}>{p.label}</button>)}
+          </div>
+        </section>
+      )}
       {state.step === "node" && cur?.kind === "home" && !careAct && (
-        <HomeStep state={state} onAct={setCareAct} onFinish={() => dispatch({ type: "next" })} />
+        <HomeStep onFinish={() => dispatch({ type: "next" })} />
       )}
-      {state.step === "node" && cur?.kind === "mini" && scanWand && (
-        <ScanWand key={`${state.nodeIndex}:wand`} catName={catName} catches={catches} onDone={r => dispatch({ type: "miniDone", result: r })} />
+      {playMini && scanWand && (
+        <ScanWand key={`story:wand:${state.nodeIndex}`} catName={catName} catches={catches}
+          onDone={r => dispatch({ type: "miniDone", result: r })} />
       )}
-      {state.step === "node" && cur?.kind === "mini" && !(scanWand && cur.mini === "play") && (
+      {state.step === "node" && cur?.kind === "mini" && cur.mini !== "play" && (
         <CatgameMini key={`${state.nodeIndex}:${cur.mini}:${state.life.picks.length}`} id={cur.mini} ctx={miniCtx} catName={catName}
           // 外出籠：劇情只看成功與否（原版結果 { ok, forced, treats }）
           onDone={r => dispatch({ type: "miniDone", result: cur.mini === "carrier" ? (r as { ok?: boolean } | null)?.ok === true : r })} />
@@ -381,11 +441,13 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
         <ScanWand key={`care:wand:${state.life.care.rounds}`} catName={catName} catches={catches}
           onDone={r => { dispatch({ type: "care", act: "play", good: careGood("play", r) }); setCareAct(null); }} />
       )}
-      {state.step === "node" && cur?.kind === "home" && careAct && !(careAct === "play" && scanWand) && (() => {
-        const mini = CARE_ACTS.find(a => a.act === careAct)!.mini;
-        const done = (r: unknown) => { dispatch({ type: "care", act: careAct, good: careGood(careAct, r) }); setCareAct(null); };
+      {state.step === "node" && cur?.kind === "home" && careAct && careAct !== "play" && (() => {
+        const mini = CARE_ACTS.find(a => a.act === careAct)!.mini!;
+        const done = (r: unknown) => { if (r === null) { setCareAct(null); return; } dispatch({ type: "care", act: careAct, good: careGood(careAct, r) }); setCareAct(null); };
         return <CatgameMini key={`care:${careAct}:${state.life.care.rounds}`} id={mini} ctx={miniCtx} catName={catName} onDone={done} />;
       })()}
+
+      </div>}
 
       {state.step === "report" && home && (
         <ReportStep state={state} pick={pick} monthly={shop.month} home={home} catId={cat.catId} demo={cat.demo} roomId={extras?.room?.id ?? null} catHref={catHref}

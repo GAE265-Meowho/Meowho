@@ -31,6 +31,8 @@ export const trustWord = (t: number) => (t >= 65 ? "很黏你" : t >= 45 ? "信�
 
 /** 原版 EXP_MODES.kitten.outro */
 export const OUTRO = "幼貓很可愛，但這份可愛會長成 15 年以上的責任。前幾個月養成的習慣，會決定牠老了以後過得好不好。";
+/** 試養報告的結語：幼貓才講「幼貓很可愛」，大貓講陪伴的責任 */
+export const outroFor = (startMonths: number) => startMonths < 12 ? OUTRO : "把一隻貓接回家，就是接下來每一年的責任。你們一起養成的習慣，會決定牠接下來過得好不好。";
 
 /** 原版 fullMemoryHTML 的回憶：最後十件不是「可以再想想」的事 */
 export function memoryMoments(X: Pick<Life, "picks" | "name">): string[] {

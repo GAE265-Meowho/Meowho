@@ -7,7 +7,7 @@ import type { BodyType } from "@/lib/hq/cat-models/types";
 import { getBrowserSupabase } from "@/lib/supabase/client";
 import { SUPABASE_URL } from "@/lib/supabase/config";
 import { catLookFor, PLAY_CAT, playCatLook, type PlayCatLook } from "./cats";
-import { ageMonths, ageText, bodyOfStage } from "./player-data";
+import { ageMonths, ageText, BASE_MOOD, bodyOfStage, startMood, touchFavOf, type KeeperNotes, type StartMood } from "./player-data";
 
 export interface PlayCatSource {
   /** 網址上的貓咪 id（/cats/[id]/play） */
@@ -21,6 +21,13 @@ export interface PlayCatSource {
   months: number | null;
   /** 這隻貓現在的體型（還沒開始劇情時顯示用） */
   body: BodyType;
+  /** 性別、是否已結紮（劇情用；不知道是 unknown／null） */
+  sex: "male" | "female" | "unknown";
+  neutered: boolean | null;
+  /** 中途對這隻貓的評論算出來的起始信任、壓力（0～100）與原因 */
+  mood: StartMood;
+  /** 中途寫的「喜歡被摸的地方」（摸貓小遊戲的最愛）；沒寫是 null */
+  touchFav: "head" | "chin" | "back" | null;
   /** 虎斑才畫條紋（小遊戲裡的貓） */
   tabby: boolean;
   /** true＝還在用 DEMO 麻糬，不是這隻貓自己的資料 */
@@ -30,7 +37,7 @@ export interface PlayCatSource {
 }
 
 export function demoPlayCat(catId: string): PlayCatSource {
-  return { catId, name: PLAY_CAT.name, coat: PLAY_CAT.coat, ageText: "", months: null, body: "kitten", tabby: true, demo: true, look: playCatLook };
+  return { catId, name: PLAY_CAT.name, coat: PLAY_CAT.coat, sex: "unknown", neutered: null, mood: { ...BASE_MOOD, reasons: [] }, touchFav: null, ageText: "", months: null, body: "kitten", tabby: true, demo: true, look: playCatLook };
 }
 
 /** 讀這隻貓；任何一步失敗都回 DEMO，不擋遊戲 */
@@ -39,7 +46,7 @@ export async function loadPlayCat(catId: string): Promise<PlayCatSource> {
   if (!sb) return demoPlayCat(catId);
   try {
     const [{ data: c }, { data: model }] = await Promise.all([
-      sb.from("meow_cats").select("name, coat, life_stage, birthday, est_age_months").eq("id", catId).maybeSingle(),
+      sb.from("meow_cats").select("name, coat, sex, neutered, life_stage, birthday, est_age_months, personality_scale, personality_tags, personality_notes, description, intro, care").eq("id", catId).maybeSingle(),
       sb.from("meow_cat_models").select("variants:meow_cat_model_variants(body_type, confirmed_albedo)").eq("cat_id", catId).maybeSingle(),
     ]);
     if (!c?.name) return demoPlayCat(catId);
@@ -52,6 +59,14 @@ export async function loadPlayCat(catId: string): Promise<PlayCatSource> {
     const coat = (c.coat as string | null) || null;
     return {
       catId, name: c.name as string, coat, months,
+      sex: c.sex === "male" || c.sex === "female" ? c.sex : "unknown",
+      neutered: typeof c.neutered === "boolean" ? c.neutered : null,
+      mood: startMood({
+        scale: c.personality_scale as KeeperNotes["scale"], tags: c.personality_tags as string[] | null,
+        text: [c.description, c.intro, ...Object.values((c.personality_notes ?? {}) as Record<string, unknown>).map(String)].filter(Boolean).join("。"),
+        arrival: ((c.care as { arrival?: Record<string, string> } | null)?.arrival) ?? null,
+      }),
+      touchFav: touchFavOf((c.care as { touch?: Record<string, string> } | null)?.touch),
       ageText: ageText(months, c.life_stage as string | null),
       body: bodyOfStage(c.life_stage as string | null),
       tabby: Boolean(coat?.includes("虎斑")),

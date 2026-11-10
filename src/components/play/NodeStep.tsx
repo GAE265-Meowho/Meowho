@@ -4,6 +4,7 @@
 import CatButton from "@/components/ui/CatButton";
 import { money } from "@/lib/play/costs";
 import { ageText } from "@/lib/play/player-data";
+import { nodeLabel } from "@/lib/play/timeline";
 import type { Line, PlayState } from "@/lib/play/flow";
 import type { Line as PersonalLine } from "@/lib/play/lines";
 import { DISCLAIMER, HEALTH_NOTE } from "@/lib/play/report";
@@ -36,7 +37,7 @@ export function NodeStep({ state, personal, onNext, onChoose }: {
 }) {
   const node = STORY[state.nodeIndex];
   const cur = state.cur;
-  const kicker = <span className={s.kicker}>節點 {state.nodeIndex + 1}／{STORY.length}・{node.label}・{state.life.name}・{ageText(Math.round(state.life.age))}</span>;
+  const kicker = <span className={s.kicker}>節點 {state.nodeIndex + 1}／{STORY.length}・{nodeLabel(node, state.startMonths)}・{state.life.name}・{ageText(Math.round(state.life.age))}</span>;
   if (!cur) return null;
 
   if (cur.kind === "log") {
@@ -90,8 +91,9 @@ export function NodeStep({ state, personal, onNext, onChoose }: {
     );
   }
 
-  if (cur.kind === "home") return null;
+  if (cur.kind === "home" || cur.kind === "relocate") return null;
 
+  if (cur.kind === "mini" && cur.mini === "play") return null;
   if (cur.kind === "mini") {
     return (
       <section className={s.card} aria-label={node.label}>
