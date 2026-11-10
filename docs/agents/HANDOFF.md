@@ -1,9 +1,10 @@
 # HANDOFF — 接手的 agent 需要知道的事
 
 > 寫給「完全沒有上下文的下一個 agent」。只保留**現在仍然成立**的內容。
-> 最後更新：2026-11-10｜渝茜 × Claude Code（虛擬飼養讀真實資料、試養報告給中途看）；Tina × Claude Code（#336 成貓吃飯喝水 v2）
+> 最後更新：2026-11-10｜清俊 × Cursor（帶我回家地圖，PR #315）；渝茜 × Claude Code（虛擬飼養讀真實資料）；Tina × Claude Code（#336）
 
 ## 目前狀態
+- **帶我回家地圖（清俊 × Cursor，PR #315）**：分支 `cursor/adopt-home-map-5901`，尚未建 Issue。首頁 `#adopt` 的「地圖」先選北／中／南／東（澎湖、金門、連江在「離島」）。縣市與行政區界線在 `src/lib/geo/region-bounds.json`（taiwan-atlas，重產用 `scripts/build-region-bounds.mjs`）。縣市名由 `src/lib/geo/county-label.ts` 放在該縣市自己的海上；台北、南投、嘉義市留在境內空位。2026-11-10 清俊再調：新竹縣往左下貼近縣界、台中往右上貼近市界、屏東在泰武右側且離開縣界、嘉義市不標東區／西區。行政區名會跟兩個以上疊在一起的再縮小（`town-label.ts`，最小 5）。貓咪圖示靠近本體，五個圖示是粗框填色的卡通：愛踩踏是腳掌肉墊、貪吃是裝滿飼料的碗、好奇是三個圓潤問號、愛玩是羽毛逗貓棒、慢熟是圓角底上的 >///<. 貓仍來自卡片同一份 `FeedCat`。沒連資料庫時示意貓分布在北、中、東、離島（南區是空的）。手機（窄螢幕或觸控）點貓：第一下只開簡歷，再點同一隻才回到卡片。靠太近的貓只顯示「附近有 N 隻」（不再另外顯示「這區有 N 隻」）。展開後每隻貓回到自己的行政區，蓋過其他堆疊按鈕；「收攏」的底邊在這群貓所在縣市的縣市名上方，不蓋住縣市名。手機上若收攏壓到簡歷，先把簡歷往旁邊推開，收攏留在縣市名上方。PR：[#315](https://github.com/GAE265-Meowho/Meowho/pull/315)。
 - **虛擬飼養讀真實資料＋試養報告給中途看（渝茜 × Claude Code，分支 `feat/play-real-data`，審查中）**：`/cats/[id]/play` 讀這隻貓（`source.ts` 的 `loadPlayCat`）、喵戶（`usePlayData.ts`）、預算、最新 3D 房間、環境報告；玩完報告存 `meow_task_runs.game_report`，按鈕附給中途，對話串 `TaskProof` 顯示。**`0033_meow_play_report.sql` 尚未執行，須子哲確認**；執行前報告頁會顯示「沒有存成功」。細節在 `docs/modules/readiness.md`「虛擬飼養讀真實資料與試養報告給中途」。
 - **WelfareLens 報告 API／PDF-first 安全評估頁（#273 C＋D，Jerry0808 × Codex，進行中）**：Draft PR #277、`feat/273-env-report-view`。離線 API/授權/UI 測試通過；PDF/crop 經授權路由 307 轉向短效 SAS（瀏覽器會收到 SAS URL，勿視為隱藏）；最新 head 的 Vercel check PASS；Preview 未登入 report/PDF/crop 實測 401 與 private,no-store。Owner session、Preview 的 Supabase project／Azure container／SAS 設定仍待核驗。
 - **#302 大貓體型預覽（Tina × Claude Code）**：分支 `feat/302-bases-large-cat`。`/MeowHQ/assets/bases?body=large|adult|kitten` 三分頁；大貓母體是 public 靜態檔 `base_clips_large.glb`（不走 Storage／母體 API），只有 idle、walk，沒有眼球。製作檔與腳本在 Tina 電腦 `Meow/配件模型/cat_base_large/`。大貓**尚未**進 `BodyType`／worker／資料表。

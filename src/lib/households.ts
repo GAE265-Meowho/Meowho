@@ -1,5 +1,6 @@
 /**
- * 喵戶 on the 帶我回家 map. Same isometric conventions as the team app's
+ * 舊的等角喵戶小鎮。帶我回家地圖已改走 adopt-map.ts（只到縣市＋區），畫面不再引用這份座標。
+ * Same isometric conventions as the team app's
  * 喵戶小區 (src/lib/community.ts in GAE265-Meowho/MeowHome): 2:1 grid, roof
  * colour = status. Demo data; public location stops at city + district.
  */

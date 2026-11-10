@@ -50,6 +50,27 @@
   --pink: #f4b2ad;
   --pink-soft: #fde7e4;
   --mint-soft: #e3f2e7;
+  /* 帶我回家地圖的海域／陸地，以及卡片毛色裡沒有既有 token 的毛色 */
+  --map-sea: #d7eef3;
+  --map-sea-deep: #b7dbe6;
+  --map-land: #f8edd4;
+  --map-coast: #e6d3b0;
+  --map-hill: #e4f3df;
+  /* 插畫分區：相鄰縣市換色，仍是同一組暖色 */
+  --map-a: #f8e4bc;
+  --map-b: #f6d3b4;
+  --map-c: #e5f3df;
+  --map-d: #fde0d6;
+  --map-e: #f3e2c0;
+  --map-f: #efe0c8;
+  --coat-gray: #b7aea6;
+  --coat-gray-deep: #7e766e;
+  --coat-cream: #f3d2a8;
+  --coat-cream-deep: #d7a56e;
+  --coat-tabby: #c9a36a;
+  --coat-tabby-deep: #8a5a32;
+  --coat-silver: #d9d4cc;
+  --coat-silver-deep: #8d8882;
 
 
   --radius-sm: 12px;

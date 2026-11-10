@@ -4,17 +4,22 @@ import { LIFE_STAGE_LABEL, type LifeStage } from "./cat-profile/life-stage";
 import { HEALTH_TAGS } from "./cat-profile/tags";
 import type { CatFilter } from "./cats";
 
+const normCity = (city: string | null | undefined) => (city ?? "").replace(/臺/g, "台");
+
 export interface FeedRow {
   id: string; name: string; sex: string; life_stage: LifeStage | null; personality_tags: string[] | null; health_tags: string[] | null;
   /** 結紮、FIV／FeLV 從醫療細項讀（#206） */
   medical: { neutered?: string; fivFelv?: string } | null;
   description: string | null; timeline: { date: string; event: string }[] | null; photo_url: string | null; created_at: string;
+  coat: string | null;
   household: { id: string; name: string; city: string | null; district: string | null; intro: string | null; caretaker_type: string } | null;
 }
 
 export interface FeedCat {
   id: string; name: string; sex: string; stage: string; district: string; waitDays: number; neutered: boolean;
   tags: string[]; diary: string; photo: string | null; filters: CatFilter[];
+  /** 縣市、行政區分開，地圖只放到這兩層。district 是畫面上的「縣市＋區」。 */
+  city: string; area: string; coat: string | null;
   home: { id: string; name: string; intro: string; foster: string } | null;
 }
 
@@ -24,7 +29,7 @@ export interface FeedHome {
 
 /** 讀卡片需要的欄位（喵戶指定外鍵，見 lib/supabase/embeds.test.ts） */
 export const FEED_SELECT =
-  "id, name, sex, life_stage, personality_tags, health_tags, medical, description, timeline, photo_url, created_at, household:meow_households!meow_cats_household_id_fkey(id, name, city, district, intro, caretaker_type)";
+  "id, name, sex, life_stage, coat, personality_tags, health_tags, medical, description, timeline, photo_url, created_at, household:meow_households!meow_cats_household_id_fkey(id, name, city, district, intro, caretaker_type)";
 
 const SEX: Record<string, string> = { male: "公貓", female: "母貓" };
 const FOSTER: Record<string, string> = { personal_foster: "個人中途", shelter_org: "立案協會／收容單位" };
@@ -44,13 +49,18 @@ export function toFeedCat(r: FeedRow, today = new Date()): FeedCat {
   const latest = [...(r.timeline ?? [])].sort((a, b) => b.date.localeCompare(a.date))[0]?.event;
   const firstSentence = r.description?.trim().match(/^[^。！？\n]*[。！？]?/)?.[0] ?? "";
   const h = r.household;
+  const city = normCity(h?.city);
+  const area = h?.district ?? "";
   const positive = Boolean(r.medical?.fivFelv && r.medical.fivFelv !== "negative" && r.medical.fivFelv !== "untested");
   return {
     id: r.id,
     name: r.name,
     sex: SEX[r.sex] ?? "",
     stage: r.life_stage ? LIFE_STAGE_LABEL[r.life_stage] ?? "" : "",
-    district: h ? `${h.city ?? ""}${h.district ?? ""}` : "",
+    district: city || area ? `${city}${area}` : "",
+    city,
+    area,
+    coat: r.coat ?? null,
     waitDays: Math.max(0, Math.floor((today.getTime() - new Date(r.created_at).getTime()) / DAY)),
     neutered: r.medical?.neutered === "done",
     tags: [...tags, ...health.filter((t) => FILTER_TAGS[3][1].includes(t))].slice(0, 4),
