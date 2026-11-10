@@ -11,7 +11,7 @@ export function createAzureStore(cfg: StorageConfig): MediaStore {
   const credential = new StorageSharedKeyCredential(cfg.account, cfg.key);
   const container = new BlobServiceClient(`https://${cfg.account}.blob.core.windows.net`, credential).getContainerClient(cfg.container);
 
-  const sasUrl = (path: string, permissions: string, ttlSec: number, contentType?: string) => {
+  const sasUrl = (path: string, permissions: string, ttlSec: number, contentType?: string, contentDisposition?: string) => {
     const sas = generateBlobSASQueryParameters({
       containerName: cfg.container,
       blobName: path,
@@ -19,6 +19,7 @@ export function createAzureStore(cfg: StorageConfig): MediaStore {
       startsOn: new Date(Date.now() - 60_000), // 容許時鐘誤差
       expiresOn: new Date(Date.now() + ttlSec * 1000),
       contentType,
+      contentDisposition,
     }, credential).toString();
     return `${container.getBlockBlobClient(path).url}?${sas}`;
   };
@@ -28,7 +29,7 @@ export function createAzureStore(cfg: StorageConfig): MediaStore {
       url: sasUrl(path, "cw", ttlSec, contentType),
       headers: { "x-ms-blob-type": "BlockBlob", "content-type": contentType }, // Azure 規定要帶 blob 類型
     }),
-    readUrl: async (path, ttlSec = READ_TTL_SEC) => sasUrl(path, "r", ttlSec),
+    readUrl: async (path, ttlSec = READ_TTL_SEC, options) => sasUrl(path, "r", ttlSec, undefined, options?.contentDisposition),
     download: async (path) => {
       const blob = container.getBlockBlobClient(path);
       if (!(await blob.exists())) return null;

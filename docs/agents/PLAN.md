@@ -2,7 +2,7 @@
 
 > GitHub Issues 是任務的正式來源；本檔是給 agent 快速掌握全局的鏡像與排程。
 > 狀態只用：`待辦`、`進行中`、`審查中`、`完成`、`卡住`。開工改「進行中」並填負責人，收工更新。
-> 最後更新：2026-11-06｜渝茜 × Claude Code（#237）
+> 最後更新：2026-11-09｜Jerry0808 × Codex（#273 驗收追蹤）
 
 ## 里程碑
 
@@ -18,6 +18,7 @@
 
 ## 任務（tracer-bullet，每張可獨立 Demo）
 
+- WelfareLens 安全報告讀取 API＋PDF-first 評估頁（#273 C＋D，Jerry0808 × Codex）：進行中；沿用 Draft PR #277／`feat/273-env-report-view`。離線授權與 UI 測試已補；main 合併衝突已在 PR 分支解決；build 已 PASS；Preview 未登入 API/PDF/crop 拒絕驗收 PASS；Owner session 與 Supabase/Azure 設定核驗、手機顯示仍 BLOCKED。
 - 虛擬飼養 DEMO（#237，渝茜 × Claude Code，2026-11-06）：審查中；PR #244、分支 `feat/237-catgame-demo`。`/cats/[id]/play` 3 個節點、AI 危險／台詞／建議（規則備案）、採買花費、3D 娃娃屋擺用品、小遊戲、試養報告；Azure／喵戶讀取／遠端 GLB／掃描房間未在沙盒實測。
 - 跳躍腰部摺痕、成貓從櫃子往下跳重新規劃（#300，Tina × Claude Code，2026-11-09）：審查中；分支 `fix/300-jump-waist-fold`。合併後成貓 glb 要再上傳 Storage。
 - 母體 glb 快取版本號、沒有跳躍 C 不畫櫃子（#298，Tina × Claude Code，2026-11-09）：完成（PR #299 已合併）。
@@ -40,6 +41,7 @@
 
 | # | 任務 | 模組文件 | 前置 | 期別 | Issue | 負責 | 狀態 |
 |---|---|---|---|---|---|---|---|
+| 273 | WelfareLens 安全報告讀取 API＋PDF-first 評估頁（C＋D；既有 Draft PR #277） | readiness | #263、#274 | P1 | #273 | Jerry0808 | 進行中 |
 | 0 | 首頁原型（Next.js、設計系統、管理者標誌設定） | matching | — | P0 | — | Tina | 完成 |
 | 1 | Supabase、Google 登入、條款同意 | account | — | P1 | #1 | Tina | 審查中 |
 | 2 | 建立貓戶、新增貓咪、我的貓戶（貓咪公開頁待做） | household-cats | 1 | P1 | #1 | Tina | 審查中 |
