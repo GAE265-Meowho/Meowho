@@ -24,9 +24,15 @@ import subprocess
 import time
 import urllib.error
 import urllib.request
+from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 from urllib.parse import quote
+
+try:
+    import fcntl
+except ImportError:  # Windows 沒有 fcntl：本機單獨跑時不用鎖
+    fcntl = None
 
 ROOT = Path(__file__).resolve().parent.parent
 POLL_SECONDS = 5
@@ -37,6 +43,18 @@ MAX_HOME_VIDEO_SEC = 180
 HOME_RESULT_BUCKET = "meow-home-scenes"
 RESULT_FILES = ["scene.json", "scene.cameras.json", "scene.layout.json"]
 THUMB = "thumb.jpg"
+GPU_LOCK = "/tmp/meowho-gpu.lock"  # 和 workers/cat-paint 共用（#200），同一台 VM 輪流用 T4
+
+
+@contextmanager
+def gpu_lock():
+    """拿到鎖才領工作，貓咪上色在用 GPU 就等它做完；等待中的工作維持 queued。"""
+    if fcntl is None:
+        yield
+        return
+    with open(GPU_LOCK, "w") as f:
+        fcntl.flock(f, fcntl.LOCK_EX)  # process 結束時作業系統會自動放開
+        yield
 
 
 def save(path, room):
@@ -360,7 +378,8 @@ def main():
         print(f"[worker] 等待 {args.root} 的工作", flush=True)
     while True:
         try:
-            worked = work()
+            with gpu_lock():
+                worked = work()
         except urllib.error.URLError as e:  # 網路斷線不要讓 worker 結束
             print(f"[worker] 連線失敗，稍後重試：{e}", flush=True)
             worked = False
