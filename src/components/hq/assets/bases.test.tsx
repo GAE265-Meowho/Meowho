@@ -14,7 +14,7 @@ vi.mock("./CatPreview", () => ({
     useEffect(() => {
       // 大貓沒有眼球與眨眼形狀鍵，只有待機、走路
       onInfo?.(url.includes("runner")
-        ? { clips: ["run"], eyes: 0, bones: 27, morphs: [] }
+        ? { clips: ["run", "groom"], eyes: 0, bones: 27, morphs: [] }
         : url.includes("large")
         ? { clips: ["idle", "walk"], eyes: 0, bones: 39, morphs: [] }
         : { clips: ["idle", "walk", "sleep", "sit"], eyes: 2, bones: 39, morphs: ["blink_L", "blink_R"] });
@@ -90,6 +90,7 @@ describe("3D 貓咪體型預覽（#302）", () => {
     expect(preview.last.baseUrl).toBe("/hq-cat-models/base/cat_runner_tabby.glb");
     expect(groups()).toEqual(["播放與畫面", "動作", "貓咪資訊"]);
     expect(screen.getByRole("button", { name: "奔跑" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "理毛" })).toBeEnabled();
     expect(screen.getByRole("img", { name: "奔跑貓側面" })).toBeInTheDocument();
   });
 });

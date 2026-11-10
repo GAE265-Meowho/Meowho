@@ -16,6 +16,7 @@ describe("體型預覽分頁（#302）", () => {
     expect(info.label).toBe("奔跑貓");
     expect(info.photos.map(p => p.src)).toEqual(["/hq-cat-models/base/runner_ref_side.jpg", "/hq-cat-models/base/runner_ref_3q.jpg"]);
     expect(info.autoApply).toBe(false);
+    expect(info.facts.find(f => f.label === "動作")?.value).toMatch(/奔跑.*理毛/);
   });
 
   it("網址 ?body= 不合法或沒填時預設大貓", () => {
