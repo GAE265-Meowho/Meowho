@@ -71,4 +71,9 @@ describe("clipPupil", () => {
     expect(items.filter(i => ["cuddle", "rest", "groom"].includes(i.code)).map(i => [i.label, i.available]))
       .toEqual([["撒嬌", true], ["休息", true], ["理毛", true]]);
   });
+
+  it("奔跑（#331）：奔跑貓母體有 run 時可點；其他體型標此體型尚無", () => {
+    expect(buildClipItems(["run"]).find(i => i.code === "run")).toMatchObject({ label: "奔跑", available: true });
+    expect(buildClipItems(["idle", "walk"]).find(i => i.code === "run")).toMatchObject({ available: false, status: "ready" });
+  });
 });
