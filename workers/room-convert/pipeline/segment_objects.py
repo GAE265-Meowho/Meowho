@@ -180,7 +180,7 @@ def main():
 
     try:
         import torch
-        dev = "mps" if torch.backends.mps.is_available() else "cpu"
+        dev = "cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
         objs = []
         for o in args.object:
             name, _, desc = o.partition("=")

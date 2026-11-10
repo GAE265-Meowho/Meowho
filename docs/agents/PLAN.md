@@ -102,7 +102,8 @@
 | 23-23 | MeowHQ 虛擬體驗故事線「貓咪的吃喝拉撒」＋成貓／幼貓 eat、drink、toilet 動作 | admin-moderation | 23-22 | P2 | #297 | Tina × Claude Code | 完成 |
 | 23-24 | 故事線辨識餐碗組的飼料碗／水碗、站對位置；母體補齊撒嬌、休息、理毛 | admin-moderation | 23-23 | P2 | #304 | Tina × Claude Code | 完成 |
 | 23-25 | 故事線：貓不要穿越碗盆（碗碰撞、腳掌踩碗外、吃飯往前伸脖子） | admin-moderation | 23-24 | P2 | #318 | Tina × Claude Code | 審查中 |
-| 23-26 | 成貓、幼貓吃飯、喝水動作重做（各用自己的骨架直接製作） | admin-moderation | 23-23 | P2 | #330 | Tina × Claude Code | 審查中 |
+| 23-26 | 成貓、幼貓吃飯、喝水動作重做（各用自己的骨架直接製作） | admin-moderation | 23-23 | P2 | #330 | Tina × Claude Code | 完成 |
+| 23-27 | 成貓吃飯、喝水再重做（背線緩弧、側面平面 IK 不 roll） | admin-moderation | 23-26 | P2 | #336 | Tina × Claude Code | 審查中 |
 | 23-28 | 大貓走路 v3：骨架翻面、肚子權重只跟脊椎、前腳落地收回肩膀下方、一圈 1 秒 | admin-moderation | 23-16 | P2 | #340 | Tina × Claude Code | 審查中 |
 | 23-15 | MeowHQ 登入頁依 Stitch 改版、瀏覽器標題改 MeoWho｜喵戶總部 | admin-moderation | — | P2 | #116 | Tina × Claude Code | 完成（#117 已合併） |
 | 23-14 | MeowHQ AI 三視角第二階段：worker 同時用三張照片上色；製作glb工作區選擇要產生的動作 | admin-moderation | 23-13 | P2 | 待建立 | — | 待辦 |
