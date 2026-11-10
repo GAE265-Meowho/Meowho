@@ -63,10 +63,12 @@ export function SafetyReportDetails({ householdId, reportId }: { householdId: st
           <iframe className={k.pdfViewer} title="WelfareLens 完整居家安全報告 PDF"
             src={pdfEndpoint} referrerPolicy="no-referrer" loading="eager" />
           <div className={k.pdfActions}>
-            <a className={k.pdfLink} href={pdfEndpoint + "?download=1"}>下載 PDF</a>
+            <a className={k.pdfLink} href={pdfEndpoint + "?download=1"} target="_blank"
+              rel="noopener noreferrer" referrerPolicy="no-referrer">下載 PDF</a>
             <a className={k.pdfOpen} href={pdfEndpoint} target="_blank"
               rel="noopener noreferrer" referrerPolicy="no-referrer">另開 PDF 檢視</a>
           </div>
+          <p className={k.source}>若手機仍以 PDF 預覽開啟，請使用瀏覽器或系統的分享選單儲存檔案。</p>
           <p className={k.source}>部分手機瀏覽器不支援內嵌 PDF，可選「另開 PDF 檢視」。改善後畫面為 AI 模擬示意，不代表現場已完成改善。</p>
         </section>
       )}

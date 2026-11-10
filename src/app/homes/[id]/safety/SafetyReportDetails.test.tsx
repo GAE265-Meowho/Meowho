@@ -26,10 +26,14 @@ describe("SafetyReportDetails PDF-first states", () => {
     expect(frame.getAttribute("src")).toBe(API_URL + "/pdf");
     const download = screen.getByRole("link", { name: "下載 PDF" });
     expect(download.getAttribute("href")).toBe(API_URL + "/pdf?download=1");
+    expect(download.getAttribute("target")).toBe("_blank");
+    expect(download.getAttribute("rel")).toContain("noopener");
+    expect(download.getAttribute("referrerpolicy")).toBe("no-referrer");
     const open = screen.getByRole("link", { name: "另開 PDF 檢視" });
     expect(open.getAttribute("href")).toBe(API_URL + "/pdf");
     expect(open.getAttribute("target")).toBe("_blank");
     expect(await screen.findByText("電線")).toBeTruthy();
+    expect(screen.getByText("若手機仍以 PDF 預覽開啟，請使用瀏覽器或系統的分享選單儲存檔案。")).toBeTruthy();
     expect(screen.getByAltText("電線的風險裁切照").getAttribute("src")).toBe("/api/crop");
   });
 
