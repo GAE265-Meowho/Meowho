@@ -75,14 +75,17 @@ export default function ScenePage() {
     // 示範模式（沒有資料庫）：直接當作做好了
     if (!sb) { setStep("done"); return; }
     setStep("uploading"); setError(null); setPct(0);
-    const target = await post<{ path?: string; upload?: UploadTarget; error?: string }>(`/api/homes/${id}/videos`, { mime: file.type, sizeBytes: file.size, durationSec });
-    if (!target?.path || !target.upload) {
+    const target = await post<{ videoId?: string; upload?: UploadTarget; error?: string }>(`/api/homes/${id}/videos`, { mime: file.type, sizeBytes: file.size, durationSec });
+    if (!target?.videoId || !target.upload) {
       setError(HOME_VIDEO_ERROR[target?.error as HomeVideoError] ?? "影片上傳失敗，請再試一次。"); setStep("guide"); return;
     }
     try { await putUpload(target.upload, file, { onProgress: setPct }); }
     catch { setError("影片上傳失敗，請再試一次。"); setStep("guide"); return; }
     // 房間沒建成時，伺服器會刪掉剛傳的影片（決策 007）
-    const res = await post<{ roomId?: string; error?: string }>(`/api/homes/${id}/room`, { videoPath: target.path });
+    // 網路斷掉重送一次；伺服器以 videoId 去重，不會重複建工作（#346）
+    const request = { videoId: target.videoId };
+    const res = await post<{ roomId?: string; error?: string }>(`/api/homes/${id}/room`, request)
+      ?? await post<{ roomId?: string; error?: string }>(`/api/homes/${id}/room`, request);
     if (!res?.roomId || res.error) {
       setError(res?.error === "room_busy" ? "上一支影片還在處理中，好了會通知你。" : "房間建立失敗，請再試一次。");
       setStep("guide"); return;
