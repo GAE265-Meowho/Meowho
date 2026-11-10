@@ -118,9 +118,9 @@ export default function ScenePage() {
       <span className={f.avatar} aria-hidden="true"><Icon name="scan" /></span>
       {/* 示範房間不會產生環境報告，先不說「安全報告好了」；接上真正流程後改成 §8 的「你家的 3D 房間和安全報告好了」 */}
       <h2 id="room-done">你家的 3D 房間建好了</h2>
-      <p className={f.lead}>來看看貓在裡面走的樣子。</p>
+      <p className={f.lead}>去領養任務，看貓在你家的樣子。</p>
       {/* 示範房間沒有成果檔（result_path 是 null），只有影片轉出來的才看得到 3D */}
-      {room?.result_path && <div className={r.viewer}><RoomViewer base={homeSceneBase(id, room.id)} /></div>}
+      {room?.result_path && <div className={r.viewer}><RoomViewer base={homeSceneBase(id, room.id)} noCat /></div>}
       <div className={f.actions} style={{ justifyContent: "center" }}>
         <CatButton href={goTask}>去體驗領養任務</CatButton>
         <CatButton variant="ghost" href="/me">回到我的喵戶</CatButton>
@@ -132,7 +132,8 @@ export default function ScenePage() {
       <section className={`${f.card} ${r.viewer}`} aria-labelledby="room-preview">
         <h2 id="room-preview">看看你家的 3D 房間</h2>
         <p className={f.lead}>拖曳轉頭、滾輪前後走。沒問題就按「完成」。</p>
-        <RoomViewer base={homeSceneBase(id, room.id)} />
+        {/* 預覽只看房間不放貓（11/10 和渝茜、子哲討論）；貓在領養任務才出現 */}
+        <RoomViewer base={homeSceneBase(id, room.id)} noCat />
       </section>
       {error && <p className={f.error} role="alert">{error}</p>}
       <div className={f.actions}>
