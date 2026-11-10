@@ -18,7 +18,7 @@
 
 ## 任務（tracer-bullet，每張可獨立 Demo）
 
-- WelfareLens 安全報告通知／佇列隔離設計（#326，Jerry0808 × Codex，2026-11-10）：通知 migration `0033` 已本機實作與 PGlite 驗證，Draft PR #327 等子哲審查，禁止自行部署；佇列採 job container scope + scoped claim 的建議待批准，尚未實作。
+- WelfareLens 安全報告通知／佇列隔離設計（#326，Jerry0808 × Codex，2026-11-10）：通知 migration `0034` 已本機實作與 PGlite 驗證，Draft PR #327 等子哲審查，禁止自行部署；佇列採 job container scope + scoped claim 的建議待批准，尚未實作。
 
 - WelfareLens 安全報告讀取 API＋PDF-first 評估頁（#273 C＋D，Jerry0808 × Codex）：進行中；沿用 Draft PR #277／`feat/273-env-report-view`。離線授權與 UI 測試已補；main 合併衝突已在 PR 分支解決；build 已 PASS；Preview 未登入 API/PDF/crop 拒絕驗收 PASS；Owner session 與 Supabase/Azure 設定核驗、手機顯示仍 BLOCKED。
 - 虛擬飼養 DEMO（#237，渝茜 × Claude Code，2026-11-06）：審查中；PR #244、分支 `feat/237-catgame-demo`。`/cats/[id]/play` 3 個節點、AI 危險／台詞／建議（規則備案）、採買花費、3D 娃娃屋擺用品、小遊戲、試養報告；Azure／喵戶讀取／遠端 GLB／掃描房間未在沙盒實測。

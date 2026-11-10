@@ -4,7 +4,7 @@
 > 最後更新：2026-11-10｜Jerry0808 × Codex（#326 通知與佇列隔離）；Tina × Claude Code（#336 成貓吃飯喝水 v2）
 
 ## 目前狀態
-- **WelfareLens #326 安全報告通知**：分支 `feat/326-env-report-notifications`，從最新 `origin/main`（`f328073`）建立；Draft PR [#327](https://github.com/GAE265-Meowho/Meowho/pull/327) 等子哲審查。通知 migration 是 `0033_meow_env_notifications.sql`（0032 已由 `meow_cat_embeddings` 使用）；本機 PGlite 測試通過，尚未部署。不可更改 #277、0031、Worker v05 或既有 `a1` 產物。
+- **WelfareLens #326 安全報告通知**：分支 `feat/326-env-report-notifications`，從最新 `origin/main`（`f328073`）建立；Draft PR [#327](https://github.com/GAE265-Meowho/Meowho/pull/327) 等子哲審查。通知 migration 是 `0034_meow_env_notifications.sql`（0032 已由 `meow_cat_embeddings` 使用，0033 給 #344 的 `meow_play_report`）；本機 PGlite 測試通過，尚未部署。不可更改 #277、0031、Worker v05 或既有 `a1` 產物。
 - **#326 佇列隔離**：只完成設計，待子哲批准後才能實作。建議 Job 記錄受限 `blob_container`，create RPC 明確標記、scoped claim 僅領取相同容器；舊無 scope 工作先封鎖領取並人工盤點。詳見 `docs/modules/readiness.md`。
 - **WelfareLens 報告 API／PDF-first 安全評估頁（#273 C＋D，Jerry0808 × Codex，進行中）**：Draft PR #277、`feat/273-env-report-view`。離線 API/授權/UI 測試通過；PDF/crop 經授權路由 307 轉向短效 SAS（瀏覽器會收到 SAS URL，勿視為隱藏）；最新 head 的 Vercel check PASS；Preview 未登入 report/PDF/crop 實測 401 與 private,no-store。Owner session、Preview 的 Supabase project／Azure container／SAS 設定仍待核驗。
 - **#302 大貓體型預覽（Tina × Claude Code）**：分支 `feat/302-bases-large-cat`。`/MeowHQ/assets/bases?body=large|adult|kitten` 三分頁；大貓母體是 public 靜態檔 `base_clips_large.glb`（不走 Storage／母體 API），只有 idle、walk，沒有眼球。製作檔與腳本在 Tina 電腦 `Meow/配件模型/cat_base_large/`。大貓**尚未**進 `BodyType`／worker／資料表。

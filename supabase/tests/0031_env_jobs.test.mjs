@@ -28,8 +28,8 @@ await db.exec(read("./stub_supabase.sql"));
 for (const file of migrationFiles) await db.exec(read(`../migrations/${file}`));
 await db.exec(read("../migrations/0031_meow_env_jobs.sql"));
 await db.exec(read("../migrations/0031_meow_env_jobs.sql"));
-await db.exec(read("../migrations/0033_meow_env_notifications.sql"));
-await db.exec(read("../migrations/0033_meow_env_notifications.sql"));
+await db.exec(read("../migrations/0034_meow_env_notifications.sql"));
+await db.exec(read("../migrations/0034_meow_env_notifications.sql"));
 
 await db.exec(`
   insert into auth.users (id, email) values ('${id("001")}', 'env29@example.test');
