@@ -79,7 +79,7 @@ export default function SafetyPage() {
       <>
         <section className={f.card} aria-labelledby="report-title">
           <h2 id="report-title">{day(shown.created_at)}的安全報告</h2>
-          <p className={k.source}>{shown.source}・{shown.riskCount ? `${shown.riskCount} 個要注意的地方` : "沒有發現要注意的地方"}</p>
+          <p className={k.source}>分析完成・{shown.source}・{shown.riskCount ? `${shown.riskCount} 個要注意的地方` : "沒有發現要注意的地方"}</p>
           {!sb ? (
             <div className={k.details}>
               <p role="note"><b>示範報告（非真實 AI 分析）</b>：以下為預設範例，不代表你的居家環境已檢測。</p>
