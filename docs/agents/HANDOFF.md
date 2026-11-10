@@ -1,9 +1,10 @@
 # HANDOFF — 接手的 agent 需要知道的事
 
 > 寫給「完全沒有上下文的下一個 agent」。只保留**現在仍然成立**的內容。
-> 最後更新：2026-11-10｜Tina × Claude Code（#336 成貓吃飯喝水 v2）
+> 最後更新：2026-11-10｜渝茜 × Claude Code（虛擬飼養讀真實資料、試養報告給中途看）；Tina × Claude Code（#336 成貓吃飯喝水 v2）
 
 ## 目前狀態
+- **虛擬飼養讀真實資料＋試養報告給中途看（渝茜 × Claude Code，分支 `feat/play-real-data`，審查中）**：`/cats/[id]/play` 讀這隻貓（`source.ts` 的 `loadPlayCat`）、喵戶（`usePlayData.ts`）、預算、最新 3D 房間、環境報告；玩完報告存 `meow_task_runs.game_report`，按鈕附給中途，對話串 `TaskProof` 顯示。**`0033_meow_play_report.sql` 尚未執行，須子哲確認**；執行前報告頁會顯示「沒有存成功」。細節在 `docs/modules/readiness.md`「虛擬飼養讀真實資料與試養報告給中途」。
 - **WelfareLens 報告 API／PDF-first 安全評估頁（#273 C＋D，Jerry0808 × Codex，進行中）**：Draft PR #277、`feat/273-env-report-view`。離線 API/授權/UI 測試通過；PDF/crop 經授權路由 307 轉向短效 SAS（瀏覽器會收到 SAS URL，勿視為隱藏）；最新 head 的 Vercel check PASS；Preview 未登入 report/PDF/crop 實測 401 與 private,no-store。Owner session、Preview 的 Supabase project／Azure container／SAS 設定仍待核驗。
 - **#302 大貓體型預覽（Tina × Claude Code）**：分支 `feat/302-bases-large-cat`。`/MeowHQ/assets/bases?body=large|adult|kitten` 三分頁；大貓母體是 public 靜態檔 `base_clips_large.glb`（不走 Storage／母體 API），只有 idle、walk，沒有眼球。製作檔與腳本在 Tina 電腦 `Meow/配件模型/cat_base_large/`。大貓**尚未**進 `BodyType`／worker／資料表。
 - **#336 成貓吃飯喝水 v2（Tina × Claude Code）**：分支 `fix/336-adult-eat-drink-v2`。`scripts/clips/eat_drink.mjs` 的 `BODIES.adult` 改用側面平面 IK（`ik:'planar'`，腿只繞 X 轉、不 roll）與新參數；成貓只寫旋轉與 root 位移。`base_clips.glb` 以 Tina 14:05 的 groom v3 版為底，**只換 eat、drink**（groom v3 一起進 repo）。成貓骨架頸根在肩關節上方 16 cm、頸根到鼻尖 14 cm，背線不折時鼻尖到不了 4.5 cm＋前 7 cm；Tina 選折衷 B（吃飯 6.6 cm／前 7 cm，喝水 6.1 cm）。幼貓 `base_clips_kitten.glb` 的 groom v3 在 Tina 本機 Meowho，未含在此分支。**重新匯出 glb 後要再跑 `node scripts/clips/eat_drink.mjs <glb> <glb> adult`**；合併後上傳 Storage `meow-cat-models/base/v1/base_clips.glb`。

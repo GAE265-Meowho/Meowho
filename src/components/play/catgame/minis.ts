@@ -14,7 +14,7 @@ export type RhythmKey = "quick" | "slow";
 export interface MiniCtx {
   /** 幾個月大 */
   age: number;
-  cat: { body: number; trust: number; stress: number; toyPref: ToyKey; rhythm: RhythmKey };
+  cat: { body: number; trust: number; stress: number; toyPref: ToyKey; rhythm: RhythmKey; /** 虎斑才畫條紋；沒給＝畫 */ tabby?: boolean };
   toys: ToyKey[];
   /** 以下選填，沒給就用原版預設：結紮、刷牙訓練階段（0~5）、牙齒狀況、指甲長度（0~100）、剪指甲訓練階段、外出籠訓練階段 */
   neutered?: boolean; brushLevel?: number; dental?: number; nails?: number; nailLevel?: number; carrierLevel?: number;
@@ -36,7 +36,7 @@ export function catParts(s: Pick<MiniCtx, "cat">): string {
       <g class="earL"><path d="M-27,-104 L-22,-134 L-4,-116 Z" fill="var(--fur)"/><path d="M-22,-109 L-20,-125 L-11,-115 Z" fill="var(--paw)" stroke="none"/></g>
       <g class="earR"><path d="M27,-104 L22,-134 L4,-116 Z" fill="var(--fur)"/><path d="M22,-109 L20,-125 L11,-115 Z" fill="var(--paw)" stroke="none"/></g>
       <circle cx="0" cy="-92" r="30" fill="var(--fur)"/>
-      ${TABBY}
+      ${s.cat.tabby === false ? "" : TABBY}
       <g class="eyes-open blink" stroke="none"><ellipse cx="-10" cy="-94" rx="3.2" ry="5" fill="var(--cat-line)"/><ellipse cx="10" cy="-94" rx="3.2" ry="5" fill="var(--cat-line)"/></g>
       <g class="eyes-wide" stroke="none"><circle cx="-10" cy="-94" r="6.5" fill="var(--cat-line)"/><circle cx="10" cy="-94" r="6.5" fill="var(--cat-line)"/><circle cx="-8" cy="-96.5" r="2.2" fill="var(--fur)"/><circle cx="12" cy="-96.5" r="2.2" fill="var(--fur)"/></g>
       <g class="eyes-closed"><path d="M-15,-93 q5,-6 10,0 M5,-93 q5,-6 10,0" fill="none" stroke-width="3" stroke-linecap="round"/></g>
@@ -45,7 +45,7 @@ export function catParts(s: Pick<MiniCtx, "cat">): string {
       <path d="M-14,-82 L-34,-85 M-14,-79 L-33,-76 M14,-82 L34,-85 M14,-79 L33,-76" stroke-width="1.2" opacity=".55"/>
     </g></g>`;
 }
-/** DEMO：麻糬是虎斑，在原版的貓頭和身上加幾道條紋（顏色 --stripe） */
+/** 虎斑：在原版的貓頭和身上加幾道條紋（顏色 --stripe）；花色不是虎斑的貓不畫（ctx.cat.tabby） */
 const TABBY = `<g stroke="var(--stripe)" stroke-width="3" stroke-linecap="round" fill="none" opacity=".75">
   <path d="M-8,-120 L-6,-110 M0,-122 L0,-111 M8,-120 L6,-110"/><path d="M-26,-50 q8,4 14,0 M-28,-34 q8,4 14,0 M26,-50 q-8,4 -14,0 M28,-34 q-8,4 -14,0"/></g>`;
 export function catMood(s: Pick<MiniCtx, "cat">): string {

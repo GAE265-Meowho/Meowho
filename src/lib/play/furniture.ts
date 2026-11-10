@@ -38,7 +38,7 @@ export function homeFurniture(k: string, labels: string[]): string {
   return hit ? hit[0] : "";
 }
 
-/** 劇本文字裡的〈通稱〉換成家裡真的家具（原版 fullTx：找不到就寫「家裡」） */
-export function fullTx(s: string, labels: string[]): string {
-  return s.replace(/〈([^〉]+)〉/g, (_m, k: string) => homeWord(k, labels) ?? "家裡");
+/** 劇本文字裡的〈通稱〉換成家裡真的家具（原版 fullTx：找不到就寫「家裡」）；〈貓名〉換成這隻貓的名字 */
+export function fullTx(s: string, labels: string[], catName = "牠"): string {
+  return s.replace(/〈([^〉]+)〉/g, (_m, k: string) => (k === "貓名" ? catName : homeWord(k, labels) ?? "家裡"));
 }
