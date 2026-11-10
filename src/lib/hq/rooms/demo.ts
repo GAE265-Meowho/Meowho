@@ -18,7 +18,7 @@ export interface RoomObject {
 }
 export interface RoomScene {
   frame: RoomFrame;
-  room: { min: [number, number]; max: [number, number] };
+  room: { min: [number, number]; max: [number, number]; yaw?: number };
   assets: { room: string; room_cut?: string };
   objects: RoomObject[];
 }
@@ -80,4 +80,17 @@ export function resultFiles(scene: RoomScene): string[] {
     ? [scene.assets.room_cut, ...scene.objects.flatMap(o => (o.splat ? [o.splat.file] : []))]
     : [scene.assets.room];
   return ["scene.json", "scene.cameras.json", "scene.layout.json", "thumb.jpg", ...splats];
+}
+
+/**
+ * 鏡頭不能走出房間：拉太遠、降太低會看到牆壁和地板的背面。
+ * p 是地板座標（公尺，x、z 水平、y 向上）；room 的 min／max 是沿牆方向（轉 yaw 後）的範圍。
+ * 夾在牆內 margin 公尺、高度 minY～maxY 之間。
+ */
+export function clampInRoom([x, y, z]: Vec3, room: RoomScene["room"], margin = 0.15, minY = 0.2, maxY = 2.2): Vec3 {
+  const c = Math.cos(room.yaw ?? 0), s = Math.sin(room.yaw ?? 0);
+  const clamp = (v: number, lo: number, hi: number) => Math.min(Math.max(v, lo), hi);
+  const u = clamp(x * c + z * s, room.min[0] + margin, room.max[0] - margin);
+  const v = clamp(-x * s + z * c, room.min[1] + margin, room.max[1] - margin);
+  return [u * c - v * s, clamp(y, minY, maxY), u * s + v * c];
 }
