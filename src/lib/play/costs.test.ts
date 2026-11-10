@@ -1,7 +1,7 @@
 // 虛擬飼養 DEMO（#237）：飼料清單（處方飼料不顯示）與花費公式（照 catgame 原版 SHOP_ITEMS／shopCost；所有金額都由公式算）
 import { describe, expect, it } from "vitest";
 import { FOOD_PRODUCTS } from "@/lib/hq/food/catalog";
-import { SHOP_FLAGS, SHOP_ITEMS, costTotal, emptyShop, foodMonthly, packGrams, playFoods, shopCost, shopOpts, type ShopPick } from "./costs";
+import { SHOP_FLAGS, SHOP_ITEMS, clampShop, costTotal, defaultShop, emptyShop, foodMonthly, packGrams, playFoods, shopCost, shopOpts, type ShopPick } from "./costs";
 
 describe("playFoods（飼料清單）", () => {
   it("處方飼料（requiresVetDiagnosis）一律不顯示", () => {
@@ -89,5 +89,13 @@ describe("花費公式", () => {
   });
   it("costTotal：五個分類加總", () => {
     expect(costTotal({ once: 1, month: 2, med: 3, acc: 4, other: 5 })).toBe(15);
+  });
+});
+
+describe("採買預設", () => {
+  it("用品都備好，只缺飼料；選項比預設少時不會算錯", () => {
+    expect(shopCost(defaultShop(), "kitten").missing).toEqual(["飼料"]);
+    const few = { flags: {}, opts: { fund: [["不存", 0]] as const } };
+    expect(shopCost(clampShop(defaultShop(), few), "kitten", few).missing).toEqual(["飼料"]);
   });
 });

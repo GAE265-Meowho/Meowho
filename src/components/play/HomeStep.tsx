@@ -1,25 +1,26 @@
 "use client";
-// 虛擬飼養 DEMO（#237）：在家的時光。每個節點結束後回到房間，6 個動作（逗貓、餵貓、換水、鏟屎、剪指甲、刷牙）想做幾次都可以，也可以跳過。
+// 虛擬飼養 DEMO（#237）：在家的時光。每個節點結束後回到房間，7 個動作（逗貓、摸貓、餵貓、換水、鏟屎、剪指甲、刷牙）想做幾次都可以，也可以跳過。
 // 不做房間物品互動：貓在背景，動作都是按鈕加小遊戲。規則與數值在 lib/play/care.ts。
 import CatButton from "@/components/ui/CatButton";
 import { CARE_ACTS, type CareAct } from "@/lib/play/care";
+import { NEEDS } from "@/lib/play/needs";
 import type { PlayState } from "@/lib/play/flow";
 import s from "./play.module.css";
 
-export function HomeStep({ state, onAct, onFinish }: { state: PlayState; onAct: (act: CareAct) => void; onFinish: () => void }) {
-  const round = state.life.care.rounds + 1;
+/** 動作改成畫面上方的一排圖示（CareBar）；這裡只剩右下角的「結束今天，繼續故事」 */
+export function HomeStep({ onFinish }: { onFinish: () => void }) {
+  return <div className={s.homeFinish}><CatButton onClick={onFinish}>結束今天，繼續故事</CatButton></div>;
+}
+
+/** 在家的時光：上方一排圖示，還沒做的是白底不透明，做過的半透明（還是可以再做） */
+export function CareBar({ state, canPlay, onAct }: { state: PlayState; canPlay: boolean; onAct: (act: CareAct) => void }) {
   return (
-    <section className={s.card} aria-labelledby="home-time">
-      <span className={s.kicker}>在家的時光・第 {round} 輪</span>
-      <h2 id="home-time">回到家了</h2>
-      <p className={s.lead}>每個動作想做幾次都可以，不想做也可以跳過。</p>
-      <div className={s.options}>
-        {CARE_ACTS.map(({ act, label }) => {
-          const done = state.homeDone.includes(act);
-          return <button key={act} type="button" className={s.option} onClick={() => onAct(act)}>{label}{done ? "（已做，可再做）" : ""}</button>;
-        })}
-      </div>
-      <div className={s.actions}><CatButton onClick={onFinish}>結束，繼續故事</CatButton></div>
-    </section>
+    <div className={s.careBar} role="group" aria-label="在家的時光">
+      {NEEDS.filter(n => canPlay || n.act !== "play").map(n => {
+        const done = state.homeDone.includes(n.act);
+        const label = CARE_ACTS.find(a => a.act === n.act)?.label ?? n.label;
+        return <button key={n.act} type="button" className={s.careIcon} data-done={done ? "true" : undefined} aria-label={`${label}${done ? "（已做，可再做）" : ""}`} title={label} onClick={() => onAct(n.act)}>{n.emoji}</button>;
+      })}
+    </div>
   );
 }

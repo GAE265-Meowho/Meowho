@@ -11,10 +11,11 @@ import type { PlayerHome } from "@/lib/play/background";
 import { costTotal, money, type ShopPick } from "@/lib/play/costs";
 import type { PlayState } from "@/lib/play/flow";
 import {
-  checksVerdict, DISCLAIMER, EXP_CHECKS, fullAdvice, HEALTH_NOTE, memoryMoments, OUTRO, ruleAdvice, trustWord,
+  checksVerdict, DISCLAIMER, EXP_CHECKS, fullAdvice, HEALTH_NOTE, memoryMoments, outroFor, ruleAdvice, trustWord,
 } from "@/lib/play/report";
 import { buildPlayReport } from "@/lib/play/report-payload";
 import { STORY } from "@/lib/play/story";
+import { nodeLabel } from "@/lib/play/timeline";
 import { getBrowserSupabase } from "@/lib/supabase/client";
 import s from "./play.module.css";
 
@@ -26,6 +27,7 @@ export function ReportStep({ state, pick, monthly, home, catId, demo, roomId, ca
 }) {
   const X = state.life, C = X.cost, total = costTotal(C);
   const years = Math.max(1 / 12, (X.age - state.startMonths) / 12);
+  const labelOf = (id: string) => { const n = STORY.find(x => x.id === id); return n ? nodeLabel(n, state.startMonths) : ""; };
   const good = X.picks.filter(p => p.good === true), bad = X.picks.filter(p => p.good === false);
   const [checks, setChecks] = useState<boolean[]>(() => EXP_CHECKS.map(() => false));
   const [tips, setTips] = useState<string[] | null>(null);
@@ -82,7 +84,7 @@ export function ReportStep({ state, pick, monthly, home, catId, demo, roomId, ca
       <section className={s.card} aria-labelledby="report-title">
         <span className={s.kicker}>試養報告</span>
         <h2 id="report-title">{X.abandoned ? `你和${X.name}分開了` : `你和${X.name}的 ${Math.round(years)} 年`}</h2>
-        <p className={s.lead}>{X.abandoned ? "在這次體驗裡，生活的變化讓你選擇了送走牠。現實中，這正是很多貓被棄養的時刻。" : OUTRO}</p>
+        <p className={s.lead}>{X.abandoned ? "在這次體驗裡，生活的變化讓你選擇了送走牠。現實中，這正是很多貓被棄養的時刻。" : outroFor(state.startMonths)}</p>
         <dl className={s.sum}>
           <dt>這段期間大約花費</dt><dd>{money(total)} 元</dd>
           <dt>{X.name}對你</dt><dd>{X.abandoned ? "—" : trustWord(X.trust)}</dd>
@@ -93,7 +95,7 @@ export function ReportStep({ state, pick, monthly, home, catId, demo, roomId, ca
         <h2 id="events-title">這一生發生的事</h2>
         <ul className={s.log}>
           {X.events.length
-            ? X.events.map(e => <li key={e.id}>{STORY.find(n => n.id === e.node)?.label}：{e.t}</li>)
+            ? X.events.map(e => <li key={e.id}>{labelOf(e.node)}：{e.t}</li>)
             : <li>沒有發生意外，照顧得很好。</li>}
         </ul>
       </section>

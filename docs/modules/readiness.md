@@ -220,3 +220,14 @@
 - 沒登入或沒有喵戶：帶去登入／建立喵戶（同 /run）。貓咪頁「進行領養任務」連 `/cats/[id]/play`（#273）；`/run` 頁保留。
 - 試養報告給中途看（`0033_meow_play_report.sql`，**執行前須子哲確認**）：玩完報告頁自動呼叫 `meow_save_play_report` 存一筆已完成的 `meow_task_runs`（`game_report` 摘要由 `report-payload.ts` 產生：選擇、花費、照顧紀錄，不含家裡位置與裁切照）；領養人按「把試養報告附給中途」才呼叫 `meow_share_task_proof`；中途在對話串的 `TaskProof` 看到「系統認證」與可展開的試養報告（`meow_thread_task_status` 的 proof 多回 `game_report`）。示範貓、沒登入、放棄的體驗不存。
 - 已知限制：劇情文字仍是固定劇本（成貓也會演結紮）；`/play` 不寫進行中的進度，只在玩完存一次。
+
+### 時間軸、貓資料與版面（2026-11-10 晚）
+- 年紀：劇本固定 2 個月到 15 歲，`timeline.ts` 換算成真實月齡；前半年照劇本，之後依剩餘時間壓縮，結尾最多 20 歲。節點名稱、獸醫台詞、報告年數、每月花費都用換算後的時間。
+- 貓資料：`PlayCatSource` 多了 `sex`、`neutered`，經 `Life.cat` 進劇情；花色用 `coatNoun`，結紮節點見 `story.ts` 的 `spaySteps`。
+- 版面：`place`、`node` 步驟時 `PlayGame` 的外框 `data-immersive="true"`，3D 房間 `position: fixed` 滿版，劇情卡放 `.sheet`（手機底部卡片，可收合）；小遊戲手機版從下方升起。
+
+### 虛擬飼養：點 3D 物件、砂盆搬家、起始心情（2026-11-10）
+- 在家的時光可直接點 3D 房間裡的貓／餐碗／貓砂盆開小遊戲（`RoomViewer` 的 `markers`），按鈕版保留。
+- 第 3 天砂盆和碗分開／放一起會真的搬貓砂盆（`relocate` 步驟）。
+- 劇情裡的餵飼料、鏟屎、刷牙、剪指甲會跳小遊戲彈窗。
+- 起始信任／壓力由中途評論算（`startMood`）；沒有任何資料時用預設 30／40。

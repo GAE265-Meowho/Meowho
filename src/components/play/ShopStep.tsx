@@ -52,31 +52,18 @@ export function ShopStep({ pick, shop, onChange }: { pick: ShopPick; shop?: Play
         </ul>
       </section>
 
-      {(Object.entries(SHOP_ITEMS) as [ShopItemKey, (typeof SHOP_ITEMS)[ShopItemKey]][]).map(([k, it]) => (
-        <section key={k} className={s.card} aria-labelledby={`shop-${k}`}>
-          <h2 id={`shop-${k}`}>{it.name}<Required /></h2>
-          {"note" in it && <p className={s.lead}>{it.note}</p>}
-          <div className={s.list} role="radiogroup" aria-labelledby={`shop-${k}`}>
-            {shopOpts(k, shop).map(([label, price], i) => (
-              <label key={label} className={s.check}>
-                <input type="radio" name={`shop-${k}`} checked={pick[k] === i} onChange={() => set({ [k]: i })} />
-                {label}・{money(price)} 元{it.per === "month" ? "／月" : ""}
-              </label>
-            ))}
-          </div>
-        </section>
-      ))}
-
-      <section className={s.card} aria-labelledby="flags-title">
-        <h2 id="flags-title">其他用品</h2>
-        <div className={s.list}>
-          {(Object.entries(SHOP_FLAGS) as [ShopFlagKey, readonly [string, number]][]).map(([k, [label]]) => (
-            <label key={k} className={s.check}>
-              <input type="checkbox" checked={pick[k]} onChange={e => set({ [k]: e.target.checked })} />
-              {label}・{money(flagPrice(k, shop))} 元
-            </label>
+      <section className={s.card} aria-labelledby="kit-title">
+        <h2 id="kit-title">用品已經幫你備好</h2>
+        <p className={s.lead}>貓砂、砂盆、碗、零食、醫療預備金和玩具都用預設的，不用選。</p>
+        <ul className={s.kit}>
+          {(Object.entries(SHOP_ITEMS) as [ShopItemKey, (typeof SHOP_ITEMS)[ShopItemKey]][]).map(([k, it]) => {
+            const o = pick[k] === null ? null : shopOpts(k, shop)[pick[k]!];
+            return o && <li key={k}><span>{it.name}・{o[0]}</span><span>{money(o[1])} 元{it.per === "month" ? "／月" : ""}</span></li>;
+          })}
+          {(Object.entries(SHOP_FLAGS) as [ShopFlagKey, readonly [string, number]][]).filter(([k]) => pick[k]).map(([k, [label]]) => (
+            <li key={k}><span>{label}</span><span>{money(flagPrice(k, shop))} 元</span></li>
           ))}
-        </div>
+        </ul>
       </section>
 
       <section className={s.card} aria-labelledby="sum-title" aria-live="polite">
