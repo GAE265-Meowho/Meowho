@@ -88,7 +88,7 @@
 | `AGENTS.md` | 共同規範 |
 | `docs/agents/PLAN.md` | 任務與排程 |
 | `docs/modules/*.md` | 各大模組現況 |
-| `docs/daily/` | 每日紀錄 |
+| `docs/daily/` | 每日紀錄（`YYYY-MM-DD/` 資料夾內一筆一個檔；11/10 以前為單日檔） |
 | `docs/spec/01_系統需求規格書_SRS.md` | 需求 |
 | `docs/design/DESIGN.md` | 設計系統 |
 

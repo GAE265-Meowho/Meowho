@@ -103,6 +103,7 @@
 | 23-25 | 故事線：貓不要穿越碗盆（碗碰撞、腳掌踩碗外、吃飯往前伸脖子） | admin-moderation | 23-24 | P2 | #318 | Tina × Claude Code | 審查中 |
 | 23-26 | 成貓、幼貓吃飯、喝水動作重做（各用自己的骨架直接製作） | admin-moderation | 23-23 | P2 | #330 | Tina × Claude Code | 完成 |
 | 23-27 | 成貓吃飯、喝水再重做（背線緩弧、側面平面 IK 不 roll） | admin-moderation | 23-26 | P2 | #336 | Tina × Claude Code | 審查中 |
+| 23-28 | 大貓走路 v3：骨架翻面、肚子權重只跟脊椎、前腳落地收回肩膀下方、一圈 1 秒 | admin-moderation | 23-16 | P2 | #340 | Tina × Claude Code | 審查中 |
 | 23-15 | MeowHQ 登入頁依 Stitch 改版、瀏覽器標題改 MeoWho｜喵戶總部 | admin-moderation | — | P2 | #116 | Tina × Claude Code | 完成（#117 已合併） |
 | 23-14 | MeowHQ AI 三視角第二階段：worker 同時用三張照片上色；製作glb工作區選擇要產生的動作 | admin-moderation | 23-13 | P2 | 待建立 | — | 待辦 |
 | 23-16 | MeowHQ 3D 貓咪體型預覽新增大貓（大貓｜成貓｜幼貓三分頁、貓咪資訊）；大貓只做預覽 | admin-moderation | 23-13 | P2 | #302 | Tina × Claude Code | 完成（#305 已合併；肚子鼓包修正見 fix/302-large-cat-belly） |
