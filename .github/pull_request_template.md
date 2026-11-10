@@ -16,7 +16,7 @@ Closes #
 ## AI 協助範圍
 - 發起人：
 - AI 工具與模型：
-- [ ] 已寫 `docs/daily/` 每日紀錄
+- [ ] 已用 `npm run log` 新增 `docs/daily/YYYY-MM-DD/` 每日紀錄（一筆一個檔，不追加到單日檔）
 - [ ] 已更新相關 `docs/modules/*.md`、`docs/agents/PLAN.md`、`HANDOFF.md`（如有需要）
 
 ## 備註（待確認事項）
