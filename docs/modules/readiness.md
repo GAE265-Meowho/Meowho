@@ -78,8 +78,8 @@
 
 | 步驟 | 要改的地方 | 說明 |
 |---|---|---|
-| 1. 上傳 | `src/app/homes/[id]/scene/page.tsx` | 「上傳影片」選檔、「開始製作」用手機錄影（`<input type="file" accept="video/*" capture>`）；`POST /api/homes/[id]/videos` 簽 Azure 上傳網址（`getMediaStore().uploadUrl`），瀏覽器直傳；格式、大小、長度用 `src/lib/home-room.ts` 的 `checkHomeVideo()`，前台和 API 各檢查一次。上傳中顯示 §8「正在建立你家的 3D 房間。你可以先離開，好了會通知你。」 |
-| 2. 建房間＋排工作 | `src/app/api/homes/[id]/room/route.ts` | 收 `{ videoPath }`，確認路徑在這個喵戶底下；用 service role 建 `meow_room_models`（`status = 'queued'`、`source = 'video'`、`video_path`、`owner_household_id`）＋`meow_room_jobs`（`queued`）＋`meow_env_reports`（`queued`、`room_model_id`）。房間 id 沿用 `newRoomId()`／`roomIdAt()` 格式 |
+| 1. 上傳 | `src/app/homes/[id]/scene/page.tsx` | 「上傳影片」選檔、「開始製作」用手機錄影（`<input type="file" accept="video/*" capture>`）；`POST /api/homes/[id]/videos` 先用 service role 記一筆 `meow_home_videos`（`status = 'uploading'`，路徑裡的 uuid＝這筆的 `id`），再簽 Azure 上傳網址（`getMediaStore().uploadUrl`），回 `{ videoId, path, upload }`，瀏覽器直傳；紀錄寫不進去就不簽網址（#346）；格式、大小、長度用 `src/lib/home-room.ts` 的 `checkHomeVideo()`，前台和 API 各檢查一次。上傳中顯示 §8「正在建立你家的 3D 房間。你可以先離開，好了會通知你。」 |
+| 2. 建房間＋排工作 | `src/app/api/homes/[id]/room/route.ts` | 收 `{ videoId }`，用 service role 讀這個喵戶、`purpose = 'room'`、還沒清掉的 `meow_home_videos`，路徑一律用這筆的 `path`；影片改 `uploaded` → 建 `meow_room_models`（`status = 'queued'`、`source = 'video'`、`video_path`、`owner_household_id`）→ 呼叫 `meow_create_home_processing(videoId, roomId, videoId)`，在同一個交易裡建 `meow_room_jobs`、`meow_env_jobs`、`meow_env_reports`（含 `video_id`）和 `meow_home_processing_requests`（#346）。request id 用 `videoId`，重送拿回同一組；失敗時刪房間、Azure 影片和影片紀錄。房間 id 沿用 `newRoomId()`／`roomIdAt()` 格式 |
 | 3. worker | `workers/room-convert/pipeline/room_worker.py --supabase`（目前在珮瑜的 Mac 上跑） | 能領 `owner_household_id` 不是 null 的工作：從 Azure 讀影片（下載後再檢查一次 #243 的限制）、成果寫到 `meow-home-scenes/<household_id>/<房間 id>/`、`result_path` 填這個路徑；成功改 `ready`、失敗改 `failed` 並寫原因；不刪影片（#242）；寫 `meow_notifications` 給喵戶長（連到 `/homes/<id>/scene`）。物品清單放 `meta.objects[].label`（`roomFurniture()` 會讀，名稱要對得到 `placeFor()` 的關鍵字：沙發、床、櫃、椅、書桌、衣櫃、桌、門） |
 | 4. 環境報告 | 同一個 worker 或另一支 | 產生 `items`（`[{key, label, level: high/medium/low, note, crop_path}]`）、`summary`，風險裁切照放 `meow-home-risk-crops/<報告 id>/`，改 `ready`／`failed` |
 | 5. 處理中與預覽 | `scene/page.tsx`、新的預覽頁 | `homeTools()` 已經會依 `queued`／`running` 停用按鈕；`ready` 後預覽（沿用 #93 的房間檢視器，manifest 從 `meow-home-scenes` 的 signed URL 讀），按「完成」呼叫 `meow_finish_home_room(房間, null)`，之後才能開始領養任務（`meow_start_task_run` 要 `completed_at`） |
@@ -88,7 +88,7 @@
 | 8. 任務裡的 3D（之後） | `src/app/cats/[id]/run/page.tsx` 的舞台（`s.stage`） | 換成房間檢視器＋把貓放進房間，依任務的 `action` 和 `placeFor` 找到的家具播動作；`textOnly` 時維持文字情境 |
 
 **進度（2026-11-04 珮瑜）**：第 1、2、3、5 步已接上（`feat/161-home-room-video`）。
-- 上傳路徑是 `homes/<household_id>/videos/<隨機 uuid>.mp4|mov`（2026-11-07 起放 Azure，#273；`isHomeVideoPath()` 檢查；#263 合併後 uuid 改成 `meow_home_videos.id`）；建房間失敗時 API 會刪掉剛傳的影片，房間 id 由伺服器產生；同一個喵戶已有 `queued`／`running` 的房間時回 `409 room_busy`。
+- 上傳路徑是 `homes/<household_id>/videos/<隨機 uuid>.mp4|mov`（2026-11-07 起放 Azure，#273；`isHomeVideoPath()` 檢查；11/10 起 uuid＝`meow_home_videos.id`，#346）；建房間失敗時 API 會刪掉剛傳的影片和影片紀錄，房間 id 由伺服器產生；同一個喵戶已有 `queued`／`running` 的房間時回 `409 room_busy`。
 - 預覽讀檔走 `GET /api/homes/[id]/room/[roomId]/[...file]`：用登入者身分查房間（RLS），換 10 分鐘 signed URL 再轉過去；檢視器沿用 `RoomViewer`。
 - worker（`workers/room-convert`）看 `owner_household_id` 分流；成果路徑 `meow-home-scenes/<household_id>/<房間 id>/`；物品清單從 `scene.json` 轉成中文（`catalog.py` 的 `NAMES_ZH`）寫進 `meta.objects`；完成、失敗都寫通知（`home_room_ready`／`home_room_failed`）。
 - **給做環境報告（第 4 步）的人**：影片在 `meow_room_models.video_path`（Azure）。兩支 worker 都不刪影片，由主站的清理程式刪（#242，2026-11-07 起）。
