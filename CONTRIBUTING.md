@@ -107,7 +107,7 @@ git switch feat/12-xxx && git rebase main   # 或 git merge main
 
 我們用 Claude Code、Cursor、Codex、Antigravity 等 AI 助理寫程式，但**人要為每一行合併進 main 的程式負責**。
 
-> 所有 AI 工具共同遵守 [`AGENTS.md`](AGENTS.md)：開工讀 `docs/agents/HANDOFF.md`、`PLAN.md` 與模組文件；收工寫 `docs/daily/` 每日紀錄（`npm run log`）、更新模組文件與交接；commit 帶 `Initiated-by`（發起的組員）與 `Agent`（AI 工具）trailer。
+> 所有 AI 工具共同遵守 [`AGENTS.md`](AGENTS.md)：開工讀 `docs/agents/HANDOFF.md`、`PLAN.md` 與模組文件；收工用 `npm run log` 在 `docs/daily/YYYY-MM-DD/` 新增一筆每日紀錄（一筆一個檔）、更新模組文件與交接；commit 帶 `Initiated-by`（發起的組員）與 `Agent`（AI 工具）trailer。
 
 1. **一張 Issue 一個新對話**：開新對話，貼上 Issue 連結或內容，讓 AI 先讀 `CLAUDE.md` 與相關規格。
 2. **先測試、後實作**：請 AI 先寫會失敗的測試，再寫程式讓它通過（紅 → 綠）。
