@@ -21,7 +21,7 @@ function playThrough(opts: Opts = {}) {
   // 背景讀到空間後在背景算出居家危險（給故事事件用），不再有「上傳房間」「居家安全」兩關
   go({ type: "setHazards", hazards: opts.hazards ?? hazards });
   go({ type: "next" }); go({ type: "next" });
-  go({ type: "startNodes", labels, once: 2700, monthly: 2000, shopPicks: [{ t: "每月存醫療預備金", good: true }] });
+  go({ type: "startNodes", catName: "麻糬", labels, once: 2700, monthly: 2000, shopPicks: [{ t: "每月存醫療預備金", good: true }] });
   for (let guard = 0; guard < 600 && s.step === "node"; guard++) {
     const c = s.cur!;
     if (c.kind === "lines") seen.push(...c.lines.map(l => l.t));
@@ -48,7 +48,7 @@ describe("步驟", () => {
   it("居家危險在背景設定，沒有關卡也會帶進故事（節點 5 取風險最高的一項）", () => {
     let s: PlayState = initialPlay();
     s = playReducer(s, { type: "setHazards", hazards });
-    s = playReducer(s, { type: "startNodes", labels, once: 0, monthly: 0 });
+    s = playReducer(s, { type: "startNodes", catName: "麻糬", labels, once: 0, monthly: 0 });
     expect(s.life.risk).toEqual(topRisk(hazards));
   });
 });

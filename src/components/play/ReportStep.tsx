@@ -4,7 +4,7 @@
 //   → 做得好的地方／可以再想想的地方 → 給你的建議（原版規則）→ AI 依你的家補充的建議（DEMO，/api/play/advice，失敗時規則產生）
 //   → 收養之前，問問自己 → 前往認養這隻貓（DEMO 先連回貓咪頁）。
 // 金額全部由公式算（costs.ts、flow.ts），AI 不產生數字。原版的「配對參考」「看看這隻貓是誰」DEMO 不做（固定麻糬）。
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { CARE_ACTS } from "@/lib/play/care";
 import CatButton from "@/components/ui/CatButton";
 import type { PlayerHome } from "@/lib/play/background";
@@ -13,19 +13,45 @@ import type { PlayState } from "@/lib/play/flow";
 import {
   checksVerdict, DISCLAIMER, EXP_CHECKS, fullAdvice, HEALTH_NOTE, memoryMoments, OUTRO, ruleAdvice, trustWord,
 } from "@/lib/play/report";
+import { buildPlayReport } from "@/lib/play/report-payload";
 import { STORY } from "@/lib/play/story";
+import { getBrowserSupabase } from "@/lib/supabase/client";
 import s from "./play.module.css";
 
-export function ReportStep({ state, pick, monthly, home, catHref, onRestart }: {
-  state: PlayState; pick: ShopPick; monthly: number; home: PlayerHome; catHref: string; onRestart: () => void;
+/** 存給中途看的報告（0033）：玩完自動存一筆「已完成」，玩家按「附上試養報告」才分享給中途（同領養任務的規則） */
+type Sent = { st: "idle" } | { st: "saving" } | { st: "saved"; runId: string } | { st: "sharing"; runId: string } | { st: "shared"; threadId: string } | { st: "error"; msg: string };
+
+export function ReportStep({ state, pick, monthly, home, catId, demo, roomId, catHref, onRestart }: {
+  state: PlayState; pick: ShopPick; monthly: number; home: PlayerHome; catId: string; demo: boolean; roomId: string | null; catHref: string; onRestart: () => void;
 }) {
   const X = state.life, C = X.cost, total = costTotal(C);
-  const years = Math.max(1 / 12, (X.age - 2) / 12);
+  const years = Math.max(1 / 12, (X.age - state.startMonths) / 12);
   const good = X.picks.filter(p => p.good === true), bad = X.picks.filter(p => p.good === false);
   const [checks, setChecks] = useState<boolean[]>(() => EXP_CHECKS.map(() => false));
   const [tips, setTips] = useState<string[] | null>(null);
   const nChecked = checks.filter(Boolean).length;
   const overBudget = pick.budget > 0 && monthly > pick.budget;
+  const [sent, setSent] = useState<Sent>({ st: "idle" });
+  const saved = useRef(false);
+
+  // 玩完自動存（示範貓、沒登入、被放棄的體驗不存）；存不起來不擋報告
+  useEffect(() => {
+    const sb = getBrowserSupabase();
+    if (saved.current || demo || !sb || X.abandoned) return;
+    saved.current = true;
+    setSent({ st: "saving" });
+    sb.rpc("meow_save_play_report", { p_cat_id: catId, p_room_id: roomId, p_report: buildPlayReport({ life: X, startMonths: state.startMonths, budget: pick.budget, monthly }) })
+      .then(({ data, error }) => setSent(error || !data ? { st: "error", msg: error?.message ?? "" } : { st: "saved", runId: data as string }));
+    // 報告只在進入時存一次
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  async function share() {
+    const sb = getBrowserSupabase();
+    if (!sb || sent.st !== "saved") return;
+    setSent({ st: "sharing", runId: sent.runId });
+    const { data, error } = await sb.rpc("meow_share_task_proof", { p_run_id: sent.runId });
+    setSent(error || !data ? { st: "saved", runId: sent.runId } : { st: "shared", threadId: data as string });
+  }
 
   useEffect(() => {
     const body = {
@@ -127,6 +153,14 @@ export function ReportStep({ state, pick, monthly, home, catHref, onRestart }: {
         </div>
         <p className={s.lead} aria-live="polite">{checksVerdict(nChecked)}</p>
         <p className={s.disclaimer}>{HEALTH_NOTE}{DISCLAIMER}</p>
+        {(sent.st === "saved" || sent.st === "sharing" || sent.st === "shared") && (
+          <div className={s.actions} aria-live="polite">
+            {sent.st === "shared"
+              ? <CatButton href={`/me/adoptions?t=${sent.threadId}`} variant="ghost">已附上，到對話看看</CatButton>
+              : <CatButton variant="ghost" disabled={sent.st === "sharing"} onClick={share}>{sent.st === "sharing" ? "附上中…" : "把試養報告附給中途"}</CatButton>}
+          </div>
+        )}
+        {sent.st === "error" && <p className={s.missing} role="status">試養報告沒有存成功，不影響這份報告；之後可以再玩一次。</p>}
         <div className={s.actions}>
           <CatButton href={catHref} arrow>前往認養這隻貓</CatButton>
           <CatButton variant="ghost" size="sm" onClick={onRestart}>再玩一次</CatButton>

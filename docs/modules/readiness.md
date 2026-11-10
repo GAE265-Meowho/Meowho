@@ -212,3 +212,11 @@
 | 2026-11-04 | 珮瑜 × Claude Code | 前台我的 3D 房間接上影片轉換：上傳、建房間＋排工作＋環境報告、worker 寫私有 bucket 與通知、預覽與完成 | （見 PR） |
 | 2026-11-06 | 渝茜 × Claude Code | 虛擬飼養 DEMO `/cats/[id]/play`：3 個節點、AI 危險／台詞／建議（含規則備案）、採買花費公式、3D 娃娃屋擺用品、小遊戲、試養報告 | #244 |
 | 2026-11-06 | 渝茜 × Claude Code | 虛擬飼養 DEMO 劇情、事件、採買、小遊戲、試養報告改成照 catgame 原版 | #244 |
+
+## 虛擬飼養讀真實資料與試養報告給中途（/cats/[id]/play）
+- 貓咪：`lib/play/source.ts` 的 `loadPlayCat(id)` 讀 `meow_cats`（名字、花色、生活階段、生日／估計月齡）＋ `meow_cat_model_variants.confirmed_albedo`（3D 貼圖）；讀不到才用 DEMO 麻糬。劇本裡的名字用 `〈貓名〉`（`furniture.ts` 的 `fullTx`）替換，小遊戲原版寫死的「麻糬」由 `CatgameMini` 畫完後換成貓名；非虎斑花色不畫條紋。
+- 年紀：劇本時間軸不變，只把年紀換成這隻貓的實際月齡（`PlayState.startMonths`，節點年紀＝劇本年紀 − 2 個月 ＋ 實際月齡）；3D 體型 12 個月以下用幼貓、以上用成貓。標籤、小遊戲、報告「N 年」都用這個年紀。
+- 喵戶：`components/play/usePlayData.ts`——登入者名下的一般飼主喵戶（多個可選）；預算 `meow_household_budgets` 自動帶入採買（可改）；3D 房間＝該喵戶最新完成的 `meow_room_models`（沒有才用公開示範房間，背景頁有「建立我家的 3D 房間」）；環境報告＝最新 ready 的 `meow_env_reports.items` → 居家危險（`player-data.ts` 的 `hazardsFromReport`，沒有才用物品清單＋規則）。
+- 沒登入或沒有喵戶：帶去登入／建立喵戶（同 /run）。貓咪頁「進行領養任務」連 `/cats/[id]/play`（#273）；`/run` 頁保留。
+- 試養報告給中途看（`0033_meow_play_report.sql`，**執行前須子哲確認**）：玩完報告頁自動呼叫 `meow_save_play_report` 存一筆已完成的 `meow_task_runs`（`game_report` 摘要由 `report-payload.ts` 產生：選擇、花費、照顧紀錄，不含家裡位置與裁切照）；領養人按「把試養報告附給中途」才呼叫 `meow_share_task_proof`；中途在對話串的 `TaskProof` 看到「系統認證」與可展開的試養報告（`meow_thread_task_status` 的 proof 多回 `game_report`）。示範貓、沒登入、放棄的體驗不存。
+- 已知限制：劇情文字仍是固定劇本（成貓也會演結紮）；`/play` 不寫進行中的進度，只在玩完存一次。

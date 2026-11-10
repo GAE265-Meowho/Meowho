@@ -1,9 +1,10 @@
 # HANDOFF — 接手的 agent 需要知道的事
 
 > 寫給「完全沒有上下文的下一個 agent」。只保留**現在仍然成立**的內容。
-> 最後更新：2026-11-10｜Tina × Claude Code（#330 幼貓吃飯喝水）
+> 最後更新：2026-11-10｜渝茜 × Claude Code（虛擬飼養讀真實資料、試養報告給中途看）
 
 ## 目前狀態
+- **虛擬飼養讀真實資料＋試養報告給中途看（渝茜 × Claude Code，分支 `feat/play-real-data`，審查中）**：`/cats/[id]/play` 讀這隻貓（`source.ts` 的 `loadPlayCat`）、喵戶（`usePlayData.ts`）、預算、最新 3D 房間、環境報告；玩完報告存 `meow_task_runs.game_report`，按鈕附給中途，對話串 `TaskProof` 顯示。**`0033_meow_play_report.sql` 尚未執行，須子哲確認**；執行前報告頁會顯示「沒有存成功」。細節在 `docs/modules/readiness.md`「虛擬飼養讀真實資料與試養報告給中途」。
 - **WelfareLens 報告 API／PDF-first 安全評估頁（#273 C＋D，Jerry0808 × Codex，進行中）**：Draft PR #277、`feat/273-env-report-view`。離線 API/授權/UI 測試通過；PDF/crop 經授權路由 307 轉向短效 SAS（瀏覽器會收到 SAS URL，勿視為隱藏）；最新 head 的 Vercel check PASS；Preview 未登入 report/PDF/crop 實測 401 與 private,no-store。Owner session、Preview 的 Supabase project／Azure container／SAS 設定仍待核驗。
 - **#302 大貓體型預覽（Tina × Claude Code）**：分支 `feat/302-bases-large-cat`。`/MeowHQ/assets/bases?body=large|adult|kitten` 三分頁；大貓母體是 public 靜態檔 `base_clips_large.glb`（不走 Storage／母體 API），只有 idle、walk，沒有眼球。製作檔與腳本在 Tina 電腦 `Meow/配件模型/cat_base_large/`。大貓**尚未**進 `BodyType`／worker／資料表。
 - **#330 成貓、幼貓吃飯喝水重做（Tina × Claude Code）**：分支 `fix/330-kitten-eat-drink`。`base_clips.glb`、`base_clips_kitten.glb` 的 eat、drink 改由 `scripts/clips/eat_drink.mjs <glb> <glb> adult|kitten` 直接用各自骨架烘焙（參數在腳本 `BODIES`，不再用 `needs_clips.py`）。**之後若在 Tina 電腦用 `cat_base*/stepC_clips.py` 重新匯出 glb，eat、drink 會被蓋回舊版，匯出後要再跑一次這支腳本**。**合併後要上傳 Storage** `meow-cat-models/base/v1/base_clips.glb` 與 `base_clips_kitten.glb`（網站成貓優先用 Storage 版）。

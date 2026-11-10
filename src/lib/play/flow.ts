@@ -45,10 +45,12 @@ export interface PlayState {
   homeDone: CareAct[];
   /** 每月固定開銷（採買步驟用公式算好傳進來） */
   monthly: number;
+  /** 這隻貓到家時幾個月大（讀 meow_cats；劇本照原樣演，只是把年紀換成真實的） */
+  startMonths: number;
 }
 
-export const newLife = (labels: string[] = []): Life => ({
-  name: "麻糬", age: 2, trust: 30, stress: 40, flags: {}, picks: [], notes: [], events: [],
+export const newLife = (labels: string[] = [], name = "牠"): Life => ({
+  name, age: 2, trust: 30, stress: 40, flags: {}, picks: [], notes: [], events: [],
   cost: { once: 0, month: 0, med: 0, acc: 0, other: 0 }, abandoned: false, labels,
   care: newCare(), risk: null,
 });
@@ -56,7 +58,7 @@ export const newLife = (labels: string[] = []): Life => ({
 export const initialPlay = (): PlayState => ({
   step: "background", nodeIndex: 0, queue: [], cur: null, pageShown: false,
   scene: { bg: "room", time: "day", cat: "sit" }, bub: null, life: newLife(),
-  hazards: [], handled: [], homeDone: [], monthly: 0,
+  hazards: [], handled: [], homeDone: [], monthly: 0, startMonths: 2,
 });
 
 export type PlayAction =
@@ -65,7 +67,7 @@ export type PlayAction =
   | { type: "setHazards"; hazards: Hazard[] }
   | { type: "toggleHandled"; key: string }
   /** 開始三個節點：labels＝房間物品清單；once／monthly＝採買公式算好的金額；shopPicks＝原版 fullBegin 依採買記下的紀錄 */
-  | { type: "startNodes"; labels: string[]; once: number; monthly: number; shopPicks?: { t: string; good: boolean | null }[] }
+  | { type: "startNodes"; catName: string; labels: string[]; once: number; monthly: number; shopPicks?: { t: string; good: boolean | null }[]; startMonths?: number }
   | { type: "choose"; index: number }
   | { type: "miniDone"; result: unknown }
   /** 在家的時光：做完一個動作（good＝小遊戲成功） */
@@ -86,8 +88,8 @@ function apply(s: PlayState, m: { fx?: Fx; set?: string; pick?: string; good?: b
   if (fx?.trust) X.trust = clamp(X.trust + fx.trust, 0, 100);
   if (fx?.stress) X.stress = clamp(X.stress + fx.stress, 0, 100);
   if (m.set) X.flags[m.set] = true;
-  if (m.pick) X.picks.push({ t: fullTx(m.pick, X.labels), good: m.good ?? null, node: nodeId(s) });
-  if (m.note || (fx?.spent && m.pick)) X.notes.push({ t: fullTx(m.note ?? m.pick ?? "", X.labels), node: nodeId(s), spent: fx?.spent ?? 0 });
+  if (m.pick) X.picks.push({ t: fullTx(m.pick, X.labels, X.name), good: m.good ?? null, node: nodeId(s) });
+  if (m.note || (fx?.spent && m.pick)) X.notes.push({ t: fullTx(m.note ?? m.pick ?? "", X.labels, X.name), node: nodeId(s), spent: fx?.spent ?? 0 });
 }
 
 /** 一直往下執行，直到要等玩家（台詞、選項、小遊戲、個人化台詞、小叮嚀、紀錄） */
@@ -95,13 +97,13 @@ function run(prev: PlayState): PlayState {
   const s: PlayState = { ...prev, queue: [...prev.queue], life: cloneLife(prev.life), cur: null };
   const X = s.life;
   const buf: Line[] = [];
-  const flush = () => { s.cur = { kind: "lines", lines: buf.map(l => ({ ...l, t: fullTx(l.t, X.labels) })) }; return s; };
+  const flush = () => { s.cur = { kind: "lines", lines: buf.map(l => ({ ...l, t: fullTx(l.t, X.labels, X.name) })) }; return s; };
   for (let guard = 0; guard < 500; guard++) {
     const st = s.queue.shift();
     if (!st) {
       if (buf.length) return flush();
       const page = STORY[s.nodeIndex].page;
-      if (page && !s.pageShown && !X.abandoned) { s.pageShown = true; s.cur = { kind: "page", title: fullTx(page.title, X.labels), tip: fullTx(page.tip, X.labels) }; return s; }
+      if (page && !s.pageShown && !X.abandoned) { s.pageShown = true; s.cur = { kind: "page", title: fullTx(page.title, X.labels, X.name), tip: fullTx(page.tip, X.labels, X.name) }; return s; }
       s.cur = { kind: "log" };
       return s;
     }
@@ -115,8 +117,8 @@ function run(prev: PlayState): PlayState {
       case "fn": s.queue.unshift(...st.fn(X)); break;
       case "ask":
         if (buf.length) { s.queue.unshift(st); return flush(); }
-        s.cur = { kind: "ask", who: st.who, t: fullTx(st.t, X.labels), health: Boolean(st.health),
-          options: st.ask.filter(a => !a.need || a.need(X)).map(a => ({ ...a, l: fullTx(a.l, X.labels) })) };
+        s.cur = { kind: "ask", who: st.who, t: fullTx(st.t, X.labels, X.name), health: Boolean(st.health),
+          options: st.ask.filter(a => !a.need || a.need(X)).map(a => ({ ...a, l: fullTx(a.l, X.labels, X.name) })) };
         return s;
       case "mini":
         if (buf.length) { s.queue.unshift(st); return flush(); }
@@ -144,7 +146,7 @@ function enterNode(prev: PlayState, nodeIndex: number): PlayState {
   const months = Math.max(0, node.age - prevAge);
   X.cost.month += s.monthly * months;
   if (months >= 1) X.notes.push({ t: `每月固定開銷約 ${money(s.monthly)} 元 × ${Math.round(months)} 個月（估算）`, node: node.id, spent: Math.round(s.monthly * months) });
-  X.age = node.age;
+  X.age = node.age - STORY[0].age + s.startMonths;
   const q: Step[] = [...node.steps];
   if (node.personal) q.push({ k: "personal" });
   s.queue = q;
@@ -177,11 +179,11 @@ export function playReducer(s: PlayState, a: PlayAction): PlayState {
     case "toggleHandled":
       return { ...s, handled: s.handled.includes(a.key) ? s.handled.filter(k => k !== a.key) : [...s.handled, a.key] };
     case "startNodes": {
-      const life = newLife(a.labels);
+      const life = newLife(a.labels, a.catName);
       life.cost.once = a.once;
       (a.shopPicks ?? []).forEach(p => life.picks.push({ ...p, node: "day1" }));
       life.risk = topRisk(s.hazards);
-      return enterNode({ ...s, step: "node", life, monthly: a.monthly, homeDone: [] }, 0);
+      return enterNode({ ...s, step: "node", life, monthly: a.monthly, startMonths: a.startMonths ?? 2, homeDone: [] }, 0);
     }
     case "choose": {
       if (s.cur?.kind !== "ask") return s;
