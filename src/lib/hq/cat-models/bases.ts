@@ -75,13 +75,13 @@ const INFO: Record<PreviewBody, BaseInfo> = {
   },
   runner: {
     label: "奔跑貓",
-    desc: "低多邊形的橘白虎斑貓，只有奔跑動作。白肚、白胸、白襪、尾巴環紋，眼睛鼻子畫在貼圖上。",
+    desc: "低多邊形的橘白虎斑貓，有奔跑、理毛兩個動作。白肚、白胸、白襪、尾巴環紋，眼睛鼻子畫在貼圖上。",
     tags: ["低多邊形", "僅預覽"],
     autoApply: false,
     facts: [
       { label: "體長（鼻到臀）", value: "約 0.42 m" },
       { label: "網格", value: "約 400 頂點、800 面" },
-      { label: "動作", value: "奔跑（1.5 秒循環，原地）" },
+      { label: "動作", value: "奔跑（1.5 秒循環，原地）、理毛（4 秒：坐下舔左前掌、洗臉）" },
       { label: "貼圖", value: "2048 程序化橘白虎斑（依 3D 位置繪製，不受接縫影響）" },
     ],
     photos: [
