@@ -16,6 +16,10 @@ import { PlayAdviceSchema, PlayHazardsSchema, PlayLinesSchema } from "./schemas"
 import type { AdviceRequest, HazardsRequest, LinesRequest } from "@/lib/play/api";
 import { LINES_TIMEOUT_MS } from "@/lib/play/lines";
 
+import { findParseChain, findParseInput, findReasonsChain, findReasonsInput, toConditions } from "./find";
+import { FindParseSchema, FindReasonsSchema } from "./schemas";
+import type { FindCatRow } from "@/lib/find-cats";
+
 export { aiLabel, isAIConfigured } from "./models";
 
 class AITimeout extends Error {}
@@ -82,3 +86,25 @@ export const writePlayLines = (r: LinesRequest) => safe(async () =>
 export const writePlayAdvice = (r: AdviceRequest) => safe(async () =>
   playAdviceChain(structured(await getChatModel("text", { provider: "azure", temperature: 0.4 }), PlayAdviceSchema, "play_advice"))
     .invoke(adviceInput(r)), 15_000, "azure");
+
+// ---------- 幫我找貓（規格 11） ----------
+/** 一句話拆成條件；未設定或失敗回傳 null，由呼叫端改用關鍵字規則 */
+export const parseFindQuery = (q: string) => safe(async () =>
+  toConditions(await findParseChain(structured(await getChatModel("text", { temperature: 0 }), FindParseSchema, "find_parse")).invoke(findParseInput(q))), 15_000);
+
+/** 前幾名的推薦理由；未設定或失敗回傳 null，由呼叫端改用規則組的句子 */
+export const findReasons = (need: string, cats: { row: FindCatRow; text: string }[]) => safe(async () =>
+  (await findReasonsChain(structured(await getChatModel("text", { temperature: 0.4 }), FindReasonsSchema, "find_reasons")).invoke(findReasonsInput(need, cats))).reasons, 20_000);
+
+/** 文字轉成意思座標；沒有 Embedding 模型或失敗回傳 null，由呼叫端改用備案排序 */
+export async function embedTexts(texts: string[]): Promise<{ key: string; vectors: number[][] } | null> {
+  const { getEmbeddings } = await import("./models");
+  const e = await getEmbeddings().catch(() => null);
+  if (!e || !texts.length) return e && !texts.length ? { key: e.key, vectors: [] } : null;
+  try {
+    return { key: e.key, vectors: await e.model.embedDocuments(texts) };
+  } catch (err) {
+    console.warn("[ai] embedding", err instanceof Error ? err.message : err);
+    return null;
+  }
+}

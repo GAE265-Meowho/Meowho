@@ -16,6 +16,7 @@ import cv2
 import numpy as np
 import open3d as o3d
 
+from build_scene import room_bounds
 from plan_objects import load_plan
 
 OFF_FLOOR_M = 0.25  # 大型家具底部離地超過這個高度（公尺）就不當成地上的家具；床底常拍不到，實測約 0.12 m
@@ -65,6 +66,34 @@ def trim_sparse(q, cell=0.05, keep=0.15):
         dense = np.nonzero(count >= np.median(count[count > 0]) * keep)[0]
         ok &= (bins >= dense[0]) & (bins <= dense[-1])
     return q[ok]
+
+
+def solid_core(q, bounds=None, cell=0.1):
+    """AI 切大型家具常連旁邊的地板、牆角一起切，最小外接矩形會被撐大（cleanroom 的床 1.6×1.9 m 算成 2.2×2.8 m）。
+    只留夠密、夠高（不是地板）、在房間牆內的格子，再取最大一塊相連區域。bounds 是 build_scene.room_bounds 的結果。"""
+    if bounds:
+        c, s = np.cos(bounds["yaw"]), np.sin(bounds["yaw"])
+        u, v = q[:, 0] * c + q[:, 2] * s, -q[:, 0] * s + q[:, 2] * c
+        inside = (u >= bounds["min"][0]) & (u <= bounds["max"][0]) & (v >= bounds["min"][1]) & (v <= bounds["max"][1])
+        if inside.sum() >= 10:  # 房間範圍算錯時寧可用原本的點
+            q = q[inside]
+    ij = np.floor((q[:, [0, 2]] - q[:, [0, 2]].min(0)) / cell).astype(int)
+    n, m = ij.max(0) + 1
+    flat = ij[:, 0] * m + ij[:, 1]
+    count = np.bincount(flat, minlength=n * m)
+    tops = np.zeros(n * m)
+    order = np.argsort(flat)
+    keys, starts = np.unique(flat[order], return_index=True)
+    for k, ys in zip(keys, np.split(q[order, 1], starts[1:])):
+        tops[k] = np.percentile(ys, 90)
+    dense = count >= max(5, np.median(count[count > 0]) * 0.25)
+    base = np.percentile(tops[dense], 30)
+    keep = (dense & (tops >= base * 0.6)).reshape(n, m).astype(np.uint8)
+    k, lab = cv2.connectedComponents(keep, connectivity=4)
+    if k < 2:
+        return q
+    best = np.bincount(lab.ravel())[1:].argmax() + 1
+    return q[lab.ravel()[flat] == best]
 
 
 def largest_rect(mask):
@@ -151,6 +180,7 @@ def main():
     layout = json.loads(args.ply.with_suffix(".layout.json").read_text())
     objects = json.loads((out / "objects.json").read_text())
     by_name = {o["name"]: o for o in objects}
+    bounds = room_bounds(args.ply, layout) if args.solid else None
 
     for name in args.solid:
         if name not in by_name:  # 這個房間沒拍到或沒切到，略過
@@ -161,7 +191,7 @@ def main():
             print(f"[fit] {name}: 底部離地 {bottom:.2f} m，不是放在地上的家具，不算外框")
             continue
         q, _ = to_floor(read_gaussian_ply(out / f"{name}.ply"), layout)
-        q = q[np.isfinite(q).all(1)]
+        q = trim_sparse(solid_core(q[np.isfinite(q).all(1)], bounds))
         parts, _ = layers(q)
         update(by_name[name], q, float(np.median(q[:, 1])), parts)
 

@@ -2,7 +2,7 @@
 
 | 項目 | 內容 |
 |---|---|
-| 文件版本 | **v0.5（2026/11/06）**：子哲採用 v0.4 的「1 份完整 Before／After PDF＋1 份結構化 JSON」，PDF 只給本人；並依 #263 審查補上失敗文字對照、重排只重跑健檢、工作保留影片路徑。180 秒實測仍待完成。 |
+| 文件版本 | **v0.6（2026/11/08）**：補上主站讀報告 API 格式與同源短效資源路由；不變更 Worker Schema。 |
 | 對應 Issue | #241（整合）、#240（PDF 保存）、#242（影片清理）、#243（上傳限制）；上層 #62、#161 |
 | 角色 | 主站（子哲＋Claude Code）：migration、RPC、API、上傳、清理程式。Worker（Jerry）：WelfareLens 領件、分析、上傳成果、回寫 |
 | 相關決策 | 決策 006（大檔案放 Azure）、決策 007（影片清理與現有報告存取）。#240 改成單一完整 PDF 已由子哲 2026-11-06 採用，決策 007 已同步；不變更影片清理上限。 |
@@ -202,6 +202,27 @@ Worker 用 service role key 呼叫 PostgREST：`POST /rest/v1/rpc/<函式>`。
 - 前台只拿主站簽的短效 SAS（寫入 15 分鐘、讀取 10 分鐘）。
 - 前台查看報告：主站沿用網站既有的報告存取規則並簽短效讀取 SAS。**PDF 只簽給報告所屬喵戶的本人**；分享給中途時只看網站上的摘要、風險項目與裁切照，MeowHQ 後台也不提供 PDF 下載。資料庫只存路徑；Demo 不新增 PDF 專用的同意、撤回或依角色產製不同檔案的流程。
 
+### 5.1 主站讀取 API（不改 Worker Schema）
+
+`GET /api/homes/<household_id>/reports/<report_id>` 以登入者 session 查詢；未登入回 `401`，報告不存在或使用者沒有本人／分享權限回 `404`。本人的回應可含 PDF 的同源授權路由；已分享的中途只可讀摘要、`items` 與裁切照，不可讀完整 PDF。`queued`、`running`、`failed` 只回狀態與允許的錯誤資訊，不提供資源 URL。示範資料的 `attempt`、`pdf_path`、`json_path` 與裁切圖可為 `null`，不得造出 Blob 網址。
+
+成功回應格式：
+
+```json
+{
+  "report": { "id": "uuid", "householdId": "uuid", "status": "ready", "published": true, "demo": false },
+  "summary": "…",
+  "warnings": [],
+  "items": [{ "key": "window", "label": "窗戶沒有紗窗", "level": "high", "note": "…",
+               "cropUrl": "/api/homes/<household_id>/reports/<report_id>/crops/window" }],
+  "pdfUrl": "/api/homes/<household_id>/reports/<report_id>/pdf"
+}
+```
+
+- `cropUrl`、`pdfUrl` 是同源授權路由，不是 Blob SAS、原始路徑或資料庫欄位。PDF 路由只對喵戶本人開放；裁切圖路由依本人或有效分享授權。兩者每次請求重新驗證，回 `307` 直轉短效 Blob URL，使用 `Cache-Control: private, no-store`；PDF 支援 `?download=1`。大型 PDF 由 Azure 傳送，不經 Vercel Function 代理。
+- 主站 Storage Adapter 只依部署環境設定的 `AZURE_STORAGE_CONTAINER` 簽發網址；測試／Preview 指向 `media-dev`，正式指向 `media`。不得在路由中跨容器嘗試或由路徑推導容器。Supabase 測試與正式共用時，必須使用與該部署容器相符的測試資料；Worker 的 SAS 成功不代表主站帳戶金鑰、容器設定或主站簽名能力已驗證。
+- `items` 沿用 §6.1 的 Worker 欄位；API 將 `crop_path` 轉成 `cropUrl`，不回傳 Worker 私有 Blob 路徑。API 不讀取 `result.json`，也不向用戶端回傳 Service Role Key 或 SAS 值。
+
 測試與正式環境：
 
 | | 測試 | 正式 |
@@ -263,10 +284,10 @@ Worker 用 service role key 呼叫 PostgREST：`POST /rest/v1/rpc/<函式>`。
 - `confidence`、`frame_index`、`t_s`、`timing_ms` 可以省略；之後要新增欄位時升 `schema` 版本，舊版主站忽略不認得的欄位。
 - 不放影格原圖、不放 base64 圖片、不放金鑰或個資。
 
-### 6.4 唯一完整 Before／After PDF（Demo）
+### 6.4 唯一完整 Before／After PDF
 
 - 每次成功健檢都必須產生 **1 份 `report.pdf`**，連同 **1 份 `result.json`** 保存；不產生 `report_full.pdf`、摘要版 PDF 或不同權限的第二套檔案。
-- PDF 沿用已驗收的四頁全景 Before／After 版型：真實場景 Before、AI 模擬 After、局部風險特寫與照護建議；新影片依同一版型產生，不要求人工逐張核准 AI 改善圖片。
+- PDF 由 Worker 產製，主站原樣呈現，不依賴固定頁數或重新排版。v05 的真實 E2E 報告為 **8 頁 A4**，含五組 Before／AI 模擬 After；不要因早期原型規格假設只有四頁。
 - 每張 After 圖與 PDF 封面都須標示「AI 模擬示意，不代表已實際改善」；不可聲稱模擬佈置已獲現場安全驗證。
 - Worker 自動確認必要分析完成、改善圖片可解碼且可追溯至來源影格、必要 JSON 與 PDF 成功產製並保存後，才可呼叫 `meow_env_complete`。自動檢查無法保證模型完全照指令改善或未改動無關物件，應保留限制說明。
 - 網站可使用報告欄位或 `result.json` 呈現摘要，不需另產摘要 PDF。沿用既有私有 Blob、短效讀取連結和影片清理機制，不新增全景專用同意／撤回或 PDF 權限分級功能。
@@ -323,6 +344,7 @@ Worker 用 service role key 呼叫 PostgREST：`POST /rest/v1/rpc/<函式>`。
 
 | 日期 | 發起人 × 工具 | 變更 | PR |
 |---|---|---|---|
+| 2026-11-08 | Jerry0808 × Codex | v0.6，補主站安全報告 API 回傳格式與同源短效資源路由；不變更 Worker Schema | #277 |
 | 2026-11-06 | 子哲 × Claude Code | v0.1 草稿，依 #240～#243 的決定 | #250 |
 | 2026-11-06 | 子哲 × Claude Code | v0.3，子哲同意 #240 修訂：新增本人專用全景 PDF（`full_pdf_path`、同意時間、撤回即刪），摘要 PDF 仍只放裁切照 | #250 |
 | 2026-11-06 | 子哲 × Claude Code | v0.2，依 Jerry 對 §9 的回覆：取消與冪等、失敗代碼分類、`warnings` 與 `result.json` 格式、Managed Identity、`meow_home_videos` 與清理條件 | #250 |

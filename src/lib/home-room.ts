@@ -64,6 +64,11 @@ export interface HomeTool { label: string; state: ToolState }
 
 const BUSY = new Set(["queued", "running"]);
 
+/** A ready report remains ready even when another report is still processing. */
+export function safetyBusyLabel(hasReadyReport: boolean): string {
+  return hasReadyReport ? "另有安全檢測處理中" : "安全檢測處理中";
+}
+
 /** 喵戶卡片兩顆按鈕的狀態（§7.2 狀態表）：建模中兩顆一起停用；有任何一份產生好的報告，第二顆就是「查看報告」 */
 export function homeTools(rooms: RoomRow[], reports: Pick<ReportRow, "status">[]): { scene: HomeTool; safety: HomeTool } {
   if (rooms.some(r => BUSY.has(r.status))) {

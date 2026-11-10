@@ -7,16 +7,32 @@ import f from "@/components/onboarding/intake.module.css";
 import CatButton from "@/components/ui/CatButton";
 import Icon from "@/components/ui/Icon";
 import { parseContent } from "@/lib/adoption-tasks";
+import { money } from "@/lib/play/costs";
+import { parsePlayReport, type PlayReport } from "@/lib/play/report-payload";
+import { trustWord } from "@/lib/play/report";
 import { getBrowserSupabase } from "@/lib/supabase/client";
 import { parseProgress, proofLines, reasonLabel } from "@/lib/task-run";
 import s from "./desk.module.css";
 
 interface Status {
   completed: boolean; completed_at: string | null;
-  proof: { run_id: string; summary: string | null; progress: unknown; shared_at: string | null; tasks: unknown } | null;
+  proof: { run_id: string; summary: string | null; progress: unknown; shared_at: string | null; tasks: unknown; game_report?: unknown } | null;
   abandons: { reasons: string[]; note: string | null; day: number | null; at: string }[] | null;
 }
 const date = (iso: string) => new Date(iso).toLocaleDateString("zh-TW", { month: "numeric", day: "numeric" });
+
+/** 虛擬飼養的試養報告（0033）：選擇、花費、照顧紀錄；沒有家裡位置與裁切照 */
+function GameReport({ r }: { r: PlayReport }) {
+  return (
+    <ul className={s.proofList}>
+      <li><b>試養了 {r.years} 年</b><span>{r.catName}對你：{trustWord(r.trust)}</span></li>
+      <li><b>花費</b><span>總共約 {money(r.cost.total)} 元（醫療 {money(r.cost.med)}、意外 {money(r.cost.acc)}）；每月固定約 {money(r.monthly)} 元{r.budget ? `，預算 ${money(r.budget)} 元${r.overBudget ? "，超出預算" : ""}` : ""}</span></li>
+      {r.events.length > 0 && <li><b>發生的事</b><span>{r.events.join("、")}</span></li>}
+      {r.picks.map((p, i) => <li key={i}><b>{p.good === true ? "做得好" : p.good === false ? "可以再想想" : "選擇"}</b><span>{p.t}</span></li>)}
+      <li><b>照顧紀錄</b><span>{r.care.rounds ? `${r.care.rounds} 輪，共做了 ${Object.values(r.care.log).reduce((a, b) => a + b, 0)} 次照顧` : "沒有做在家的照顧"}</span></li>
+    </ul>
+  );
+}
 
 export function TaskProof({ threadId, catId, catName, isKeeper, showHint, refresh, onShared }: {
   threadId: string; catId: string; catName: string; isKeeper: boolean; showHint: boolean; refresh: number; onShared: () => void;
@@ -31,7 +47,8 @@ export function TaskProof({ threadId, catId, catName, isKeeper, showHint, refres
   }, [sb, threadId, refresh]);
 
   if (!st) return null;
-  const lines = st.proof ? proofLines(parseContent({ tasks: st.proof.tasks }), parseProgress(st.proof.progress)) : [];
+  const game = st.proof ? parsePlayReport(st.proof.game_report) : null;
+  const lines = st.proof && !game ? proofLines(parseContent({ tasks: st.proof.tasks }), parseProgress(st.proof.progress)) : [];
   const abandons = st.abandons ?? [];
 
   async function share() {
@@ -58,12 +75,13 @@ export function TaskProof({ threadId, catId, catName, isKeeper, showHint, refres
           </li>
         ))}
       </ul>
-      {st.proof && (isKeeper || st.proof.shared_at) && lines.length > 0 && (
+      {st.proof && (isKeeper || st.proof.shared_at) && (game || lines.length > 0) && (
         <>
           <button type="button" className={s.toggle} aria-expanded={open} onClick={() => setOpen(v => !v)}>
             試養報告<span aria-hidden>{open ? "收合" : "展開"}</span>
           </button>
-          {open && (
+          {open && game && <GameReport r={game} />}
+          {open && !game && (
             <ul className={s.proofList}>
               {lines.map(l => <li key={`${l.day}-${l.title}`}><b>第 {l.day} 天・{l.title}</b><span>{l.chosen}{l.tries > 1 ? `（重選 ${l.tries - 1} 次）` : ""}</span></li>)}
             </ul>

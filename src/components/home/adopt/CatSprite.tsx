@@ -151,9 +151,9 @@ function QMark({ x, y, rot, scale = 1 }: { x: number; y: number; rot: number; sc
 function Ask() {
   return (
     <g>
-      <QMark x="7" y="-1" rot={-12} />
-      <QMark x="-1" y="11" rot={-26} scale={0.78} />
-      <QMark x="16" y="10" rot={18} scale={0.84} />
+      <QMark x={7} y={-1} rot={-12} />
+      <QMark x={-1} y={11} rot={-26} scale={0.78} />
+      <QMark x={16} y={10} rot={18} scale={0.84} />
     </g>
   );
 }

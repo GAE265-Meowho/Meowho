@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import * as homeRoom from "./home-room";
-import { checkHomeVideo, homeTools, homeVideoPath, isHomeVideoPath, MAX_HOME_VIDEO_BYTES, MAX_HOME_VIDEO_SEC, safetyRecords, UPLOAD_PRIVACY, demoReportRow } from "./home-room";
+import { checkHomeVideo, homeTools, homeVideoPath, isHomeVideoPath, MAX_HOME_VIDEO_BYTES, MAX_HOME_VIDEO_SEC, safetyBusyLabel, safetyRecords, UPLOAD_PRIVACY, demoReportRow } from "./home-room";
 
 const room = (status: string, completed_at: string | null = null) => ({ status, completed_at });
 const report = (status: string, room_model_id: string | null = null, created_at = "2026-11-04T00:00:00Z", items: unknown[] = []) =>
@@ -58,6 +58,14 @@ describe("喵戶卡片的兩顆按鈕（規格 09 §7.2 狀態表）", () => {
 });
 
 describe("檢測紀錄（規格 09 §7.2）", () => {
+  it("ready 報告旁有另一筆舊 queued 時，仍標示已有報告可查看", () => {
+    const reports = [report("ready"), report("queued", null, "2026-11-05T00:00:00Z")];
+    expect(safetyRecords(reports)).toHaveLength(1);
+    expect(homeTools([], reports).safety.label).toBe("查看報告");
+    expect(safetyBusyLabel(true)).toBe("另有安全檢測處理中");
+    expect(safetyBusyLabel(false)).toBe("安全檢測處理中");
+  });
+
   it("只列產生好的報告，最新在前，標出來源與風險項目數量", () => {
     const list = safetyRecords([
       report("ready", null, "2026-11-01T00:00:00Z", [{}, {}]),

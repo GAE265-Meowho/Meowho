@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import CatButton from "@/components/ui/CatButton";
 import { useReducedMotion } from "@/lib/useReducedMotion";
@@ -51,7 +52,7 @@ export default function TypeSearch() {
   const [query, setQuery] = useState("");
   const [focused, setFocused] = useState(false);
   const reducedMotion = useReducedMotion();
-  const [sent, setSent] = useState(false);
+  const router = useRouter();
 
   const typed = useTypewriter(suggestions, focused || reducedMotion || query !== "");
   const placeholder = focused
@@ -62,9 +63,8 @@ export default function TypeSearch() {
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!query.trim()) return;
-    setSent(true);
-    document.getElementById("adopt")?.scrollIntoView();
+    // 幫我找貓（規格 11）：帶著那句話到結果頁；沒打字時結果頁會依自己的喵戶推薦，或請他描述需求
+    router.push(query.trim() ? `/find?q=${encodeURIComponent(query.trim())}` : "/find");
   }
 
   return (
@@ -80,18 +80,12 @@ export default function TypeSearch() {
           onBlur={() => setFocused(false)}
           onChange={(e) => {
             setQuery(e.target.value);
-            setSent(false);
           }}
         />
         <CatButton type="submit">
           幫我找貓
         </CatButton>
       </div>
-      {sent && (
-        <p className={styles.sent} role="status">
-          收到！配對結果頁會在後面的區塊做出來。
-        </p>
-      )}
     </form>
   );
 }

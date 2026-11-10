@@ -10,9 +10,9 @@ describe("playCatLook", () => {
     it(`${body}：母體與貼圖網址同 bundled.ts，檔案存在`, () => {
       const look = playCatLook(body);
       const { id } = PLAY_CAT_MODELS[body];
-      expect(getBundledCat(id)?.body).toBe(body);
+      expect(getBundledCat(id)?.bodyVariants?.[body]).toBeTruthy();
       expect(look.baseUrl).toBe(bundledBasePublicPath(body));
-      expect(look.albedoUrl).toBe(bundledFilePublicPath(id, "albedo"));
+      expect(look.albedoUrl).toBe(bundledFilePublicPath(id, body === "kitten" ? "albedo_kitten" : "albedo"));
       for (const url of [look.baseUrl, look.albedoUrl]) expect(existsSync(path.join(process.cwd(), "public", url))).toBe(true);
     });
   }

@@ -85,7 +85,7 @@ export default function AdoptSection() {
             <span>貓也在找你</span>
           </>
         }
-        lead="每一隻都附上中途寫下的真實日常，等最久的排在最前面。用卡片一隻隻認識，或切到地圖，依縣市與行政區找比較近的貓。"
+        lead="每一隻貓貓的真實日常，讓貓找到你你也找到貓。"
       />
 
       <div className={styles.toolbar}>
@@ -166,9 +166,6 @@ export default function AdoptSection() {
                     </p>
                   )}
                   <div className={styles.actions}>
-                    <CatButton href="/#trial" variant="ghost" size="sm">
-                      7 天虛擬飼養
-                    </CatButton>
                     <CatButton href={live ? `/cats/${c.id}` : "/#adopt"} size="sm">
                       認識{c.name}
                     </CatButton>

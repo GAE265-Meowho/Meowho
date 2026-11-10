@@ -7,6 +7,6 @@ open3d>=0.18
 # torchvision
 # transformers>=4.56
 # plan_objects.py（AI 辨識物品，必要）
-google-genai>=1.30
+google-genai>=1.30,<3  # 3.0 預設改用 v1 API，認不得 gemini-flash-latest，AI 辨識會退回基本清單
 # room_worker.py --supabase：前台居家影片放 Azure Blob（#273）
 azure-storage-blob>=12.19

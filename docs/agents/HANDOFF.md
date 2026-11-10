@@ -1,10 +1,14 @@
 # HANDOFF — 接手的 agent 需要知道的事
 
 > 寫給「完全沒有上下文的下一個 agent」。只保留**現在仍然成立**的內容。
-> 最後更新：2026-11-10｜清俊 × Cursor（帶我回家地圖，PR #315）
+> 最後更新：2026-11-10｜清俊 × Cursor（帶我回家地圖，PR #315）；渝茜 × Claude Code（虛擬飼養讀真實資料）；Tina × Claude Code（#336）
 
 ## 目前狀態
 - **帶我回家地圖（清俊 × Cursor，PR #315）**：分支 `cursor/adopt-home-map-5901`，尚未建 Issue。首頁 `#adopt` 的「地圖」先選北／中／南／東（澎湖、金門、連江在「離島」）。縣市與行政區界線在 `src/lib/geo/region-bounds.json`（taiwan-atlas，重產用 `scripts/build-region-bounds.mjs`）。縣市名由 `src/lib/geo/county-label.ts` 放在該縣市自己的海上；台北、南投、嘉義市留在境內空位。2026-11-10 清俊再調：新竹縣往左下貼近縣界、台中往右上貼近市界、屏東在泰武右側且離開縣界、嘉義市不標東區／西區。行政區名會跟兩個以上疊在一起的再縮小（`town-label.ts`，最小 5）。貓咪圖示靠近本體，五個圖示是粗框填色的卡通：愛踩踏是腳掌肉墊、貪吃是裝滿飼料的碗、好奇是三個圓潤問號、愛玩是羽毛逗貓棒、慢熟是圓角底上的 >///<. 貓仍來自卡片同一份 `FeedCat`。沒連資料庫時示意貓分布在北、中、東、離島（南區是空的）。手機（窄螢幕或觸控）點貓：第一下只開簡歷，再點同一隻才回到卡片。靠太近的貓只顯示「附近有 N 隻」（不再另外顯示「這區有 N 隻」）。展開後每隻貓回到自己的行政區，蓋過其他堆疊按鈕；「收攏」的底邊在這群貓所在縣市的縣市名上方，不蓋住縣市名。手機上若收攏壓到簡歷，先把簡歷往旁邊推開，收攏留在縣市名上方。PR：[#315](https://github.com/GAE265-Meowho/Meowho/pull/315)。
+- **虛擬飼養讀真實資料＋試養報告給中途看（渝茜 × Claude Code，分支 `feat/play-real-data`，審查中）**：`/cats/[id]/play` 讀這隻貓（`source.ts` 的 `loadPlayCat`）、喵戶（`usePlayData.ts`）、預算、最新 3D 房間、環境報告；玩完報告存 `meow_task_runs.game_report`，按鈕附給中途，對話串 `TaskProof` 顯示。**`0033_meow_play_report.sql` 尚未執行，須子哲確認**；執行前報告頁會顯示「沒有存成功」。細節在 `docs/modules/readiness.md`「虛擬飼養讀真實資料與試養報告給中途」。
+- **WelfareLens 報告 API／PDF-first 安全評估頁（#273 C＋D，Jerry0808 × Codex，進行中）**：Draft PR #277、`feat/273-env-report-view`。離線 API/授權/UI 測試通過；PDF/crop 經授權路由 307 轉向短效 SAS（瀏覽器會收到 SAS URL，勿視為隱藏）；最新 head 的 Vercel check PASS；Preview 未登入 report/PDF/crop 實測 401 與 private,no-store。Owner session、Preview 的 Supabase project／Azure container／SAS 設定仍待核驗。
+- **#302 大貓體型預覽（Tina × Claude Code）**：分支 `feat/302-bases-large-cat`。`/MeowHQ/assets/bases?body=large|adult|kitten` 三分頁；大貓母體是 public 靜態檔 `base_clips_large.glb`（不走 Storage／母體 API），只有 idle、walk，沒有眼球。製作檔與腳本在 Tina 電腦 `Meow/配件模型/cat_base_large/`。大貓**尚未**進 `BodyType`／worker／資料表。
+- **#336 成貓吃飯喝水 v2（Tina × Claude Code）**：分支 `fix/336-adult-eat-drink-v2`。`scripts/clips/eat_drink.mjs` 的 `BODIES.adult` 改用側面平面 IK（`ik:'planar'`，腿只繞 X 轉、不 roll）與新參數；成貓只寫旋轉與 root 位移。`base_clips.glb` 以 Tina 14:05 的 groom v3 版為底，**只換 eat、drink**（groom v3 一起進 repo）。成貓骨架頸根在肩關節上方 16 cm、頸根到鼻尖 14 cm，背線不折時鼻尖到不了 4.5 cm＋前 7 cm；Tina 選折衷 B（吃飯 6.6 cm／前 7 cm，喝水 6.1 cm）。幼貓 `base_clips_kitten.glb` 的 groom v3 在 Tina 本機 Meowho，未含在此分支。**重新匯出 glb 後要再跑 `node scripts/clips/eat_drink.mjs <glb> <glb> adult`**；合併後上傳 Storage `meow-cat-models/base/v1/base_clips.glb`。
 - **#283 幼貓坐下重做（Tina × Claude Code）**：分支 `fix/283-kitten-sit-redo`。`base_clips_kitten.glb` 的 sit 對齊 `Meow/cat_base_kitten/work/preview/虎斑小貓360度旋轉動畫.gif`；坐姿參數集中在 `cat_base_kitten/stepC_clips.py` 開頭的 `SIT_*`。**合併後要上傳 Storage** `meow-cat-models/base/v1/base_clips_kitten.glb`。Meow 不是 git repo，腳本只在 Tina 電腦。
 - **#259 平面圖轉換重複戶名（Tina × Cursor，已合併 #261）**：`0029_meow_room_floorplan_name_unique.sql`（既有重複改名不刪＋`source='floorplan'` partial unique index），INSERT 撞 index 回 `name_taken`。**0029 執行前須 Tina 確認**。
 - **#237 newgame 版劇情（渝茜 × Claude Code，分支 `feat/237-newgame-story`，未開 PR）**：`story.ts` 改成 6 節點＋結尾，每節點後有「在家的時光」（`care.ts`），開場一定擺外出籠（`public/play/cat_carrier.glb`）；節點 5 居家意外讀居家安全清單，之後要換世安報告 API。設計稿在團隊專題 `newgame/`。
@@ -42,6 +46,7 @@
 - **#104 成貓／幼貓變體（分支 `feat/104-adult-kitten-variants`）**：`0016_meow_cat_model_variants.sql` 及 `docs/hq/paint-worker-104.patch` 要與新版網站配套。Tina 電腦的 `Meow/cat_studio/paint_worker.py` 已套用補丁；搬到 Azure VM 時也要套同版。SQL **尚未執行**，須經 Tina 明確確認；worker 重啟且 SQL 套用後，才在 Vercel 設 `CAT_MODEL_VARIANTS_WORKER_READY=1`。預設為 0，網站維持單體型舊流程。補丁在 Meowho repo，可在 worker 目錄用 `git apply` 套用。`body_type` 決定生成母體，年齡只作舊任務預設；兩體型貼圖與上一版各自保存。
 - **產生紋理貼圖前置條件（#135，分支 `fix/135-texture-needs-views`）**：三視角都成功才能產生，判斷一律用 `viewsReady()`（`src/lib/hq/cat-models/types.ts`）；`queuePaint`／`sbQueuePaint` 回 `views_required`（409）。舊貓沒有三視角的要先補產生。
 - **平面圖轉換（#138，分支 `feat/138-floorplan-entry`，規格 `docs/hq/05`）**：PR 1 完成入口與上傳。一戶＝`meow_room_models` 一列（`source='floorplan'`），房間在 `meta.rooms`；原圖在 Azure Blob `floorplans/<戶>/<房間>`（決策 007 例外，見其補充）。邏輯在 `src/lib/hq/floorplans/`（`core.ts` 依賴注入、可測）。`0015_meow_room_floorplan.sql` 已於 2026-11-02 由子哲執行。Azure CORS 不允許 PR 預覽網址，上傳要在正式站或 localhost 測。**PR 3 AI 讀圖**（分支 `feat/138-floorplan-ai-read`）：上傳確認後 `after()` 自動讀圖，重新讀圖 `POST /api/hq/rooms/floorplan/read`；固定用 Azure 聊天部署（`AZURE_OPENAI_CHAT_DEPLOYMENT_NAME`），沒設定時房間停在「待讀圖」。整理與檢查在 `read.ts`，房間狀態判斷用 `canRead()`／`houseStatus()`。尚未用真實平面圖在正式站實測準確度。**#144（分支 `feat/144-floorplan-photos`）**：同一個上傳也收室內實景照片（AI 自動分辨），一間房最多 4 張（`photo_paths`，判斷用 `roomImages()`）；實景照片保留原圖是決策 007 的第二個例外。**步驟 4 3D 娃娃屋（分支 `feat/138-floorplan-viewer`）**：場景資料 `scene.ts`（純函式）、畫面 `FloorplanViewer.tsx`（next/dynamic，ssr: false）；不要用 drei 的 `Html` 做房名（React 19 開發模式會掉標籤）。家具是模型庫 glb（`public/hq-floorplan/furniture/`，由 `scripts/blender/furniture_kit.py` 產生，`kit.ts` 的尺寸要和 kit.json 一致）；靠牆家具由 `read.ts` 的 `snapToWall` 貼齊。
+- **虛擬體驗故事線（#297 已合併；#304 已合併；#318 分支 `fix/318-bowl-no-walkthrough`）**：`?tab=experience&story=daily`。規則 `src/lib/hq/floorplans/story.ts`（`STORIES` 加新故事線就好）；`FloorplanViewer` 的 `story`／`onStory`。餐碗組的飼料碗／水碗位置由 `bowlSlotsDetect.ts` 讀模型顏色（找淺藍＝水，飼料碗取對稱邊；讀不到用 `defaultBowlSlots`）；碗有碰撞（`bowlObstacles`：餐碗組＝兩個碗、碗墊可踩），貓站在碗中心往外 `standOff(body)`＝碗半徑＋前腳掌在身體前方距離，腳掌踩碗外、頭伸進碗；最後 0.6 m 且在站位那側才拿掉這組碗的碰撞（`dropTargetBowl`，#318）。母體動作 eat、drink、toilet、cuddle、rest、groom 都由 `Meow/needs_clips.py` 產生（兩個 `stepC_clips.py` 匯入；repo 副本 `scripts/blender/needs_clips.py`）；動作庫已無規劃中動作。母體改了要上傳 Storage 的只有成貓 `meow-cat-models/base/v1/base_clips.glb`；幼貓不在 Storage，直接用 repo 的 `public/hq-cat-models/base/base_clips_kitten.glb`。
 - **虛擬體驗（#150，分支 `feat/150-virtual-experience`）**：`/MeowHQ/assets?tab=experience`，`ExperienceTab.tsx` 選貓與喵戶，`FloorplanViewer` 的 `cat` 屬性放貓（`CatActor`，重用 `CatPreview` 匯出的 `CatModel`）；走路規則 `catwalk.ts`。跳上家具已完成（`catjump.ts`，不用 Rapier）；貓放大 1.2 倍、鏡頭跟著貓。下一步：遊戲玩法；母體補上 jump 動作後，`FloorplanViewer` 的 `CatActor` 跳躍中改播 jump。貓的外觀規則改在 `catLook.ts`（貓咪頁共用）。下一步：步驟 5 點房間進第一人稱＋放貓，用 `colliders()` 建 Rapier cuboid，沿用 `src/lib/hq/rooms/` 的 `RoomCat`／`RoomPhysics`。下一步：步驟 4 `FloorplanViewer`（JSON → 3D 娃娃屋）。
 - **LLM 輸入防護（#38，決策 004）**：新增任何 LLM 任務，使用者內容必須經 `wrapUserInput()`、API 必須用 `checkInput()`（`src/lib/ai/guard.ts`）。問答模組上線時要實作「每段 20 輪、每天 50 次」。
 - **`0003_meow_site_assets.sql` 已在 Supabase 執行（2026-10-29，`meow_0003_site_assets`）**：Logo 上傳與網站設定可用，待 Tina 登入實測。
@@ -85,7 +90,7 @@
 | `AGENTS.md` | 共同規範 |
 | `docs/agents/PLAN.md` | 任務與排程 |
 | `docs/modules/*.md` | 各大模組現況 |
-| `docs/daily/` | 每日紀錄 |
+| `docs/daily/` | 每日紀錄（`YYYY-MM-DD/` 資料夾內一筆一個檔；11/10 以前為單日檔） |
 | `docs/spec/01_系統需求規格書_SRS.md` | 需求 |
 | `docs/design/DESIGN.md` | 設計系統 |
 
