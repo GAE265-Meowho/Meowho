@@ -1,10 +1,11 @@
-// 幼貓吃飯、喝水動作（Meowho #330，2026-11-10）：直接用幼貓骨架 base_clips_kitten.glb 擺姿勢、烘焙成 eat／drink 動畫寫回 glb。
-// 不沿用 scripts/blender/needs_clips.py 的成貓參數（鼻尖目標以公尺計，套到頭大脖子短的幼貓會胸口塌陷、頭縮進胸口）。
+// 吃飯、喝水動作（Meowho #330，2026-11-10）：直接用各體型自己的骨架擺姿勢、烘焙成 eat／drink 動畫寫回 glb（幼貓 base_clips_kitten.glb、成貓 base_clips.glb）。
+// 不沿用 scripts/blender/needs_clips.py（舊版成貓整隻趴低 9 cm、脖子折出摺痕、頭塞進胸口；幼貓套同一組公尺目標則胸口塌陷）。
 // 姿勢：整隻微蹲 → 前半身微往前下傾 → 脖子往前下伸、頭朝碗 → 四隻腳兩節 IK 把腕／踝拉回站姿位置（腳掌不離地、不滑）。
 // 吃飯每 0.8 秒咀嚼點頭 6°；喝水頭再低一點、每 0.4 秒舔水 3°；尾巴根部放低、慢慢左右擺。眨眼（形狀鍵）沿用原本的關鍵影格。
 // 用法（需要 three 與 gltf-transform，不在專案相依裡，臨時裝）：
 //   npm i --no-save @gltf-transform/core @gltf-transform/extensions
-//   node scripts/clips/kitten_eat_drink.mjs public/hq-cat-models/base/base_clips_kitten.glb public/hq-cat-models/base/base_clips_kitten.glb
+//   node scripts/clips/eat_drink.mjs public/hq-cat-models/base/base_clips_kitten.glb public/hq-cat-models/base/base_clips_kitten.glb kitten
+//   node scripts/clips/eat_drink.mjs public/hq-cat-models/base/base_clips.glb public/hq-cat-models/base/base_clips.glb adult
 import { NodeIO } from '@gltf-transform/core';
 import { ALL_EXTENSIONS } from '@gltf-transform/extensions';
 import * as THREE from 'three';
@@ -64,12 +65,19 @@ export function pose(objs, rest, scene, p){
   }
   scene.updateMatrixWorld(true);
 }
-const [src,dst]=process.argv.slice(2);
+const [src,dst,body='kitten']=process.argv.slice(2);
 const {io,doc}=await load(src); const {scene,objs,map}=build(doc); const rest=capture(objs,scene);
 const FPS=30, N=120, STEP=2, Y=new THREE.Vector3(0,1,0);
 // 幼貓專用參數（只用幼貓骨架擺，不沿用成貓 needs_clips.py 的公尺目標）
-const BASE={drop:0.009, spine:0.15, n0:0.5, n1:0.28};
-const CLIPS={ eat:{h:0.25, nod:6, sec:0.8}, drink:{h:0.33, nod:3, sec:0.4} };
+// 各體型自己的參數（公尺、弧度），用各自的骨架搜尋、渲染確認後定案
+const BODIES={
+  // 幼貓：頭大脖子短，微蹲就夠；鼻尖離地約 4 cm、在前腳掌前方約 4 cm
+  kitten:{BASE:{drop:0.009, spine:0.15, n0:0.5, n1:0.28}, CLIPS:{ eat:{h:0.25, nod:6, sec:0.8}, drink:{h:0.33, nod:3, sec:0.4} }},
+  // 成貓：站姿鼻尖離地 37 cm，前半身要真的蹲下；前傾分給兩節脊椎、脖子往前伸（n0、n1 負＝往上抬回），避免脖子折痕、頭縮進胸口
+  // 鼻尖離地約 6 cm、在前腳掌前方約 7 cm（腳踩在碗外，#304）
+  adult:{BASE:{drop:0.07, spine:0.7, spine1:0.6, n0:-0.35, n1:-0.2}, CLIPS:{ eat:{h:0.3, nod:6, sec:0.8}, drink:{h:0.4, nod:3, sec:0.4} }},
+};
+const {BASE,CLIPS}=BODIES[body];
 const buf=doc.getRoot().listBuffers()[0];
 for(const [name,c] of Object.entries(CLIPS)){
   const anim=doc.getRoot().listAnimations().find(a=>a.getName()===name);
