@@ -35,6 +35,50 @@ describe("帶我回家地圖", () => {
     expect(onShowCard).toHaveBeenCalledWith("橘子");
   });
 
+  it("手機先點開簡歷，再點同一隻才回到卡片", () => {
+    vi.stubGlobal("matchMedia", (query: string) => ({
+      matches: query.includes("max-width"),
+      media: query,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      addListener: () => {},
+      removeListener: () => {},
+      dispatchEvent: () => false,
+    }));
+    const onShowCard = vi.fn();
+    render(<AdoptMap cats={cats} matches={() => true} onShowCard={onShowCard} />);
+    fireEvent.click(screen.getByRole("button", { name: /中部/ }));
+    const orange = screen.getByRole("button", { name: /橘子，台中市北屯區/ });
+    fireEvent.click(orange);
+    expect(screen.getByRole("tooltip")).toHaveTextContent("橘子");
+    expect(screen.getByRole("tooltip")).toHaveTextContent("愛踩踏");
+    expect(onShowCard).not.toHaveBeenCalled();
+    fireEvent.click(orange);
+    expect(onShowCard).toHaveBeenCalledWith("橘子");
+    vi.unstubAllGlobals();
+  });
+
+  it("附近有幾隻展開後可以收攏，貓咪在堆疊按鈕上面", () => {
+    const onShowCard = vi.fn();
+    const crowded = [
+      cat({ id: "橘子", name: "橘子", city: "台中市", area: "北屯區", coat: "橘白", tags: ["愛踩踏"] }),
+      cat({ id: "豆沙", name: "豆沙", city: "台中市", area: "北屯區", coat: "黑", tags: ["貪吃"] }),
+    ];
+    render(<AdoptMap cats={crowded} matches={() => true} onShowCard={onShowCard} />);
+    fireEvent.click(screen.getByRole("button", { name: /中部/ }));
+    const pile = screen.getByRole("button", { name: "附近有 2 隻" });
+    expect(screen.queryByRole("button", { name: /這區有/ })).toBeNull();
+    fireEvent.click(pile);
+    const orange = screen.getByRole("button", { name: /橘子/ });
+    const fold = screen.getByRole("button", { name: /收攏/ });
+    expect(Number(orange.style.zIndex)).toBeGreaterThan(Number(pile.style.zIndex || "0") || 3);
+    expect(screen.getByRole("button", { name: /豆沙/ })).toBeInTheDocument();
+    expect(onShowCard).not.toHaveBeenCalled();
+    fireEvent.click(fold);
+    expect(screen.getByRole("button", { name: "附近有 2 隻" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /橘子/ })).toBeNull();
+  });
+
   it("沒有貓的地區仍進得去地圖", () => {
     render(<AdoptMap cats={cats} matches={() => true} onShowCard={() => {}} />);
     fireEvent.click(screen.getByRole("button", { name: /東部/ }));

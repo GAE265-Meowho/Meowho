@@ -1,12 +1,13 @@
 "use client";
 
 /* eslint-disable @next/next/no-img-element */
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import Icon from "@/components/ui/Icon";
 import {
-  ADOPT_REGIONS, MAP_SIZE, actionKey, coatKey, countByRegion, layoutCats, previewTags, regionOf,
+  ADOPT_REGIONS, MAP_SIZE, actionKey, coatKey, countByRegion, layoutCats, previewTags, regionOf, separateFoldFromPreview,
   type RegionId,
 } from "@/lib/adopt-map";
+import { aboveCountyLabel, countyLabels } from "@/lib/geo/county-labels";
 import type { FeedCat } from "@/lib/adopt-feed";
 import CatSprite from "./CatSprite";
 import RegionCanvas from "./RegionCanvas";
@@ -26,11 +27,16 @@ function sideFor(x: number, width: number) {
   return "up";
 }
 
-function Preview({ cat, side }: { cat: FeedCat; side: "up" | "left" | "right" }) {
+function Preview({ cat, side, nudgeX = 0, nudgeY = 0 }: { cat: FeedCat; side: "up" | "left" | "right"; nudgeX?: number; nudgeY?: number }) {
   const [broken, setBroken] = useState(false);
   const tags = previewTags(cat.tags);
   return (
-    <span className={styles.preview} role="tooltip" data-side={side}>
+    <span
+      className={styles.preview}
+      role="tooltip"
+      data-side={side}
+      style={{ ["--tip-x" as string]: `${nudgeX}px`, ["--tip-y" as string]: `${nudgeY}px` }}
+    >
       {cat.photo && !broken ? (
         <img className={styles.shot} src={cat.photo} alt={`${cat.name}的照片`} onError={() => setBroken(true)} />
       ) : (
@@ -43,11 +49,52 @@ function Preview({ cat, side }: { cat: FeedCat; side: "up" | "left" | "right" })
   );
 }
 
+/** 手機沒有滑過：第一次點只打開簡歷，再點同一隻才回到卡片。 */
+function usesTapPreview() {
+  if (typeof window === "undefined" || typeof window.matchMedia !== "function") return false;
+  return window.matchMedia("(hover: none), (pointer: coarse), (max-width: 767px)").matches;
+}
+
 /** 先選北／中／南／東（離島另列），再在該範圍看等家的貓。點貓回到卡片。 */
 export default function AdoptMap({ cats, matches, onShowCard }: Props) {
   const [region, setRegion] = useState<RegionId | null>(null);
   const [open, setOpen] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [shift, setShift] = useState({ forId: null as string | null, foldY: 0, tipX: 0, tipY: 0 });
+  const stageRef = useRef<HTMLDivElement>(null);
+  const pinned = useRef<string | null>(null);
+  useLayoutEffect(() => {
+    if (!open || !usesTapPreview()) {
+      setShift((cur) => (cur.forId === null && cur.foldY === 0 && cur.tipX === 0 && cur.tipY === 0 ? cur : { forId: null, foldY: 0, tipX: 0, tipY: 0 }));
+      return;
+    }
+    if (shift.forId !== open) {
+      setShift({ forId: open, foldY: 0, tipX: 0, tipY: 0 });
+      return;
+    }
+    const stage = stageRef.current;
+    const tip = stage?.querySelector<HTMLElement>("[role='tooltip']");
+    const foldEl = stage?.querySelector<HTMLElement>("[data-fold]");
+    if (!stage || !tip || !foldEl) return;
+    const bounds = stage.getBoundingClientRect();
+    const box = (el: HTMLElement) => {
+      const rect = el.getBoundingClientRect();
+      return { left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom };
+    };
+    const next = separateFoldFromPreview(box(foldEl), box(tip), {
+      left: 8,
+      top: bounds.top + 4,
+      right: window.innerWidth - 8,
+      bottom: bounds.bottom - 4,
+    });
+    if (next.fold.y === 0 && next.preview.x === 0 && next.preview.y === 0) return;
+    setShift({
+      forId: open,
+      foldY: shift.foldY + next.fold.y,
+      tipX: shift.tipX + next.preview.x,
+      tipY: shift.tipY + next.preview.y,
+    });
+  }, [open, shift, region, expanded]);
   const counts = countByRegion(cats.map((cat) => cat.city));
 
   if (!region) {
@@ -87,7 +134,7 @@ export default function AdoptMap({ cats, matches, onShowCard }: Props) {
           換地區
         </button>
       </div>
-      <div className={styles.stage}>
+      <div className={styles.stage} ref={stageRef}>
         <RegionCanvas region={region} />
         <span className={styles.compass} style={{ right: 22, bottom: 14, top: "auto" }}>北</span>
         {here.length === 0 && <p className={styles.empty} role="status">這裡還沒有等家的貓</p>}
@@ -100,30 +147,72 @@ export default function AdoptMap({ cats, matches, onShowCard }: Props) {
                 className={styles.pile}
                 style={{ left: `${(marker.x / size.width) * 100}%`, top: `${(marker.y / size.height) * 100}%`, zIndex: 3 }}
                 aria-expanded={false}
-                aria-label={marker.near ? `附近有 ${marker.count} 隻` : `${marker.city}${marker.district}，這區有 ${marker.count} 隻`}
+                aria-label={`附近有 ${marker.count} 隻`}
                 onClick={() => setExpanded((cur) => new Set(cur).add(marker.placeKey))}
               >
-                {marker.near ? `附近有 ${marker.count} 隻` : `這區有 ${marker.count} 隻`}
+                {`附近有 ${marker.count} 隻`}
+              </button>
+            );
+          }
+          if (marker.type === "collapse") {
+            const label = countyLabels(region).find((item) => item.name === marker.city);
+            const at = label ? aboveCountyLabel(label) : marker;
+            return (
+              <button
+                key={`fold:${marker.placeKey}`}
+                type="button"
+                className={styles.fold}
+                data-fold=""
+                style={{ left: `${(at.x / size.width) * 100}%`, top: `${(at.y / size.height) * 100}%`, zIndex: 9, ["--fold-y" as string]: `${shift.forId ? shift.foldY : 0}px` }}
+                aria-expanded
+                aria-label={`收攏，回到附近有 ${marker.count} 隻`}
+                onClick={() => {
+                  setExpanded((cur) => {
+                    const next = new Set(cur);
+                    next.delete(marker.placeKey);
+                    return next;
+                  });
+                  pinned.current = null;
+                  setOpen(null);
+                }}
+              >
+                收攏
               </button>
             );
           }
           const cat = marker.cat;
           const shown = open === cat.id;
+          const raised = marker.placeKey.startsWith("near:");
           return (
             <button
               key={cat.id}
               type="button"
               className={`${styles.marker} ${matches(cat.id) ? "" : styles.dim}`}
-              style={{ left: `${(cat.x / size.width) * 100}%`, top: `${(cat.y / size.height) * 100}%`, zIndex: shown ? 5 : 2 }}
+              style={{ left: `${(cat.x / size.width) * 100}%`, top: `${(cat.y / size.height) * 100}%`, zIndex: shown ? 10 : raised ? 6 : 2 }}
               aria-label={`${cat.name}，${here.find((item) => item.id === cat.id)?.district || cat.city}，回到卡片`}
-              onMouseEnter={() => setOpen(cat.id)}
-              onMouseLeave={() => setOpen((cur) => (cur === cat.id ? null : cur))}
+              onMouseEnter={() => { if (!usesTapPreview()) setOpen(cat.id); }}
+              onMouseLeave={() => { if (!usesTapPreview()) setOpen((cur) => (cur === cat.id ? null : cur)); }}
               onFocus={() => setOpen(cat.id)}
-              onBlur={() => setOpen((cur) => (cur === cat.id ? null : cur))}
-              onClick={() => onShowCard(cat.id)}
+              onBlur={() => {
+                if (usesTapPreview()) pinned.current = null;
+                setOpen((cur) => (cur === cat.id ? null : cur));
+              }}
+              onClick={() => {
+                if (!usesTapPreview()) { onShowCard(cat.id); return; }
+                if (pinned.current === cat.id) { onShowCard(cat.id); return; }
+                pinned.current = cat.id;
+                setOpen(cat.id);
+              }}
             >
               <CatSprite coat={coatKey(cat.coat)} action={actionKey(cat.tags)} cue={cat.tags.join("、")} />
-              {shown && <Preview cat={{ ...cat, district: here.find((item) => item.id === cat.id)?.district ?? cat.district }} side={sideFor(cat.x, size.width)} />}
+              {shown && (
+                <Preview
+                  cat={{ ...cat, district: here.find((item) => item.id === cat.id)?.district ?? cat.district }}
+                  side={sideFor(cat.x, size.width)}
+                  nudgeX={shift.forId === cat.id ? shift.tipX : 0}
+                  nudgeY={shift.forId === cat.id ? shift.tipY : 0}
+                />
+              )}
             </button>
           );
         })}

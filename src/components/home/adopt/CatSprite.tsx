@@ -70,7 +70,7 @@ function Cue({ action, cue }: { action: ActionKey; cue: string }) {
 }
 
 function Mark({ children }: { children: ReactNode }) {
-  return <g className={styles.cue} transform="translate(86 0)">{children}</g>;
+  return <g className={styles.cue} transform="translate(74 8)">{children}</g>;
 }
 
 function Meow() {
@@ -97,8 +97,14 @@ function Sun() {
 function Yarn() {
   return (
     <g>
-      <circle cx="14" cy="14" r="8" className={styles.yarn} />
-      <path d="M8 12c4 1 6 4 4 7M10 8c6 2 8 6 5 9" className={styles.yarnLine} />
+      <line x1="1.5" y1="25" x2="15" y2="8.5" className={styles.wandOutline} />
+      <line x1="1.5" y1="25" x2="15" y2="8.5" className={styles.wandStick} />
+      <path d="M15 8.5c5.2-.2 8.2 3.4 6.2 7.6" className={styles.wandString} />
+      <ellipse className={styles.feather} cx="22.4" cy="17.6" rx="2.5" ry="6.6" transform="rotate(20 22.4 17.6)" />
+      <ellipse className={styles.featherGold} cx="26.2" cy="16" rx="2.3" ry="6" transform="rotate(42 26.2 16)" />
+      <ellipse className={styles.feather} cx="19.4" cy="19" rx="2.2" ry="5.4" transform="rotate(-6 19.4 19)" />
+      <circle cx="21.8" cy="16.6" r="3" className={styles.wandPom} />
+      <ellipse className={styles.shine} cx="20.8" cy="15.6" rx="1" ry="0.6" />
     </g>
   );
 }
@@ -118,33 +124,70 @@ function Heart() {
 
 function Paws() {
   return (
-    <g className={styles.paw}>
-      <ellipse cx="8" cy="16" rx="5" ry="4" />
-      <ellipse cx="20" cy="12" rx="5" ry="4" />
+    <g>
+      <ellipse className={styles.toe} cx="5.4" cy="9.4" rx="3.3" ry="4.1" transform="rotate(-24 5.4 9.4)" />
+      <ellipse className={styles.toe} cx="11.2" cy="5.4" rx="3.3" ry="4.3" transform="rotate(-8 11.2 5.4)" />
+      <ellipse className={styles.toe} cx="17.6" cy="5.4" rx="3.3" ry="4.3" transform="rotate(8 17.6 5.4)" />
+      <ellipse className={styles.toe} cx="23.4" cy="9.4" rx="3.3" ry="4.1" transform="rotate(24 23.4 9.4)" />
+      <path className={styles.pad} d="M14 12.4c-6.4.4-10 3.4-10 7.2 0 2.5 1.7 4.2 4 4.8 1.3.3 2.2-.5 3.4-1 .9.7 2.2 1 2.6 1s1.7-.3 2.6-1c1.2.5 2.1 1.3 3.4 1 2.3-.6 4-2.3 4-4.8 0-3.8-3.6-6.8-10-7.2z" />
+      <ellipse className={styles.shine} cx="8.6" cy="8.2" rx="1.1" ry="0.7" transform="rotate(-24 8.6 8.2)" />
+      <ellipse className={styles.shine} cx="12.2" cy="17.2" rx="2.4" ry="1.3" />
+    </g>
+  );
+}
+
+function QMark({ x, y, rot, scale = 1 }: { x: number; y: number; rot: number; scale?: number }) {
+  const d = "M2.2 7.4C2.2 2.6 11.2 2.2 11.2 7.2 11.2 10.8 7.2 11.2 7 14.8";
+  return (
+    <g transform={`translate(${x} ${y}) rotate(${rot} 6.6 9) scale(${scale})`}>
+      <path d={d} className={styles.qOutline} />
+      <path d={d} className={styles.qMark} />
+      <circle cx="6.8" cy="18" r="2.35" className={styles.qDotOutline} />
+      <circle cx="6.8" cy="18" r="1.45" className={styles.qDot} />
     </g>
   );
 }
 
 function Ask() {
-  return <text x="4" y="22" className={styles.ask}>?</text>;
+  return (
+    <g>
+      <QMark x="7" y="-1" rot={-12} />
+      <QMark x="-1" y="11" rot={-26} scale={0.78} />
+      <QMark x="16" y="10" rot={18} scale={0.84} />
+    </g>
+  );
 }
 
 function Bowl() {
   return (
     <g>
-      <path d="M2 10h24c0 8-5 12-12 12S2 18 2 10z" className={styles.bowl} />
-      <path d="M6 10c2-4 4-4 6 0s4 4 6 0 4-4 6 0" className={styles.bowlRim} />
+      <g className={styles.kibble}>
+        <circle cx="8" cy="9.2" r="2.7" />
+        <circle cx="13.2" cy="6.6" r="3" />
+        <circle cx="18.6" cy="5.8" r="3.15" />
+        <circle cx="23.6" cy="8" r="2.7" />
+        <circle cx="10.6" cy="12.4" r="2.55" />
+        <circle cx="16" cy="11" r="2.85" />
+        <circle cx="21.2" cy="12" r="2.55" />
+      </g>
+      <path className={styles.bowl} d="M1.2 15.2h27.6c-.7 8.2-5.8 13-13.8 13S1.9 23.4 1.2 15.2z" />
+      <ellipse className={styles.bowlRim} cx="15" cy="15.2" rx="13.9" ry="3.5" />
+      <g className={styles.kibble}>
+        <circle cx="7.6" cy="14.6" r="2.45" />
+        <circle cx="12.4" cy="13.4" r="2.65" />
+        <circle cx="17.6" cy="13.1" r="2.75" />
+        <circle cx="22.4" cy="14.2" r="2.4" />
+      </g>
+      <ellipse className={styles.shine} cx="17.2" cy="6.4" rx="1.15" ry="0.7" />
     </g>
   );
 }
 
 function Shy() {
   return (
-    <g>
-      <path d="M1 2 L9 10 L1 18" className={styles.shy} />
-      <path d="M22 2 L14 10 L22 18" className={styles.shy} />
-      <ellipse cx="4" cy="22" rx="3.4" ry="1.8" className={styles.blushFill} />
-      <ellipse cx="19" cy="22" rx="3.4" ry="1.8" className={styles.blushFill} />
+    <g transform="rotate(-10 16 11)">
+      <rect x="-1.5" y="1" width="36" height="16.5" rx="8.2" className={styles.shyBubble} />
+      <text x="16.5" y="12.6" textAnchor="middle" className={styles.shyText}>{">///<"}</text>
     </g>
   );
 }

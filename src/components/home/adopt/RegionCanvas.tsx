@@ -1,7 +1,9 @@
 import { useMemo } from "react";
 import { MAP_SIZE, mapPoint, regionSpec, type RegionId } from "@/lib/adopt-map";
-import { countyLabelSize, countyLabelText, pickCountyLabel, type LabelPoly } from "@/lib/geo/county-label";
-import { COUNTIES, COUNTY_TONE, countiesIn, districtsIn, type Polygon, type Ring } from "@/lib/geo/region-bounds";
+import { countyLabels } from "@/lib/geo/county-labels";
+import { COUNTY_TONE, countiesIn, districtsIn, type Polygon, type Ring } from "@/lib/geo/region-bounds";
+import type { LabelPoly } from "@/lib/geo/county-label";
+import { hideTownLabel, projectedArea, townFontSizes } from "@/lib/geo/town-label";
 import styles from "./adoptMap.module.css";
 
 function projectPoint(region: RegionId, lng: number, lat: number, city: string) {
@@ -19,18 +21,14 @@ function shapePath(region: RegionId, polys: Polygon[], city: string) {
   return polys.map((poly) => poly.map((ring) => ringPath(region, ring, city)).join("")).join("");
 }
 
-function shortTown(name: string) {
-  return name.replace(/(區|鄉|鎮|市)$/, "");
-}
-
-function ringPoints(region: RegionId, ring: Ring, city: string) {
-  return ring.map(([lng, lat]) => projectPoint(region, lng, lat, city));
-}
-
 function projectPolys(region: RegionId, city: string, polys: Polygon[]): LabelPoly[] {
   return polys
-    .map((poly) => poly.map((ring) => ringPoints(region, ring, city)).filter((ring) => ring.length >= 3))
+    .map((poly) => poly.map((ring) => ring.map(([lng, lat]) => projectPoint(region, lng, lat, city))).filter((ring) => ring.length >= 3))
     .filter((poly) => (poly[0]?.length ?? 0) >= 3);
+}
+
+function shortTown(name: string) {
+  return name.replace(/(區|鄉|鎮|市)$/, "");
 }
 
 type Props = { region: RegionId; variant?: "full" | "mini" };
@@ -41,22 +39,29 @@ export default function RegionCanvas({ region, variant = "full" }: Props) {
   const cities = regionSpec(region).cities;
   const counties = countiesIn(cities);
   const districts = full ? districtsIn(cities) : [];
-  const countyLabels = useMemo(() => {
+  const countyLabelMarks = useMemo(() => (full ? countyLabels(region) : []), [full, region]);
+  const townMarks = useMemo(() => {
     if (!full) return [];
-    const names = regionSpec(region).cities;
-    const here = countiesIn(names);
-    const towns = districtsIn(names);
-    return here.map((county) => {
-      const own = projectPolys(region, county.n, county.p);
-      const foreignNames = region === "islands"
-        ? here.filter((item) => item.n !== county.n)
-        : COUNTIES.filter((item) => item.n !== county.n && !["澎湖縣", "金門縣", "連江縣"].includes(item.n));
-      const foreign = foreignNames.flatMap((item) => projectPolys(region, item.n, item.p));
-      const spots = towns.filter((town) => town.c === county.n).map((town) => projectPoint(region, town.l[0], town.l[1], town.c));
-      const { hw, hh } = countyLabelSize(county.n);
-      return { name: county.n, text: countyLabelText(county.n), ...pickCountyLabel({ own, foreign, towns: spots, width: size.width, height: size.height, hw, hh }) };
-    });
-  }, [full, region, size.height, size.width]);
+    const items = districtsIn(regionSpec(region).cities)
+      .filter((district) => !hideTownLabel(district.c, district.n))
+      .map((district) => {
+        const at = projectPoint(region, district.l[0], district.l[1], district.c);
+        const polys = projectPolys(region, district.c, district.p);
+        return { key: `${district.c}-${district.n}`, city: district.c, text: shortTown(district.n), x: at.x, y: at.y, area: projectedArea(polys) };
+      });
+    const sizeByKey = new Map<string, number>();
+    const byCity = new Map<string, typeof items>();
+    for (const item of items) {
+      const group = byCity.get(item.city) ?? [];
+      group.push(item);
+      byCity.set(item.city, group);
+    }
+    for (const group of byCity.values()) {
+      const fonts = townFontSizes(group);
+      group.forEach((item, index) => sizeByKey.set(item.key, fonts[index]));
+    }
+    return items.map((item) => ({ ...item, size: sizeByKey.get(item.key) ?? 12 }));
+  }, [full, region]);
   return (
     <svg
       viewBox={`0 0 ${size.width} ${size.height}`}
@@ -75,7 +80,7 @@ export default function RegionCanvas({ region, variant = "full" }: Props) {
         {districts.map((district, index) => (
           <path
             key={`${district.c}-${district.n}`}
-            className={`${styles.piece} ${styles[`tone${COUNTY_TONE[district.c] ?? 0}`]} ${index % 2 ? styles.alt : ""}`}
+            className={`${styles.piece} ${styles[`tone${COUNTY_TONE[district.c] ?? 0}`]} ${!hideTownLabel(district.c, district.n) && index % 2 ? styles.alt : ""}`}
             d={shapePath(region, district.p, district.c)}
             fillRule="evenodd"
           />
@@ -84,10 +89,10 @@ export default function RegionCanvas({ region, variant = "full" }: Props) {
           <path key={county.n} className={`${styles.piece} ${styles[`tone${COUNTY_TONE[county.n] ?? 0}`]}`} d={shapePath(region, county.p, county.n)} fillRule="evenodd" />
         ))}
       </g>
-      {districts.map((district) => (
+      {districts.filter((district) => !hideTownLabel(district.c, district.n)).map((district) => (
         <path key={`halo-${district.c}-${district.n}`} className={styles.districtHalo} d={shapePath(region, district.p, district.c)} fillRule="evenodd" />
       ))}
-      {districts.map((district) => (
+      {districts.filter((district) => !hideTownLabel(district.c, district.n)).map((district) => (
         <path key={`line-${district.c}-${district.n}`} className={styles.districtEdge} d={shapePath(region, district.p, district.c)} fillRule="evenodd" />
       ))}
       {counties.map((county) => (
@@ -95,11 +100,10 @@ export default function RegionCanvas({ region, variant = "full" }: Props) {
       ))}
       {full && (
         <g className={styles.watermarks}>
-          {districts.map((district) => {
-            const at = projectPoint(region, district.l[0], district.l[1], district.c);
-            return <text key={`${district.c}-${district.n}`} x={at.x} y={at.y} textAnchor="middle" className={styles.townMark}>{shortTown(district.n)}</text>;
-          })}
-          {countyLabels.map((county) => (
+          {townMarks.map((town) => (
+            <text key={town.key} x={town.x} y={town.y} textAnchor="middle" className={styles.townMark} style={town.size === 12 ? undefined : { fontSize: `${town.size}px` }}>{town.text}</text>
+          ))}
+          {countyLabelMarks.map((county) => (
             <text key={county.name} x={county.x} y={county.y} textAnchor="middle" dominantBaseline="central" className={styles.cityMark} style={{ fontSize: `${Math.round(22 * county.scale)}px` }}>{county.text}</text>
           ))}
         </g>

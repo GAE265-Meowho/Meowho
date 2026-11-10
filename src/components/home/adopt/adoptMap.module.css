@@ -172,7 +172,8 @@
 }
 
 .marker,
-.pile {
+.pile,
+.fold {
   position: absolute;
   margin: 0;
   padding: 0;
@@ -210,17 +211,28 @@
   filter: drop-shadow(0 0 5px #fff) drop-shadow(0 0 8px var(--yellow));
 }
 
-.pile {
+.pile,
+.fold {
   min-height: var(--tap);
   width: auto;
   padding: 6px 12px;
   border-radius: 999px;
-  background: var(--ink);
-  color: var(--yellow);
   font-size: 14px;
   font-weight: 800;
   box-shadow: 0 4px 0 var(--caramel-deep);
   transform: translate(-50%, -50%);
+}
+
+.pile {
+  background: var(--ink);
+  color: var(--yellow);
+}
+
+.fold {
+  background: var(--card);
+  color: var(--ink);
+  border: 2px solid var(--orange);
+  transform: translate(-50%, calc(-100% - 12px + var(--fold-y, 0px)));
 }
 
 .cityLabel,
@@ -279,17 +291,19 @@
 .preview[data-side="up"] {
   left: 50%;
   bottom: calc(100% - 2px);
-  transform: translateX(-50%);
+  transform: translate(calc(-50% + var(--tip-x, 0px)), var(--tip-y, 0px));
 }
 
 .preview[data-side="left"] {
   right: 8px;
   bottom: calc(100% - 2px);
+  transform: translate(var(--tip-x, 0px), var(--tip-y, 0px));
 }
 
 .preview[data-side="right"] {
   left: 8px;
   bottom: calc(100% - 2px);
+  transform: translate(var(--tip-x, 0px), var(--tip-y, 0px));
 }
 
 .shot,

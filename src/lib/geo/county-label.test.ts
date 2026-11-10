@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { ADOPT_REGIONS, MAP_SIZE, mapPoint } from "../adopt-map";
 import { COUNTIES, DISTRICTS, countiesIn, districtsIn, type Polygon } from "./region-bounds";
-import { countyLabelSize, insideCounties, pickCountyLabel, type LabelPoly } from "./county-label";
+import { countyLabelSize, edgeClearance, finalizeCountyLabel, insideCounties, pickCountyLabel, type LabelPoly } from "./county-label";
 
 function square(x: number, y: number, w: number, h: number): LabelPoly {
   return [[{ x, y }, { x: x + w, y }, { x: x + w, y: y + h }, { x, y: y + h }]];
@@ -60,16 +60,37 @@ describe("縣市名位置", () => {  it("靠海的縣市名貼在自己的海上
         const island = region.id === "islands";
         const foreignNames = COUNTIES.filter((item) => item.n !== county.name && (island ? region.cities.includes(item.n) : !["澎湖縣", "金門縣", "連江縣"].includes(item.n)));
         const foreign = foreignNames.flatMap((item) => projectPolys(region.id, item.n, item.p));
-        const spots = towns.filter((town) => town.c === county.name).map((town) => mapPoint(region.id, town.l[1], town.l[0], town.c));
+        const named = towns.filter((town) => town.c === county.name).map((town) => ({ name: town.n, ...mapPoint(region.id, town.l[1], town.l[0], town.c) }));
         const { hw, hh } = countyLabelSize(county.name);
-        const at = pickCountyLabel({ own: county.polys, foreign, towns: spots, width: size.width, height: size.height, hw, hh });
+        const options = { own: county.polys, foreign, towns: named, width: size.width, height: size.height, hw, hh };
+        const auto = pickCountyLabel(options);
+        const at = finalizeCountyLabel(county.name, auto, options, named);
+        const guarded = county.name === "屏東縣"
+          ? foreignNames.filter((item) => item.n !== "台東縣").flatMap((item) => projectPolys(region.id, item.n, item.p))
+          : foreign;
         const box = [
           at,
           { x: at.x - hw * at.scale, y: at.y }, { x: at.x + hw * at.scale, y: at.y },
           { x: at.x, y: at.y - hh * at.scale }, { x: at.x, y: at.y + hh * at.scale },
         ];
         for (const spot of box) {
-          expect(insideCounties(spot.x, spot.y, foreign), `${region.label} ${county.name}`).toBe(false);
+          expect(insideCounties(spot.x, spot.y, guarded), `${region.label} ${county.name}`).toBe(false);
+        }
+        if (county.name === "新竹縣") {
+          expect(at.x).toBeLessThan(auto.x);
+          expect(at.y).toBeGreaterThan(auto.y);
+          expect(edgeClearance(at.x, at.y, county.polys)).toBeLessThan(edgeClearance(auto.x, auto.y, county.polys));
+        }
+        if (county.name === "台中市") {
+          expect(at.x).toBeGreaterThan(auto.x);
+          expect(at.y).toBeLessThan(auto.y);
+          expect(edgeClearance(at.x, at.y, county.polys)).toBeLessThan(edgeClearance(auto.x, auto.y, county.polys));
+        }
+        if (county.name === "屏東縣") {
+          const taiwu = named.find((town) => town.name === "泰武鄉");
+          expect(taiwu).toBeTruthy();
+          expect(at.x).toBeGreaterThan((taiwu?.x ?? 0) + 36);
+          expect(at.y).toBeCloseTo(taiwu?.y ?? 0, 0);
         }
         if (county.name === "台北市" || county.name === "南投縣" || county.name === "嘉義市") {
           expect(insideCounties(at.x, at.y, county.polys), county.name).toBe(true);

@@ -1,5 +1,6 @@
 // 縣市名放在自己的臨海處；沒有海岸就放在境內離行政區字最遠的空位。
 // 名字的方框不能落到其他縣市裡。
+// 新竹縣、台中市再沿指定方向挪到更靠近自己的海岸；屏東縣改釘在泰武右邊。
 
 export type LabelPoint = { x: number; y: number };
 export type LabelRing = LabelPoint[];
@@ -38,7 +39,7 @@ export function insideCounties(x: number, y: number, polys: LabelPoly[]) {
   return polys.some((poly) => insidePoly(x, y, poly));
 }
 
-function clearance(x: number, y: number, polys: LabelPoly[]) {
+export function edgeClearance(x: number, y: number, polys: LabelPoly[]) {
   let min = Infinity;
   for (const poly of polys) {
     const ring = poly[0];
@@ -114,7 +115,7 @@ function coastSpot(own: LabelPoly[], foreign: LabelPoly[], width: number, height
           const box = footprint(x, y, hw + 4, hh + 4);
           if (!onCanvas(box, width, height)) continue;
           if (box.some((spot) => insideCounties(spot.x, spot.y, own) || insideCounties(spot.x, spot.y, foreign))) continue;
-          const clear = foreign.length ? clearance(x, y, foreign) : 400;
+          const clear = foreign.length ? edgeClearance(x, y, foreign) : 400;
           if (clear < 20) continue;
           found.push({ x, y, dist, clear });
         }
@@ -167,4 +168,61 @@ export function pickCountyLabel(options: Options): LabelPoint & { scale: number 
   }
   const fallback = inlandSpot(own, foreign, towns, width, height, 8, 6);
   return fallback ? { ...fallback, scale: 0.52 } : { x: width / 2, y: height / 2, scale: 1 };
+}
+
+const CLOSER: Record<string, { x: number; y: number }> = {
+  新竹縣: { x: -1, y: 1 },
+  台中市: { x: 1, y: -1 },
+};
+
+/** 往指定方向（含左右約 40px）找到更靠近自己縣市、方框仍不進任何縣市的位置。 */
+export function pullCountyLabel(
+  at: LabelPoint & { scale: number },
+  toward: { x: number; y: number },
+  options: Options,
+): LabelPoint & { scale: number } {
+  const len = Math.hypot(toward.x, toward.y) || 1;
+  const ux = toward.x / len;
+  const uy = toward.y / len;
+  const hw = options.hw * at.scale;
+  const hh = options.hh * at.scale;
+  let best = at;
+  let bestClear = edgeClearance(at.x, at.y, options.own);
+  for (let dx = -150; dx <= 150; dx += 4) {
+    for (let dy = -150; dy <= 150; dy += 4) {
+      if (Math.sign(dx) !== Math.sign(toward.x) || Math.sign(dy) !== Math.sign(toward.y)) continue;
+      const along = dx * ux + dy * uy;
+      const side = Math.abs(dx * uy - dy * ux);
+      if (along < 16 || along > 160 || side > 40) continue;
+      const x = at.x + dx;
+      const y = at.y + dy;
+      const box = footprint(x, y, hw + 4, hh + 4);
+      if (!onCanvas(box, options.width, options.height)) continue;
+      if (box.some((spot) => insideCounties(spot.x, spot.y, options.own) || insideCounties(spot.x, spot.y, options.foreign))) continue;
+      const clear = edgeClearance(x, y, options.own);
+      if (clear < bestClear - 0.5) {
+        best = { x, y, scale: at.scale };
+        bestClear = clear;
+      }
+    }
+  }
+  return best;
+}
+
+export type NamedTown = { name: string; x: number; y: number };
+
+/** 自動落點之後的手動修正。屏東釘在泰武右邊（南區地圖再往右沒有畫出台東）。 */
+export function finalizeCountyLabel(
+  name: string,
+  auto: LabelPoint & { scale: number },
+  options: Options,
+  towns: NamedTown[],
+): LabelPoint & { scale: number } {
+  if (name === "屏東縣") {
+    const taiwu = towns.find((town) => town.name === "泰武鄉");
+    if (taiwu) return { x: taiwu.x + 68, y: taiwu.y, scale: 1 };
+  }
+  const toward = CLOSER[name];
+  if (toward) return pullCountyLabel(auto, toward, options);
+  return auto;
 }

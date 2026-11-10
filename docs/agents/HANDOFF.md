@@ -1,10 +1,10 @@
 # HANDOFF — 接手的 agent 需要知道的事
 
 > 寫給「完全沒有上下文的下一個 agent」。只保留**現在仍然成立**的內容。
-> 最後更新：2026-11-09｜清俊 × Cursor（帶我回家地圖預覽，未開 PR）
+> 最後更新：2026-11-10｜清俊 × Cursor（帶我回家地圖，PR #315）
 
 ## 目前狀態
-- **帶我回家地圖（清俊 × Cursor，預覽中，不要開 PR）**：分支 `cursor/adopt-home-map-5901`，尚未建 Issue。首頁 `#adopt` 的「地圖」先選北／中／南／東（澎湖、金門、連江在「離島」）。縣市與行政區界線在 `src/lib/geo/region-bounds.json`（taiwan-atlas，重產用 `scripts/build-region-bounds.mjs`）。縣市名由 `src/lib/geo/county-label.ts` 放在該縣市自己的海上；台北、南投、嘉義市留在境內空位，不會寫進別的縣市。貓仍來自卡片同一份 `FeedCat`。沒連資料庫時示意貓分布在北、中、東、離島（南區是空的）。好奇是問號，慢熟是「> <」。下一步：清俊再看這一版，滿意才開 PR。
+- **帶我回家地圖（清俊 × Cursor，PR #315）**：分支 `cursor/adopt-home-map-5901`，尚未建 Issue。首頁 `#adopt` 的「地圖」先選北／中／南／東（澎湖、金門、連江在「離島」）。縣市與行政區界線在 `src/lib/geo/region-bounds.json`（taiwan-atlas，重產用 `scripts/build-region-bounds.mjs`）。縣市名由 `src/lib/geo/county-label.ts` 放在該縣市自己的海上；台北、南投、嘉義市留在境內空位。2026-11-10 清俊再調：新竹縣往左下貼近縣界、台中往右上貼近市界、屏東在泰武右側且離開縣界、嘉義市不標東區／西區。行政區名會跟兩個以上疊在一起的再縮小（`town-label.ts`，最小 5）。貓咪圖示靠近本體，五個圖示是粗框填色的卡通：愛踩踏是腳掌肉墊、貪吃是裝滿飼料的碗、好奇是三個圓潤問號、愛玩是羽毛逗貓棒、慢熟是圓角底上的 >///<. 貓仍來自卡片同一份 `FeedCat`。沒連資料庫時示意貓分布在北、中、東、離島（南區是空的）。手機（窄螢幕或觸控）點貓：第一下只開簡歷，再點同一隻才回到卡片。靠太近的貓只顯示「附近有 N 隻」（不再另外顯示「這區有 N 隻」）。展開後每隻貓回到自己的行政區，蓋過其他堆疊按鈕；「收攏」的底邊在這群貓所在縣市的縣市名上方，不蓋住縣市名。手機上若收攏壓到簡歷，先把簡歷往旁邊推開，收攏留在縣市名上方。PR：[#315](https://github.com/GAE265-Meowho/Meowho/pull/315)。
 - **#283 幼貓坐下重做（Tina × Claude Code）**：分支 `fix/283-kitten-sit-redo`。`base_clips_kitten.glb` 的 sit 對齊 `Meow/cat_base_kitten/work/preview/虎斑小貓360度旋轉動畫.gif`；坐姿參數集中在 `cat_base_kitten/stepC_clips.py` 開頭的 `SIT_*`。**合併後要上傳 Storage** `meow-cat-models/base/v1/base_clips_kitten.glb`。Meow 不是 git repo，腳本只在 Tina 電腦。
 - **#259 平面圖轉換重複戶名（Tina × Cursor，已合併 #261）**：`0029_meow_room_floorplan_name_unique.sql`（既有重複改名不刪＋`source='floorplan'` partial unique index），INSERT 撞 index 回 `name_taken`。**0029 執行前須 Tina 確認**。
 - **#237 newgame 版劇情（渝茜 × Claude Code，分支 `feat/237-newgame-story`，未開 PR）**：`story.ts` 改成 6 節點＋結尾，每節點後有「在家的時光」（`care.ts`），開場一定擺外出籠（`public/play/cat_carrier.glb`）；節點 5 居家意外讀居家安全清單，之後要換世安報告 API。設計稿在團隊專題 `newgame/`。

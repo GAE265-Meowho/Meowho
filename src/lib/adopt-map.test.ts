@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
+import { aboveCountyLabel, countyLabels } from "./geo/county-labels";
 import { DISTRICTS } from "./geo/region-bounds";
 import { TW_CITIES } from "./geo/tw-districts";
 import {
   ADOPT_REGIONS, ACTION_KEYS, COAT_KEYS, MAP_SIZE,
-  actionKey, anchorOf, coatKey, countByRegion, isOnLand, layoutCats, parseLocation, placeCats, previewTags, regionOf,
+  actionKey, anchorOf, coatKey, countByRegion, isOnLand, layoutCats, parseLocation, placeCats, previewTags, regionOf, separateFoldFromPreview,
 } from "./adopt-map";
 import { cats } from "./cats";
 
@@ -79,19 +80,110 @@ describe("帶我回家地圖：落點", () => {
     expect(placeCats([{ id: "t", city: "台北市", district: "大安區" }], "central")).toEqual([]);
   });
 
-  it("同一個行政區兩隻以上先收成一顆，點開才散開", () => {
+  it("疊在一起的貓只收成附近有幾隻，展開後中間可以收攏", () => {
     const pair = [
       { id: "a", city: "台中市", district: "北屯區" },
       { id: "b", city: "台中市", district: "北屯區" },
     ];
     const collapsed = layoutCats(pair, "central", new Set());
-    expect(collapsed).toEqual([expect.objectContaining({ type: "pile", count: 2, district: "北屯區" })]);
-    const opened = layoutCats(pair, "central", new Set(["台中市|北屯區"]));
+    expect(collapsed).toEqual([expect.objectContaining({ type: "pile", near: true, count: 2, district: "" })]);
+    const pile = collapsed[0];
+    if (pile.type !== "pile") return;
+    const opened = layoutCats(pair, "central", new Set([pile.placeKey]));
+    expect(opened.some((item) => item.type === "pile")).toBe(false);
+    const fold = opened.find((item) => item.type === "collapse");
     const cats = opened.filter((item) => item.type === "cat");
+    expect(fold).toMatchObject({ type: "collapse", count: 2, placeKey: pile.placeKey, city: "台中市" });
     expect(cats).toHaveLength(2);
-    if (cats[0].type === "cat" && cats[1].type === "cat") {
-      expect(Math.hypot(cats[0].cat.x - cats[1].cat.x, cats[0].cat.y - cats[1].cat.y)).toBeGreaterThan(12);
+    const home = layoutCats([{ id: "a", city: "台中市", district: "北屯區" }], "central", new Set());
+    const spot = home.find((item) => item.type === "cat");
+    expect(spot?.type).toBe("cat");
+    if (fold?.type === "collapse" && spot?.type === "cat") {
+      expect(Math.hypot(fold.x - spot.cat.x, fold.y - spot.cat.y)).toBeLessThan(2);
+      for (const item of cats) {
+        if (item.type !== "cat") continue;
+        expect(Math.hypot(item.cat.x - spot.cat.x, item.cat.y - spot.cat.y)).toBeLessThan(24);
+      }
     }
+  });
+
+  it("展開後各自回到行政區，不排成等距的圈", () => {
+    const mixed = [
+      { id: "north", city: "台中市", district: "北屯區" },
+      { id: "west", city: "台中市", district: "西屯區" },
+    ];
+    const opened = layoutCats(mixed, "central", new Set(["near:north,west"]));
+    const at = (id: string, district: string) => {
+      const alone = layoutCats([{ id, city: "台中市", district }], "central", new Set());
+      const home = alone.find((item) => item.type === "cat");
+      const moved = opened.find((item) => item.type === "cat" && item.cat.id === id);
+      expect(home?.type).toBe("cat");
+      expect(moved?.type).toBe("cat");
+      if (home?.type === "cat" && moved?.type === "cat") {
+        expect(moved.cat.x).toBeCloseTo(home.cat.x, 4);
+        expect(moved.cat.y).toBeCloseTo(home.cat.y, 4);
+      }
+      return moved?.type === "cat" ? moved.cat : null;
+    };
+    const north = at("north", "北屯區");
+    const west = at("west", "西屯區");
+    const fold = opened.find((item) => item.type === "collapse");
+    expect(fold?.type).toBe("collapse");
+    if (fold?.type === "collapse" && north && west) {
+      expect(fold.x).toBeCloseTo((north.x + west.x) / 2, 4);
+      expect(fold.y).toBeCloseTo((north.y + west.y) / 2, 4);
+      expect(Math.hypot(north.x - west.x, north.y - west.y)).toBeGreaterThan(20);
+    }
+  });
+
+  it("手機上收攏和簡歷重疊時會拉開", () => {
+    const bounds = { left: 0, top: 0, right: 340, bottom: 420 };
+    const fold = { left: 40, top: 80, right: 96, bottom: 118 };
+    const preview = { left: 70, top: 96, right: 250, bottom: 176 };
+    const moved = separateFoldFromPreview(fold, preview, bounds);
+    const foldBottom = fold.bottom + moved.fold.y;
+    const previewTop = preview.top + moved.preview.y;
+    const previewLeft = preview.left + moved.preview.x;
+    const clearY = previewTop - foldBottom;
+    const clearX = previewLeft - fold.right;
+    expect(Math.max(clearX, clearY)).toBeGreaterThanOrEqual(20);
+    expect(moved.fold.y).toBeLessThanOrEqual(0);
+    expect(fold.top + moved.fold.y).toBeGreaterThanOrEqual(bounds.top);
+
+    const apart = separateFoldFromPreview(
+      { left: 10, top: 10, right: 60, bottom: 40 },
+      { left: 200, top: 80, right: 300, bottom: 140 },
+      bounds,
+    );
+    expect(apart.fold).toEqual({ x: 0, y: 0 });
+    expect(apart.preview).toEqual({ x: 0, y: 0 });
+
+    const pinned = separateFoldFromPreview(
+      { left: 40, top: 2, right: 96, bottom: 40 },
+      { left: 70, top: 24, right: 250, bottom: 104 },
+      bounds,
+    );
+    const stillX = 70 + pinned.preview.x - 96;
+    const stillY = 24 - (40 + pinned.fold.y);
+    expect(Math.max(stillX, stillY)).toBeGreaterThanOrEqual(20);
+    expect(pinned.fold.y).toBeLessThanOrEqual(0);
+
+    const phone = { left: 8, top: 200, right: 385, bottom: 560 };
+    const phoneFold = { left: 113, top: 360, right: 169, bottom: 398 };
+    const phoneTip = { left: 86, top: 330, right: 266, bottom: 429 };
+    const phoneMoved = separateFoldFromPreview(phoneFold, phoneTip, phone);
+    expect(phoneMoved.fold.y).toBe(0);
+    expect(phoneTip.left + phoneMoved.preview.x - phoneFold.right).toBeGreaterThanOrEqual(20);
+  });
+
+  it("收攏放在所在縣市名的上方", () => {
+    const label = countyLabels("central").find((item) => item.name === "台中市");
+    expect(label).toBeTruthy();
+    if (!label) return;
+    const at = aboveCountyLabel(label);
+    expect(at.x).toBe(label.x);
+    expect(at.y).toBeCloseTo(label.y - 11 * label.scale, 5);
+    expect(at.y).toBeLessThan(label.y);
   });
 
   it("離島的貓仍留在畫布內", () => {

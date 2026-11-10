@@ -395,34 +395,91 @@ export type MapCat<T> = T & MapPoint & { placeKey: string };
 
 export type MapMarker<T> =
   | { type: "pile"; placeKey: string; city: string; district: string; count: number; x: number; y: number; near: boolean }
+  | { type: "collapse"; placeKey: string; city: string; count: number; x: number; y: number }
   | { type: "cat"; placeKey: string; cat: MapCat<T> };
 
 const NEAR_PX = 50;
 
-function spreadAround<T>(cats: MapCat<T>[], cx: number, cy: number): MapCat<T>[] {
-  return cats.map((cat, index) => {
-    const offset = fan(index, cats.length);
-    return { ...cat, x: cx + offset.dx, y: cy + offset.dy };
-  });
+/** 同一點上的貓只錯開一點，仍留在該行政區，不把整群排成等距的圈。 */
+function seatOnDistricts<T>(group: MapCat<T>[], placeKey: string): MapCat<T>[] {
+  const buckets = new Map<string, MapCat<T>[]>();
+  for (const cat of group) {
+    const key = `${cat.x.toFixed(1)}|${cat.y.toFixed(1)}`;
+    const list = buckets.get(key) ?? [];
+    list.push(cat);
+    buckets.set(key, list);
+  }
+  const seated: MapCat<T>[] = [];
+  for (const bucket of buckets.values()) {
+    bucket.forEach((cat, index) => {
+      const angle = bucket.length === 1 ? 0 : -Math.PI / 2 + (2 * Math.PI * index) / bucket.length;
+      const radius = bucket.length === 1 ? 0 : 18;
+      seated.push({
+        ...cat,
+        placeKey,
+        x: cat.x + Math.cos(angle) * radius,
+        y: cat.y + Math.sin(angle) * radius,
+      });
+    });
+  }
+  return seated;
 }
 
-/** 不同行政區但畫面上疊在一起時，收成「附近有 N 隻」，點開再散開。 */
+function homeCounty<T extends { city: string; x: number; y: number }>(cats: T[]) {
+  const counts = new Map<string, { n: number; x: number; y: number }>();
+  for (const cat of cats) {
+    const name = norm(cat.city);
+    const row = counts.get(name) ?? { n: 0, x: 0, y: 0 };
+    row.n += 1;
+    row.x += cat.x;
+    row.y += cat.y;
+    counts.set(name, row);
+  }
+  const cx = cats.reduce((sum, cat) => sum + cat.x, 0) / cats.length;
+  const cy = cats.reduce((sum, cat) => sum + cat.y, 0) / cats.length;
+  let best = "";
+  let bestCount = -1;
+  let bestDistance = Infinity;
+  for (const [name, row] of counts) {
+    const distance = Math.hypot(row.x / row.n - cx, row.y / row.n - cy);
+    if (row.n > bestCount || (row.n === bestCount && distance < bestDistance)) {
+      best = name;
+      bestCount = row.n;
+      bestDistance = distance;
+    }
+  }
+  return best;
+}
+
+function openedGroups(expanded: ReadonlySet<string>) {
+  const groups = new Map<string, string[]>();
+  for (const key of expanded) {
+    if (!key.startsWith("near:")) continue;
+    const ids = key.slice("near:".length).split(",").filter(Boolean);
+    if (ids.length >= 2) groups.set(key, ids);
+  }
+  return groups;
+}
+
+/** 畫面上靠太近的貓（含同一行政區）收成「附近有 N 隻」。展開的那團留在最上層，不再被收回去。 */
 function clusterNearby<T extends { id: string }>(markers: MapMarker<T>[], expanded: ReadonlySet<string>): MapMarker<T>[] {
-  const piles = markers.filter((marker) => marker.type === "pile");
   const cats = markers.flatMap((marker) => (marker.type === "cat" ? [marker.cat] : []));
-  const seen = new Array(cats.length).fill(false);
-  const out: MapMarker<T>[] = [...piles];
-  for (let i = 0; i < cats.length; i++) {
+  const held = openedGroups(expanded);
+  const heldIds = new Set([...held.values()].flat());
+  const loose = cats.filter((cat) => !heldIds.has(cat.id));
+  const seen = new Array(loose.length).fill(false);
+  const out: MapMarker<T>[] = [];
+  for (let i = 0; i < loose.length; i++) {
     if (seen[i]) continue;
     const stack = [i];
     const group = [];
     seen[i] = true;
     while (stack.length) {
       const current = stack.pop()!;
-      group.push(cats[current]);
-      for (let j = 0; j < cats.length; j++) {
-        if (seen[j] || cats[j].placeKey === cats[current].placeKey) continue;
-        const near = Math.hypot(cats[current].x - cats[j].x, cats[current].y - cats[j].y) < NEAR_PX;
+      group.push(loose[current]);
+      for (let j = 0; j < loose.length; j++) {
+        if (seen[j]) continue;
+        const near = Math.hypot(loose[current].x - loose[j].x, loose[current].y - loose[j].y) < NEAR_PX;
         if (near) {
           seen[j] = true;
           stack.push(j);
@@ -436,16 +493,27 @@ function clusterNearby<T extends { id: string }>(markers: MapMarker<T>[], expand
     const placeKey = `near:${group.map((cat) => cat.id).sort().join(",")}`;
     const x = group.reduce((sum, cat) => sum + cat.x, 0) / group.length;
     const y = group.reduce((sum, cat) => sum + cat.y, 0) / group.length;
-    if (!expanded.has(placeKey)) {
-      out.push({ type: "pile", placeKey, city: "", district: "", count: group.length, x, y, near: true });
+    out.push({ type: "pile", placeKey, city: "", district: "", count: group.length, x, y, near: true });
+  }
+  for (const [placeKey, ids] of held) {
+    const group = ids.flatMap((id) => {
+      const cat = cats.find((item) => item.id === id);
+      return cat ? [cat] : [];
+    }).sort((a, b) => a.id.localeCompare(b.id));
+    if (group.length < 2) {
+      for (const cat of group) out.push({ type: "cat", placeKey: cat.placeKey, cat });
       continue;
     }
-    for (const cat of spreadAround(group, x, y)) out.push({ type: "cat", placeKey, cat });
+    const seated = seatOnDistricts(group, placeKey);
+    const x = seated.reduce((sum, cat) => sum + cat.x, 0) / seated.length;
+    const y = seated.reduce((sum, cat) => sum + cat.y, 0) / seated.length;
+    for (const cat of seated) out.push({ type: "cat", placeKey, cat });
+    out.push({ type: "collapse", placeKey, city: homeCounty(seated), count: seated.length, x, y });
   }
   return out;
 }
 
-/** 同一行政區兩隻以上先收成一顆；展開後才把每隻貓散開，仍以該區為中心。 */
+/** 每隻貓先放在自己的行政區。同一區先疊在同一點，交給後面收成「附近有 N 隻」。 */
 function layoutDistricts<T extends { id: string; city: string; district: string }>(
   cats: readonly T[],
   region: RegionId,
@@ -464,12 +532,9 @@ function layoutDistricts<T extends { id: string; city: string; district: string 
     const sample = group[0];
     const anchor = anchorOf(sample.city, sample.district)!;
     const origin = project(region, anchor.lat, anchor.lng, { city: sample.city, district: sample.district });
-    if (group.length >= 2 && !expanded.has(placeKey)) {
-      markers.push({ type: "pile", placeKey, city: norm(sample.city), district: sample.district.trim(), count: group.length, x: origin.x, y: origin.y, near: false });
-      continue;
-    }
+    const opened = expanded.has(placeKey);
     group.forEach((cat, index) => {
-      const offset = fan(index, group.length);
+      const offset = opened ? fan(index, group.length) : { dx: 0, dy: 0 };
       markers.push({
         type: "cat",
         placeKey,
@@ -480,13 +545,66 @@ function layoutDistricts<T extends { id: string; city: string; district: string 
   return markers;
 }
 
-/** 畫面上用的標記：同區收合，疊在一起的不同區再收成「附近有 N 隻」。 */
+/** 畫面上用的標記：靠太近就收成「附近有 N 隻」，不再另外做「這區有 N 隻」。 */
 export function layoutCats<T extends { id: string; city: string; district: string }>(
   cats: readonly T[],
   region: RegionId,
   expanded: ReadonlySet<string>,
 ): MapMarker<T>[] {
   return clusterNearby(layoutDistricts(cats, region, expanded), expanded);
+}
+
+export type ScreenBox = { left: number; top: number; right: number; bottom: number };
+export type Nudge = { x: number; y: number };
+
+const NO_NUDGE: Nudge = { x: 0, y: 0 };
+
+function gapBetween(a: ScreenBox, b: ScreenBox) {
+  return {
+    x: Math.max(a.left, b.left) - Math.min(a.right, b.right),
+    y: Math.max(a.top, b.top) - Math.min(a.bottom, b.bottom),
+  };
+}
+
+/**
+ * 手機上收攏不要壓到簡歷。先把簡歷往旁邊推，收攏留在縣市名上方；
+ * 旁邊沒空間才把收攏往上抬。單邊都不夠就兩個一起動。
+ */
+export function separateFoldFromPreview(
+  fold: ScreenBox,
+  preview: ScreenBox,
+  bounds: ScreenBox,
+  gap = 20,
+): { fold: Nudge; preview: Nudge } {
+  if (fold.right <= fold.left || preview.right <= preview.left) return { fold: NO_NUDGE, preview: NO_NUDGE };
+  const apart = gapBetween(fold, preview);
+  if (apart.x >= gap || apart.y >= gap) return { fold: NO_NUDGE, preview: NO_NUDGE };
+
+  const fitsX = (dx: number) => preview.left + dx >= bounds.left && preview.right + dx <= bounds.right;
+  const up = preview.top - gap - fold.bottom;
+  const right = fold.right + gap - preview.left;
+  const left = -(preview.right - (fold.left - gap));
+  const slides = [
+    right > 0 && fitsX(right) ? { dist: right, tipX: right } : null,
+    left < 0 && fitsX(left) ? { dist: -left, tipX: left } : null,
+  ].filter((item): item is { dist: number; tipX: number } => item !== null)
+    .sort((a, b) => a.dist - b.dist);
+  const slide = slides[0];
+  if (slide) return { fold: NO_NUDGE, preview: { x: Math.round(slide.tipX), y: 0 } };
+  if (up < 0 && fold.top + up >= bounds.top) return { fold: { x: 0, y: Math.round(up) }, preview: NO_NUDGE };
+
+  const roomRight = bounds.right - preview.right;
+  const roomLeft = preview.left - bounds.left;
+  const tipX = roomRight >= roomLeft
+    ? Math.max(0, Math.min(right, roomRight))
+    : -Math.max(0, Math.min(-left, roomLeft));
+  const slid = { ...preview, left: preview.left + tipX, right: preview.right + tipX };
+  if (gapBetween(fold, slid).x >= gap) return { fold: NO_NUDGE, preview: { x: Math.round(tipX), y: 0 } };
+  const foldY = Math.max(up, bounds.top - fold.top);
+  return {
+    fold: { x: 0, y: Math.min(0, Math.round(foldY)) },
+    preview: { x: Math.round(tipX), y: 0 },
+  };
 }
 
 /** 把貓放到所選區域。地理位置不把「附近」再收起來。 */

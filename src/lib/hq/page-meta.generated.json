@@ -1,81 +1,81 @@
 {
-  "generatedAt": "2026/11/08 09:39:44",
+  "generatedAt": "2026/11/10 10:32:33",
   "pages": {
     "home": {
-      "updatedBy": "captainCYC",
-      "versionDate": "2026/11/07 16:37:13"
+      "updatedBy": "李湘婷|Tina Lee",
+      "versionDate": "2026/11/05 16:27:04"
     },
     "households": {
-      "updatedBy": "captainCYC",
-      "versionDate": "2026/11/07 16:37:13"
+      "updatedBy": "somebabyTina",
+      "versionDate": "2026/11/04 18:05:36"
     },
     "reports": {
-      "updatedBy": "captainCYC",
-      "versionDate": "2026/11/07 16:37:13"
+      "updatedBy": "李湘婷|Tina Lee",
+      "versionDate": "2026/10/29 11:31:22"
     },
     "users": {
-      "updatedBy": "captainCYC",
-      "versionDate": "2026/11/07 16:37:13"
+      "updatedBy": "李湘婷|Tina Lee",
+      "versionDate": "2026/10/29 17:03:49"
     },
     "products": {
-      "updatedBy": "captainCYC",
-      "versionDate": "2026/11/07 16:37:13"
+      "updatedBy": "李湘婷|Tina Lee",
+      "versionDate": "2026/10/29 11:31:22"
     },
     "knowledge": {
-      "updatedBy": "captainCYC",
-      "versionDate": "2026/11/07 16:37:13"
+      "updatedBy": "李湘婷|Tina Lee",
+      "versionDate": "2026/10/29 11:31:22"
     },
     "admin/auth": {
-      "updatedBy": "captainCYC",
-      "versionDate": "2026/11/07 16:37:13"
+      "updatedBy": "李湘婷|Tina Lee",
+      "versionDate": "2026/10/29 17:03:49"
     },
     "admin/audit": {
-      "updatedBy": "captainCYC",
-      "versionDate": "2026/11/07 16:37:13"
+      "updatedBy": "李湘婷|Tina Lee",
+      "versionDate": "2026/10/29 11:50:04"
     },
     "admin/stats": {
-      "updatedBy": "captainCYC",
-      "versionDate": "2026/11/07 16:37:13"
+      "updatedBy": "李湘婷|Tina Lee",
+      "versionDate": "2026/10/29 11:50:04"
     },
     "admin/settings": {
-      "updatedBy": "captainCYC",
-      "versionDate": "2026/11/07 16:37:13"
+      "updatedBy": "李湘婷|Tina Lee",
+      "versionDate": "2026/10/29 11:50:04"
     },
     "assets/cats": {
-      "updatedBy": "captainCYC",
-      "versionDate": "2026/11/07 16:37:13"
+      "updatedBy": "Claude",
+      "versionDate": "2026/11/08 23:20:42"
     },
     "assets/rooms": {
       "updatedBy": "captainCYC",
-      "versionDate": "2026/11/07 16:37:13"
+      "versionDate": "2026/11/07 16:35:20"
     },
     "assets/rooms-video": {
-      "updatedBy": "captainCYC",
-      "versionDate": "2026/11/07 16:37:13"
+      "updatedBy": "cozylikerosie",
+      "versionDate": "2026/11/06 11:17:08"
     },
     "assets/rooms-polaroid": {
-      "updatedBy": "captainCYC",
-      "versionDate": "2026/11/07 16:37:13"
+      "updatedBy": "somebabyTina",
+      "versionDate": "2026/10/31 19:58:26"
     },
     "assets/rooms-floorplan": {
-      "updatedBy": "captainCYC",
-      "versionDate": "2026/11/07 16:37:13"
+      "updatedBy": "somebabyTina",
+      "versionDate": "2026/11/06 23:28:07"
     },
     "assets/food": {
-      "updatedBy": "captainCYC",
-      "versionDate": "2026/11/07 16:37:13"
+      "updatedBy": "somebabyTina",
+      "versionDate": "2026/11/04 19:50:46"
     },
     "assets/items": {
-      "updatedBy": "captainCYC",
-      "versionDate": "2026/11/07 16:37:13"
+      "updatedBy": "somebabyTina",
+      "versionDate": "2026/11/05 11:00:57"
     },
     "assets/others": {
-      "updatedBy": "captainCYC",
-      "versionDate": "2026/11/07 16:37:13"
+      "updatedBy": "somebabyTina",
+      "versionDate": "2026/10/31 19:58:26"
     },
     "assets/experience": {
-      "updatedBy": "captainCYC",
-      "versionDate": "2026/11/07 16:37:13"
+      "updatedBy": "somebabyTina",
+      "versionDate": "2026/11/06 23:28:07"
     }
   }
 }
