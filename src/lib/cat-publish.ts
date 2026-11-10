@@ -77,3 +77,14 @@ export function aiViewsPhase(r: AiViewsResponse | null): AiViewsPhase {
   if (Object.values(r.errors).some(Boolean)) return "failed";
   return (["left", "front", "back"] as const).every((v) => r.views[v]) ? "done" : "failed";
 }
+
+/** 貓咪頁的 3D 貓（GET /api/cats/[id]/model/look）：只給中途確認過的貼圖；還沒確認或沒有模型回 null */
+export interface CatLook { body: "adult" | "kitten"; base: string; albedo: string | null }
+export function confirmedLook(
+  variants: { body_type: string; confirmed_albedo: string | null }[] | null | undefined, lifeStage: string | null, supabaseUrl: string,
+): CatLook | null {
+  const body = bodyOf(lifeStage);
+  const v = variants?.find(x => x.body_type === body);
+  if (!v?.confirmed_albedo) return null;
+  return { body, base: catBaseUrl(body), albedo: albedoSrc(v.confirmed_albedo, supabaseUrl) };
+}

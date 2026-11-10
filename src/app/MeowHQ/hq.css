@@ -304,16 +304,6 @@
 .hq-group-body { display: flex; flex-direction: column; gap: .6rem; padding: 0 .85rem .85rem; }
 .hq-canvas { width: 100%; height: 440px; border: 1px solid var(--hq-line); border-radius: 12px; background: var(--hq-card); overflow: hidden; }
 .hq-canvas.small { height: 300px; }
-.hq-bases { margin: .25rem 0 1rem; }
-.hq-bases summary { cursor: pointer; font-weight: 600; margin-bottom: .6rem; }
-/* 體型骨架（#100）：成貓、幼貓各佔一半，大圓角卡片；手機一欄 */
-.hq-bases .hq-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.hq-bases .hq-base { border-radius: 24px; padding: 1.1rem 1.25rem 1.25rem; background: var(--hq-card); }
-.hq-bases .hq-base-canvas { height: 340px; border-radius: 20px; }
-@media (max-width: 767px) {
-  .hq-bases .hq-cards { grid-template-columns: 1fr; }
-  .hq-bases .hq-base-canvas { height: 300px; }
-}
 .hq-slider { display: grid; grid-template-columns: 9em 1fr; gap: .6rem; align-items: center; font-size: .9rem; color: var(--hq-sub); }
 .hq-slider input { width: 100%; accent-color: var(--hq-sage); min-height: 32px; }
 .hq-cliplist { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .4rem; }
@@ -368,13 +358,14 @@
 .hq-steps .hq-hint { font-size: .82rem; }
 .hq-steps b, .hq-stepno { flex: none; width: 24px; height: 24px; border-radius: 50%; background: var(--hq-sage-soft); color: var(--hq-sage-ink); font-size: .82rem; display: inline-flex; align-items: center; justify-content: center; }
 .hq-stepno { margin-right: .45rem; vertical-align: 1px; }
-.hq-bases summary { display: flex; align-items: center; gap: .5rem; min-height: 36px; font-size: 1.02rem; }
-.hq-bases-lead { margin: 0 0 .75rem; }
-.hq-base-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .4rem; }
-.hq-base .hq-hint { margin: 0; font-size: .88rem; }
-.hq-base-canvas { position: relative; }
+.hq-catstage .hq-canvas { position: relative; }
+/* 體型預覽「貓咪資訊」（#302）：大貓的原始參考模型照片兩張並排 */
+.hq-baseinfo { display: flex; flex-direction: column; gap: .6rem; font-size: .92rem; }
+.hq-baseinfo p { margin: 0; }
+.hq-baseinfo-photos { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem; margin: 0; }
+.hq-baseinfo-photos img { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border: 1px solid var(--hq-line); border-radius: 10px; background: var(--hq-bg); }
+.hq-baseinfo-photos figcaption { grid-column: 1 / -1; }
 .hq-canvas-badge { position: absolute; top: .6rem; left: .6rem; z-index: 1; pointer-events: none; }
-.hq-clipbar { align-items: center; }
 .hq-listtitle { font-size: 1.02rem; margin: 1.5rem 0 .6rem; }
 .hq-angles { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 170px), 1fr)); gap: .75rem; }
 .hq-angle { display: flex; flex-direction: column; align-items: center; gap: .4rem; padding: .85rem .6rem; border: 1px dashed var(--hq-line); border-radius: 10px; background: var(--hq-bg); text-align: center; }
@@ -502,6 +493,10 @@
 .hq-box.locked { opacity: .7; }
 /* 貓咪頁（#129）：原貓咪資訊 : 3D 動作預覽 : 播放與畫面 ＝ 1:2:1 */
 .hq-catpage { grid-template-columns: minmax(220px, 1fr) minmax(0, 2fr) minmax(260px, 1fr); }
+/* 體型預覽測試台（#302）：不套貓咪頁 1:2:1，預覽:參數＝7:3；參數欄在框內捲動 */
+.hq-catpage.hq-lab { grid-template-columns: minmax(0, 7fr) minmax(300px, 3fr); grid-template-rows: minmax(0, 1fr); }
+/* 上面 :has(...) > :not(.hq-pagefoot) 的 flex: none 權重較高，測試台要填滿剩下的高度 */
+.hq-main:has(> .hq-catpage) > .hq-catpage.hq-lab { flex: 1 1 0; min-height: 420px; }
 /* 貓咪頁左欄：AI 三視角縮圖 */
 .hq-cat-gens { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .5rem; }
 .hq-cat-gens figure { margin: 0; display: flex; flex-direction: column; gap: .25rem; min-width: 0; }
@@ -512,7 +507,8 @@
 @media (max-width: 1023px) {
   .hq-studio-grid { grid-template-columns: minmax(0, 1fr); }
   .hq-studio-file { position: static; max-height: none; overflow: visible; }
-  .hq-catpage { grid-template-columns: 1fr; }
+  .hq-catpage, .hq-catpage.hq-lab { grid-template-columns: 1fr; grid-template-rows: none; }
+  .hq-catpage.hq-lab .hq-catstage .hq-canvas { flex: none; height: 360px; }
   .hq-catpage > .hq-catstage { order: -1; }
   .hq-catinfo { overflow: visible; }
 }
@@ -561,7 +557,7 @@
 .hq-fp-rooms li.on { background: var(--hq-sage-soft); }
 .hq-fp-room { display: flex; align-items: center; gap: .6rem; background: none; border: 0; padding: 0; font: inherit; color: inherit; cursor: pointer; text-align: left; min-width: 0; }
 .hq-fp-3dbox { margin-bottom: 1rem; }
-.hq-exp-pick { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1rem; margin-bottom: 1rem; }
+.hq-exp-pick { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; margin-bottom: 1rem; }
 @media (max-width: 639px) { .hq-exp-pick { grid-template-columns: minmax(0, 1fr); } }
 .hq-exp-stage { display: grid; grid-template-columns: minmax(0, 1fr) minmax(260px, 320px); gap: 1rem; align-items: start; }
 .hq-exp-stage .hq-fp-3d { height: 520px; }
@@ -570,6 +566,21 @@
 .hq-exp-side { display: flex; flex-direction: column; gap: .5rem; min-width: 0; }
 .hq-exp-side > .hq-hint { margin: 0; }
 .hq-exp-tools { gap: .5rem; flex-wrap: wrap; align-items: center; }
+/* 故事線（#297）：貓頭上的「肚子餓」對話框，跟著貓走；尾巴指向貓，輕輕上下飄 */
+.hq-exp-bubble { position: relative; display: grid; place-items: center; width: 44px; height: 40px; border-radius: 14px;
+  background: var(--hq-card, #fff); color: var(--hq-caramel, #A0521F); border: 1.5px solid var(--hq-caramel, #A0521F);
+  box-shadow: 0 4px 12px rgba(47, 43, 39, .14); animation: hq-exp-bob 1.6s ease-in-out infinite; }
+.hq-exp-bubble::after { content: ""; position: absolute; left: 50%; bottom: -7px; width: 10px; height: 10px; margin-left: -5px;
+  background: inherit; border-right: 1.5px solid var(--hq-caramel, #A0521F); border-bottom: 1.5px solid var(--hq-caramel, #A0521F); transform: rotate(45deg); }
+@keyframes hq-exp-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+@media (prefers-reduced-motion: reduce) { .hq-exp-bubble { animation: none; } }
+.hq-exp-story { display: flex; flex-direction: column; gap: .5rem; padding: .75rem; border: 1px solid var(--hq-line); border-radius: 12px; background: var(--hq-card); }
+.hq-exp-story .hq-hint { margin: 0; }
+.hq-exp-story .hq-btn { align-self: flex-start; }
+.hq-exp-steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .5rem; margin: 0; padding: 0; list-style: none; }
+.hq-exp-step { padding: .3rem .5rem; border-radius: 999px; text-align: center; font-size: .85rem; background: var(--hq-bg); color: var(--hq-sub); border: 1px solid var(--hq-line); }
+.hq-exp-step.active { background: var(--hq-caramel-soft); color: var(--hq-caramel-ink); border-color: transparent; font-weight: 500; }
+.hq-exp-step.done { background: var(--hq-sage-soft); color: var(--hq-sage-ink); border-color: transparent; }
 /* 成貓／幼貓膠囊切換 */
 .hq-bodyseg { display: inline-flex; align-self: flex-start; padding: 3px; gap: 2px; border: 1px solid var(--hq-line); border-radius: 999px; background: var(--hq-card); }
 .hq-bodyseg button { min-width: 64px; min-height: 32px; padding: .2rem .9rem; border: 0; border-radius: 999px; background: transparent; font: inherit; font-size: .9rem; color: var(--hq-sub); cursor: pointer; transition: background .2s ease, color .2s ease; }

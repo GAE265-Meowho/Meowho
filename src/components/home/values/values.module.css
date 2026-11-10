@@ -67,6 +67,8 @@
 
 .introPhoto img {
   object-fit: cover;
+  /* 直式照片放進橫的框：對齊上方，貓臉（約在照片 13%–30%）不會被裁到 */
+  object-position: center 12%;
 }
 
 /* ---------- Yellow band ---------- */

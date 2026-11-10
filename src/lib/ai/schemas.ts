@@ -169,3 +169,24 @@ export const PlayAdviceSchema = z.object({
   tips: z.array(z.string().describe("一條建議，60 字內，不含數字與金額")).describe("3 條建議"),
 });
 export type PlayAdviceOut = z.infer<typeof PlayAdviceSchema>;
+
+/** 幫我找貓（規格 11）：一句話拆成條件；沒說到的一律 null */
+export const FindParseSchema = z.object({
+  city: z.string().max(10).nullable().describe("台灣縣市全名，例如台北市；沒提到給 null"),
+  stage: z.enum(["kitten", "adult", "senior"]).nullable().describe("想要的年齡層；沒說給 null"),
+  kids: z.boolean().nullable().describe("家裡有沒有小孩；沒提給 null"),
+  cats: z.boolean().nullable().describe("家裡是不是已經有貓；沒提給 null"),
+  dogs: z.boolean().nullable().describe("家裡有沒有狗；沒提給 null"),
+  special: z.enum(["yes", "no"]).nullable().describe("能不能照顧需要特別照護的貓；沒提給 null"),
+  away: z.boolean().nullable().describe("白天是不是常不在家；沒提給 null"),
+  novice: z.boolean().nullable().describe("是不是第一次養貓；沒提給 null"),
+  wish: z.string().min(1).max(200).describe("想要什麼樣的貓與生活情況，一兩句繁體中文"),
+});
+
+/** 幫我找貓：每隻推薦的貓一句理由 */
+export const FindReasonsSchema = z.object({
+  reasons: z.array(z.object({
+    id: z.string().max(60).describe("照資料區裡的 id 原樣回傳"),
+    reason: z.string().min(1).max(80).describe("為什麼推薦，最多 40 字"),
+  })).max(12),
+});

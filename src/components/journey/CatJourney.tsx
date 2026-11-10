@@ -5,9 +5,13 @@ import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Html } from "@react-three/drei";
 import { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
+import { Environment } from "@/components/hq/assets/CatPreview";
+import type { CatLook } from "@/lib/cat-publish";
+import { FALLBACK_CAT_NAME, HOME_CAT, journeyClip } from "@/lib/home-cat";
 import { useReducedMotion } from "@/lib/useReducedMotion";
 import CatModel, { emptyRig } from "./CatModel";
 import type { CatAction } from "./CatPerch";
+import GlbCat from "./GlbCat";
 
 type Perch = { el: HTMLElement; action: CatAction; label: string; range: number };
 type RoamMode = "idle" | "walk" | "play" | "bed" | "sleep";
@@ -83,7 +87,11 @@ type Brain = {
   label: string;
 };
 
-function Journey({ onLabel, label, reducedMotion }: { onLabel: (s: string) => void; label: string; reducedMotion: boolean }) {
+function Journey({ onLabel, label, reducedMotion, look, name }: {
+  onLabel: (s: string) => void; label: string; reducedMotion: boolean;
+  /** 真的貓模型（妹妹）；null＝用畫出來的橘子 */
+  look: CatLook | null; name: string;
+}) {
   const camera = useThree((s) => s.camera);
   const size = useThree((s) => s.size);
   const invalidate = useThree((s) => s.invalidate);
@@ -96,6 +104,9 @@ function Journey({ onLabel, label, reducedMotion }: { onLabel: (s: string) => vo
   const pointer = useWindowPointer();
   const perches = useRef<Perch[]>([]);
   const [petCount, setPetCount] = useState(0);
+  // 真的貓模型用動作庫的動作；只在換動作時更新 state
+  const [clip, setClip] = useState("idle");
+  const clipRef = useRef("idle");
 
   const tmp = useMemo(
     () => ({ ndc: new THREE.Vector3(), dir: new THREE.Vector3(), a: new THREE.Vector3(), b: new THREE.Vector3(), base: new THREE.Vector3(), roam: new THREE.Vector3(), axis: new THREE.Vector3() }),
@@ -462,6 +473,11 @@ function Journey({ onLabel, label, reducedMotion }: { onLabel: (s: string) => vo
     if (rig.bowl) rig.bowl.scale.setScalar(b.eat);
     if (rig.tag) rig.tag.position.y = 2.3 - b.sleep * 0.7 - b.sit * 0.1;
 
+    if (look) {
+      const want = journeyClip({ moving: b.speed > 0.15, sleep: wantSleep > 0, sit: wantSit > 0, eat: wantEat > 0 });
+      if (want !== clipRef.current) { clipRef.current = want; setClip(want); }
+    }
+
     // ---- Name tag ----
     const text = petting ? "呼嚕呼嚕～" : traveling ? "走去下一站" : roamLabel ?? perch.label;
     if (text !== b.label) {
@@ -470,13 +486,16 @@ function Journey({ onLabel, label, reducedMotion }: { onLabel: (s: string) => vo
     }
   });
 
+  const tag = (
+    <Html center portal={tagPortal} zIndexRange={[45, 41]} style={{ pointerEvents: "none" }}>
+      <span className="cat-tag">{name}・{label}</span>
+    </Html>
+  );
   return (
     <>
-      <CatModel rig={rig} onPet={() => setPetCount((n) => n + 1)}>
-        <Html center portal={tagPortal} zIndexRange={[45, 41]} style={{ pointerEvents: "none" }}>
-          <span className="cat-tag">橘子・{label}</span>
-        </Html>
-      </CatModel>
+      {look
+        ? <GlbCat rig={rig} look={look} clip={clip} onPet={() => setPetCount((n) => n + 1)}>{tag}</GlbCat>
+        : <CatModel rig={rig} onPet={() => setPetCount((n) => n + 1)}>{tag}</CatModel>}
       <group ref={ball} scale={0}>
         <mesh>
           <sphereGeometry args={[0.2, 24, 24]} />
@@ -494,12 +513,23 @@ function Journey({ onLabel, label, reducedMotion }: { onLabel: (s: string) => vo
 }
 
 /**
+ * 首頁的 3D 貓：用妹妹的 3D 模型（lib/home-cat.ts）；模型讀不到時用畫出來的橘子。
  * 橘子, one 3D cat for the whole page. It walks from perch to perch as the
  * visitor scrolls and does each section's activity once it arrives.
  */
 export default function CatJourney() {
   const reducedMotion = useReducedMotion();
   const [label, setLabel] = useState("");
+  // undefined＝還在讀妹妹的模型（先不畫，避免橘子閃一下又換掉）；null＝讀不到，用橘子
+  const [look, setLook] = useState<CatLook | null | undefined>(undefined);
+  useEffect(() => {
+    let alive = true;
+    fetch(`/api/cats/${HOME_CAT.id}/model/look`)
+      .then((r) => (r.ok ? r.json() : { look: null }))
+      .then((d) => { if (alive) setLook((d.look as CatLook | null) ?? null); })
+      .catch(() => { if (alive) setLook(null); });
+    return () => { alive = false; };
+  }, []);
 
   return (
     <Canvas
@@ -514,7 +544,10 @@ export default function CatJourney() {
       <hemisphereLight args={["#fff6e8", "#f3d9bb", 1.15]} />
       <directionalLight position={[4, 8, 6]} intensity={1.5} color="#fff1dc" />
       <directionalLight position={[-5, 3, 4]} intensity={0.4} color="#ffd6e0" />
-      <Journey onLabel={setLabel} label={label} reducedMotion={reducedMotion} />
+      {look && <Environment />}
+      {look !== undefined && (
+        <Journey onLabel={setLabel} label={label} reducedMotion={reducedMotion} look={look} name={look ? HOME_CAT.name : FALLBACK_CAT_NAME} />
+      )}
     </Canvas>
   );
 }

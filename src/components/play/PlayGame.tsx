@@ -10,7 +10,7 @@ import { setItemDragData } from "@/components/hq/assets/itemDrag";
 import CatButton from "@/components/ui/CatButton";
 import { houseScene } from "@/lib/hq/floorplans/scene";
 import { normalizeHome, SAMPLE_HOME, type PlayerHome } from "@/lib/play/background";
-import { PLAY_CAT, playCatLook } from "@/lib/play/cats";
+import type { PlayCatSource } from "@/lib/play/source";
 import { emptyShop, playFoods, shopCost, type PlayShop, type ShopPick } from "@/lib/play/costs";
 import { playShop, type PlayCatalogItem } from "@/lib/play/catalog";
 import { initialPlay, playReducer, type PlayAction } from "@/lib/play/flow";
@@ -93,7 +93,7 @@ function usePlayShop(): PlayShop {
 
 interface RoomState { kind: RoomKind; inventory: RoomInventory; notice: string | null }
 
-export function PlayGame({ catHref }: { catHref: string }) {
+export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string }) {
   const [state, dispatch] = useReducer((st: ReturnType<typeof initialPlay>, a: PlayAction) => playReducer(st, a), undefined, initialPlay);
   const home = usePlayerHome();
   const myBase = useMyRoomBase();
@@ -114,7 +114,7 @@ export function PlayGame({ catHref }: { catHref: string }) {
   /** 在家的時光：正在玩哪一個動作的小遊戲 */
   const [careAct, setCareAct] = useState<CareAct | null>(null);
 
-  const catName = PLAY_CAT.name;
+  const catName = cat.name;
   const labels = useMemo(() => room?.inventory.labels ?? [], [room]);
   const places = useMemo(() => ({ hide: homeWord("躲藏處", labels) ?? "角落", high: homeWord("高處", labels) ?? "", sofa: "沙發" }), [labels]);
   const node = STORY[state.nodeIndex];
@@ -199,7 +199,7 @@ export function PlayGame({ catHref }: { catHref: string }) {
   const wand = useMemo(() => (scanWand ? { toy, onCatch: (c: boolean) => { if (c) setCatches(n => n + 1); } } : null), [scanWand, toy]);
   useEffect(() => { if (scanWand) setCatches(0); }, [scanWand]);
   const clip = state.step === "node" && action === "sleep" ? "sleep" : null;
-  const look = action === null ? null : playCatLook(state.step === "node" || state.step === "report" ? node.body : "kitten");
+  const look = action === null ? null : cat.look(state.step === "node" || state.step === "report" ? node.body : "kitten");
 
   const startNodes = () => {
     taste.current = { toyPref: pickOne(["feather", "mouse", "ribbon"] as const), rhythm: pickOne(["quick", "slow"] as const) };
@@ -295,7 +295,7 @@ export function PlayGame({ catHref }: { catHref: string }) {
 
       {state.step === "background" && (
         <section className={s.card} aria-labelledby="home-title">
-          <span className={s.kicker}>{catName}・{PLAY_CAT.coat}・幼貓</span>
+          <span className={s.kicker}>{catName}・{cat.coat}・幼貓</span>
           <h2 id="home-title">先看看你的家</h2>
           {!home ? <p className={s.lead}>讀取你的喵戶…</p> : (
             <>

@@ -12,15 +12,11 @@ describe("resolveClip", () => {
 });
 
 describe("buildClipItems", () => {
-  it("列出動作庫全部動作；glb 有的 ready 動作可播，規劃中的不可播", () => {
+  it("列出動作庫全部動作；glb 有的可播，沒有的不可播", () => {
     const items = buildClipItems(["idle", "walk", "sleep"]);
     expect(items.map(i => i.code)).toEqual(CLIP_LIBRARY.map(c => c.code));
     expect(items.filter(i => i.available).map(i => i.code)).toEqual(["idle", "walk", "sleep"]);
-    expect(items.find(i => i.code === "eat")).toMatchObject({ status: "planned", available: false, label: "吃飯" });
-  });
-  it("母體 glb 補入規劃中的動作後，清單自動可點，不必先改動作庫", () => {
-    const eat = buildClipItems(["idle", "walk", "sleep", "eat"]).find(i => i.code === "eat");
-    expect(eat).toMatchObject({ status: "planned", available: true });
+    expect(items.find(i => i.code === "cuddle")).toMatchObject({ status: "ready", available: false, label: "撒嬌" });
   });
   it("動作庫標示 ready 但 glb 裡沒有時不可播", () => {
     expect(buildClipItems(["idle"]).find(i => i.code === "walk")?.available).toBe(false);
@@ -60,5 +56,19 @@ describe("clipPupil", () => {
     expect(clipPupil("idle", "kitten")).toBe(DEFAULT_PUPIL);
     expect(clipPupil("stretch", "kitten")).toBe(DEFAULT_PUPIL);
     expect(clipPupil(null, "kitten")).toBe(DEFAULT_PUPIL);
+  });
+  it("吃喝拉撒（#297）：成貓、幼貓母體都有 eat、drink、toilet", () => {
+    const items = buildClipItems(["idle", "walk", "eat", "drink", "toilet"]);
+    expect(["eat", "drink", "toilet"].map(c => items.find(i => i.code === c))).toEqual([
+      expect.objectContaining({ label: "吃飯", status: "ready", available: true }),
+      expect.objectContaining({ label: "喝水", status: "ready", available: true }),
+      expect.objectContaining({ label: "上廁所", status: "ready", available: true }),
+    ]);
+  });
+  it("撒嬌、休息、理毛（#304）：動作庫已沒有規劃中的動作", () => {
+    expect(CLIP_LIBRARY.filter(c => c.status === "planned")).toEqual([]);
+    const items = buildClipItems(["cuddle", "rest", "groom"]);
+    expect(items.filter(i => ["cuddle", "rest", "groom"].includes(i.code)).map(i => [i.label, i.available]))
+      .toEqual([["撒嬌", true], ["休息", true], ["理毛", true]]);
   });
 });

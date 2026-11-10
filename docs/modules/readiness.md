@@ -41,6 +41,13 @@
 - 小遊戲照原版（`src/components/play/catgame/minis.ts`，vanilla JS 包進 client component）：躲床底 `startHide`、鏟屎 `startScoop`、逗貓棒 `startPlay`；共用 `liveFrame`、`trackPointer`、`loopWith`、`miniMeter`、`catParts`…。
 - 3D 貓：後台兩隻虎斑示範貓（幼貓 `cat_20261101_183700`、成貓 `cat_20261030_140731`），網址規則同 `bundled.ts`（`src/lib/play/cats.ts`，測試檢查一致）。
 
+### 入口與「要演哪隻貓」的接口（2026-11-09，子哲 × Claude Code，#273）
+
+- **入口**：貓咪頁 `/cats/[id]` 的「進行領養任務」改連 `/cats/[id]/play`（原本連 `/cats/[id]/run`）。首頁貓卡的「7 天虛擬飼養」按鈕已刪，`7 天虛擬飼養` 只留在頁首導覽，當作跳到首頁 `#trial` 區塊的錨點。
+- **接口**：`src/lib/play/source.ts` 的 `loadPlayCat(catId)` 回傳 `PlayCatSource`（`catId`、`name`、`coat`、`demo`、`look(body)`）；`PlayGame` 改成從 `cat` 屬性拿名字、毛色和 3D 外觀，不再直接 import `PLAY_CAT`／`playCatLook`。
+- **現在**：`loadPlayCat` 一律回 DEMO 麻糬（`demo: true`）。**下一步（渝茜）**：在 `loadPlayCat` 裡用 `catId` 讀 `meow_cats` 和這隻貓確認過的 `meow_cat_models`，讀不到時退回 `demoPlayCat`；`story.ts` 裡寫死的「麻糬」要換成 `name`。
+- 原本的任務頁 `/cats/[id]/run`（0030 任務進度、試養報告、對話串分享）保留；問卷頁和對話串的「去做任務」仍連到那裡，之後要不要一起改由團隊決定。
+
 ## 我的 3D 房間與任務裡的 3D（規格 09 v0.6 §7.2、§7.3）——目前是示範房間，之後要接真正的流程
 
 **現在的做法（2026-11-04，#161、#173、#174）**

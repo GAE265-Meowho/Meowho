@@ -39,7 +39,7 @@ function Mat({ color, ...rest }: { color: string; transparent?: boolean; opacity
 /** Hip pivot: the torso tilts around the back hips so the cat can sit. */
 export const HIP = new THREE.Vector3(0, 0.55, -0.42);
 
-function useShadowTexture() {
+export function useShadowTexture() {
   return useMemo(() => {
     const c = document.createElement("canvas");
     c.width = c.height = 64;

@@ -56,7 +56,9 @@ export const HQ_PAGE_META_PATHS = {
     "src/components/hq/assets/NewCat.tsx",
     "src/components/hq/assets/StudioPage.tsx",
     "src/components/hq/assets/BaseLab.tsx",
-    "src/components/hq/assets/BaseSamples.tsx",
+    "src/components/hq/assets/BasesPage.tsx",
+    "src/components/hq/assets/BaseInfoPanel.tsx",
+    "public/hq-cat-models/base",
     "src/components/hq/assets/AiViews.tsx",
     "src/components/hq/assets/ClipList.tsx",
     "src/components/hq/assets/catLook.ts",
@@ -113,6 +115,11 @@ export const HQ_PAGE_META_PATHS = {
     "src/lib/hq/floorplans/catwalk.test.ts",
     "src/lib/hq/floorplans/catjump.ts",
     "src/lib/hq/floorplans/catjump.test.ts",
+    "src/lib/hq/floorplans/story.ts",
+    "src/lib/hq/floorplans/story.test.ts",
+    "src/lib/hq/floorplans/bowl-slots.ts",
+    "src/lib/hq/floorplans/bowl-slots.test.ts",
+    "src/components/hq/assets/bowlSlotsDetect.ts",
   ],
 } as const satisfies Record<string, readonly string[]>;
 
