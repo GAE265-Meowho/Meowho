@@ -64,9 +64,10 @@ export interface RoomWand { toy: SceneItem; onCatch: (caught: boolean) => void }
  * story：虛擬飼養的貓配合劇情（action＝null 躲起來、carrier 走到外出籠、sleep 跳上床…），換了（at 不同）就執行
  * wand：3D 逗貓。給了就停用拖曳轉頭，玩具跟著滑鼠／手指在地板上移動，貓追著撲；每次撲完呼叫 onCatch(是否抓到)
  * controls：false 時不顯示拍攝點與貓咪動作按鈕（虛擬飼養用；拖曳、WASD、點地板仍可用）
+ * noCat：只看房間、不放貓（前台我的 3D 房間預覽；貓等進了領養任務才出現）
  */
-export default function RoomViewer({ base, cat, items, controls = true, story, wand }: {
-  base: string; cat?: { baseUrl: string; albedoUrl: string } | null; items?: readonly SceneItem[]; controls?: boolean;
+export default function RoomViewer({ base, cat, items, controls = true, story, wand, noCat = false }: {
+  base: string; cat?: { baseUrl: string; albedoUrl: string } | null; items?: readonly SceneItem[]; controls?: boolean; noCat?: boolean;
   story?: { action: CatAction | null; at: number } | null; wand?: RoomWand | null;
 }) {
   const host = useRef<HTMLDivElement>(null);
@@ -171,7 +172,7 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
       setStatus("ready");
 
       // 貓和物理載入失敗時，房間照常可以看
-      const roomWorld = await createRoomWorld({
+      const roomWorld = noCat ? null : await createRoomWorld({
         viewer: active, threeScene, scene, layout, cameras, catUrl: cat?.baseUrl ?? CAT_MODEL, albedoUrl: cat?.albedoUrl, unit, focus: tweenTo,
       }).catch(e => {
         console.error("貓咪互動載入失敗", e);
@@ -275,7 +276,7 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
       viewer?.dispose().catch(() => {}).finally(() => stage.remove());
       if (!viewer) stage.remove();
     };
-  }, [base, cat?.baseUrl, cat?.albedoUrl]);
+  }, [base, cat?.baseUrl, cat?.albedoUrl, noCat]);
 
   // 虛擬用品清單變了就重擺（讀完房間後才做）
   useEffect(() => {
@@ -373,13 +374,13 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
           <span>{status === "ready" ? `拍攝點 ${spot.index + 1}／${spot.total}` : "載入中"}</span>
           <button type="button" className="hq-btn ghost" onClick={() => goTo.current(1)} disabled={status !== "ready"}>下一個拍攝點</button>
         </div>
-        <div className="hq-roomviewer-bar">
+        {!noCat && <div className="hq-roomviewer-bar">
           <button type="button" className="hq-btn ghost" onClick={() => world.current?.callCat()} disabled={!actions.cat}>叫貓過來</button>
           <button type="button" className="hq-btn ghost" onClick={() => world.current?.jumpOnBed()} disabled={!actions.bed}>跳上床</button>
           <button type="button" className="hq-btn ghost" onClick={() => world.current?.pushCup()} disabled={!actions.cup}>推倒杯子</button>
           <button type="button" className="hq-btn ghost" onClick={() => world.current?.resetItems()} disabled={!actions.cup}>重置物品</button>
-        </div>
-        <p className="hq-hint">拖曳轉頭，WASD 走動，Q／E 下降上升，Shift 加速，滾輪前後走，點地板叫貓過去。</p>
+        </div>}
+        <p className="hq-hint">拖曳轉頭，WASD 走動，Q／E 下降上升，Shift 加速，滾輪前後走{noCat ? "" : "，點地板叫貓過去"}。</p>
         </>
       )}
     </section>
