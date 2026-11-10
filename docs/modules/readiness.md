@@ -119,6 +119,7 @@
 - scene.json 的 `objects[].label` 是英文（bed、desk…），中文在 `name_zh`；`inventoryFromScan` 優先用 `name_zh`，沒有才用 `label`。
 - ✅ 已做（2026-11-07，尚未 commit）**擺的虛擬用品會出現在 3D 掃描房間裡**：玩家在「擺用品」選「床旁」「房間角落」等，`src/lib/play/scene-items.ts` 的 `placeScanItems` 換成房間地板座標（公尺，同貓和物品箱子的 x 沿 e1、z 沿 e2），在房間內、能走的地板上、不重疊；`RoomViewer`（後台元件）新增 `items` 屬性，用和貓一樣的座標框架把 GLB 放進去，模型依後台登錄的寬深高縮放（載入失敗畫同尺寸方塊）。`RoomObject` 加了 `name_zh`（中文名稱）。
 - ✅ 遊戲裡的 3D 房間**不再顯示拍攝點與貓咪動作按鈕**（上一個／下一個拍攝點、叫貓過來、跳上床、推倒杯子、重置物品）：`RoomViewer` 新增 `controls` 屬性（預設 true，後台頁面不變），`PlayStage` 傳 `controls={false}`；拖曳轉頭、WASD、點地板叫貓仍可用。
+- ✅ 已做（2026-11-09）**鏡頭不能走出房間**：拉太遠、降太低會看到牆和地板的背面。`RoomViewer` 每幀用 `clampInRoom()`（`src/lib/hq/rooms/demo.ts`）把鏡頭夾在 `scene.json` 的 `room` 範圍內（依 `room.yaw` 沿牆方向、離牆 0.15 m、高度 0.2～2.2 m）；WASD、Q／E、滾輪、右鍵平移都適用，飛往拍攝點的途中不夾。後台、我的 3D 房間、虛擬飼養共用。
 - ✅ 已做（2026-11-07，尚未 commit）**3D 逗貓（掃描房間）**：在家的時光按「逗貓」、或節點裡的逗貓小遊戲，改在 3D 掃描房間玩（娃娃屋仍用原本 2D）。玩具是後台「逗貓棒」的老鼠模型（`PlayShop.models.toy`，後台沒有就用 `items.ts` 的 `PLAY_TOY`），畫面上放大 6 倍；玩具跟著滑鼠／手指在地板上移動（`RoomWorld.floorAt`），貓用位置移動追過去、撲（沿用 `RoomCat.playWith`，不需要撲跳動畫），貓衝刺（跑步動作、約 1.9 公尺/秒）到玩具旁，碰得到（30 公分內）才撲，撲的瞬間貓與玩具仍在 30 公分內才算抓到（隔很遠不算）；每抓到一次開心度 +17（3 次過 50 算成功），沒有時間限制，按「先到這裡」結束，結果格式與 2D 逗貓相同（`catchResult`）。元件：`ScanWand.tsx`（計時、抓到次數、開心度）、`RoomViewer` 新增 `wand` 屬性（逗貓時停用拖曳轉頭）。純函式與測試：`scene-cat.ts`／`scene-cat.test.ts`。
 - ✅ 已做（2026-11-07，尚未 commit）**劇情動作接上 3D 掃描房間的貓（B4）**：`RoomViewer` 新增 `story` 屬性，`sceneCatCommand` 把劇情的貓動作換成房間裡的指令：沒有動作＝貓不在場（隱藏）；carrier／eat／litter＝走到擺好的外出籠／餐碗／貓砂盆；hide＝走到可躲的家具底下（沒有就隱藏）；sleep／sofa／high＝跳上床／沙發／最高的家具；explore／idle＝照常閒晃。`RoomWorld.command` 執行（走路、跳、隱藏）。餵飼料、換水仍是 2D 計時條（之後才改 3D）。
 - ✅ 已做（2026-11-07，尚未 commit）**貓不再穿過擺進房間的用品**：`footprintCells`（`scene-items.ts`，含 4 公分邊距）算出用品佔的格子，`RoomWorld.setItems` → `RoomCat.blockCells` 設成不能走（換清單時先還原）；走向外出籠、碗、砂盆時會停在旁邊。
@@ -159,13 +160,16 @@
 - 領養任務：`meow_task_templates`（系統預設任務，依年齡層）、`meow_cat_task_sets`（中途草稿）、`meow_cat_task_versions`（存了就不改）
 - 進行任務：`meow_task_runs`（進度、試養報告）、`meow_task_abandons`（放棄任務標籤，只有中途讀得到）
 - 我的 3D 房間：`meow_room_models`（`owner_household_id`、`completed_at`、`raw_deleted_at`；`env_check` 11/04 起不再使用，之後的 migration 再移除）；私有 bucket `meow-home-videos`、`meow-home-scenes`
-- 環境報告：`meow_env_reports`、`meow_env_report_shares`、`meow_env_report_advice`；私有 bucket `meow-home-risk-crops`。同一個喵戶可以有多份（檢測紀錄），單獨檢測的 `room_model_id` 為 null
+- 環境報告：`meow_env_reports`、`meow_env_report_shares`、`meow_env_report_advice`；Worker 的 `result.json`、`report.pdf`、裁切圖保存於私有 Azure Blob 容器（測試 `media-dev`／正式 `media`）的 attempt prefix，資料庫只存路徑。同一個喵戶可以有多份（檢測紀錄），單獨檢測的 `room_model_id` 為 null。
 
 ## API／主要函式
 - 0017：`meow_save_cat_tasks()`、`meow_publish_cat()`、`meow_cat_publish_check()`、`meow_start_task_run()`、`meow_abandon_task_run()`、`meow_complete_task_run()`、`meow_share_task_proof()`、`meow_thread_task_status()`、`meow_finish_home_room()`、`meow_share_env_report()`
+- 安全報告（#277，Draft）：`GET /api/homes/[id]/reports/[reportId]` 以使用者 session/RLS 驗證本人或已分享的中途，只回摘要、項目、同源裁切圖 URL 與本人專用的同源 PDF URL；`GET .../[reportId]/pdf` 與 `GET .../[reportId]/crops/[key]` 每次重新授權後 redirect 至短效 Blob URL。PDF 直送 Azure，不經 Vercel Function。Owner 頁面先顯示 PDF，再保留風險卡片；Keeper 僅顯示授權摘要／裁切圖。裁切圖載入失敗可重新請求同源路由。舊 queued 報告與 ready 報告並存時，已完成報告仍標示可查看。回傳格式與環境容器選擇見 `docs/spec/10_居家環境健檢Worker契約.md` §5.1。真實 Owner／Azure Preview 驗收仍待合法測試 session。
+- Storage Adapter：`getMediaStore().readUrl()` 使用部署設定的單一 `AZURE_STORAGE_CONTAINER`；測試／Preview 應為 `media-dev`，正式為 `media`。不得自動跨容器 fallback。共用 Supabase 下，真實報告只可由指向 `media-dev` 且具有合法 owner session 的測試環境讀取。
 - 待建立：環境影片風險偵測、情境劇本 AI 生成、任務 AI 摘要、Demo 加速模式
 
 ## 主要檔案
+- 安全報告：`src/app/api/homes/[id]/reports/[reportId]/route.ts`、`pdf/route.ts`、`crops/[key]/route.ts`、`src/app/homes/[id]/safety/SafetyReportDetails.tsx`、`src/lib/home-safety/report-access.ts`
 - `src/components/Sections.tsx`（`TrialBoard`、`Steps`）
 - 虛擬飼養 DEMO（#237）：`src/app/cats/[id]/play/page.tsx`、`src/components/play/`（`PlayGame` 流程、`PlayStage` 3D、`ShopStep`、`NodeStep`、`ReportStep`、`catgame/` 原版小遊戲）、`src/lib/play/`（`flow.ts` 狀態機、`story.ts` 劇情、`events.ts` 意外、`furniture.ts` 通稱、`hazards.ts`、`costs.ts`、`room.ts`、`stage.ts`、`background.ts`、`lines.ts`、`report.ts`、`items.ts`、`cats.ts`、`api.ts`、`handlers.ts`）、`src/app/api/play/{hazards,lines,advice}/route.ts`、`src/lib/ai/play.ts`、`src/lib/prompts/play.ts`
 - `requirement/catsafe_ar_README.md`（團隊 AR 模組草稿，未放入 repo）

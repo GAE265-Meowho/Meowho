@@ -7,8 +7,8 @@ export interface UploadTarget { url: string; headers: Record<string, string> }
 export interface MediaStore {
   /** 有時效的上傳網址與上傳時必須帶的標頭（瀏覽器直接 PUT，不經過我們的伺服器；前端照抄標頭，不寫死任何雲端的規則） */
   uploadUrl(path: string, contentType: string, ttlSec?: number): Promise<UploadTarget>;
-  /** 有時效的讀取網址 */
-  readUrl(path: string, ttlSec?: number): Promise<string>;
+  /** 有時效的讀取網址；下載時可指定由儲存服務回傳 Content-Disposition: attachment，避免經過主站轉送大檔案 */
+  readUrl(path: string, ttlSec?: number, options?: { contentDisposition?: string }): Promise<string>;
   /** 伺服器端讀取檔案內容（例如送 AI 判讀）；檔案不存在回傳 null */
   download(path: string): Promise<Uint8Array | null>;
   /** 刪除檔案；不存在也算成功 */

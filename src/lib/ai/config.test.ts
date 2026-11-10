@@ -1,5 +1,5 @@
 import { describe as d, it, expect } from "vitest";
-import { describe, isAzureV1, withProvider, isConfigured, resolveModel, resolveProvider } from "./config";
+import { azureModelEndpoint, describe, isAzureV1, withProvider, isConfigured, resolveEmbedding, resolveModel, resolveProvider } from "./config";
 
 d("AI 供應商設定", () => {
   it("沒有任何金鑰 → 未設定", () => {
@@ -53,5 +53,25 @@ d("AI 供應商設定", () => {
     expect(resolveModel(az, "azure", "vision")).toBe("gpt-6-luna");
     expect(isConfigured(withProvider({ ...env, AZURE_OPENAI_CHAT_DEPLOYMENT_NAME: "" }, "azure"))).toBe(false);
     expect(withProvider(env)).toBe(env);
+  });
+});
+
+d("Embedding 模型（幫我找貓）", () => {
+  it("Azure 用 AZURE_OPENAI_EMBEDDING_DEPLOYMENT，固定 1024 維", () => {
+    const env = { AI_PROVIDER: "azure", AZURE_OPENAI_API_KEY: "k", AZURE_OPENAI_ENDPOINT: "https://x.openai.azure.com", AZURE_OPENAI_CHAT_DEPLOYMENT_NAME: "chat", AZURE_OPENAI_EMBEDDING_DEPLOYMENT: "text-embedding-3-large" };
+    expect(resolveEmbedding(env)).toEqual({ provider: "azure", model: "text-embedding-3-large", dims: 1024, key: "azure:text-embedding-3-large@1024" });
+    expect(resolveEmbedding({ ...env, AZURE_OPENAI_EMBEDDING_DEPLOYMENT: undefined })).toBeNull();
+  });
+  it("OpenAI 預設 text-embedding-3-large；Anthropic 沒有 Embedding", () => {
+    expect(resolveEmbedding({ AI_PROVIDER: "openai", OPENAI_API_KEY: "k" })?.key).toBe("openai:text-embedding-3-large@1024");
+    expect(resolveEmbedding({ AI_PROVIDER: "anthropic", ANTHROPIC_API_KEY: "k" })).toBeNull();
+  });
+});
+
+d("Foundry 專案網址", () => {
+  it("專案網址換成同一個資源的 OpenAI 相容端點；其他網址原樣", () => {
+    expect(azureModelEndpoint("https://meow-res.services.ai.azure.com/api/projects/proj-default")).toBe("https://meow-res.openai.azure.com/openai/v1");
+    expect(azureModelEndpoint("https://meow-res.openai.azure.com/openai/v1/")).toBe("https://meow-res.openai.azure.com/openai/v1");
+    expect(azureModelEndpoint(undefined)).toBe("");
   });
 });

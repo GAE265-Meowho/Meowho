@@ -1,11 +1,7 @@
 "use client";
-// 居家安全檢測（規格 09 v0.6 §7.2、§8；#62）：
-// - 有產生好的報告（喵戶卡片的「查看報告」）：顯示最新一份，下方列出檢測紀錄（日期、來源、風險項目數量），可點選看舊的；「再檢測一次」走單獨檢測。
-// - 還沒有報告：單獨檢測的畫面，只做檢查、不建 3D 房間。
-// ⚠ 單獨檢測的上傳與 AI 風險偵測後端還沒做：按鈕直接產生一份示範報告（/api/homes/[id]/safety，內容在 lib/home-room.ts）。
-//   接上時：原始檔放私有 bucket `meow-home-videos`，伺服器建 `meow_env_reports`（room_model_id = null、status = 'queued'），
-//   產生報告與風險裁切照（`meow-home-risk-crops`）後，成功或失敗都立即刪除原始檔（決策 007）。舊報告不覆蓋，每份都留成檢測紀錄。
-// 報告只有本人讀得到（RLS），分享給中途要在對話串主動分享（meow_share_env_report）。
+// v0.5: 同一支居家影片由主站排給 3D 與 WelfareLens 雙 Worker。
+// 這一頁只呈現報告；P1 仍保留原有的「單獨檢測」示範入口（不是 AI 真實分析）。
+// 真實 Worker PDF 與裁切照須經主站報告 API、使用者權限檢查後才顯示。
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/components/Auth";
@@ -14,15 +10,13 @@ import s from "@/components/me/me.module.css";
 import f from "@/components/onboarding/intake.module.css";
 import CatButton from "@/components/ui/CatButton";
 import Icon from "@/components/ui/Icon";
-import { SAFETY_ONLY_PRIVACY, SHOOTING_TIPS, demoReportRow, safetyRecords, type ReportRow } from "@/lib/home-room";
+import { SAFETY_ONLY_PRIVACY, SHOOTING_TIPS, demoReportRow, safetyBusyLabel, safetyRecords, type ReportRow } from "@/lib/home-room";
 import { getBrowserSupabase } from "@/lib/supabase/client";
+import { SafetyReportDetails } from "./SafetyReportDetails";
 import r from "../scene/scene.module.css";
 import k from "./safety.module.css";
 
 type Row = ReportRow & { summary: string | null };
-type Item = { key?: string; label?: string; level?: string; note?: string };
-
-const LEVEL_LABEL: Record<string, string> = { high: "高風險", medium: "要注意", low: "低風險" };
 const day = (iso: string) => new Date(iso).toLocaleDateString("zh-TW", { year: "numeric", month: "long", day: "numeric" });
 
 export default function SafetyPage() {
@@ -81,27 +75,28 @@ export default function SafetyPage() {
     </section>
   );
   else if (shown && !again) {
-    const items = (Array.isArray(shown.items) ? shown.items : []) as Item[];
     body = (
       <>
         <section className={f.card} aria-labelledby="report-title">
           <h2 id="report-title">{day(shown.created_at)}的安全報告</h2>
           <p className={k.source}>{shown.source}・{shown.riskCount ? `${shown.riskCount} 個要注意的地方` : "沒有發現要注意的地方"}</p>
-          {shown.summary && <p className={f.lead}>{shown.summary}</p>}
-          {items.length > 0 && (
-            <ul className={k.items}>
-              {items.map((it, i) => (
-                <li key={it.key ?? i}>
-                  <b>{it.label ?? "風險項目"}</b>
-                  {it.level && LEVEL_LABEL[it.level] && <span className={k.level}>{LEVEL_LABEL[it.level]}</span>}
-                  {it.note && <p>{it.note}</p>}
-                </li>
-              ))}
-            </ul>
-          )}
+          {!sb ? (
+            <div className={k.details}>
+              <p role="note"><b>示範報告（非真實 AI 分析）</b>：以下為預設範例，不代表你的居家環境已檢測。</p>
+              {shown.summary && <p>{shown.summary}</p>}
+              <ul className={k.items}>
+                {(Array.isArray(shown.items) ? shown.items as Array<{ key?: string; label?: string; level?: string; note?: string }> : []).map((item, i) => (
+                  <li key={item.key ?? i}>
+                    <b>{item.label ?? "示範項目"}</b>
+                    {item.note && <p>{item.note}</p>}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : <SafetyReportDetails householdId={id} reportId={shown.id} />}
           <div className={f.actions}>
             {busy
-              ? <CatButton disabled>安全檢測處理中</CatButton>
+              ? <CatButton disabled>{safetyBusyLabel(shown.status === "ready")}</CatButton>
               : <CatButton onClick={() => setAgain(true)}><Icon name="check" size={18} />再檢測一次</CatButton>}
             <CatButton variant="ghost" href="/me">回到我的喵戶</CatButton>
           </div>
@@ -141,11 +136,13 @@ export default function SafetyPage() {
       {/* 單獨檢測前的說明是業務規則要求的聲明（決策 007），用一般內文字級 */}
       <p className={f.lead}>{SAFETY_ONLY_PRIVACY}</p>
       {error && <p className={f.error} role="alert">{error}</p>}
-      {/* 錄影、上傳還沒接：兩個按鈕都直接產生示範報告 */}
+      {/* P1 明確保留單獨檢測示範入口；不能把這個結果當成真實 AI 安全分析 */}
+      <p className={f.lead}>目前單獨檢測僅提供示範資料，沒有分析影片。要取得真實居家安全報告，請從「我的 3D 房間」上傳居家影片。</p>
       <div className={f.actions}>
         <CatButton onClick={check}><Icon name="video" size={18} />開始檢測</CatButton>
         <CatButton variant="ghost" onClick={check}><Icon name="plus" size={18} />上傳影片或照片</CatButton>
       </div>
+      <div className={f.actions}><CatButton variant="ghost" href={`/homes/${id}/scene`}>前往我的 3D 房間（真實影片上傳）</CatButton></div>
       {again && <div className={f.actions}><CatButton variant="ghost" onClick={() => setAgain(false)}>回到報告</CatButton></div>}
     </>
   );

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  NOSE_REACH_M, REST_SECONDS, STORY_START, bubbleOf, defaultBowlSlots, headDownPose, isBowlSet, isFoodBowl, isLitterBox, isWaterBowl, passableItem, stepItems,
+  BOWL_RADIUS_M, PAW_AHEAD_M, REST_SECONDS, bowlObstacles, dropTargetBowl, standOff, STORY_START, bubbleOf, defaultBowlSlots, headDownPose, isBowlSet, isFoodBowl, isLitterBox, isWaterBowl, passableItem, stepItems,
   stepSpot, stepStory, storyById, storyProgress, withoutItem, type StoryState,
 } from "./story";
 
@@ -43,10 +43,12 @@ describe("站的位置", () => {
     expect(spot.heading).toBeCloseTo(Math.PI);
     expect(spot.item).toBe("w1");
   });
-  it("幼貓鼻子比較短，站得更近", () => {
-    expect(NOSE_REACH_M.kitten).toBeLessThan(NOSE_REACH_M.adult);
-    const spot = stepSpot(drink, single, { x: 2, z: 4 }, () => false, { reach: NOSE_REACH_M.kitten })!;
-    expect(spot.z).toBeCloseTo(2 + NOSE_REACH_M.kitten);
+  it("站位＝碗半徑＋前腳掌在身體前方的距離：腳掌踩在碗外（#318）；幼貓站得更近", () => {
+    expect(standOff("adult")).toBeCloseTo(BOWL_RADIUS_M + PAW_AHEAD_M.adult + 0.015);
+    expect(standOff("kitten")).toBeLessThan(standOff("adult"));
+    const spot = stepSpot(drink, single, { x: 2, z: 4 }, () => false, { reach: standOff("kitten") })!;
+    expect(spot.z).toBeCloseTo(2 + standOff("kitten"));
+    expect(spot.target).toEqual({ x: 2, z: 2 });
   });
   it("最近的一邊被擋住換別邊；全擋住回傳 null", () => {
     expect(stepSpot(eat, bowl, { x: 2, z: 4 }, (_x, z) => z > 1.9)!.z).toBeLessThan(2);
@@ -78,8 +80,14 @@ describe("站的位置", () => {
   });
   it("貓砂盆：站正中央、面朝貓砂盆正面", () => {
     const box = { key: "l", name: "貓砂盆", x: 1, z: 1, widthM: 0.34, depthM: 0.5 };
-    expect(stepSpot(toilet, box, { x: 3, z: 3 }, () => true)).toEqual({ x: 1, z: 1, heading: 0, item: "l" });
+    expect(stepSpot(toilet, box, { x: 3, z: 3 }, () => true)).toEqual({ x: 1, z: 1, heading: 0, item: "l", target: { x: 1, z: 1 } });
     expect(stepSpot(toilet, { ...box, rotY: 180 }, { x: 3, z: 3 }, () => true)!.heading).toBeCloseTo(Math.PI);
+  });
+  it("站位檢查會拿到要吃的碗中心", () => {
+    const set = { key: "s", name: "餐碗組", x: 2, z: 2, widthM: 0.52, depthM: 0.34 };
+    const seen: { x: number; z: number }[] = [];
+    stepSpot(drink, set, { x: 2, z: 4 }, (_x, _z, t) => { seen.push(t); return false; }, { slots: { food: [-0.13, 0], water: [0.13, 0] } });
+    expect(seen[0].x).toBeCloseTo(2.13);
   });
   it("障礙清單拿掉用品自己", () => {
     const obs = [{ x: 2, z: 2, hx: 0.2, hz: 0.1, rotY: 0 }, { x: 1, z: 1, hx: 0.5, hz: 0.5, rotY: 0 }];
@@ -137,3 +145,23 @@ describe("程式版動作", () => {
     expect(headDownPose("drink", 0.1).neck0).toBeGreaterThan(headDownPose("eat", 0.1).neck0);
   });
 });
+
+describe("碗的碰撞（#318）", () => {
+  const set = { key: "s", name: "餐碗組", x: 2, z: 2, widthM: 0.52, depthM: 0.34 };
+  const slots = { food: [-0.13, 0] as [number, number], water: [0.13, 0] as [number, number] };
+  it("餐碗組＝兩個碗各一個方塊（碗墊可以踩）；單一碗＝整個用品；貓砂盆、家具上的不算", () => {
+    const obs = bowlObstacles(daily, [set, { key: "w", name: "水碗", x: 1, z: 1, widthM: 0.2, depthM: 0.2 },
+      { key: "l", name: "貓砂盆", x: 3, z: 3, widthM: 0.34, depthM: 0.5 },
+      { key: "t", name: "水碗", x: 1, z: 3, widthM: 0.2, depthM: 0.2, support: { furnitureIndex: 0 } }], () => slots);
+    expect(obs.map(o => [o.x, o.z, o.hx])).toEqual([[1.87, 2, BOWL_RADIUS_M], [2.13, 2, BOWL_RADIUS_M], [1, 1, 0.1]]);
+  });
+  it("最後靠近、而且在站位那一側時，才拿掉要吃的碗（同一組的另一個碗也拿掉，幼貓才不會卡在碗角）", () => {
+    const obs = bowlObstacles(daily, [set], () => slots);
+    const spot = stepSpot(eat, set, { x: 2, z: 4 }, () => false, { reach: standOff("adult"), slots })!;
+    expect(dropTargetBowl([...obs, { x: 3, z: 2, hx: 0.1, hz: 0.1, rotY: 0 }], spot, { x: 1.9, z: 2.4 })).toHaveLength(1);   // 前面、很近 → 拿掉這組兩個碗，別的碗保留
+    expect(dropTargetBowl(obs, spot, { x: 1.9, z: 1.6 })).toHaveLength(2);          // 碗的另一側 → 不拿（不會穿過去）
+    expect(dropTargetBowl(obs, spot, { x: 1.9, z: 3.5 })).toHaveLength(2);          // 還很遠 → 不拿
+    expect(dropTargetBowl(obs, null, { x: 1.9, z: 2.4 })).toHaveLength(2);
+  });
+});
+
