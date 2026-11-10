@@ -13,7 +13,9 @@ vi.mock("./CatPreview", () => ({
     const url = String(props.baseUrl);
     useEffect(() => {
       // 大貓沒有眼球與眨眼形狀鍵，只有待機、走路
-      onInfo?.(url.includes("large")
+      onInfo?.(url.includes("runner")
+        ? { clips: ["run", "groom"], eyes: 0, bones: 27, morphs: [] }
+        : url.includes("large")
         ? { clips: ["idle", "walk"], eyes: 0, bones: 39, morphs: [] }
         : { clips: ["idle", "walk", "sleep", "sit"], eyes: 2, bones: 39, morphs: ["blink_L", "blink_R"] });
     }, [onInfo, url]);
@@ -33,9 +35,9 @@ afterEach(() => cleanup());
 const groups = () => Array.from(screen.getByRole("region", { name: "參數" }).querySelectorAll(":scope > details > summary")).map(s => s.textContent);
 
 describe("3D 貓咪體型預覽（#302）", () => {
-  it("三個分頁依序為大貓、成貓、幼貓，預設大貓", async () => {
+  it("分頁依序為大貓、成貓、幼貓、奔跑貓，預設大貓", async () => {
     render(<BasesPage />);
-    expect(screen.getAllByRole("tab").map(t => t.textContent)).toEqual(["大貓", "成貓", "幼貓"]);
+    expect(screen.getAllByRole("tab").map(t => t.textContent)).toEqual(["大貓", "成貓", "幼貓", "奔跑貓"]);
     expect(screen.getByRole("tab", { name: "大貓" })).toHaveAttribute("aria-selected", "true");
     await screen.findByTestId("fake-preview");
     expect(preview.last.baseUrl).toBe("/hq-cat-models/base/base_clips_large.glb");
@@ -78,5 +80,17 @@ describe("3D 貓咪體型預覽（#302）", () => {
     expect(groups()).toEqual(["播放與畫面", "動作", "眼睛", "貓咪資訊"]);
     expect(screen.getByText("系統依年齡自動套用")).toBeInTheDocument();
     expect(screen.queryByRole("img")).toBeNull();
+  });
+
+  it("奔跑貓分頁（#331）：載入 runner glb，可播奔跑，沒有眼睛參數，貓咪資訊有參考照片", async () => {
+    nav.query = "body=runner";
+    render(<BasesPage />);
+    await screen.findByTestId("fake-preview");
+    await act(async () => {});
+    expect(preview.last.baseUrl).toBe("/hq-cat-models/base/cat_runner_tabby.glb");
+    expect(groups()).toEqual(["播放與畫面", "動作", "貓咪資訊"]);
+    expect(screen.getByRole("button", { name: "奔跑" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "理毛" })).toBeEnabled();
+    expect(screen.getByRole("img", { name: "奔跑貓側面" })).toBeInTheDocument();
   });
 });
