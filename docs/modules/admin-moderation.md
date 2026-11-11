@@ -186,6 +186,7 @@ ole === "admin" 判斷管理員，而現有 admin 會升為 system_admin；舊�
 | 2026-11-11 | Tina × Claude Code | #365 成貓母體脊椎＋尾巴拉直、加鬍鬚（`whiskers`，嘴邊 2×12、眉毛鬚 2×3，掛 `head0`），`base_clips.glb` 重新匯出並以 `eat_drink.mjs adult` 重做 eat／drink；`step3b_fill.py` 補紋改自然鯖魚虎斑、頭部不補；新增 `workers/cat-paint/cat_studio/project_views.py`（三視角投影烘焙）；新增「3D 貓咪母體模型位置」一節；**Storage 母體待上傳** | （見 PR） |
 | 2026-11-11 | Tina × Claude Code | #367 示範貓「第一隻虎斑貓」成貓貼圖換成三視角投影版，加上 AI 三視角與兩張實拍參考照（`public/hq-cat-models/cats/cat_20261030_140731/`、`bundled.ts` 的 `bundledFilePublicPath` 支援 `gen_*`、`photo_front／back`） | （見 PR） |
 | 2026-11-11 | Tina × Claude Code | #369 `/MeowHQ/assets/bases?body=adult` 預覽貓套用第一隻虎斑貓的成貓紋理（`bases.ts` 的 `previewAlbedoUrl`；其他分頁仍用母體內建毛色） | （見 PR） |
+| 2026-11-11 | Tina × Claude Code | #369 體型預覽成貓分頁左上角標籤改成「第一隻虎斑貓」（`previewBadge`），其他分頁仍是「示範毛色」 | （見 PR） |
 - 2026-10-29｜#24：前端呼叫 `meow_suspend_user`／`meow_unsuspend_user`／`meow_ban_email`／`meow_unban_email`／`meow_review_verification`／`meow_revoke_badge`；「要求補件」不另設狀態，用退回＋快選原因「退回並要求補件」；黑名單狀態只有系統管理員讀得到（RLS），其他管理員看不到黑名單欄與操作。
 
 - 2026-10-31｜#75：虛擬體驗元件分四個區塊（貓咪、室內空間、生活用品、其他），R3 已改寫；貓咪模型的貼圖由 cat_studio/paint_worker.py 產生，網頁只建任務與預覽（共用母體 ase_clips.glb 換 cat_fur 貼圖，不需每隻貓各一個 glb）；動作屬母體，補入新動作後所有貓自動擁有；本機模式（可新增／產生）只在非 production 且設了 CAT_STUDIO_ROOT 時啟用；正式站改讀 `public/hq-cat-models/` 示範貓（已完成的 bb）供預覽，寫入仍關閉。004_meow_cat_models.sql（資料表 meow_cat_models、meow_cat_model_jobs、bucket meow-cat-photos／meow-cat-models）在 PR 3，執行前須經 Tina 確認。

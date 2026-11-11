@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { BASE_TABS, baseInfo, baseTabHref, isPreviewBody, previewAlbedoUrl, previewBaseUrl, previewDownloadUrl, previewFileName, previewFraming, resolveBaseTab } from "./bases";
+import { BASE_TABS, baseInfo, baseTabHref, isPreviewBody, previewAlbedoUrl, previewBadge, previewBaseUrl, previewDownloadUrl, previewFileName, previewFraming, resolveBaseTab } from "./bases";
 
 describe("體型預覽分頁（#302）", () => {
   it("分頁依序為大貓、成貓、幼貓、奔跑貓（#331）", () => {
@@ -67,5 +67,13 @@ describe("體型預覽的紋理（#369）", () => {
     expect(previewAlbedoUrl("kitten")).toBeNull();
     expect(previewAlbedoUrl("large")).toBeNull();
     expect(previewAlbedoUrl("runner")).toBeNull();
+  });
+});
+
+describe("體型預覽左上角標籤（#369）", () => {
+  it("成貓顯示套用的貓名，其他分頁顯示示範毛色", () => {
+    expect(previewBadge("adult")).toBe("第一隻虎斑貓");
+    expect(previewBadge("kitten")).toBe("示範毛色");
+    expect(previewBadge("large")).toBe("示範毛色");
   });
 });
