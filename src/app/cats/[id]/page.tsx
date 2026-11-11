@@ -1,5 +1,4 @@
 "use client";
-/* eslint-disable @next/next/no-img-element */
 // 貓咪頁（#70）：給想領養的人看的公開名片，可以收藏、填寫領養問卷。看不看得到交給 meow_cats 的 RLS。
 // 年齡顯示年齡層＋大約年紀，例如「幼貓（約 3 個月）」（#206）。從中途領養來的貓，飼主在這裡提出退養請求（#109）。
 // 待領養貓可以「傳訊息給喵戶長」（#70，#128），對話在「領養管理」。
@@ -16,6 +15,7 @@ import { FavoriteButton } from "@/components/cats/FavoriteButton";
 import { MessageButton } from "@/components/cats/MessageButton";
 import { CatCare, CatPairs, CatTraits, CatWeek } from "@/components/cats/CatProfile";
 import { Cat3D } from "@/components/cats/Cat3D";
+import { PhotoCarousel } from "@/components/cats/PhotoCarousel";
 import { PublishPanel } from "@/components/cats/PublishPanel";
 import s from "@/components/cats/catPage.module.css";
 import f from "@/components/onboarding/intake.module.css";
@@ -47,7 +47,6 @@ export default function CatPage() {
   const [formOpen, setFormOpen] = useState(false);
   const [videos, setVideos] = useState<{ path: string; url: string }[]>([]);
   const [favCount, setFavCount] = useState<number | null>(null);
-  const [current, setCurrent] = useState(0);
   const [view, setView] = useState<ProfileView | null>(null);
 
   useEffect(() => {
@@ -94,20 +93,8 @@ export default function CatPage() {
     body = (
       <>
         <section className={s.hero}>
-          <div className={s.gallery}>
-            <div className={s.main}>
-              {photos[current] ? <img src={photoUrl(photos[current])} alt={`${cat.name}的照片`} /> : <Icon name="cat" size={96} />}
-            </div>
-            {photos.length > 1 && (
-              <div className={s.thumbs}>
-                {photos.map((p, i) => (
-                  <button key={p} type="button" aria-label={`第 ${i + 1} 張照片`} aria-pressed={i === current} onClick={() => setCurrent(i)}>
-                    <img src={photoUrl(p)} alt="" />
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+          {/* 直式、橫式照片都完整顯示，外框高度固定（PhotoCarousel，#354） */}
+          <PhotoCarousel photos={photos.map(photoUrl)} name={cat.name} />
 
           <div className={s.summary}>
             <span className={`${s.tag} ${adoptable ? s.adoptable : ""}`}>{STATUS[cat.rawStatus as keyof typeof STATUS] ?? cat.rawStatus}</span>
