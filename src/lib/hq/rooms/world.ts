@@ -34,6 +34,10 @@ export interface RoomWorld {
   setToy(at: [number, number] | null): void;
   /** 虛擬用品（地板座標，公尺）：貓繞過去、不會穿過 */
   setItems(items: { x: number; z: number; widthM: number; depthM: number }[]): void;
+  /** 貓頭頂上方的世界座標（給畫面上的對話框定位）；貓不在畫面時回 false */
+  catHead(out: THREE.Vector3): boolean;
+  /** 鏡頭原地轉向貓（貓不在場就不動），讓頭頂的對話框和貓一起在畫面裡 */
+  lookAtCat(): void;
 }
 
 export async function createRoomWorld({ viewer, threeScene, scene, layout, cameras, catUrl, albedoUrl, unit, focus }: {
@@ -97,7 +101,15 @@ export async function createRoomWorld({ viewer, threeScene, scene, layout, camer
   let toy: [number, number] | null = null;
   const chase = { cool: 0 };
 
+  const catHead = (out: THREE.Vector3) => {
+    if (!cat.visible) return false;
+    cat.cat.getWorldPosition(out);
+    out.addScaledVector(up, 0.3 * upm);
+    return true;
+  };
+
   return {
+    catHead,
     hasBed: Boolean(bed),
     hasCup: Boolean(cup),
 
@@ -136,6 +148,13 @@ export async function createRoomWorld({ viewer, threeScene, scene, layout, camer
 
     walkTo(ndc) {
       cat.walkToScreen(ndc, viewer.camera);
+    },
+
+    lookAtCat() {
+      const at = new THREE.Vector3();
+      if (!catHead(at)) return;
+      const pos = viewer.camera.position.clone();
+      focus({ pos, look: pos.clone().addScaledVector(at.sub(pos).normalize(), unit * LOOK_AT) });
     },
 
     callCat() {

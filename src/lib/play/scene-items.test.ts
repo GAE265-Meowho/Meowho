@@ -77,3 +77,16 @@ describe("footprintCells（用品佔的格子，貓不能穿過）", () => {
     expect(cells.every(k => k >= 0 && k < N * N)).toBe(true);
   });
 });
+
+describe("用品不穿過家具", () => {
+  it("地板格子標成能走、但有家具箱子的地方，也不會放上去", () => {
+    // 全部能走的房間，中間一張 1 × 1 的沙發（高 0.5）
+    const open = { ...layout, walkable: "1".repeat(N * N) } as unknown as RoomLayout;
+    const sc = { room: { min: [0, 0], max: [4, 4] }, objects: [obj("sofa", "沙發", 2, 2, 1, 1)] } as unknown as RoomScene;
+    const [p] = placeScanItems(sc, open, [item("litter_box", "沙發", 0.34, 0.5)]);
+    expect(Math.max(Math.abs(p.x - 2), Math.abs(p.z - 2))).toBeGreaterThanOrEqual(0.5 + 0.17);
+    // 角落也一樣：不會跑進沙發裡
+    const [q] = placeScanItems(sc, open, [item("bowl", null, 0.5, 0.3)]);
+    expect(Math.max(Math.abs(q.x - 2), Math.abs(q.z - 2))).toBeGreaterThan(0.5);
+  });
+});

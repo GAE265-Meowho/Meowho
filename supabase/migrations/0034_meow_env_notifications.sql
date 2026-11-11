@@ -48,7 +48,7 @@ begin
   else
     notification_type := 'home_safety_failed';
     notification_title := '安全報告沒有產生成功';
-    notification_body := '請稍後重新檢測；若畫面提示影片不符合拍攝須知，再重新拍攝即可。';
+    notification_body := public.meow_env_user_error(new.error_code);
   end if;
 
   insert into public.meow_notifications (user_id, type, title, body, link, dedupe_key)

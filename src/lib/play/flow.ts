@@ -10,7 +10,8 @@ import { addCare, careEffect, CARE_ACTS, skipEffect, type CareAct } from "./care
 import { fullTx } from "./furniture";
 import type { Hazard } from "./hazards";
 import { money } from "./costs";
-import { STORY, topRisk, type Ask, type CatPose, type Fx, type Life, type MiniId, type NodeId, type Speaker, type Step } from "./story";
+import { realMonths } from "./timeline";
+import { NO_TRAITS, STORY, topRisk, type Ask, type CatTraits, type CatPose, type Fx, type Life, type MiniId, type NodeId, type Speaker, type Step } from "./story";
 import { newCare } from "./care";
 
 export const STEPS = ["background", "shop", "place", "node", "report"] as const;
@@ -23,6 +24,7 @@ export type Cur =
   | { kind: "ask"; who: Speaker; t: string; health: boolean; options: Ask[] }
   | { kind: "mini"; mini: MiniId; then: (r: unknown) => Step[] }
   | { kind: "personal" }
+  | { kind: "relocate"; mode: "apart" | "together"; then: Step[] }
   | { kind: "page"; title: string; tip: string }
   | { kind: "log" }
   /** 在家的時光：6 個動作按鈕 */
@@ -43,12 +45,16 @@ export interface PlayState {
   handled: string[];
   /** 這一輪在家的時光已經做過的動作 */
   homeDone: CareAct[];
+  /** 這一輪試過但沒做好的動作（不算完成，但結束時不再重複扣沒做的分） */
+  homeTried: CareAct[];
   /** 每月固定開銷（採買步驟用公式算好傳進來） */
   monthly: number;
+  /** 這隻貓到家時幾個月大（讀 meow_cats；劇本照原樣演，只是把年紀換成真實的） */
+  startMonths: number;
 }
 
-export const newLife = (labels: string[] = []): Life => ({
-  name: "麻糬", age: 2, trust: 30, stress: 40, flags: {}, picks: [], notes: [], events: [],
+export const newLife = (labels: string[] = [], name = "牠", cat: CatTraits = NO_TRAITS): Life => ({
+  name, cat, age: 2, trust: 30, stress: 40, flags: {}, picks: [], notes: [], events: [],
   cost: { once: 0, month: 0, med: 0, acc: 0, other: 0 }, abandoned: false, labels,
   care: newCare(), risk: null,
 });
@@ -56,7 +62,7 @@ export const newLife = (labels: string[] = []): Life => ({
 export const initialPlay = (): PlayState => ({
   step: "background", nodeIndex: 0, queue: [], cur: null, pageShown: false,
   scene: { bg: "room", time: "day", cat: "sit" }, bub: null, life: newLife(),
-  hazards: [], handled: [], homeDone: [], monthly: 0,
+  hazards: [], handled: [], homeDone: [], homeTried: [], monthly: 0, startMonths: 2,
 });
 
 export type PlayAction =
@@ -65,9 +71,11 @@ export type PlayAction =
   | { type: "setHazards"; hazards: Hazard[] }
   | { type: "toggleHandled"; key: string }
   /** 開始三個節點：labels＝房間物品清單；once／monthly＝採買公式算好的金額；shopPicks＝原版 fullBegin 依採買記下的紀錄 */
-  | { type: "startNodes"; labels: string[]; once: number; monthly: number; shopPicks?: { t: string; good: boolean | null }[] }
+  | { type: "startNodes"; catName: string; labels: string[]; once: number; monthly: number; shopPicks?: { t: string; good: boolean | null }[]; startMonths?: number; cat?: CatTraits; mood?: { trust: number; stress: number } }
   | { type: "choose"; index: number }
   | { type: "miniDone"; result: unknown }
+  /** 貓砂盆重新擺好了 */
+  | { type: "relocated" }
   /** 在家的時光：做完一個動作（good＝小遊戲成功） */
   | { type: "care"; act: CareAct; good: boolean }
   | { type: "restart" };
@@ -86,8 +94,8 @@ function apply(s: PlayState, m: { fx?: Fx; set?: string; pick?: string; good?: b
   if (fx?.trust) X.trust = clamp(X.trust + fx.trust, 0, 100);
   if (fx?.stress) X.stress = clamp(X.stress + fx.stress, 0, 100);
   if (m.set) X.flags[m.set] = true;
-  if (m.pick) X.picks.push({ t: fullTx(m.pick, X.labels), good: m.good ?? null, node: nodeId(s) });
-  if (m.note || (fx?.spent && m.pick)) X.notes.push({ t: fullTx(m.note ?? m.pick ?? "", X.labels), node: nodeId(s), spent: fx?.spent ?? 0 });
+  if (m.pick) X.picks.push({ t: fullTx(m.pick, X.labels, X.name), good: m.good ?? null, node: nodeId(s) });
+  if (m.note || (fx?.spent && m.pick)) X.notes.push({ t: fullTx(m.note ?? m.pick ?? "", X.labels, X.name), node: nodeId(s), spent: fx?.spent ?? 0 });
 }
 
 /** 一直往下執行，直到要等玩家（台詞、選項、小遊戲、個人化台詞、小叮嚀、紀錄） */
@@ -95,13 +103,13 @@ function run(prev: PlayState): PlayState {
   const s: PlayState = { ...prev, queue: [...prev.queue], life: cloneLife(prev.life), cur: null };
   const X = s.life;
   const buf: Line[] = [];
-  const flush = () => { s.cur = { kind: "lines", lines: buf.map(l => ({ ...l, t: fullTx(l.t, X.labels) })) }; return s; };
+  const flush = () => { s.cur = { kind: "lines", lines: buf.map(l => ({ ...l, t: fullTx(l.t, X.labels, X.name) })) }; return s; };
   for (let guard = 0; guard < 500; guard++) {
     const st = s.queue.shift();
     if (!st) {
       if (buf.length) return flush();
       const page = STORY[s.nodeIndex].page;
-      if (page && !s.pageShown && !X.abandoned) { s.pageShown = true; s.cur = { kind: "page", title: fullTx(page.title, X.labels), tip: fullTx(page.tip, X.labels) }; return s; }
+      if (page && !s.pageShown && !X.abandoned) { s.pageShown = true; s.cur = { kind: "page", title: fullTx(page.title, X.labels, X.name), tip: fullTx(page.tip, X.labels, X.name) }; return s; }
       s.cur = { kind: "log" };
       return s;
     }
@@ -115,12 +123,16 @@ function run(prev: PlayState): PlayState {
       case "fn": s.queue.unshift(...st.fn(X)); break;
       case "ask":
         if (buf.length) { s.queue.unshift(st); return flush(); }
-        s.cur = { kind: "ask", who: st.who, t: fullTx(st.t, X.labels), health: Boolean(st.health),
-          options: st.ask.filter(a => !a.need || a.need(X)).map(a => ({ ...a, l: fullTx(a.l, X.labels) })) };
+        s.cur = { kind: "ask", who: st.who, t: fullTx(st.t, X.labels, X.name), health: Boolean(st.health),
+          options: st.ask.filter(a => !a.need || a.need(X)).map(a => ({ ...a, l: fullTx(a.l, X.labels, X.name) })) };
         return s;
       case "mini":
         if (buf.length) { s.queue.unshift(st); return flush(); }
         s.cur = { kind: "mini", mini: st.mini, then: st.then };
+        return s;
+      case "relocate":
+        if (buf.length) { s.queue.unshift(st); return flush(); }
+        s.cur = { kind: "relocate", mode: st.mode, then: st.then };
         return s;
       case "personal":
         if (buf.length) { s.queue.unshift(st); return flush(); }
@@ -141,10 +153,11 @@ function enterNode(prev: PlayState, nodeIndex: number): PlayState {
   const s: PlayState = { ...prev, life: cloneLife(prev.life), nodeIndex, pageShown: false, bub: null };
   const node = STORY[nodeIndex], X = s.life;
   const prevAge = nodeIndex > 0 ? STORY[nodeIndex - 1].age : node.age;
-  const months = Math.max(0, node.age - prevAge);
+  // 每月花費依真實經過的月數累計（年紀大的貓，後半段時間軸會壓縮，見 timeline.ts）
+  const months = Math.max(0, realMonths(node.age, s.startMonths) - realMonths(prevAge, s.startMonths));
   X.cost.month += s.monthly * months;
   if (months >= 1) X.notes.push({ t: `每月固定開銷約 ${money(s.monthly)} 元 × ${Math.round(months)} 個月（估算）`, node: node.id, spent: Math.round(s.monthly * months) });
-  X.age = node.age;
+  X.age = realMonths(node.age, s.startMonths);
   const q: Step[] = [...node.steps];
   if (node.personal) q.push({ k: "personal" });
   s.queue = q;
@@ -156,13 +169,13 @@ function enterNode(prev: PlayState, nodeIndex: number): PlayState {
 function endHome(s: PlayState): PlayState {
   const life = cloneLife(s.life);
   for (const { act } of CARE_ACTS) {
-    if (s.homeDone.includes(act)) continue;
+    if (s.homeDone.includes(act) || s.homeTried.includes(act)) continue;
     const e = skipEffect(act);
     life.care = addCare(life.care, e.d);
     if (e.fx.stress) life.stress = clamp(life.stress + e.fx.stress, 0, 100);
   }
   life.care.rounds += 1;
-  return { ...s, life, homeDone: [] };
+  return { ...s, life, homeDone: [], homeTried: [] };
 }
 
 function advance(s: PlayState): PlayState {
@@ -177,11 +190,12 @@ export function playReducer(s: PlayState, a: PlayAction): PlayState {
     case "toggleHandled":
       return { ...s, handled: s.handled.includes(a.key) ? s.handled.filter(k => k !== a.key) : [...s.handled, a.key] };
     case "startNodes": {
-      const life = newLife(a.labels);
+      const life = newLife(a.labels, a.catName, a.cat);
       life.cost.once = a.once;
+      if (a.mood) { life.trust = a.mood.trust; life.stress = a.mood.stress; }
       (a.shopPicks ?? []).forEach(p => life.picks.push({ ...p, node: "day1" }));
       life.risk = topRisk(s.hazards);
-      return enterNode({ ...s, step: "node", life, monthly: a.monthly, homeDone: [] }, 0);
+      return enterNode({ ...s, step: "node", life, monthly: a.monthly, startMonths: a.startMonths ?? 2, homeDone: [], homeTried: [] }, 0);
     }
     case "choose": {
       if (s.cur?.kind !== "ask") return s;
@@ -199,11 +213,18 @@ export function playReducer(s: PlayState, a: PlayAction): PlayState {
       life.care.log[a.act] = (life.care.log[a.act] ?? 0) + 1;
       if (e.fx.trust) life.trust = clamp(life.trust + e.fx.trust, 0, 100);
       if (e.fx.stress) life.stress = clamp(life.stress + e.fx.stress, 0, 100);
-      return { ...s, life, homeDone: s.homeDone.includes(a.act) ? s.homeDone : [...s.homeDone, a.act] };
+      // 做好了才算完成（圖示變半透明、貓不再要）；做壞了只記下試過
+      return a.good
+        ? { ...s, life, homeDone: s.homeDone.includes(a.act) ? s.homeDone : [...s.homeDone, a.act] }
+        : { ...s, life, homeTried: s.homeTried.includes(a.act) ? s.homeTried : [...s.homeTried, a.act] };
     }
     case "miniDone": {
       if (s.cur?.kind !== "mini") return s;
       return run({ ...s, queue: [...s.cur.then(a.result ?? {}), ...s.queue] });
+    }
+    case "relocated": {
+      if (s.cur?.kind !== "relocate") return s;
+      return run({ ...s, queue: [...s.cur.then, ...s.queue] });
     }
     case "next": {
       if (s.step !== "node") {
@@ -212,7 +233,7 @@ export function playReducer(s: PlayState, a: PlayAction): PlayState {
       }
       if (!s.cur) return run(s);
       if (s.cur.kind === "log") {
-        if (STORY[s.nodeIndex].home && !s.life.abandoned) return { ...s, cur: { kind: "home" }, homeDone: [] };
+        if (STORY[s.nodeIndex].home && !s.life.abandoned) return { ...s, cur: { kind: "home" }, homeDone: [], homeTried: [] };
         return advance(s);
       }
       if (s.cur.kind === "home") return advance(endHome(s));

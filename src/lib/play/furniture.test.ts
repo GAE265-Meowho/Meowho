@@ -32,3 +32,11 @@ describe("fullTx", () => {
     expect(fullTx("關在〈可關門的房間〉", [])).toBe("關在家裡");
   });
 });
+
+describe("fullTx 貓名", () => {
+  it("〈貓名〉換成這隻貓的名字，沒給名字用「牠」", async () => {
+    const { fullTx } = await import("./furniture");
+    expect(fullTx("〈貓名〉躲進〈躲藏處〉", ["沙發"], "橘子")).toContain("橘子躲進");
+    expect(fullTx("〈貓名〉跑了", [])).toBe("牠跑了");
+  });
+});

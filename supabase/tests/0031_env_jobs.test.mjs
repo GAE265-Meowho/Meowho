@@ -96,7 +96,7 @@ await db.exec(`update public.meow_env_jobs set max_attempts = 1 where id = '${jo
 check("租約耗盡後 claim 結束工作但不外洩技術細節", null, await one(db, `select public.meow_env_claim('worker-exhausted')`));
 check("租約耗盡使用契約系統錯誤訊息", "我們這邊出了問題，修好會通知你，不要求重拍。", await one(db, `select error from public.meow_env_reports where id = (select report_id from public.meow_env_jobs where id = '${jobId}')`));
 check("租約耗盡終態只通知該 Household Owner", 1, await one(db, `select count(*) from public.meow_notifications where dedupe_key = 'env_job:${jobId}:failed' and user_id = '${id("001")}'`));
-check("租約耗盡通知類型、標題、內容與連結正確", 1, await one(db, `select count(*) from public.meow_notifications where dedupe_key = 'env_job:${jobId}:failed' and type = 'home_safety_failed' and title = '安全報告沒有產生成功' and body = '請稍後重新檢測；若畫面提示影片不符合拍攝須知，再重新拍攝即可。' and link = '/homes/${id("101")}/safety'`));
+check("lease_expired 通知文案沿用 user_error 且連結正確", 1, await one(db, `select count(*) from public.meow_notifications where dedupe_key = 'env_job:${jobId}:failed' and type = 'home_safety_failed' and title = '安全報告沒有產生成功' and body = public.meow_env_user_error('lease_expired') and link = '/homes/${id("101")}/safety'`));
 check("通知不寄給其他 Household Owner", 0, await one(db, `select count(*) from public.meow_notifications where dedupe_key = 'env_job:${jobId}:failed' and user_id = '${id("002")}'`));
 
 await db.exec(`
@@ -162,7 +162,7 @@ await rejectResult("不符合 prefix 的 JSON 路徑拒絕", "'摘要'", "'[]'",
 await rejectResult("PDF 必須是唯一必要檔名", "'摘要'", "'[]'", "'[]'", `'${retryPrefix}result.json'`, `'${retryPrefix}preview.pdf'`);
 await rejectResult("warning 欄位不得多餘", "'摘要'", "'[]'", "'[{\"code\":\"low_light\",\"message\":\"偏暗\",\"extra\":true}]'", `'${retryPrefix}result.json'`, `'${retryPrefix}report.pdf'`);
 check("不可重試錯誤永久失敗", "failed", await one(db, `select public.meow_env_fail('${retryJob}', 2, 'video_not_indoor', '不是室內影片', true)`));
-check("最終 failed 通知正確 Owner 與安全連結", 1, await one(db, `select count(*) from public.meow_notifications where dedupe_key = 'env_job:${retryJob}:failed' and user_id = '${id("001")}' and type = 'home_safety_failed' and title = '安全報告沒有產生成功' and body = '請稍後重新檢測；若畫面提示影片不符合拍攝須知，再重新拍攝即可。' and link = '/homes/${id("101")}/safety'`));
+check("最終 failed 通知正確 Owner、文案與安全連結", 1, await one(db, `select count(*) from public.meow_notifications where dedupe_key = 'env_job:${retryJob}:failed' and user_id = '${id("001")}' and type = 'home_safety_failed' and title = '安全報告沒有產生成功' and body = public.meow_env_user_error('video_not_indoor') and link = '/homes/${id("101")}/safety'`));
 check("重複 final fail 回應不重複通知", "failed", await one(db, `select public.meow_env_fail('${retryJob}', 2, 'video_not_indoor', '再次回呼', false)`));
 check("重複 final fail 仍只有一則通知", 1, await one(db, `select count(*) from public.meow_notifications where dedupe_key = 'env_job:${retryJob}:failed'`));
 check("影片類永久失敗不可由重排 RPC 重試", "env_job_not_requeueable", await errorCode(db.query(`select public.meow_create_home_processing('${id("203")}', null, '${id("888")}')`)));
@@ -217,7 +217,7 @@ await db.exec(`update public.meow_home_videos set raw_deleted_at=now() where id=
 const invalidSourceJob = await one(db, `select id from public.meow_env_jobs where video_id='${id("209")}'`);
 check("不可用來源在 claim 時結束且不再派發", null, await one(db, `select public.meow_env_claim('worker-source-invalid')`));
 check("claim 的來源錯誤使用安全飼主訊息", "影片沒有上傳完整，請重新上傳。", await one(db, `select error from public.meow_env_reports where video_id='${id("209")}'`));
-check("claim 判定不可恢復 source_invalid 時通知正確喵戶", 1, await one(db, `select count(*) from public.meow_notifications where dedupe_key = 'env_job:${invalidSourceJob}:failed' and user_id = '${id("001")}' and link = '/homes/${id("101")}/safety'`));
+check("claim 判定 source_invalid 時通知正確 Owner 與文案", 1, await one(db, `select count(*) from public.meow_notifications where dedupe_key = 'env_job:${invalidSourceJob}:failed' and user_id = '${id("001")}' and body = public.meow_env_user_error('source_invalid') and link = '/homes/${id("101")}/safety'`));
 check("claim 的來源錯誤碼保留", "source_invalid", await one(db, `select error_code from public.meow_env_jobs where id='${invalidSourceJob}'`));
 check("來源失敗 tombstone 仍保留影片路徑", `homes/${id("101")}/videos/${id("209")}.mp4`, await one(db, `select video_path from public.meow_env_jobs where id='${invalidSourceJob}'`));
 

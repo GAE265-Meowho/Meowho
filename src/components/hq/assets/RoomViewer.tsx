@@ -63,11 +63,19 @@ export interface RoomWand { toy: SceneItem; onCatch: (caught: boolean) => void }
  * items：要擺進房間的虛擬用品（外出籠、餐碗、貓砂盆），位置由 placeScanItems 算在地板上，換了清單會即時更新
  * story：虛擬飼養的貓配合劇情（action＝null 躲起來、carrier 走到外出籠、sleep 跳上床…），換了（at 不同）就執行
  * wand：3D 逗貓。給了就停用拖曳轉頭，玩具跟著滑鼠／手指在地板上移動，貓追著撲；每次撲完呼叫 onCatch(是否抓到)
+ * bubble：貓頭頂的小對話框（表情符號），跟著貓在畫面上移動
  * controls：false 時不顯示拍攝點與貓咪動作按鈕（虛擬飼養用；拖曳、WASD、點地板仍可用）
+ * noCat：只看房間、不放貓（前台我的 3D 房間預覽；貓等進了領養任務才出現）
  */
-export default function RoomViewer({ base, cat, items, controls = true, story, wand }: {
-  base: string; cat?: { baseUrl: string; albedoUrl: string } | null; items?: readonly SceneItem[]; controls?: boolean;
+export default function RoomViewer({ base, cat, items, controls = true, story, wand, bubble, bubbleInset = 0, lookKey, noCat = false }: {
+  base: string; cat?: { baseUrl: string; albedoUrl: string } | null; items?: readonly SceneItem[]; controls?: boolean; noCat?: boolean;
   story?: { action: CatAction | null; at: number } | null; wand?: RoomWand | null;
+  /** 貓頭頂的小對話框（表情符號）；null＝不顯示 */
+  bubble?: string | null;
+  /** 畫面下方被劇情卡蓋住的比例（0～1）；對話框不會畫到那裡，貓在卡片後面時貼在卡片上緣 */
+  bubbleInset?: number;
+  /** 這個值一變，鏡頭就原地轉向貓（null／不變不轉） */
+  lookKey?: string | null;
 }) {
   const host = useRef<HTMLDivElement>(null);
   const goTo = useRef<(step: number) => void>(() => {});
@@ -80,6 +88,11 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
   const [worldReady, setWorldReady] = useState(false);
   const orbit = useRef<{ enabled: boolean } | null>(null);
   const wandOn = useRef(false);
+  const bubbleEl = useRef<HTMLDivElement>(null);
+  const bubbleText = useRef<string | null>(null);
+  const insetRef = useRef(bubbleInset);
+  insetRef.current = bubbleInset;
+  useEffect(() => { bubbleText.current = bubble ?? null; if (bubbleEl.current) bubbleEl.current.textContent = bubble ?? ""; }, [bubble]);
   const onCatch = useRef<RoomWand["onCatch"] | null>(null);
   onCatch.current = wand?.onCatch ?? null;
 
@@ -171,7 +184,7 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
       setStatus("ready");
 
       // 貓和物理載入失敗時，房間照常可以看
-      const roomWorld = await createRoomWorld({
+      const roomWorld = noCat ? null : await createRoomWorld({
         viewer: active, threeScene, scene, layout, cameras, catUrl: cat?.baseUrl ?? CAT_MODEL, albedoUrl: cat?.albedoUrl, unit, focus: tweenTo,
       }).catch(e => {
         console.error("貓咪互動載入失敗", e);
@@ -217,11 +230,26 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
         move(directions().fwd.multiplyScalar(-Math.sign(e.deltaY) * unit * 0.03));
       }, { passive: false, signal: abort.signal });
 
+      const head = new THREE.Vector3();
       let last = performance.now();
       const tick = (now: number) => {
         const dt = Math.min(0.1, (now - last) / 1000);
         last = now;
         roomWorld?.update(dt);
+        const be = bubbleEl.current;
+        if (be) {
+          if (bubbleText.current && roomWorld?.catHead(head)) {
+            head.project(active.camera);
+            // 貓在畫面外或鏡頭後面就不顯示（框只跟著貓，不貼邊）；框畫到被劇情卡蓋住的區域時往上推一點
+            const onScreen = head.z < 1 && Math.abs(head.x) < 0.95 && head.y > -0.95 && head.y < 0.9;
+            if (onScreen) {
+              const minY = 1 - 2 * (1 - insetRef.current - 0.1);
+              be.style.display = "block";
+              be.dataset.edge = "false";
+              be.style.left = `${(head.x * 0.5 + 0.5) * 100}%`; be.style.top = `${(-Math.max(head.y, minY) * 0.5 + 0.5) * 100}%`;
+            } else be.style.display = "none";
+          } else be.style.display = "none";
+        }
         if (tween) {
           const t = Math.min(1, (now - tween.start) / TWEEN_MS);
           active.camera.position.lerpVectors(tween.from.pos, tween.to.pos, t);
@@ -275,7 +303,7 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
       viewer?.dispose().catch(() => {}).finally(() => stage.remove());
       if (!viewer) stage.remove();
     };
-  }, [base, cat?.baseUrl, cat?.albedoUrl]);
+  }, [base, cat?.baseUrl, cat?.albedoUrl, noCat]);
 
   // 虛擬用品清單變了就重擺（讀完房間後才做）
   useEffect(() => {
@@ -284,7 +312,9 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
     let stale = false;
     const list = items ?? [];
     const spots = placeScanItems(st.scene, st.layout, list);
-    world.current?.setItems(list.map((it, i) => ({ x: spots[i].x, z: spots[i].z, widthM: it.widthM, depthM: it.depthM })));
+    // 貓不能穿過任何用品；只有劇情叫牠躲進外出籠（第 1 天）時，外出籠才讓牠進去
+    const hideInCarrier = story?.action === "carrier";
+    world.current?.setItems(list.flatMap((it, i) => (hideInCarrier && it.id === "carrier" ? [] : [{ x: spots[i].x, z: spots[i].z, widthM: it.widthM, depthM: it.depthM }])));
     Promise.all(list.map(itemObject)).then(objs => {
       if (stale || itemStage.current !== st) return;
       st.frame.clear();
@@ -299,7 +329,11 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
       st.viewer.forceRenderNextFrame();
     });
     return () => { stale = true; };
-  }, [items, itemsReady, worldReady]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items, itemsReady, worldReady, story?.action, story?.at]);
+
+  // 鏡頭轉向貓：貓頭頂的對話框才看得到
+  useEffect(() => { if (lookKey && worldReady) world.current?.lookAtCat(); }, [lookKey, worldReady]);
 
   // 劇情動作：貓躲起來、走到用品旁、跳上家具（逗貓時由玩具帶著貓跑，不套用）
   useEffect(() => {
@@ -365,6 +399,7 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
     <section className="hq-roomviewer" aria-label="展示房間">
       <div ref={host} className="hq-roomviewer-host">
         {status === "loading" && <div className="hq-roomviewer-loading"><HqSkeleton rows={3} /></div>}
+        <div ref={bubbleEl} className="hq-roomviewer-bubble" aria-hidden="true" />
       </div>
       {controls && (
         <>
@@ -373,13 +408,13 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
           <span>{status === "ready" ? `拍攝點 ${spot.index + 1}／${spot.total}` : "載入中"}</span>
           <button type="button" className="hq-btn ghost" onClick={() => goTo.current(1)} disabled={status !== "ready"}>下一個拍攝點</button>
         </div>
-        <div className="hq-roomviewer-bar">
+        {!noCat && <div className="hq-roomviewer-bar">
           <button type="button" className="hq-btn ghost" onClick={() => world.current?.callCat()} disabled={!actions.cat}>叫貓過來</button>
           <button type="button" className="hq-btn ghost" onClick={() => world.current?.jumpOnBed()} disabled={!actions.bed}>跳上床</button>
           <button type="button" className="hq-btn ghost" onClick={() => world.current?.pushCup()} disabled={!actions.cup}>推倒杯子</button>
           <button type="button" className="hq-btn ghost" onClick={() => world.current?.resetItems()} disabled={!actions.cup}>重置物品</button>
-        </div>
-        <p className="hq-hint">拖曳轉頭，WASD 走動，Q／E 下降上升，Shift 加速，滾輪前後走，點地板叫貓過去。</p>
+        </div>}
+        <p className="hq-hint">拖曳轉頭，WASD 走動，Q／E 下降上升，Shift 加速，滾輪前後走{noCat ? "" : "，點地板叫貓過去"}。</p>
         </>
       )}
     </section>

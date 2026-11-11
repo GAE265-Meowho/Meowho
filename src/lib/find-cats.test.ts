@@ -6,12 +6,16 @@ import {
 
 const today = new Date("2026-11-09T00:00:00Z");
 let n = 0;
-const cat = (over: Partial<FindCatRow> = {}): FindCatRow => ({
-  id: `c${++n}`, name: "橘子", sex: "male", life_stage: "adult", personality_tags: ["親人"], health_tags: [], medical: null,
-  description: null, timeline: [], photo_url: null, created_at: "2026-11-01T00:00:00Z", habits: [], compat: null, personality_scale: null, intro: null,
-  household: { id: "h1", name: "中途", city: "桃園市", district: "龍潭區", intro: "", caretaker_type: "personal_foster" },
-  ...over,
-});
+const cat = (over: Partial<FindCatRow> = {}): FindCatRow => {
+  const { coat, ...rest } = over;
+  return {
+    id: `c${++n}`, name: "橘子", sex: "male", life_stage: "adult", personality_tags: ["親人"], health_tags: [], medical: null,
+    description: null, timeline: [], photo_url: null, created_at: "2026-11-01T00:00:00Z", habits: [], compat: null, personality_scale: null, intro: null,
+    household: { id: "h1", name: "中途", city: "桃園市", district: "龍潭區", intro: "", caretaker_type: "personal_foster" },
+    ...rest,
+    coat: coat ?? null,
+  };
+};
 const cond = (over: Partial<FindConditions> = {}): FindConditions => ({ ...emptyConditions(), ...over });
 const home: HomeProfile = { city: "台北市", district: "大安區", dwelling: "電梯大樓", family: ["伴侶", "小孩"], pets: ["貓"], firstCat: false };
 

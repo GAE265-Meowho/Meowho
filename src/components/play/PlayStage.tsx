@@ -21,13 +21,19 @@ const RoomViewer = dynamic(() => import("@/components/hq/assets/RoomViewer"), { 
 const ROOMS = [DEMO_DOLLHOUSE];
 const noop = () => {};
 
-export function PlayStage({ kind, scanBase, look, tag, placed, scanItems, story, wand, goal, clip, speed, onDrop, onItemError, children }: {
+export function PlayStage({ kind, scanBase, look, tag, bubble, bubbleInset, lookKey, placed, scanItems, story, wand, goal, clip, speed, onDrop, onItemError, children }: {
   kind: "scan" | "dollhouse";
   scanBase: string | null;
   /** null＝貓不在畫面（原版場景的 cat: "none"） */
   look: PlayCatLook | null;
   /** 左上角的小標（例如「到家第一天」） */
   tag?: string;
+  /** 貓頭頂的小對話框（表情符號） */
+  bubble?: string | null;
+  /** 畫面下方被劇情卡蓋住的比例 */
+  bubbleInset?: number;
+  /** 值一變，鏡頭轉向貓 */
+  lookKey?: string | null;
   placed: PlacedHouseholdItem[];
   /** 掃描房間裡的用品（外出籠、餐碗、貓砂盆） */
   scanItems?: readonly SceneItem[];
@@ -46,13 +52,14 @@ export function PlayStage({ kind, scanBase, look, tag, placed, scanItems, story,
     <section className={s.stage} aria-label="3D 房間">
       {tag && <span className={s.stageTag}>{tag}</span>}
       {kind === "scan" && scanBase
-        ? <RoomViewer base={scanBase} items={scanItems} controls={false} story={story} wand={wand} />
+        ? <RoomViewer base={scanBase} items={scanItems} controls={false} story={story} wand={wand} bubble={bubble} bubbleInset={bubbleInset} lookKey={lookKey} />
         : (
           <FloorplanViewer rooms={ROOMS} selected={ROOMS[0].id} onPick={noop}
             cat={look} placedItems={placed} interactMode="point"
             catGoal={goal} catClip={clip} catSpeed={speed}
             onFloorDrop={onDrop} onItemError={onItemError} />
         )}
+      {kind !== "scan" && bubble && <span className={s.bubbleFixed} aria-hidden="true">{bubble}</span>}
       {children}
     </section>
   );

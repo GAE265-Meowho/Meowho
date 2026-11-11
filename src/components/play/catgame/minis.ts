@@ -7,20 +7,18 @@
 // catParts、catScale、catMood、bedSVG、toySVG。樣式在 catgame.module.css（原版 style 的對應段落）。
 // 只在瀏覽器執行（PlayGame 的 client component 裡呼叫）。
 
-export type ToyKey = "feather" | "mouse" | "ribbon";
-export type RhythmKey = "quick" | "slow";
 
 /** 原版 S 裡小遊戲用得到的欄位 */
 export interface MiniCtx {
   /** 幾個月大 */
   age: number;
-  cat: { body: number; trust: number; stress: number; toyPref: ToyKey; rhythm: RhythmKey };
-  toys: ToyKey[];
+  cat: { body: number; trust: number; stress: number; /** 虎斑才畫條紋；沒給＝畫 */ tabby?: boolean };
   /** 以下選填，沒給就用原版預設：結紮、刷牙訓練階段（0~5）、牙齒狀況、指甲長度（0~100）、剪指甲訓練階段、外出籠訓練階段 */
   neutered?: boolean; brushLevel?: number; dental?: number; nails?: number; nailLevel?: number; carrierLevel?: number;
 }
 
-export type MiniId = "hide" | "scoop" | "play" | "feed" | "water" | "nail" | "brush" | "carrier";
+/** 小遊戲。逗貓在掃描房間是 3D（ScanWand），不在這裡 */
+export type MiniId = "scoop" | "pet" | "feed" | "water" | "nail" | "brush" | "carrier";
 
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 
@@ -36,7 +34,7 @@ export function catParts(s: Pick<MiniCtx, "cat">): string {
       <g class="earL"><path d="M-27,-104 L-22,-134 L-4,-116 Z" fill="var(--fur)"/><path d="M-22,-109 L-20,-125 L-11,-115 Z" fill="var(--paw)" stroke="none"/></g>
       <g class="earR"><path d="M27,-104 L22,-134 L4,-116 Z" fill="var(--fur)"/><path d="M22,-109 L20,-125 L11,-115 Z" fill="var(--paw)" stroke="none"/></g>
       <circle cx="0" cy="-92" r="30" fill="var(--fur)"/>
-      ${TABBY}
+      ${s.cat.tabby === false ? "" : TABBY}
       <g class="eyes-open blink" stroke="none"><ellipse cx="-10" cy="-94" rx="3.2" ry="5" fill="var(--cat-line)"/><ellipse cx="10" cy="-94" rx="3.2" ry="5" fill="var(--cat-line)"/></g>
       <g class="eyes-wide" stroke="none"><circle cx="-10" cy="-94" r="6.5" fill="var(--cat-line)"/><circle cx="10" cy="-94" r="6.5" fill="var(--cat-line)"/><circle cx="-8" cy="-96.5" r="2.2" fill="var(--fur)"/><circle cx="12" cy="-96.5" r="2.2" fill="var(--fur)"/></g>
       <g class="eyes-closed"><path d="M-15,-93 q5,-6 10,0 M5,-93 q5,-6 10,0" fill="none" stroke-width="3" stroke-linecap="round"/></g>
@@ -45,7 +43,7 @@ export function catParts(s: Pick<MiniCtx, "cat">): string {
       <path d="M-14,-82 L-34,-85 M-14,-79 L-33,-76 M14,-82 L34,-85 M14,-79 L33,-76" stroke-width="1.2" opacity=".55"/>
     </g></g>`;
 }
-/** DEMO：麻糬是虎斑，在原版的貓頭和身上加幾道條紋（顏色 --stripe） */
+/** 虎斑：在原版的貓頭和身上加幾道條紋（顏色 --stripe）；花色不是虎斑的貓不畫（ctx.cat.tabby） */
 const TABBY = `<g stroke="var(--stripe)" stroke-width="3" stroke-linecap="round" fill="none" opacity=".75">
   <path d="M-8,-120 L-6,-110 M0,-122 L0,-111 M8,-120 L6,-110"/><path d="M-26,-50 q8,4 14,0 M-28,-34 q8,4 14,0 M26,-50 q-8,4 -14,0 M28,-34 q-8,4 -14,0"/></g>`;
 export function catMood(s: Pick<MiniCtx, "cat">): string {
@@ -54,36 +52,6 @@ export function catMood(s: Pick<MiniCtx, "cat">): string {
 }
 export const catScale = (s: Pick<MiniCtx, "age">) => (s.age < 12 ? 0.68 + 0.32 * (s.age - 2) / 10 : 1);
 
-/** 臥室的床（側面）：給「到家第一天躲床底」用，座標是 320×220 */
-function bedSVG(): string {
-  return `<rect x="0" y="0" width="320" height="150" fill="var(--wall)"/><rect x="0" y="150" width="320" height="70" fill="var(--floor)"/><rect x="0" y="146" width="320" height="5" fill="var(--wood)"/>
-    <rect x="232" y="20" width="62" height="50" rx="3" fill="var(--sky-day)" stroke="var(--wood)" stroke-width="4"/><path d="M263,20 V70 M232,45 H294" stroke="var(--wood)" stroke-width="2.5"/>
-    <rect x="56" y="130" width="210" height="44" fill="var(--cat-line)" opacity=".85"/>
-    <rect x="34" y="56" width="22" height="122" rx="7" fill="var(--wood)" stroke="var(--cat-line)" stroke-width="1.5"/>
-    <rect x="266" y="90" width="16" height="88" rx="5" fill="var(--wood)" stroke="var(--cat-line)" stroke-width="1.5"/>
-    <rect x="54" y="120" width="214" height="12" fill="var(--wood)" stroke="var(--cat-line)" stroke-width="1.5"/>
-    <rect x="54" y="98" width="212" height="24" rx="6" fill="var(--sand)" stroke="var(--cat-line)" stroke-width="1.5"/>
-    <rect x="60" y="84" width="54" height="20" rx="10" fill="var(--fur)" stroke="var(--cat-line)" stroke-width="1.5"/>
-    <path d="M110,97 Q190,88 266,97 L266,140 Q251,134 236,140 Q221,134 206,140 Q191,134 176,140 Q161,134 146,140 Q131,134 116,140 Q112,138 110,140 Z" fill="var(--sofa)" stroke="var(--cat-line)" stroke-width="1.5"/>
-    <path d="M130,104 Q190,98 250,104" stroke="var(--cat-line)" stroke-width="1" fill="none" opacity=".3"/>
-    <rect x="58" y="172" width="8" height="8" fill="var(--wood)"/><rect x="256" y="172" width="8" height="8" fill="var(--wood)"/>`;
-}
-
-// ---------- 14-mini-play：玩具與節奏 ----------
-export const TOYS: Record<ToyKey, { name: string; air: boolean; desc: string }> = {
-  feather: { name: "羽毛逗貓棒", air: true, desc: "在空中飛的羽毛" },
-  mouse: { name: "老鼠玩具", air: false, desc: "在地上跑的小老鼠" },
-  ribbon: { name: "緞帶逗貓棒", air: false, desc: "在地上扭動的緞帶" },
-};
-export const RHYTHMS: Record<RhythmKey, { name: string; speed: [number, number]; pause: [number, number] }> = {
-  quick: { name: "快快衝、短短停", speed: [350, 950], pause: [0.25, 0.9] },
-  slow: { name: "慢慢移動、停久一點", speed: [100, 420], pause: [0.7, 2.2] },
-};
-function toySVG(kind: ToyKey): string {
-  if (kind === "mouse") return `<ellipse cx="0" cy="0" rx="13" ry="8" fill="var(--muted)"/><circle cx="-10" cy="-6" r="4" fill="var(--muted)"/><circle cx="-14" cy="0" r="1.4" fill="var(--cat-line)"/><path d="M12,0 C22,0 24,8 32,6" stroke="var(--muted)" stroke-width="2" fill="none"/>`;
-  if (kind === "ribbon") return `<circle cx="0" cy="0" r="4" fill="var(--accent)"/>`;
-  return `<path d="M0,0 C-10,8 -12,24 -4,34 C2,24 8,12 0,0 Z" fill="var(--paw)"/><path d="M0,0 C8,10 14,22 8,32" fill="none" stroke="var(--accent)" stroke-width="3" stroke-linecap="round"/><circle cx="0" cy="0" r="4" fill="var(--warn)"/>`;
-}
 
 // ---------- 12-mini-core：共用 ----------
 interface Mini { root: HTMLElement; raf: number; running: boolean; closed: boolean; done: (r: unknown) => void; last: number }
@@ -147,45 +115,6 @@ function loopWith(m: Mini, tick: (dt: number) => boolean | void) {
   m.raf = requestAnimationFrame(step);
 }
 
-// ---------- 23-story-minis：到家第一天躲床底 ----------
-function startHide(m: Mini, S: MiniCtx) {
-  const st = { wait: 0, need: 7, px: 260, py: 60, down: false, lastPx: 260, lastPy: 60, out: 0, done: false } as Ptr & { wait: number; need: number; lastPx: number; lastPy: number; out: number; done: boolean };
-  const svg = `<svg id="hsvg" class="arena" viewBox="0 0 320 220">
-    ${bedSVG()}
-    <g id="heyes" class="blink"><circle cx="152" cy="150" r="3.2" fill="var(--eye-glow)"/><circle cx="168" cy="150" r="3.2" fill="var(--eye-glow)"/></g>
-    <g id="hcat" opacity="0"></g>
-    <g id="hhand"><path d="M-10,-14 v22 a10,10 0 0 0 20,0 v-14 M-10,-6 h-6 v10" fill="var(--sand)" stroke="var(--cat-line)" stroke-width="1.5"/></g>
-  </svg>`;
-  m.root.innerHTML = liveFrame("到家第一天", "故事", "麻糬一下提籃就鑽進床底，黑暗裡只看得到兩顆發亮的眼睛。點床底下，就是伸手進去把牠抓出來；手放著不動、靜靜等，牠可能會自己出來。", svg,
-    miniMeter("等待", "hcl", "hc", "paw", ""), "", "");
-  const el = m.root.querySelector<SVGSVGElement>("#hsvg")!;
-  trackPointer(el, st);
-  st.onDown = () => {
-    if (st.done) return;
-    if (st.px > 58 && st.px < 264 && st.py > 126 && st.py < 172) { st.done = true; setText(m, "mmsg", "你伸手進去，麻糬拼命掙扎、抓了你一下，又縮回更裡面……"); setTimeout(() => end(m, 1), 1600); }
-  };
-  loopWith(m, dt => {
-    const mv = Math.hypot(st.px - st.lastPx, st.py - st.lastPy) / Math.max(dt, 1e-3); st.lastPx = st.px; st.lastPy = st.py;
-    byId(m, "hhand")?.setAttribute("transform", `translate(${st.px.toFixed(1)},${st.py.toFixed(1)})`);
-    if (st.done && st.out === 0) return;
-    if (st.wait < st.need) {
-      st.wait += dt * (mv > 200 ? 0.2 : 1);
-      setText(m, "mmsg", mv > 200 ? "手晃來晃去，麻糬又往裡面縮了。" : st.wait > st.need * 0.6 ? "麻糬好像往外挪了一點……" : "你坐在地上，安靜地等。");
-      setBar(m, "hcl", st.wait / st.need * 100);
-      if (st.wait >= st.need && !st.done) { st.done = true; st.out = 0.01; }
-    }
-    if (st.out > 0) {
-      st.out = Math.min(1, st.out + dt * 0.6);
-      byId(m, "heyes")?.setAttribute("opacity", String(1 - st.out));
-      const k = 0.42 * catScale(S), cat = byId(m, "hcat");
-      cat?.setAttribute("opacity", String(Math.min(1, st.out * 2)));
-      if (cat) cat.innerHTML = `<g transform="translate(160,${(168 + 28 * st.out).toFixed(1)}) scale(${k.toFixed(3)})" class="wide">${catParts(S)}</g>`;
-      setText(m, "mmsg", "麻糬慢慢走出來，在你腳邊聞了聞。");
-      if (st.out >= 1) { setTimeout(() => end(m, 0), 900); return false; }
-    }
-  });
-}
-
 // ---------- 19-mini-scoop：鏟屎（劇情裡固定 dirt 70，同原版 expOpenMini） ----------
 interface Clump { x: number; y: number; r: number; poop: boolean; st: "sand" | "scoop" | "bag"; rot: number }
 function startScoop(m: Mini, S: MiniCtx, dirt = 70) {
@@ -245,113 +174,6 @@ function startScoop(m: Mini, S: MiniCtx, dirt = 70) {
       setTimeout(finish, 900); return false;
     }
   });
-}
-
-// ---------- 14-mini-play：逗貓棒時間 ----------
-function startPlay(m: Mini, S: MiniCtx) {
-  const C = S.cat;
-  const speed = S.age < 12 ? 150 : S.age >= 132 ? 75 : 115;
-  const k = 0.6 * catScale(S);
-  const owned = S.toys;
-  const st = { toy: owned[0], cx: 70, cy: 210, dir: 1, tx: 220, ty: 90, ptx: 220, pty: 90, spd: 0, idle: 0, fun: 0, interest: 60, p: null as null | { k: number; x0: number; y0: number; x1: number; y1: number },
-    hold: 0, cool: 1, t: 0, T: 20, speed, k, jump: S.age >= 132 ? 30 : 60, say: "", sayT: 0, band: 0, total: 0, cueT: 0, cue: "", trail: [] as [number, number][], look: 0 };
-  const picker = `<div class="picker"><span class="small muted">選一個玩具：</span>${owned.map(t => `<button type="button" class="pk" data-toy="${t}" aria-pressed="${t === st.toy}">${TOYS[t].name}</button>`).join("")}${owned.length < 3 ? `<span class="small muted">（商店還有別的玩具）</span>` : ""}</div>`;
-  const svg = `<svg id="psvg" class="arena" viewBox="0 0 360 240">
-    <rect x="0" y="0" width="360" height="150" fill="var(--wall)"/><rect x="0" y="150" width="360" height="90" fill="var(--floor)"/><rect x="0" y="146" width="360" height="5" fill="var(--wood)"/>
-    <ellipse id="pshadow" cx="70" cy="214" rx="26" ry="5" fill="var(--shadow)" opacity=".25"/>
-    <g id="pcat" transform="translate(70,210)"><g id="pcatin" class="${catMood(S)}" transform="scale(${k},${k})">${catParts(S)}</g></g>
-    <polyline id="ptrail" points="" fill="none" stroke="var(--accent)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-    <line id="pstring" x1="220" y1="0" x2="220" y2="90" stroke="var(--muted)" stroke-width="1.5"/>
-    <g id="ptoy" transform="translate(220,90)">${toySVG(st.toy)}</g>
-    <text id="psay" x="70" y="140" font-size="14" fill="var(--paw)" text-anchor="middle" font-weight="700"></text>
-  </svg>`;
-  m.root.innerHTML = miniFrame("逗貓棒時間", "單次行動",
-    "移動手指或滑鼠操控玩具。每隻貓喜歡的玩具和節奏不一樣，看麻糬的反應來調整：瞳孔放大、屁股扭動代表牠很有興趣；轉頭理毛代表不對味。",
-    svg, miniMeter("開心度", "pfl", "pf", "paw", "0") + miniMeter("興致", "pil", "pt", "", "20 秒", 60), picker);
-  m.root.querySelectorAll<HTMLButtonElement>(".pk").forEach(b => b.addEventListener("click", () => {
-    st.toy = b.dataset.toy as ToyKey; m.root.querySelectorAll(".pk").forEach(x => x.setAttribute("aria-pressed", String(x === b)));
-    const toy = byId(m, "ptoy"); if (toy) toy.innerHTML = toySVG(st.toy);
-  }));
-  const el = m.root.querySelector<SVGSVGElement>("#psvg")!;
-  const pos = (e: PointerEvent) => { const p = svgPt(el, e); st.tx = clamp(p.x, 16, 344); st.ty = clamp(p.y, TOYS[st.toy].air ? 24 : 186, 226); };
-  el.addEventListener("pointerdown", e => { if (!m.running) return; try { el.setPointerCapture(e.pointerId); } catch { /* 略過 */ } pos(e); });
-  el.addEventListener("pointermove", e => { if (m.running) pos(e); });
-  const say = (t: string) => { st.say = t; st.sayT = 1.1; };
-  const R = RHYTHMS[C.rhythm], match = () => st.toy === C.toyPref;
-  const result = () => ({ fun: st.fun, toy: st.toy, match: match(), rhythmOk: st.band / Math.max(1, st.total) > 0.5 });
-  bindMiniButtons(m, () => {
-    if (!TOYS[st.toy].air) { st.ty = 205; st.pty = 205; }
-    loopWith(m, dt => {
-      st.t += dt; st.cool -= dt; st.cueT -= dt;
-      const inst = Math.hypot(st.tx - st.ptx, st.ty - st.pty) / Math.max(dt, 1e-3);
-      st.ptx = st.tx; st.pty = st.ty;
-      st.spd = st.spd * 0.85 + inst * 0.15;
-      st.idle = st.spd < 30 ? st.idle + dt : 0;
-      const moving = st.spd >= 30;
-      const inBand = moving ? (st.spd >= R.speed[0] && st.spd <= R.speed[1]) : st.idle <= R.pause[1];
-      st.total += dt; if (inBand) st.band += dt;
-      const mm = (match() ? 1.5 : 0.55) * (inBand ? 1.3 : 0.7);
-      let crouch = false;
-      if (st.p) {
-        st.p.k += dt / 0.4;
-        const q = Math.min(1, st.p.k);
-        st.cx = st.p.x0 + (st.p.x1 - st.p.x0) * q;
-        st.cy = st.p.y0 + (st.p.y1 - st.p.y0) * q - Math.sin(Math.PI * q) * (TOYS[st.toy].air ? st.jump : st.jump * 0.4);
-        if (q >= 1) {
-          const caught = Math.hypot(st.tx - st.p.x1, st.ty - st.p.y1) < 40;
-          if (caught) { st.fun += 13 * mm; st.hold = 0.7; say("抓到了！"); } else { st.fun += 3 * mm; say("撲空了！"); }
-          st.p = null; st.cool = 1.1;
-        }
-      } else if (st.hold > 0) {
-        st.hold -= dt;
-      } else {
-        const gy = clamp(st.ty + 20, 168, 215), dx = st.tx - st.cx, dy = gy - st.cy, d = Math.hypot(dx, dy);
-        const sp = st.speed * (match() ? 1 : 0.6);
-        if (st.spd > 1100) { st.interest -= 25 * dt; if (st.sayT <= 0) say("太快了，跟不上"); }
-        else if (st.idle > 3) { st.interest -= 8 * dt; if (st.sayT <= 0) say("好無聊……"); }
-        else {
-          if (d > 30) { st.cx += dx / d * sp * dt; st.cy += dy / d * sp * dt; }
-          if (moving) { st.fun += 3 * dt * st.interest / 100 * mm; st.interest = clamp(st.interest + (match() ? 5 : -5) * dt, 0, 100); }
-        }
-        crouch = st.idle > 0.2 && st.cool <= 0;
-        if (Math.hypot(st.tx - st.cx, st.ty - st.cy) < 140 && st.idle >= R.pause[0] && st.idle <= R.pause[1] && st.cool <= 0 && st.interest > 15)
-          st.p = { k: 0, x0: st.cx, y0: st.cy, x1: st.tx, y1: Math.max(st.ty + 22, st.cy - st.jump * 2.2) };
-      }
-      let mood = "";
-      if (st.cueT <= 0 && st.t > 2) {
-        st.cueT = 2.2;
-        if (mm >= 1.4) st.cue = "good"; else if (mm < 0.6) st.cue = "bad"; else st.cue = "";
-      }
-      if (st.cue === "good") { mood = "wide"; if (st.cueT > 2.1) setText(m, "mmsg", "麻糬的瞳孔放大了，屁股扭個不停！"); }
-      else if (st.cue === "bad") { st.look = 1; if (st.cueT > 2.1) setText(m, "mmsg", match() ? "麻糬好像有點跟不上這個節奏……" : "麻糬看了一眼，就轉頭去理毛了。"); }
-      else if (st.cueT > 2.1) setText(m, "mmsg", "");
-      if (Math.abs(st.tx - st.cx) > 6) st.dir = st.tx > st.cx ? 1 : -1;
-      const faceDir = st.cue === "bad" && !st.p ? -st.dir : st.dir;
-      st.interest = clamp(st.interest, 0, 100); st.fun = clamp(st.fun, 0, 100); st.sayT -= dt;
-      // 繪製
-      byId(m, "pcat")?.setAttribute("transform", `translate(${st.cx.toFixed(1)},${st.cy.toFixed(1)})`);
-      const ci = byId(m, "pcatin");
-      ci?.setAttribute("transform", `scale(${(faceDir * st.k).toFixed(3)},${(st.k * (crouch ? 0.86 : 1)).toFixed(3)})`);
-      ci?.setAttribute("class", (st.hold > 0 ? "purr " : "") + mood);
-      byId(m, "pshadow")?.setAttribute("cx", st.cx.toFixed(1));
-      byId(m, "ptoy")?.setAttribute("transform", `translate(${st.tx.toFixed(1)},${st.ty.toFixed(1)})`);
-      const sl = byId(m, "pstring");
-      if (sl) {
-        if (TOYS[st.toy].air) { sl.setAttribute("x1", st.tx.toFixed(1)); sl.setAttribute("y1", "0"); }
-        else { sl.setAttribute("x1", (st.tx + 50).toFixed(1)); sl.setAttribute("y1", (st.ty - 80).toFixed(1)); }
-        sl.setAttribute("x2", st.tx.toFixed(1)); sl.setAttribute("y2", st.ty.toFixed(1));
-      }
-      if (st.toy === "ribbon") {
-        st.trail.unshift([st.tx, st.ty + Math.sin(st.t * 14) * 3]); if (st.trail.length > 14) st.trail.pop();
-        byId(m, "ptrail")?.setAttribute("points", st.trail.map(p => p.map(v => v.toFixed(1)).join(",")).join(" "));
-      }
-      const sy = byId(m, "psay");
-      if (sy) { sy.setAttribute("x", st.cx.toFixed(1)); sy.setAttribute("y", (st.cy - 70 * catScale(S) - 8).toFixed(1)); sy.textContent = st.sayT > 0 ? st.say : ""; }
-      setBar(m, "pfl", st.fun); setText(m, "pf", String(Math.round(st.fun)));
-      setBar(m, "pil", st.interest); setText(m, "pt", Math.max(0, Math.ceil(st.T - st.t)) + " 秒");
-      if (st.t >= st.T) { end(m, result()); return false; }
-    });
-  }, () => end(m, result()));
 }
 
 // ---------- 搬自原版：放飯（20-mini-feed）、換水（21-mini-water）、剪指甲（22-mini-nail）、刷牙（13-mini-brush）、外出籠（16-mini-carrier） ----------
@@ -768,13 +590,75 @@ function startCarrier(m: Mini, S: MiniCtx) {
 }
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
+// ---------- 摸貓：按住貓咪慢慢滑動。頭頂、下巴、背是喜歡的地方（其中一個最愛），肚子和尾巴會讓牠不高興 ----------
+function startPet(m: Mini, S: MiniCtx) {
+  const k = 1.25 * catScale(S);
+  const favs = ["head", "chin", "back"] as const;
+  const fav = favs[Math.floor(Math.random() * favs.length)];
+  const st = { px: 0, py: 0, down: false, lastX: -1, lastY: -1, fun: 0, annoy: 0, t: 0, T: 20, hearts: [] as { x: number; y: number; age: number }[], zone: "" as string, ran: false };
+  const CX = 180, CY = 206;
+  const svg = `<svg id="psvg" class="arena" viewBox="0 0 360 220">
+    <rect x="0" y="0" width="360" height="150" fill="var(--wall)"/><rect x="0" y="150" width="360" height="70" fill="var(--floor)"/><rect x="0" y="146" width="360" height="5" fill="var(--wood)"/>
+    <g id="pcat" transform="translate(${CX},${CY})"><g id="pcatin" class="${catMood(S)}" transform="scale(${k.toFixed(3)},${k.toFixed(3)})">${catParts(S)}</g></g>
+    <g id="phearts"></g>
+  </svg>`;
+  m.root.innerHTML = miniFrame("摸貓", "照顧・陪伴",
+    "按住麻糬，手指慢慢在牠身上滑動。頭頂、下巴和背摸起來會冒出愛心，其中有一個地方是牠的最愛；肚子和尾巴不要碰，耳朵往後壓就先放開。",
+    svg, miniMeter("開心度", "pfl", "pf", "paw", "0") + miniMeter("煩躁", "pal", "pa", "low", "0") + miniMeter("時間", "ptl", "pt", "", "20 秒", 100), "");
+  const el = m.root.querySelector<SVGSVGElement>("#psvg")!;
+  trackPointer(el, st);
+  const zoneAt = (x: number, y: number) => {
+    const lx = (x - CX) / k, ly = (y - CY) / k;
+    if (Math.hypot(lx, ly + 92) < 32) return ly > -78 && ly < -64 && Math.abs(lx) < 16 ? "chin" : "head";
+    if (lx > 40 && lx < 90 && ly < -8 && ly > -100) return "tail";
+    if (Math.abs(lx) < 44 && ly > -50 && ly < 0) return "belly";
+    if (Math.abs(lx) < 44 && ly <= -50 && ly > -82) return "back";
+    return "";
+  };
+  const done = () => end(m, { fun: Math.round(st.fun), annoyed: Math.round(st.annoy), ran: st.ran });
+  bindMiniButtons(m, () => {
+    setText(m, "mmsg", "按住麻糬，慢慢摸。");
+    loopWith(m, dt => {
+      st.t += dt;
+      const moved = st.down && st.lastX >= 0 ? Math.hypot(st.px - st.lastX, st.py - st.lastY) : 0;
+      st.lastX = st.down ? st.px : -1; st.lastY = st.py;
+      let msg = "";
+      const z = st.down ? zoneAt(st.px, st.py) : "";
+      st.zone = z;
+      if (st.down && (z === "head" || z === "chin" || z === "back")) {
+        const speed = moved / Math.max(dt, 0.001);
+        if (speed > 420) { st.annoy += 40 * dt; msg = "摸太快了，慢一點。"; }
+        else {
+          const gain = moved * 0.05 * (z === fav ? 2 : 1);
+          st.fun = Math.min(100, st.fun + gain); st.annoy = Math.max(0, st.annoy - 6 * dt);
+          if (gain > 0.3 && Math.random() < gain * 0.5) st.hearts.push({ x: st.px + (Math.random() - 0.5) * 20, y: st.py - 10, age: 0 });
+          msg = z === fav ? "就是這裡！麻糬舒服得瞇起眼睛。" : "輕輕的……麻糬發出呼嚕聲。";
+        }
+      } else if (st.down && (z === "belly" || z === "tail")) {
+        st.annoy += 45 * dt + moved * 0.12; st.fun = Math.max(0, st.fun - moved * 0.03);
+        msg = z === "belly" ? "摸到肚子了，麻糬不太高興！" : "不要碰尾巴！";
+      } else st.annoy = Math.max(0, st.annoy - 8 * dt);
+      st.hearts.forEach(h => { h.age += dt; h.y -= 28 * dt; });
+      st.hearts = st.hearts.filter(h => h.age < 1.1);
+      byId(m, "phearts")!.innerHTML = st.hearts.map(h => `<text x="${h.x.toFixed(1)}" y="${h.y.toFixed(1)}" font-size="16" text-anchor="middle" fill="var(--bad)" opacity="${(1 - h.age / 1.1).toFixed(2)}">♥</text>`).join("");
+      byId(m, "pcatin")!.setAttribute("class", st.annoy > 55 ? "flat wide" : st.fun > 45 ? "purr" : "");
+      setBar(m, "pfl", st.fun); setText(m, "pf", String(Math.round(st.fun)));
+      setBar(m, "pal", st.annoy); setText(m, "pa", String(Math.round(st.annoy)));
+      setBar(m, "ptl", (1 - st.t / st.T) * 100); setText(m, "pt", Math.max(0, Math.ceil(st.T - st.t)) + " 秒");
+      setText(m, "mmsg", st.annoy > 65 ? "麻糬耳朵往後壓了，先放開！" : msg || (st.down ? "" : "按住麻糬，慢慢摸。"));
+      if (st.annoy >= 100) { st.ran = true; setText(m, "mmsg", "麻糬生氣了，一溜煙跑走！"); setTimeout(done, 700); return false; }
+      if (st.fun >= 100 || st.t >= st.T) { done(); return false; }
+    });
+  }, done);
+}
+
 const STARTERS: Record<MiniId, (m: Mini, S: MiniCtx) => void> = {
-  hide: startHide, scoop: startScoop, play: startPlay, feed: startFeed, water: startWater, nail: startNail, brush: startBrush, carrier: startCarrier,
+  scoop: startScoop, pet: startPet, feed: startFeed, water: startWater, nail: startNail, brush: startBrush, carrier: startCarrier,
 };
 
 /** 在 root 裡開一個小遊戲；回傳停止函式（元件卸載時呼叫，不會回傳結果） */
 export function startMini(id: MiniId, root: HTMLElement, ctx: MiniCtx, onDone: (r: unknown) => void): () => void {
-  const m: Mini = { root, raf: 0, running: !["play", "nail", "brush", "carrier"].includes(id), closed: false, done: onDone, last: 0 };
+  const m: Mini = { root, raf: 0, running: !["pet", "nail", "brush", "carrier"].includes(id), closed: false, done: onDone, last: 0 };
   STARTERS[id](m, ctx);
   return () => { if (!m.closed) { m.closed = true; cancelAnimationFrame(m.raf); root.innerHTML = ""; } };
 }

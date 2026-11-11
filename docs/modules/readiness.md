@@ -1,6 +1,6 @@
 # 模組：準備度評估（readiness）
 
-> 最後更新：2026-11-06｜渝茜 × Claude Code（#237 虛擬飼養 DEMO）
+> 最後更新：2026-11-10｜Jerry0808 × Codex（#277 報告摘要優先）
 > 規則：本檔隨程式碼同一個 PR 更新；「決策」與「地雷」只增不刪（過時的標註［已失效］）。
 
 ## 目的
@@ -78,8 +78,8 @@
 
 | 步驟 | 要改的地方 | 說明 |
 |---|---|---|
-| 1. 上傳 | `src/app/homes/[id]/scene/page.tsx` | 「上傳影片」選檔、「開始製作」用手機錄影（`<input type="file" accept="video/*" capture>`）；`POST /api/homes/[id]/videos` 簽 Azure 上傳網址（`getMediaStore().uploadUrl`），瀏覽器直傳；格式、大小、長度用 `src/lib/home-room.ts` 的 `checkHomeVideo()`，前台和 API 各檢查一次。上傳中顯示 §8「正在建立你家的 3D 房間。你可以先離開，好了會通知你。」 |
-| 2. 建房間＋排工作 | `src/app/api/homes/[id]/room/route.ts` | 收 `{ videoPath }`，確認路徑在這個喵戶底下；用 service role 建 `meow_room_models`（`status = 'queued'`、`source = 'video'`、`video_path`、`owner_household_id`）＋`meow_room_jobs`（`queued`）＋`meow_env_reports`（`queued`、`room_model_id`）。房間 id 沿用 `newRoomId()`／`roomIdAt()` 格式 |
+| 1. 上傳 | `src/app/homes/[id]/scene/page.tsx` | 「上傳影片」選檔、「開始製作」用手機錄影（`<input type="file" accept="video/*" capture>`）；`POST /api/homes/[id]/videos` 先用 service role 記一筆 `meow_home_videos`（`status = 'uploading'`，路徑裡的 uuid＝這筆的 `id`），再簽 Azure 上傳網址（`getMediaStore().uploadUrl`），回 `{ videoId, path, upload }`，瀏覽器直傳；紀錄寫不進去就不簽網址（#346）；格式、大小、長度用 `src/lib/home-room.ts` 的 `checkHomeVideo()`，前台和 API 各檢查一次。上傳中顯示 §8「正在建立你家的 3D 房間。你可以先離開，好了會通知你。」 |
+| 2. 建房間＋排工作 | `src/app/api/homes/[id]/room/route.ts` | 收 `{ videoId }`，用 service role 讀這個喵戶、`purpose = 'room'`、還沒清掉的 `meow_home_videos`，路徑一律用這筆的 `path`；影片改 `uploaded` → 建 `meow_room_models`（`status = 'queued'`、`source = 'video'`、`video_path`、`owner_household_id`）→ 呼叫 `meow_create_home_processing(videoId, roomId, videoId)`，在同一個交易裡建 `meow_room_jobs`、`meow_env_jobs`、`meow_env_reports`（含 `video_id`）和 `meow_home_processing_requests`（#346）。request id 用 `videoId`，重送拿回同一組；失敗時刪房間、Azure 影片和影片紀錄。房間 id 沿用 `newRoomId()`／`roomIdAt()` 格式 |
 | 3. worker | `workers/room-convert/pipeline/room_worker.py --supabase`（目前在珮瑜的 Mac 上跑） | 能領 `owner_household_id` 不是 null 的工作：從 Azure 讀影片（下載後再檢查一次 #243 的限制）、成果寫到 `meow-home-scenes/<household_id>/<房間 id>/`、`result_path` 填這個路徑；成功改 `ready`、失敗改 `failed` 並寫原因；不刪影片（#242）；寫 `meow_notifications` 給喵戶長（連到 `/homes/<id>/scene`）。物品清單放 `meta.objects[].label`（`roomFurniture()` 會讀，名稱要對得到 `placeFor()` 的關鍵字：沙發、床、櫃、椅、書桌、衣櫃、桌、門） |
 | 4. 環境報告 | 同一個 worker 或另一支 | 產生 `items`（`[{key, label, level: high/medium/low, note, crop_path}]`）、`summary`，風險裁切照放 `meow-home-risk-crops/<報告 id>/`，改 `ready`／`failed` |
 | 5. 處理中與預覽 | `scene/page.tsx`、新的預覽頁 | `homeTools()` 已經會依 `queued`／`running` 停用按鈕；`ready` 後預覽（沿用 #93 的房間檢視器，manifest 從 `meow-home-scenes` 的 signed URL 讀），按「完成」呼叫 `meow_finish_home_room(房間, null)`，之後才能開始領養任務（`meow_start_task_run` 要 `completed_at`） |
@@ -88,7 +88,7 @@
 | 8. 任務裡的 3D（之後） | `src/app/cats/[id]/run/page.tsx` 的舞台（`s.stage`） | 換成房間檢視器＋把貓放進房間，依任務的 `action` 和 `placeFor` 找到的家具播動作；`textOnly` 時維持文字情境 |
 
 **進度（2026-11-04 珮瑜）**：第 1、2、3、5 步已接上（`feat/161-home-room-video`）。
-- 上傳路徑是 `homes/<household_id>/videos/<隨機 uuid>.mp4|mov`（2026-11-07 起放 Azure，#273；`isHomeVideoPath()` 檢查；#263 合併後 uuid 改成 `meow_home_videos.id`）；建房間失敗時 API 會刪掉剛傳的影片，房間 id 由伺服器產生；同一個喵戶已有 `queued`／`running` 的房間時回 `409 room_busy`。
+- 上傳路徑是 `homes/<household_id>/videos/<隨機 uuid>.mp4|mov`（2026-11-07 起放 Azure，#273；`isHomeVideoPath()` 檢查；11/10 起 uuid＝`meow_home_videos.id`，#346）；建房間失敗時 API 會刪掉剛傳的影片和影片紀錄，房間 id 由伺服器產生；同一個喵戶已有 `queued`／`running` 的房間時回 `409 room_busy`。
 - 預覽讀檔走 `GET /api/homes/[id]/room/[roomId]/[...file]`：用登入者身分查房間（RLS），換 10 分鐘 signed URL 再轉過去；檢視器沿用 `RoomViewer`。
 - worker（`workers/room-convert`）看 `owner_household_id` 分流；成果路徑 `meow-home-scenes/<household_id>/<房間 id>/`；物品清單從 `scene.json` 轉成中文（`catalog.py` 的 `NAMES_ZH`）寫進 `meta.objects`；完成、失敗都寫通知（`home_room_ready`／`home_room_failed`）。
 - **給做環境報告（第 4 步）的人**：影片在 `meow_room_models.video_path`（Azure）。兩支 worker 都不刪影片，由主站的清理程式刪（#242，2026-11-07 起）。
@@ -172,7 +172,7 @@
 
 - 通知方案 A 在本 PR 新增 `0034_meow_env_notifications.sql`，**只在本機 PGlite 驗證，尚未部署**。`meow_env_jobs` 首次轉為 `done`／`failed` 時，由同交易的 `SECURITY DEFINER` trigger 建立通知；只用該 job 的 `report_id`、相同的 `household_id` 關聯 `meow_households.owner_id`。不讀取或修改分享資料。
 - `meow_notifications.dedupe_key` nullable + partial unique index 作為去重：`env_job:<job UUID>:done|failed`。`queued`／`running`（含 requeued）不通知，job 狀態列鎖及 unique key 保護重複／併發終態呼叫；`already_done` 不會更新狀態。`claim` 判定 source 無效或租約耗盡而終結時也會通知。Worker RPC 簽章、回傳 JSON 與授權未改；匿名／authenticated 無權呼叫。
-- 失敗通知說明為「請稍後重新檢測；若畫面提示影片不符合拍攝須知，再重新拍攝即可。」避免系統錯誤時一律要求重拍。既有 `/notifications` 頁使用通用 `title/body/link` 顯示，RLS 僅允許讀本人通知，無需增加新 UI／權限。3D 房間 Worker 現行做法位於 `workers/room-convert/pipeline/room_worker.py`：終結後透過 service-role REST 查 household owner 再直接 POST notification，沒有通知冪等鍵；本 PR 不更動該流程。
+- 失敗通知內文直接由 `public.meow_env_user_error(new.error_code)` 產生，使影片、來源與系統錯誤使用既有契約文案；不讀取尚未更新的 report.error。既有 `/notifications` 頁使用通用 `title/body/link` 顯示，RLS 僅允許讀本人通知，無需增加新 UI／權限。3D 房間 Worker 現行做法位於 `workers/room-convert/pipeline/room_worker.py`：終結後透過 service-role REST 查 household owner 再直接 POST notification，沒有通知冪等鍵；本 PR 不更動該流程。
 - **佇列隔離建議（等待子哲批准，未實作）**：在 `meow_env_jobs` 增加 nullable、受限的 `blob_container`（只允許 `media-dev`／`media`），新 `meow_create_home_processing` overload 由主站環境設定明確寫入；新 `meow_env_claim_scoped(worker, container)` 僅領取相同 `blob_container`。Worker claim 回傳維持 v05 現有 JSON 欄位與路徑格式；Worker 需有容器 allowlist，且核對傳入 scope 與實際 Azure client container 一致。舊 `meow_env_claim(worker)` 簽章保留但需改為 fail-closed（不領任何工作）；無 scope 舊 Job 先維持不可領取，盤點容器後另行核准回填。
 - **部署順序**：先確認沒有舊版常駐 Worker，再合併 migration，子哲審 SQL 後手動部署；舊 claim 立即 fail-closed；接著部署會從 server env 選容器的主站版本與 scoped Worker。用兩筆新測試 job 驗證交叉拒領後，才可分別安排正式 Worker。這會要求 Worker 做最小 claim 協定更新，但不改 v05 的 job 輸出 schema。測試涵蓋 `media-dev` Worker 只領 dev、`media` Worker 只領 prod、錯誤／空 scope 不領取、舊 Job 隔離、輸出契約相容及 attempt/prefix 隔離。任何回填、`--once` 或常駐執行均需子哲同意；不覆寫／重跑既有 `a1`。
 
@@ -220,3 +220,25 @@
 | 2026-11-04 | 珮瑜 × Claude Code | 前台我的 3D 房間接上影片轉換：上傳、建房間＋排工作＋環境報告、worker 寫私有 bucket 與通知、預覽與完成 | （見 PR） |
 | 2026-11-06 | 渝茜 × Claude Code | 虛擬飼養 DEMO `/cats/[id]/play`：3 個節點、AI 危險／台詞／建議（含規則備案）、採買花費公式、3D 娃娃屋擺用品、小遊戲、試養報告 | #244 |
 | 2026-11-06 | 渝茜 × Claude Code | 虛擬飼養 DEMO 劇情、事件、採買、小遊戲、試養報告改成照 catgame 原版 | #244 |
+
+| 2026-11-10 | Jerry0808 × Codex | PDF 下載連結改在新分頁執行，加入手機使用系統分享選單儲存的備案；Azure SAS 的 rscd 僅完成本機 SDK 驗證 | #337（Draft） |
+| 2026-11-10 | Jerry0808 × Codex | 安全報告改為 HTML 摘要、風險項目與辨識限制優先；PDF 保留在內容後方供喵戶本人檢視／下載；頁面不再初載 PDF，也移除閱讀器樣式 | #337（Draft） |
+
+## 虛擬飼養讀真實資料與試養報告給中途（/cats/[id]/play）
+- 貓咪：`lib/play/source.ts` 的 `loadPlayCat(id)` 讀 `meow_cats`（名字、花色、生活階段、生日／估計月齡）＋ `meow_cat_model_variants.confirmed_albedo`（3D 貼圖）；讀不到才用 DEMO 麻糬。劇本裡的名字用 `〈貓名〉`（`furniture.ts` 的 `fullTx`）替換，小遊戲原版寫死的「麻糬」由 `CatgameMini` 畫完後換成貓名；非虎斑花色不畫條紋。
+- 年紀：劇本時間軸不變，只把年紀換成這隻貓的實際月齡（`PlayState.startMonths`，節點年紀＝劇本年紀 − 2 個月 ＋ 實際月齡）；3D 體型 12 個月以下用幼貓、以上用成貓。標籤、小遊戲、報告「N 年」都用這個年紀。
+- 喵戶：`components/play/usePlayData.ts`——登入者名下的一般飼主喵戶（多個可選）；預算 `meow_household_budgets` 自動帶入採買（可改）；3D 房間＝該喵戶最新完成的 `meow_room_models`（沒有才用公開示範房間，背景頁有「建立我家的 3D 房間」）；環境報告＝最新 ready 的 `meow_env_reports.items` → 居家危險（`player-data.ts` 的 `hazardsFromReport`，沒有才用物品清單＋規則）。
+- 沒登入或沒有喵戶：帶去登入／建立喵戶（同 /run）。貓咪頁「進行領養任務」連 `/cats/[id]/play`（#273）；`/run` 頁保留。
+- 試養報告給中途看（`0033_meow_play_report.sql`，**執行前須子哲確認**）：玩完報告頁自動呼叫 `meow_save_play_report` 存一筆已完成的 `meow_task_runs`（`game_report` 摘要由 `report-payload.ts` 產生：選擇、花費、照顧紀錄，不含家裡位置與裁切照）；領養人按「把試養報告附給中途」才呼叫 `meow_share_task_proof`；中途在對話串的 `TaskProof` 看到「系統認證」與可展開的試養報告（`meow_thread_task_status` 的 proof 多回 `game_report`）。示範貓、沒登入、放棄的體驗不存。
+- 已知限制：劇情文字仍是固定劇本（成貓也會演結紮）；`/play` 不寫進行中的進度，只在玩完存一次。
+
+### 時間軸、貓資料與版面（2026-11-10 晚）
+- 年紀：劇本固定 2 個月到 15 歲，`timeline.ts` 換算成真實月齡；前半年照劇本，之後依剩餘時間壓縮，結尾最多 20 歲。節點名稱、獸醫台詞、報告年數、每月花費都用換算後的時間。
+- 貓資料：`PlayCatSource` 多了 `sex`、`neutered`，經 `Life.cat` 進劇情；花色用 `coatNoun`，結紮節點見 `story.ts` 的 `spaySteps`。
+- 版面：`place`、`node` 步驟時 `PlayGame` 的外框 `data-immersive="true"`，3D 房間 `position: fixed` 滿版，劇情卡放 `.sheet`（手機底部卡片，可收合）；小遊戲手機版從下方升起。
+
+### 虛擬飼養：點 3D 物件、砂盆搬家、起始心情（2026-11-10）
+- 在家的時光可直接點 3D 房間裡的貓／餐碗／貓砂盆開小遊戲（`RoomViewer` 的 `markers`），按鈕版保留。
+- 第 3 天砂盆和碗分開／放一起會真的搬貓砂盆（`relocate` 步驟）。
+- 劇情裡的餵飼料、鏟屎、刷牙、剪指甲會跳小遊戲彈窗。
+- 起始信任／壓力由中途評論算（`startMood`）；沒有任何資料時用預設 30／40。
