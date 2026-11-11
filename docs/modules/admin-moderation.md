@@ -79,11 +79,12 @@ MeowHQ（`/MeowHQ`，取代舊隱藏後台）開發中：階段 0（#18）、db�
 ## 主要檔案
 - `src/lib/hq/types.ts`（MeowHQ 共用約定：模組代號、角色、處置類型、快選原因、錯誤代碼、側欄順序；T-HQ-01）、`src/lib/hq/types.test.ts`
 - `src/lib/hq/permissions.ts`（可見模組、存取、`canSuspend`／`canBan`／最後一位系統管理員／授予限制；T-HQ-03）、`src/lib/hq/actions.ts`（原因必填、停權期限與到期、影響說明、黑名單 Email 確認、快選原因；含 R9～R11；T-HQ-04）及其測試（UT-HQ-01～11、17～28），Issue #20
-- `src/components/Providers.tsx`（從 `site_settings` 讀取標誌、`setLogo` 寫入）、`src/lib/mock-data.ts`（`LOGOS`）
+- `src/components/Providers.tsx`（從 `site_settings` 讀取標誌、`setLogo` 寫入；`useSiteLogo()` 給後台元件只讀用）、`src/lib/mock-data.ts`（`LOGOS`）、`src/lib/site-logo.ts`（`resolveSiteLogo`、`logoWordmark`）
 
 ## 決策
 - 2026-11-09｜#302：大貓是新增的預覽體型（`PreviewBody`），和成貓、幼貓並存，不取代現有母體；接上貓咪製作前不加進 `BodyType`。大貓模型來源 Sketchfab「Cat in Motion 3d model free」（iRahulRajput，CC-BY 4.0），畫面須保留作者與來源標註。
-- 不更換 logo 檔案，只能由管理者在 3 款中選擇。
+- 不更換 logo 檔案，只能由管理者在內建款或上傳的 Logo 中選擇。
+- 2026-11-11｜#361：新增向量標誌「門口貓頭款」（`door`）為預設（`LOGOS` 第一個），舊三款保留。前後台統一讀同一個站台標誌：方形位置用 `src`、橫式位置（MeowHQ 頂列、登入卡片）用 `wordmark`。favicon 與網頁圖示組在 `src/app/`（`favicon.ico`、`icon.svg`、`apple-icon.png`、`manifest.ts`）。設計母檔與使用規範不在 repo（子哲本機專題資料夾 `logo設計_1111/`）。
 - 後台用隱藏網址、不放任何連結；安全性靠 RLS 與 security definer 函式，不靠網址。
 - 第一位管理員用 SQL 指定，之後在後台以 Email 授權（對方需先登入過一次）。
 - 認證機制目前由管理員人工審核。

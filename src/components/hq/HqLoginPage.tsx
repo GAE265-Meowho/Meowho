@@ -1,12 +1,7 @@
 "use client";
 import Link from "next/link";
-import { LOGOS } from "@/lib/mock-data";
-
-/** 登入頁卡片用網站設定的「橫式字標款」（代號 line） */
-const WORDMARK = LOGOS.find(l => l.id === "line")!;
-
-/** 左上角品牌標誌：網站內建的「圓形花貓款」（代號 round；#116 Tina 指定用喵戶 logo） */
-const ROUND = LOGOS.find(l => l.id === "round")!;
+import { useSiteLogo } from "@/components/Providers";
+import { logoWordmark } from "@/lib/site-logo";
 
 const GoogleG = () => (
   <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
@@ -16,12 +11,14 @@ const GoogleG = () => (
 
 /** 未登入時顯示的 MeowHQ 登入頁（#116 依 Stitch：左品牌區｜右登入卡片；Google 登入，登入後回到 next） */
 export function HqLoginPage({ onLogin, next, configured = true }: { onLogin: (next: string) => void; next: string; configured?: boolean }) {
+  // #361 前後台統一：左上角用站台標誌的方形圖、卡片用橫式組合（管理者在設定頁選）
+  const logo = useSiteLogo();
   return (
     <div className="hq-login">
       <aside className="hq-login-brand">
         <div className="hq-login-name">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img className="hq-login-mark" src={ROUND.src} alt="Meowho喵戶" width={56} height={56} />
+          <img className="hq-login-mark" src={logo.src} alt="Meowho喵戶" width={56} height={56} />
           {/* Tina 2026-11-02：喵戶 logo 後面只留「總部」 */}
           <span>總部</span>
         </div>
@@ -35,7 +32,7 @@ export function HqLoginPage({ onLogin, next, configured = true }: { onLogin: (ne
       <main className="hq-login-side">
         <section className="hq-login-card">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img className="hq-login-wordmark" src={WORDMARK.src} alt="Meowho喵戶" width={180} height={60} />
+          <img className="hq-login-wordmark" src={logoWordmark(logo)} alt="Meowho喵戶" width={180} height={60} />
           <h1>進入總部</h1>
           {/* 後台只能登入、不能註冊（Tina 2026-11-02）：要先由系統管理員在「Admin 授權」加入，才進得了後台 */}
           <button className="hq-btn hq-login-google" onClick={() => onLogin(next)}><GoogleG />使用 Google 登入</button>

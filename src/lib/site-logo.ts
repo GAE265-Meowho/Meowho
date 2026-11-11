@@ -1,7 +1,10 @@
 // 網站 Logo 設定值解析（Issue #23）：meow_site_settings.logo 可為內建代號或上傳檔案的 https 公開網址
 import { LOGOS } from "./mock-data";
 
-export interface SiteLogo { id: string; name: string; src: string; kind: "builtin" | "upload" }
+export interface SiteLogo { id: string; name: string; src: string; wordmark?: string; kind: "builtin" | "upload" }
+
+/** 橫式位置（後台頂列、登入卡片）用的圖：有橫式組合就用，沒有就用同一張 */
+export const logoWordmark = (logo: SiteLogo) => logo.wordmark ?? logo.src;
 
 export function resolveSiteLogo(value: unknown): SiteLogo {
   if (typeof value === "string") {
