@@ -72,3 +72,23 @@
 .frame { width: 100%; border-radius: 12px; border: 1px solid var(--line); display: block; }
 .note { margin: 0; font-size: 13px; color: var(--ink-soft); }
 @media (prefers-reduced-motion: reduce) { .bar > div { transition: none; } }
+
+/* 前台預覽（RoomViewer overlay）：視角和走動按鈕疊在畫面上，半透明、手指好按 */
+.viewer :global(.hq-roomviewer-views),
+.viewer :global(.hq-roomviewer-walk) { position: absolute; z-index: 2; display: flex; gap: 6px; }
+.viewer :global(.hq-roomviewer-views) { top: 12px; left: 50%; transform: translateX(-50%); padding: 4px; border-radius: 999px; background: rgb(255 255 255 / 0.55); backdrop-filter: blur(6px); }
+.viewer :global(.hq-roomviewer-walk) { bottom: 12px; right: 12px; flex-direction: column; }
+.viewer :global(.hq-roomviewer-views button),
+.viewer :global(.hq-roomviewer-walk button) {
+  min-width: 44px; min-height: 44px; padding: 0 12px; border: 0; border-radius: 999px;
+  font: inherit; font-weight: 600; color: var(--ink); background: rgb(255 255 255 / 0.75);
+  touch-action: none; user-select: none; -webkit-user-select: none; cursor: pointer;
+}
+.viewer :global(.hq-roomviewer-views button[aria-pressed="true"]) { color: #fff; background: var(--ink); }
+.viewer :global(.hq-roomviewer-walk button:active) { background: #fff; }
+
+/* 手機轉橫：房間佔滿整個螢幕，蓋過頁首和底部分頁列 */
+@media (orientation: landscape) and (max-height: 520px) {
+  .viewer :global(.hq-roomviewer-host) { position: fixed; inset: 0; z-index: 1000; height: auto; border-radius: 0; }
+}
+

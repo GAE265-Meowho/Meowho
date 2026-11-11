@@ -7,8 +7,8 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { HqSkeleton } from "@/components/hq/HqStates";
 import {
-  cameraForward, clampInRoom, roomSplats, roomUnit, sortCameras,
-  type RoomCamera, type RoomLayout, type RoomScene,
+  cameraForward, clampInRoom, roomSplats, roomUnit, roomViews, sortCameras,
+  type RoomCamera, type RoomLayout, type RoomScene, type RoomViewName,
 } from "@/lib/hq/rooms/demo";
 import { createRoomWorld, type RoomWorld } from "@/lib/hq/rooms/world";
 import { placeScanItems, type SceneItem } from "@/lib/play/scene-items";
@@ -66,9 +66,10 @@ export interface RoomWand { toy: SceneItem; onCatch: (caught: boolean) => void }
  * bubble：貓頭頂的小對話框（表情符號），跟著貓在畫面上移動
  * controls：false 時不顯示拍攝點與貓咪動作按鈕（虛擬飼養用；拖曳、WASD、點地板仍可用）
  * noCat：只看房間、不放貓（前台我的 3D 房間預覽；貓等進了領養任務才出現）
+ * overlay：前台預覽版面：前／後／左／右／上五個固定視角和按住走動的按鈕疊在畫面上，滾輪還給網頁捲動（觸控板不會誤走）
  */
-export default function RoomViewer({ base, cat, items, controls = true, story, wand, bubble, bubbleInset = 0, lookKey, noCat = false }: {
-  base: string; cat?: { baseUrl: string; albedoUrl: string } | null; items?: readonly SceneItem[]; controls?: boolean; noCat?: boolean;
+export default function RoomViewer({ base, cat, items, controls = true, story, wand, bubble, bubbleInset = 0, lookKey, noCat = false, overlay = false }: {
+  base: string; cat?: { baseUrl: string; albedoUrl: string } | null; items?: readonly SceneItem[]; controls?: boolean; noCat?: boolean; overlay?: boolean;
   story?: { action: CatAction | null; at: number } | null; wand?: RoomWand | null;
   /** 貓頭頂的小對話框（表情符號）；null＝不顯示 */
   bubble?: string | null;
@@ -79,6 +80,9 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
 }) {
   const host = useRef<HTMLDivElement>(null);
   const goTo = useRef<(step: number) => void>(() => {});
+  const goView = useRef<(name: RoomViewName) => void>(() => {});
+  const hold = useRef<(code: string, on: boolean) => void>(() => {});
+  const [viewName, setViewName] = useState<RoomViewName>("front");
   const world = useRef<RoomWorld | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [spot, setSpot] = useState({ index: 0, total: 0 });
@@ -124,7 +128,21 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
       };
       // 影片開頭常貼著牆或家具、晃得最厲害，改從中段的拍攝點開場
       let index = Math.floor(cameras.length / 2);
-      const first = view(cameras[index]);
+      // 前台預覽：五個固定視角，從門口（前）開場
+      const [ve1, vup, ve2, vorigin] = (["e1", "up", "e2", "origin"] as const).map(k => new THREE.Vector3(...layout[k]));
+      const floorOf = (p: THREE.Vector3): [number, number, number] => {
+        const d = p.clone().sub(vorigin).divideScalar(layout.units_per_meter);
+        return [d.dot(ve1), d.dot(vup), d.dot(ve2)];
+      };
+      const views = roomViews(scene.room, floorOf(new THREE.Vector3(...cameras[0].position)), Math.sign(ve1.clone().cross(vup).dot(ve2)) || 1);
+      const fixedView = (name: RoomViewName) => {
+        const { pos: [x, y, z], dir: [dx, dy, dz] } = views[name];
+        const pos = vorigin.clone().addScaledVector(ve1, x * layout.units_per_meter)
+          .addScaledVector(vup, y * layout.units_per_meter).addScaledVector(ve2, z * layout.units_per_meter);
+        const dir = ve1.clone().multiplyScalar(dx).addScaledVector(vup, dy).addScaledVector(ve2, dz).normalize();
+        return { pos, look: pos.clone().addScaledVector(dir, unit * 0.01) };
+      };
+      const first = overlay ? fixedView("front") : view(cameras[index]);
       const threeScene = new THREE.Scene();  // 貓畫在這，高斯點會依深度蓋在它前面
       const movable = scene.assets.room_cut && scene.objects.some(o => o.splat);
       viewer = new GS.Viewer({
@@ -180,6 +198,8 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
         setSpot({ index, total: cameras.length });
         tweenTo(view(cameras[index]));
       };
+      goView.current = name => { setViewName(name); tweenTo(fixedView(name)); };
+      hold.current = (code, on) => { if (on) held.add(code); else held.delete(code); };
       setSpot({ index, total: cameras.length });
       setStatus("ready");
 
@@ -226,6 +246,7 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
         if (inside.distanceToSquared(active.camera.position) > 1e-12) move(inside.sub(active.camera.position));
       };
       el.addEventListener("wheel", e => {
+        if (overlay) return;  // 前台：觸控板兩指滑常誤觸，滾輪還給網頁捲動
         e.preventDefault();
         move(directions().fwd.multiplyScalar(-Math.sign(e.deltaY) * unit * 0.03));
       }, { passive: false, signal: abort.signal });
@@ -294,6 +315,8 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
       abort.abort();
       cancelAnimationFrame(frame);
       goTo.current = () => {};
+      goView.current = () => {};
+      hold.current = () => {};
       world.current = null;
       orbit.current = null;
       setWorldReady(false);
@@ -303,7 +326,7 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
       viewer?.dispose().catch(() => {}).finally(() => stage.remove());
       if (!viewer) stage.remove();
     };
-  }, [base, cat?.baseUrl, cat?.albedoUrl, noCat]);
+  }, [base, cat?.baseUrl, cat?.albedoUrl, noCat, overlay]);
 
   // 虛擬用品清單變了就重擺（讀完房間後才做）
   useEffect(() => {
@@ -400,8 +423,24 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
       <div ref={host} className="hq-roomviewer-host">
         {status === "loading" && <div className="hq-roomviewer-loading"><HqSkeleton rows={3} /></div>}
         <div ref={bubbleEl} className="hq-roomviewer-bubble" aria-hidden="true" />
+        {overlay && status === "ready" && <>
+          <div className="hq-roomviewer-views" role="group" aria-label="切換視角">
+            {VIEW_BUTTONS.map(([name, label]) => (
+              <button key={name} type="button" aria-pressed={viewName === name} onClick={() => goView.current(name)}>{label}</button>
+            ))}
+          </div>
+          <div className="hq-roomviewer-walk" role="group" aria-label="按住走動">
+            {WALK_BUTTONS.map(([code, label]) => (
+              <button key={code} type="button" aria-label={label}
+                onPointerDown={e => { e.currentTarget.setPointerCapture(e.pointerId); hold.current(code, true); }}
+                onPointerUp={() => hold.current(code, false)} onPointerCancel={() => hold.current(code, false)}
+                onContextMenu={e => e.preventDefault()}>{label}</button>
+            ))}
+          </div>
+        </>}
       </div>
-      {controls && (
+      {overlay && <p className="hq-hint">拖曳轉頭，按住「前進」「後退」走動；按上方按鈕換視角。</p>}
+      {controls && !overlay && (
         <>
         <div className="hq-roomviewer-bar">
           <button type="button" className="hq-btn ghost" onClick={() => goTo.current(-1)} disabled={status !== "ready"}>上一個拍攝點</button>
@@ -420,3 +459,6 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
     </section>
   );
 }
+
+const VIEW_BUTTONS: [RoomViewName, string][] = [["front", "前"], ["back", "後"], ["left", "左"], ["right", "右"], ["top", "上"]];
+const WALK_BUTTONS: [string, string][] = [["KeyW", "前進"], ["KeyS", "後退"]];
