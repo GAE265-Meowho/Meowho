@@ -11,6 +11,8 @@ import {
   type RoomCamera, type RoomLayout, type RoomScene, type RoomViewName,
 } from "@/lib/hq/rooms/demo";
 import { createRoomWorld, type RoomWorld } from "@/lib/hq/rooms/world";
+import { isPrivateRoomBase, keepRecentRoom, roomFile } from "@/lib/home-room-cache";
+import { getBrowserSupabase } from "@/lib/supabase/client";
 import { placeScanItems, type SceneItem } from "@/lib/play/scene-items";
 import { sceneCatCommand } from "@/lib/play/scene-cat";
 import type { CatAction } from "@/lib/play/stage";
@@ -85,6 +87,7 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
   const stick = useRef({ x: 0, y: 0 });  // 手機搖桿：x 右、y 前，長度 0～1
   const [touch] = useState(() => typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches);
   const [help, setHelp] = useState(false);
+  const [progress, setProgress] = useState<number | null>(null);  // 前台房間下載進度（%）；null＝不顯示
   // 全螢幕只給手機（轉橫太小）；電腦螢幕夠大，而且不少瀏覽器會擋，按了沒反應反而困惑
   const [canFull] = useState(() => typeof document !== "undefined" && document.fullscreenEnabled && window.matchMedia("(pointer: coarse)").matches);
   const [viewName, setViewName] = useState<RoomViewName>("front");
@@ -118,10 +121,20 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
 
     const load = async () => {
       const root = `${base.replace(/\/$/, "")}/`;
+      // 前台私有房間：檔案存在瀏覽器（第二次打開不用再下載），並顯示下載進度
+      const priv = isPrivateRoomBase(base);
+      const userId = priv ? (await getBrowserSupabase()?.auth.getSession())?.data.session?.user.id ?? null : null;
+      const showProgress = (loaded: number, total: number) => { if (total && !cancelled) setProgress(Math.min(99, Math.round((loaded / total) * 100))); };
+      const get = (file: string, onProgress?: typeof showProgress) => roomFile(`${root}${file}`, userId, onProgress);
+      const json = async <T,>(file: string): Promise<T> => (priv ? JSON.parse(await (await get(file)).text()) : readJson<T>(`${root}${file}`));
+      // 房間主體最大，和設定檔同時開始下載；沒有 room_cut 的舊房間這個請求會失敗，之後改讀 scene.splat
+      const CUT = "objects/room_cut.splat";
+      if (priv) setProgress(0);
+      const cut = priv ? get(CUT, showProgress).catch(() => null) : null;
       const [scene, layout, rawCameras] = await Promise.all([
-        readJson<RoomScene>(`${root}scene.json`),
-        readJson<RoomLayout>(`${root}scene.layout.json`),
-        readJson<RoomCamera[]>(`${root}scene.cameras.json`),
+        json<RoomScene>("scene.json"),
+        json<RoomLayout>("scene.layout.json"),
+        json<RoomCamera[]>("scene.cameras.json"),
       ]);
       if (cancelled) return;
       const cameras = sortCameras(rawCameras);
@@ -164,12 +177,26 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
       });
       viewer.camera.near = unit * 0.002;  // 預設值會切掉近處牆面
       viewer.camera.updateProjectionMatrix();
+      const blobUrls: string[] = [];
+      const splatPath = async (url: string) => {
+        if (!priv) return url;
+        const file = url.slice(root.length);
+        const blob = (file === CUT ? await cut : null) ?? await get(file, file === scene.assets.room ? showProgress : undefined);
+        const u = URL.createObjectURL(blob);
+        blobUrls.push(u);
+        return u;
+      };
+      const splats = await Promise.all(roomSplats(base, scene).map(async s => ({ ...s, url: await splatPath(s.url) })));
+      if (cancelled) { blobUrls.forEach(u => URL.revokeObjectURL(u)); return; }
       await viewer.addSplatScenes(
-        roomSplats(base, scene).map(s => ({
+        splats.map(s => ({
           path: s.url, format: GS.SceneFormat.Splat, splatAlphaRemovalThreshold: ALPHA_THRESHOLD, position: s.position,
         })),
         false,
       );
+      blobUrls.forEach(u => URL.revokeObjectURL(u));
+      setProgress(null);
+      if (userId) keepRecentRoom(userId, base.replace(/\/$/, "")).catch(() => {});
       if (cancelled) return;
       viewer.start();
       const active = viewer;
@@ -428,7 +455,18 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
   return (
     <section className="hq-roomviewer" aria-label="展示房間">
       <div ref={host} className="hq-roomviewer-host">
-        {status === "loading" && <div className="hq-roomviewer-loading"><HqSkeleton rows={3} /></div>}
+        {status === "loading" && <div className="hq-roomviewer-loading">
+          {progress === null ? <HqSkeleton rows={3} /> : (
+            <div className="hq-roomviewer-progress" role="progressbar" aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100} aria-label="房間載入中">
+              <p>房間載入中 {progress}%</p>
+              {/* 進度條用行內樣式，前台預覽和 /play 都能顯示 */}
+              <div style={{ height: 8, borderRadius: 4, background: "rgb(0 0 0 / 0.1)", overflow: "hidden" }}>
+                <span style={{ display: "block", height: "100%", width: `${progress}%`, background: "currentColor", transition: "width .2s" }} />
+              </div>
+              <small>第一次打開要下載整間房間，之後再看會快很多</small>
+            </div>
+          )}
+        </div>}
         <div ref={bubbleEl} className="hq-roomviewer-bubble" aria-hidden="true" />
         {overlay && status === "ready" && <>
           <div className="hq-roomviewer-views" role="group" aria-label="切換視角">

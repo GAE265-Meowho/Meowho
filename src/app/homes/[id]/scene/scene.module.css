@@ -107,3 +107,10 @@
 @media (orientation: landscape) and (max-height: 520px) {
   .viewer :global(.hq-roomviewer-host) { position: fixed; inset: 0; z-index: 1000; height: auto; border-radius: 0; }
 }
+
+/* 房間下載進度 */
+.viewer :global(.hq-roomviewer-loading) { display: grid; place-items: center; }
+.viewer :global(.hq-roomviewer-progress) { width: min(320px, 80%); display: grid; gap: 10px; text-align: center; color: var(--ink); }
+.viewer :global(.hq-roomviewer-progress p) { margin: 0; font-weight: 600; }
+.viewer :global(.hq-roomviewer-progress small) { color: var(--ink-soft); }
+
