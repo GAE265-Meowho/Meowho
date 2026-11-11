@@ -33,12 +33,12 @@ export function BrushGameRealistic({ ctx, onDone }: { ctx: MiniCtx; onDone: (res
   const [state, setState] = useState(() => newBrush(config));
   const [frame, setFrame] = useState<ReturnType<typeof photoMouth>>("closed");
   const [tool, setTool] = useState<PhotoPoint | null>(null);
-  const [loaded, setLoaded] = useState(0);
+  const [loaded, setLoaded] = useState<ReadonlySet<string>>(() => new Set());
   const [failed, setFailed] = useState(false);
   const scene = useRef<HTMLDivElement>(null);
   const input = useRef(newInput());
   const started = useRef(false);
-  const ready = loaded === 3 && !failed;
+  const ready = loaded.size === 3 && !failed;
   const paste = config.phase === "paste";
   const touch = config.phase === "touch";
   const score = brushScore(state);
@@ -179,8 +179,11 @@ export function BrushGameRealistic({ ctx, onDone }: { ctx: MiniCtx; onDone: (res
       aria-describedby="brush-photo-hint" tabIndex={0}
       onPointerDown={down} onPointerMove={move} onPointerUp={release} onPointerCancel={release} onLostPointerCapture={release}>
       {(["closed", "lift", "teeth"] as const).map(name => (
-        <Image key={name} src={"/play/brush/brush-" + name + ".png"} alt={name === "closed" ? "AI 合成虎斑貓練習影像" : ""}
-          fill unoptimized loading="eager" draggable={false} onLoad={() => setLoaded(count => count + 1)} onError={() => setFailed(true)}
+        <Image key={name} src={"/play/brush/brush-" + name + ".webp"} alt={name === "closed" ? "AI 合成虎斑貓練習影像" : ""}
+          fill unoptimized loading="eager" draggable={false}
+          fetchPriority={name === "closed" ? "high" : "low"}
+          onLoad={() => setLoaded(images => images.has(name) ? images : new Set(images).add(name))}
+          onError={() => setFailed(true)}
           className={name === "closed" ? undefined : photo.mouth} hidden={name !== "closed" && name !== frame} />
       ))}
       {ready && !state.result && <svg className={photo.overlay} viewBox="0 0 1086 1448" aria-hidden="true">

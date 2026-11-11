@@ -4,12 +4,33 @@ import { BrushGameRealistic } from "./BrushGameRealistic";
 import type { MiniCtx } from "../catgame/minis";
 
 vi.mock("next/image", () => ({
-  default: ({ src, alt, onLoad }: { src: string; alt: string; onLoad: () => void }) =>
+  default: ({ src, alt, onLoad, onError, loading }: { src: string; alt: string; onLoad: () => void; onError: () => void; loading: "lazy" | "eager" }) =>
     // eslint-disable-next-line @next/next/no-img-element
-    <img src={src} alt={alt} onLoad={onLoad} />,
+    <img src={src} alt={alt} loading={loading} onLoad={onLoad} onError={onError} />,
 }));
 
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => { document.body.replaceChildren(); vi.unstubAllGlobals(); });
+
+it("預載三張 WebP 影像後才啟用遊戲，影像失敗時顯示錯誤", () => {
+  const ctx = { cat: { trust: 100, stress: 0 }, brushLevel: 4 } as MiniCtx;
+  const view = render(<BrushGameRealistic ctx={ctx} onDone={vi.fn()} />);
+  const images = view.container.querySelectorAll("img");
+  expect([...images].map(image => image.getAttribute("src"))).toEqual([
+    "/play/brush/brush-closed.webp",
+    "/play/brush/brush-lift.webp",
+    "/play/brush/brush-teeth.webp",
+  ]);
+  expect([...images].every(image => image.getAttribute("loading") === "eager")).toBe(true);
+  expect(screen.getByText("刷牙影像載入中…")).toBeTruthy();
+  images.forEach(image => fireEvent.load(image));
+  expect(screen.queryByText("刷牙影像載入中…")).toBeNull();
+  view.unmount();
+
+  const failed = render(<BrushGameRealistic ctx={ctx} onDone={vi.fn()} />);
+  fireEvent.error(failed.container.querySelector("img")!);
+  expect(screen.getByRole("alert").textContent).toContain("無法載入刷牙影像");
+  failed.unmount();
+});
 
 it("兩根指標各自控制嘴角與刷具，失去捕捉後停止計分", () => {
   let frame: FrameRequestCallback;
