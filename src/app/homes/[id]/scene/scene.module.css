@@ -100,7 +100,8 @@
 .viewer :global(.hq-roomviewer-help li) { display: flex; gap: 10px; line-height: 1.5; }
 .viewer :global(.hq-roomviewer-help button) { width: 100%; min-height: 44px; border: 0; border-radius: 999px; font: inherit; font-weight: 600; color: #fff; background: var(--ink); cursor: pointer; }
 
-/* 全螢幕（Android Chrome、電腦）：房間佔滿螢幕 */
+/* 全螢幕：CSS 版佔滿整個瀏覽器視窗；瀏覽器支援時外面再套真正的全螢幕 */
+.viewer :global(.hq-roomviewer-host[data-full="true"]) { position: fixed; inset: 0; z-index: 1000; height: auto; border-radius: 0; }
 .viewer :global(.hq-roomviewer-host:fullscreen) { border-radius: 0; }
 
 /* 手機轉橫（不支援全螢幕的瀏覽器）：至少佔滿瀏覽器的可視範圍，蓋過頁首和底部分頁列 */
