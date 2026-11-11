@@ -14,7 +14,7 @@ import { canAddHousehold, parseHouseholdLimit } from "@/lib/onboarding/household
 import { getBrowserSupabase } from "@/lib/supabase/client";
 import s from "@/components/me/me.module.css";
 
-// 我的喵戶：喵戶長管理自己的喵戶，並從這裡新增待領養貓（#72）。也是時光小屋的入口。
+// 我的喵戶：喵戶長管理自己的喵戶，並從這裡新增待領養貓（#72）。也是專屬檔案的入口。
 // 依身分顯示不同入口（#82）；喵戶數量上限讀 meow_site_settings.household_limit（null＝不限制）。
 // 改版（子哲 2026-11-04）：每個喵戶一個區塊、分頁切換貓的類型（MyHomes）；刪除移到修改頁最下方。
 export default function MyHomePage() {

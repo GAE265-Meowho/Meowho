@@ -22,7 +22,7 @@ const cats = [
 describe("帶我回家地圖", () => {
   it("先選地區，中部看得到台中的貓，點了回到卡片", () => {
     const onShowCard = vi.fn();
-    render(<AdoptMap cats={cats} matches={() => true} onShowCard={onShowCard} />);
+    render(<AdoptMap cats={cats} onShowCard={onShowCard} />);
     expect(screen.getByRole("button", { name: /中部/ })).toHaveTextContent("2 隻在等家");
     expect(screen.getByRole("button", { name: /離島/ })).toHaveTextContent("澎湖、金門、連江");
     fireEvent.click(screen.getByRole("button", { name: /中部/ }));
@@ -46,7 +46,7 @@ describe("帶我回家地圖", () => {
       dispatchEvent: () => false,
     }));
     const onShowCard = vi.fn();
-    render(<AdoptMap cats={cats} matches={() => true} onShowCard={onShowCard} />);
+    render(<AdoptMap cats={cats} onShowCard={onShowCard} />);
     fireEvent.click(screen.getByRole("button", { name: /中部/ }));
     const orange = screen.getByRole("button", { name: /橘子，台中市北屯區/ });
     fireEvent.click(orange);
@@ -64,7 +64,7 @@ describe("帶我回家地圖", () => {
       cat({ id: "橘子", name: "橘子", city: "台中市", area: "北屯區", coat: "橘白", tags: ["愛踩踏"] }),
       cat({ id: "豆沙", name: "豆沙", city: "台中市", area: "北屯區", coat: "黑", tags: ["貪吃"] }),
     ];
-    render(<AdoptMap cats={crowded} matches={() => true} onShowCard={onShowCard} />);
+    render(<AdoptMap cats={crowded} onShowCard={onShowCard} />);
     fireEvent.click(screen.getByRole("button", { name: /中部/ }));
     const pile = screen.getByRole("button", { name: "附近有 2 隻" });
     expect(screen.queryByRole("button", { name: /這區有/ })).toBeNull();
@@ -80,7 +80,7 @@ describe("帶我回家地圖", () => {
   });
 
   it("沒有貓的地區仍進得去地圖", () => {
-    render(<AdoptMap cats={cats} matches={() => true} onShowCard={() => {}} />);
+    render(<AdoptMap cats={cats} onShowCard={() => {}} />);
     fireEvent.click(screen.getByRole("button", { name: /東部/ }));
     expect(screen.getByRole("status")).toHaveTextContent("這裡還沒有等家的貓");
     fireEvent.click(screen.getByRole("button", { name: "換地區" }));

@@ -8,16 +8,59 @@ type Step = { station: string; icon: IconName; title: string; body: string; rewa
 
 /* ---------- Looping flat illustrations, one per step ---------- */
 
-function MiniCat({ className }: { className?: string }) {
+/** 正面坐姿的橘貓（步驟 2）。座標約 0–100，腳掌底在 y=95。尾巴在左邊，右邊留給飯碗。 */
+function SittingCat() {
   return (
-    <g className={className}>
-      <path className={styles.catTail} d="M64 70c22 2 30-12 24-26" fill="none" stroke="var(--orange)" strokeWidth="9" strokeLinecap="round" />
-      <ellipse cx="44" cy="62" rx="26" ry="20" fill="var(--orange)" />
-      <path d="M22 30 26 10 38 22ZM58 22 70 10 72 30Z" fill="var(--orange)" />
-      <circle cx="46" cy="32" r="22" fill="var(--orange)" />
-      <ellipse cx="38" cy="32" rx="2.6" ry="3.4" fill="var(--ink)" />
-      <ellipse cx="54" cy="32" rx="2.6" ry="3.4" fill="var(--ink)" />
-      <ellipse cx="46" cy="40" rx="4" ry="3" fill="#fff3df" />
+    <g>
+      <path className={styles.catTail} d="M30 86C10 88 2 72 12 56" fill="none" stroke="var(--orange)" strokeWidth="9" strokeLinecap="round" />
+      <path d="M30 93C21 93 19 74 26 62 31 53 40 49 50 49S69 53 74 62C81 74 79 93 70 93Z" fill="var(--orange)" />
+      <ellipse cx="50" cy="77" rx="12" ry="14" fill="var(--orange-soft)" />
+      <ellipse cx="41" cy="91" rx="7.5" ry="4.5" fill="var(--orange-soft)" />
+      <ellipse cx="59" cy="91" rx="7.5" ry="4.5" fill="var(--orange-soft)" />
+      {/* ears, then head on top so the bases blend in */}
+      <path d="M26 30 29 5Q30 2 33 4L48 16ZM74 30 71 5Q70 2 67 4L52 16Z" fill="var(--orange)" />
+      <path d="M32 22 33.5 10 42 17ZM68 22 66.5 10 58 17Z" fill="var(--pink)" />
+      <ellipse cx="50" cy="35" rx="26" ry="21" fill="var(--orange)" />
+      <path d="M50 15v7M43 16l1.5 6M57 16l-1.5 6" fill="none" stroke="var(--orange-deep)" strokeWidth="2.4" strokeLinecap="round" />
+      <g className={styles.blink}>
+        <ellipse cx="39" cy="34" rx="3.2" ry="4" fill="var(--ink)" />
+        <ellipse cx="61" cy="34" rx="3.2" ry="4" fill="var(--ink)" />
+        <circle cx="40.2" cy="32.4" r="1.1" fill="#fff" />
+        <circle cx="62.2" cy="32.4" r="1.1" fill="#fff" />
+      </g>
+      <ellipse cx="50" cy="43" rx="9.5" ry="6.5" fill="var(--orange-soft)" />
+      <path d="M47.2 39.8h5.6L50 43Z" fill="var(--pink)" stroke="var(--pink)" strokeWidth="1" strokeLinejoin="round" />
+      <path d="M50 43c0 3-3.4 3.8-5 2M50 43c0 3 3.4 3.8 5 2" fill="none" stroke="var(--ink)" strokeWidth="1.5" strokeLinecap="round" />
+      <path d="M33 41 21 39M33 45 21 47M67 41 79 39M67 45 79 47" fill="none" stroke="var(--ink-soft)" strokeWidth="1.3" strokeLinecap="round" />
+    </g>
+  );
+}
+
+/** 側面走路的橘貓，朝右（步驟 3）。座標約 0–104 × 0–68，腳底在 y=68。四隻腳輪流擺動。 */
+function WalkingCat() {
+  const leg = (x: number, far: boolean, cls: string) => (
+    <g className={cls}>
+      <rect x={x} y="40" width="9" height="28" rx="4.5" fill={far ? "var(--orange-deep)" : "var(--orange)"} />
+      {!far && <rect x={x} y="60" width="9" height="8" rx="4" fill="var(--orange-soft)" />}
+    </g>
+  );
+  return (
+    <g>
+      <path className={styles.catTail} style={{ transformOrigin: "20px 32px" }} d="M20 32C6 30 0 16 8 6" fill="none" stroke="var(--orange)" strokeWidth="8" strokeLinecap="round" />
+      {leg(28, true, styles.legB)}
+      {leg(66, true, styles.legA)}
+      <rect x="14" y="20" width="68" height="32" rx="16" fill="var(--orange)" />
+      <path d="M36 21v8M46 21v9M56 21v8" fill="none" stroke="var(--orange-deep)" strokeWidth="2.6" strokeLinecap="round" />
+      {leg(20, false, styles.legA)}
+      {leg(58, false, styles.legB)}
+      <path d="M66 18 68 1Q69-2 72 0L82 9ZM102 18 100 1Q99-2 96 0L86 9Z" fill="var(--orange)" />
+      <path d="M71 13 72 5 78 10ZM97 13 96 5 90 10Z" fill="var(--pink)" />
+      <ellipse cx="84" cy="24" rx="20" ry="17" fill="var(--orange)" />
+      <ellipse cx="78" cy="23" rx="2.6" ry="3.3" fill="var(--ink)" />
+      <ellipse cx="93" cy="23" rx="2.6" ry="3.3" fill="var(--ink)" />
+      <ellipse cx="86" cy="30.5" rx="7.5" ry="5" fill="var(--orange-soft)" />
+      <path d="M84 28h4L86 30.6Z" fill="var(--pink)" stroke="var(--pink)" strokeWidth="0.8" strokeLinejoin="round" />
+      <path d="M86 30.6c0 2.4-2.8 3-4 1.6M86 30.6c0 2.4 2.8 3 4 1.6" fill="none" stroke="var(--ink)" strokeWidth="1.3" strokeLinecap="round" />
     </g>
   );
 }
@@ -82,8 +125,8 @@ function SevenDaysArt() {
       })}
       <rect x="20" y="236" width="360" height="64" fill="#f3d9b2" />
       <ellipse cx="200" cy="252" rx="110" ry="16" fill="#f6c3b8" />
-      <g transform="translate(130 160)">
-        <MiniCat />
+      <g transform="translate(128 148)">
+        <SittingCat />
       </g>
       {/* bowl */}
       <path d="M242 236h52c0 14-10 22-26 22s-26-8-26-22Z" fill="var(--orange)" />
@@ -130,8 +173,8 @@ function MoveHomeArt() {
       </g>
       {/* the cat walks over to its new home */}
       <g className={styles.walker}>
-        <g transform="translate(118 168) scale(0.55)">
-          <MiniCat />
+        <g transform="translate(112 178) scale(0.66)">
+          <WalkingCat />
         </g>
       </g>
     </svg>
@@ -159,8 +202,8 @@ const steps: Step[] = [
     station: "帶我回家領養站",
     icon: "key",
     title: "提出申請，移轉回家",
-    body: "完成第 1 或第 2 關就能送出申請，有養貓經驗可以直接申請；喵戶長審核後，貓咪移轉到你的喵戶，時光小屋也跟著搬家。",
-    reward: "牠的時光小屋跟著搬家",
+    body: "完成第 1 或第 2 關就能送出申請，有養貓經驗可以直接申請；喵戶長審核後，貓咪移轉到你的喵戶，專屬檔案也跟著搬家。",
+    reward: "牠的專屬檔案跟著搬家",
     Art: MoveHomeArt,
   },
 ];

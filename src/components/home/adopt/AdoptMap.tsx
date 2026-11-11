@@ -16,7 +16,6 @@ import styles from "./adoptMap.module.css";
 type Props = {
   cats: FeedCat[];
   /** 目前個性篩選過不過。沒過的貓仍留在地圖上，只是變淡。 */
-  matches: (catId: string) => boolean;
   onShowCard: (catId: string) => void;
 };
 
@@ -56,7 +55,7 @@ function usesTapPreview() {
 }
 
 /** 先選北／中／南／東（離島另列），再在該範圍看等家的貓。點貓回到卡片。 */
-export default function AdoptMap({ cats, matches, onShowCard }: Props) {
+export default function AdoptMap({ cats, onShowCard }: Props) {
   const [region, setRegion] = useState<RegionId | null>(null);
   const [open, setOpen] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
@@ -187,7 +186,7 @@ export default function AdoptMap({ cats, matches, onShowCard }: Props) {
             <button
               key={cat.id}
               type="button"
-              className={`${styles.marker} ${matches(cat.id) ? "" : styles.dim}`}
+              className={styles.marker}
               style={{ left: `${(cat.x / size.width) * 100}%`, top: `${(cat.y / size.height) * 100}%`, zIndex: shown ? 10 : raised ? 6 : 2 }}
               aria-label={`${cat.name}，${here.find((item) => item.id === cat.id)?.district || cat.city}，回到卡片`}
               onMouseEnter={() => { if (!usesTapPreview()) setOpen(cat.id); }}
