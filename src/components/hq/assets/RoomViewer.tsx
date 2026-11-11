@@ -66,7 +66,8 @@ export interface RoomWand { toy: SceneItem; onCatch: (caught: boolean) => void }
  * bubble：貓頭頂的小對話框（表情符號），跟著貓在畫面上移動
  * controls：false 時不顯示拍攝點與貓咪動作按鈕（虛擬飼養用；拖曳、WASD、點地板仍可用）
  * noCat：只看房間、不放貓（前台我的 3D 房間預覽；貓等進了領養任務才出現）
- * overlay：前台預覽版面：前／後／左／右／上五個固定視角和按住走動的按鈕疊在畫面上，滾輪還給網頁捲動（觸控板不會誤走）
+ * overlay：前台預覽版面：前／後／左／右／上五個固定視角疊在畫面上；電腦用 WASD 走、手機用左下角搖桿；
+ *   第一次會跳教學；滾輪還給網頁捲動（觸控板不會誤走）；瀏覽器支援時有全螢幕按鈕
  */
 export default function RoomViewer({ base, cat, items, controls = true, story, wand, bubble, bubbleInset = 0, lookKey, noCat = false, overlay = false }: {
   base: string; cat?: { baseUrl: string; albedoUrl: string } | null; items?: readonly SceneItem[]; controls?: boolean; noCat?: boolean; overlay?: boolean;
@@ -81,7 +82,10 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
   const host = useRef<HTMLDivElement>(null);
   const goTo = useRef<(step: number) => void>(() => {});
   const goView = useRef<(name: RoomViewName) => void>(() => {});
-  const hold = useRef<(code: string, on: boolean) => void>(() => {});
+  const stick = useRef({ x: 0, y: 0 });  // 手機搖桿：x 右、y 前，長度 0～1
+  const [touch] = useState(() => typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches);
+  const [help, setHelp] = useState(false);
+  const [canFull] = useState(() => typeof document !== "undefined" && document.fullscreenEnabled);
   const [viewName, setViewName] = useState<RoomViewName>("front");
   const world = useRef<RoomWorld | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
@@ -199,9 +203,9 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
         tweenTo(view(cameras[index]));
       };
       goView.current = name => { setViewName(name); tweenTo(fixedView(name)); };
-      hold.current = (code, on) => { if (on) held.add(code); else held.delete(code); };
       setSpot({ index, total: cameras.length });
       setStatus("ready");
+      if (overlay && !seenHelp()) setHelp(true);
 
       // 貓和物理載入失敗時，房間照常可以看
       const roomWorld = noCat ? null : await createRoomWorld({
@@ -277,9 +281,11 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
           controls.target.lerpVectors(tween.from.look, tween.to.look, t);
           active.forceRenderNextFrame();
           if (t === 1) tween = null;
-        } else if (held.size) {
+        } else if (held.size || stick.current.x || stick.current.y) {
           const { up, fwd, right } = directions();
           const d = new THREE.Vector3();
+          // 搖桿推越遠走越快；和鍵盤同時用時合起來不超過全速
+          d.addScaledVector(fwd, stick.current.y).addScaledVector(right, stick.current.x);
           if (held.has("KeyW")) d.add(fwd);
           if (held.has("KeyS")) d.sub(fwd);
           if (held.has("KeyD")) d.add(right);
@@ -288,7 +294,8 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
           if (held.has("KeyQ")) d.sub(up);
           if (d.lengthSq()) {
             const fast = held.has("ShiftLeft") || held.has("ShiftRight");
-            move(d.normalize().multiplyScalar(unit * WALK_SPEED * (fast ? RUN_FACTOR : 1) * dt));
+            if (held.size) d.normalize(); else d.clampLength(0, 1);
+            move(d.multiplyScalar(unit * WALK_SPEED * (fast ? RUN_FACTOR : 1) * dt));
           }
         }
         if (!tween) keepInRoom();
@@ -316,7 +323,6 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
       cancelAnimationFrame(frame);
       goTo.current = () => {};
       goView.current = () => {};
-      hold.current = () => {};
       world.current = null;
       orbit.current = null;
       setWorldReady(false);
@@ -429,17 +435,14 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
               <button key={name} type="button" aria-pressed={viewName === name} onClick={() => goView.current(name)}>{label}</button>
             ))}
           </div>
-          <div className="hq-roomviewer-walk" role="group" aria-label="按住走動">
-            {WALK_BUTTONS.map(([code, label]) => (
-              <button key={code} type="button" aria-label={label}
-                onPointerDown={e => { e.currentTarget.setPointerCapture(e.pointerId); hold.current(code, true); }}
-                onPointerUp={() => hold.current(code, false)} onPointerCancel={() => hold.current(code, false)}
-                onContextMenu={e => e.preventDefault()}>{label}</button>
-            ))}
+          <div className="hq-roomviewer-tools">
+            <button type="button" aria-label="怎麼看" onClick={() => setHelp(true)}>?</button>
+            {canFull && <button type="button" aria-label="全螢幕" onClick={() => toggleFull(host.current)}>⛶</button>}
           </div>
+          {touch && <Stick onMove={v => { stick.current = v; }} />}
+          {help && <ViewerHelp touch={touch} onClose={() => { setHelp(false); markHelp(); }} />}
         </>}
       </div>
-      {overlay && <p className="hq-hint">拖曳轉頭，按住「前進」「後退」走動；按上方按鈕換視角。</p>}
       {controls && !overlay && (
         <>
         <div className="hq-roomviewer-bar">
@@ -461,4 +464,53 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
 }
 
 const VIEW_BUTTONS: [RoomViewName, string][] = [["front", "前"], ["back", "後"], ["left", "左"], ["right", "右"], ["top", "上"]];
-const WALK_BUTTONS: [string, string][] = [["KeyW", "前進"], ["KeyS", "後退"]];
+
+const HELP_KEY = "meowho.roomHelp";
+const seenHelp = () => { try { return localStorage.getItem(HELP_KEY) === "1"; } catch { return false; } };
+const markHelp = () => { try { localStorage.setItem(HELP_KEY, "1"); } catch { /* 無痕模式存不了，下次再顯示 */ } };
+
+/** 全螢幕切換；手機順便鎖橫向（Android Chrome 支援，iPhone 沒有網頁全螢幕，按鈕不會出現） */
+function toggleFull(el: HTMLElement | null) {
+  if (document.fullscreenElement) { document.exitFullscreen().catch(() => {}); return; }
+  el?.requestFullscreen().then(() => {
+    (screen.orientation as ScreenOrientation & { lock?: (o: string) => Promise<void> }).lock?.("landscape").catch(() => {});
+  }).catch(() => {});
+}
+
+/** 手機左下角的搖桿：往上推前進、往下後退、左右橫移，推越遠走越快 */
+function Stick({ onMove }: { onMove: (v: { x: number; y: number }) => void }) {
+  const [knob, setKnob] = useState({ x: 0, y: 0 });
+  const R = 44;  // 搖桿可移動半徑（px）
+  const at = (e: React.PointerEvent<HTMLDivElement>) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    let x = e.clientX - (r.left + r.width / 2), y = e.clientY - (r.top + r.height / 2);
+    const len = Math.hypot(x, y);
+    if (len > R) { x *= R / len; y *= R / len; }
+    setKnob({ x, y });
+    onMove({ x: x / R, y: -y / R });
+  };
+  const stop = () => { setKnob({ x: 0, y: 0 }); onMove({ x: 0, y: 0 }); };
+  return (
+    <div className="hq-roomviewer-stick" role="application" aria-label="搖桿：往上推前進，往下後退，左右橫移"
+      onPointerDown={e => { e.currentTarget.setPointerCapture(e.pointerId); at(e); }}
+      onPointerMove={e => { if (e.currentTarget.hasPointerCapture(e.pointerId)) at(e); }}
+      onPointerUp={stop} onPointerCancel={stop} onContextMenu={e => e.preventDefault()}>
+      <span style={{ transform: `translate(${knob.x}px, ${knob.y}px)` }} />
+    </div>
+  );
+}
+
+function ViewerHelp({ touch, onClose }: { touch: boolean; onClose: () => void }) {
+  const rows: [string, string][] = touch
+    ? [["👆", "單指拖曳畫面：轉頭看四周"], ["🕹️", "左下角搖桿：往上推前進、往下後退、左右橫移"], ["🧭", "上方「前／後／左／右／上」：換到固定視角"], ["📱", "手機轉橫看得更大"]]
+    : [["🖱️", "拖曳畫面：轉頭看四周"], ["⌨️", "W／S 前進後退，A／D 左右橫移，Q／E 下降上升，按住 Shift 加速"], ["🧭", "上方「前／後／左／右／上」：換到固定視角"]];
+  return (
+    <div className="hq-roomviewer-help" role="dialog" aria-modal="false" aria-labelledby="room-help-title">
+      <div>
+        <h3 id="room-help-title">怎麼看你家的 3D 房間</h3>
+        <ul>{rows.map(([icon, text]) => <li key={text}><span aria-hidden="true">{icon}</span>{text}</li>)}</ul>
+        <button type="button" onClick={onClose}>知道了</button>
+      </div>
+    </div>
+  );
+}
