@@ -32,7 +32,8 @@ export const FEED_SELECT =
   "id, name, sex, life_stage, coat, personality_tags, health_tags, medical, description, timeline, photo_url, created_at, household:meow_households!meow_cats_household_id_fkey(id, name, city, district, intro, caretaker_type)";
 
 const SEX: Record<string, string> = { male: "公貓", female: "母貓" };
-const FOSTER: Record<string, string> = { personal_foster: "個人中途", shelter_org: "立案協會／收容單位" };
+/** 中途的類型名稱；一般飼主（cat_owner）不在裡面 */
+export const FOSTER_LABEL: Record<string, string> = { personal_foster: "個人中途", shelter_org: "立案協會／收容單位" };
 const FILTER_TAGS: [CatFilter, string[]][] = [
   ["newbie", ["親人", "黏人"]],
   ["active", ["活潑", "愛玩", "好奇"]],
@@ -67,7 +68,7 @@ export function toFeedCat(r: FeedRow, today = new Date()): FeedCat {
     diary: latest ?? firstSentence,
     photo: r.photo_url,
     filters: FILTER_TAGS.filter(([f, words]) => words.some((w) => tags.includes(w) || health.includes(w)) || (f === "special" && positive)).map(([f]) => f),
-    home: h ? { id: h.id, name: h.name, intro: h.intro ?? "", foster: FOSTER[h.caretaker_type] ?? "" } : null,
+    home: h ? { id: h.id, name: h.name, intro: h.intro ?? "", foster: FOSTER_LABEL[h.caretaker_type] ?? "" } : null,
   };
 }
 

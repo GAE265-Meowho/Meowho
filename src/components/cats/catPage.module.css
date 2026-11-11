@@ -31,6 +31,8 @@
 .meta { margin: 0; color: var(--ink-soft); font-size: 16px; }
 .home { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin: 0; color: var(--ink); font-weight: 700; }
 .home span { color: var(--ink-soft); font-weight: 400; font-size: 15px; }
+.homeLink { display: inline-flex; align-items: center; min-height: var(--tap); color: var(--ink); text-decoration: underline; text-decoration-color: var(--orange); text-decoration-thickness: 2px; text-underline-offset: 4px; }
+.homeLink:hover, .homeLink:focus-visible { color: var(--orange-deep); }
 
 .tags { display: flex; flex-wrap: wrap; gap: 6px; }
 .tag { align-self: flex-start; padding: 3px 12px; border-radius: 999px; background: var(--orange-soft); color: var(--ink); font-size: 14px; font-weight: 700; }
