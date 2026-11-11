@@ -5,15 +5,13 @@ import { useSearchParams } from "next/navigation";
 import { Fragment, Suspense, useEffect, useState } from "react";
 import { hqPageMeta } from "@/lib/hq/build-meta";
 import { ADMIN_MODULE_LABELS, type SidebarItem } from "@/lib/hq/types";
-import { LOGOS } from "@/lib/mock-data";
+import { useSiteLogo } from "@/components/Providers";
+import { logoWordmark } from "@/lib/site-logo";
 import { HQ_HOME, HQ_MODULE_PATH, isModule } from "./access";
 import { ASSET_SECTIONS, ASSETS_CATS_HREF, assetSectionHref, isAssetSection, topSection, type AssetSection } from "./assets/hrefs";
 import { HqOfflineBanner } from "./HqStates";
 import { NotificationBell } from "./NotificationBell";
 import AvatarImage from "@/components/ui/AvatarImage";
-
-/** 後台頂列固定用網站設定的「橫式字標款」（代號 line） */
-const HQ_WORDMARK = LOGOS.find(l => l.id === "line")!;
 
 export interface HqUser { name: string; roleLabel: string; avatarUrl?: string | null }
 interface Props {
@@ -110,11 +108,13 @@ function HqPageFoot({ activePath }: { activePath: string }) {
 const COLLAPSE_KEY = "meowhq:sidebar-collapsed";
 // 手機寬度（<768px）側欄是抽屜（navOpen）；平板以上是收合（collapsed）
 
+/** 後台頂列：跟前台用同一個站台標誌（#361；管理者在設定頁選），橫式位置用橫式組合 */
 export function HqLogo() {
+  const logo = useSiteLogo();
   return (
     <Link href={HQ_HOME} className="hq-logo" aria-label="管理者介面首頁">
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img className="hq-logo-mark" src={HQ_WORDMARK.src} alt="" width={160} height={40} />
+      <img className="hq-logo-mark" src={logoWordmark(logo)} alt="" width={160} height={40} />
       <span className="hq-logo-text">
         <span className="hq-logo-title">管理者介面</span>
         <span className="hq-logo-sub">Administrator Interface</span>

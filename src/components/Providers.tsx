@@ -12,6 +12,8 @@ interface UiCtx {
   applyLogo: (value: unknown) => void;
 }
 const Ctx = createContext<UiCtx | null>(null);
+/** 只讀站台標誌、不需要包在 <Providers> 裡（後台元件與測試用）；沒有 Providers 時回預設款 */
+export const useSiteLogo = (): SiteLogo => useContext(Ctx)?.logo ?? resolveSiteLogo(null);
 export const useUi = () => {
   const c = useContext(Ctx);
   if (!c) throw new Error("useUi must be used inside <Providers>");
