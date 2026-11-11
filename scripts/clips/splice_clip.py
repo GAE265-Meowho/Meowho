@@ -2,6 +2,7 @@
 
     python3 scripts/clips/splice_clip.py base.glb new.glb out.glb [clip（預設 groom）]
 
+也可以加入 base.glb 還沒有的新動作（#379）。
 用途：母體 glb 有些動作是匯出後才用腳本改的（例如 scripts/clips/eat_drink.mjs 改 eat、drink），
 重新從 Blender 匯出整支 glb 會把那些修改蓋回去。只想換一個動作時，用這支把新匯出的那個動作接進目前的 glb。
 新動作的資料接在 buffer 後面，舊動作的資料留著不引用；節點用名稱對應。
@@ -41,8 +42,11 @@ for s in src['samplers']:
 for c in src['channels']:
     nn = new['nodes'][c['target']['node']].get('name')
     anim['channels'].append({'sampler': c['sampler'], 'target': {'node': names[nn], 'path': c['target']['path']}})
-idx = next(i for i, a in enumerate(base['animations']) if a['name'] == clip)
-base['animations'][idx] = anim
+idx = next((i for i, a in enumerate(base['animations']) if a['name'] == clip), None)
+if idx is None:                              # 新動作（例如 #379 belly_up）：接在動畫清單最後
+    base['animations'].append(anim)
+else:
+    base['animations'][idx] = anim
 
 # 原本的 buffer 一個位元組都不動，新的 groom 資料接在後面（舊 groom 的資料留著不引用）
 out = bytearray(bb)
