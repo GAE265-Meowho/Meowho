@@ -87,6 +87,53 @@ export function resultFiles(scene: RoomScene): string[] {
  * p 是地板座標（公尺，x、z 水平、y 向上）；room 的 min／max 是沿牆方向（轉 yaw 後）的範圍。
  * 夾在牆內 margin 公尺、高度 minY～maxY 之間。
  */
+export type RoomViewName = "front" | "back" | "left" | "right" | "top";
+export interface RoomView { pos: Vec3; dir: Vec3 }
+
+/**
+ * 前台預覽的五個固定視角（地板座標、公尺）。「前」＝站在門口往房間裡看。
+ * 還偵測不到門：用影片第一個拍攝點最靠近的那面牆當門口（多數人從門口開始拍）。
+ * handed：地板座標的 e1 × up 是 +e2 為 1、−e2 為 −1，用來分左右。
+ */
+export function roomViews(room: RoomScene["room"], start: Vec3, handed: number): Record<RoomViewName, RoomView> {
+  const c = Math.cos(room.yaw ?? 0), s = Math.sin(room.yaw ?? 0);
+  const toFloor = (u: number, v: number): [number, number] => [u * c - v * s, u * s + v * c];
+  const [u0, v0] = [start[0] * c + start[2] * s, -start[0] * s + start[2] * c];
+  const [umin, vmin] = room.min, [umax, vmax] = room.max;
+  const center = [(umin + umax) / 2, (vmin + vmax) / 2];
+  // 四面牆：牆中點和朝房間內的方向（房間座標 u、v）
+  const walls = [
+    { gap: u0 - umin, at: [umin, center[1]], inward: [1, 0], depth: umax - umin },
+    { gap: umax - u0, at: [umax, center[1]], inward: [-1, 0], depth: umax - umin },
+    { gap: v0 - vmin, at: [center[0], vmin], inward: [0, 1], depth: vmax - vmin },
+    { gap: vmax - v0, at: [center[0], vmax], inward: [0, -1], depth: vmax - vmin },
+  ];
+  const door = walls.reduce((a, b) => (b.gap < a.gap ? b : a));
+  const fromWall = (w: typeof door): RoomView => {
+    const inset = Math.min(0.5, w.depth * 0.25);
+    const [x, z] = toFloor(w.at[0] + w.inward[0] * inset, w.at[1] + w.inward[1] * inset);
+    const [dx, dz] = toFloor(w.inward[0], w.inward[1]);
+    return { pos: [x, EYE_M, z], dir: [dx, -0.25, dz] };  // 微微往下看，看得到地板和家具
+  };
+  const opposite = walls.find(w => w.inward[0] === -door.inward[0] && w.inward[1] === -door.inward[1])!;
+  const fwd = toFloor(door.inward[0], door.inward[1]);
+  const right: [number, number] = [-handed * fwd[1], handed * fwd[0]];  // 面向房間時的右手邊（地板 x、z）
+  const sides = walls.filter(w => w !== door && w !== opposite);
+  // 站在左牆往右看＝看到房間的左側視角；站的位置在面向房間時的左邊
+  const onRight = (w: typeof door) => { const [x, z] = toFloor(w.at[0] - center[0], w.at[1] - center[1]); return x * right[0] + z * right[1] > 0; };
+  const [cx, cz] = toFloor(center[0], center[1]);
+  return {
+    front: fromWall(door),
+    back: fromWall(opposite),
+    left: fromWall(sides.find(w => !onRight(w))!),
+    right: fromWall(sides.find(onRight)!),
+    // 天花板附近往下看；方向帶一點「前」，鏡頭的上方對著房間裡面（正下方轉頭會打轉）
+    top: { pos: [cx, TOP_M, cz], dir: [fwd[0] * 0.05, -1, fwd[1] * 0.05] },
+  };
+}
+const EYE_M = 1.5;
+const TOP_M = 2.15;
+
 export function clampInRoom([x, y, z]: Vec3, room: RoomScene["room"], margin = 0.15, minY = 0.2, maxY = 2.2): Vec3 {
   const c = Math.cos(room.yaw ?? 0), s = Math.sin(room.yaw ?? 0);
   const clamp = (v: number, lo: number, hi: number) => Math.min(Math.max(v, lo), hi);

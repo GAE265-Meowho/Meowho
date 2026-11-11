@@ -7,10 +7,12 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { HqSkeleton } from "@/components/hq/HqStates";
 import {
-  cameraForward, clampInRoom, roomSplats, roomUnit, sortCameras,
-  type RoomCamera, type RoomLayout, type RoomScene,
+  cameraForward, clampInRoom, roomSplats, roomUnit, roomViews, sortCameras,
+  type RoomCamera, type RoomLayout, type RoomScene, type RoomViewName,
 } from "@/lib/hq/rooms/demo";
 import { createRoomWorld, type RoomWorld } from "@/lib/hq/rooms/world";
+import { isPrivateRoomBase, keepRecentRoom, roomFile } from "@/lib/home-room-cache";
+import { getBrowserSupabase } from "@/lib/supabase/client";
 import { placeScanItems, type SceneItem } from "@/lib/play/scene-items";
 import { sceneCatCommand } from "@/lib/play/scene-cat";
 import type { CatAction } from "@/lib/play/stage";
@@ -63,14 +65,16 @@ export interface RoomWand { toy: SceneItem; onCatch: (caught: boolean) => void }
  * items：要擺進房間的虛擬用品（外出籠、餐碗、貓砂盆），位置由 placeScanItems 算在地板上，換了清單會即時更新
  * story：虛擬飼養的貓配合劇情（action＝null 躲起來、carrier 走到外出籠、sleep 跳上床…），換了（at 不同）就執行
  * wand：3D 逗貓。給了就停用拖曳轉頭，玩具跟著滑鼠／手指在地板上移動，貓追著撲；每次撲完呼叫 onCatch(是否抓到)
- * bubble：貓頭頂的小對話框（表情符號），跟著貓在畫面上移動
+ * bubble：貓頭頂的小對話框（SVG 圖示），跟著貓在畫面上移動
  * controls：false 時不顯示拍攝點與貓咪動作按鈕（虛擬飼養用；拖曳、WASD、點地板仍可用）
  * noCat：只看房間、不放貓（前台我的 3D 房間預覽；貓等進了領養任務才出現）
+ * overlay：前台預覽版面：前／後／左／右／上五個固定視角疊在畫面上；電腦用 WASD 走、手機用左下角搖桿；
+ *   每次開場先跳操作說明，按掉後縮成右下角的按鈕；滾輪還給網頁捲動（觸控板不會誤走）；手機瀏覽器支援時有全螢幕按鈕
  */
-export default function RoomViewer({ base, cat, items, controls = true, story, wand, bubble, bubbleInset = 0, lookKey, noCat = false }: {
-  base: string; cat?: { baseUrl: string; albedoUrl: string } | null; items?: readonly SceneItem[]; controls?: boolean; noCat?: boolean;
+export default function RoomViewer({ base, cat, items, controls = true, story, wand, bubble, bubbleInset = 0, lookKey, noCat = false, overlay = false }: {
+  base: string; cat?: { baseUrl: string; albedoUrl: string } | null; items?: readonly SceneItem[]; controls?: boolean; noCat?: boolean; overlay?: boolean;
   story?: { action: CatAction | null; at: number } | null; wand?: RoomWand | null;
-  /** 貓頭頂的小對話框（表情符號）；null＝不顯示 */
+  /** 貓頭頂的小對話框（SVG 圖示）；null＝不顯示 */
   bubble?: React.ReactNode;
   /** 畫面下方被劇情卡蓋住的比例（0～1）；對話框不會畫到那裡，貓在卡片後面時貼在卡片上緣 */
   bubbleInset?: number;
@@ -79,6 +83,14 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
 }) {
   const host = useRef<HTMLDivElement>(null);
   const goTo = useRef<(step: number) => void>(() => {});
+  const goView = useRef<(name: RoomViewName) => void>(() => {});
+  const stick = useRef({ x: 0, y: 0 });  // 手機搖桿：x 右、y 前，長度 0～1
+  const [touch] = useState(() => typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches);
+  const [help, setHelp] = useState(false);
+  const [progress, setProgress] = useState<number | null>(null);  // 前台房間下載進度（%）；null＝不顯示
+  // 全螢幕只給手機（轉橫太小）；電腦螢幕夠大，而且不少瀏覽器會擋，按了沒反應反而困惑
+  const [canFull] = useState(() => typeof document !== "undefined" && document.fullscreenEnabled && window.matchMedia("(pointer: coarse)").matches);
+  const [viewName, setViewName] = useState<RoomViewName>("front");
   const world = useRef<RoomWorld | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [spot, setSpot] = useState({ index: 0, total: 0 });
@@ -109,10 +121,20 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
 
     const load = async () => {
       const root = `${base.replace(/\/$/, "")}/`;
+      // 前台私有房間：檔案存在瀏覽器（第二次打開不用再下載），並顯示下載進度
+      const priv = isPrivateRoomBase(base);
+      const userId = priv ? (await getBrowserSupabase()?.auth.getSession())?.data.session?.user.id ?? null : null;
+      const showProgress = (loaded: number, total: number) => { if (total && !cancelled) setProgress(Math.min(99, Math.round((loaded / total) * 100))); };
+      const get = (file: string, onProgress?: typeof showProgress) => roomFile(`${root}${file}`, userId, onProgress);
+      const json = async <T,>(file: string): Promise<T> => (priv ? JSON.parse(await (await get(file)).text()) : readJson<T>(`${root}${file}`));
+      // 房間主體最大，和設定檔同時開始下載；沒有 room_cut 的舊房間這個請求會失敗，之後改讀 scene.splat
+      const CUT = "objects/room_cut.splat";
+      if (priv) setProgress(0);
+      const cut = priv ? get(CUT, showProgress).catch(() => null) : null;
       const [scene, layout, rawCameras] = await Promise.all([
-        readJson<RoomScene>(`${root}scene.json`),
-        readJson<RoomLayout>(`${root}scene.layout.json`),
-        readJson<RoomCamera[]>(`${root}scene.cameras.json`),
+        json<RoomScene>("scene.json"),
+        json<RoomLayout>("scene.layout.json"),
+        json<RoomCamera[]>("scene.cameras.json"),
       ]);
       if (cancelled) return;
       const cameras = sortCameras(rawCameras);
@@ -124,7 +146,21 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
       };
       // 影片開頭常貼著牆或家具、晃得最厲害，改從中段的拍攝點開場
       let index = Math.floor(cameras.length / 2);
-      const first = view(cameras[index]);
+      // 前台預覽：五個固定視角，從門口（前）開場
+      const [ve1, vup, ve2, vorigin] = (["e1", "up", "e2", "origin"] as const).map(k => new THREE.Vector3(...layout[k]));
+      const floorOf = (p: THREE.Vector3): [number, number, number] => {
+        const d = p.clone().sub(vorigin).divideScalar(layout.units_per_meter);
+        return [d.dot(ve1), d.dot(vup), d.dot(ve2)];
+      };
+      const views = roomViews(scene.room, floorOf(new THREE.Vector3(...cameras[0].position)), Math.sign(ve1.clone().cross(vup).dot(ve2)) || 1);
+      const fixedView = (name: RoomViewName) => {
+        const { pos: [x, y, z], dir: [dx, dy, dz] } = views[name];
+        const pos = vorigin.clone().addScaledVector(ve1, x * layout.units_per_meter)
+          .addScaledVector(vup, y * layout.units_per_meter).addScaledVector(ve2, z * layout.units_per_meter);
+        const dir = ve1.clone().multiplyScalar(dx).addScaledVector(vup, dy).addScaledVector(ve2, dz).normalize();
+        return { pos, look: pos.clone().addScaledVector(dir, unit * 0.01) };
+      };
+      const first = overlay ? fixedView("front") : view(cameras[index]);
       const threeScene = new THREE.Scene();  // 貓畫在這，高斯點會依深度蓋在它前面
       const movable = scene.assets.room_cut && scene.objects.some(o => o.splat);
       viewer = new GS.Viewer({
@@ -141,12 +177,26 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
       });
       viewer.camera.near = unit * 0.002;  // 預設值會切掉近處牆面
       viewer.camera.updateProjectionMatrix();
+      const blobUrls: string[] = [];
+      const splatPath = async (url: string) => {
+        if (!priv) return url;
+        const file = url.slice(root.length);
+        const blob = (file === CUT ? await cut : null) ?? await get(file, file === scene.assets.room ? showProgress : undefined);
+        const u = URL.createObjectURL(blob);
+        blobUrls.push(u);
+        return u;
+      };
+      const splats = await Promise.all(roomSplats(base, scene).map(async s => ({ ...s, url: await splatPath(s.url) })));
+      if (cancelled) { blobUrls.forEach(u => URL.revokeObjectURL(u)); return; }
       await viewer.addSplatScenes(
-        roomSplats(base, scene).map(s => ({
+        splats.map(s => ({
           path: s.url, format: GS.SceneFormat.Splat, splatAlphaRemovalThreshold: ALPHA_THRESHOLD, position: s.position,
         })),
         false,
       );
+      blobUrls.forEach(u => URL.revokeObjectURL(u));
+      setProgress(null);
+      if (userId) keepRecentRoom(userId, base.replace(/\/$/, "")).catch(() => {});
       if (cancelled) return;
       viewer.start();
       const active = viewer;
@@ -180,8 +230,10 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
         setSpot({ index, total: cameras.length });
         tweenTo(view(cameras[index]));
       };
+      goView.current = name => { setViewName(name); tweenTo(fixedView(name)); };
       setSpot({ index, total: cameras.length });
       setStatus("ready");
+      if (overlay) setHelp(true);
 
       // 貓和物理載入失敗時，房間照常可以看
       const roomWorld = noCat ? null : await createRoomWorld({
@@ -226,6 +278,7 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
         if (inside.distanceToSquared(active.camera.position) > 1e-12) move(inside.sub(active.camera.position));
       };
       el.addEventListener("wheel", e => {
+        if (overlay) return;  // 前台：觸控板兩指滑常誤觸，滾輪還給網頁捲動
         e.preventDefault();
         move(directions().fwd.multiplyScalar(-Math.sign(e.deltaY) * unit * 0.03));
       }, { passive: false, signal: abort.signal });
@@ -256,9 +309,11 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
           controls.target.lerpVectors(tween.from.look, tween.to.look, t);
           active.forceRenderNextFrame();
           if (t === 1) tween = null;
-        } else if (held.size) {
+        } else if (held.size || stick.current.x || stick.current.y) {
           const { up, fwd, right } = directions();
           const d = new THREE.Vector3();
+          // 搖桿推越遠走越快；和鍵盤同時用時合起來不超過全速
+          d.addScaledVector(fwd, stick.current.y).addScaledVector(right, stick.current.x);
           if (held.has("KeyW")) d.add(fwd);
           if (held.has("KeyS")) d.sub(fwd);
           if (held.has("KeyD")) d.add(right);
@@ -267,7 +322,8 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
           if (held.has("KeyQ")) d.sub(up);
           if (d.lengthSq()) {
             const fast = held.has("ShiftLeft") || held.has("ShiftRight");
-            move(d.normalize().multiplyScalar(unit * WALK_SPEED * (fast ? RUN_FACTOR : 1) * dt));
+            if (held.size) d.normalize(); else d.clampLength(0, 1);
+            move(d.multiplyScalar(unit * WALK_SPEED * (fast ? RUN_FACTOR : 1) * dt));
           }
         }
         if (!tween) keepInRoom();
@@ -294,6 +350,7 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
       abort.abort();
       cancelAnimationFrame(frame);
       goTo.current = () => {};
+      goView.current = () => {};
       world.current = null;
       orbit.current = null;
       setWorldReady(false);
@@ -303,7 +360,7 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
       viewer?.dispose().catch(() => {}).finally(() => stage.remove());
       if (!viewer) stage.remove();
     };
-  }, [base, cat?.baseUrl, cat?.albedoUrl, noCat]);
+  }, [base, cat?.baseUrl, cat?.albedoUrl, noCat, overlay]);
 
   // 虛擬用品清單變了就重擺（讀完房間後才做）
   useEffect(() => {
@@ -398,10 +455,34 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
   return (
     <section className="hq-roomviewer" aria-label="展示房間">
       <div ref={host} className="hq-roomviewer-host">
-        {status === "loading" && <div className="hq-roomviewer-loading"><HqSkeleton rows={3} /></div>}
+        {status === "loading" && <div className="hq-roomviewer-loading">
+          {progress === null ? <HqSkeleton rows={3} /> : (
+            <div className="hq-roomviewer-progress" role="progressbar" aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100} aria-label="房間載入中">
+              <p>房間載入中 {progress}%</p>
+              {/* 進度條用行內樣式，前台預覽和 /play 都能顯示 */}
+              <div style={{ height: 8, borderRadius: 4, background: "rgb(0 0 0 / 0.1)", overflow: "hidden" }}>
+                <span style={{ display: "block", height: "100%", width: `${progress}%`, background: "currentColor", transition: "width .2s" }} />
+              </div>
+              <small>第一次打開要下載整間房間，之後再看會快很多</small>
+            </div>
+          )}
+        </div>}
         <div ref={bubbleEl} className="hq-roomviewer-bubble" aria-hidden="true">{bubble}</div>
+        {overlay && status === "ready" && <>
+          <div className="hq-roomviewer-views" role="group" aria-label="切換視角">
+            {VIEW_BUTTONS.map(([name, label]) => (
+              <button key={name} type="button" aria-pressed={viewName === name} onClick={() => goView.current(name)}>{label}</button>
+            ))}
+          </div>
+          {(!help || canFull) && <div className="hq-roomviewer-tools">
+            {!help && <button type="button" onClick={() => setHelp(true)}>？操作說明</button>}
+            {canFull && <button type="button" aria-label="全螢幕" onClick={() => toggleFull(host.current)}>⛶</button>}
+          </div>}
+          {touch && <Stick onMove={v => { stick.current = v; }} />}
+          {help && <ViewerHelp touch={touch} onClose={() => setHelp(false)} />}
+        </>}
       </div>
-      {controls && (
+      {controls && !overlay && (
         <>
         <div className="hq-roomviewer-bar">
           <button type="button" className="hq-btn ghost" onClick={() => goTo.current(-1)} disabled={status !== "ready"}>上一個拍攝點</button>
@@ -418,5 +499,54 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
         </>
       )}
     </section>
+  );
+}
+
+const VIEW_BUTTONS: [RoomViewName, string][] = [["front", "前"], ["back", "後"], ["left", "左"], ["right", "右"], ["top", "上"]];
+
+
+/** 全螢幕切換；手機順便鎖橫向（Android Chrome 支援，iPhone 沒有網頁全螢幕，按鈕不會出現） */
+function toggleFull(el: HTMLElement | null) {
+  if (document.fullscreenElement) { document.exitFullscreen().catch(() => {}); return; }
+  el?.requestFullscreen().then(() => {
+    (screen.orientation as ScreenOrientation & { lock?: (o: string) => Promise<void> }).lock?.("landscape").catch(() => {});
+  }).catch(() => {});
+}
+
+/** 手機左下角的搖桿：往上推前進、往下後退、左右橫移，推越遠走越快 */
+function Stick({ onMove }: { onMove: (v: { x: number; y: number }) => void }) {
+  const [knob, setKnob] = useState({ x: 0, y: 0 });
+  const R = 44;  // 搖桿可移動半徑（px）
+  const at = (e: React.PointerEvent<HTMLDivElement>) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    let x = e.clientX - (r.left + r.width / 2), y = e.clientY - (r.top + r.height / 2);
+    const len = Math.hypot(x, y);
+    if (len > R) { x *= R / len; y *= R / len; }
+    setKnob({ x, y });
+    onMove({ x: x / R, y: -y / R });
+  };
+  const stop = () => { setKnob({ x: 0, y: 0 }); onMove({ x: 0, y: 0 }); };
+  return (
+    <div className="hq-roomviewer-stick" role="application" aria-label="搖桿：往上推前進，往下後退，左右橫移"
+      onPointerDown={e => { e.currentTarget.setPointerCapture(e.pointerId); at(e); }}
+      onPointerMove={e => { if (e.currentTarget.hasPointerCapture(e.pointerId)) at(e); }}
+      onPointerUp={stop} onPointerCancel={stop} onContextMenu={e => e.preventDefault()}>
+      <span style={{ transform: `translate(${knob.x}px, ${knob.y}px)` }} />
+    </div>
+  );
+}
+
+function ViewerHelp({ touch, onClose }: { touch: boolean; onClose: () => void }) {
+  const rows: [string, string][] = touch
+    ? [["👆", "單指拖曳畫面：轉頭看四周"], ["🕹️", "左下角搖桿：往上推前進、往下後退、左右橫移"], ["🧭", "上方「前／後／左／右／上」：換到固定視角"], ["📱", "手機轉橫看得更大"]]
+    : [["🖱️", "拖曳畫面：轉頭看四周"], ["⌨️", "W／S 前進後退，A／D 左右橫移，Q／E 下降上升，按住 Shift 加速"], ["🧭", "上方「前／後／左／右／上」：換到固定視角"]];
+  return (
+    <div className="hq-roomviewer-help" role="dialog" aria-modal="false" aria-labelledby="room-help-title">
+      <div>
+        <h3 id="room-help-title">怎麼看你家的 3D 房間</h3>
+        <ul>{rows.map(([icon, text]) => <li key={text}><span aria-hidden="true">{icon}</span>{text}</li>)}</ul>
+        <button type="button" onClick={onClose}>知道了</button>
+      </div>
+    </div>
   );
 }

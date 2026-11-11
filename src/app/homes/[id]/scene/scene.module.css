@@ -9,6 +9,7 @@
 }
 
 /* 預覽：沿用 MeowHQ 的房間檢視器（RoomViewer），它的 hq-* class 在前台沒有樣式，這裡補上會用到的 */
+.viewer { width: 100%; align-self: stretch; }  /* 完成頁的卡片置中對齊，沒有按鈕列撐寬時房間會縮成 0 */
 .viewer :global(.hq-roomviewer) { display: flex; flex-direction: column; gap: 12px; }
 .viewer :global(.hq-roomviewer-host) { position: relative; height: min(60vh, 520px); border-radius: 20px; overflow: hidden; background: var(--yellow-soft); }
 .viewer :global(.hq-roomviewer-stage) { position: absolute; inset: 0; }
@@ -72,3 +73,44 @@
 .frame { width: 100%; border-radius: 12px; border: 1px solid var(--line); display: block; }
 .note { margin: 0; font-size: 13px; color: var(--ink-soft); }
 @media (prefers-reduced-motion: reduce) { .bar > div { transition: none; } }
+
+/* 前台預覽（RoomViewer overlay）：視角按鈕、工具鈕、搖桿疊在畫面上，半透明、手指好按 */
+.viewer :global(.hq-roomviewer-views),
+.viewer :global(.hq-roomviewer-tools) { position: absolute; z-index: 2; display: flex; gap: 6px; padding: 4px; border-radius: 999px; background: rgb(255 255 255 / 0.55); backdrop-filter: blur(6px); }
+.viewer :global(.hq-roomviewer-views) { top: 12px; left: 50%; transform: translateX(-50%); }
+.viewer :global(.hq-roomviewer-tools) { bottom: 12px; right: 12px; }
+.viewer :global(.hq-roomviewer-views button),
+.viewer :global(.hq-roomviewer-tools button) {
+  min-width: 44px; min-height: 44px; padding: 0 12px; border: 0; border-radius: 999px;
+  font: inherit; font-weight: 600; color: var(--ink); background: rgb(255 255 255 / 0.75); cursor: pointer;
+}
+.viewer :global(.hq-roomviewer-views button[aria-pressed="true"]) { color: #fff; background: var(--ink); }
+
+.viewer :global(.hq-roomviewer-stick) {
+  position: absolute; z-index: 2; left: 16px; bottom: 16px; width: 120px; height: 120px; border-radius: 50%;
+  display: grid; place-items: center; background: rgb(255 255 255 / 0.35); border: 2px solid rgb(255 255 255 / 0.7);
+  backdrop-filter: blur(4px); touch-action: none; user-select: none; -webkit-user-select: none;
+}
+.viewer :global(.hq-roomviewer-stick span) { width: 52px; height: 52px; border-radius: 50%; background: rgb(255 255 255 / 0.9); box-shadow: 0 2px 8px rgb(0 0 0 / 0.2); pointer-events: none; }
+
+.viewer :global(.hq-roomviewer-help) { position: absolute; inset: 0; z-index: 3; display: grid; place-items: center; padding: 16px; background: rgb(0 0 0 / 0.35); }
+.viewer :global(.hq-roomviewer-help > div) { max-width: 360px; padding: 20px; border-radius: 20px; background: #fff; color: var(--ink); }
+.viewer :global(.hq-roomviewer-help h3) { margin: 0 0 12px; font-size: 1.05rem; }
+.viewer :global(.hq-roomviewer-help ul) { margin: 0 0 16px; padding: 0; list-style: none; display: grid; gap: 10px; }
+.viewer :global(.hq-roomviewer-help li) { display: flex; gap: 10px; line-height: 1.5; }
+.viewer :global(.hq-roomviewer-help button) { width: 100%; min-height: 44px; border: 0; border-radius: 999px; font: inherit; font-weight: 600; color: #fff; background: var(--ink); cursor: pointer; }
+
+/* 全螢幕（Android Chrome、電腦）：房間佔滿螢幕 */
+.viewer :global(.hq-roomviewer-host:fullscreen) { border-radius: 0; }
+
+/* 手機轉橫（不支援全螢幕的瀏覽器）：至少佔滿瀏覽器的可視範圍，蓋過頁首和底部分頁列 */
+@media (orientation: landscape) and (max-height: 520px) {
+  .viewer :global(.hq-roomviewer-host) { position: fixed; inset: 0; z-index: 1000; height: auto; border-radius: 0; }
+}
+
+/* 房間下載進度 */
+.viewer :global(.hq-roomviewer-loading) { display: grid; place-items: center; }
+.viewer :global(.hq-roomviewer-progress) { width: min(320px, 80%); display: grid; gap: 10px; text-align: center; color: var(--ink); }
+.viewer :global(.hq-roomviewer-progress p) { margin: 0; font-weight: 600; }
+.viewer :global(.hq-roomviewer-progress small) { color: var(--ink-soft); }
+
