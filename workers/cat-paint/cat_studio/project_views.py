@@ -187,6 +187,19 @@ def fit_camera(v, f, cam_dir, right, photo_mask, keep, init=None):
 
 # ───────── 主流程 ─────────
 
+def remove_whiskers(img, k=9, thr=22):
+    """照片裡的白色細鬍鬚（越過臉頰、胸口）會被投影成貼圖上的白線：找出比周圍亮很多、偏白的細線，用中值色補掉"""
+    pil = Image.fromarray(img.astype(np.uint8))
+    med = np.asarray(pil.filter(ImageFilter.MedianFilter(k)), np.float32)
+    g = img.mean(2); gm = med.mean(2)
+    mx, mn = img.max(2), img.min(2)
+    sat = (mx - mn) / np.maximum(mx, 1)
+    m = ((g - gm) > thr) & (sat < 0.28) & (g > 140)
+    m = np.asarray(Image.fromarray((m * 255).astype(np.uint8)).filter(ImageFilter.MaxFilter(3))) > 0
+    out = img.copy(); out[m] = med[m]
+    return out, m
+
+
 def photo_and_mask(cat_dir, name):
     img = Image.open(cat_dir / f"{name}.png").convert("RGB")
     nobg = cat_dir / f"{name}_nobg.png"
@@ -201,7 +214,22 @@ def photo_and_mask(cat_dir, name):
             from hy3dgen.rembg import BackgroundRemover
             BackgroundRemover()(img).save(nobg)
     alpha = np.asarray(Image.open(nobg).convert("RGBA"))[:, :, 3] > 128
-    return np.asarray(img, np.float32), alpha
+    arr = np.asarray(img, np.float32)
+    if name == "ai_back":                                      # 背面看不到鬍鬚，不處理（避免把毛的亮部也抹掉）
+        return arr, alpha
+    clean, wm = remove_whiskers(arr)
+    # 只處理頭到胸口：貓輪廓上方 45%（側面再限前半段），其他地方的亮毛保留
+    ys, xs = np.nonzero(alpha)
+    zone = np.zeros_like(alpha)
+    y1 = ys.min() + int(0.45 * (ys.max() - ys.min()))
+    if name == "ai_left":                                      # 頭朝左
+        zone[:y1, :xs.min() + int(0.45 * (xs.max() - xs.min()))] = True
+    else:
+        zone[:y1] = True
+    wm &= zone
+    arr = np.where(wm[:, :, None], clean, arr)
+    print(f"{name}：去掉照片上的鬍鬚 {wm[alpha].mean() * 100:.1f}% 像素（3D 模型另有鬍鬚網格）")
+    return arr, alpha
 
 
 def detect_eyes(img, alpha):
