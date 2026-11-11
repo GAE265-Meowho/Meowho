@@ -28,12 +28,18 @@ await db.exec(read("./stub_supabase.sql"));
 for (const file of migrationFiles) await db.exec(read(`../migrations/${file}`));
 await db.exec(read("../migrations/0031_meow_env_jobs.sql"));
 await db.exec(read("../migrations/0031_meow_env_jobs.sql"));
+await db.exec(read("../migrations/0034_meow_env_notifications.sql"));
+await db.exec(read("../migrations/0034_meow_env_notifications.sql"));
 
 await db.exec(`
   insert into auth.users (id, email) values ('${id("001")}', 'env29@example.test');
-  insert into public.meow_profiles (id, email, display_name) values ('${id("001")}', 'env29@example.test', 'env29');
+  insert into auth.users (id, email) values ('${id("002")}', 'other-owner@example.test');
+  insert into public.meow_profiles (id, email, display_name) values
+    ('${id("001")}', 'env29@example.test', 'env29'),
+    ('${id("002")}', 'other-owner@example.test', 'other-owner');
   insert into public.meow_households (id, owner_id, name, caretaker_type, city, district)
-    values ('${id("101")}', '${id("001")}', '測試喵戶', 'cat_owner', '桃園市', '中壢區');
+    values ('${id("101")}', '${id("001")}', '測試喵戶', 'cat_owner', '桃園市', '中壢區'),
+           ('${id("102")}', '${id("002")}', '其他喵戶', 'cat_owner', '桃園市', '中壢區');
   insert into public.meow_room_models (id, name, status, video_path, created_by)
     values ('room_20261106_290001', '測試房間', 'queued', 'homes/${id("101")}/videos/${id("201")}.mp4', '${id("001")}');
   insert into public.meow_home_videos (id, household_id, path, purpose, status, size_bytes, duration_s, uploaded_at)
@@ -50,12 +56,24 @@ check("重試不重複建立", 1, retry.rows.length);
 check("只有一筆 env job", 1, await one(db, `select count(*) from public.meow_env_jobs where video_id = '${id("201")}'`));
 check("authenticated 不可執行排程 RPC", false, await one(db, `select has_function_privilege('authenticated', 'public.meow_create_home_processing(uuid,text,uuid)', 'execute')`));
 check("authenticated 不可執行 Worker RPC", false, await one(db, `select has_function_privilege('authenticated', 'public.meow_env_claim(text)', 'execute')`));
+check("authenticated 不可執行 complete Worker RPC", false, await one(db, `select has_function_privilege('authenticated', 'public.meow_env_complete(uuid,integer,text,jsonb,jsonb,text,text)', 'execute')`));
+check("authenticated 不可執行 fail Worker RPC", false, await one(db, `select has_function_privilege('authenticated', 'public.meow_env_fail(uuid,integer,text,text,boolean)', 'execute')`));
 check("service_role 可執行 Worker RPC", true, await one(db, `select has_function_privilege('service_role', 'public.meow_env_claim(text)', 'execute')`));
 check("所有 PR A SECURITY DEFINER 都固定安全 search_path", 9, await one(db, `select count(*) from pg_proc where pronamespace='public'::regnamespace and prosecdef and proname in ('meow_env_path_ok','meow_create_home_processing','meow_env_claim','meow_env_renew','meow_env_complete','meow_env_fail','meow_env_cancel_on_report_delete','meow_env_cancel_on_household_delete','meow_env_cancel_on_video_delete') and proconfig @> array['search_path=pg_catalog, public']`));
+check("通知 trigger 是 SECURITY DEFINER 且 search_path 固定", true, await one(db, `select prosecdef and proconfig @> array['search_path=pg_catalog, public'] from pg_proc where proname='meow_notify_env_job_terminal'`));
+check("通知 trigger function 不可由 service_role 直接呼叫", false, await one(db, `select has_function_privilege('service_role', 'public.meow_notify_env_job_terminal()', 'execute')`));
 await db.query("set role authenticated");
 const memberCall = await errorCode(db.query(`select public.meow_create_home_processing('${id("201")}', 'room_20261106_290001', '${id("902")}')`));
 await db.query("reset role");
 check("authenticated 直接呼叫排程 RPC 被拒", true, memberCall.includes("permission denied"));
+await db.query("set role authenticated");
+const memberFailCall = await errorCode(db.query(`select public.meow_env_fail('${id("999")}', 1, 'timeout', 'x', false)`));
+await db.query("reset role");
+check("authenticated 直接呼叫 fail Worker RPC 被拒", true, memberFailCall.includes("permission denied"));
+await db.query("set role authenticated");
+const memberCompleteCall = await errorCode(db.query(`select public.meow_env_complete('${id("999")}', 1, '摘要', '[]', '[]', 'x', 'y')`));
+await db.query("reset role");
+check("authenticated 直接呼叫 complete Worker RPC 被拒", true, memberCompleteCall.includes("permission denied"));
 
 const claim = await one(db, `select public.meow_env_claim('worker-a')`);
 check("claim 回傳 job", id("201"), (claim?.video_id ?? claim?.source_video_id));
@@ -73,9 +91,13 @@ check("過期 attempt 不可結案", "env_lease_expired", stale);
 
 const fail = await errorCode(db.query(`select public.meow_env_fail('${jobId}', ${attempt}, 'timeout', '暫時失敗', true)`));
 check("過期 attempt fail 拒絕", "env_lease_expired", fail);
+check("過期 attempt 拒絕後不發通知", 0, await one(db, `select count(*) from public.meow_notifications where dedupe_key like 'env_job:${jobId}:%'`));
 await db.exec(`update public.meow_env_jobs set max_attempts = 1 where id = '${jobId}'`);
 check("租約耗盡後 claim 結束工作但不外洩技術細節", null, await one(db, `select public.meow_env_claim('worker-exhausted')`));
 check("租約耗盡使用契約系統錯誤訊息", "我們這邊出了問題，修好會通知你，不要求重拍。", await one(db, `select error from public.meow_env_reports where id = (select report_id from public.meow_env_jobs where id = '${jobId}')`));
+check("租約耗盡終態只通知該 Household Owner", 1, await one(db, `select count(*) from public.meow_notifications where dedupe_key = 'env_job:${jobId}:failed' and user_id = '${id("001")}'`));
+check("lease_expired 通知文案沿用 user_error 且連結正確", 1, await one(db, `select count(*) from public.meow_notifications where dedupe_key = 'env_job:${jobId}:failed' and type = 'home_safety_failed' and title = '安全報告沒有產生成功' and body = public.meow_env_user_error('lease_expired') and link = '/homes/${id("101")}/safety'`));
+check("通知不寄給其他 Household Owner", 0, await one(db, `select count(*) from public.meow_notifications where dedupe_key = 'env_job:${jobId}:failed' and user_id = '${id("002")}'`));
 
 await db.exec(`
   insert into public.meow_home_videos (id, household_id, path, purpose, status, size_bytes, duration_s, uploaded_at)
@@ -93,6 +115,8 @@ check("完整成果可結案", "done", done);
 check("報告 ready", "ready", await one(db, `select status from public.meow_env_reports where video_id = '${id("202")}'`));
 const already = await one(db, `select public.meow_env_complete('${safetyJob}', ${safetyAttempt}, '完成', '[]', '[]', '${jsonPath}', '${pdfPath}')`);
 check("complete 冪等", "already_done", already);
+check("第一次 done 通知正確 Owner 且只一則", 1, await one(db, `select count(*) from public.meow_notifications where dedupe_key = 'env_job:${safetyJob}:done' and user_id = '${id("001")}' and type = 'home_safety_ready' and title = '你家的安全報告好了' and link = '/homes/${id("101")}/safety'`));
+check("重複 complete 不重複通知", 1, await one(db, `select count(*) from public.meow_notifications where dedupe_key = 'env_job:${safetyJob}:done'`));
 
 await db.exec(`
   insert into public.meow_home_videos (id, household_id, path, purpose, status, size_bytes, duration_s, uploaded_at)
@@ -103,6 +127,7 @@ const retryJob = await one(db, `select id from public.meow_env_jobs where video_
 await db.query(`select public.meow_env_claim('worker-c')`);
 const requeued = await one(db, `select public.meow_env_fail('${retryJob}', 1, 'timeout', '暫時錯誤', true)`);
 check("暫時錯誤重新排隊", "requeued", requeued);
+check("可重試失敗不通知", 0, await one(db, `select count(*) from public.meow_notifications where dedupe_key like 'env_job:${retryJob}:%'`));
 const retryReportId = await one(db, `select report_id from public.meow_env_jobs where id='${retryJob}'`);
 check("暫時性重試不提前永久失敗報告", "queued|null", await one(db, `select status || '|' || coalesce(error, 'null') from public.meow_env_reports where id = '${retryReportId}'`));
 check("重試技術細節只保存在 job", "暫時錯誤", await one(db, `select error_detail from public.meow_env_jobs where id = '${retryJob}'`));
@@ -137,6 +162,9 @@ await rejectResult("不符合 prefix 的 JSON 路徑拒絕", "'摘要'", "'[]'",
 await rejectResult("PDF 必須是唯一必要檔名", "'摘要'", "'[]'", "'[]'", `'${retryPrefix}result.json'`, `'${retryPrefix}preview.pdf'`);
 await rejectResult("warning 欄位不得多餘", "'摘要'", "'[]'", "'[{\"code\":\"low_light\",\"message\":\"偏暗\",\"extra\":true}]'", `'${retryPrefix}result.json'`, `'${retryPrefix}report.pdf'`);
 check("不可重試錯誤永久失敗", "failed", await one(db, `select public.meow_env_fail('${retryJob}', 2, 'video_not_indoor', '不是室內影片', true)`));
+check("最終 failed 通知正確 Owner、文案與安全連結", 1, await one(db, `select count(*) from public.meow_notifications where dedupe_key = 'env_job:${retryJob}:failed' and user_id = '${id("001")}' and type = 'home_safety_failed' and title = '安全報告沒有產生成功' and body = public.meow_env_user_error('video_not_indoor') and link = '/homes/${id("101")}/safety'`));
+check("重複 final fail 回應不重複通知", "failed", await one(db, `select public.meow_env_fail('${retryJob}', 2, 'video_not_indoor', '再次回呼', false)`));
+check("重複 final fail 仍只有一則通知", 1, await one(db, `select count(*) from public.meow_notifications where dedupe_key = 'env_job:${retryJob}:failed'`));
 check("影片類永久失敗不可由重排 RPC 重試", "env_job_not_requeueable", await errorCode(db.query(`select public.meow_create_home_processing('${id("203")}', null, '${id("888")}')`)));
 await db.exec(`insert into public.meow_home_videos (id, household_id, path, purpose, status, uploaded_at) values ('${id("206")}', '${id("101")}', 'homes/${id("101")}/videos/${id("206")}.mp4', 'safety', 'uploaded', now());`);
 await db.query(`select public.meow_create_home_processing('${id("206")}', null, '${id("906")}')`);
@@ -158,6 +186,7 @@ check("刪報告後仍保留影片清理路徑", `homes/${id("101")}/videos/${id
 check("取消後 renew 拒絕", "env_job_canceled", await errorCode(db.query(`select public.meow_env_renew('${requeuedJob}', 0, 'late')`)));
 check("取消後 complete 拒絕", "env_job_canceled", await errorCode(db.query(`select public.meow_env_complete('${requeuedJob}', 0, 'x', '[]', '[]', '${jsonPath}', '${pdfPath}')`)));
 check("取消後 fail 拒絕", "env_job_canceled", await errorCode(db.query(`select public.meow_env_fail('${requeuedJob}', 0, 'timeout', 'late', true)`)));
+check("取消工作不產生通知", 0, await one(db, `select count(*) from public.meow_notifications where dedupe_key like 'env_job:${requeuedJob}:%'`));
 
 // Every code listed in v0.4 §4.6 is accepted by the fail RPC.
 await db.exec(`insert into public.meow_home_videos (id, household_id, path, purpose, status, uploaded_at) values ('${id("207")}', '${id("101")}', 'homes/${id("101")}/videos/${id("207")}.mp4', 'safety', 'uploaded', now());`);
@@ -188,6 +217,7 @@ await db.exec(`update public.meow_home_videos set raw_deleted_at=now() where id=
 const invalidSourceJob = await one(db, `select id from public.meow_env_jobs where video_id='${id("209")}'`);
 check("不可用來源在 claim 時結束且不再派發", null, await one(db, `select public.meow_env_claim('worker-source-invalid')`));
 check("claim 的來源錯誤使用安全飼主訊息", "影片沒有上傳完整，請重新上傳。", await one(db, `select error from public.meow_env_reports where video_id='${id("209")}'`));
+check("claim 判定 source_invalid 時通知正確 Owner 與文案", 1, await one(db, `select count(*) from public.meow_notifications where dedupe_key = 'env_job:${invalidSourceJob}:failed' and user_id = '${id("001")}' and body = public.meow_env_user_error('source_invalid') and link = '/homes/${id("101")}/safety'`));
 check("claim 的來源錯誤碼保留", "source_invalid", await one(db, `select error_code from public.meow_env_jobs where id='${invalidSourceJob}'`));
 check("來源失敗 tombstone 仍保留影片路徑", `homes/${id("101")}/videos/${id("209")}.mp4`, await one(db, `select video_path from public.meow_env_jobs where id='${invalidSourceJob}'`));
 

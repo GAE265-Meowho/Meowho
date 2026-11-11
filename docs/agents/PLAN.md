@@ -2,7 +2,7 @@
 
 > GitHub Issues 是任務的正式來源；本檔是給 agent 快速掌握全局的鏡像與排程。
 > 狀態只用：`待辦`、`進行中`、`審查中`、`完成`、`卡住`。開工改「進行中」並填負責人，收工更新。
-> 最後更新：2026-11-10｜清俊 × Cursor（帶我回家地圖，PR #315）；Jerry0808 × Codex（#273）
+> 最後更新：2026-11-11｜Jerry0808 × Codex（#327 合併衝突與通知文案修正）；清俊 × Cursor（帶我回家地圖，PR #315）；Jerry0808 × Codex（#273）
 
 ## 里程碑
 
@@ -18,6 +18,7 @@
 
 ## 任務（tracer-bullet，每張可獨立 Demo）
 
+- WelfareLens 安全報告通知／佇列隔離設計（#326，Jerry0808 × Codex，2026-11-11）：PR #327 已整合最新 main，`0034` 通知文案依 `new.error_code` 產生；PGlite、完整測試與 build 通過，Draft PR 待組長 Review；禁止自行部署。佇列採 job container scope + scoped claim 的建議待批准，尚未實作。
 - 帶我回家地圖（清俊 × Cursor，2026-11-10）：審查中（新竹縣左下、台中右上、屏東在泰武右側、嘉義市不標東／西；台北基隆台南高雄重疊區名依面積縮小。**尚未建 Issue**）。分支 `cursor/adopt-home-map-5901`，PR #315。
 - WelfareLens 安全報告讀取 API＋PDF-first 評估頁（#273 C＋D，Jerry0808 × Codex）：進行中；沿用 Draft PR #277／`feat/273-env-report-view`。離線授權與 UI 測試已補；main 合併衝突已在 PR 分支解決；build 已 PASS；Preview 未登入 API/PDF/crop 拒絕驗收 PASS；Owner session 與 Supabase/Azure 設定核驗、手機顯示仍 BLOCKED。
 - 虛擬飼養讀真實資料＋試養報告給中途看（渝茜 × Claude Code，2026-11-10）：審查中；分支 `feat/play-real-data`。貓咪／喵戶／預算／3D 房間／環境報告讀真實資料，玩完報告存 `meow_task_runs.game_report`（`0033`，執行前須子哲確認），中途在對話串看。
