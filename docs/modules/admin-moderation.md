@@ -95,6 +95,7 @@ MeowHQ（`/MeowHQ`，取代舊隱藏後台）開發中：階段 0（#18）、db�
 - **上色用的網格**：`workers/cat-paint/cat_base/work/base_uv.glb`（Tina 電腦 `Meow\cat_base\work\base_uv.glb`）是綁骨前、照片姿勢的網格，Hunyuan 上色與 `step3b_fill.py` 用它；UV 與母體相同，貼圖可直接套回母體。
 - **三視角投影**：`workers/cat-paint/cat_studio/project_views.py` 用拉直後的母體（Tina 電腦 `Meow\cat_base\work\base_rig.glb`，沒有時用 repo 的 `base_clips.glb`）。
 - **每隻貓的貼圖**：本機 `Meow\adoption_cats\<貓咪ID>\paint_albedo.png`；線上 `meow-cat-models/cats/<貓咪ID>/`。
+- **示範貓「第一隻虎斑貓」（`cat_20261030_140731`）**：不在 Supabase，是 repo 靜態檔 `public/hq-cat-models/cats/cat_20261030_140731/`（貼圖、照片、AI 三視角），資料寫在 `src/lib/hq/cat-models/bundled.ts`；要更新就換這裡的檔案並改 `bundled.ts`（#367）。製作原始檔在 Tina 電腦 `Meow\adoption_cats\cat_20261030_140731\`。
 - **改母體的順序**：改 `stepB`／`stepC` → 在 Meow 用 Blender 5.2 跑 B、C（PowerShell 指令前要加 `&`）→ 複製 `base_clips.glb` 到 repo `public/hq-cat-models/base/` → 跑 `eat_drink.mjs` → 成貓再上傳 Storage。直接從 Blender 匯出會蓋掉 eat／drink 的修改；只換單一動作用 `scripts/clips/splice_clip.py`。
 
 ## 決策
@@ -183,6 +184,7 @@ ole === "admin" 判斷管理員，而現有 admin 會升為 system_admin；舊�
 | 2026-11-09 | Tina × Claude Code | #318 故事線：貓不再穿越碗盆——碗有碰撞（餐碗組＝兩個碗、碗墊可踩），站位＝碗半徑＋前腳掌前伸距離（腳掌踩碗外），最後靠近才拿掉這組碗的碰撞；做動作時貼齊站位。母體 eat／drink 改成往前伸脖子、前半身壓低，鼻尖在前腳掌前約 4–5 cm | #318 |
 | 2026-11-10 | Tina × Claude Code | #331 體型預覽新增第 4 分頁「奔跑貓」：`public/hq-cat-models/base/cat_runner_tabby.glb`（低多邊形、重新展 UV＋程序化橘白虎斑、動作 run）；動作庫新增「奔跑」（CLIP_LIBRARY_VERSION 8） | （見 PR） |
 | 2026-11-11 | Tina × Claude Code | #365 成貓母體脊椎＋尾巴拉直、加鬍鬚（`whiskers`，嘴邊 2×12、眉毛鬚 2×3，掛 `head0`），`base_clips.glb` 重新匯出並以 `eat_drink.mjs adult` 重做 eat／drink；`step3b_fill.py` 補紋改自然鯖魚虎斑、頭部不補；新增 `workers/cat-paint/cat_studio/project_views.py`（三視角投影烘焙）；新增「3D 貓咪母體模型位置」一節；**Storage 母體待上傳** | （見 PR） |
+| 2026-11-11 | Tina × Claude Code | #367 示範貓「第一隻虎斑貓」成貓貼圖換成三視角投影版，加上 AI 三視角與兩張實拍參考照（`public/hq-cat-models/cats/cat_20261030_140731/`、`bundled.ts` 的 `bundledFilePublicPath` 支援 `gen_*`、`photo_front／back`） | （見 PR） |
 - 2026-10-29｜#24：前端呼叫 `meow_suspend_user`／`meow_unsuspend_user`／`meow_ban_email`／`meow_unban_email`／`meow_review_verification`／`meow_revoke_badge`；「要求補件」不另設狀態，用退回＋快選原因「退回並要求補件」；黑名單狀態只有系統管理員讀得到（RLS），其他管理員看不到黑名單欄與操作。
 
 - 2026-10-31｜#75：虛擬體驗元件分四個區塊（貓咪、室內空間、生活用品、其他），R3 已改寫；貓咪模型的貼圖由 cat_studio/paint_worker.py 產生，網頁只建任務與預覽（共用母體 ase_clips.glb 換 cat_fur 貼圖，不需每隻貓各一個 glb）；動作屬母體，補入新動作後所有貓自動擁有；本機模式（可新增／產生）只在非 production 且設了 CAT_STUDIO_ROOT 時啟用；正式站改讀 `public/hq-cat-models/` 示範貓（已完成的 bb）供預覽，寫入仍關閉。004_meow_cat_models.sql（資料表 meow_cat_models、meow_cat_model_jobs、bucket meow-cat-photos／meow-cat-models）在 PR 3，執行前須經 Tina 確認。
