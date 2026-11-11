@@ -9,6 +9,7 @@
 }
 
 /* 預覽：沿用 MeowHQ 的房間檢視器（RoomViewer），它的 hq-* class 在前台沒有樣式，這裡補上會用到的 */
+.viewer { width: 100%; align-self: stretch; }  /* 完成頁的卡片置中對齊，沒有按鈕列撐寬時房間會縮成 0 */
 .viewer :global(.hq-roomviewer) { display: flex; flex-direction: column; gap: 12px; }
 .viewer :global(.hq-roomviewer-host) { position: relative; height: min(60vh, 520px); border-radius: 20px; overflow: hidden; background: var(--yellow-soft); }
 .viewer :global(.hq-roomviewer-stage) { position: absolute; inset: 0; }
