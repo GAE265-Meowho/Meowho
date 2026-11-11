@@ -88,7 +88,7 @@ MeowHQ（`/MeowHQ`，取代舊隱藏後台）開發中：階段 0（#18）、db�
 | 體型 | 網頁用的 glb（repo） | 正式站 Storage | 製作原始檔（Tina 電腦，**不是 git repo**） | 產生腳本 |
 |---|---|---|---|---|
 | 成貓（`adult`） | `public/hq-cat-models/base/base_clips.glb` | `meow-cat-models/base/v1/base_clips.glb`（改完要手動上傳覆蓋） | `C:\TinaLee\Projects\GAE265\Meow\cat_base\work\`：`base_rig.blend`（綁骨後）、`base_clips.blend`（含動作） | `Meow\cat_base\stepB_rig.py`（骨架、權重、脊椎拉直、眨眼、鬍鬚）→ `stepC_clips.py`（動作，eat／drink 等來自 `Meow\needs_clips.py`）→ repo `node scripts/clips/eat_drink.mjs <glb> <glb> adult`（重做 eat、drink） |
-| 幼貓（`kitten`） | `public/hq-cat-models/base/base_clips_kitten.glb` | 不在 Storage，直接用 repo 檔 | `Meow\cat_base_kitten\work\` | `Meow\cat_base_kitten\stepB_rig.py`、`stepC_clips.py` → `eat_drink.mjs … kitten` |
+| 幼貓（`kitten`） | `public/hq-cat-models/base/base_clips_kitten.glb` | 不在 Storage，直接用 repo 檔 | `Meow\cat_base_kitten\work\`：`base_rig.blend`、`base_clips.blend` | `Meow\cat_base_kitten\stepB_rig.py`（含四腳對齊 `align_legs`，#373）→ `stepC_clips.py` → repo `node scripts/clips/eat_drink.mjs <glb> <glb> kitten` |
 | 大貓（預覽用） | `public/hq-cat-models/base/base_clips_large.glb` | 不在 Storage | `Meow\配件模型\cat_base_large\cat_base_large.blend` | `Meow\配件模型\cat_base_large\scripts\` |
 
 - **怎麼認**：Blender 裡骨架物件叫 `cat_rig`、身體網格叫 `cat_base`、眼球 `eye_L`／`eye_R`、鬍鬚 `whiskers`（成貓，#365 起）。`Meow` 裡其他資料夾（`rig_output\`、`black_cat#0000\`、`output_models\`、各 `backup_*`）都是舊版或備份，不是母體。
@@ -99,6 +99,7 @@ MeowHQ（`/MeowHQ`，取代舊隱藏後台）開發中：階段 0（#18）、db�
 - **改母體的順序**：改 `stepB`／`stepC` → 在 Meow 用 Blender 5.2 跑 B、C（PowerShell 指令前要加 `&`）→ 複製 `base_clips.glb` 到 repo `public/hq-cat-models/base/` → 跑 `eat_drink.mjs` → 成貓再上傳 Storage。直接從 Blender 匯出會蓋掉 eat／drink 的修改；只換單一動作用 `scripts/clips/splice_clip.py`。
 
 ## 決策
+- 2026-11-11｜#373：幼貓母體四腳在靜止姿勢就左右對齊（照片是 ¾ 側身走路姿勢）：前腳整條前後平移讓肩關節對齊、手腕兩節 IK 到同一前後位置；往前跨的右後腳 top0 往後平移＋繞髖關節轉（和左後腳側面輪廓比對自動找角度），再把右後腳骨頭改成左後腳鏡像；四隻腳掌最低點貼地 1 mm。只動靜止姿勢，網格頂點與 UV 不變，舊貼圖照用；`stepC_clips.py` 不用改。
 - 2026-11-11｜#365：成貓母體綁骨時把脊椎與尾巴拉直（只繞 Z 轉、腳掌仍貼地），網格與 UV 不變，舊貼圖照用；鬍鬚是獨立網格掛 `head0`、不綁權重，網頁不用改。貓咪貼圖可改用 AI 三視角直接投影（`project_views.py`），照片看不到的地方才用 Hunyuan＋`step3b_fill.py` 的自然虎斑補紋。
 - 2026-11-09｜#302：大貓是新增的預覽體型（`PreviewBody`），和成貓、幼貓並存，不取代現有母體；接上貓咪製作前不加進 `BodyType`。大貓模型來源 Sketchfab「Cat in Motion 3d model free」（iRahulRajput，CC-BY 4.0），畫面須保留作者與來源標註。
 - 不更換 logo 檔案，只能由管理者在 3 款中選擇。

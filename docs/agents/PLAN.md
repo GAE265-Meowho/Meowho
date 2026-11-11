@@ -111,6 +111,7 @@
 | 23-30 | 成貓母體脊椎拉直、加鬍鬚；貼圖三視角投影＋自然虎斑補紋 | admin-moderation | — | P2 | #365 | Tina × Claude Code | 完成（待上傳 Storage） |
 | 23-31 | 示範貓第一隻虎斑貓換新紋理、顯示 AI 三視角 | admin-moderation | 23-30 | P2 | #367 | Tina × Claude Code | 完成 |
 | 23-32 | 體型預覽成貓分頁套用第一隻虎斑貓紋理 | admin-moderation | 23-31 | P2 | #369 | Tina × Claude Code | 完成 |
+| 23-33 | 幼貓母體四腳對齊（前腳一前一後、右後腳沉地與大腿「C」字） | admin-moderation | — | P2 | #373 | Tina × Claude Code | 審查中 |
 | 23-15 | MeowHQ 登入頁依 Stitch 改版、瀏覽器標題改 MeoWho｜喵戶總部 | admin-moderation | — | P2 | #116 | Tina × Claude Code | 完成（#117 已合併） |
 | 23-14 | MeowHQ AI 三視角第二階段：worker 同時用三張照片上色；製作glb工作區選擇要產生的動作 | admin-moderation | 23-13 | P2 | 待建立 | — | 待辦 |
 | 23-16 | MeowHQ 3D 貓咪體型預覽新增大貓（大貓｜成貓｜幼貓三分頁、貓咪資訊）；大貓只做預覽 | admin-moderation | 23-13 | P2 | #302 | Tina × Claude Code | 完成（#305 已合併；肚子鼓包修正見 fix/302-large-cat-belly） |
