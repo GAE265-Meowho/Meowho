@@ -436,10 +436,10 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
               <button key={name} type="button" aria-pressed={viewName === name} onClick={() => goView.current(name)}>{label}</button>
             ))}
           </div>
-          <div className="hq-roomviewer-tools">
+          {(!help || canFull) && <div className="hq-roomviewer-tools">
             {!help && <button type="button" onClick={() => setHelp(true)}>？操作說明</button>}
             {canFull && <button type="button" aria-label="全螢幕" onClick={() => toggleFull(host.current)}>⛶</button>}
-          </div>
+          </div>}
           {touch && <Stick onMove={v => { stick.current = v; }} />}
           {help && <ViewerHelp touch={touch} onClose={() => setHelp(false)} />}
         </>}
