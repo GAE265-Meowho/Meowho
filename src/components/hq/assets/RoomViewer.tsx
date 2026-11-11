@@ -67,7 +67,7 @@ export interface RoomWand { toy: SceneItem; onCatch: (caught: boolean) => void }
  * controls：false 時不顯示拍攝點與貓咪動作按鈕（虛擬飼養用；拖曳、WASD、點地板仍可用）
  * noCat：只看房間、不放貓（前台我的 3D 房間預覽；貓等進了領養任務才出現）
  * overlay：前台預覽版面：前／後／左／右／上五個固定視角疊在畫面上；電腦用 WASD 走、手機用左下角搖桿；
- *   第一次會跳教學；滾輪還給網頁捲動（觸控板不會誤走）；瀏覽器支援時有全螢幕按鈕
+ *   每次開場先跳操作說明，按掉後縮成右下角的按鈕；滾輪還給網頁捲動（觸控板不會誤走）；手機瀏覽器支援時有全螢幕按鈕
  */
 export default function RoomViewer({ base, cat, items, controls = true, story, wand, bubble, bubbleInset = 0, lookKey, noCat = false, overlay = false }: {
   base: string; cat?: { baseUrl: string; albedoUrl: string } | null; items?: readonly SceneItem[]; controls?: boolean; noCat?: boolean; overlay?: boolean;
@@ -85,7 +85,8 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
   const stick = useRef({ x: 0, y: 0 });  // 手機搖桿：x 右、y 前，長度 0～1
   const [touch] = useState(() => typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches);
   const [help, setHelp] = useState(false);
-  const [canFull] = useState(() => typeof document !== "undefined" && document.fullscreenEnabled);
+  // 全螢幕只給手機（轉橫太小）；電腦螢幕夠大，而且不少瀏覽器會擋，按了沒反應反而困惑
+  const [canFull] = useState(() => typeof document !== "undefined" && document.fullscreenEnabled && window.matchMedia("(pointer: coarse)").matches);
   const [viewName, setViewName] = useState<RoomViewName>("front");
   const world = useRef<RoomWorld | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
@@ -205,7 +206,7 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
       goView.current = name => { setViewName(name); tweenTo(fixedView(name)); };
       setSpot({ index, total: cameras.length });
       setStatus("ready");
-      if (overlay && !seenHelp()) setHelp(true);
+      if (overlay) setHelp(true);
 
       // 貓和物理載入失敗時，房間照常可以看
       const roomWorld = noCat ? null : await createRoomWorld({
@@ -436,11 +437,11 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
             ))}
           </div>
           <div className="hq-roomviewer-tools">
-            <button type="button" aria-label="怎麼看" onClick={() => setHelp(true)}>?</button>
+            {!help && <button type="button" onClick={() => setHelp(true)}>？操作說明</button>}
             {canFull && <button type="button" aria-label="全螢幕" onClick={() => toggleFull(host.current)}>⛶</button>}
           </div>
           {touch && <Stick onMove={v => { stick.current = v; }} />}
-          {help && <ViewerHelp touch={touch} onClose={() => { setHelp(false); markHelp(); }} />}
+          {help && <ViewerHelp touch={touch} onClose={() => setHelp(false)} />}
         </>}
       </div>
       {controls && !overlay && (
@@ -465,9 +466,6 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
 
 const VIEW_BUTTONS: [RoomViewName, string][] = [["front", "前"], ["back", "後"], ["left", "左"], ["right", "右"], ["top", "上"]];
 
-const HELP_KEY = "meowho.roomHelp";
-const seenHelp = () => { try { return localStorage.getItem(HELP_KEY) === "1"; } catch { return false; } };
-const markHelp = () => { try { localStorage.setItem(HELP_KEY, "1"); } catch { /* 無痕模式存不了，下次再顯示 */ } };
 
 /** 全螢幕切換；手機順便鎖橫向（Android Chrome 支援，iPhone 沒有網頁全螢幕，按鈕不會出現） */
 function toggleFull(el: HTMLElement | null) {
