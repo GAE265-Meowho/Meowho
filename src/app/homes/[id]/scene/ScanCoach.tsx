@@ -7,6 +7,13 @@ import Icon from "@/components/ui/Icon";
 import f from "@/components/onboarding/intake.module.css";
 import r from "./scene.module.css";
 
+// 一支影片做兩件事（#354）：放在最前面，還沒拍就知道會拿到 3D 房間和居家安全報告
+const FLOW = [
+  ["拍一支房間影片", "大約 1 分鐘，照下面的路線邊走邊拍。"],
+  ["同一支影片做兩件事", "做出你家的 3D 房間，同時檢查家裡對貓安不安全，整理成居家安全報告。不用拍兩次。"],
+  ["等大約 20 分鐘", "不用留在這頁，好了會通知你。之後就能進領養任務，看貓在你家的樣子。"],
+] as const;
+
 const CHECK = [
   ["打開所有燈，拉上窗簾", "光線固定，畫面才不會一下亮一下暗"],
   ["請其他人和寵物離開畫面", "會動的東西會變成模糊的鬼影"],
@@ -93,6 +100,18 @@ export default function ScanCoach({ actions, onPick }: { actions: React.ReactNod
   if (page === 1) return (
     <>
       {tabs}
+      <section className={f.card} aria-labelledby="flow-title">
+        <h2 id="flow-title">一支影片，做出 3D 房間和居家安全報告</h2>
+        <ol className={r.tips}>
+          {FLOW.map(([t, sub], i) => (
+            <li key={t}>
+              <span className={r.num} aria-hidden="true">{i + 1}</span>
+              <div><b>{t}</b><p>{sub}</p></div>
+            </li>
+          ))}
+        </ol>
+      </section>
+
       <section className={f.card} aria-labelledby="route-title">
         <h2 id="route-title">路線：沿牆走一圈，再從中間走一趟</h2>
         <RouteMap />
