@@ -104,7 +104,7 @@
 }
 
 .catTail {
-  transform-origin: 64px 70px;
+  transform-origin: 30px 86px;
   animation: sway 1.4s ease-in-out infinite alternate;
 }
 
@@ -175,7 +175,7 @@
 }
 
 .walker {
-  animation: walk 4.8s ease-in-out infinite both;
+  animation: walk 4.8s linear infinite both;
 }
 
 @keyframes walk {
@@ -183,18 +183,132 @@
   34% {
     transform: translateX(0);
   }
-  50% {
-    transform: translate(50px, -6px);
-  }
-  58% {
-    transform: translate(80px, 0);
-  }
-  74% {
-    transform: translate(130px, -6px);
-  }
   84%,
   100% {
-    transform: translate(158px, 0);
+    transform: translateX(158px);
+  }
+}
+
+/* 腳只在走路那段（34%–84%）擺動，兩組腳方向相反 */
+.legA,
+.legB {
+  transform-box: fill-box;
+  transform-origin: 50% 0;
+}
+
+.legA {
+  animation: legA 4.8s linear infinite both;
+}
+
+.legB {
+  animation: legB 4.8s linear infinite both;
+}
+
+@keyframes legA {
+  0%,
+  34%,
+  84%,
+  100% {
+    transform: rotate(0deg);
+  }
+  38% {
+    transform: rotate(22deg);
+  }
+  42% {
+    transform: rotate(-22deg);
+  }
+  46% {
+    transform: rotate(22deg);
+  }
+  50% {
+    transform: rotate(-22deg);
+  }
+  54% {
+    transform: rotate(22deg);
+  }
+  58% {
+    transform: rotate(-22deg);
+  }
+  62% {
+    transform: rotate(22deg);
+  }
+  66% {
+    transform: rotate(-22deg);
+  }
+  70% {
+    transform: rotate(22deg);
+  }
+  74% {
+    transform: rotate(-22deg);
+  }
+  78% {
+    transform: rotate(22deg);
+  }
+  82% {
+    transform: rotate(-22deg);
+  }
+}
+
+@keyframes legB {
+  0%,
+  34%,
+  84%,
+  100% {
+    transform: rotate(0deg);
+  }
+  38% {
+    transform: rotate(-22deg);
+  }
+  42% {
+    transform: rotate(22deg);
+  }
+  46% {
+    transform: rotate(-22deg);
+  }
+  50% {
+    transform: rotate(22deg);
+  }
+  54% {
+    transform: rotate(-22deg);
+  }
+  58% {
+    transform: rotate(22deg);
+  }
+  62% {
+    transform: rotate(-22deg);
+  }
+  66% {
+    transform: rotate(22deg);
+  }
+  70% {
+    transform: rotate(-22deg);
+  }
+  74% {
+    transform: rotate(22deg);
+  }
+  78% {
+    transform: rotate(-22deg);
+  }
+  82% {
+    transform: rotate(22deg);
+  }
+}
+
+/* 步驟 2 的貓偶爾眨眼 */
+.blink {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: blink 3.8s ease-in-out infinite;
+}
+
+@keyframes blink {
+  0%,
+  92%,
+  100% {
+    transform: scaleY(1);
+  }
+  96% {
+    transform: scaleY(0.1);
   }
 }
 
@@ -396,6 +510,9 @@
   .card,
   .stamp,
   .walker,
+  .legA,
+  .legB,
+  .blink,
   .content {
     animation: none !important;
   }
