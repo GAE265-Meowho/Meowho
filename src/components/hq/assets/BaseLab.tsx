@@ -5,7 +5,7 @@
 // 這裡調的數值只在這頁預覽，不會存回骨架。
 import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
-import { baseInfo, previewBaseUrl, previewDownloadUrl, previewFileName, previewFraming, type PreviewBody } from "@/lib/hq/cat-models/bases";
+import { baseInfo, previewAlbedoUrl, previewBaseUrl, previewDownloadUrl, previewFileName, previewFraming, type PreviewBody } from "@/lib/hq/cat-models/bases";
 import { clipPupil, resolveClip } from "@/lib/hq/cat-models/clips";
 import { HqSkeleton } from "../HqStates";
 import { autoPupil, EYE_DEFAULTS, EYE_PRESETS, type EyeParams } from "./catEye";
@@ -70,7 +70,7 @@ export function BaseLab({ body }: { body: PreviewBody }) {
             <div className="hq-canvas" data-testid={`lab-canvas-${body}`}>
               <span className="hq-tag mute hq-canvas-badge">示範毛色</span>
               <CatPreview
-                key={viewKey} baseUrl={previewBaseUrl(body)} body={framing} albedoUrl={null} clip={clip}
+                key={viewKey} baseUrl={previewBaseUrl(body)} body={framing} albedoUrl={previewAlbedoUrl(body)} clip={clip}
                 speed={speed} paused={paused} blink={blink} pupil={pupil} light={light} follow={follow}
                 eye={eye} eyeRight={hetero ? EYE_PRESETS.blue : undefined}
                 onInfo={setInfo} onError={e => setFailed(e.message || "未知錯誤")}

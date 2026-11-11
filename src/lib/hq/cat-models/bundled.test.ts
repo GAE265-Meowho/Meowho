@@ -52,3 +52,10 @@ describe("bundled 示範貓", () => {
   });
 });
 
+
+describe("體型預覽用的示範貓紋理路徑（#369）", () => {
+  it("bases.ts 寫死的路徑和 bundled 一致", async () => {
+    const { previewAlbedoUrl } = await import("./bases");
+    expect(previewAlbedoUrl("adult")).toBe(bundledFilePublicPath("cat_20261030_140731", "albedo"));
+  });
+});
