@@ -24,9 +24,12 @@ export interface Cat {
   neutered: boolean;
 }
 
-export interface Logo { id: "house" | "round" | "line"; name: string; src: string }
+/** src＝方形位置用的圖（前台頁首、後台登入頁左上角）；wordmark＝橫式位置用的圖（後台頂列、登入卡片），沒有就用 src */
+export interface Logo { id: "door" | "house" | "round" | "line"; name: string; src: string; wordmark?: string }
 
+// 第一款是預設（#361：門口貓頭向量標誌，設計檔與使用規範在專題資料夾 logo設計_1111/）；舊的三款保留給管理者選
 export const LOGOS: Logo[] = [
+  { id: "door", name: "門口貓頭款", src: "/logos/meowho-symbol.svg", wordmark: "/logos/meowho-horizontal-color.svg" },
   { id: "house", name: "小屋摸摸款", src: "/logos/logo-house.jpg" },
   { id: "round", name: "圓形花貓款", src: "/logos/logo-round.jpg" },
   { id: "line", name: "橫式字標款", src: "/logos/logo-line.jpg" },

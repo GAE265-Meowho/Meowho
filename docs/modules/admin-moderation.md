@@ -79,7 +79,7 @@ MeowHQ（`/MeowHQ`，取代舊隱藏後台）開發中：階段 0（#18）、db�
 ## 主要檔案
 - `src/lib/hq/types.ts`（MeowHQ 共用約定：模組代號、角色、處置類型、快選原因、錯誤代碼、側欄順序；T-HQ-01）、`src/lib/hq/types.test.ts`
 - `src/lib/hq/permissions.ts`（可見模組、存取、`canSuspend`／`canBan`／最後一位系統管理員／授予限制；T-HQ-03）、`src/lib/hq/actions.ts`（原因必填、停權期限與到期、影響說明、黑名單 Email 確認、快選原因；含 R9～R11；T-HQ-04）及其測試（UT-HQ-01～11、17～28），Issue #20
-- `src/components/Providers.tsx`（從 `site_settings` 讀取標誌、`setLogo` 寫入）、`src/lib/mock-data.ts`（`LOGOS`）
+- `src/components/Providers.tsx`（從 `site_settings` 讀取標誌、`setLogo` 寫入；`useSiteLogo()` 給後台元件只讀用）、`src/lib/mock-data.ts`（`LOGOS`）、`src/lib/site-logo.ts`（`resolveSiteLogo`、`logoWordmark`）
 
 ## 3D 貓咪母體模型位置（體型骨架）
 
@@ -96,13 +96,15 @@ MeowHQ（`/MeowHQ`，取代舊隱藏後台）開發中：階段 0（#18）、db�
 - **三視角投影**：`workers/cat-paint/cat_studio/project_views.py` 用拉直後的母體（Tina 電腦 `Meow\cat_base\work\base_rig.glb`，沒有時用 repo 的 `base_clips.glb`）。
 - **每隻貓的貼圖**：本機 `Meow\adoption_cats\<貓咪ID>\paint_albedo.png`；線上 `meow-cat-models/cats/<貓咪ID>/`。
 - **示範貓「第一隻虎斑貓」（`cat_20261030_140731`）**：不在 Supabase，是 repo 靜態檔 `public/hq-cat-models/cats/cat_20261030_140731/`（貼圖、照片、AI 三視角），資料寫在 `src/lib/hq/cat-models/bundled.ts`；要更新就換這裡的檔案並改 `bundled.ts`（#367）。製作原始檔在 Tina 電腦 `Meow\adoption_cats\cat_20261030_140731\`。
+- **成貓理毛（groom）**：#377 起是端坐、左右手輪流版（`Meow\cat_base\stepC_clips.py` 的 `clip_groom_sit`，參數 `GROOM_SIT_*`）；幼貓仍是自己的版本。
 - **改母體的順序**：改 `stepB`／`stepC` → 在 Meow 用 Blender 5.2 跑 B、C（PowerShell 指令前要加 `&`）→ 複製 `base_clips.glb` 到 repo `public/hq-cat-models/base/` → 跑 `eat_drink.mjs` → 成貓再上傳 Storage。直接從 Blender 匯出會蓋掉 eat／drink 的修改；只換單一動作用 `scripts/clips/splice_clip.py`。
 
 ## 決策
 - 2026-11-11｜#373：幼貓母體四腳在靜止姿勢就站直、左右對稱（照片是 ¾ 側身走路姿勢）。以左半身為準：前腳手腕放在肩關節正下方（`FRONT_WRIST_AHEAD`）、後腳跗關節對齊；右邊兩隻腳骨頭擺到左腳鏡像（`match_right_legs`），右半身網格貼齊左半身鏡像（`symmetrize_side`，尾巴根、脖子、胸口與肩膀上方不動）。頂點數與 UV 不變，舊貼圖照用。睡姿前腳改用世界方向（`SLEEP_FRONT`）。前腳掌收回後 `PAW_AHEAD_M.kitten` 0.086 → 0.053。
 - 2026-11-11｜#365：成貓母體綁骨時把脊椎與尾巴拉直（只繞 Z 轉、腳掌仍貼地），網格與 UV 不變，舊貼圖照用；鬍鬚是獨立網格掛 `head0`、不綁權重，網頁不用改。貓咪貼圖可改用 AI 三視角直接投影（`project_views.py`），照片看不到的地方才用 Hunyuan＋`step3b_fill.py` 的自然虎斑補紋。
 - 2026-11-09｜#302：大貓是新增的預覽體型（`PreviewBody`），和成貓、幼貓並存，不取代現有母體；接上貓咪製作前不加進 `BodyType`。大貓模型來源 Sketchfab「Cat in Motion 3d model free」（iRahulRajput，CC-BY 4.0），畫面須保留作者與來源標註。
-- 不更換 logo 檔案，只能由管理者在 3 款中選擇。
+- 不更換 logo 檔案，只能由管理者在內建款或上傳的 Logo 中選擇。
+- 2026-11-11｜#361：新增向量標誌「門口貓頭款」（`door`）為預設（`LOGOS` 第一個），舊三款保留。前後台統一讀同一個站台標誌：方形位置用 `src`、橫式位置（MeowHQ 頂列、登入卡片）用 `wordmark`。favicon 與網頁圖示組在 `src/app/`（`favicon.ico`、`icon.svg`、`apple-icon.png`、`manifest.ts`）。設計母檔與使用規範不在 repo（子哲本機專題資料夾 `logo設計_1111/`）。
 - 後台用隱藏網址、不放任何連結；安全性靠 RLS 與 security definer 函式，不靠網址。
 - 第一位管理員用 SQL 指定，之後在後台以 Email 授權（對方需先登入過一次）。
 - 認證機制目前由管理員人工審核。
@@ -189,6 +191,9 @@ ole === "admin" 判斷管理員，而現有 admin 會升為 system_admin；舊�
 | 2026-11-11 | Tina × Claude Code | #369 `/MeowHQ/assets/bases?body=adult` 預覽貓套用第一隻虎斑貓的成貓紋理（`bases.ts` 的 `previewAlbedoUrl`；其他分頁仍用母體內建毛色） | （見 PR） |
 | 2026-11-11 | Tina × Claude Code | #369 體型預覽成貓分頁左上角標籤改成「第一隻虎斑貓」（`previewBadge`），其他分頁仍是「示範毛色」 | （見 PR） |
 | 2026-11-11 | Tina × Claude Code | #365 追加：鬍鬚位置修正——原本用兩眼距當尺（此母體 6.7 cm 偏寬）掉到下巴；改用固定公分，鬍鬚墊在鼻頭下 0.8～1.5 cm、往後 1～2.2 cm、往外 1～1.9 cm，接近水平；眉毛鬚改在眼睛正上方約 1.3 cm。動作與 main 逐格相同，只換 `whiskers` 網格；**Storage 母體待重新上傳** | （見 PR） |
+| 2026-11-11 | Tina × Claude Code | #365 追加 2：鬍鬚根部再往上移到鼻子兩旁、嘴線之上（鼻頭下 0.1～0.6 cm、往後 0.6～1.7 cm、往外 0.9～1.7 cm），下垂與俯角減少；動作與 main 逐格相同；**Storage 母體待重新上傳** | （見 PR） |
+| 2026-11-11 | Tina × Claude Code | #367 追加：AI 照片裡的鬍鬚越過臉頰、胸口，投影後變成貼圖上的白線（看起來到處長鬍鬚）。`project_views.py` 投影前先抹掉照片的鬍鬚（`remove_whiskers`：比周圍亮很多、偏白的細線，用中值色補；只處理左側與正面照的頭到胸口），示範貓成貓貼圖重新產生；眉毛鬚與鬍鬚網格保留 | （見 PR） |
+| 2026-11-11 | Tina × Claude Code | #377 成貓理毛 v4：香盒坐版（#319）身體變形、左手過度彎曲，改成端坐（沿用 sit 的身體、後腳、尾巴）、頭低 50°、前臂近直立把腳掌送到嘴邊，左右手輪流各舔 3 下，6 秒一圈；`Meow/cat_base/stepC_clips.py` 的 `clip_groom_sit`（舊 `clip_groom` 保留不用），用 `splice_clip.py` 只換 groom；**Storage 母體待重新上傳** | （見 PR） |
 - 2026-10-29｜#24：前端呼叫 `meow_suspend_user`／`meow_unsuspend_user`／`meow_ban_email`／`meow_unban_email`／`meow_review_verification`／`meow_revoke_badge`；「要求補件」不另設狀態，用退回＋快選原因「退回並要求補件」；黑名單狀態只有系統管理員讀得到（RLS），其他管理員看不到黑名單欄與操作。
 
 - 2026-10-31｜#75：虛擬體驗元件分四個區塊（貓咪、室內空間、生活用品、其他），R3 已改寫；貓咪模型的貼圖由 cat_studio/paint_worker.py 產生，網頁只建任務與預覽（共用母體 ase_clips.glb 換 cat_fur 貼圖，不需每隻貓各一個 glb）；動作屬母體，補入新動作後所有貓自動擁有；本機模式（可新增／產生）只在非 production 且設了 CAT_STUDIO_ROOT 時啟用；正式站改讀 `public/hq-cat-models/` 示範貓（已完成的 bb）供預覽，寫入仍關閉。004_meow_cat_models.sql（資料表 meow_cat_models、meow_cat_model_jobs、bucket meow-cat-photos／meow-cat-models）在 PR 3，執行前須經 Tina 確認。

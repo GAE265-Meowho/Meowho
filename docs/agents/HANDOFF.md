@@ -4,6 +4,7 @@
 > 最後更新：2026-11-11｜Tina × Claude Code（#373 幼貓四腳對齊）；Jerry0808 × Codex（PR #327 合併衝突與通知文案修正）；清俊 × Cursor（帶我回家地圖，PR #315）；渝茜 × Claude Code（虛擬飼養讀真實資料）；Tina × Claude Code（#336）
 
 ## 目前狀態
+- **站台標誌（#361，子哲 × Claude Code）**：預設改為向量「門口貓頭款」（`door`），舊三款保留；前台與 MeowHQ 都讀同一個站台標誌（`useSiteLogo()`）。正式站 `meow_site_settings.logo` 目前是 `house`，**合併部署後要在 MeowHQ「網站外觀 Logo」選門口貓頭款**，前台才會換。favicon／網頁圖示在 `src/app/`。
 - **找 3D 貓咪母體檔案先看 `docs/modules/admin-moderation.md`「3D 貓咪母體模型位置」**：repo、Storage、Tina 電腦製作檔與腳本的對照表。
 - **#373 幼貓母體四腳對齊（Tina × Claude Code，分支 `fix/373-kitten-leg-align`）**：`base_clips_kitten.glb` 已重做（幼貓不在 Storage，合併即生效）。改的是 Tina 電腦 `Meow/cat_base_kitten/stepB_rig.py` 的 `align_legs`、`match_right_legs`、`symmetrize_side`（右半身照左半身鏡像）與 `stepC_clips.py` 的 `SLEEP_FRONT`；網頁 `PAW_AHEAD_M.kitten` 已改 0.053；重做幼貓母體一律 B → C → `eat_drink.mjs … kitten`。舊製作檔備份在 `Meow/cat_base_kitten/work/backup_before_leg_align/`；`.blend` 是 Blender 5.3 存的，5.2 開不了就重跑 B、C。
 - **#365 成貓母體拉直＋鬍鬚（Tina × Claude Code）**：`base_clips.glb` 脊椎與尾巴已拉直、多了 `whiskers` 網格（掛 `head0`），eat／drink 已用 `eat_drink.mjs adult` 重做。**合併後要上傳 Storage** `meow-cat-models/base/v1/base_clips.glb`。新工具 `workers/cat-paint/cat_studio/project_views.py`（AI 三視角投影成貓貼圖），尚未接進 `paint_worker.py --supabase`；目前在 Tina 電腦用 `run_tabby1.bat` 跑。
