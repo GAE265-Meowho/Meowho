@@ -1,0 +1,42 @@
+.stage {
+  position: relative;
+  width: min(100%, 38dvh, 24rem);
+  aspect-ratio: 3 / 4;
+  margin: .65rem auto;
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  background: var(--paper);
+  touch-action: none;
+  user-select: none;
+}
+
+.stage img,
+.overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* Keep the eyes and ears on the closed frame while blending the local lip change. */
+.mouth {
+  mask-image: radial-gradient(ellipse 38% 22% at 59% 58%, black 62%, transparent 100%);
+}
+
+.marker,
+.tooth {
+  stroke: var(--paper);
+  stroke-width: 5;
+  fill: var(--cocoa);
+}
+
+.marker {
+  stroke-width: 8;
+  fill: none;
+  filter: drop-shadow(0 1px 3px var(--cocoa));
+}
+
+.tooth[data-active="true"],
+.handle { fill: var(--mint-dk); }
+.tip { fill: var(--paper); stroke: var(--mint-dk); stroke-width: 3; }
