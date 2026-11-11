@@ -35,6 +35,12 @@ export const previewDownloadUrl = (body: PreviewBody) => {
   const f = staticFile(body);
   return f ? `${LARGE_DIR}/${f}` : `${CAT_API}/base?body=${body}&download=1`;
 };
+/** 預覽套用的紋理（#369）：成貓用示範貓「第一隻虎斑貓」的成貓紋理；其他分頁回 null＝用母體 glb 內建毛色 */
+// 路徑同 bundled.ts 的 bundledFilePublicPath（不 import：bundled 會帶入 node:fs，這支會進 client 元件）
+const DEMO_ADULT_ALBEDO = "/hq-cat-models/cats/cat_20261030_140731/paint_albedo.png";
+export const previewAlbedoUrl = (body: PreviewBody): string | null => (body === "adult" ? DEMO_ADULT_ALBEDO : null);
+/** 預覽框左上角標籤：有套示範貓紋理就寫貓名 */
+export const previewBadge = (body: PreviewBody): string => (previewAlbedoUrl(body) ? "第一隻虎斑貓" : "示範毛色");
 /** CatPreview 的取景只分成貓／幼貓；大貓體長約 0.52 m、奔跑貓約 0.42 m，和成貓（約 0.45 m）相近 */
 export const previewFraming = (body: PreviewBody): BodyType => (body === "kitten" ? "kitten" : "adult");
 

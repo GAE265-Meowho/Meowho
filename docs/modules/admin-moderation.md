@@ -81,7 +81,25 @@ MeowHQ（`/MeowHQ`，取代舊隱藏後台）開發中：階段 0（#18）、db�
 - `src/lib/hq/permissions.ts`（可見模組、存取、`canSuspend`／`canBan`／最後一位系統管理員／授予限制；T-HQ-03）、`src/lib/hq/actions.ts`（原因必填、停權期限與到期、影響說明、黑名單 Email 確認、快選原因；含 R9～R11；T-HQ-04）及其測試（UT-HQ-01～11、17～28），Issue #20
 - `src/components/Providers.tsx`（從 `site_settings` 讀取標誌、`setLogo` 寫入；`useSiteLogo()` 給後台元件只讀用）、`src/lib/mock-data.ts`（`LOGOS`）、`src/lib/site-logo.ts`（`resolveSiteLogo`、`logoWordmark`）
 
+## 3D 貓咪母體模型位置（體型骨架）
+
+> 2026-11-11 Tina × Claude Code（#365）整理，之後找母體先看這裡。母體＝所有貓共用的網格＋骨架＋動作，每隻貓只換身體貼圖（材質 `cat_fur`）。
+
+| 體型 | 網頁用的 glb（repo） | 正式站 Storage | 製作原始檔（Tina 電腦，**不是 git repo**） | 產生腳本 |
+|---|---|---|---|---|
+| 成貓（`adult`） | `public/hq-cat-models/base/base_clips.glb` | `meow-cat-models/base/v1/base_clips.glb`（改完要手動上傳覆蓋） | `C:\TinaLee\Projects\GAE265\Meow\cat_base\work\`：`base_rig.blend`（綁骨後）、`base_clips.blend`（含動作） | `Meow\cat_base\stepB_rig.py`（骨架、權重、脊椎拉直、眨眼、鬍鬚）→ `stepC_clips.py`（動作，eat／drink 等來自 `Meow\needs_clips.py`）→ repo `node scripts/clips/eat_drink.mjs <glb> <glb> adult`（重做 eat、drink） |
+| 幼貓（`kitten`） | `public/hq-cat-models/base/base_clips_kitten.glb` | 不在 Storage，直接用 repo 檔 | `Meow\cat_base_kitten\work\` | `Meow\cat_base_kitten\stepB_rig.py`、`stepC_clips.py` → `eat_drink.mjs … kitten` |
+| 大貓（預覽用） | `public/hq-cat-models/base/base_clips_large.glb` | 不在 Storage | `Meow\配件模型\cat_base_large\cat_base_large.blend` | `Meow\配件模型\cat_base_large\scripts\` |
+
+- **怎麼認**：Blender 裡骨架物件叫 `cat_rig`、身體網格叫 `cat_base`、眼球 `eye_L`／`eye_R`、鬍鬚 `whiskers`（成貓，#365 起）。`Meow` 裡其他資料夾（`rig_output\`、`black_cat#0000\`、`output_models\`、各 `backup_*`）都是舊版或備份，不是母體。
+- **上色用的網格**：`workers/cat-paint/cat_base/work/base_uv.glb`（Tina 電腦 `Meow\cat_base\work\base_uv.glb`）是綁骨前、照片姿勢的網格，Hunyuan 上色與 `step3b_fill.py` 用它；UV 與母體相同，貼圖可直接套回母體。
+- **三視角投影**：`workers/cat-paint/cat_studio/project_views.py` 用拉直後的母體（Tina 電腦 `Meow\cat_base\work\base_rig.glb`，沒有時用 repo 的 `base_clips.glb`）。
+- **每隻貓的貼圖**：本機 `Meow\adoption_cats\<貓咪ID>\paint_albedo.png`；線上 `meow-cat-models/cats/<貓咪ID>/`。
+- **示範貓「第一隻虎斑貓」（`cat_20261030_140731`）**：不在 Supabase，是 repo 靜態檔 `public/hq-cat-models/cats/cat_20261030_140731/`（貼圖、照片、AI 三視角），資料寫在 `src/lib/hq/cat-models/bundled.ts`；要更新就換這裡的檔案並改 `bundled.ts`（#367）。製作原始檔在 Tina 電腦 `Meow\adoption_cats\cat_20261030_140731\`。
+- **改母體的順序**：改 `stepB`／`stepC` → 在 Meow 用 Blender 5.2 跑 B、C（PowerShell 指令前要加 `&`）→ 複製 `base_clips.glb` 到 repo `public/hq-cat-models/base/` → 跑 `eat_drink.mjs` → 成貓再上傳 Storage。直接從 Blender 匯出會蓋掉 eat／drink 的修改；只換單一動作用 `scripts/clips/splice_clip.py`。
+
 ## 決策
+- 2026-11-11｜#365：成貓母體綁骨時把脊椎與尾巴拉直（只繞 Z 轉、腳掌仍貼地），網格與 UV 不變，舊貼圖照用；鬍鬚是獨立網格掛 `head0`、不綁權重，網頁不用改。貓咪貼圖可改用 AI 三視角直接投影（`project_views.py`），照片看不到的地方才用 Hunyuan＋`step3b_fill.py` 的自然虎斑補紋。
 - 2026-11-09｜#302：大貓是新增的預覽體型（`PreviewBody`），和成貓、幼貓並存，不取代現有母體；接上貓咪製作前不加進 `BodyType`。大貓模型來源 Sketchfab「Cat in Motion 3d model free」（iRahulRajput，CC-BY 4.0），畫面須保留作者與來源標註。
 - 不更換 logo 檔案，只能由管理者在內建款或上傳的 Logo 中選擇。
 - 2026-11-11｜#361：新增向量標誌「門口貓頭款」（`door`）為預設（`LOGOS` 第一個），舊三款保留。前後台統一讀同一個站台標誌：方形位置用 `src`、橫式位置（MeowHQ 頂列、登入卡片）用 `wordmark`。favicon 與網頁圖示組在 `src/app/`（`favicon.ico`、`icon.svg`、`apple-icon.png`、`manifest.ts`）。設計母檔與使用規範不在 repo（子哲本機專題資料夾 `logo設計_1111/`）。
@@ -166,6 +184,13 @@ ole === "admin" 判斷管理員，而現有 admin 會升為 system_admin；舊�
 | 2026-11-09 | Tina × Claude Code | #304 故事線：餐碗組辨識飼料碗與水碗（`bowlSlotsDetect.ts` 讀模型顏色、`bowl-slots.ts` 判斷），吃飯站飼料碗前、喝水站水碗前（餐碗組也算喝水用品），貓站在碗中心往外 `NOSE_REACH_M`，碗不當障礙；母體補齊撒嬌（cuddle）、休息（rest）、理毛（groom），動作庫已無規劃中動作；**Storage 母體待上傳** | #304 |
 | 2026-11-09 | Tina × Claude Code | #318 故事線：貓不再穿越碗盆——碗有碰撞（餐碗組＝兩個碗、碗墊可踩），站位＝碗半徑＋前腳掌前伸距離（腳掌踩碗外），最後靠近才拿掉這組碗的碰撞；做動作時貼齊站位。母體 eat／drink 改成往前伸脖子、前半身壓低，鼻尖在前腳掌前約 4–5 cm | #318 |
 | 2026-11-10 | Tina × Claude Code | #331 體型預覽新增第 4 分頁「奔跑貓」：`public/hq-cat-models/base/cat_runner_tabby.glb`（低多邊形、重新展 UV＋程序化橘白虎斑、動作 run）；動作庫新增「奔跑」（CLIP_LIBRARY_VERSION 8） | （見 PR） |
+| 2026-11-11 | Tina × Claude Code | #365 成貓母體脊椎＋尾巴拉直、加鬍鬚（`whiskers`，嘴邊 2×12、眉毛鬚 2×3，掛 `head0`），`base_clips.glb` 重新匯出並以 `eat_drink.mjs adult` 重做 eat／drink；`step3b_fill.py` 補紋改自然鯖魚虎斑、頭部不補；新增 `workers/cat-paint/cat_studio/project_views.py`（三視角投影烘焙）；新增「3D 貓咪母體模型位置」一節；**Storage 母體待上傳** | （見 PR） |
+| 2026-11-11 | Tina × Claude Code | #367 示範貓「第一隻虎斑貓」成貓貼圖換成三視角投影版，加上 AI 三視角與兩張實拍參考照（`public/hq-cat-models/cats/cat_20261030_140731/`、`bundled.ts` 的 `bundledFilePublicPath` 支援 `gen_*`、`photo_front／back`） | （見 PR） |
+| 2026-11-11 | Tina × Claude Code | #369 `/MeowHQ/assets/bases?body=adult` 預覽貓套用第一隻虎斑貓的成貓紋理（`bases.ts` 的 `previewAlbedoUrl`；其他分頁仍用母體內建毛色） | （見 PR） |
+| 2026-11-11 | Tina × Claude Code | #369 體型預覽成貓分頁左上角標籤改成「第一隻虎斑貓」（`previewBadge`），其他分頁仍是「示範毛色」 | （見 PR） |
+| 2026-11-11 | Tina × Claude Code | #365 追加：鬍鬚位置修正——原本用兩眼距當尺（此母體 6.7 cm 偏寬）掉到下巴；改用固定公分，鬍鬚墊在鼻頭下 0.8～1.5 cm、往後 1～2.2 cm、往外 1～1.9 cm，接近水平；眉毛鬚改在眼睛正上方約 1.3 cm。動作與 main 逐格相同，只換 `whiskers` 網格；**Storage 母體待重新上傳** | （見 PR） |
+| 2026-11-11 | Tina × Claude Code | #365 追加 2：鬍鬚根部再往上移到鼻子兩旁、嘴線之上（鼻頭下 0.1～0.6 cm、往後 0.6～1.7 cm、往外 0.9～1.7 cm），下垂與俯角減少；動作與 main 逐格相同；**Storage 母體待重新上傳** | （見 PR） |
+| 2026-11-11 | Tina × Claude Code | #367 追加：AI 照片裡的鬍鬚越過臉頰、胸口，投影後變成貼圖上的白線（看起來到處長鬍鬚）。`project_views.py` 投影前先抹掉照片的鬍鬚（`remove_whiskers`：比周圍亮很多、偏白的細線，用中值色補；只處理左側與正面照的頭到胸口），示範貓成貓貼圖重新產生；眉毛鬚與鬍鬚網格保留 | （見 PR） |
 - 2026-10-29｜#24：前端呼叫 `meow_suspend_user`／`meow_unsuspend_user`／`meow_ban_email`／`meow_unban_email`／`meow_review_verification`／`meow_revoke_badge`；「要求補件」不另設狀態，用退回＋快選原因「退回並要求補件」；黑名單狀態只有系統管理員讀得到（RLS），其他管理員看不到黑名單欄與操作。
 
 - 2026-10-31｜#75：虛擬體驗元件分四個區塊（貓咪、室內空間、生活用品、其他），R3 已改寫；貓咪模型的貼圖由 cat_studio/paint_worker.py 產生，網頁只建任務與預覽（共用母體 ase_clips.glb 換 cat_fur 貼圖，不需每隻貓各一個 glb）；動作屬母體，補入新動作後所有貓自動擁有；本機模式（可新增／產生）只在非 production 且設了 CAT_STUDIO_ROOT 時啟用；正式站改讀 `public/hq-cat-models/` 示範貓（已完成的 bb）供預覽，寫入仍關閉。004_meow_cat_models.sql（資料表 meow_cat_models、meow_cat_model_jobs、bucket meow-cat-photos／meow-cat-models）在 PR 3，執行前須經 Tina 確認。

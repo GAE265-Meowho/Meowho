@@ -8,3 +8,5 @@ Supabase Storage（`meow-cat-models/base/v1/`）還沒有對應的母體檔時�
 
 更新方式：從 Cat Studio 的 `adoption_cats/<id>/` 複製 `photo.*`、`paint_albedo.png`；母體從 `Meow/<母體>/work/base_clips.glb` 複製，並同步改 `src/lib/hq/cat-models/bundled.ts`。
 母體重新輸出後，**已產生的貼圖仍可用**（UV 固定）；但網格若重建（A-1 重跑），舊貼圖要重新產生。
+
+2026-11-11（#367）：第一隻虎斑貓的成貓貼圖改成三視角投影版（`Meow/adoption_cats/cat_20261030_140731/paint_albedo.png`），並加上 AI 三視角 `gen_left／gen_front／gen_back.jpg` 與兩張實拍參考照 `photo_front／photo_back.jpg`（都縮到 1024px），路徑寫在 `bundled.ts` 的 `bundledFilePublicPath`。
