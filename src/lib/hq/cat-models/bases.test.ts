@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { BASE_TABS, baseInfo, baseTabHref, isPreviewBody, previewBaseUrl, previewDownloadUrl, previewFileName, previewFraming, resolveBaseTab } from "./bases";
+import { BASE_TABS, baseInfo, baseTabHref, isPreviewBody, previewAlbedoUrl, previewBaseUrl, previewDownloadUrl, previewFileName, previewFraming, resolveBaseTab } from "./bases";
 
 describe("體型預覽分頁（#302）", () => {
   it("分頁依序為大貓、成貓、幼貓、奔跑貓（#331）", () => {
@@ -58,5 +58,14 @@ describe("體型預覽分頁（#302）", () => {
     expect(baseInfo("adult").photos).toEqual([]);
     expect(baseInfo("adult").autoApply).toBe(true);
     expect(baseInfo("kitten").tags).toContain("6 個月以下");
+  });
+});
+
+describe("體型預覽的紋理（#369）", () => {
+  it("成貓分頁套用示範貓「第一隻虎斑貓」的成貓紋理，其他分頁用母體內建毛色", () => {
+    expect(previewAlbedoUrl("adult")).toBe("/hq-cat-models/cats/cat_20261030_140731/paint_albedo.png");
+    expect(previewAlbedoUrl("kitten")).toBeNull();
+    expect(previewAlbedoUrl("large")).toBeNull();
+    expect(previewAlbedoUrl("runner")).toBeNull();
   });
 });
