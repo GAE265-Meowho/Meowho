@@ -1,6 +1,8 @@
 "use client";
 // 虛擬飼養 DEMO（#237）：把 catgame 原版的小遊戲（vanilla JS，見 minis.ts）包成 client component。
 // 原版的小遊戲是蓋在畫面上的對話框（.scrim／.modal），這裡照樣以固定定位疊在 3D 畫面與劇情上面。
+import dynamic from "next/dynamic";
+import { Mini3DModal } from "../mini3d/Mini3DModal";
 import { useEffect, useRef } from "react";
 import { startMini, type MiniCtx, type MiniId } from "./minis";
 import s from "./catgame.module.css";
@@ -19,7 +21,22 @@ function renameCat(root: HTMLElement, name: string): () => void {
   return () => ob.disconnect();
 }
 
-export function CatgameMini({ id, ctx, catName, onDone }: { id: MiniId; ctx: MiniCtx; catName: string; onDone: (r: unknown) => void }) {
+type Props = { id: MiniId; ctx: MiniCtx; catName: string; onDone: (r: unknown) => void };
+const loading = () => <p role="status">3D 遊戲載入中…</p>;
+const BrushGame3D = dynamic(() => import("../mini3d/BrushGame3D").then(m => m.BrushGame3D), { ssr: false, loading });
+const PetGame3D = dynamic(() => import("../mini3d/PetGame3D").then(m => m.PetGame3D), { ssr: false, loading });
+
+export function CatgameMini(props: Props) {
+  const { id, ctx, catName, onDone } = props;
+  if (id === "brush" || id === "pet") {
+    return <Mini3DModal title={id === "brush" ? "幫" + catName + "刷牙" : "摸摸" + catName} onCancel={() => onDone(null)}>
+      {id === "brush" ? <BrushGame3D ctx={ctx} onDone={onDone} /> : <PetGame3D ctx={ctx} onDone={onDone} />}
+    </Mini3DModal>;
+  }
+  return <LegacyMini {...props} />;
+}
+
+function LegacyMini({ id, ctx, catName, onDone }: Props) {
   const root = useRef<HTMLDivElement>(null);
   const done = useRef(onDone);
   const start = useRef(ctx);

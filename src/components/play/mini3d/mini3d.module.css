@@ -1,0 +1,35 @@
+.modal {
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  width: min(34rem, calc(100% - 1rem));
+  max-width: none;
+  max-height: calc(100dvh - 1rem);
+  overflow: auto;
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--ink);
+  padding: clamp(.75rem, 3vw, 1.5rem);
+}
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: .5rem;
+}
+.modal button { min-height: 44px; }
+.scene {
+  height: clamp(215px, 47dvh, 380px);
+  margin-block: .65rem;
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  background: var(--paper);
+  touch-action: none;
+}
+.scene canvas { touch-action: none; }
+.hint { margin: .5rem 0; }
+.meters { display: flex; flex-wrap: wrap; gap: .25rem 1rem; }
+.meters label { display: flex; align-items: center; gap: .35rem; }
+.meters progress { width: 6rem; }
+.status { min-height: 1.6em; margin: .35rem 0; display: flex; align-items: center; gap: .25rem; }

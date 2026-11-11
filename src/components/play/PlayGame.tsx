@@ -251,6 +251,7 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
 
   const miniCtx: MiniCtx = {
     age: state.life.age,
+    touchFav: cat.touchFav,
     // 刷牙訓練階段：每做一次升一階（原版從「碰碰嘴邊」開始，最後到牙刷全口）
     brushLevel: Math.min(4, state.life.care.log.brush ?? 0),
     cat: { body: 5, trust: state.life.trust, stress: state.life.stress, tabby: cat.tabby },

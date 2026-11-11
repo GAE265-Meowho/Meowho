@@ -71,7 +71,7 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
   base: string; cat?: { baseUrl: string; albedoUrl: string } | null; items?: readonly SceneItem[]; controls?: boolean; noCat?: boolean;
   story?: { action: CatAction | null; at: number } | null; wand?: RoomWand | null;
   /** 貓頭頂的小對話框（表情符號）；null＝不顯示 */
-  bubble?: string | null;
+  bubble?: React.ReactNode;
   /** 畫面下方被劇情卡蓋住的比例（0～1）；對話框不會畫到那裡，貓在卡片後面時貼在卡片上緣 */
   bubbleInset?: number;
   /** 這個值一變，鏡頭就原地轉向貓（null／不變不轉） */
@@ -89,10 +89,10 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
   const orbit = useRef<{ enabled: boolean } | null>(null);
   const wandOn = useRef(false);
   const bubbleEl = useRef<HTMLDivElement>(null);
-  const bubbleText = useRef<string | null>(null);
+  const hasBubble = useRef(false);
   const insetRef = useRef(bubbleInset);
   insetRef.current = bubbleInset;
-  useEffect(() => { bubbleText.current = bubble ?? null; if (bubbleEl.current) bubbleEl.current.textContent = bubble ?? ""; }, [bubble]);
+  useEffect(() => { hasBubble.current = Boolean(bubble); }, [bubble]);
   const onCatch = useRef<RoomWand["onCatch"] | null>(null);
   onCatch.current = wand?.onCatch ?? null;
 
@@ -238,7 +238,7 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
         roomWorld?.update(dt);
         const be = bubbleEl.current;
         if (be) {
-          if (bubbleText.current && roomWorld?.catHead(head)) {
+          if (hasBubble.current && roomWorld?.catHead(head)) {
             head.project(active.camera);
             // 貓在畫面外或鏡頭後面就不顯示（框只跟著貓，不貼邊）；框畫到被劇情卡蓋住的區域時往上推一點
             const onScreen = head.z < 1 && Math.abs(head.x) < 0.95 && head.y > -0.95 && head.y < 0.9;
@@ -399,7 +399,7 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
     <section className="hq-roomviewer" aria-label="展示房間">
       <div ref={host} className="hq-roomviewer-host">
         {status === "loading" && <div className="hq-roomviewer-loading"><HqSkeleton rows={3} /></div>}
-        <div ref={bubbleEl} className="hq-roomviewer-bubble" aria-hidden="true" />
+        <div ref={bubbleEl} className="hq-roomviewer-bubble" aria-hidden="true">{bubble}</div>
       </div>
       {controls && (
         <>
