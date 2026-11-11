@@ -10,10 +10,10 @@ import styles from "./values.module.css";
 const pillars: { no: string; tag: string; icon: IconName; title: string; body: string; photo: Photo }[] = [
   {
     no: "01",
-    tag: "記錄｜時光小屋",
+    tag: "記錄｜專屬檔案",
     icon: "diary",
-    title: "每隻貓，都有自己的時光小屋",
-    body: "喵戶長拍照、說幾句話就能建檔；日記、相簿和 60 秒影片，AI 每週整理成週報，累積成牠完整的生活檔案。",
+    title: "每隻貓，都有自己的專屬檔案",
+    body: "喵戶長拍照、說幾句話就能建檔，留下日記、相簿和 60 秒影片。",
     photo: photos.record,
   },
   {

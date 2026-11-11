@@ -22,12 +22,12 @@ const BUNDLED: readonly CatModelView[] = [
     status: "ready",
     ageMonths: 5,
     weightKg: 4,
-    notes: "系統預設範例",
+    notes: "系統預設範例", // 2026-11-11 用 3 張實拍照片重做 AI 三視角與成貓紋理（三視角投影，#365／#367）
     photoView: "front",
     fillPattern: "tabby",
     hasAlbedo: true,
     hasPrevAlbedo: false,
-    albedoVersion: "2026-10-31T15:39:12",
+    albedoVersion: "2026-11-11T19:00:00",
     body: "adult", // 預設顯示成貓
     variantStorage: true,
     bodyVariants: {
@@ -35,22 +35,23 @@ const BUNDLED: readonly CatModelView[] = [
       kitten: { albedoUrl: `${PUBLIC_BASE}/cats/${DEMO_ID}/paint_albedo_kitten.png`, prevUrl: null, texture: confirmed("kitten"), baseVersion: "kitten-v1" },
     },
     jobStatus: "done",
-    jobQueuedAt: "2026-10-31T15:28:20",
-    jobStartedAt: "2026-10-31T15:34:45",
-    jobSeconds: 267,
+    jobQueuedAt: "2026-11-11T12:16:21",
+    jobStartedAt: "2026-11-11T12:16:21",
+    jobSeconds: 214,
     jobStep: "完成",
     jobError: null,
     createdAt: "2026-10-30T14:07:31",
-    updatedAt: "2026-10-31T15:39:12",
+    updatedAt: "2026-11-11T19:00:00",
     createdBy: "系統",
-    extraPhotos: [],
-    aiViews: [],
+    // 2026-11-11（#367）：另外兩張實拍參考照、AI 三視角（gpt-image-2 高畫質，cat_studio/redo_tabby1.py 產生）
+    extraPhotos: ["front", "back"],
+    aiViews: ["left", "front", "back"],
     aiRunning: [],
     aiErrors: {},
-    aiAge: null,
+    aiAge: { months: 36, isCat: true, coat: "棕色虎斑", breed: null, confidence: 0.91, source: "ai" },
     aiPrompts: {},
     aiUsage: {},
-    aiQuality: null,
+    aiQuality: "high",
   },
 ];
 
@@ -73,6 +74,10 @@ export function bundledFilePublicPath(id: string, kind: FileKind): string | null
   if (kind === "albedo" || kind === "albedo_adult") return `${PUBLIC_BASE}/cats/${id}/paint_albedo.png`;
   if (kind === "albedo_kitten") return `${PUBLIC_BASE}/cats/${id}/paint_albedo_kitten.png`;
   if (kind === "photo") return `${PUBLIC_BASE}/cats/${id}/photo.jpg`;
+  // AI 三視角、另外兩張參考照（#367）：靜態檔縮到 1024px 的 jpg
+  if (kind === "gen_left" || kind === "gen_front" || kind === "gen_back" || kind === "photo_front" || kind === "photo_back") {
+    return `${PUBLIC_BASE}/cats/${id}/${kind}.jpg`;
+  }
   return null; // albedo_prev 示範貓沒有
 }
 

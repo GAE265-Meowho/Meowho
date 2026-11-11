@@ -7,6 +7,7 @@ MeowHQ「產生紋理貼圖」的 GPU 工作程式：從 Supabase 的 `meow_cat_
 |---|---|
 | `cat_studio/paint_worker.py` | worker 主程式（已含 #104 成貓／幼貓變體補丁） |
 | `cat_base/`、`cat_base_kitten/` | 成貓／幼貓骨架：`base_uv.glb`（固定 UV 網格）、`eyes.json`、`step3_paint.py`（沿用固定 UV）、`step3b_fill.py`（補看不到的花紋） |
+| `cat_studio/project_views.py` | 選用（#365）：上色後把 AI 三視角（左側／正面／背部）投影到拉直後的成貓母體、烘焙進 `paint_albedo.png`，照片看不到的地方保留 Hunyuan 結果；用法見檔頭。需要 numpy、Pillow、trimesh，去背用 rembg 或 hy3dgen；尚未接進 `--supabase` 流程 |
 | `setup_paint_worker.sh` | Azure VM 安裝腳本（Ubuntu 24.04＋Tesla T4） |
 
 > 原始開發環境在 Tina 電腦的 `Meow/`（含 Blender 檔、建骨架用的其他腳本）。**之後改 worker 請改這裡**，改完同步回本機或直接在本機用這份。

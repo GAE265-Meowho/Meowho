@@ -93,7 +93,7 @@ export default function Feed() {
         <SectionHead
           id="feed-title"
           icon="camera"
-          kicker="時光小屋"
+          kicker="專屬檔案"
           title={
             <>
               <span>貓咪生活</span>
@@ -131,7 +131,7 @@ export default function Feed() {
           </ul>
           {/* 週報只整理中途寫下的文字與影片描述，不做健康判斷；有健康字眼時，正式版要在週報內容裡提醒就醫。 */}
           <CatButton href="/#adopt" variant="ghost" size="sm" arrow>
-            看橘子的時光小屋
+            看橘子的專屬檔案
           </CatButton>
         </aside>
         {posts.map((p) => (

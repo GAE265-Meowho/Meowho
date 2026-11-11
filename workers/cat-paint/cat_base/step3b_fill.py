@@ -27,11 +27,15 @@ BASE = ROOT / "cat_base"
 WORK = BASE / "work"
 
 DEFAULTS = {
-    "stripes": 8.0,        # 後腳到前腳之間的條紋數
-    "stripe_tilt": 0.35,   # 條紋往下時往後彎的程度
-    "stripe_width": 0.30,  # 條紋佔一個週期的比例
-    "warp": 1.3,           # 條紋扭曲（雜訊強度）
-    "breakup": 0.45,       # 條紋斷開的程度（0＝完整連續）
+    "stripes": 10.0,       # 後腳到前腳之間的條紋數（鯖魚紋比較密）
+    "stripe_tilt": 4.0,    # 條紋從背往肚子時往後彎的程度（週期數，越大越斜）
+    "stripe_width": 0.28,  # 條紋佔一個週期的比例
+    "warp": 0.14,          # 大尺度彎曲（3D 座標扭曲量，模型單位）
+    "wiggle": 0.045,       # 中尺度抖動（讓條紋不是平滑曲線）
+    "fur_edge": 0.22,      # 條紋邊緣的毛絲感（沿毛的方向拉長的細雜訊）
+    "split": 0.35,         # 條紋分岔成兩條細紋的比例
+    "breakup": 0.7,        # 肚子側條紋斷成短段的程度（0＝完整連續）
+    "ticking": 0.12,       # 底色上的細碎深淺（刺鼠毛感）
     "strength": 0.75,      # 條紋壓暗程度
     "feather": (0.04, 0.30),  # 從「照片看得到」到「完全補上」的過渡距離（模型單位，身長約 2）
     "seen_nz": 0.25,       # 法線朝照片方向超過這個值才算照片看得到
@@ -91,6 +95,54 @@ def fbm(p, octaves=4):
         s = s + a * value_noise(p)
         p, a = p * 2.03 + 17.0, a * 0.5
     return s
+
+
+def vec_noise(p, freq, seed):
+    """3D 向量雜訊（-0.5~0.5），拿來扭曲座標"""
+    return np.stack([fbm(p * freq + seed + o, 3) for o in (0.0, 31.7, 63.1)], 1) - 0.5
+
+
+def mackerel(p, fr, belly_h, back_h, ny, P):
+    """自然的鯖魚虎斑：條紋從背脊往下、往後彎，粗細不一、會分岔、在肚子側斷成短段，邊緣有毛絲感。
+    p：貼圖像素的 3D 位置；回傳 0~1 的條紋濃度"""
+    # 座標扭曲：大彎 + 小抖，條紋就不會是直線或平滑的圈
+    q = p + P["warp"] * vec_noise(p, 3.0, 0.0)
+    q = q + P["wiggle"] * vec_noise(q, 9.0, 11.0)
+    qu, qh, qw = frame_coords(q, fr)
+    hrel = np.clip((qh - belly_h) / (back_h - belly_h), 0.0, 1.0)
+    # 往肚子方向往後彎；肩膀附近彎得少、屁股附近彎得多（順著大腿）
+    bend = P["stripe_tilt"] * (1.0 - hrel) ** 1.6 * (1.25 - 0.5 * np.clip(qu, 0.0, 1.0))
+    phase = qu * P["stripes"] + bend
+    idx = np.floor(phase + 0.5)                     # 第幾條：同一條的粗細、斷點一致
+    t = phase - idx                                 # 離條紋中心的距離（-0.5~0.5）
+    # 每條粗細不一，往背脊變粗、往肚子變細
+    w_each = P["stripe_width"] * (0.65 + 0.7 * fbm(np.stack([idx * 3.1, qh * 2.0, qw], 1) + 5.0, 2))
+    w_each *= 0.75 + 0.5 * hrel
+    # 毛絲邊緣：沿身體方向拉長的細雜訊，讓邊緣毛毛的
+    fur = fbm(np.stack([qu * 8.0, qh * 120.0, qw * 40.0], 1) + 40.0, 3) - 0.5
+    d = np.abs(t) + P["fur_edge"] * 0.25 * fur
+    single = 1.0 - smoothstep(w_each * 0.5, w_each * 0.5 + 0.06, d)
+    # 分岔：部分條紋在側腹中段變成兩條細紋
+    split_m = smoothstep(0.55, 0.7, fbm(np.stack([idx * 1.7, qh * 3.0, qw * 2.0], 1) + 70.0, 2)) * P["split"] * 2.0
+    split_m *= smoothstep(0.25, 0.45, hrel) * (1.0 - smoothstep(0.7, 0.85, hrel))
+    dd = np.abs(np.abs(t) - w_each * 0.45) + P["fur_edge"] * 0.2 * fur
+    double = 1.0 - smoothstep(w_each * 0.22, w_each * 0.22 + 0.05, dd)
+    stripe = single * (1.0 - np.clip(split_m, 0, 1)) + double * np.clip(split_m, 0, 1)
+    # 往肚子斷成短段、再往下淡掉
+    dash = smoothstep(0.4, 0.56, fbm(np.stack([idx * 2.3, qh * 6.0, qw * 3.0], 1) + 90.0, 3))
+    low = 1.0 - smoothstep(0.35, 0.75, hrel)
+    stripe *= 1.0 - P["breakup"] * low * (1.0 - dash)
+    stripe *= smoothstep(0.0, 0.35, hrel + 0.35 * (fbm(p * 6.0 + 5.0) - 0.5))
+    # 深淺不一
+    stripe *= 0.7 + 0.3 * fbm(np.stack([idx * 4.1, qh * 3.0, qw], 1) + 21.0, 2) * 2.0
+    # 背脊：一條粗深的背線，兩側斷續的細線（魚骨中心）
+    spine = smoothstep(0.88, 0.95, ny + 0.04 * fur) * smoothstep(0.6, 0.8, hrel)
+    side_lines = (1.0 - smoothstep(0.012, 0.03, np.abs(np.abs(ny - 0.8) - 0.0) + 0.02 * fur)) * smoothstep(0.7, 0.85, hrel)
+    side_lines *= smoothstep(0.4, 0.6, fbm(np.stack([qu * 18.0, qh, qw], 1) + 55.0, 2))
+    stripe = np.maximum(stripe, np.maximum(spine, 0.7 * side_lines))
+    # 底色細碎深淺（不算條紋，壓暗比較輕）
+    tick = P["ticking"] * (fbm(np.stack([qu * 40.0, qh * 120.0, qw * 120.0], 1) + 13.0, 2) - 0.35)
+    return np.clip(stripe, 0.0, 1.0), np.clip(tick, 0.0, 1.0)
 
 
 def body_frame(v, faces):
@@ -188,7 +240,8 @@ def fill_pattern(mesh, albedo, pattern="tabby", params=None, debug=False, eyes=N
     legs = 1.0 - smoothstep(belly_h - 0.05, belly_h + 0.05, h)
     tail = 1.0 - smoothstep(-0.55, -0.42, u)
     ears = smoothstep(0.86, 0.9, h) * smoothstep(0.9, 1.0, u)
-    fill_v = fill_v * (1 - legs) * (1 - tail) * (1 - ears)
+    face = smoothstep(0.98, 1.1, u) * smoothstep(0.55, 0.7, h)   # 頭部（前腳再往前）不補：臉的花紋交給 AI 上色，條紋畫上臉會很怪
+    fill_v = fill_v * (1 - legs) * (1 - tail) * (1 - ears) * (1 - face)
     print(f"身體座標：身長 {fr['length']:.3f}，背 {back_h:.2f}，肚子 {belly_h:.2f}；"
           f"照片看得到 {seen.mean():.0%} 的頂點，要補的頂點 {np.mean(fill_v > 0.5):.0%}")
 
@@ -225,19 +278,9 @@ def fill_pattern(mesh, albedo, pattern="tabby", params=None, debug=False, eyes=N
 
         sel = covered & (wgt > 0.001)
         p = pos[sel]
-        pu, ph, _ = frame_coords(p, fr)
-        hrel = np.clip((ph - belly_h) / (back_h - belly_h), 0.0, 1.0)
-        phase = pu * P["stripes"] + P["stripe_tilt"] * (1.0 - hrel) + P["warp"] * (fbm(p * 2.2) - 0.5)
-        wave = 0.5 + 0.5 * np.cos(2 * np.pi * phase)
-        width = P["stripe_width"] * (0.7 + 0.6 * fbm(p * 4.0 + 3.0))      # 條紋粗細不一
-        stripe = smoothstep(1.0 - width, 1.0 - width + 0.2, wave)
-        # 條紋斷開、深淺不一
-        stripe *= 1.0 - P["breakup"] * smoothstep(0.45, 0.6, fbm(p * 7.0 + 9.0))
-        stripe *= 0.75 + 0.25 * fbm(p * 1.5 + 21.0) * 2.0
-        # 往肚子方向條紋斷開變淡；背脊加一條深色背線
-        stripe *= smoothstep(0.0, 0.4, hrel + 0.4 * (fbm(p * 6.0 + 5.0) - 0.5))
         ny = nrm[sel][:, 1] / np.maximum(np.linalg.norm(nrm[sel], axis=1), 1e-6)
-        stripe = np.maximum(stripe, smoothstep(0.86, 0.95, ny) * smoothstep(0.6, 0.8, hrel))
+        stripe, tick = mackerel(p, fr, belly_h, back_h, ny, P)
+        stripe = np.maximum(stripe, tick)
         k = (stripe * wgt[sel] * P["strength"])[:, None]
         out[sel] = img[sel] * (1.0 - k + k * ratio)
 

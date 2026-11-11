@@ -1,0 +1,144 @@
+/* 中途喵戶總覽頁：DESIGN.md v2。名片的樣子跟「我的喵戶」的喵戶區塊一致，貓卡用首頁的 adopt.module.css。 */
+.page {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 24px 16px 120px;
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+}
+
+.head {
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+  padding: 24px;
+  border-radius: 28px;
+  background: var(--card);
+  box-shadow: 0 6px 0 -1px var(--line);
+}
+
+.avatar {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 96px;
+  height: 96px;
+  overflow: hidden;
+  border-radius: 50%;
+  background: var(--yellow-soft);
+  color: var(--orange);
+}
+
+.avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.text {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.badges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.kicker,
+.verified {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 14px;
+  border-radius: 999px;
+  background: var(--yellow);
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.verified {
+  background: var(--mint-soft);
+}
+
+.name {
+  margin: 0;
+  font-size: clamp(26px, 3.2vw, 38px);
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.place {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ink-soft);
+  font-size: 15px;
+}
+
+.intro {
+  margin: 0;
+  color: var(--ink);
+  font-size: 16px;
+  line-height: 1.8;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.cats {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.catsHead {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.catsHead h2 {
+  margin: 0;
+  font-size: clamp(22px, 2.6vw, 28px);
+}
+
+.count {
+  color: var(--ink-soft);
+  font-size: 15px;
+}
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 40px 20px;
+  border-radius: 28px;
+  background: var(--card);
+  color: var(--orange);
+  text-align: center;
+}
+
+.empty p {
+  margin: 0;
+  color: var(--ink);
+  font-size: 16px;
+}
+
+@media (max-width: 599px) {
+  .head {
+    gap: 14px;
+    padding: 18px;
+  }
+
+  .avatar {
+    width: 64px;
+    height: 64px;
+  }
+}

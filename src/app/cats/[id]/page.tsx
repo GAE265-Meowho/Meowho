@@ -1,11 +1,11 @@
 "use client";
-/* eslint-disable @next/next/no-img-element */
 // 貓咪頁（#70）：給想領養的人看的公開名片，可以收藏、填寫領養問卷。看不看得到交給 meow_cats 的 RLS。
 // 年齡顯示年齡層＋大約年紀，例如「幼貓（約 3 個月）」（#206）。從中途領養來的貓，飼主在這裡提出退養請求（#109）。
 // 待領養貓可以「傳訊息給喵戶長」（#70，#128），對話在「領養管理」。
 // 準備中的貓只有中途看得到（0017 RLS）；中途在這裡確認 3D 模型、按「準備出發找新主人」（規格 09 §5）。
 // 有確認過的 3D 模型就顯示 3D 貓，可以按動作按鈕互動（Cat3D）；中途看自己的貓時改由 PublishPanel 顯示。
 // 新增貓流程（0024，#206）存的介紹、第一週、個性量表、照顧起來、基本資料也顯示在這裡（lib/cat-profile/profile-view.ts）。
+import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/components/Auth";
@@ -15,6 +15,7 @@ import { FavoriteButton } from "@/components/cats/FavoriteButton";
 import { MessageButton } from "@/components/cats/MessageButton";
 import { CatCare, CatPairs, CatTraits, CatWeek } from "@/components/cats/CatProfile";
 import { Cat3D } from "@/components/cats/Cat3D";
+import { PhotoCarousel } from "@/components/cats/PhotoCarousel";
 import { PublishPanel } from "@/components/cats/PublishPanel";
 import s from "@/components/cats/catPage.module.css";
 import f from "@/components/onboarding/intake.module.css";
@@ -25,13 +26,14 @@ import { compatLines, medicalLines } from "@/lib/cat-profile/display";
 import { ageLabel } from "@/lib/cat-profile/life-stage";
 import { catPagePhotos } from "@/lib/cat-profile/new-cat";
 import { profileView, type ProfileView } from "@/lib/cat-profile/profile-view";
+import { hasHouseholdPage } from "@/lib/household-page";
 import { fromCatRow as formFromRow } from "@/lib/onboarding/new-cat-form";
 import { fromCatRow } from "@/lib/onboarding/intake-rows";
 import type { CatFields } from "@/lib/onboarding/conversation";
 import { getBrowserSupabase } from "@/lib/supabase/client";
 import { photoSrc } from "@/lib/supabase/config";
 
-interface Home { id: string; name: string; city: string; district: string; owner_id: string; adoption_terms: AdoptionTerms | null }
+interface Home { id: string; name: string; city: string; district: string; owner_id: string; adoption_terms: AdoptionTerms | null; caretaker_type: string }
 
 const STATUS = { adoptable: "待領養", own: "自家貓", adopted: "已被領養", preparing: "準備中" } as const;
 const SEX = { male: "男生", female: "女生", unknown: "" } as const;
@@ -45,14 +47,13 @@ export default function CatPage() {
   const [formOpen, setFormOpen] = useState(false);
   const [videos, setVideos] = useState<{ path: string; url: string }[]>([]);
   const [favCount, setFavCount] = useState<number | null>(null);
-  const [current, setCurrent] = useState(0);
   const [view, setView] = useState<ProfileView | null>(null);
 
   useEffect(() => {
     if (!sb || loading) return;
     (async () => {
       const [{ data: row }, { data: fm }] = await Promise.all([
-        sb.from("meow_cats").select("*, household:meow_households!meow_cats_household_id_fkey(id, name, city, district, owner_id, adoption_terms)").eq("id", id).maybeSingle(),
+        sb.from("meow_cats").select("*, household:meow_households!meow_cats_household_id_fkey(id, name, city, district, owner_id, adoption_terms, caretaker_type)").eq("id", id).maybeSingle(),
         sb.from("meow_adoption_forms").select("is_open").eq("cat_id", id).maybeSingle(),
       ]);
       if (!row) { setCat(null); return; }
@@ -92,20 +93,8 @@ export default function CatPage() {
     body = (
       <>
         <section className={s.hero}>
-          <div className={s.gallery}>
-            <div className={s.main}>
-              {photos[current] ? <img src={photoUrl(photos[current])} alt={`${cat.name}的照片`} /> : <Icon name="cat" size={96} />}
-            </div>
-            {photos.length > 1 && (
-              <div className={s.thumbs}>
-                {photos.map((p, i) => (
-                  <button key={p} type="button" aria-label={`第 ${i + 1} 張照片`} aria-pressed={i === current} onClick={() => setCurrent(i)}>
-                    <img src={photoUrl(p)} alt="" />
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+          {/* 直式、橫式照片都完整顯示，外框高度固定（PhotoCarousel，#354） */}
+          <PhotoCarousel photos={photos.map(photoUrl)} name={cat.name} />
 
           <div className={s.summary}>
             <span className={`${s.tag} ${adoptable ? s.adoptable : ""}`}>{STATUS[cat.rawStatus as keyof typeof STATUS] ?? cat.rawStatus}</span>
@@ -115,7 +104,12 @@ export default function CatPage() {
               {[ageLabel(cat.lifeStage, cat.estAgeMonths), cat.sex && SEX[cat.sex], cat.coat, cat.breed].filter(Boolean).join("・")}
             </p>
             {home && (
-              <p className={s.home}><Icon name="house" size={18} />{home.name}<span>{home.city}{home.district}</span></p>
+              <p className={s.home}>
+                <Icon name="house" size={18} />
+                {/* 中途的喵戶名稱連到喵戶總覽頁（#354）；一般飼主的喵戶沒有公開頁 */}
+                {hasHouseholdPage(home.caretaker_type) ? <Link href={`/households/${home.id}`} className={s.homeLink}>{home.name}</Link> : home.name}
+                <span>{home.city}{home.district}</span>
+              </p>
             )}
             {cat.personalityTags.length > 0 && (
               <div className={s.tags}>{cat.personalityTags.map(t => <span key={t} className={s.tag}>{t}</span>)}</div>
