@@ -46,6 +46,8 @@ describe("站的位置", () => {
   it("站位＝碗半徑＋前腳掌在身體前方的距離：腳掌踩在碗外（#318）；幼貓站得更近", () => {
     expect(standOff("adult")).toBeCloseTo(BOWL_RADIUS_M + PAW_AHEAD_M.adult + 0.015);
     expect(standOff("kitten")).toBeLessThan(standOff("adult"));
+    // #373 幼貓四腳對齊後前腳掌收到肩膀下方：腳掌尖在身體中心前約 5.4 cm（舊版右前腳往前伸到 8.7 cm）
+    expect(PAW_AHEAD_M.kitten).toBeCloseTo(0.053, 3);
     const spot = stepSpot(drink, single, { x: 2, z: 4 }, () => false, { reach: standOff("kitten") })!;
     expect(spot.z).toBeCloseTo(2 + standOff("kitten"));
     expect(spot.target).toEqual({ x: 2, z: 2 });

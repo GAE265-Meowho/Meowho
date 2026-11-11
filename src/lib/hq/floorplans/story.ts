@@ -64,7 +64,7 @@ export const passableItem = (story: Story | null, name: string) =>
  * 前腳掌在身體中心前方 PAW_AHEAD_M，鼻尖再往前約 5 cm。貓站在離碗中心 standOff(body) 的地方 → 腳掌剛好在碗外、鼻尖在碗裡。
  */
 export const BOWL_RADIUS_M = 0.085;
-export const PAW_AHEAD_M = { adult: 0.217, kitten: 0.086 } as const;
+export const PAW_AHEAD_M = { adult: 0.217, kitten: 0.053 } as const;   // 幼貓 #373 四腳對齊後重量（原 0.086）
 /** 同一組餐碗組的兩個碗中心距離以內（碗墊長邊一半左右） */
 const SAME_SET_M = 0.35;
 export const standOff = (body: keyof typeof PAW_AHEAD_M) => BOWL_RADIUS_M + PAW_AHEAD_M[body] + 0.015;
