@@ -196,7 +196,8 @@ def ask(images):
             response = client.models.generate_content(
                 model=model,
                 contents=[types.Part.from_bytes(data=d, mime_type="image/jpeg") for d in images] + [PROMPT],
-                config=types.GenerateContentConfig(response_mime_type="application/json", response_json_schema=SCHEMA),
+                # 隨機度調到最低、種子固定：同一個房間重跑，挑到的物品盡量一樣（#354：書桌一次有一次沒有）
+                config=types.GenerateContentConfig(response_mime_type="application/json", response_json_schema=SCHEMA, temperature=0, seed=0),
             )
         except errors.APIError as e:
             if e.code not in (429, 503, 504) or model == MODELS[-1]:
