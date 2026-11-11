@@ -3,12 +3,11 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 12px 16px;
-  /* Leaves a lane above the cards for 橘子 to patrol without covering the filters */
+  /* Leaves a lane above the cards for 橘子 to patrol without covering the toolbar */
   margin-bottom: 120px;
 }
 
-.scope,
-.filters {
+.scope {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
@@ -21,8 +20,7 @@
   border: 1.5px solid var(--line);
 }
 
-.scope button,
-.filters button {
+.scope button {
   min-height: var(--tap);
   display: inline-flex;
   align-items: center;
@@ -37,25 +35,13 @@
   transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
 
-.filters button {
-  background: var(--card);
-  border-color: var(--line);
-}
-
-.scope button:hover,
-.filters button:hover {
+.scope button:hover {
   color: var(--ink);
 }
 
 .scope .on {
   background: var(--yellow);
   color: var(--ink);
-}
-
-.filters .on {
-  background: var(--ink);
-  border-color: var(--ink);
-  color: var(--yellow);
 }
 
 .views {
@@ -151,6 +137,9 @@
 }
 
 .photo img {
+  /* 絕對定位：直式照片不會把 4:3 的框撐高，每張卡的照片高度一致（#354） */
+  position: absolute;
+  inset: 0;
   display: block;
   width: 100%;
   height: 100%;
@@ -327,15 +316,4 @@
     margin-left: 0;
   }
 
-  .filters {
-    flex-wrap: nowrap;
-    overflow-x: auto;
-    margin: 0 calc(var(--gutter) * -1);
-    padding: 0 var(--gutter) 4px;
-    scrollbar-width: none;
-  }
-
-  .filters button {
-    flex: none;
-  }
 }

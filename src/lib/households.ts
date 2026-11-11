@@ -105,7 +105,7 @@ export const households: Household[] = [
     district: "台中市西區",
     owner: "Rita",
     kind: "fresh",
-    intro: "阿虎從中途移轉到這裡第 14 天，時光小屋繼續寫新家時期。",
+    intro: "阿虎從中途移轉到這裡第 14 天，專屬檔案繼續記錄新家時期。",
     waiting: [],
     latest: "阿虎已經會在樓梯口等下班的我。",
     col: 1.9,

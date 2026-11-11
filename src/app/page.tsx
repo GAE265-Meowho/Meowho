@@ -1,7 +1,6 @@
 import { SiteFooter, SiteHeader, TabBar } from "@/components/Chrome";
 import AdoptSection from "@/components/home/adopt/AdoptSection";
 import Consult from "@/components/home/consult/Consult";
-import Feed from "@/components/home/feed/Feed";
 import Hero from "@/components/home/hero/Hero";
 import Steps from "@/components/home/steps/Steps";
 import Trial from "@/components/home/trial/Trial";
@@ -18,7 +17,7 @@ export default function Home() {
         <AdoptSection />
         <Steps />
         <Trial />
-        <Feed />
+        {/* 「時光小屋」（Feed.tsx）2026-11-11 起先隱藏，動態牆延後（#354）；要恢復就把 <Feed /> 加回這裡 */}
         <Consult />
       </main>
       <SiteFooter />
