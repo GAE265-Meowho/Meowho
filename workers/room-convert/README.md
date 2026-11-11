@@ -36,7 +36,7 @@ SUPABASE_SERVICE_ROLE_KEY=
 GEMINI_API_KEY=            # AI 辨識房間有哪些物品，必填
 AZURE_STORAGE_ACCOUNT=meowhomedia   # 前台居家影片（#273），跟主站同名
 AZURE_STORAGE_KEY=                  # 儲存帳戶 key1，向子哲索取
-AZURE_STORAGE_CONTAINER=media-dev   # 正式站上傳的影片在 media
+AZURE_STORAGE_CONTAINER=media-dev   # 正式站和測試都用 media-dev，media 先不用
 ```
 第一次用要 `pip3 install -r requirements.txt`（多了 `azure-storage-blob`）。
 ```bash
