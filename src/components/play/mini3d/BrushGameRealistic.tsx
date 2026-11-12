@@ -1,12 +1,13 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useRef, useState, type PointerEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type PointerEvent } from "react";
 import { brushDifficulty, brushPointers, brushScore, brushStep, brushStruggling, newBrush, type BrushResult } from "@/lib/play/mini3d/brush-rules";
 import { brushPhotoFeedback, closeupPoint, inPhotoZone, lipZone, mouthCloseup, pasteZone, photoSize, photoMouth, photoPoint, photoStroke, photoTarget, toothZones, type PhotoPoint } from "@/lib/play/mini3d/brush-photo-regions";
 import type { MiniCtx } from "../catgame/minis";
 import styles from "./mini3d.module.css";
 import { BrushPhotoTool } from "./BrushPhotoTool";
+import { BrushReactionVideo } from "./BrushReactionVideo";
 import photo from "./brush-photo.module.css";
 
 const instructions = {
@@ -24,20 +25,25 @@ function newInput() {
     lift: 0,
     key: false,
     keyLift: 0,
-    locked: false,
     tool: null as PhotoPoint | null,
     angle: 0,
     travel: 0,
   };
 }
 
-export function BrushGameRealistic({ ctx, onDone }: { ctx: MiniCtx; onDone: (result: BrushResult) => void }) {
+export function BrushGameRealistic({ ctx, onDone, reactionSrc = process.env.NEXT_PUBLIC_BRUSH_REACTION_MP4 }: {
+  ctx: MiniCtx;
+  onDone: (result: BrushResult) => void;
+  reactionSrc?: string;
+}) {
   const [config] = useState(() => brushDifficulty(ctx.cat.trust, ctx.cat.stress, ctx.brushLevel ?? 0));
   const [state, setState] = useState(() => newBrush(config));
   const [frame, setFrame] = useState<ReturnType<typeof photoMouth>>("closed");
   const [activeTooth, setActiveTooth] = useState<number | null>(null);
   const [loaded, setLoaded] = useState<ReadonlySet<string>>(() => new Set());
   const [failed, setFailed] = useState(false);
+  const [reaction, setReaction] = useState(false);
+  const reactionPlaying = useRef(false);
   const scene = useRef<HTMLDivElement>(null);
   const closeup = useRef<SVGSVGElement>(null);
   const toolGraphic = useRef<SVGGElement>(null);
@@ -50,8 +56,13 @@ export function BrushGameRealistic({ ctx, onDone }: { ctx: MiniCtx; onDone: (res
   const score = brushScore(state);
   const struggle = brushStruggling(state.elapsed, config);
   const remaining = Math.max(0, config.patience - state.elapsed);
-  const feedback = brushPhotoFeedback(remaining / config.patience, struggle, state.result);
+  const feedback = brushPhotoFeedback(remaining / config.patience, struggle || reaction, state.result);
   const [title, hint] = instructions[config.phase];
+
+  const endReaction = useCallback(() => {
+    reactionPlaying.current = false;
+    setReaction(false);
+  }, []);
 
   useEffect(() => {
     if (!ready) return;
@@ -59,6 +70,8 @@ export function BrushGameRealistic({ ctx, onDone }: { ctx: MiniCtx; onDone: (res
     let previous: number | null = null;
     let displayElapsed = 0;
     let visualLift = 0;
+    let heldLip: number | null = null;
+    let heldSpace = false;
     const motion = window.matchMedia?.("(prefers-reduced-motion: reduce)");
     let animation: number;
     const reset = () => {
@@ -69,8 +82,17 @@ export function BrushGameRealistic({ ctx, onDone }: { ctx: MiniCtx; onDone: (res
         if (id !== null && node?.hasPointerCapture(id)) node.releasePointerCapture(id);
       }
     };
+    const blur = () => {
+      heldLip = null;
+      heldSpace = false;
+      reset();
+    };
+    const releaseHeldLip = (event: globalThis.PointerEvent) => {
+      if (heldLip === event.pointerId) heldLip = null;
+    };
     const keyDown = (event: KeyboardEvent) => {
-      if (game.result || event.code !== "Space" || event.repeat || paste || !scene.current?.closest("dialog")?.contains(document.activeElement) ||
+      if (game.result || reactionPlaying.current || brushStruggling(game.elapsed, config) ||
+        event.code !== "Space" || event.repeat || paste || !scene.current?.closest("dialog")?.contains(document.activeElement) ||
         (event.target instanceof HTMLElement && event.target.closest("button, input, textarea, select, a"))) return;
       event.preventDefault();
       input.current.key = true;
@@ -80,10 +102,10 @@ export function BrushGameRealistic({ ctx, onDone }: { ctx: MiniCtx; onDone: (res
     };
     const keyUp = (event: KeyboardEvent) => {
       if (event.code !== "Space") return;
+      heldSpace = false;
       input.current.key = false;
       if (!config.teeth) input.current.tool = null;
       input.current.travel = 0;
-      if (input.current.pointers.lip === null) input.current.locked = false;
     };
     const tick = (time: number) => {
       const dt = Math.min(.1, (time - (previous ?? time)) / 1000);
@@ -93,7 +115,8 @@ export function BrushGameRealistic({ ctx, onDone }: { ctx: MiniCtx; onDone: (res
       const distance = current.key ? current.keyLift : current.lift;
       const rawHold = touch ? current.key || current.pointers.lip !== null : distance >= .04;
       const wasStruggling = brushStruggling(game.elapsed, config);
-      const holding = rawHold && (!current.locked || wasStruggling);
+      const playing = reactionPlaying.current;
+      const holding = wasStruggling ? heldSpace || heldLip !== null : rawHold && !playing;
       if (started.current) {
         const target = holding && !wasStruggling && current.tool ? photoTarget(current.tool, config.teeth) : null;
         game = brushStep(game, config, {
@@ -101,15 +124,27 @@ export function BrushGameRealistic({ ctx, onDone }: { ctx: MiniCtx; onDone: (res
           holding,
           target,
           travel: current.travel,
-          near: paste ? !!current.tool && inPhotoZone(current.tool, pasteZone) : true,
+          near: !playing && (!paste || !!current.tool && inPhotoZone(current.tool, pasteZone)),
         });
       }
       const struggling = brushStruggling(game.elapsed, config);
-      if (struggling && (current.key || current.pointers.lip !== null)) current.locked = true;
-      const blocked = touch || paste || current.locked || struggling || !!game.result;
+      if (struggling && !wasStruggling) {
+        // Keep the pressure rule tied to the original hold after releasing browser capture.
+        heldSpace = rawHold && current.key;
+        heldLip = rawHold && !current.key ? current.pointers.lip : null;
+        reset();
+        if (reactionSrc && !motion?.matches && !playing) {
+          reactionPlaying.current = true;
+          setReaction(true);
+        }
+      } else if (!struggling) {
+        heldSpace = false;
+        heldLip = null;
+      }
+      const blocked = touch || paste || struggling || playing || !!game.result;
       const mouth = photoMouth(distance, blocked);
       const desiredLift = blocked ? 0 : Math.min(.04, distance);
-      if (game.result?.bitten) visualLift = 0;
+      if (struggling || game.result?.bitten) visualLift = 0;
       const controllingLip = current.key || current.pointers.lip !== null;
       visualLift = (controllingLip && !blocked) || motion?.matches
         ? desiredLift
@@ -118,7 +153,7 @@ export function BrushGameRealistic({ ctx, onDone }: { ctx: MiniCtx; onDone: (res
       // Fade only between adjacent frames. The closed portrait remains the base.
       node?.style.setProperty("--lift-opacity", String(Math.min(1, visualLift / .018)));
       node?.style.setProperty("--teeth-opacity", String(Math.max(0, (visualLift - .018) / .022)));
-      const visibleTool = !game.result && !struggling && (!config.teeth || mouth === "teeth") ? current.tool : null;
+      const visibleTool = !game.result && !struggling && !playing && (!config.teeth || mouth === "teeth") ? current.tool : null;
       toolGraphic.current?.setAttribute("visibility", visibleTool ? "visible" : "hidden");
       if (visibleTool) {
         toolGraphic.current?.setAttribute("transform",
@@ -133,21 +168,29 @@ export function BrushGameRealistic({ ctx, onDone }: { ctx: MiniCtx; onDone: (res
         displayElapsed = 0;
         setState(game);
       }
-      if (game.result) reset();
+      if (game.result) {
+        reactionPlaying.current = false;
+        setReaction(false);
+        reset();
+      }
       else animation = requestAnimationFrame(tick);
     };
     animation = requestAnimationFrame(tick);
     window.addEventListener("keydown", keyDown);
     window.addEventListener("keyup", keyUp);
-    window.addEventListener("blur", reset);
+    window.addEventListener("blur", blur);
+    window.addEventListener("pointerup", releaseHeldLip, true);
+    window.addEventListener("pointercancel", releaseHeldLip, true);
     return () => {
       cancelAnimationFrame(animation);
       window.removeEventListener("keydown", keyDown);
       window.removeEventListener("keyup", keyUp);
-      window.removeEventListener("blur", reset);
+      window.removeEventListener("blur", blur);
+      window.removeEventListener("pointerup", releaseHeldLip, true);
+      window.removeEventListener("pointercancel", releaseHeldLip, true);
       reset();
     };
-  }, [config, paste, ready, touch]);
+  }, [config, paste, reactionSrc, ready, touch]);
 
   function point(event: PointerEvent<HTMLDivElement>) {
     return photoPoint(event.clientX, event.clientY, event.currentTarget.getBoundingClientRect());
@@ -160,7 +203,7 @@ export function BrushGameRealistic({ ctx, onDone }: { ctx: MiniCtx; onDone: (res
   }
 
   function down(event: PointerEvent<HTMLDivElement>) {
-    if (!ready || state.result || event.button !== 0) return;
+    if (!ready || state.result || struggle || reactionPlaying.current || event.button !== 0) return;
     const current = input.current;
     const position = point(event);
     const lip = !paste && !current.key && current.pointers.lip === null && inPhotoZone(position, lipZone);
@@ -176,7 +219,7 @@ export function BrushGameRealistic({ ctx, onDone }: { ctx: MiniCtx; onDone: (res
   }
 
   function move(event: PointerEvent<HTMLDivElement>) {
-    if (state.result) return;
+    if (state.result || struggle || reactionPlaying.current) return;
     const current = input.current;
     if (event.pointerType === "mouse") {
       event.currentTarget.dataset.lipHover = String(ready && !paste && !state.result
@@ -202,7 +245,7 @@ export function BrushGameRealistic({ ctx, onDone }: { ctx: MiniCtx; onDone: (res
         current.angle = Math.max(-12, Math.min(12, dy * Math.sign(dx || 1) * 900));
       }
       if (paste) current.travel += Math.hypot(position.x - current.tool.x, position.y - current.tool.y) * 2.4;
-      else if (!current.locked && (current.key ? current.keyLift >= .04 : current.lift >= .04)) {
+      else if (current.key ? current.keyLift >= .04 : current.lift >= .04) {
         const target = photoTarget(position, config.teeth);
         if (target !== photoTarget(current.tool, config.teeth)) current.travel = 0;
         current.travel += photoStroke(current.tool, position, config.teeth);
@@ -224,7 +267,6 @@ export function BrushGameRealistic({ ctx, onDone }: { ctx: MiniCtx; onDone: (res
       current.lift = 0;
       if (!config.teeth && !paste) current.tool = null;
       current.travel = 0;
-      if (!current.key) current.locked = false;
     }
     if (current.pointers.tool === event.pointerId) {
       current.tool = null;
@@ -261,7 +303,8 @@ export function BrushGameRealistic({ ctx, onDone }: { ctx: MiniCtx; onDone: (res
           onError={() => setFailed(true)}
           className={name === "closed" ? undefined : photo.mouth} data-photo-frame={name} />
       ))}
-      {ready && !state.result && <svg className={photo.overlay} viewBox="0 0 1086 1448" aria-hidden="true">
+      {reaction && reactionSrc && <BrushReactionVideo src={reactionSrc} onFinish={endReaction} />}
+      {ready && !state.result && !struggle && !reaction && <svg className={photo.overlay} viewBox="0 0 1086 1448" aria-hidden="true">
         <circle ref={lipGraphic} className={photo.marker} cx={marker.x * 1086} cy={marker.y * 1448} r="23" />
         {!config.teeth && tool}
       </svg>}

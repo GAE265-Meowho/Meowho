@@ -27,6 +27,18 @@
 .mouth[data-photo-frame="lift"] { opacity: var(--lift-opacity, 0); }
 .mouth[data-photo-frame="teeth"] { opacity: var(--teeth-opacity, 0); }
 
+.reaction {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+  opacity: 0;
+}
+
+.reaction[data-playing="true"] { opacity: 1; }
+
 .stage:focus-visible {
   outline: 2px solid var(--caramel);
   outline-offset: 3px;
@@ -75,10 +87,6 @@
 
 .stage[data-feedback="warning"] { outline: 2px solid var(--orange); }
 .stage[data-feedback="resisting"] { box-shadow: inset 0 0 0 3px var(--orange); }
-.stage[data-feedback="resisting"] .marker {
-  stroke: var(--orange);
-  animation: signal .6s ease-in-out alternate 2;
-}
 
 .stage[data-feedback="bitten"]::after,
 .stage[data-feedback="success"]::after {
@@ -109,7 +117,7 @@
 @keyframes settle { from { transform: translateY(4px); } to { transform: translateY(0); } }
 
 @media (prefers-reduced-motion: reduce) {
+  .reaction { display: none; }
   .stage[data-feedback]::after,
-  .stage[data-feedback] .marker,
   .feedback[data-feedback] { animation: none; }
 }
