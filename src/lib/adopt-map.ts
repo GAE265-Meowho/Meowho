@@ -195,8 +195,26 @@ export function mapPoint(region: RegionId, lat: number, lng: number, city: strin
   return project(region, lat, lng, { city });
 }
 
+/** 全島同一套投影，北中南東與離島都在真實相對位置。 */
+export const TAIWAN_MAP = { width: 860, height: 1120 };
+
+const TAIWAN_FRAME: Frame = {
+  latMin: 21.75,
+  latMax: 26.55,
+  lngMin: 118.05,
+  lngMax: 122.15,
+  ...TAIWAN_MAP,
+  pad: 24,
+  originX: 0,
+  originY: 0,
+};
+
+export function projectTaiwan(lat: number, lng: number): MapPoint {
+  return projectFrame(lat, lng, TAIWAN_FRAME);
+}
+
 /** 縣市代表點（人口較集中的一側，不是幾何中心遠到外海）。 */
-const CITY_POINTS: Record<string, MapLatLng> = {
+export const CITY_POINTS: Record<string, MapLatLng> = {
   台北市: { lat: 25.038, lng: 121.564 },
   新北市: { lat: 25.014, lng: 121.463 },
   基隆市: { lat: 25.128, lng: 121.740 },
@@ -605,6 +623,98 @@ export function separateFoldFromPreview(
     fold: { x: 0, y: Math.min(0, Math.round(foldY)) },
     preview: { x: Math.round(tipX), y: 0 },
   };
+}
+
+export type HomePin = {
+  id: string;
+  name: string;
+  city: string;
+  district: string;
+  x: number;
+  y: number;
+  catIds: string[];
+};
+
+/** 一戶一個標記。同一個位置的喵戶只稍微錯開，避免完全疊住。 */
+export function layoutHomes<T extends { id: string; city: string; area: string; home: { id: string; name: string } | null }>(
+  cats: readonly T[],
+): HomePin[] {
+  const groups = new Map<string, T[]>();
+  for (const cat of cats) {
+    if (!cat.home || !anchorOf(cat.city, cat.area)) continue;
+    const list = groups.get(cat.home.id);
+    if (list) list.push(cat);
+    else groups.set(cat.home.id, [cat]);
+  }
+  const pins: HomePin[] = [];
+  for (const [id, list] of groups) {
+    const sample = list[0];
+    const anchor = anchorOf(sample.city, sample.area)!;
+    const at = projectTaiwan(anchor.lat, anchor.lng);
+    pins.push({
+      id,
+      name: sample.home!.name,
+      city: sample.city,
+      district: sample.area,
+      x: at.x,
+      y: at.y,
+      catIds: list.map((cat) => cat.id),
+    });
+  }
+  const buckets = new Map<string, HomePin[]>();
+  for (const pin of pins) {
+    const key = `${pin.x.toFixed(1)}|${pin.y.toFixed(1)}`;
+    const list = buckets.get(key);
+    if (list) list.push(pin);
+    else buckets.set(key, [pin]);
+  }
+  for (const list of buckets.values()) {
+    list.forEach((pin, index) => {
+      const offset = fan(index, list.length);
+      pin.x += offset.dx;
+      pin.y += offset.dy;
+    });
+  }
+  return pins;
+}
+
+/** 視窗裡怎麼擺全島。有焦點就放到畫面中央。行政區用較大的倍率，先看見那一區的喵戶。 */
+export function frameTaiwan(
+  view: { width: number; height: number },
+  focus: { x: number; y: number } | null,
+  zoom = 3.4,
+) {
+  const fit = Math.min(view.width / TAIWAN_MAP.width, view.height / TAIWAN_MAP.height);
+  if (!focus) {
+    return {
+      scale: fit,
+      x: (view.width - TAIWAN_MAP.width * fit) / 2,
+      y: (view.height - TAIWAN_MAP.height * fit) / 2,
+    };
+  }
+  const scale = fit * zoom;
+  return {
+    scale,
+    x: view.width / 2 - focus.x * scale,
+    y: view.height / 2 - focus.y * scale,
+  };
+}
+
+export function taiwanFocus(city: string, district?: string | null): MapPoint | null {
+  const anchor = shapeAnchor(city, district || "");
+  return anchor ? projectTaiwan(anchor.lat, anchor.lng) : null;
+}
+
+/** 拉近之後，橫向喵戶標示照原樣慢慢變小。畫面高度至少是先前的兩倍，不低於 32。 */
+export function homePinScale(scale: number, fit: number): number {
+  if (!(scale > 0) || !(fit > 0)) return 2;
+  const zoom = scale / fit;
+  const from = 1.6;
+  if (zoom <= from) return 2;
+  const natural = 36 * scale;
+  const held = 36 * fit * from * 2;
+  const shrunk = Math.max(32, held / Math.pow(zoom / from, 0.45));
+  return shrunk / natural;
 }
 
 /** 把貓放到所選區域。地理位置不把「附近」再收起來。 */

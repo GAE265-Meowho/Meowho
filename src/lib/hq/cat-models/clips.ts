@@ -9,7 +9,7 @@ export interface ClipDef {
   status: ClipStatus;
 }
 
-export const CLIP_LIBRARY_VERSION = 8;
+export const CLIP_LIBRARY_VERSION = 10;
 export const FALLBACK_CLIP = "idle";
 /** 預覽預設瞳孔寬窄（細縫 0 → 全圓 1）；與 catEye EYE_DEFAULTS.pupil 相同 */
 export const DEFAULT_PUPIL = 0.25;
@@ -26,7 +26,10 @@ export const CLIP_LIBRARY: readonly ClipDef[] = [
   { code: "jump_a", label: "跳躍-(下往上跳) A", status: "ready" },
   { code: "jump_b", label: "跳躍-(往前跳) B", status: "ready" },
   { code: "jump_c", label: "跳躍-(從櫃子往下跳) C", status: "ready" },
+  // #387 成貓改成蜷曲休息（8 秒）；幼貓仍是母雞蹲（4 秒）
   { code: "rest", label: "休息", status: "ready" },
+  // #379 仰躺肚子朝上；目前只有成貓母體有，幼貓顯示「此體型尚無」
+  { code: "belly_up", label: "休息（四腳朝天）", status: "ready" },
   { code: "groom", label: "理毛", status: "ready" },
   // #331 奔跑貓（cat_runner_tabby.glb）專用；成貓、幼貓、大貓母體目前沒有
   { code: "run", label: "奔跑", status: "ready" },
