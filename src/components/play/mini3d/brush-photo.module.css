@@ -24,6 +24,16 @@
   mask-image: radial-gradient(ellipse 38% 22% at 59% 58%, black 62%, transparent 100%);
 }
 
+.mouth[data-photo-frame="lift"] { opacity: var(--lift-opacity, 0); }
+.mouth[data-photo-frame="teeth"] { opacity: var(--teeth-opacity, 0); }
+
+.stage:focus-visible {
+  outline: 2px solid var(--caramel);
+  outline-offset: 3px;
+}
+
+.stage[data-lip-hover="true"] { cursor: grab; }
+
 .marker,
 .tooth {
   stroke: var(--paper);
@@ -37,6 +47,7 @@
   filter: drop-shadow(0 1px 3px var(--cocoa));
 }
 
-.tooth[data-active="true"],
-.handle { fill: var(--mint-dk); }
+.tooth[data-active="true"] { fill: var(--mint-dk); }
+.handle { fill: none; stroke: var(--mint-dk); stroke-width: 12; stroke-linecap: round; }
 .tip { fill: var(--paper); stroke: var(--mint-dk); stroke-width: 3; }
+.bristles { stroke: var(--ink-soft); stroke-width: 1.5; }

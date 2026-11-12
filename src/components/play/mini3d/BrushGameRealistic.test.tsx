@@ -13,7 +13,7 @@ afterEach(() => { document.body.replaceChildren(); vi.unstubAllGlobals(); });
 
 it("預載三張 WebP 影像後才啟用遊戲，影像失敗時顯示錯誤", () => {
   const ctx = { cat: { trust: 100, stress: 0 }, brushLevel: 4 } as MiniCtx;
-  const view = render(<BrushGameRealistic ctx={ctx} onDone={vi.fn()} />);
+  const view = render(<dialog open><BrushGameRealistic ctx={ctx} onDone={vi.fn()} /></dialog>);
   const images = view.container.querySelectorAll("img");
   expect([...images].map(image => image.getAttribute("src"))).toEqual([
     "/play/brush/brush-closed.webp",
@@ -39,27 +39,36 @@ it("兩根指標各自控制嘴角與刷具，失去捕捉後停止計分", () =
   vi.stubGlobal("cancelAnimationFrame", cancel);
   class TestPointerEvent extends MouseEvent {
     pointerId: number;
-    constructor(type: string, options: MouseEventInit & { pointerId: number }) {
+    pointerType: string;
+    constructor(type: string, options: MouseEventInit & { pointerId: number; pointerType: string }) {
       super(type, options);
       this.pointerId = options.pointerId;
+      this.pointerType = options.pointerType;
     }
   }
   vi.stubGlobal("PointerEvent", TestPointerEvent);
   const ctx = { cat: { trust: 100, stress: 0 }, brushLevel: 4 } as MiniCtx;
-  const view = render(<BrushGameRealistic ctx={ctx} onDone={vi.fn()} />);
+  const view = render(<dialog open><BrushGameRealistic ctx={ctx} onDone={vi.fn()} /></dialog>);
   const stage = screen.getByRole("group");
+  stage.focus();
   stage.setPointerCapture = vi.fn();
   stage.hasPointerCapture = () => false;
   vi.spyOn(stage, "getBoundingClientRect").mockReturnValue(new DOMRect(0, 0, 300, 400));
   stage.querySelectorAll("img").forEach(image => fireEvent.load(image));
 
-  const send = (event: string, pointerId: number, x: number, y: number) => {
-    fireEvent(stage, new TestPointerEvent(event, { bubbles: true, pointerId, clientX: x * 300, clientY: y * 400 }));
+  const send = (event: string, pointerId: number, x: number, y: number, pointerType = "touch") => {
+    fireEvent(stage, new TestPointerEvent(event, { bubbles: true, pointerId, pointerType, clientX: x * 300, clientY: y * 400 }));
   };
+  send("pointermove", 3, .667, .592, "mouse");
+  act(() => frame(0));
+  expect(stage.dataset.mouth).toBe("closed");
+  expect(stage.dataset.lipHover).toBe("true");
   send("pointerdown", 1, .667, .592);
   send("pointermove", 1, .667, .572);
   act(() => frame(16));
   expect(stage.dataset.mouth).toBe("lift");
+  expect(Number(stage.style.getPropertyValue("--lift-opacity"))).toBeGreaterThan(0);
+  expect(Number(stage.style.getPropertyValue("--teeth-opacity"))).toBeLessThan(1);
   send("pointermove", 1, .667, .542);
   act(() => frame(32));
   expect(stage.dataset.mouth).toBe("teeth");
@@ -72,10 +81,25 @@ it("兩根指標各自控制嘴角與刷具，失去捕捉後停止計分", () =
   send("pointermove", 2, .596, .573);
   act(() => frame(224));
   expect(stage.dataset.mouth).toBe("closed");
+  expect(Number(stage.style.getPropertyValue("--teeth-opacity"))).toBeLessThan(1);
   const progress = screen.getByLabelText("進度", { exact: false }).getAttribute("value");
   send("pointermove", 2, .596, .582);
   act(() => frame(320));
   expect(screen.getByLabelText("進度", { exact: false }).getAttribute("value")).toBe(progress);
+  send("pointerup", 2, .596, .582);
+  fireEvent.keyDown(stage, { code: "Space" });
+  act(() => frame(336));
+  expect(stage.dataset.mouth).not.toBe("teeth");
+  act(() => frame(436));
+  act(() => frame(536));
+  expect(stage.dataset.mouth).toBe("teeth");
+  send("pointermove", 3, .624, .565, "mouse");
+  send("pointermove", 3, .624, .574, "mouse");
+  act(() => frame(632));
+  expect(Number(screen.getByLabelText("進度", { exact: false }).getAttribute("value"))).toBeGreaterThan(Number(progress));
+  fireEvent.keyUp(stage, { code: "Space" });
+  act(() => frame(648));
+  expect(stage.dataset.mouth).toBe("closed");
   view.unmount();
   expect(cancel).toHaveBeenCalled();
 });
