@@ -75,14 +75,17 @@ export default function ScenePage() {
     // 示範模式（沒有資料庫）：直接當作做好了
     if (!sb) { setStep("done"); return; }
     setStep("uploading"); setError(null); setPct(0);
-    const target = await post<{ path?: string; upload?: UploadTarget; error?: string }>(`/api/homes/${id}/videos`, { mime: file.type, sizeBytes: file.size, durationSec });
-    if (!target?.path || !target.upload) {
+    const target = await post<{ videoId?: string; upload?: UploadTarget; error?: string }>(`/api/homes/${id}/videos`, { mime: file.type, sizeBytes: file.size, durationSec });
+    if (!target?.videoId || !target.upload) {
       setError(HOME_VIDEO_ERROR[target?.error as HomeVideoError] ?? "影片上傳失敗，請再試一次。"); setStep("guide"); return;
     }
     try { await putUpload(target.upload, file, { onProgress: setPct }); }
     catch { setError("影片上傳失敗，請再試一次。"); setStep("guide"); return; }
     // 房間沒建成時，伺服器會刪掉剛傳的影片（決策 007）
-    const res = await post<{ roomId?: string; error?: string }>(`/api/homes/${id}/room`, { videoPath: target.path });
+    // 網路斷掉重送一次；伺服器以 videoId 去重，不會重複建工作（#346）
+    const request = { videoId: target.videoId };
+    const res = await post<{ roomId?: string; error?: string }>(`/api/homes/${id}/room`, request)
+      ?? await post<{ roomId?: string; error?: string }>(`/api/homes/${id}/room`, request);
     if (!res?.roomId || res.error) {
       setError(res?.error === "room_busy" ? "上一支影片還在處理中，好了會通知你。" : "房間建立失敗，請再試一次。");
       setStep("guide"); return;
@@ -115,9 +118,9 @@ export default function ScenePage() {
       <span className={f.avatar} aria-hidden="true"><Icon name="scan" /></span>
       {/* 示範房間不會產生環境報告，先不說「安全報告好了」；接上真正流程後改成 §8 的「你家的 3D 房間和安全報告好了」 */}
       <h2 id="room-done">你家的 3D 房間建好了</h2>
-      <p className={f.lead}>來看看貓在裡面走的樣子。</p>
+      <p className={f.lead}>去領養任務，看貓在你家的樣子。</p>
       {/* 示範房間沒有成果檔（result_path 是 null），只有影片轉出來的才看得到 3D */}
-      {room?.result_path && <div className={r.viewer}><RoomViewer base={homeSceneBase(id, room.id)} /></div>}
+      {room?.result_path && <div className={r.viewer}><RoomViewer base={homeSceneBase(id, room.id)} noCat overlay /></div>}
       <div className={f.actions} style={{ justifyContent: "center" }}>
         <CatButton href={goTask}>去體驗領養任務</CatButton>
         <CatButton variant="ghost" href="/me">回到我的喵戶</CatButton>
@@ -128,8 +131,9 @@ export default function ScenePage() {
     <>
       <section className={`${f.card} ${r.viewer}`} aria-labelledby="room-preview">
         <h2 id="room-preview">看看你家的 3D 房間</h2>
-        <p className={f.lead}>拖曳轉頭、滾輪前後走。沒問題就按「完成」。</p>
-        <RoomViewer base={homeSceneBase(id, room.id)} />
+        <p className={f.lead}>換個角度看看，沒問題就按「完成」。手機轉橫可以看得更大。</p>
+        {/* 預覽只看房間不放貓（11/10 和渝茜、子哲討論）；貓在領養任務才出現 */}
+        <RoomViewer base={homeSceneBase(id, room.id)} noCat overlay />
       </section>
       {error && <p className={f.error} role="alert">{error}</p>}
       <div className={f.actions}>

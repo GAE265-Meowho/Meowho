@@ -480,7 +480,7 @@ function openedGroups(expanded: ReadonlySet<string>) {
 }
 
 /** 畫面上靠太近的貓（含同一行政區）收成「附近有 N 隻」。展開的那團留在最上層，不再被收回去。 */
-function clusterNearby<T extends { id: string }>(markers: MapMarker<T>[], expanded: ReadonlySet<string>): MapMarker<T>[] {
+function clusterNearby<T extends { id: string; city: string }>(markers: MapMarker<T>[], expanded: ReadonlySet<string>): MapMarker<T>[] {
   const cats = markers.flatMap((marker) => (marker.type === "cat" ? [marker.cat] : []));
   const held = openedGroups(expanded);
   const heldIds = new Set([...held.values()].flat());

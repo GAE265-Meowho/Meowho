@@ -48,7 +48,7 @@ describe("骨架測試台工作區（#96）", () => {
     const stage = screen.getByRole("region", { name: "3D 預覽" });
     const panel = screen.getByRole("region", { name: "參數" });
     expect(within(stage).getByTestId("lab-canvas-adult")).toBeInTheDocument();
-    expect(groupTitles(panel)).toEqual(["播放與畫面", "動作", "眼睛"]);
+    expect(groupTitles(panel)).toEqual(["播放與畫面", "動作", "眼睛", "貓咪資訊"]);
     // 原本在預覽上方的控制項移到面板，參數一個都不少
     for (const name of [/眨眼/, /環境亮度/, /瞳孔寬窄/, /虹膜大小/, /角膜凸起/, /角膜折射率/]) {
       expect(within(panel).getByRole("slider", { name })).toBeInTheDocument();
@@ -62,7 +62,7 @@ describe("骨架測試台工作區（#96）", () => {
     render(<BaseLab body="adult" />);
     await screen.findByTestId("fake-preview");
     const panel = screen.getByRole("region", { name: "參數" });
-    const eyes = panel.querySelector<HTMLDetailsElement>(":scope > details:last-of-type")!;
+    const eyes = Array.from(panel.querySelectorAll<HTMLDetailsElement>(":scope > details")).find(d => d.querySelector("summary")?.textContent === "眼睛")!;
     expect(eyes.open).toBe(true);
     act(() => { eyes.open = false; eyes.dispatchEvent(new Event("toggle")); });
     act(() => { eyes.open = true; eyes.dispatchEvent(new Event("toggle")); });

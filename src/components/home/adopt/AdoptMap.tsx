@@ -13,7 +13,8 @@ import styles from "./adoptMap.module.css";
 
 type Props = {
   cats: FeedCat[];
-  matches: (catId: string) => boolean;
+  /** 沒過篩選的貓仍留在地圖上，只是變淡。沒傳就全部正常顯示。 */
+  matches?: (catId: string) => boolean;
   onShowCard: (catId: string) => void;
   /** 測試可傳入。沒傳就向 /api/where 問上網所在縣市。 */
   initialCity?: string | null;
@@ -25,7 +26,7 @@ function limits(fit: number) {
   return { min: fit * 0.65, max: Math.max(fit * 14, 4) };
 }
 
-export default function AdoptMap({ cats, matches, onShowCard, initialCity }: Props) {
+export default function AdoptMap({ cats, matches = () => true, onShowCard, initialCity }: Props) {
   const viewportRef = useRef<HTMLDivElement>(null);
   const worldRef = useRef<HTMLDivElement>(null);
   const cam = useRef<Camera>({ x: 0, y: 0, scale: 1 });

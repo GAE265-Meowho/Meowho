@@ -3,7 +3,6 @@ import "@testing-library/jest-dom/vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { CatModelView } from "@/lib/hq/cat-models/types";
-import { BaseSamples } from "./BaseSamples";
 import { ClipList } from "./ClipList";
 import { filterCats } from "./CatsTab";
 import { PlannedTab } from "./PlannedTab";
@@ -24,14 +23,14 @@ const cat = (over: Partial<CatModelView>): CatModelView => ({
 });
 
 describe("ClipList（UT 動作清單）", () => {
-  it("列出動作庫全部動作：已有的可點，規劃中的灰色不可點並標示規劃中", () => {
+  it("列出動作庫全部動作：已有的可點，這個體型母體沒有的灰色不可點", () => {
     const pick = vi.fn();
     render(<ClipList available={["idle", "walk", "sleep"]} current="idle" onPick={pick} />);
-    expect(screen.getAllByRole("button")).toHaveLength(11);
+    expect(screen.getAllByRole("button")).toHaveLength(15);
     expect(screen.getByRole("button", { name: "待機" })).toHaveAttribute("aria-pressed", "true");
-    const eat = screen.getByRole("button", { name: /吃飯/ });
+    const eat = screen.getByRole("button", { name: /撒嬌/ });
     expect(eat).toBeDisabled();
-    expect(eat).toHaveTextContent("規劃中");
+    expect(eat).toHaveTextContent("此體型尚無");
     fireEvent.click(screen.getByRole("button", { name: "走路" }));
     expect(pick).toHaveBeenCalledWith("walk");
     fireEvent.click(eat);
@@ -256,10 +255,3 @@ describe("製作glb工作區", () => {
   });
 });
 
-describe("BaseSamples", () => {
-  it("成貓、幼貓骨架各有「測試動作與參數」按鈕，連到骨架測試台", () => {
-    render(<BaseSamples />);
-    const links = screen.getAllByRole("link", { name: "測試動作與參數" });
-    expect(links.map(l => l.getAttribute("href"))).toEqual(["/MeowHQ/assets/bases/adult", "/MeowHQ/assets/bases/kitten"]);
-  });
-});

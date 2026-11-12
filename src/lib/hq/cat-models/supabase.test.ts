@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 type Call = { table?: string; op: string; args: unknown[] };
 const calls: Call[] = [];
 let user: { id: string } | null = { id: "u-1" };
-let files: { name: string }[] = [];
+let files: { name: string; updated_at?: string }[] = [];
 let insertError: { code: string } | null = null;
 let modelRow: Record<string, unknown> | null = null;
 let download: Blob | null = null;
@@ -48,7 +48,7 @@ vi.mock("@/lib/supabase/admin", () => ({ getAdminSupabase: () => null }));
 const afterTasks: (() => unknown)[] = [];
 vi.mock("next/server", () => ({ after: (task: () => unknown) => { afterTasks.push(task); } }));
 
-const { sbStartViews, sbCreateCat, sbPhotoUpload, sbQueuePaint, sbRestore, sbConfirmTexture, sbAutoPaint, sbBackfillPaint, sbGetCat, sbListCats } = await import("./supabase");
+const { sbBaseRedirect, sbStartViews, sbCreateCat, sbPhotoUpload, sbQueuePaint, sbRestore, sbConfirmTexture, sbAutoPaint, sbBackfillPaint, sbGetCat, sbListCats } = await import("./supabase");
 /** 找寫入某個欄位的 update（同一次操作可能有好幾筆 update） */
 const updateWith = (key: string) => calls.find(c => c.op === "update" && key in (c.args[0] as object))?.args[0] as Record<string, unknown> | undefined;
 
@@ -385,5 +385,18 @@ describe("sbListCats 不被自動採用／排程卡住（#285）", () => {
     expect(afterTasks).toHaveLength(1);
     await afterTasks[0]();
     expect(updateWith("confirmed_albedo")).toMatchObject({ confirmed_albedo: `${ID}/albedo_kitten.png` });
+  });
+});
+
+describe("sbBaseRedirect（#298）", () => {
+  it("轉址網址帶 Storage 檔案更新時間，換檔後瀏覽器不會沿用快取的舊 glb", async () => {
+    files = [{ name: "base_clips.glb", updated_at: "2026-11-09T03:33:15.123Z" }];
+    const url = await sbBaseRedirect("adult");
+    expect(url).toMatch(/\/storage\/v1\/object\/public\/meow-cat-models\/base\/v1\/base_clips\.glb\?v=/);
+    expect(url).toContain(encodeURIComponent("2026-11-09T03:33:15.123Z"));
+  });
+  it("Storage 沒有這個體型的檔：回 null（改用 repo 內建檔）", async () => {
+    files = [{ name: "base_clips.glb", updated_at: "x" }];
+    expect(await sbBaseRedirect("kitten")).toBeNull();
   });
 });

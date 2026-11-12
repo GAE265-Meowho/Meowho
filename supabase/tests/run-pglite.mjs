@@ -682,6 +682,96 @@ try {
   }
 }
 
+// 0032（幫我找貓的意思座標，規格 11）：0001→0018 後跑 0032 兩次。只有伺服器能讀寫，前端角色讀寫都被擋；貓刪掉座標跟著刪
+{
+  const m = new PGlite();
+  const base = read("./stub_supabase.sql") + ["0001_meow", "0002_meow_hq", "0003_meow_site_assets", "0004_meow_cat_profile", "0005_meow_cat_models", "0006_meow_household_roles", "0007_meow_adoption_forms", "0008_meow_cat_favorites", "0009_meow_cat_returns", "0010_meow_adoption_notify", "0011_meow_threads", "0012_meow_thread_homed", "0013_meow_decline_reason_transfer", "0014_meow_room_models", "0014_meow_returns_in_threads", "0015_meow_room_floorplan", "0016_meow_cat_model_variants", "0017_meow_adoption_tasks", "0018_meow_task_templates_seed"]
+    .map((f) => read(`../migrations/${f}.sql`)).join("");
+  const id = (n) => `00000000-0000-0000-0000-0000000032${n}`;
+  const one = async (sql) => Object.values((await m.query(sql)).rows[0] ?? {})[0];
+  const eq = (name, expected, actual) =>
+    results.push({ name, status: String(actual) === String(expected) ? "PASS" : "FAIL", detail: String(actual) === String(expected) ? null : `預期 ${expected}，實際 ${actual}` });
+  const as = async (role, sql) => {
+    try { const r = await m.exec(`set role ${role}; ${sql}; reset role;`); return r; }
+    catch (e) { await m.exec("reset role;").catch(() => {}); return e.message; }
+  };
+  try {
+    await m.exec(base);
+    await m.exec(read("../migrations/0032_meow_cat_embeddings.sql"));
+    await m.exec(read("../migrations/0032_meow_cat_embeddings.sql"));
+    await m.exec(`insert into auth.users (id, email) values ('${id("a0")}', 'f@t32.example');
+      insert into public.meow_profiles (id, email, display_name) values ('${id("a0")}', 'f@t32.example', 'f');
+      insert into public.meow_households (id, owner_id, name, caretaker_type, city, district) values ('${id("d0")}', '${id("a0")}', '中途', 'personal_foster', '桃園市', '龍潭區');
+      insert into public.meow_cats (id, household_id, name, sex, life_stage, status) values ('${id("c0")}', '${id("d0")}', '橘子', 'male', 'adult', 'adoptable');
+      insert into public.meow_cat_embeddings (cat_id, model, content_hash, embedding) values ('${id("c0")}', 'text-embedding-3-large@1024', 'h1', array_fill(0.1::real, array[1024]));`);
+    eq("EMB-1 伺服器寫得進 1024 維的座標", "1024", await one(`select cardinality(embedding) from public.meow_cat_embeddings where cat_id = '${id("c0")}'`));
+    eq("EMB-2 太短的向量寫不進去", "check", /violates check constraint/.test(String(await as("postgres", `update public.meow_cat_embeddings set embedding = array[0.1]::real[] where cat_id = '${id("c0")}'`))) ? "check" : "no");
+    eq("EMB-3 登入的會員讀不到座標", "denied", /permission denied/.test(String(await as("authenticated", "select * from public.meow_cat_embeddings"))) ? "denied" : "allowed");
+    eq("EMB-4 未登入的訪客寫不進座標", "denied", /permission denied/.test(String(await as("anon", `delete from public.meow_cat_embeddings`))) ? "denied" : "allowed");
+    await m.exec(`delete from public.meow_cats where id = '${id("c0")}'`);
+    eq("EMB-5 貓刪掉，座標跟著刪", "0", await one("select count(*) from public.meow_cat_embeddings"));
+  } catch (e) {
+    console.error(`✗ 0032 測試中斷：${e.message}`);
+    process.exit(1);
+  }
+}
+
+// 0033（虛擬飼養的試養報告給中途看）：0001→0018＋0030 後跑 0033 兩次。
+// 領養人玩完存一筆已完成的紀錄；中途自己、準備中的貓、沒喵戶都不能存；對話串只有分享後中途才看得到報告
+{
+  const m = new PGlite();
+  const base = read("./stub_supabase.sql") + ["0001_meow", "0002_meow_hq", "0003_meow_site_assets", "0004_meow_cat_profile", "0005_meow_cat_models", "0006_meow_household_roles", "0007_meow_adoption_forms", "0008_meow_cat_favorites", "0009_meow_cat_returns", "0010_meow_adoption_notify", "0011_meow_threads", "0012_meow_thread_homed", "0013_meow_decline_reason_transfer", "0014_meow_room_models", "0014_meow_returns_in_threads", "0015_meow_room_floorplan", "0016_meow_cat_model_variants", "0017_meow_adoption_tasks", "0018_meow_task_templates_seed", "0030_meow_tasks_on_demand"]
+    .map((f) => read(`../migrations/${f}.sql`)).join("");
+  const id = (n) => `00000000-0000-0000-0000-0000000033${n}`;
+  const one = async (sql) => Object.values((await m.query(sql)).rows[0] ?? {})[0];
+  const eq = (name, expected, actual) =>
+    results.push({ name, status: String(actual) === String(expected) ? "PASS" : "FAIL", detail: String(actual) === String(expected) ? null : `預期 ${expected}，實際 ${actual}` });
+  const as = async (who, sql) => {
+    try {
+      await m.query(`select set_config('request.jwt.claim.sub', '${who}', false)`);
+      const r = await m.query(`set role authenticated`).then(() => m.query(sql));
+      await m.exec("reset role;");
+      return r;
+    } catch (e) { await m.exec("reset role;").catch(() => {}); return e.message; }
+  };
+  const code = (r) => String(typeof r === "string" ? r : "ok").match(/run_cat_not_ready|household_required|play_report_invalid|ok/)?.[0];
+  try {
+    await m.exec(base);
+    await m.exec(read("../migrations/0033_meow_play_report.sql"));
+    await m.exec(read("../migrations/0033_meow_play_report.sql"));
+    await m.exec(`insert into auth.users (id, email) values ('${id("a0")}', 'k@t33.example'), ('${id("a1")}', 'm@t33.example'), ('${id("a2")}', 'n@t33.example');
+      insert into public.meow_profiles (id, email, display_name) values ('${id("a0")}', 'k@t33.example', 'k'), ('${id("a1")}', 'm@t33.example', 'm'), ('${id("a2")}', 'n@t33.example', 'n');
+      insert into public.meow_households (id, owner_id, name, caretaker_type, city, district) values
+        ('${id("d0")}', '${id("a0")}', '中途', 'personal_foster', '桃園市', '龍潭區'),
+        ('${id("d1")}', '${id("a1")}', '我家', 'cat_owner', '台北市', '大安區');
+      insert into public.meow_cats (id, household_id, name, sex, life_stage, status) values
+        ('${id("c0")}', '${id("d0")}', '橘子', 'male', 'adult', 'adoptable'),
+        ('${id("c1")}', '${id("d0")}', '準備中', 'male', 'adult', 'preparing');`);
+    const report = `'{"v":1,"catName":"橘子","picks":[{"t":"砂盆和碗分開放","good":true}]}'::jsonb`;
+    eq("PLAY-1 領養人玩完能存，回傳紀錄 id", "ok", code(await as(id("a1"), `select public.meow_save_play_report('${id("c0")}', null, ${report})`)));
+    eq("PLAY-2 存成已完成、報告原樣保存", "completed|橘子", await one(`select status || '|' || (game_report ->> 'catName') from public.meow_task_runs where member_id = '${id("a1")}' and cat_id = '${id("c0")}'`));
+    eq("PLAY-3 不是自己的房間不記（房間欄位留空）", "null", await one(`select coalesce(room_model_id, 'null') from public.meow_task_runs where member_id = '${id("a1")}'`));
+    eq("PLAY-4 中途不能玩自己的貓", "run_cat_not_ready", code(await as(id("a0"), `select public.meow_save_play_report('${id("c0")}', null, ${report})`)));
+    eq("PLAY-5 準備中的貓不能存", "run_cat_not_ready", code(await as(id("a1"), `select public.meow_save_play_report('${id("c1")}', null, ${report})`)));
+    eq("PLAY-6 沒有喵戶不能存", "household_required", code(await as(id("a2"), `select public.meow_save_play_report('${id("c0")}', null, ${report})`)));
+    eq("PLAY-7 報告不是物件不能存", "play_report_invalid", code(await as(id("a1"), `select public.meow_save_play_report('${id("c0")}', null, '[1]'::jsonb)`)));
+    eq("PLAY-8 登入的會員可以執行、未登入不行", "t|f",
+      await one(`select concat_ws('|', has_function_privilege('authenticated', 'public.meow_save_play_report(uuid,text,jsonb)', 'execute'), has_function_privilege('anon', 'public.meow_save_play_report(uuid,text,jsonb)', 'execute'))`));
+    await m.exec(`insert into public.meow_threads (id, cat_id, member_id, household_id, cat_name, household_name, member_name) values ('${id("f0")}', '${id("c0")}', '${id("a1")}', '${id("d0")}', '橘子', '中途', 'm')`);
+    const status = async (who) => (await as(who, `select public.meow_thread_task_status('${id("f0")}') as s`))?.rows?.[0]?.s;
+    const keeperBefore = await status(id("a0"));
+    eq("PLAY-9 沒分享前中途只看到系統認證、看不到報告", "true|null", `${keeperBefore?.completed}|${keeperBefore?.proof ?? "null"}`);
+    const mine = await status(id("a1"));
+    eq("PLAY-10 領養人自己看得到報告", "橘子", mine?.proof?.game_report?.catName);
+    const runId = await one(`select id from public.meow_task_runs where member_id = '${id("a1")}' and cat_id = '${id("c0")}'`);
+    await as(id("a1"), `select public.meow_share_task_proof('${runId}')`);
+    eq("PLAY-11 分享後中途看得到報告", "橘子", (await status(id("a0")))?.proof?.game_report?.catName);
+  } catch (e) {
+    console.error(`✗ 0033 測試中斷：${e.message}`);
+    process.exit(1);
+  }
+}
+
 let failed = 0;
 for (const r of results) {
   if (r.status === "FAIL") failed++;

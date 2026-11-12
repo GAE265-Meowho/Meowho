@@ -18,7 +18,7 @@
 ## 1. 每次收工的固定步驟（必做）
 
 1. 四項檢查都要通過：`npm test`、`npm run typecheck`、`npm run lint`、`npm run build`
-2. **寫每日紀錄**：在 `docs/daily/YYYY-MM-DD.md` 新增一筆（格式見 §3；用 `npm run log` 建立今天的檔案）
+2. **寫每日紀錄**：用 `npm run log` 在 `docs/daily/YYYY-MM-DD/` 建立**自己這一筆的新檔**並填寫（格式見 §3.1）
 3. **更新模組文件**：狀態、資料表、API、決策、地雷有變動就更新 `docs/modules/<模組>.md`
 4. **更新計畫**：`docs/agents/PLAN.md` 中任務狀態
 5. **更新交接**：工作沒做完、或下一個 agent 需要知道的事，寫進 `docs/agents/HANDOFF.md`
@@ -44,7 +44,7 @@
 | `npm run typecheck` | 型別檢查 |
 | `npm run lint` | ESLint |
 | `npm run build` | 正式建置 |
-| `npm run log -- --by <組員> --agent <工具>` | 建立／追加今天的每日紀錄 |
+| `npm run log -- --by <組員> --agent <工具> [--issue <n>]` | 新增一筆每日紀錄（一筆一個檔） |
 
 ### 程式結構
 - `src/app/`：路由（App Router）
@@ -58,9 +58,12 @@
 
 ## 3. 紀錄規範
 
-### 3.1 每日紀錄 `docs/daily/YYYY-MM-DD.md`
-- 一天一個檔；**只追加、不改別人的紀錄**。同一天多人編輯造成衝突時，**兩邊都保留**。
-- 每次工作階段（session）結束追加一筆：
+### 3.1 每日紀錄 `docs/daily/YYYY-MM-DD/HHMM-<發起人>[-<issue>].md`
+- **一筆一個檔**：每次工作階段（session）結束，用 `npm run log` 在當天資料夾新增自己的檔案，例如 `docs/daily/2026-11-10/1304-Tina-330.md`。
+- 理由：多張 PR 同時在同一個單日檔檔尾追加，合併一張其他張就全部衝突；各自新增檔案就不會互相衝突。
+- **不改別人的紀錄**；同一個工作階段要補內容，改自己那個檔即可。
+- 2026-11-10（含）以前的單日檔 `docs/daily/YYYY-MM-DD.md` 保留不動、不再追加；已開的 PR 若在那些檔衝突，照舊兩邊都保留，或把自己那筆搬成新格式的檔。
+- 每個檔的內容格式：
 
 ```markdown
 ### 14:30｜Tina（發起）× Claude Code
@@ -143,7 +146,7 @@
 - **範圍控制**：只改 Issue 需要的檔案；看到其他問題記在 `PLAN.md`「建議」區，不要順手改。
 - **設計**：照 `docs/design/DESIGN.md`。主程式正在從 Cozy Cat Nook 遷移到 v2：新畫面用 v2 的 token 與貓形 pill 按鈕；修改既有畫面時只遷移該 Issue 動到的元件，其餘頁面暫時沿用 `.btn`。前台不放小字備註，需要說明的事寫成程式碼註解（業務規則要求的聲明除外）。
 - 原型中尚未完成的按鈕加 `data-login` 或 `data-proto="功能名"`，會自動顯示提示。
-- 站台標誌由管理者設定選擇（`LOGOS`），不要自行更換 logo 檔案。2026-10-29 Tina 已將三款內建 Logo 換成 Meowho喵戶 新版（小屋摸摸款、圓形花貓款、橫式字標款）。
+- 站台標誌由管理者設定選擇（`LOGOS`），不要自行更換 logo 檔案。前台與 MeowHQ 用同一個站台標誌（`useUi().logo`／`useSiteLogo()`），不要在元件裡寫死某一款。2026-11-11（#361）起預設為向量的「門口貓頭款」，另保留 2026-10-29 Tina 換上的三款（小屋摸摸款、圓形花貓款、橫式字標款）。
 
 ### 6.1 MeowHQ 頁面建置資訊（所有 `/MeowHQ` 頁必守）
 

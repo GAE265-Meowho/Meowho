@@ -1,28 +1,19 @@
 "use client";
-/* eslint-disable @next/next/no-img-element */
 // 帶我回家（#57）：首頁列出資料庫裡的待領養貓，等最久的排前面。
 // 地圖是一整張可拖曳、縮放的台灣。標記是喵戶，點開才列出裡面的貓。
 // 沒連資料庫（示範模式）時用 lib/cats.ts 的示意資料。
 import { useEffect, useState } from "react";
 import CatPerch from "@/components/journey/CatPerch";
-import CatButton from "@/components/ui/CatButton";
 import Icon from "@/components/ui/Icon";
 import { FEED_SELECT, toFeedCat, type FeedCat, type FeedRow } from "@/lib/adopt-feed";
 import { parseLocation } from "@/lib/adopt-map";
-import { cats as demoCats, type CatFilter } from "@/lib/cats";
+import { cats as demoCats } from "@/lib/cats";
 import { getBrowserSupabase } from "@/lib/supabase/client";
 import SectionHead from "../SectionHead";
 import AdoptMap from "./AdoptMap";
+import CatCard from "./CatCard";
 import shared from "../section.module.css";
 import styles from "./adopt.module.css";
-
-const filters: { key: CatFilter | "all"; label: string }[] = [
-  { key: "all", label: "全部" },
-  { key: "newbie", label: "新手友善" },
-  { key: "active", label: "活潑好動" },
-  { key: "quiet", label: "安靜陪伴" },
-  { key: "special", label: "需要特別照護" },
-];
 
 /** 示範模式：示意資料轉成跟資料庫一樣的格式（貓沒有 id，用名字代替） */
 const DEMO_HOMES: Record<string, { id: string; name: string }> = {
@@ -55,7 +46,6 @@ function demoFeed(): FeedCat[] {
 }
 
 export default function AdoptSection() {
-  const [filter, setFilter] = useState<CatFilter | "all">("all");
   const [view, setView] = useState<"cards" | "map">("cards");
   const [spotlight, setSpotlight] = useState<string | null>(null);
   const [cats, setCats] = useState<FeedCat[] | null>(null);
@@ -68,14 +58,8 @@ export default function AdoptSection() {
       .then(({ data }) => setCats(((data ?? []) as unknown as FeedRow[]).map((r) => toFeedCat(r))));
   }, []);
 
-  const matches = (id: string) => {
-    const c = cats?.find((x) => x.id === id);
-    return !!c && (filter === "all" || c.filters.includes(filter));
-  };
-
   // From the map: switch to cards, then bring that cat's card into view and glow it briefly.
   const showCard = (id: string) => {
-    setFilter("all");
     setView("cards");
     setSpotlight(id);
   };
@@ -87,7 +71,7 @@ export default function AdoptSection() {
     return () => window.clearTimeout(t);
   }, [spotlight, view]);
 
-  const list = (cats ?? []).filter((c) => filter === "all" || c.filters.includes(filter)).sort((a, b) => b.waitDays - a.waitDays);
+  const list = [...(cats ?? [])].sort((a, b) => b.waitDays - a.waitDays);
 
   return (
     <section id="adopt" className={`wrap ${shared.section}`} aria-labelledby="adopt-title">
@@ -105,19 +89,7 @@ export default function AdoptSection() {
       />
 
       <div className={styles.toolbar}>
-        <div className={styles.filters} role="group" aria-label="個性篩選">
-          {filters.map((f) => (
-            <button
-              key={f.key}
-              type="button"
-              aria-pressed={filter === f.key}
-              className={filter === f.key ? styles.on : undefined}
-              onClick={() => setFilter(f.key)}
-            >
-              {f.label}
-            </button>
-          ))}
-        </div>
+        {/* 個性篩選先拿掉（#354）：等標籤規則定案再放回來；分類邏輯還在 lib/adopt-feed.ts */}
         <div className={styles.views} role="radiogroup" aria-label="檢視方式">
           {(
             [
@@ -141,56 +113,11 @@ export default function AdoptSection() {
         ) : cats.length === 0 ? (
           <p className={styles.count}>目前還沒有待領養的貓。</p>
         ) : view === "map" ? (
-          <AdoptMap cats={cats} matches={matches} onShowCard={showCard} />
+          <AdoptMap cats={cats} onShowCard={showCard} />
         ) : (
           <ul className={styles.grid}>
             {list.map((c) => (
-              <li key={c.id} id={`cat-${c.id}`} className={`${styles.card} ${spotlight === c.id ? styles.spotlight : ""}`}>
-                <div className={styles.photo}>
-                  {c.photo ? <img src={c.photo} alt={`${c.name}的照片`} loading="lazy" /> : <Icon name="cat" size={64} />}
-                  <span className={styles.wait}>等家 {c.waitDays} 天</span>
-                  {c.neutered && (
-                    <span className={styles.neutered}>
-                      <Icon name="check" size={13} />
-                      已結紮
-                    </span>
-                  )}
-                </div>
-                <div className={styles.body}>
-                  <div className={styles.nameRow}>
-                    <h3>{c.name}</h3>
-                    <span>{[c.sex, c.stage].filter(Boolean).join("｜")}</span>
-                  </div>
-                  {c.district && (
-                    <p className={styles.district}>
-                      <Icon name="pin" size={14} />
-                      {c.district}
-                    </p>
-                  )}
-                  <ul className={styles.tags}>
-                    {c.tags.map((t) => (
-                      <li key={t}>{t}</li>
-                    ))}
-                  </ul>
-                  {c.diary && (
-                    <p className={styles.diary}>
-                      <span>
-                        <Icon name="diary" size={14} />
-                        中途日記
-                      </span>
-                      {c.diary}
-                    </p>
-                  )}
-                  <div className={styles.actions}>
-                    <CatButton href="/#trial" variant="ghost" size="sm">
-                      7 天虛擬飼養
-                    </CatButton>
-                    <CatButton href={live ? `/cats/${c.id}` : "/#adopt"} size="sm">
-                      認識{c.name}
-                    </CatButton>
-                  </div>
-                </div>
-              </li>
+              <CatCard key={c.id} cat={c} href={live ? `/cats/${c.id}` : "/#adopt"} spotlight={spotlight === c.id} />
             ))}
           </ul>
         )}

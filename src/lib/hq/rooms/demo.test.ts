@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cameraForward, dropTarget, placeObjects, resultFiles, roomSplats, roomUnit, sortCameras, type RoomCamera, type RoomObject, type RoomScene } from "./demo";
+import { cameraForward, clampInRoom, dropTarget, placeObjects, resultFiles, roomSplats, roomUnit, roomViews, sortCameras, type RoomCamera, type RoomObject, type RoomScene } from "./demo";
 
 const cam = (img_name: string, position: RoomCamera["position"] = [0, 0, 0]): RoomCamera => ({
   img_name, position, rotation: [[1, 0, 0.1], [0, 1, 0.2], [0, 0, 0.3]],
@@ -55,4 +55,43 @@ describe("展示房間", () => {
     expect(resultFiles(scene)).toEqual(["scene.json", "scene.cameras.json", "scene.layout.json", "thumb.jpg", "objects/room_cut.splat", "objects/cup.movable.splat"]);
     expect(resultFiles({ ...scene, assets: { room: "scene.splat" } }).slice(4)).toEqual(["scene.splat"]);
   });
+
+  it("鏡頭夾在牆內和地板上方，房間斜的也照牆的方向夾", () => {
+    const room = { min: [0, 0] as [number, number], max: [4, 3] as [number, number] };
+    expect(clampInRoom([2, 1.2, 1.5], room)).toEqual([2, 1.2, 1.5]);
+    expect(clampInRoom([9, -1, -5], room)).toEqual([3.85, 0.2, 0.15]);
+    expect(clampInRoom([2, 5, 1.5], room)[1]).toBe(2.2);
+    const yaw = Math.PI / 6, c = Math.cos(yaw), s = Math.sin(yaw);
+    const [x, , z] = clampInRoom([10 * c, 1, 10 * s], { ...room, yaw });  // 沿牆方向走 10 m，停在 3.85 m
+    expect(x * c + z * s).toBeCloseTo(3.85);
+    expect(-x * s + z * c).toBeCloseTo(0.15);
+  });
 });
+
+describe("roomViews", () => {
+  const room = { min: [0, 0] as [number, number], max: [4, 3] as [number, number], yaw: 0 };
+  it("影片從哪面牆開始拍，那面就是門口：前＝從門口往裡看，左右依面向房間的左右手", () => {
+    const v = roomViews(room, [0.2, 1.5, 1.5], 1);
+    expect(v.front).toEqual({ pos: [0.5, 1.5, 1.5], dir: [1, -0.25, 0] });
+    expect(v.back.pos).toEqual([3.5, 1.5, 1.5]);
+    expect(v.back.dir[0]).toBe(-1);
+    expect(v.right.pos).toEqual([2, 1.5, 2.5]);  // 面向 +x、上方 +y 時右手邊是 +z
+    expect(v.left.pos).toEqual([2, 1.5, 0.5]);
+    expect(v.top.pos).toEqual([2, 2.15, 1.5]);
+    expect(v.top.dir[1]).toBe(-1);
+  });
+
+  it("座標系左右相反時，左右視角對調", () => {
+    const v = roomViews(room, [0.2, 1.5, 1.5], -1);
+    expect(v.right.pos).toEqual([2, 1.5, 0.5]);
+    expect(v.left.pos).toEqual([2, 1.5, 2.5]);
+  });
+
+  it("房間轉了角度一樣找得到門口那面牆", () => {
+    const yaw = Math.PI / 2;  // 房間座標 u 沿 +z、v 沿 −x
+    const v = roomViews({ ...room, yaw }, [-1.5, 1.5, 0.2], 1);
+    expect(v.front.pos.map(n => Math.round(n * 100) / 100)).toEqual([-1.5, 1.5, 0.5]);
+    expect(v.front.dir.map(n => Math.round(n * 100) / 100)).toEqual([0, -0.25, 1]);
+  });
+});
+

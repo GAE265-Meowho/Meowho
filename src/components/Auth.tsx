@@ -1,6 +1,7 @@
 "use client";
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import type { User } from "@supabase/supabase-js";
+import { clearRoomCache } from "@/lib/home-room-cache";
 import { getBrowserSupabase } from "@/lib/supabase/client";
 import { TERMS_VERSION, isSupabaseConfigured } from "@/lib/supabase/config";
 import { resolveAvatarUrl } from "@/lib/avatar";
@@ -93,7 +94,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
   }, [sb]);
 
-  const logout = useCallback(async () => { await sb?.auth.signOut(); window.location.href = "/"; }, [sb]);
+  // 登出時一併清掉存在這個瀏覽器的 3D 房間檔（家裡的掃描，共用電腦不能留著，#354）
+  const logout = useCallback(async () => { await sb?.auth.signOut(); await clearRoomCache(); window.location.href = "/"; }, [sb]);
 
   const agreeTerms = useCallback(async () => {
     if (!sb || !user) return;

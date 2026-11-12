@@ -35,7 +35,16 @@ describe("UT-HQ-13 登入頁", () => {
     expect(screen.getByRole("heading", { level: 2, name: /讓每隻貓都找到.*好的人類/ })).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 1, name: "進入總部" })).toBeInTheDocument();
     expect(screen.queryByText(/隱私權政策|安全規範/)).toBeNull();
-    expect(document.querySelector(".hq-login-mark")).toHaveAttribute("src", "/logos/logo-round.jpg"); // 左上角用喵戶圓形 logo
+    // #361 前後台統一：沒有站台設定時用預設的門口貓頭（左上角符號、卡片橫式組合）
+    expect(document.querySelector(".hq-login-mark")).toHaveAttribute("src", "/logos/meowho-symbol.svg");
+    expect(document.querySelector(".hq-login-wordmark")).toHaveAttribute("src", "/logos/meowho-horizontal-color.svg");
+  });
+});
+
+describe("#361 後台頂列標誌跟著站台標誌", () => {
+  it("預設用門口貓頭的橫式組合", () => {
+    render(shell());
+    expect(document.querySelector(".hq-logo-mark")).toHaveAttribute("src", "/logos/meowho-horizontal-color.svg");
   });
 });
 

@@ -51,6 +51,10 @@
 
 - 2026-11-06 一般飼主建立喵戶（子哲，#233）：住家狀況、同住的人、現有寵物改必填；同住的人加「自己住」、寵物加「沒有」（只能單選，`pickSolo`）；租屋時問房東同不同意；新增養貓經驗（`home.landlord`、`home.experience`）；每月預算存 `meow_household_budgets`（0025，只有喵戶長本人和後台喵戶模組讀得到），不放進公開的 `home`。這些是試養遊戲（#237）的玩家背景；領養問卷會預填同住的人和養貓經驗。
 
+- 2026-11-11 中途喵戶總覽頁（子哲，#354）：`/households/[id]`，不用登入，顯示喵戶名片（頭像、類型、名稱、縣市＋區、介紹）和這個喵戶待領養的貓（和首頁同一種貓卡 `components/home/adopt/CatCard.tsx`）。貓咪頁的喵戶名稱連到這裡。只有中途的喵戶有這一頁，一般飼主的喵戶顯示找不到；只讀公開欄位（`src/lib/household-page.ts` 的 `HOUSEHOLD_PUBLIC_SELECT`，不要加 `owner_id`、`home`、`adoption_terms`）。沒有新的 migration。
+
+- 2026-11-11 貓咪頁照片輪播（子哲，#354）：`src/components/cats/PhotoCarousel.tsx`。照片整張顯示不裁切（`object-fit: contain`，空白處墊模糊的同一張照片），外框比例固定（桌機 5:4、手機 1:1），所以直式、橫式照片混在一起滑動時高度不會變。可以滑動、按箭頭、點縮圖。
+
 ## 資料表（Supabase）
 - 0024（#206，**尚未執行**）：`meow_cats` 加 `personality_scale`、`personality_notes`、`behavior`、`care`、`intro`、`photo_angles`、`cover`、`ai_story`；`photo_paths` 上限 6（只放生活照）；`compat` 容量放大（多了陌生人 `guest` 與說明 `notes`）；舊的健康標籤（結紮、疫苗、驅蟲、FIV／FeLV）移到 `medical`、個性標籤「安靜」改「慵懶」、生活習慣的護食等移到 `behavior`
 - `meow_household_budgets`（0025）：一般飼主的每月養貓預算，一戶一筆，1～200,000 元；RLS 只給喵戶長本人和後台喵戶模組。子哲 2026-11-06 已在 SQL Editor 執行

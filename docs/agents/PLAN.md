@@ -2,7 +2,7 @@
 
 > GitHub Issues 是任務的正式來源；本檔是給 agent 快速掌握全局的鏡像與排程。
 > 狀態只用：`待辦`、`進行中`、`審查中`、`完成`、`卡住`。開工改「進行中」並填負責人，收工更新。
-> 最後更新：2026-11-12｜清俊 × Cursor（帶我回家改為全島喵戶地圖，尚未 commit）
+> 最後更新：2026-11-12｜清俊 × Cursor（帶我回家改為全島喵戶地圖；#315 已合併，這輪另開 PR）
 
 ## 里程碑
 
@@ -18,9 +18,17 @@
 
 ## 任務（tracer-bullet，每張可獨立 Demo）
 
-- 帶我回家地圖（清俊 × Cursor，2026-11-12）：進行中（全島一張、可拖曳縮放、以喵戶為標記、初始中心讀上網縣市。**尚未建 Issue**，這輪尚未 commit）。分支 `cursor/adopt-home-map-5901`，PR #315 內文仍是舊的分區地圖。
+- 站台標誌換成向量「門口貓頭款」並統一前後台（#361，子哲 × Claude Code，2026-11-11）：審查中；分支 `feat/361-door-cat-logo`。合併部署後要到 MeowHQ 設定選「門口貓頭款」（正式站目前存 `house`）。
+- WelfareLens 安全報告通知／佇列隔離設計（#326，Jerry0808 × Codex，2026-11-11）：PR #327 已整合最新 main，`0034` 通知文案依 `new.error_code` 產生；PGlite、完整測試與 build 通過，Draft PR 待組長 Review；禁止自行部署。佇列採 job container scope + scoped claim 的建議待批准，尚未實作。
+- 帶我回家地圖（清俊 × Cursor，2026-11-12）：審查中（全島一張、可拖曳縮放、以喵戶為標記；有位置時先對準行政區。縣市連線是半透明虛線，澎湖與南投不連，台東虛線接到本島。**尚未建 Issue**）。#315 已合併，這輪在分支 `cursor/adopt-home-map-5901` 另開 PR。
+- WelfareLens 安全報告讀取 API＋PDF-first 評估頁（#273 C＋D，Jerry0808 × Codex）：進行中；沿用 Draft PR #277／`feat/273-env-report-view`。離線授權與 UI 測試已補；main 合併衝突已在 PR 分支解決；build 已 PASS；Preview 未登入 API/PDF/crop 拒絕驗收 PASS；Owner session 與 Supabase/Azure 設定核驗、手機顯示仍 BLOCKED。
+- 虛擬飼養讀真實資料＋試養報告給中途看（渝茜 × Claude Code，2026-11-10）：審查中；分支 `feat/play-real-data`。貓咪／喵戶／預算／3D 房間／環境報告讀真實資料，玩完報告存 `meow_task_runs.game_report`（`0033`，執行前須子哲確認），中途在對話串看。
 - 虛擬飼養 DEMO（#237，渝茜 × Claude Code，2026-11-06）：審查中；PR #244、分支 `feat/237-catgame-demo`。`/cats/[id]/play` 3 個節點、AI 危險／台詞／建議（規則備案）、採買花費、3D 娃娃屋擺用品、小遊戲、試養報告；Azure／喵戶讀取／遠端 GLB／掃描房間未在沙盒實測。
-- 跳躍 B 加往前位移、跳躍預覽鏡頭拉遠（#291，Tina × Claude Code，2026-11-08）：審查中；分支 `fix/291-jump-b-forward`。
+- 跳躍腰部摺痕、成貓從櫃子往下跳重新規劃（#300，Tina × Claude Code，2026-11-09）：審查中；分支 `fix/300-jump-waist-fold`。合併後成貓 glb 要再上傳 Storage。
+- 母體 glb 快取版本號、沒有跳躍 C 不畫櫃子（#298，Tina × Claude Code，2026-11-09）：完成（PR #299 已合併）。
+- 成貓新增跳躍 A、B、C（#295，Tina × Claude Code，2026-11-09）：完成（PR #296 已合併；Tina 11:33 已上傳 Storage 成貓檔）。
+- 幼貓新增從櫃子往下跳（#293，Tina × Claude Code，2026-11-09）：完成（PR #294 已合併）。
+- 跳躍 B 加往前位移、跳躍預覽鏡頭拉遠（#291，Tina × Claude Code，2026-11-08）：完成（PR #292 已合併）。
 - 貓咪頁預覽改正方形、紋理移到預覽下方（#289，Tina × Claude Code，2026-11-08）：完成（PR #290 已合併）。
 - 幼貓新增跳躍（#287，Tina × Claude Code，2026-11-08）：完成（PR #288 已合併）。幼貓母體多 `jump_a`（跳躍-(下往上跳) A）、`jump_b`（跳躍-(往前跳) B），動作庫兩個都 ready。
 - 貓咪清單載入很慢（#285，Tina × Claude Code，2026-11-08）：完成（PR #286 已合併；清單 13.5 秒 → 2～3 秒）；分支 `fix/285-cat-list-slow`。`sbListCats` 的自動採用／排程改到 `after()` 背景執行。
@@ -37,6 +45,7 @@
 
 | # | 任務 | 模組文件 | 前置 | 期別 | Issue | 負責 | 狀態 |
 |---|---|---|---|---|---|---|---|
+| 273 | WelfareLens 安全報告讀取 API＋PDF-first 評估頁（C＋D；既有 Draft PR #277） | readiness | #263、#274 | P1 | #273 | Jerry0808 | 進行中 |
 | 0 | 首頁原型（Next.js、設計系統、管理者標誌設定） | matching | — | P0 | — | Tina | 完成 |
 | 1 | Supabase、Google 登入、條款同意 | account | — | P1 | #1 | Tina | 審查中 |
 | 2 | 建立貓戶、新增貓咪、我的貓戶（貓咪公開頁待做） | household-cats | 1 | P1 | #1 | Tina | 審查中 |
@@ -84,6 +93,7 @@
 | 23-12 | ~~MeowHQ 貓咪頁補傳正面／背部花紋照片~~（2026-11-02 Tina 決定不做：其他角度照片改在新增貓咪一起上傳；讀取部分併入 #110） | admin-moderation | 23-10 | P2 | #107 | Tina × Claude Code | 完成 |
 | 23-13 | MeowHQ AI 三視角照片（第一階段）、貼圖工作頁改名製作glb工作區；新增貓咪頁依 Stitch 改兩步驟、體型骨架預覽獨立一頁 | admin-moderation | 23-10 | P2 | #110 | Tina × Claude Code | 完成（#111 已合併） |
 | 23-14 | MeowHQ 左側選單改成 Stitch 分組＋圖示樣式；虛擬體驗元件管理區塊移到左側子選單 | admin-moderation | — | P2 | #113 | Tina × Claude Code | 完成（#114 已合併） |
+| 23-17 | MeowHQ 體型預覽新增奔跑貓（低多邊形橘白虎斑、奔跑動作） | admin-moderation | 23-16 | P3 | #331 | Tina × Claude Code | 完成 |
 | 23-16 | MeowHQ 還沒有 3D 的貓直接進製作glb工作區；列表動作數改進度欄；工作區顯示其他角度照片 2、3 | admin-moderation | 23-13 | P2 | #118 | Tina × Claude Code | 審查中 |
 | 23-17 | MeowHQ 新增貓咪頁移除樣品照、三張照片同列、加入性別並保留照片與資料 | admin-moderation | 23-13 | P2 | #120 | Tina × Codex | 完成（#121 已合併） |
 | 23-18 | MeowHQ 工作室左右分區、手機可收合虛擬貓咪檔案；新增貓咪名稱與性別同列 | admin-moderation | 23-17 | P2 | #123 | Tina × Codex | 審查中（待 PR） |
@@ -92,8 +102,24 @@
 | 23-21 | MeowHQ 平面圖轉換 PR 1：一戶清單、上傳房間平面圖（Azure Blob）、原圖預覽；後續 AI 讀圖、3D、放貓、線框修正 | admin-moderation | — | P2 | #138 | Tina × Claude Code | 進行中（上傳、AI 讀圖、實景照片、3D 娃娃屋完成；家具模型庫與貼牆擺放審查中） |
 | 23-21b | 平面圖戶名並發重複：partial unique index＋23505→name_taken；既有重複改名不刪 | admin-moderation | 23-21 | P2 | #259 | Tina × Cursor | 進行中（分支 fix/259-floorplan-unique-name；0029 待 Tina 確認後執行） |
 | 23-22 | MeowHQ 虛擬體驗：選虛擬貓＋選喵戶，貓放進 3D 室內空間走動（第一版）；之後跳上家具、遊戲玩法 | admin-moderation | — | P2 | #150 | Tina × Claude Code | 審查中 |
+| 23-23 | MeowHQ 虛擬體驗故事線「貓咪的吃喝拉撒」＋成貓／幼貓 eat、drink、toilet 動作 | admin-moderation | 23-22 | P2 | #297 | Tina × Claude Code | 完成 |
+| 23-24 | 故事線辨識餐碗組的飼料碗／水碗、站對位置；母體補齊撒嬌、休息、理毛 | admin-moderation | 23-23 | P2 | #304 | Tina × Claude Code | 完成 |
+| 23-25 | 故事線：貓不要穿越碗盆（碗碰撞、腳掌踩碗外、吃飯往前伸脖子） | admin-moderation | 23-24 | P2 | #318 | Tina × Claude Code | 審查中 |
+| 23-26 | 成貓、幼貓吃飯、喝水動作重做（各用自己的骨架直接製作） | admin-moderation | 23-23 | P2 | #330 | Tina × Claude Code | 完成 |
+| 23-27 | 成貓吃飯、喝水再重做（背線緩弧、側面平面 IK 不 roll） | admin-moderation | 23-26 | P2 | #336 | Tina × Claude Code | 完成（#339 已合併） |
+| 23-28 | 大貓走路 v3：骨架翻面、肚子權重只跟脊椎、前腳落地收回肩膀下方、一圈 1 秒 | admin-moderation | 23-16 | P2 | #340 | Tina × Claude Code | 完成（#342 已合併；待上傳 Storage） |
+| 23-29 | 理毛 groom 重做 v3：成貓、幼貓分開製作（香盒坐、左前臂斜 45°、腳掌送到嘴前、舔 4 下停一拍） | admin-moderation | 23-24 | P2 | #319 | Tina × Claude Code | 審查中 |
+| 23-30 | 成貓母體脊椎拉直、加鬍鬚；貼圖三視角投影＋自然虎斑補紋 | admin-moderation | — | P2 | #365 | Tina × Claude Code | 完成（待上傳 Storage） |
+| 23-31 | 示範貓第一隻虎斑貓換新紋理、顯示 AI 三視角 | admin-moderation | 23-30 | P2 | #367 | Tina × Claude Code | 完成 |
+| 23-32 | 體型預覽成貓分頁套用第一隻虎斑貓紋理 | admin-moderation | 23-31 | P2 | #369 | Tina × Claude Code | 完成 |
+| 23-33 | 成貓理毛 v4：端坐、左右手輪流 | admin-moderation | 23-29 | P2 | #377 | Tina × Claude Code | 完成（待上傳 Storage） |
+| 23-34 | 幼貓母體四腳站直、左右對稱（右半身照左半身鏡像、前腳直立） | admin-moderation | — | P2 | #373 | Tina × Claude Code | 完成（#374） |
+| 23-35 | 成貓新增動作：休息（四腳朝天）belly_up | admin-moderation | 23-33 | P2 | #379 | Tina × Claude Code | 完成（待上傳 Storage） |
+| 23-37 | 成貓「休息」換成蜷曲休息（Curled Resting Idle） | admin-moderation | 23-35 | P2 | #387 | Tina × Claude Code | 審查中 |
+| 23-36 | 幼貓理毛 v4：端坐、低頭閉眼、左右手輪流舔（參照照片） | admin-moderation | 23-33 | P2 | #384 | Tina × Claude Code | 完成（#385） |
 | 23-15 | MeowHQ 登入頁依 Stitch 改版、瀏覽器標題改 MeoWho｜喵戶總部 | admin-moderation | — | P2 | #116 | Tina × Claude Code | 完成（#117 已合併） |
 | 23-14 | MeowHQ AI 三視角第二階段：worker 同時用三張照片上色；製作glb工作區選擇要產生的動作 | admin-moderation | 23-13 | P2 | 待建立 | — | 待辦 |
+| 23-16 | MeowHQ 3D 貓咪體型預覽新增大貓（大貓｜成貓｜幼貓三分頁、貓咪資訊）；大貓只做預覽 | admin-moderation | 23-13 | P2 | #302 | Tina × Claude Code | 完成（#305 已合併；肚子鼓包修正見 fix/302-large-cat-belly） |
 | 23-11 | MeowHQ 貓咪模型：同一隻貓可切換成貓／幼貓體型 | admin-moderation | 23-10 | P2 | #104 | Tina × Codex | 審查中 |
 | 28-1 | 首頁、頁首頁尾改用 meowwho-v2 新版 UI；內頁版型待續 | matching | 26 | P1 | #64 | 子哲 × Claude | 完成（#65 已合併） |
 | 29 | 部署改為 Vercel meowho、Supabase 改為獨立專案（決策 005）的文件 | account | — | P1 | #66 | 子哲 × Claude | 審查中 |

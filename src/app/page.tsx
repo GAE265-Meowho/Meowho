@@ -1,7 +1,6 @@
 import { SiteFooter, SiteHeader, TabBar } from "@/components/Chrome";
 import AdoptSection from "@/components/home/adopt/AdoptSection";
 import Consult from "@/components/home/consult/Consult";
-import Feed from "@/components/home/feed/Feed";
 import Hero from "@/components/home/hero/Hero";
 import Steps from "@/components/home/steps/Steps";
 import Trial from "@/components/home/trial/Trial";
@@ -18,7 +17,7 @@ export default function Home() {
         <AdoptSection />
         <Steps />
         <Trial />
-        <Feed />
+        {/* 專屬檔案（動態牆＋週報）延後，先不顯示；元件留在 components/home/feed（#354） */}
         <Consult />
       </main>
       <SiteFooter />

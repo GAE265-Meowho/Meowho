@@ -6,11 +6,13 @@
 //   每個節點（結尾除外）結束後有一次「在家的時光」（flow.ts、care.ts）：逗貓、餵貓、換水、鏟屎、剪指甲、刷牙。
 // 不做房間物品互動；試養報告只寫選擇摘要，不寫家裡位置、不附裁切照。
 // 金額是劇本的估算常數（業務規則：數字只來自資料或公式，AI 不產生數字）。健康相關台詞（health: true）旁邊顯示「僅供參考，非醫療建議」。
+import { careGood } from "./care";
 import type { Hazard } from "./hazards";
+import { ageText } from "./player-data";
 
 export type NodeId = "day1" | "day3" | "day30" | "month8" | "year5" | "year10" | "farewell";
-/** hide、scoop、play、feed、water、nail、brush、carrier 都是 catgame 原版小遊戲（catgame/minis.ts）；逗貓在掃描房間改 3D（ScanWand） */
-export type MiniId = "hide" | "scoop" | "play" | "feed" | "water" | "nail" | "brush" | "carrier";
+/** scoop、pet、feed、water、nail、brush、carrier 是小遊戲（catgame/minis.ts）；逗貓是 3D（ScanWand，掃描房間） */
+export type MiniId = "scoop" | "pet" | "feed" | "water" | "nail" | "brush" | "carrier" | "play";
 /** 貓的姿勢：carrier 躲進外出籠（外出籠旁）、sit 坐著、none 不在畫面… */
 export type CatPose = "sit" | "underbed" | "hide" | "sofa" | "zoom" | "frail" | "bed" | "table" | "none" | "carrier";
 export type Speaker = "you" | "clerk" | "vet" | "partner" | string;
@@ -28,8 +30,16 @@ export interface Care { weight: number; water: number; hygiene: number; teeth: n
 export type Risk = Pick<Hazard, "key" | "label" | "level" | "advice">;
 
 /** 遊戲裡這隻貓這一生的紀錄 */
+export interface CatTraits { coat: string | null; sex: "male" | "female" | "unknown"; neutered: boolean | null }
+export const NO_TRAITS: CatTraits = { coat: null, sex: "unknown", neutered: null };
+
+/** 「小小的虎斑貓」：花色寫「虎斑」「橘貓」「三花」都通；沒填就只說貓 */
+export const coatNoun = (coat: string | null) => { const c = (coat ?? "").trim(); return !c ? "貓" : c.endsWith("貓") ? c : `${c}貓`; };
+
 export interface Life {
   name: string;
+  /** 這隻貓的花色、性別、是否已結紮（來自貓咪資料，劇情用） */
+  cat: CatTraits;
   /** 幾個月大 */
   age: number;
   trust: number;
@@ -62,6 +72,8 @@ export type Step =
   | { k: "bub"; bub: string }
   | { k: "ask"; t: string; who: Speaker; health?: boolean; ask: Ask[] }
   | { k: "mini"; mini: MiniId; then: (r: unknown) => Step[] }
+  /** 重新擺貓砂盆：apart＝玩家重選一個離餐碗遠一點的位置；together＝搬到餐碗旁邊。擺好才往下演 */
+  | { k: "relocate"; mode: "apart" | "together"; then: Step[] }
   | { k: "rec"; fx?: Fx; note?: string; pick?: string; good?: boolean | null; set?: string }
   | { k: "fn"; fn: (X: Life) => Step[] }
   | { k: "end" }
@@ -86,6 +98,8 @@ export interface StoryNode {
   page: { title: string; tip: string } | null;
 }
 
+/** 這隻貓還是幼貓（不到 1 歲）：幼貓才講「小貓」「毛球」，大貓用比較中性的說法 */
+const young = (X: Life) => X.age < 12;
 export const sc = (bg: string, time = "day", cat: CatPose = "sit"): Step => ({ k: "scene", bg, time, cat });
 export const XN = (t: string): Step => ({ k: "line", t });
 export const VT = (t: string): Step => ({ k: "line", who: "vet", t, health: true });
@@ -154,89 +168,130 @@ export function checkupSteps(X: Life, carrierOk: boolean): Step[] {
 }
 
 const OK = (r: unknown) => r === true;
+/** 劇情裡的小遊戲（跳出彈窗）：做成功信任 +2，沒做好只是照顧得普通，不扣分 */
+const MINI = (id: Exclude<MiniId, "carrier">): Step => ({ k: "mini", mini: id, then: r => (careGood(id, r) ? [REC({ fx: { trust: 2 } })] : []) });
+
+/** 節點 4 要不要演結紮：幼貓（到這一段還不到 1.5 歲）而且資料上還沒結紮。成貓或已經結紮的貓演「平凡的一天」 */
+export const needsSpay = (X: Life) => !X.cat.neutered && X.age < 18;
+
+/** 節點 4：結紮主題（先演發現異狀，再帶去看醫生）或平凡的一天。性別決定異狀：公貓噴尿、母貓半夜叫，不知道就兩種都提 */
+function monthSteps(X: Life): Step[] {
+  const { sex, neutered } = X.cat;
+  if (!needsSpay(X)) {
+    return [
+      sc("room", "day", "sofa"),
+      XN("今天沒有什麼特別的事。早上〈貓名〉窩在窗邊曬太陽，你出門前摸了摸牠。"),
+      ...(neutered ? [XN("〈貓名〉已經結紮了，不用擔心噴尿或發情的問題，結紮後熱量需求比較低，份量要留意。")] : []),
+      sc("room", "dusk"),
+      XN("傍晚你下班回家，〈貓名〉還是慢慢走到門口等你。平平淡淡的一天，就是你們最日常的樣子。"),
+      REC({ note: "平凡的一天", pick: "平平安安的一天，照顧也沒有漏掉", good: null }),
+      XN("睡前你順手幫〈貓名〉剪指甲。"),
+      MINI("nail"),
+    ];
+  }
+  const sign = sex === "female" ? "最近〈貓名〉常常在半夜一直叫，聲音又大又長，你已經被吵醒好幾次。"
+    : sex === "male" ? "最近〈貓名〉常常在牆角、紙箱旁噴尿，家裡開始有散不掉的味道。"
+    : "最近〈貓名〉不是半夜一直叫，就是在牆角噴尿，你被吵醒好幾次，家裡也有味道。";
+  const mark = sex === "female" ? "發情時會大聲叫、也比較容易想往外跑" : "可能會噴尿做記號，也比較容易想往外跑";
+  const who = sex === "female" ? "母貓" : sex === "male" ? "公貓" : "貓";
+  const late = sex === "female" ? "兩週後〈貓名〉還是整晚叫個不停，你終於預約了。" : "兩週後〈貓名〉噴尿更頻繁了，你終於預約了。";
+  return [
+    sc("room", "night", "zoom"), BUB("hiss"),
+    XN(sign),
+    YO("（會不會是到了該結紮的年紀了？明天帶牠去給醫生看看。）"),
+    sc("vet", "day", "table"),
+    VT(`${who}差不多五、六個月就可以討論結紮了。太晚做的話，${mark}。`),
+    ASK("vet", "你要怎麼安排？", [
+      { l: "現在安排結紮（約 3,500 元）", fx: { spent: 3500, kind: "med" }, pick: "和獸醫討論了結紮", good: true, then: [XN("手術很順利，〈貓名〉回家睡了一整天。")] },
+      { l: "再等等看", fx: { stress: 6, spent: 3500, kind: "med" }, pick: "拖延結紮", good: false, then: [XN(late)] },
+    ], true),
+    VT("剪指甲只剪前面白色的尖端，粉紅色的地方是血管。"),
+    MINI("nail"),
+  ];
+}
 
 export const STORY: readonly StoryNode[] = [
   {
-    id: "day1", label: "第 1 天", sub: "麻糬・2 個月", age: 2, body: "kitten", speed: 1, home: true, personal: true,
+    id: "day1", label: "第 1 天", sub: "〈貓名〉・2 個月", age: 2, body: "kitten", speed: 1, home: true, personal: true,
     steps: [
       sc("room", "day", "carrier"),
-      XN("中途把提籃交給你。籃子一打開，一團小小的虎斑毛球就咻地鑽進你擺好的外出籠，縮在最裡面。"),
-      WHO("clerk", "剛到新家的小貓都會躲起來，這很正常。前幾天先別硬抓牠，讓牠自己決定什麼時候出來。"),
+      FN(X => [XN(young(X)
+        ? `中途把提籃交給你。籃子一打開，一隻小小的${coatNoun(X.cat.coat)}就咻地鑽進你擺好的外出籠，縮在最裡面。`
+        : "中途把提籃交給你。籃子一打開，〈貓名〉小心翼翼地走進你擺好的外出籠，縮在最裡面。")]),
+      WHO("clerk", "剛到新家的貓都會躲起來，這很正常。前幾天先別硬抓牠，讓牠自己決定什麼時候出來。"),
       ASK("you", "（外出籠裡只看得到兩顆發亮的眼睛……）", [
         { l: "在旁邊等牠自己出來", fx: { trust: 10, stress: -10 }, pick: "到家第一天，等牠自己出來", good: true,
-          then: [sc("room", "dusk"), BUB("heart"), XN("傍晚，麻糬自己走出來，在你腳邊聞了聞，還蹭了一下你的褲管。")] },
+          then: [sc("room", "dusk"), BUB("heart"), XN("傍晚，〈貓名〉自己走出來，在你腳邊聞了聞，還蹭了一下你的褲管。")] },
         { l: "硬把牠拉出來", fx: { trust: -10, stress: 15 }, pick: "到家第一天，硬把牠拉出來", good: false,
-          then: [sc("room", "night", "carrier"), BUB("hiss"), XN("麻糬抓了你一下，又縮回最裡面。那天晚上，牠一直沒有出來。")] },
+          then: [sc("room", "night", "carrier"), BUB("hiss"), XN("〈貓名〉抓了你一下，又縮回最裡面。那天晚上，牠一直沒有出來。")] },
       ]),
     ],
     page: { title: "到家的第一天", tip: "剛到新家，躲起來是正常的。給牠一個安靜、可以躲的地方，比抱牠更能建立信任。" },
   },
   {
-    id: "day3", label: "第 3 天", sub: "麻糬・2 個月", age: 2.1, body: "kitten", speed: 1, home: true, personal: false,
+    id: "day3", label: "第 3 天", sub: "〈貓名〉・2 個月", age: 2.1, body: "kitten", speed: 1, home: true, personal: false,
     steps: [
       sc("room", "day"),
-      WHO("clerk", "小貓一天要吃 3 到 4 餐。砂盆放在安靜的角落，水碗離飯碗遠一點，牠會比較願意喝水。"),
+      FN(X => [WHO("clerk", `${young(X) ? "小貓一天要吃 3 到 4 餐" : "成貓一天分 2 到 3 餐，定時定量"}。砂盆放在安靜的角落，水碗離飯碗遠一點，牠會比較願意喝水。`)]),
       ASK("you", "（砂盆和碗要放哪裡？）", [
-        { l: "砂盆和碗分開放", fx: { trust: 3 }, pick: "砂盆和碗分開放", good: true, then: [XN("一切順利，麻糬很快就知道哪裡是廁所、哪裡是餐廳。")] },
-        { l: "放在一起", fx: { stress: 8 }, pick: "砂盆和碗放在一起", good: false, then: [XN("麻糬開始在別的地方上廁所。")] },
+        { l: "砂盆和碗分開放", fx: { trust: 3 }, pick: "砂盆和碗分開放", good: true, then: [{ k: "relocate", mode: "apart", then: [XN("你把貓砂盆搬到另一個安靜的角落。一切順利，〈貓名〉很快就知道哪裡是廁所、哪裡是餐廳。")] }] },
+        { l: "放在一起", fx: { stress: 8 }, pick: "砂盆和碗放在一起", good: false, then: [{ k: "relocate", mode: "together", then: [XN("你把貓砂盆搬到餐碗旁邊。〈貓名〉開始在別的地方上廁所。")] }] },
       ]),
       REC({ note: "到家用品（砂盆、碗、飼料）已在採買算過", pick: "布置了基本用品。", good: null }),
+      XN("你把〈貓名〉的第一餐倒進碗裡。"),
+      MINI("feed"),
+      XN("接著把貓砂盆鏟乾淨，這是每天都要做的事。"),
+      MINI("scoop"),
     ],
     page: { title: "第一次清砂盆", tip: "每天清一到兩次砂盆，順便看尿塊和便便正不正常。（鏟屎在「在家的時光」做）" },
   },
   {
-    id: "day30", label: "第 30 天", sub: "麻糬・3 個月", age: 3, body: "kitten", speed: 1, home: true, personal: false,
+    id: "day30", label: "第 30 天", sub: "〈貓名〉・3 個月", age: 3, body: "kitten", speed: 1, home: true, personal: false,
     steps: [
       sc("room", "night", "zoom"),
-      XN("凌晨三點，客廳傳來跑來跑去的聲音。麻糬精神好得很。"),
+      XN("凌晨三點，客廳傳來跑來跑去的聲音。〈貓名〉精神好得很。"),
       ASK("you", "（牠完全沒有要睡的意思……）", [
-        { l: "睡前陪牠玩到累，再餵一小餐", fx: { trust: 3, minutes: 15 }, pick: "為半夜跑酷調整了作息", good: true, then: [XN("連續幾天後，麻糬開始一覺睡到天亮。")] },
-        { l: "把牠關在房門外", fx: { stress: 10, trust: -3 }, pick: "把貓關在房門外", good: false, then: [XN("麻糬在門外叫了一整夜。")] },
+        { l: "睡前陪牠玩到累，再餵一小餐", fx: { trust: 3, minutes: 15 }, pick: "為半夜跑酷調整了作息", good: true, then: [XN("你拿出逗貓棒，陪〈貓名〉玩了一陣子。"), MINI("play"), XN("連續幾天後，〈貓名〉開始一覺睡到天亮。")] },
+        { l: "把牠關在房門外", fx: { stress: 10, trust: -3 }, pick: "把貓關在房門外", good: false, then: [XN("〈貓名〉在門外叫了一整夜。")] },
       ]),
       REC({ fx: { spent: 1800, kind: "med" }, note: "預防針、驅蟲" }),
-      WHO("clerk", "2 到 4 個月是學東西最快的時候。刷牙、剪指甲，趁現在開始練最容易。"),
+      FN(X => [WHO("clerk", young(X) ? "2 到 4 個月是學東西最快的時候。刷牙、剪指甲，趁現在開始練最容易。" : "貓長大了也學得會。刷牙、剪指甲，越早開始練越容易，慢慢來就好。")]),
       ASK("you", "（要開始練刷牙嗎？）", [
-        { l: "之後每天睡前練 3 分鐘", set: "brushDaily", pick: "從幼貓期開始練刷牙", good: true, then: [XN("你從碰碰嘴角開始，麻糬慢慢習慣了。")] },
+        { l: "之後每天睡前練 3 分鐘", set: "brushDaily", pick: "開始練刷牙", good: true, then: [XN("你從碰碰嘴角開始。"), MINI("brush"), XN("〈貓名〉慢慢習慣了。")] },
         { l: "等牠大一點再說", pick: "沒有從幼貓期練刷牙", good: false },
       ]),
     ],
     page: { title: "趁小練習", tip: "每天幾分鐘的碰嘴、摸腳掌，長大後刷牙、剪指甲都會輕鬆很多。" },
   },
   {
-    id: "month8", label: "半年後", sub: "麻糬・8 個月", age: 8, body: "kitten", speed: 1, home: true, personal: false,
+    id: "month8", label: "半年後", sub: "〈貓名〉・8 個月", age: 8, body: "kitten", speed: 1, home: true, personal: false,
     steps: [
-      sc("vet", "day", "table"),
-      VT("公貓差不多五、六個月就可以討論結紮了。太晚做的話，可能會開始噴尿做記號，也比較容易想往外跑。"),
-      ASK("vet", "你要怎麼安排？", [
-        { l: "現在安排結紮（約 3,500 元）", fx: { spent: 3500, kind: "med" }, pick: "和獸醫討論了結紮", good: true, then: [XN("手術很順利，麻糬回家睡了一整天。")] },
-        { l: "再等等看", fx: { stress: 6, spent: 3500, kind: "med" }, pick: "拖延結紮", good: false, then: [XN("兩週後麻糬開始噴尿，家裡有散不掉的味道，你還是預約了。")] },
-      ], true),
-      VT("剪指甲只剪前面白色的尖端，粉紅色的地方是血管。"),
+      FN(monthSteps),
     ],
-    page: { title: "結紮與日常照護", tip: "結紮時間點可以和獸醫討論。結紮後熱量需求下降，要調整份量、定時定量。指甲大約兩到三週剪一次。" },
+    page: { title: "日常照護", tip: "結紮的時間點可以和獸醫討論，結紮後熱量需求下降，要調整份量、定時定量。指甲大約兩到三週剪一次。" },
   },
   {
-    id: "year5", label: "五年後", sub: "麻糬・5 歲", age: 60, body: "adult", speed: 1, home: true, personal: true,
+    id: "year5", label: "五年後", sub: "〈貓名〉・5 歲", age: 60, body: "adult", speed: 1, home: true, personal: true,
     steps: [FN(accidentSteps)],
     page: null,
   },
   {
-    id: "year10", label: "十年後", sub: "麻糬・10 歲・熟齡", age: 120, body: "adult", speed: 0.85, home: true, personal: false,
+    id: "year10", label: "十年後", sub: "〈貓名〉・10 歲・熟齡", age: 120, body: "adult", speed: 0.85, home: true, personal: false,
     steps: [
       sc("room", "day"),
-      VT("十歲了。熟齡貓很多慢性病一開始看不出來，所以建議每年做一次健康檢查。"),
-      XN("要出門了。你把麻糬請進當年那個外出籠。"),
+      FN(X => [VT(`${ageText(Math.round(X.age))}了。熟齡貓很多慢性病一開始看不出來，所以建議每年做一次健康檢查。`)]),
+      XN("要出門了。你把〈貓名〉請進當年那個外出籠。"),
       { k: "mini", mini: "carrier", then: r => [FN(X => checkupSteps(X, OK(r)))] },
     ],
     page: { title: "熟齡健康檢查", tip: "7 歲以後建議每年健康檢查。很多慢性病早期沒有症狀，及早發現，才有機會及早調整照護。" },
   },
   {
-    id: "farewell", label: "結尾", sub: "麻糬・15 歲", age: 180, body: "adult", speed: 0.55, home: false, personal: true,
+    id: "farewell", label: "結尾", sub: "〈貓名〉・15 歲", age: 180, body: "adult", speed: 0.55, home: false, personal: true,
     steps: [
       sc("room", "dusk", "frail"),
-      XN("又過了幾年，麻糬的腳步慢了，睡覺的時間變長了。牠還是會在你下班回家時，慢慢走到門口。"),
+      XN("又過了幾年，〈貓名〉的腳步慢了，睡覺的時間變長了。牠還是會在你下班回家時，慢慢走到門口。"),
       sc("room", "dusk", "bed"),
-      XN("一個安靜的下午，麻糬窩在你身邊，輕輕地睡著了，就沒有再醒來。"),
+      XN("一個安靜的下午，〈貓名〉窩在你身邊，輕輕地睡著了，就沒有再醒來。"),
       sc("room", "dusk", "none"),
       FN(X => [XN(`${X.name}享年 ${Math.floor(X.age / 12)} 歲。牠在你家度過了一生。`), REC({ pick: "陪伴到最後。", good: null })]),
     ],

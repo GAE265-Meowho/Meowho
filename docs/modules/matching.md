@@ -1,6 +1,6 @@
 # 模組：AI 配對與首頁（matching）
 
-> 最後更新：2026-11-10｜清俊 × Cursor
+> 最後更新：2026-11-10｜清俊 × Cursor（帶我回家地圖）；子哲 × Claude Code（幫我找貓）
 > 規則：本檔隨程式碼同一個 PR 更新；「決策」與「地雷」只增不刪（過時的標註［已失效］）。
 
 ## 目的
@@ -15,18 +15,20 @@
 - PLAN 任務：0、3、8
 
 ## 目前狀態
-首頁已改為 meowwho-v2 新版 UI（2026-10-31）：Hero（一句話搜尋＋建立喵戶／新貓入戶入口）、核心價值、帶我回家（卡片／地圖）、領養三步驟、7 天虛擬飼養、時光小屋、貓咪諮詢站，3D 橘子隨捲動走到頁尾新家。元件在 `src/components/home/`，示意資料在 `src/lib/cats.ts`、`home-photos.ts`。`match.ts` 的關鍵字配對仍保留（5 個單元測試），新首頁尚未接上。
+首頁已改為 meowwho-v2 新版 UI（2026-10-31）：Hero（一句話搜尋＋建立喵戶／新貓入戶入口）、核心價值、帶我回家（卡片／地圖）、領養三步驟、7 天虛擬飼養、貓咪諮詢站（「時光小屋」2026-11-11 改名「專屬檔案」，首頁區塊先隱藏；帶我回家的個性篩選也先拿掉，#354），3D 橘子隨捲動走到頁尾新家。元件在 `src/components/home/`，示意資料在 `src/lib/cats.ts`、`home-photos.ts`。`match.ts` 的關鍵字配對仍保留（5 個單元測試），新首頁尚未接上。
 
-帶我回家的地圖（2026-11-12，清俊，同一支 PR #315，這輪尚未 commit）改成一張可拖曳、縮放的全島。標記是喵戶，點開後橫向列出該戶的貓，再點貓回到卡片。初始中心用 `GET /api/where` 讀上網所在縣市（不要求 GPS）；本機沒有 Vercel 標頭時先看完整島。邏輯在 `src/lib/adopt-map.ts` 的 `layoutHomes`、`projectTaiwan`、`frameTaiwan`。舊的分區畫布與貓圖示留在程式裡，首頁不再用。舊的等角小鎮資料 `src/lib/households.ts` 畫面已不再引用。
+帶我回家的地圖（2026-11-12，清俊。#315 已合併，這輪另開 PR）改成一張可拖曳、縮放的全島。標記是喵戶，點開後橫向列出該戶的貓，再點貓回到卡片。初始中心用 `GET /api/where` 讀上網所在縣市（不要求 GPS）；本機沒有 Vercel 標頭時先看完整島。邏輯在 `src/lib/adopt-map.ts` 的 `layoutHomes`、`projectTaiwan`、`frameTaiwan`。舊的分區畫布與貓圖示留在程式裡，首頁不再用。舊的等角小鎮資料 `src/lib/households.ts` 畫面已不再引用。
 
 ## 資料表（Supabase）
-- 讀取 `cats`、公開 `posts`、`weekly_reports` 的向量（pgvector）
+- `meow_cat_embeddings`（0032，幫我找貓）：每隻貓一筆意思座標（`real[]`），只有伺服器讀寫；介紹文字雜湊不同或換模型才重算
+- 搜尋時用登入者身分讀 `meow_cats`（待領養、公開）與自己的一般飼主 `meow_households`
 
 ## API／主要函式
-- `parseQuery()`、`matchCats()`、`adoptList()`（`src/lib/match.ts`）
-- `GET /api/where`：只讀 Vercel 轉來的 IP 縣市，回 `{ city }`（台灣縣市或 `null`）。不存 IP、不向瀏覽器要定位
-- `layoutHomes()`、`projectTaiwan()`、`frameTaiwan()`（`src/lib/adopt-map.ts`）
-- 待建立：LLM 條件解析＋Embedding 混合檢索、推薦理由
+- 幫我找貓（規格 `docs/spec/11_幫我找貓規格.md`）：`POST /api/find`（條件解析→合併喵戶→排除→依意思相近程度排序）、`POST /api/find/reasons`（前 6 名的 AI 推薦理由）；結果頁 `/find?q=&scope=city|all`
+- 配對規則：`src/lib/find-cats.ts`（`mergeConditions`、`excludeReason`、`rankCats`、`catText`、`ruleReason`…）；AI：`src/lib/ai/find.ts`、提示詞 `src/lib/prompts/find.ts`、Embedding `getEmbeddings()`（`src/lib/ai/models.ts`）
+- 舊的關鍵字規則 `parseQuery()`、`matchCats()`、`adoptList()`（`src/lib/match.ts`）：`parseQuery` 仍是 AI 沒回應時的備案
+- `GET /api/where`：只讀 Vercel 轉來的位置，回 `{ city, district }`（台灣縣市與行政區，或 `null`）。不存 IP、不向瀏覽器要定位
+- `layoutHomes()`、`projectTaiwan()`、`frameTaiwan()`、`taiwanFocus()`（`src/lib/adopt-map.ts`）
 
 ## 主要檔案
 - `src/app/page.tsx`、`src/components/home/adopt/`（卡片 `AdoptSection`、地圖 `AdoptMap`／`TaiwanCanvas`；分區用的 `RegionCanvas`／`CatSprite` 首頁已不再引用）、`src/lib/adopt-feed.ts`、`src/lib/adopt-map.ts`、`src/lib/geo/visitor-city.ts`、`src/app/api/where/route.ts`、`src/lib/match.ts`
@@ -34,6 +36,7 @@
 
 ## 決策
 - 訪客預設同縣市、等最久優先；不要求 GPS。
+- 2026-11-09 子哲：幫我找貓依「意思相近程度」排序（Embedding），條件只用來排除明顯不適合的貓；向量存 `real[]`、相似度在伺服器算，不用 pgvector（貓少，全部比一次就夠快）。
 - 換成 RAG 時保留 `matchCats` 的輸入輸出形狀，讓畫面不用改。
 - 2026-11-09（清俊）：帶我回家地圖只畫到縣市＋行政區；路名即使出現在字串裡也丟掉。澎湖、金門、連江獨立成「離島」，不併進東部。貓精靈的毛色讀 `coat`（示意貓用照片上的毛色），動作讀個性標籤：愛曬太陽、愛叫、活潑／愛玩、輕柔（以及既有的溫和、愛撒嬌、愛被抱、愛被梳毛）、愛踏踏／愛踩踏等，一隻貓只播一種。點地圖上的貓回到同一張卡片。
 - 2026-11-09（清俊，預覽後）：縣市與鄉鎮市區用 taiwan-atlas 的內政部界線（`src/lib/geo/region-bounds.json`，`scripts/build-region-bounds.mjs` 可重產）。相鄰縣市換暖色，區界用淺色描邊；名稱是浮水印，畫在貓後面。地標名勝不畫在地圖上。貓精靈只讀卡片的毛色文字與個性標籤，不從照片判斷。
@@ -56,6 +59,7 @@
 | 2026-10-28 | Tina × Claude Code | 入口置頂、新增「新貓入戶」、建立貓戶說明移出首頁 | #5 |
 | 2026-10-29 | Tina × Claude Code | 新增「喵戶小區」`/community`（示意資料）、導覽加入口 | #44 |
 | 2026-10-29 | Tina × Claude Code | 喵戶小區加「地區預覽」與貓戶預覽卡；粉屋頂改為「剛重啟喵生」 | #45 |
+| 2026-11-09 | 子哲 × Claude Code | 幫我找貓：結果頁 `/find`、搜尋 API、意思座標 0032；首頁搜尋框接上 | （見 PR） |
 | 2026-10-31 | 子哲 × Claude Code | 首頁、頁首頁尾改用 meowwho-v2 新版 UI（3D 橘子、帶我回家卡片／地圖、7 天虛擬飼養）；「你今天想做什麼？」入口併入 Hero | #64 |
 | 2026-11-09 | 清俊 × Cursor | 帶我回家地圖改為北中南東＋離島，貓標記對毛色與個性動作，點擊回到卡片。預覽分支，尚未開 PR | — |
 | 2026-11-09 | 清俊 × Cursor | 縣市名改到自己的海上或境內空位；好奇改問號、慢熟改害羞符號。PR #315 | — |

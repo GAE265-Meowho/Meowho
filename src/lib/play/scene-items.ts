@@ -17,6 +17,25 @@ type Layout = Pick<RoomLayout, "cell" | "nx" | "ny" | "walkable" | "units_per_me
 const findObject = (scene: RoomScene, name: string | null): RoomObject | undefined =>
   name ? scene.objects.find(o => o.name_zh === name || o.label === name || o.id === name) : undefined;
 
+/** 擋路的家具：貼著地板、有高度、不是整個房間那麼大的物件（地毯、牆、天花板不算）；用圓形（用品的外接圓）跟旋轉過的箱子比對 */
+function blockers(scene: RoomScene): RoomObject[] {
+  const [minX, minZ] = scene.room.min, [maxX, maxZ] = scene.room.max;
+  const roomArea = (maxX - minX) * (maxZ - minZ);
+  return scene.objects.filter(o => {
+    const [, cy] = o.box.center, [sx, sy, sz] = o.box.size;
+    return sy > 0.08 && cy - sy / 2 < 0.25 && sx * sz < roomArea * 0.6;
+  });
+}
+/** 圓（x, z, r）有沒有壓到這個箱子（yaw 的正負號各試一次，寧可多避開一點） */
+function hitsBox(o: RoomObject, x: number, z: number, r: number): boolean {
+  const [cx, , cz] = o.box.center, [sx, , sz] = o.box.size;
+  return [o.box.yaw, -o.box.yaw].some(yaw => {
+    const dx = x - cx, dz = z - cz, c = Math.cos(yaw), s = Math.sin(yaw);
+    const lx = Math.abs(dx * c + dz * s), lz = Math.abs(-dx * s + dz * c);
+    return Math.hypot(Math.max(0, lx - sx / 2), Math.max(0, lz - sz / 2)) < r;
+  });
+}
+
 export function placeScanItems(scene: RoomScene, layout: Layout, items: readonly SceneItem[]): ScenePlacement[] {
   const upm = layout.units_per_meter;
   const free = (x: number, z: number) => {
@@ -25,6 +44,7 @@ export function placeScanItems(scene: RoomScene, layout: Layout, items: readonly
   };
   const [minX, minZ] = scene.room.min, [maxX, maxZ] = scene.room.max;
   const cx = (minX + maxX) / 2, cz = (minZ + maxZ) / 2;
+  const walls = blockers(scene);
   const taken: { x: number; z: number; r: number }[] = [];
   const out: ScenePlacement[] = [];
 
@@ -34,6 +54,7 @@ export function placeScanItems(scene: RoomScene, layout: Layout, items: readonly
     const ok = (x: number, z: number) =>
       inside(x, z)
       && [[0, 0], [1, 1], [1, -1], [-1, 1], [-1, -1]].every(([a, b]) => free(x + (a * it.widthM) / 2, z + (b * it.depthM) / 2))
+      && walls.every(o => !hitsBox(o, x, z, r))
       && taken.every(t => Math.hypot(x - t.x, z - t.z) >= r + t.r + GAP_M);
 
     const target = findObject(scene, it.near);
