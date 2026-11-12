@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { BGM_IDS, SFX_IDS, bgmFor, bgmLoops, fadeVolume, MUTE_KEY, readMuted, writeMuted, type BgmInput } from "./audio";
+import { readFileSync } from "node:fs";
+import { BGM_IDS, SFX_IDS, SFX_READY, SOUNDS, audioPath, audioSrc, soundsFor, bgmFor, bgmLoops, fadeVolume, MUTE_KEY, readMuted, writeMuted, type BgmInput } from "./audio";
 
 const at = (over: Partial<BgmInput>): BgmInput => ({ step: "node", nodeId: "day3", scene: { bg: "room", time: "day" }, home: false, ...over });
 
@@ -27,6 +28,42 @@ describe("背景音樂依場景切換", () => {
 
   it("升天不循環，其他四首循環", () => {
     expect(BGM_IDS.filter(bgmLoops)).toEqual(["bgm_arrive", "bgm_daily", "bgm_night", "bgm_vet"]);
+  });
+});
+
+describe("聲音對照表與網址", () => {
+  it("每個聲音都有名稱、用在哪、誰呼叫", () => {
+    for (const [id, s] of Object.entries(SOUNDS)) {
+      expect(s.label, id).not.toBe("");
+      expect(s.usedIn, id).not.toBe("");
+      expect(s.part.length, id).toBeGreaterThan(0);
+    }
+    expect(BGM_IDS).toHaveLength(5);
+    expect(BGM_IDS.every(id => SOUNDS[id].ready)).toBe(true);
+  });
+
+  it("背景音樂放 bgm/、音效放 sfx/，網址是 Supabase 公開網址", () => {
+    expect(audioPath("bgm_daily")).toBe("bgm/bgm_daily.mp3");
+    expect(audioPath("sfx_meow")).toBe("sfx/sfx_meow.mp3");
+    expect(audioSrc("bgm_vet", "https://x.supabase.co/")).toBe("https://x.supabase.co/storage/v1/object/public/meow-play-audio/bgm/bgm_vet.mp3");
+    expect(audioSrc("bgm_vet", "")).toBe("");
+  });
+
+  it("可以查第幾份要接哪些音效", () => {
+    expect(soundsFor(1)).toEqual(expect.arrayContaining(["sfx_pour_food", "sfx_can_open", "sfx_pour_water", "sfx_scoop"]));
+    expect(soundsFor(5)).toEqual(expect.arrayContaining(["sfx_yowl", "sfx_spray", "sfx_dash"]));
+    expect(soundsFor(2)).toEqual(expect.arrayContaining(["sfx_clip", "sfx_scream", "sfx_hiss"]));
+    expect(soundsFor(6)).toEqual([]);
+  });
+
+  it("SFX_READY 只包含標成 ready 的音效（目前還沒有）", () => {
+    expect([...SFX_READY]).toEqual(SFX_IDS.filter(id => SOUNDS[id].ready));
+  });
+
+  it("上傳腳本讀得到同一份 ID 清單", () => {
+    const src = readFileSync("src/lib/play/audio.ts", "utf8");
+    const ids = [...src.matchAll(/\b((?:bgm|sfx)_[a-z_]+):\s*\{/g)].map(m => m[1]);
+    expect(ids.sort()).toEqual(Object.keys(SOUNDS).sort());
   });
 });
 

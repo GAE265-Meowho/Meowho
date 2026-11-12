@@ -14,10 +14,15 @@ class FakeAudio {
   removeAttribute() {}
 }
 
+const STORE = "https://demo.supabase.co/storage/v1/object/public/meow-play-audio";
+const DAILY = `${STORE}/bgm/bgm_daily.mp3`;
+const NIGHT = `${STORE}/bgm/bgm_night.mp3`;
+
 const playing = () => FakeAudio.made.filter(a => !a.paused).map(a => a.src);
 
 async function setup() {
   vi.resetModules();
+  vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://demo.supabase.co");
   FakeAudio.made = [];
   window.localStorage.clear();
   vi.stubGlobal("Audio", FakeAudio);
@@ -30,7 +35,7 @@ async function setup() {
 const daily: BgmInput = { step: "shop", nodeId: null, scene: { bg: "room", time: "day" }, home: false };
 const night: BgmInput = { step: "node", nodeId: "day30", scene: { bg: "room", time: "night" }, home: false };
 
-beforeEach(() => { vi.unstubAllGlobals(); });
+beforeEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); });
 afterEach(cleanup);
 
 describe("虛擬飼養的背景音樂", () => {
@@ -39,7 +44,7 @@ describe("虛擬飼養的背景音樂", () => {
     render(<Game {...daily} />);
     expect(playing()).toEqual([]);
     await act(async () => { fireEvent.pointerDown(window); });
-    expect(playing()).toEqual(["/play/audio/bgm_daily.mp3"]);
+    expect(playing()).toEqual([DAILY]);
     expect(FakeAudio.made[0].loop).toBe(true);
   });
 
@@ -48,7 +53,7 @@ describe("虛擬飼養的背景音樂", () => {
     const { rerender } = render(<Game {...daily} />);
     await act(async () => { fireEvent.pointerDown(window); });
     await act(async () => { rerender(<Game {...night} />); });
-    expect(playing()).toEqual(["/play/audio/bgm_night.mp3"]);
+    expect(playing()).toEqual([NIGHT]);
   });
 
   it("按靜音就停，再按一次接著播，選擇記在瀏覽器", async () => {
@@ -59,7 +64,7 @@ describe("虛擬飼養的背景音樂", () => {
     expect(playing()).toEqual([]);
     expect(window.localStorage.getItem("meowho.play.muted")).toBe("1");
     await act(async () => { fireEvent.click(screen.getByRole("button", { name: "開啟聲音" })); });
-    expect(playing()).toEqual(["/play/audio/bgm_daily.mp3"]);
+    expect(playing()).toEqual([DAILY]);
   });
 
   it("上次選了靜音，這次進來也不出聲", async () => {
@@ -77,6 +82,18 @@ describe("虛擬飼養的背景音樂", () => {
     await act(async () => { fireEvent.pointerDown(window); });
     unmount();
     expect(playing()).toEqual([]);
+  });
+
+  it("沒連資料庫（示範模式）時不出聲也不出錯", async () => {
+    vi.resetModules();
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "");
+    FakeAudio.made = [];
+    vi.stubGlobal("Audio", FakeAudio);
+    const mod = await import("./PlayAudio");
+    function Game(input: BgmInput) { mod.usePlayBgm(input); return null; }
+    render(<Game {...daily} />);
+    await act(async () => { fireEvent.pointerDown(window); });
+    expect(FakeAudio.made).toEqual([]);
   });
 
   it("還沒有音檔的音效呼叫了不會出聲也不會出錯", async () => {

@@ -1,4 +1,4 @@
-// 虛擬飼養的播放器（第 6 份，#354）：整個遊戲共用一個，只在瀏覽器執行。
+// 虛擬飼養的播放器（第 6 份，#393）：整個遊戲共用一個，只在瀏覽器執行。
 // 手機瀏覽器規定使用者點過畫面才能出聲：還沒點過時只記下要播哪首，第一次點擊（unlockAudio）再開始播。
 // 第 1～5 份要出聲時呼叫 playSfx(<ID>)；還沒有音檔的音效（不在 SFX_READY）呼叫了也不會出聲、不會報錯。
 import { audioSrc, bgmLoops, fadeVolume, readMuted, SFX_READY, writeMuted, type BgmId, type SfxId } from "./audio";
@@ -49,7 +49,9 @@ function startWanted() {
     return;
   }
   if (current) fadeOutAndStop(current.el);
-  const el = new Audio(audioSrc(wanted));
+  const src = audioSrc(wanted);
+  if (!src) { current = null; return; }
+  const el = new Audio(src);
   el.loop = bgmLoops(wanted);
   el.volume = 0;
   el.preload = "auto";
@@ -82,7 +84,9 @@ export function setMuted(next: boolean) {
 /** 第 1～5 份在對的時機呼叫，例如 playSfx("sfx_pour_water") */
 export function playSfx(id: SfxId, volume = SFX_VOLUME) {
   if (!unlocked || isMuted() || !SFX_READY.has(id) || typeof Audio === "undefined") return;
-  const el = new Audio(audioSrc(id));
+  const src = audioSrc(id);
+  if (!src) return;
+  const el = new Audio(src);
   el.volume = volume;
   el.play().catch(() => {});
 }
