@@ -76,4 +76,8 @@ describe("clipPupil", () => {
     expect(buildClipItems(["run"]).find(i => i.code === "run")).toMatchObject({ label: "奔跑", available: true });
     expect(buildClipItems(["idle", "walk"]).find(i => i.code === "run")).toMatchObject({ available: false, status: "ready" });
   });
+  it("休息（四腳朝天）（#379）：成貓母體有 belly_up 時可點，幼貓沒有時灰色", () => {
+    expect(buildClipItems(["idle", "belly_up"]).find(i => i.code === "belly_up")).toMatchObject({ label: "休息（四腳朝天）", available: true });
+    expect(buildClipItems(["idle"]).find(i => i.code === "belly_up")).toMatchObject({ available: false, status: "ready" });
+  });
 });
