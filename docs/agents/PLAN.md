@@ -45,7 +45,7 @@
 
 | # | 任務 | 模組文件 | 前置 | 期別 | Issue | 負責 | 狀態 |
 |---|---|---|---|---|---|---|---|
-| 354 | 虛擬飼養第 1 份：換水改 3D（PR #391，分支 `feat/354-care-water-3d`）、餵貓改 3D（分支 `feat/354-care-feed-3d`，疊在換水上）；還剩鏟屎、逗貓玩具確認、狀態列 | readiness | — | P1 | #354 | 珮瑜 | 進行中 |
+| 354 | 虛擬飼養第 1 份：換水改 3D（PR #391，分支 `feat/354-care-water-3d`）、餵貓改 3D（分支 `feat/354-care-feed-3d`，疊在換水上）、鏟屎改 3D（分支 `feat/354-care-scoop-3d`，疊在餵貓上）；還剩貓砂盆四款放進房間、逗貓玩具確認、狀態列 | readiness | — | P1 | #354 | 珮瑜 | 進行中 |
 | 273 | WelfareLens 安全報告讀取 API＋PDF-first 評估頁（C＋D；既有 Draft PR #277） | readiness | #263、#274 | P1 | #273 | Jerry0808 | 進行中 |
 | 0 | 首頁原型（Next.js、設計系統、管理者標誌設定） | matching | — | P0 | — | Tina | 完成 |
 | 1 | Supabase、Google 登入、條款同意 | account | — | P1 | #1 | Tina | 審查中 |

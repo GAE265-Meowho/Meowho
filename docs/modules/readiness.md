@@ -166,6 +166,12 @@
   - 道具：`mini3d/FeedProps.tsx`（`feed_bag` 飼料袋、`feed_can` 罐頭兩種、碗裡的東西 `BowlFood`、落下的顆粒 `KibbleFall`，都是程式畫）；場景 `mini3d/FeedScene.tsx`；手多一個手勢 `hold`。
   - **彈窗只放飼料，貓不在裡面**：`PlayGame.tsx` 改成餵貓、換水做完、彈窗關掉後貓才走到碗邊（`served`）；取消不會觸發。吃、喝的動作等第 4 份。
   - 還沒做：在真正的房間流程確認貓有走過去、手機實測、音效、包裝圖案；第 1 份還剩鏟屎、逗貓玩具確認、上方狀態列。細節見 `docs/daily/2026-11-12/1514-珮瑜-354.md`。
+- 🚧 進行中（2026-11-12，珮瑜 × Claude Code，#354，分支 `feat/354-care-scoop-3d`，疊在餵貓分支上）**鏟屎改 3D（第 1 份）**：`CatgameMini.tsx` 的鏟屎改開彈窗，裡面是第一視角的 `mini3d/ScoopGame3D.tsx`。
+  - 玩法（六格分鏡）：按住畫面拖曳貓砂鏟 → 連砂一起鏟起來（一次最多三塊）→ 左右來回甩三下把砂甩掉 → 拿到左邊垃圾袋上方放開，鏟子傾斜倒進去。動作太大掉一塊回砂裡；沒到垃圾袋就放開全部掉回去；沒甩乾淨也丟得進去，但提示浪費砂。
+  - 規則：`lib/play/mini3d/scoop-rules.ts`（`newScoop`、`scoopStep`、`scoopResult`，有測試）；回傳 `{ bagged, total, small, sandy }`，`sandy` 是連砂一起丟掉的塊數，`careGood("scoop")` 不看內容。
+  - 道具：`mini3d/ScoopProps.tsx`（貓砂盆四款 `LitterBox`、`scoop_shovel`、`scoop_bag`、`scoop_poop`、`scoop_clump`，都是程式畫）；場景 `mini3d/ScoopScene.tsx`，拖曳用 `mini3d/useScenePointer.ts`。
+  - **還沒接的**：採買選的貓砂盆款式沒有帶進小遊戲（一律開放式）；房間裡的貓砂盆仍是原本那一個模型，四款只在彈窗裡；貓上完廁所砂盆多一條大便沒做。
+  - 還沒做：手機實測、甩的靈敏度調整、音效。細節見 `docs/daily/2026-11-12/2130-珮瑜-354.md`。
 
 ## 資料表（Supabase）
 - ［已失效］`env_reports`、`virtual_sessions`、`virtual_tasks`（規劃名稱，改用下列 0017 的表）
@@ -237,6 +243,7 @@
 | 2026-11-10 | Jerry0808 × Codex | 安全報告改為 HTML 摘要、風險項目與辨識限制優先；PDF 保留在內容後方供喵戶本人檢視／下載；頁面不再初載 PDF，也移除閱讀器樣式 | #337（Draft） |
 | 2026-11-12 | 珮瑜 × Claude Code | 換水小遊戲改 3D 第一視角開水龍頭：兩隻手、水龍頭、六格動作時間軸（`mini3d/`、`lib/play/mini3d/`） | （還沒開 PR） |
 | 2026-11-12 | 珮瑜 × Claude Code | 餵貓小遊戲改 3D：乾飼料顆粒、主食罐濕食、湯罐液體；餵貓、換水的彈窗關掉後貓才走到碗邊 | （還沒開 PR） |
+| 2026-11-12 | 珮瑜 × Claude Code | 鏟屎小遊戲改 3D：拖曳貓砂鏟、連砂鏟起、左右甩掉砂、倒進垃圾袋；貓砂盆四款（只在彈窗裡） | （還沒開 PR） |
 
 ## 虛擬飼養讀真實資料與試養報告給中途（/cats/[id]/play）
 - 貓咪：`lib/play/source.ts` 的 `loadPlayCat(id)` 讀 `meow_cats`（名字、花色、生活階段、生日／估計月齡）＋ `meow_cat_model_variants.confirmed_albedo`（3D 貼圖）；讀不到才用 DEMO 麻糬。劇本裡的名字用 `〈貓名〉`（`furniture.ts` 的 `fullTx`）替換，小遊戲原版寫死的「麻糬」由 `CatgameMini` 畫完後換成貓名；非虎斑花色不畫條紋。
