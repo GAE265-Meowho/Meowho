@@ -18,7 +18,7 @@
 
 ## 任務（tracer-bullet，每張可獨立 Demo）
 
-- #356 3D 刷牙、摸貓與照護圖示（世安 × Codex）：審查中。擬真刷牙已加入口腔特寫、階段工具、終態回饋及掙扎轉頭播放器與內建 H.264 素材。摸貓沿用成貓 GLB；待桌面、375px 雙指、實機與完整劇情驗收。
+- #356 3D 刷牙、摸貓與照護圖示（世安 × Codex）：審查中。擬真刷牙已完成本機 Chrome 1280px／375px 五階段播放與操作驗收；待登入 Preview 驗照護入帳、第 30 天與手機實機。摸貓沿用成貓 GLB。
 - 站台標誌換成向量「門口貓頭款」並統一前後台（#361，子哲 × Claude Code，2026-11-11）：審查中；分支 `feat/361-door-cat-logo`。合併部署後要到 MeowHQ 設定選「門口貓頭款」（正式站目前存 `house`）。
 - WelfareLens 安全報告通知／佇列隔離設計（#326，Jerry0808 × Codex，2026-11-11）：PR #327 已整合最新 main，`0034` 通知文案依 `new.error_code` 產生；PGlite、完整測試與 build 通過，Draft PR 待組長 Review；禁止自行部署。佇列採 job container scope + scoped claim 的建議待批准，尚未實作。
 - 帶我回家地圖（清俊 × Cursor，2026-11-10）：審查中（新竹縣左下、台中右上、屏東在泰武右側、嘉義市不標東／西；台北基隆台南高雄重疊區名依面積縮小。**尚未建 Issue**）。分支 `cursor/adopt-home-map-5901`，PR #315。
