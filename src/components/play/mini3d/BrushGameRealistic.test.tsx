@@ -196,13 +196,13 @@ it("掙扎只播放一次，播放結束與規則結束後才重新開放操作"
   play.mockRestore();
 });
 
-it("第一次翻唇到露牙門檻時立即播放轉頭影片", () => {
+it.each([0, 1, 2, 3, 4])("Lv.%i 首次有效接觸只播放一次衛教影片", (brushLevel) => {
   let frame: FrameRequestCallback;
   vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => { frame = callback; return 1; });
   vi.stubGlobal("cancelAnimationFrame", vi.fn());
   vi.stubGlobal("matchMedia", vi.fn(() => ({ matches: false })));
   const play = vi.spyOn(HTMLMediaElement.prototype, "play").mockResolvedValue();
-  const ctx = { cat: { trust: 100, stress: 0 }, brushLevel: 4 } as MiniCtx;
+  const ctx = { cat: { trust: 100, stress: 0 }, brushLevel } as MiniCtx;
   const view = render(<dialog open><BrushGameRealistic ctx={ctx} onDone={vi.fn()} reactionSrc="/reaction.mp4" /></dialog>);
   const stage = screen.getByRole("group");
   stage.focus();
@@ -219,24 +219,35 @@ it("第一次翻唇到露牙門檻時立即播放轉頭影片", () => {
       this.pointerType = options.pointerType;
     }
   }
-  fireEvent(stage, new TestPointerEvent("pointerdown", {
-    bubbles: true, button: 0, pointerId: 1, pointerType: "touch", clientX: 200, clientY: 237,
-  }));
-  fireEvent(stage, new TestPointerEvent("pointermove", {
-    bubbles: true, button: 0, pointerId: 1, pointerType: "touch", clientX: 200, clientY: 217,
-  }));
+  const contact = () => {
+    const send = (type: string, x: number, y: number) => fireEvent(stage, new TestPointerEvent(type, {
+      bubbles: true, button: 0, pointerId: 1, pointerType: "touch", clientX: x, clientY: y,
+    }));
+    send("pointerdown", brushLevel === 2 ? 148 : 200, brushLevel === 2 ? 240 : 237);
+    if (brushLevel !== 0 && brushLevel !== 2) send("pointermove", 200, 227);
+    send("pointerup", 200, 227);
+  };
+  contact();
   act(() => frame(0));
   act(() => frame(100));
   const video = stage.querySelector("video");
   expect(video?.getAttribute("src")).toBe("/reaction.mp4");
+  expect(video?.dataset.education).toBe("true");
+  expect(screen.getByText(/衛教示範｜貓咪轉頭躲避時/)).toBeTruthy();
   expect(stage.dataset.mouth).toBe("closed");
   expect(screen.queryByLabelText("牙齒外側特寫")).toBeNull();
+  expect(play).toHaveBeenCalledTimes(1);
+  expect(screen.getByLabelText("進度", { exact: false }).getAttribute("value")).toBe("0");
+  fireEvent.ended(video!);
+  contact();
+  act(() => frame(200));
+  expect(stage.querySelector("video")).toBeNull();
   expect(play).toHaveBeenCalledTimes(1);
   view.unmount();
   play.mockRestore();
 });
 
-it.each(["error", "rejected", "reduced"] as const)("反應影片 %s 時保留閉嘴照片並允許重新操作", async (failure) => {
+it.each(["error", "rejected", "reduced"] as const)("反應影片 %s 時可回到閉嘴照片並重新操作", async (failure) => {
   let frame: FrameRequestCallback;
   vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => { frame = callback; return 1; });
   vi.stubGlobal("cancelAnimationFrame", vi.fn());
@@ -251,9 +262,13 @@ it.each(["error", "rejected", "reduced"] as const)("反應影片 %s 時保留閉
   fireEvent.keyDown(stage, { code: "Space" });
   for (let time = 0; time <= 4100; time += 100) act(() => frame(time));
   if (failure === "error") fireEvent.error(stage.querySelector("video")!);
+  if (failure === "reduced") {
+    expect(stage.querySelector("video")?.dataset.education).toBe("true");
+    fireEvent.click(screen.getByRole("button", { name: "略過衛教示範" }));
+  }
   await act(async () => {});
   expect(stage.querySelector("video")).toBeNull();
-  expect(play).toHaveBeenCalledTimes(failure === "reduced" ? 0 : 1);
+  expect(play).toHaveBeenCalledTimes(1);
   expect(stage.dataset.mouth).toBe("closed");
   fireEvent.keyUp(stage, { code: "Space" });
   for (let time = 4200; time <= 5500; time += 100) act(() => frame(time));
@@ -279,8 +294,13 @@ it("掙扎時咬人會停止遊戲，但影片結束後才顯示結果", () => {
   fireEvent.keyDown(stage, { code: "Space" });
   act(() => frame(0));
   act(() => frame(100));
+  fireEvent.ended(stage.querySelector("video")!);
+  fireEvent.keyUp(stage, { code: "Space" });
+  fireEvent.keyDown(stage, { code: "Space" });
+  act(() => frame(200));
+  act(() => frame(300));
   act(() => window.dispatchEvent(new Event("meow:brush-struggle")));
-  for (let time = 200; time <= 900; time += 100) act(() => frame(time));
+  for (let time = 400; time <= 1100; time += 100) act(() => frame(time));
   const video = stage.querySelector("video")!;
   expect(video).toBeTruthy();
   expect(screen.queryByRole("button", { name: "確認結果" })).toBeNull();

@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import styles from "./brush-photo.module.css";
 
-export function BrushReactionVideo({ src, onFinish }: { src: string; onFinish: () => void }) {
+export function BrushReactionVideo({ src, education = false, onFinish }: { src: string; education?: boolean; onFinish: () => void }) {
   const video = useRef<HTMLVideoElement>(null);
   const [playing, setPlaying] = useState(false);
 
@@ -11,7 +11,7 @@ export function BrushReactionVideo({ src, onFinish }: { src: string; onFinish: (
     const node = video.current;
     if (!node) return;
     const motion = window.matchMedia?.("(prefers-reduced-motion: reduce)");
-    if (motion?.matches) {
+    if (motion?.matches && !education) {
       onFinish();
       return;
     }
@@ -28,7 +28,7 @@ export function BrushReactionVideo({ src, onFinish }: { src: string; onFinish: (
       trace(reason);
       onFinish();
     };
-    const motionChanged = (event: MediaQueryListEvent) => { if (event.matches) finish("reduced-motion"); };
+    const motionChanged = (event: MediaQueryListEvent) => { if (event.matches && !education) finish("reduced-motion"); };
     let playbackTimeout: number | undefined;
     const startupTimeout = window.setTimeout(() => finish("startup-timeout"), 2500);
     const playing = () => {
@@ -54,8 +54,8 @@ export function BrushReactionVideo({ src, onFinish }: { src: string; onFinish: (
       node.removeEventListener("ended", ended);
       node.removeEventListener("error", failed);
     };
-  }, [src, onFinish]);
+  }, [src, education, onFinish]);
 
-  return <video ref={video} className={styles.reaction} data-playing={playing} src={src}
+  return <video ref={video} className={styles.reaction} data-playing={playing} data-education={education} src={src}
     muted playsInline preload="none" aria-hidden="true" />;
 }

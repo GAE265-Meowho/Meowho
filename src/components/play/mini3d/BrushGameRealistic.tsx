@@ -28,11 +28,12 @@ function newInput() {
     tool: null as PhotoPoint | null,
     angle: 0,
     travel: 0,
+    contacted: false,
   };
 }
 
 export function BrushGameRealistic({
-  ctx, onDone, reactionSrc = process.env.NEXT_PUBLIC_BRUSH_REACTION_MP4 || "/play/brush/brush-turn-away.mp4",
+  ctx, onDone, reactionSrc = "/play/brush/brush-turn-away.mp4",
 }: {
   ctx: MiniCtx;
   onDone: (result: BrushResult) => void;
@@ -44,9 +45,9 @@ export function BrushGameRealistic({
   const [activeTooth, setActiveTooth] = useState<number | null>(null);
   const [loaded, setLoaded] = useState<ReadonlySet<string>>(() => new Set());
   const [failed, setFailed] = useState(false);
-  const [reaction, setReaction] = useState(false);
-  const reactionPlaying = useRef(false);
-  const liftReactionShown = useRef(false);
+  const [reaction, setReaction] = useState<"education" | "struggle" | null>(null);
+  const reactionPlaying = useRef<typeof reaction>(null);
+  const educationShown = useRef(false);
   const scene = useRef<HTMLDivElement>(null);
   const closeup = useRef<SVGSVGElement>(null);
   const toolGraphic = useRef<SVGGElement>(null);
@@ -60,12 +61,12 @@ export function BrushGameRealistic({
   const struggle = brushStruggling(state.elapsed, config);
   const remaining = Math.max(0, config.patience - state.elapsed);
   const visibleResult = reaction ? null : state.result;
-  const feedback = brushPhotoFeedback(remaining / config.patience, struggle || reaction, visibleResult);
+  const feedback = brushPhotoFeedback(remaining / config.patience, struggle || reaction === "struggle", visibleResult);
   const [title, hint] = instructions[config.phase];
 
   const endReaction = useCallback(() => {
-    reactionPlaying.current = false;
-    setReaction(false);
+    reactionPlaying.current = null;
+    setReaction(null);
   }, []);
 
   useEffect(() => {
@@ -103,6 +104,7 @@ export function BrushGameRealistic({
       event.preventDefault();
       input.current.key = true;
       input.current.keyLift = 0;
+      if (touch) input.current.contacted = true;
       if (input.current.pointers.tool === null) input.current.tool = config.teeth ? null : lipZone;
       started.current = true;
     };
@@ -126,32 +128,28 @@ export function BrushGameRealistic({
       if (forceStruggle && dt > 0 && !wasStruggling && !playing) {
         forceStruggle = false;
         started.current = true;
-        liftReactionShown.current = true;
         const nextWindow = (Math.floor(game.elapsed / config.struggleEvery) + 1) * config.struggleEvery;
         game = { ...game, elapsed: nextWindow - dt / 2 };
       }
-      if (started.current) {
+      const nearPaste = !!current.tool && inPhotoZone(current.tool, pasteZone);
+      const effectiveContact = current.contacted || (paste ? nearPaste : touch ? rawHold : distance >= .018);
+      if (effectiveContact && !educationShown.current && !playing && !wasStruggling
+        && !brushStruggling(game.elapsed + dt, config) && reactionSrc) {
+        educationShown.current = true;
+        reactionPlaying.current = "education";
+        setReaction("education");
+        reset();
+        playing = "education";
+      }
+      if (started.current && playing !== "education") {
         const target = holding && !wasStruggling && current.tool ? photoTarget(current.tool, config.teeth) : null;
         game = brushStep(game, config, {
           dt,
           holding,
           target,
           travel: current.travel,
-          near: !playing && (!paste || !!current.tool && inPhotoZone(current.tool, pasteZone)),
+          near: !playing && (!paste || nearPaste),
         });
-      }
-      // For brushing phases, the first real lip lift is the visible struggle cue.
-      // This makes the reaction discoverable without changing the rule engine's
-      // timed struggle / bite behaviour. After the clip finishes, the player can
-      // retry the gesture; the delayed struggle rule remains available later.
-      const lifted = rawHold;
-      if (config.teeth && lifted && !game.result && !wasStruggling && !brushStruggling(game.elapsed, config)
-        && !liftReactionShown.current && !playing && reactionSrc && !motion?.matches) {
-        liftReactionShown.current = true;
-        reactionPlaying.current = true;
-        setReaction(true);
-        reset();
-        playing = true;
       }
       const struggling = brushStruggling(game.elapsed, config);
       if (struggling && !wasStruggling) {
@@ -160,8 +158,8 @@ export function BrushGameRealistic({
         heldLip = rawHold && !current.key ? current.pointers.lip : null;
         reset();
         if (reactionSrc && !motion?.matches && !playing) {
-          reactionPlaying.current = true;
-          setReaction(true);
+          reactionPlaying.current = "struggle";
+          setReaction("struggle");
         }
       } else if (!struggling) {
         heldSpace = false;
@@ -170,7 +168,7 @@ export function BrushGameRealistic({
       const blocked = touch || paste || struggling || playing || !!game.result;
       const mouth = photoMouth(distance, blocked);
       const desiredLift = blocked ? 0 : Math.min(.04, distance);
-      if (struggling || game.result?.bitten) visualLift = 0;
+      if (struggling || playing || game.result?.bitten) visualLift = 0;
       const controllingLip = current.key || current.pointers.lip !== null;
       visualLift = (controllingLip && !blocked) || motion?.matches
         ? desiredLift
@@ -240,6 +238,7 @@ export function BrushGameRealistic({
     started.current = true;
     if (lip) current.startY = position.y;
     if (!lip || !config.teeth) current.tool = toolPoint(event);
+    if ((touch && lip) || (paste && inPhotoZone(position, pasteZone))) current.contacted = true;
   }
 
   function move(event: PointerEvent<HTMLDivElement>) {
@@ -252,6 +251,7 @@ export function BrushGameRealistic({
     if (current.pointers.lip === event.pointerId) {
       if (!config.teeth) current.tool = point(event);
       current.lift = Math.max(0, current.startY - point(event).y);
+      if (current.lift >= .018) current.contacted = true;
       if (current.lift < .04) current.travel = 0;
     }
     const keyboardMouse = current.key && event.pointerType === "mouse" && current.pointers.tool === null;
@@ -276,6 +276,7 @@ export function BrushGameRealistic({
       }
     }
     current.tool = position;
+    if (paste && inPhotoZone(position, pasteZone)) current.contacted = true;
   }
 
   function leave(event: PointerEvent<HTMLDivElement>) {
@@ -327,7 +328,7 @@ export function BrushGameRealistic({
           onError={() => setFailed(true)}
           className={name === "closed" ? undefined : photo.mouth} data-photo-frame={name} />
       ))}
-      {reaction && reactionSrc && <BrushReactionVideo src={reactionSrc} onFinish={endReaction} />}
+      {reaction && reactionSrc && <BrushReactionVideo src={reactionSrc} education={reaction === "education"} onFinish={endReaction} />}
       {ready && !state.result && !struggle && !reaction && <svg className={photo.overlay} viewBox="0 0 1086 1448" aria-hidden="true">
         <circle ref={lipGraphic} className={photo.marker} cx={marker.x * 1086} cy={marker.y * 1448} r="23" />
         {!config.teeth && tool}
@@ -352,7 +353,10 @@ export function BrushGameRealistic({
     {config.teeth > 0 && !state.result && <p className={styles.hint}>
       沿著特寫中的近似牙齦邊緣，輕輕來回刷。刷毛朝向牙齦，與牙齒長軸約成 45°（方向示意）。
     </p>}
-    <p className={`${styles.status} ${photo.feedback}`} data-feedback={feedback} role="status">{status}</p>
+    <p className={`${styles.status} ${photo.feedback}`} data-feedback={feedback} role="status">
+      {reaction === "education" ? "衛教示範｜貓咪轉頭躲避時，請停止接觸，等牠放鬆後再嘗試。" : status}
+    </p>
+    {reaction === "education" && <button className="btn" type="button" onClick={endReaction}>略過衛教示範</button>}
     {visibleResult && <button className="btn" type="button" onClick={() => onDone(visibleResult)}>確認結果</button>}
     <p>AI 模擬畫面，僅供參考，非醫療建議。</p>
   </>;
