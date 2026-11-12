@@ -46,6 +46,7 @@ export function BrushGameRealistic({
   const [failed, setFailed] = useState(false);
   const [reaction, setReaction] = useState(false);
   const reactionPlaying = useRef(false);
+  const liftReactionShown = useRef(false);
   const scene = useRef<HTMLDivElement>(null);
   const closeup = useRef<SVGSVGElement>(null);
   const toolGraphic = useRef<SVGGElement>(null);
@@ -117,7 +118,7 @@ export function BrushGameRealistic({
       const distance = current.key ? current.keyLift : current.lift;
       const rawHold = touch ? current.key || current.pointers.lip !== null : distance >= .04;
       const wasStruggling = brushStruggling(game.elapsed, config);
-      const playing = reactionPlaying.current;
+      let playing = reactionPlaying.current;
       const holding = wasStruggling ? heldSpace || heldLip !== null : rawHold && !playing;
       if (started.current) {
         const target = holding && !wasStruggling && current.tool ? photoTarget(current.tool, config.teeth) : null;
@@ -128,6 +129,18 @@ export function BrushGameRealistic({
           travel: current.travel,
           near: !playing && (!paste || !!current.tool && inPhotoZone(current.tool, pasteZone)),
         });
+      }
+      // For brushing phases, the first real lip lift is the visible struggle cue.
+      // This makes the reaction discoverable without changing the rule engine's
+      // timed struggle / bite behaviour. After the clip finishes, the player can
+      // retry the gesture; the delayed struggle rule remains available later.
+      const lifted = current.lift >= .04 || current.keyLift >= .04;
+      if (config.teeth && lifted && !liftReactionShown.current && !playing && reactionSrc && !motion?.matches) {
+        liftReactionShown.current = true;
+        reactionPlaying.current = true;
+        setReaction(true);
+        reset();
+        playing = true;
       }
       const struggling = brushStruggling(game.elapsed, config);
       if (struggling && !wasStruggling) {

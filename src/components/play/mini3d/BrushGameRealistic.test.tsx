@@ -196,6 +196,46 @@ it("掙扎只播放一次，播放結束與規則結束後才重新開放操作"
   play.mockRestore();
 });
 
+it("第一次翻唇到露牙門檻時立即播放轉頭影片", () => {
+  let frame: FrameRequestCallback;
+  vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => { frame = callback; return 1; });
+  vi.stubGlobal("cancelAnimationFrame", vi.fn());
+  vi.stubGlobal("matchMedia", vi.fn(() => ({ matches: false })));
+  const play = vi.spyOn(HTMLMediaElement.prototype, "play").mockResolvedValue();
+  const ctx = { cat: { trust: 100, stress: 0 }, brushLevel: 4 } as MiniCtx;
+  const view = render(<dialog open><BrushGameRealistic ctx={ctx} onDone={vi.fn()} reactionSrc="/reaction.mp4" /></dialog>);
+  const stage = screen.getByRole("group");
+  stage.focus();
+  stage.setPointerCapture = vi.fn();
+  stage.hasPointerCapture = () => false;
+  vi.spyOn(stage, "getBoundingClientRect").mockReturnValue(new DOMRect(0, 0, 300, 400));
+  stage.querySelectorAll("img").forEach(image => fireEvent.load(image));
+  class TestPointerEvent extends MouseEvent {
+    pointerId: number;
+    pointerType: string;
+    constructor(type: string, options: MouseEventInit & { pointerId: number; pointerType: string }) {
+      super(type, options);
+      this.pointerId = options.pointerId;
+      this.pointerType = options.pointerType;
+    }
+  }
+  fireEvent(stage, new TestPointerEvent("pointerdown", {
+    bubbles: true, button: 0, pointerId: 1, pointerType: "touch", clientX: 200, clientY: 237,
+  }));
+  fireEvent(stage, new TestPointerEvent("pointermove", {
+    bubbles: true, button: 0, pointerId: 1, pointerType: "touch", clientX: 200, clientY: 217,
+  }));
+  act(() => frame(0));
+  act(() => frame(100));
+  const video = stage.querySelector("video");
+  expect(video?.getAttribute("src")).toBe("/reaction.mp4");
+  expect(stage.dataset.mouth).toBe("closed");
+  expect(screen.queryByLabelText("牙齒外側特寫")).toBeNull();
+  expect(play).toHaveBeenCalledTimes(1);
+  view.unmount();
+  play.mockRestore();
+});
+
 it.each(["error", "rejected", "reduced"] as const)("反應影片 %s 時保留閉嘴照片並允許重新操作", async (failure) => {
   let frame: FrameRequestCallback;
   vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => { frame = callback; return 1; });
