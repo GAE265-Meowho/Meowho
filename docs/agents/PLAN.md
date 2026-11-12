@@ -18,6 +18,7 @@
 
 ## 任務（tracer-bullet，每張可獨立 Demo）
 
+- 虛擬飼養第 6 份：音效與配樂（#393，子哲 × Claude Code，2026-11-13）：審查中；分支 `feat/354-play-audio`。背景音樂 5 首、播放程式、靜音按鈕已做；音效檔還沒做，`playSfx(<ID>)` 接口與 30 個 ID 已定（`src/lib/play/audio.ts`）。
 - 站台標誌換成向量「門口貓頭款」並統一前後台（#361，子哲 × Claude Code，2026-11-11）：審查中；分支 `feat/361-door-cat-logo`。合併部署後要到 MeowHQ 設定選「門口貓頭款」（正式站目前存 `house`）。
 - WelfareLens 安全報告通知／佇列隔離設計（#326，Jerry0808 × Codex，2026-11-11）：PR #327 已整合最新 main，`0034` 通知文案依 `new.error_code` 產生；PGlite、完整測試與 build 通過，Draft PR 待組長 Review；禁止自行部署。佇列採 job container scope + scoped claim 的建議待批准，尚未實作。
 - 帶我回家地圖（清俊 × Cursor，2026-11-12）：審查中（全島一張、可拖曳縮放、以喵戶為標記；有位置時先對準行政區。縣市連線是半透明虛線，澎湖與南投不連，台東虛線接到本島。**尚未建 Issue**）。分支 `cursor/adopt-home-map-5901`，PR #390。#315 已合併，那張仍是分區地圖。
