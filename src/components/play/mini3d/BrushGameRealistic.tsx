@@ -165,7 +165,7 @@ export function BrushGameRealistic({
         heldSpace = false;
         heldLip = null;
       }
-      const blocked = touch || paste || struggling || playing || !!game.result;
+      const blocked = touch || paste || struggling || playing !== null || !!game.result;
       const mouth = photoMouth(distance, blocked);
       const desiredLift = blocked ? 0 : Math.min(.04, distance);
       if (struggling || playing || game.result?.bitten) visualLift = 0;
