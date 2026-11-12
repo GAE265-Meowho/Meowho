@@ -4,9 +4,45 @@ import { DISTRICTS } from "./geo/region-bounds";
 import { TW_CITIES } from "./geo/tw-districts";
 import {
   ADOPT_REGIONS, ACTION_KEYS, COAT_KEYS, MAP_SIZE,
-  actionKey, anchorOf, coatKey, countByRegion, isOnLand, layoutCats, parseLocation, placeCats, previewTags, regionOf, separateFoldFromPreview,
+  actionKey, anchorOf, coatKey, countByRegion, frameTaiwan, homePinScale, isOnLand, layoutCats, layoutHomes, parseLocation, placeCats, previewTags, projectTaiwan, regionOf, separateFoldFromPreview, taiwanFocus,
 } from "./adopt-map";
 import { cats } from "./cats";
+
+describe("全島地圖", () => {
+  it("台北在高雄北方，金門在台中西方", () => {
+    const taipei = projectTaiwan(25.04, 121.56);
+    const kaohsiung = projectTaiwan(22.63, 120.3);
+    const kinmen = projectTaiwan(24.43, 118.32);
+    const taichung = projectTaiwan(24.15, 120.67);
+    expect(taipei.y).toBeLessThan(kaohsiung.y);
+    expect(kinmen.x).toBeLessThan(taichung.x);
+  });
+
+  it("同一喵戶只有一個標記，兩隻貓都在裡面", () => {
+    const home = { id: "beitun", name: "小晴的中途貓屋" };
+    const pins = layoutHomes([
+      { id: "橘子", city: "台中市", area: "北屯區", home },
+      { id: "豆沙", city: "台中市", area: "北屯區", home },
+      { id: "灰灰", city: "台北市", area: "大安區", home: { id: "daan", name: "大安海苔家" } },
+      { id: "流浪", city: "台中市", area: "西屯區", home: null },
+    ]);
+    expect(pins).toHaveLength(2);
+    expect(pins.find((pin) => pin.id === "beitun")?.catIds.sort()).toEqual(["橘子", "豆沙"].sort());
+    expect(taiwanFocus("台中市")).toBeTruthy();
+    const framed = frameTaiwan({ width: 400, height: 600 }, taiwanFocus("台中市"));
+    const fitted = frameTaiwan({ width: 400, height: 600 }, null);
+    expect(framed.scale).toBeGreaterThan(fitted.scale);
+  });
+
+  it("拉近之後橫向喵戶標示至少放大兩倍", () => {
+    const fit = 0.5;
+    expect(homePinScale(fit * 1.4, fit)).toBe(2);
+    const mid = homePinScale(fit * 3, fit);
+    const far = homePinScale(fit * 8, fit);
+    expect(far).toBeLessThan(mid);
+    expect(36 * fit * 8 * far).toBeGreaterThanOrEqual(32);
+  });
+});
 
 describe("帶我回家地圖：地區", () => {
   it("二十二個縣市各屬一個地區，離島獨立標出", () => {
