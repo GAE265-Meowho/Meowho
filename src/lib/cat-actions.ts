@@ -5,7 +5,7 @@ import { CLIP_LIBRARY } from "./hq/cat-models/clips";
 
 /** 原地做的動作與秒數範圍 */
 const STAY: Record<string, [number, number]> = {
-  idle: [3, 6], sit: [5, 9], sleep: [8, 14], eat: [5, 8], drink: [4, 6], toilet: [6, 8], groom: [5, 8], rest: [6, 10], belly_up: [6, 10], cuddle: [4, 7],
+  idle: [3, 6], sit: [5, 9], sleep: [8, 14], eat: [5, 8], drink: [4, 6], toilet: [6, 8], groom: [5, 8], rest: [8, 16], belly_up: [6, 10], cuddle: [4, 7],
 };
 /** 程式版動作：母體 glb 沒有時 CatModel 用待機＋低頭做出來（PROCEDURAL_CLIPS） */
 const PROCEDURAL = new Set(["eat", "drink"]);
