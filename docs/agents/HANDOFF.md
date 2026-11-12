@@ -1,10 +1,10 @@
 # HANDOFF — 接手的 agent 需要知道的事
 
 > 寫給「完全沒有上下文的下一個 agent」。只保留**現在仍然成立**的內容。
-> 最後更新：2026-11-10｜清俊 × Cursor（帶我回家地圖，PR #315）
+> 最後更新：2026-11-12｜清俊 × Cursor（全島喵戶地圖：虛線、放大標示、對準行政區，尚未 commit）
 
 ## 目前狀態
-- **帶我回家地圖（清俊 × Cursor，PR #315）**：分支 `cursor/adopt-home-map-5901`，尚未建 Issue。首頁 `#adopt` 的「地圖」先選北／中／南／東（澎湖、金門、連江在「離島」）。縣市與行政區界線在 `src/lib/geo/region-bounds.json`（taiwan-atlas，重產用 `scripts/build-region-bounds.mjs`）。縣市名由 `src/lib/geo/county-label.ts` 放在該縣市自己的海上；台北、南投、嘉義市留在境內空位。2026-11-10 清俊再調：新竹縣往左下貼近縣界、台中往右上貼近市界、屏東在泰武右側且離開縣界、嘉義市不標東區／西區。行政區名會跟兩個以上疊在一起的再縮小（`town-label.ts`，最小 5）。貓咪圖示靠近本體，五個圖示是粗框填色的卡通：愛踩踏是腳掌肉墊、貪吃是裝滿飼料的碗、好奇是三個圓潤問號、愛玩是羽毛逗貓棒、慢熟是圓角底上的 >///<. 貓仍來自卡片同一份 `FeedCat`。沒連資料庫時示意貓分布在北、中、東、離島（南區是空的）。手機（窄螢幕或觸控）點貓：第一下只開簡歷，再點同一隻才回到卡片。靠太近的貓只顯示「附近有 N 隻」（不再另外顯示「這區有 N 隻」）。展開後每隻貓回到自己的行政區，蓋過其他堆疊按鈕；「收攏」的底邊在這群貓所在縣市的縣市名上方，不蓋住縣市名。手機上若收攏壓到簡歷，先把簡歷往旁邊推開，收攏留在縣市名上方。PR：[#315](https://github.com/GAE265-Meowho/Meowho/pull/315)。
+- **帶我回家地圖（清俊 × Cursor，PR #315，這輪尚未 commit）**：分支 `cursor/adopt-home-map-5901`，尚未建 Issue。首頁 `#adopt` 的「地圖」是一張全島（含澎湖、金門、連江），可拖曳、滾輪與雙指縮放，不再選北／中／南／東。標記是喵戶（`layoutHomes`），一個喵戶多隻貓時點開橫向列出，再點貓回到卡片。初始中心走 `GET /api/where`（Vercel IP 的縣市與行政區，不要求 GPS）；有行政區時先放大到該區，本機沒有標頭就先看完整島。縣市連線是半透明虛線，澎湖、南投不連；台東名在綠島左下，虛線接到台東本島；嘉義縣、台中的線指西岸中段。喵戶長條在拉近前至少是先前的兩倍，拉近後照原樣慢慢縮小。示意資料裡橘子、豆沙同戶。舊的分區畫布、貓圖示、收攏仍留在程式，首頁地圖不再用。**不要把這輪未 commit 的改動說成已在 PR 上。** 清俊點頭後才 commit，並改寫 PR #315 內文（遠端內文仍是分區地圖）。PR：[#315](https://github.com/GAE265-Meowho/Meowho/pull/315)。
 - **#283 幼貓坐下重做（Tina × Claude Code）**：分支 `fix/283-kitten-sit-redo`。`base_clips_kitten.glb` 的 sit 對齊 `Meow/cat_base_kitten/work/preview/虎斑小貓360度旋轉動畫.gif`；坐姿參數集中在 `cat_base_kitten/stepC_clips.py` 開頭的 `SIT_*`。**合併後要上傳 Storage** `meow-cat-models/base/v1/base_clips_kitten.glb`。Meow 不是 git repo，腳本只在 Tina 電腦。
 - **#259 平面圖轉換重複戶名（Tina × Cursor，已合併 #261）**：`0029_meow_room_floorplan_name_unique.sql`（既有重複改名不刪＋`source='floorplan'` partial unique index），INSERT 撞 index 回 `name_taken`。**0029 執行前須 Tina 確認**。
 - **#237 newgame 版劇情（渝茜 × Claude Code，分支 `feat/237-newgame-story`，未開 PR）**：`story.ts` 改成 6 節點＋結尾，每節點後有「在家的時光」（`care.ts`），開場一定擺外出籠（`public/play/cat_carrier.glb`）；節點 5 居家意外讀居家安全清單，之後要換世安報告 API。設計稿在團隊專題 `newgame/`。

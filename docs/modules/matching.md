@@ -17,17 +17,19 @@
 ## 目前狀態
 首頁已改為 meowwho-v2 新版 UI（2026-10-31）：Hero（一句話搜尋＋建立喵戶／新貓入戶入口）、核心價值、帶我回家（卡片／地圖）、領養三步驟、7 天虛擬飼養、時光小屋、貓咪諮詢站，3D 橘子隨捲動走到頁尾新家。元件在 `src/components/home/`，示意資料在 `src/lib/cats.ts`、`home-photos.ts`。`match.ts` 的關鍵字配對仍保留（5 個單元測試），新首頁尚未接上。
 
-帶我回家的地圖（2026-11-09，清俊，PR #315）改成北／中／南／東＋離島的手繪台灣，貓用卡片同一批資料、只放到縣市＋行政區。邏輯在 `src/lib/adopt-map.ts`。舊的等角小鎮資料 `src/lib/households.ts` 畫面已不再引用。
+帶我回家的地圖（2026-11-12，清俊，同一支 PR #315，這輪尚未 commit）改成一張可拖曳、縮放的全島。標記是喵戶，點開後橫向列出該戶的貓，再點貓回到卡片。初始中心用 `GET /api/where` 讀上網所在縣市（不要求 GPS）；本機沒有 Vercel 標頭時先看完整島。邏輯在 `src/lib/adopt-map.ts` 的 `layoutHomes`、`projectTaiwan`、`frameTaiwan`。舊的分區畫布與貓圖示留在程式裡，首頁不再用。舊的等角小鎮資料 `src/lib/households.ts` 畫面已不再引用。
 
 ## 資料表（Supabase）
 - 讀取 `cats`、公開 `posts`、`weekly_reports` 的向量（pgvector）
 
 ## API／主要函式
 - `parseQuery()`、`matchCats()`、`adoptList()`（`src/lib/match.ts`）
+- `GET /api/where`：只讀 Vercel 轉來的 IP 縣市，回 `{ city }`（台灣縣市或 `null`）。不存 IP、不向瀏覽器要定位
+- `layoutHomes()`、`projectTaiwan()`、`frameTaiwan()`（`src/lib/adopt-map.ts`）
 - 待建立：LLM 條件解析＋Embedding 混合檢索、推薦理由
 
 ## 主要檔案
-- `src/app/page.tsx`、`src/components/home/adopt/`（卡片 `AdoptSection`、地圖 `AdoptMap`／`RegionCanvas`／`CatSprite`）、`src/lib/adopt-feed.ts`、`src/lib/adopt-map.ts`、`src/lib/match.ts`
+- `src/app/page.tsx`、`src/components/home/adopt/`（卡片 `AdoptSection`、地圖 `AdoptMap`／`TaiwanCanvas`；分區用的 `RegionCanvas`／`CatSprite` 首頁已不再引用）、`src/lib/adopt-feed.ts`、`src/lib/adopt-map.ts`、`src/lib/geo/visitor-city.ts`、`src/app/api/where/route.ts`、`src/lib/match.ts`
 - 喵戶小區：`src/app/community/page.tsx`、`src/components/community/Town.tsx`、`src/lib/community.ts`（等角小鎮，每間房子＝一個貓戶；屋頂黃＝有貓等新家、粉＝剛重啟喵生（剛移轉到新家）、白＝一般貓戶；有「地區預覽」（新北板橋／新北中和／基隆）與貓戶預覽卡（住戶、日記照片影片數、相簿、最新隨筆）；第一版為示意資料，之後換 `meow_households`，只顯示縣市＋區）
 
 ## 決策
@@ -37,7 +39,8 @@
 - 2026-11-09（清俊，預覽後）：縣市與鄉鎮市區用 taiwan-atlas 的內政部界線（`src/lib/geo/region-bounds.json`，`scripts/build-region-bounds.mjs` 可重產）。相鄰縣市換暖色，區界用淺色描邊；名稱是浮水印，畫在貓後面。地標名勝不畫在地圖上。貓精靈只讀卡片的毛色文字與個性標籤，不從照片判斷。
 - 2026-11-09（清俊，縣市名與圖示）：縣市名放在該縣市自己的臨海處；沒有海岸就放在境內沒寫行政區的空位，不放進其他縣市（`src/lib/geo/county-label.ts`）。好奇是問號，慢熟／慢熱是害羞的「> <」與臉紅。
 - 2026-11-10（清俊）：新竹縣名再往左下貼近縣界、台中名往右上貼近市界、屏東名放在泰武右邊。嘉義市不標東區、西區（填色與縣市外框留著）。台北、基隆、台南、高雄裡會疊在一起的行政區名，依該區面積把字從 12 縮到最小 7（`src/lib/geo/town-label.ts`）。
-- 2026-11-10（清俊）：地圖上靠太近的貓（含同一行政區）只收成「附近有 N 隻」，不再另做「這區有 N 隻」。展開後每隻貓回到自己的行政區，並蓋過其他堆疊按鈕。「收攏」放在這群貓所在縣市的縣市名上方（跨縣市時跟貓比較多的那個縣），再按一次回到「附近有 N 隻」。手機上若壓到簡歷，先把簡歷往旁邊推開。
+- 2026-11-10（清俊）：地圖上靠太近的貓（含同一行政區）只收成「附近有 N 隻」，不再另做「這區有 N 隻」。展開後每隻貓回到自己的行政區，並蓋過其他堆疊按鈕。「收攏」放在這群貓所在縣市的縣市名上方（跨縣市時跟貓比較多的那個縣），再按一次回到「附近有 N 隻」。手機上若壓到簡歷，先把簡歷往旁邊推開。［已失效：2026-11-12 改為全島喵戶地圖，不再分堆、不再收攏］
+- 2026-11-12（清俊）：帶我回家改成一張全島，可上下左右移動與縮放，不再選北中南東。澎湖、金門、連江仍不併進「東部」這個分類（`regionOf` 留著），但畫面上跟本島同一張圖。標記改以喵戶為座標；一個喵戶多隻貓時，點喵戶後用底部橫列把貓排出來，再點貓回到卡片。初始中心是上網所在縣市與行政區，不要求 GPS。沒有公開喵戶的貓不放上地圖。縣市名改貼在鄰近外海，台北與南投留在境內；不標新竹市、嘉義市（`taiwanCountyLabels()`）。縣市連線改為半透明虛線，澎湖、南投不連。拉近時喵戶長條維持外形，畫面高度至少是先前的兩倍。有上網經緯度時，地圖先對準所在行政區。
 
 ## 待確認
 —
@@ -63,3 +66,8 @@
 | 2026-11-10 | 清俊 × Cursor | 拿掉「這區有 N 隻」，只留「附近有 N 隻」；展開後可收攏，貓咪蓋過其他堆疊。PR #315 | — |
 | 2026-11-10 | 清俊 × Cursor | 展開的貓回到各自行政區；收攏改放在所在縣市名上方，底邊離開縣市名字。PR #315 | — |
 | 2026-11-10 | 清俊 × Cursor | 手機上收攏與貓咪簡歷重疊時拉開，至少隔 20px。PR #315 | — |
+| 2026-11-12 | 清俊 × Cursor | 地圖合併成一張可拖曳縮放的全島；標記改為喵戶，點開橫列該戶的貓。初始中心讀上網縣市。尚未 commit | — |
+| 2026-11-12 | 清俊 × Cursor | 拉近後喵戶標示縮小成圓點，方便看見所在行政區。尚未 commit | — |
+| 2026-11-12 | 清俊 × Cursor | 縣市名改到鄰近外海；台北、南投留在境內；拿掉新竹市、嘉義市名稱。尚未 commit | — |
+| 2026-11-12 | 清俊 × Cursor | 縣市連線改半透明虛線；澎湖、南投不連；喵戶長條放大；有經緯度先對準行政區。尚未 commit | — |
+| 2026-11-12 | 清俊 × Cursor | 台東虛線改接到本島外緣。尚未 commit | — |

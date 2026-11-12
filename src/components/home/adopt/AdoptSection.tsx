@@ -1,7 +1,7 @@
 "use client";
 /* eslint-disable @next/next/no-img-element */
 // 帶我回家（#57）：首頁列出資料庫裡的待領養貓，等最久的排前面。
-// 地圖依縣市＋行政區把同一批卡片放到北／中／南／東／離島。
+// 地圖是一整張可拖曳、縮放的台灣。標記是喵戶，點開才列出裡面的貓。
 // 沒連資料庫（示範模式）時用 lib/cats.ts 的示意資料。
 import { useEffect, useState } from "react";
 import CatPerch from "@/components/journey/CatPerch";
@@ -25,15 +25,31 @@ const filters: { key: CatFilter | "all"; label: string }[] = [
 ];
 
 /** 示範模式：示意資料轉成跟資料庫一樣的格式（貓沒有 id，用名字代替） */
+const DEMO_HOMES: Record<string, { id: string; name: string }> = {
+  橘子: { id: "beitun", name: "小晴的中途貓屋" },
+  豆沙: { id: "beitun", name: "小晴的中途貓屋" },
+  黑糖: { id: "xitun", name: "窗邊的黑糖" },
+  奶茶: { id: "north", name: "北區奶茶家" },
+  芝麻: { id: "fengyuan", name: "豐原芝麻家" },
+  麻糬: { id: "nantun", name: "南屯麻糬家" },
+  豆花: { id: "dali", name: "大里豆花家" },
+  海苔: { id: "daan", name: "大安海苔家" },
+  桂圓: { id: "changhua", name: "彰化桂圓家" },
+  山風: { id: "hualien", name: "花蓮山風家" },
+  潮潮: { id: "magong", name: "馬公潮潮家" },
+};
+
 function demoFeed(): FeedCat[] {
   return demoCats.map((c): FeedCat => {
     const loc = parseLocation(c.district);
+    const home = DEMO_HOMES[c.name] ?? { id: `demo-${c.name}`, name: `${c.district}喵戶` };
     return {
       id: c.name, name: c.name, sex: c.sex, stage: c.age,
       district: loc ? `${loc.city}${loc.district}` : c.district,
       city: loc?.city ?? "", area: loc?.district ?? "", coat: c.coat,
       waitDays: c.waitDays, neutered: c.neutered,
-      tags: c.tags, diary: c.diary, photo: c.photo.src, filters: c.filters, home: null,
+      tags: c.tags, diary: c.diary, photo: c.photo.src, filters: c.filters,
+      home: { ...home, intro: "", foster: "個人中途" },
     };
   });
 }
@@ -85,7 +101,7 @@ export default function AdoptSection() {
             <span>貓也在找你</span>
           </>
         }
-        lead="每一隻都附上中途寫下的真實日常，等最久的排在最前面。用卡片一隻隻認識，或切到地圖，依縣市與行政區找比較近的貓。"
+        lead="每一隻都附上中途寫下的真實日常，等最久的排在最前面。用卡片一隻隻認識，或切到地圖，從你所在的行政區看附近的喵戶。"
       />
 
       <div className={styles.toolbar}>
