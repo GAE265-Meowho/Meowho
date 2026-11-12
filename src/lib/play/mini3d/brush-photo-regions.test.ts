@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { careGood } from "../care";
 import { brushDifficulty, brushStep, newBrush } from "./brush-rules";
-import { inPhotoZone, noseZone, photoMouth, photoPoint, photoStroke, photoTarget, toothZones } from "./brush-photo-regions";
+import { inPhotoZone, pasteZone, photoMouth, photoPoint, photoStroke, photoTarget, toothZones } from "./brush-photo-regions";
 
 describe("刷牙照片熱區", () => {
   it("由閉嘴過渡到翻唇與露牙，放手或掙扎時閉嘴", () => {
@@ -40,7 +40,7 @@ it.each([0, 1, 2, 3, 4])("第 %i 階段的影像操作能完成照護", level =>
       }
     });
   } else {
-    const near = level !== 2 || inPhotoZone(noseZone, noseZone);
+    const near = level !== 2 || inPhotoZone(pasteZone, pasteZone);
     for (let i = 0; i < 70; i++) {
       game = brushStep(game, config, { dt: .1, holding: level !== 2, near, target: null, travel: 0 });
     }

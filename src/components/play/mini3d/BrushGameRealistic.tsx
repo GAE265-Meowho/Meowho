@@ -3,17 +3,18 @@
 import Image from "next/image";
 import { useEffect, useRef, useState, type PointerEvent } from "react";
 import { brushDifficulty, brushPointers, brushScore, brushStep, brushStruggling, newBrush, type BrushResult } from "@/lib/play/mini3d/brush-rules";
-import { inPhotoZone, lipZone, noseZone, photoMouth, photoPoint, photoStroke, photoTarget, toothZones, type PhotoPoint } from "@/lib/play/mini3d/brush-photo-regions";
+import { brushPhotoFeedback, closeupPoint, inPhotoZone, lipZone, mouthCloseup, pasteZone, photoSize, photoMouth, photoPoint, photoStroke, photoTarget, toothZones, type PhotoPoint } from "@/lib/play/mini3d/brush-photo-regions";
 import type { MiniCtx } from "../catgame/minis";
 import styles from "./mini3d.module.css";
+import { BrushPhotoTool } from "./BrushPhotoTool";
 import photo from "./brush-photo.module.css";
 
 const instructions = {
   touch: ["碰嘴角", "按住嘴角標記。"],
   lift: ["翻開嘴角", "按住嘴角標記向上拖，保持露牙。"],
-  paste: ["嚐嚐牙膏", "把指套移到鼻子標記並停住。"],
-  finger: ["指套刷牙", "一指向上拖開嘴角，另一指沿著標記來回刷。"],
-  brush: ["牙刷刷牙", "一指向上拖開嘴角，另一指用牙刷沿著標記來回刷。"],
+  paste: ["嚐嚐牙膏", "把沾少量貓用牙膏的手指移到嘴唇旁，讓貓咪慢慢舔。"],
+  finger: ["指套刷牙", "一指輕輕翻唇，另一指用指套小幅擦刷牙齒外側。"],
+  brush: ["牙刷刷牙", "輕輕翻唇，用軟毛刷沿犬齒與後方頰齒的外側小幅輕刷。"],
 } as const;
 
 function newInput() {
@@ -25,7 +26,7 @@ function newInput() {
     keyLift: 0,
     locked: false,
     tool: null as PhotoPoint | null,
-    angle: 25,
+    angle: 0,
     travel: 0,
   };
 }
@@ -38,6 +39,7 @@ export function BrushGameRealistic({ ctx, onDone }: { ctx: MiniCtx; onDone: (res
   const [loaded, setLoaded] = useState<ReadonlySet<string>>(() => new Set());
   const [failed, setFailed] = useState(false);
   const scene = useRef<HTMLDivElement>(null);
+  const closeup = useRef<SVGSVGElement>(null);
   const toolGraphic = useRef<SVGGElement>(null);
   const lipGraphic = useRef<SVGCircleElement>(null);
   const input = useRef(newInput());
@@ -47,6 +49,8 @@ export function BrushGameRealistic({ ctx, onDone }: { ctx: MiniCtx; onDone: (res
   const touch = config.phase === "touch";
   const score = brushScore(state);
   const struggle = brushStruggling(state.elapsed, config);
+  const remaining = Math.max(0, config.patience - state.elapsed);
+  const feedback = brushPhotoFeedback(remaining / config.patience, struggle, state.result);
   const [title, hint] = instructions[config.phase];
 
   useEffect(() => {
@@ -66,17 +70,18 @@ export function BrushGameRealistic({ ctx, onDone }: { ctx: MiniCtx; onDone: (res
       }
     };
     const keyDown = (event: KeyboardEvent) => {
-      if (event.code !== "Space" || event.repeat || paste || !scene.current?.closest("dialog")?.contains(document.activeElement) ||
+      if (game.result || event.code !== "Space" || event.repeat || paste || !scene.current?.closest("dialog")?.contains(document.activeElement) ||
         (event.target instanceof HTMLElement && event.target.closest("button, input, textarea, select, a"))) return;
       event.preventDefault();
       input.current.key = true;
       input.current.keyLift = 0;
-      if (input.current.pointers.tool === null) input.current.tool = null;
+      if (input.current.pointers.tool === null) input.current.tool = config.teeth ? null : lipZone;
       started.current = true;
     };
     const keyUp = (event: KeyboardEvent) => {
       if (event.code !== "Space") return;
       input.current.key = false;
+      if (!config.teeth) input.current.tool = null;
       input.current.travel = 0;
       if (input.current.pointers.lip === null) input.current.locked = false;
     };
@@ -96,7 +101,7 @@ export function BrushGameRealistic({ ctx, onDone }: { ctx: MiniCtx; onDone: (res
           holding,
           target,
           travel: current.travel,
-          near: paste ? !!current.tool && inPhotoZone(current.tool, noseZone) : true,
+          near: paste ? !!current.tool && inPhotoZone(current.tool, pasteZone) : true,
         });
       }
       const struggling = brushStruggling(game.elapsed, config);
@@ -104,6 +109,7 @@ export function BrushGameRealistic({ ctx, onDone }: { ctx: MiniCtx; onDone: (res
       const blocked = touch || paste || current.locked || struggling || !!game.result;
       const mouth = photoMouth(distance, blocked);
       const desiredLift = blocked ? 0 : Math.min(.04, distance);
+      if (game.result?.bitten) visualLift = 0;
       const controllingLip = current.key || current.pointers.lip !== null;
       visualLift = (controllingLip && !blocked) || motion?.matches
         ? desiredLift
@@ -112,14 +118,14 @@ export function BrushGameRealistic({ ctx, onDone }: { ctx: MiniCtx; onDone: (res
       // Fade only between adjacent frames. The closed portrait remains the base.
       node?.style.setProperty("--lift-opacity", String(Math.min(1, visualLift / .018)));
       node?.style.setProperty("--teeth-opacity", String(Math.max(0, (visualLift - .018) / .022)));
-      const toolVisible = !game.result && !struggling && (paste || mouth === "teeth") && current.tool;
-      toolGraphic.current?.setAttribute("visibility", toolVisible ? "visible" : "hidden");
-      if (toolVisible) {
+      const visibleTool = !game.result && !struggling && (!config.teeth || mouth === "teeth") ? current.tool : null;
+      toolGraphic.current?.setAttribute("visibility", visibleTool ? "visible" : "hidden");
+      if (visibleTool) {
         toolGraphic.current?.setAttribute("transform",
-          `translate(${toolVisible.x * 1086} ${toolVisible.y * 1448}) rotate(${current.angle})`);
+          `translate(${visibleTool.x * photoSize.width} ${visibleTool.y * photoSize.height}) rotate(${current.angle})`);
       }
-      lipGraphic.current?.setAttribute("cy", String((paste ? noseZone.y : lipZone.y - visualLift) * 1448));
-      setActiveTooth(toolVisible && !paste && current.travel > 0 ? photoTarget(toolVisible, config.teeth) : null);
+      lipGraphic.current?.setAttribute("cy", String((paste ? pasteZone.y : lipZone.y - visualLift) * 1448));
+      setActiveTooth(visibleTool && current.travel > 0 ? photoTarget(visibleTool, config.teeth) : null);
       current.travel = 0;
       setFrame(mouth);
       displayElapsed += dt;
@@ -127,7 +133,8 @@ export function BrushGameRealistic({ ctx, onDone }: { ctx: MiniCtx; onDone: (res
         displayElapsed = 0;
         setState(game);
       }
-      if (!game.result) animation = requestAnimationFrame(tick);
+      if (game.result) reset();
+      else animation = requestAnimationFrame(tick);
     };
     animation = requestAnimationFrame(tick);
     window.addEventListener("keydown", keyDown);
@@ -146,6 +153,12 @@ export function BrushGameRealistic({ ctx, onDone }: { ctx: MiniCtx; onDone: (res
     return photoPoint(event.clientX, event.clientY, event.currentTarget.getBoundingClientRect());
   }
 
+  function toolPoint(event: PointerEvent<HTMLDivElement>) {
+    if (!config.teeth) return point(event);
+    const bounds = closeup.current?.getBoundingClientRect();
+    return bounds ? closeupPoint(event.clientX, event.clientY, bounds) : null;
+  }
+
   function down(event: PointerEvent<HTMLDivElement>) {
     if (!ready || state.result || event.button !== 0) return;
     const current = input.current;
@@ -159,27 +172,34 @@ export function BrushGameRealistic({ ctx, onDone }: { ctx: MiniCtx; onDone: (res
     current.pointers = next;
     started.current = true;
     if (lip) current.startY = position.y;
-    else current.tool = position;
+    if (!lip || !config.teeth) current.tool = toolPoint(event);
   }
 
   function move(event: PointerEvent<HTMLDivElement>) {
+    if (state.result) return;
     const current = input.current;
     if (event.pointerType === "mouse") {
       event.currentTarget.dataset.lipHover = String(ready && !paste && !state.result
         && !current.key && current.pointers.lip === null && inPhotoZone(point(event), lipZone));
     }
     if (current.pointers.lip === event.pointerId) {
+      if (!config.teeth) current.tool = point(event);
       current.lift = Math.max(0, current.startY - point(event).y);
       if (current.lift < .04) current.travel = 0;
     }
     const keyboardMouse = current.key && event.pointerType === "mouse" && current.pointers.tool === null;
     if (current.pointers.tool !== event.pointerId && !keyboardMouse) return;
-    const position = point(event);
+    const position = toolPoint(event);
+    if (!position) {
+      current.tool = null;
+      current.travel = 0;
+      return;
+    }
     if (current.tool) {
       const dx = position.x - current.tool.x;
       const dy = position.y - current.tool.y;
       if (Math.hypot(dx, dy) > .001) {
-        current.angle = 25 + Math.max(-12, Math.min(12, dy * Math.sign(dx || 1) * 900));
+        current.angle = Math.max(-12, Math.min(12, dy * Math.sign(dx || 1) * 900));
       }
       if (paste) current.travel += Math.hypot(position.x - current.tool.x, position.y - current.tool.y) * 2.4;
       else if (!current.locked && (current.key ? current.keyLift >= .04 : current.lift >= .04)) {
@@ -202,6 +222,7 @@ export function BrushGameRealistic({ ctx, onDone }: { ctx: MiniCtx; onDone: (res
     const current = input.current;
     if (current.pointers.lip === event.pointerId) {
       current.lift = 0;
+      if (!config.teeth && !paste) current.tool = null;
       current.travel = 0;
       if (!current.key) current.locked = false;
     }
@@ -212,15 +233,23 @@ export function BrushGameRealistic({ ctx, onDone }: { ctx: MiniCtx; onDone: (res
     current.pointers = brushPointers(current.pointers, event.pointerId, "release");
   }
 
-  const marker = paste ? noseZone : lipZone;
-  const status = state.result?.bitten ? "貓咪咬人了" : state.result?.ran ? "貓咪跑走了"
-    : state.result ? "練習完成" : struggle ? "貓咪想休息，請放開嘴角"
-    : frame === "teeth" && config.teeth > 0 ? "保持翻唇，用刷頭輕刷露出的牙齒。" : "";
+  const marker = paste ? pasteZone : lipZone;
+  const status = feedback === "bitten" ? "哎呀，被咬到了。先讓貓咪休息。"
+    : feedback === "ran" ? "貓咪走開了，下次再練習。"
+    : feedback === "success" ? "做得好，完成這一階段的照護練習！"
+    : feedback === "resisting" ? "貓咪開始抗拒，請放開嘴角休息。"
+    : feedback === "warning" ? "貓咪開始不耐煩了，放慢動作，抗拒時就停下。"
+    : "";
+  const tool = <g ref={toolGraphic} visibility="hidden"><BrushPhotoTool phase={config.phase} /></g>;
+  const cropViewBox = [
+    mouthCloseup.x * photoSize.width, mouthCloseup.y * photoSize.height,
+    mouthCloseup.width * photoSize.width, mouthCloseup.height * photoSize.height,
+  ].join(" ");
   return <>
     <p className={styles.hint} id="brush-photo-hint"><strong>{title}：</strong>{hint}
       {!paste && " 桌面可按住空白鍵，移動滑鼠操作。"}
     </p>
-    <div ref={scene} className={photo.stage} data-mouth={frame} role="group" aria-label="刷牙練習影像"
+    <div ref={scene} className={photo.stage} data-mouth={frame} data-feedback={feedback} role="group" aria-label="刷牙練習影像"
       aria-describedby="brush-photo-hint" tabIndex={0}
       onPointerDown={down} onPointerMove={move} onPointerLeave={leave}
       onPointerUp={release} onPointerCancel={release} onLostPointerCapture={release}>
@@ -233,24 +262,30 @@ export function BrushGameRealistic({ ctx, onDone }: { ctx: MiniCtx; onDone: (res
           className={name === "closed" ? undefined : photo.mouth} data-photo-frame={name} />
       ))}
       {ready && !state.result && <svg className={photo.overlay} viewBox="0 0 1086 1448" aria-hidden="true">
-        {frame !== "teeth" && <circle ref={lipGraphic} className={photo.marker} cx={marker.x * 1086} cy={marker.y * 1448} r="23" />}
-        {frame === "teeth" && toothZones(config.teeth).map((zone, index) => (
-          <circle key={index} className={photo.tooth} data-active={index === activeTooth || state.clean[index] === 1}
-            cx={zone.x * 1086} cy={zone.y * 1448} r={index === activeTooth ? 11 : 6} />
-        ))}
-        <g ref={toolGraphic} visibility="hidden">
-          <path d={config.phase === "brush" ? "M8 0H37Q58 0 74 7H144" : "M8 0H42"} className={photo.handle} />
-          <rect x="-14" y="-8" width="28" height="16" rx="6" className={photo.tip} />
-          {config.phase === "brush" && <path d="M-8 -5V5M-3 -5V5M2 -5V5M7 -5V5" className={photo.bristles} />}
-        </g>
+        <circle ref={lipGraphic} className={photo.marker} cx={marker.x * 1086} cy={marker.y * 1448} r="23" />
+        {!config.teeth && tool}
       </svg>}
+      {ready && !state.result && config.teeth > 0 && frame === "teeth" &&
+        <svg ref={closeup} className={photo.closeup} viewBox={cropViewBox} aria-label="牙齒外側特寫">
+          <image href="/play/brush/brush-teeth.webp" width={photoSize.width} height={photoSize.height} />
+          {toothZones(config.teeth).map((zone, index) => (
+            <ellipse key={index} className={photo.tooth} data-active={index === activeTooth}
+              data-clean={state.clean[index] === 1}
+              cx={zone.x * photoSize.width} cy={zone.y * photoSize.height}
+              rx={zone.rx * photoSize.width * .78} ry={zone.ry * photoSize.height * .65} />
+          ))}
+          {tool}
+        </svg>}
     </div>
     {failed ? <p role="alert">無法載入刷牙影像，請關閉後再試。</p> : !ready && <p role="status">刷牙影像載入中…</p>}
-    <div className={styles.meters}>
+    <div className={`${styles.meters} ${photo.meters}`} data-feedback={feedback}>
       <label>進度 <progress max={100} value={score} /> {score}%</label>
-      <label>耐心 <progress max={config.patience} value={Math.max(0, config.patience - state.elapsed)} /></label>
+      <label>耐心 <progress max={config.patience} value={remaining} /></label>
     </div>
-    <p className={styles.status} role="status">{status}</p>
+    {config.teeth > 0 && !state.result && <p className={styles.hint}>
+      沿著特寫中的近似牙齦邊緣，輕輕來回刷。刷毛朝向牙齦，與牙齒長軸約成 45°（方向示意）。
+    </p>}
+    <p className={`${styles.status} ${photo.feedback}`} data-feedback={feedback} role="status">{status}</p>
     {state.result && <button className="btn" type="button" onClick={() => state.result && onDone(state.result)}>確認結果</button>}
     <p>AI 模擬畫面，僅供參考，非醫療建議。</p>
   </>;

@@ -1,17 +1,19 @@
+import type { BrushResult } from "./brush-rules";
+
 export type PhotoPoint = { x: number; y: number };
 type Zone = PhotoPoint & { rx: number; ry: number };
 
 export const lipZone = { x: .667, y: .592, rx: .075, ry: .048 };
-export const noseZone = { x: .441, y: .547, rx: .067, ry: .043 };
 
-// Six scoring patches on the visible teeth. The long canine spans two patches.
+
+// Approximate outer tooth and gum-edge patches on the AI image. The canine has two nearby targets.
 const zones: Zone[] = [
-  { x: .548, y: .596, rx: .010, ry: .009 },
-  { x: .568, y: .570, rx: .011, ry: .012 },
-  { x: .572, y: .598, rx: .008, ry: .014 },
-  { x: .596, y: .573, rx: .011, ry: .011 },
-  { x: .624, y: .565, rx: .012, ry: .011 },
-  { x: .652, y: .555, rx: .011, ry: .011 },
+  { x: .548, y: .589, rx: .010, ry: .009 },
+  { x: .568, y: .563, rx: .011, ry: .012 },
+  { x: .575, y: .581, rx: .009, ry: .010 },
+  { x: .596, y: .567, rx: .011, ry: .011 },
+  { x: .624, y: .560, rx: .012, ry: .011 },
+  { x: .652, y: .551, rx: .011, ry: .011 },
 ];
 
 export function toothZones(count: number) {
@@ -41,4 +43,24 @@ export function photoStroke(previous: PhotoPoint, point: PhotoPoint, count: numb
   return target !== null && target === photoTarget(previous, count)
     ? Math.hypot((point.x - previous.x) * 1.8, (point.y - previous.y) * 2.4)
     : 0;
+}
+
+
+export const pasteZone = { x: .493, y: .599, rx: .05, ry: .025 };
+export const mouthCloseup = { x: .375, y: .483, width: .36, height: .153 };
+export const photoSize = { width: 1086, height: 1448 };
+
+export function closeupPoint(x: number, y: number, rect: Parameters<typeof photoPoint>[2]) {
+  if (!rect.width || !rect.height) return null;
+  const point = photoPoint(x, y, rect);
+  if (point.x < 0 || point.y < 0 || point.x > 1 || point.y > 1) return null;
+  return { x: mouthCloseup.x + point.x * mouthCloseup.width, y: mouthCloseup.y + point.y * mouthCloseup.height };
+}
+
+export function brushPhotoFeedback(remaining: number, struggling: boolean, result: BrushResult | null) {
+  if (result?.bitten) return "bitten";
+  if (result?.ran) return "ran";
+  if (result) return "success";
+  if (struggling) return "resisting";
+  return remaining <= .3 ? "warning" : "calm";
 }
