@@ -100,7 +100,7 @@ MeowHQ（`/MeowHQ`，取代舊隱藏後台）開發中：階段 0（#18）、db�
 - **改母體的順序**：改 `stepB`／`stepC` → 在 Meow 用 Blender 5.2 跑 B、C（PowerShell 指令前要加 `&`）→ 複製 `base_clips.glb` 到 repo `public/hq-cat-models/base/` → 跑 `eat_drink.mjs` → 成貓再上傳 Storage。直接從 Blender 匯出會蓋掉 eat／drink 的修改；只換單一動作用 `scripts/clips/splice_clip.py`。
 
 ## 決策
-- 2026-11-12｜#384：幼貓理毛改成和成貓 groom v4 同一套（端坐、低頭閉眼、左右手輪流舔，6 秒一圈），參照 Tina 提供的照片；頭往下 55°、腳掌尖在下巴下 0.7 cm。
+- 2026-11-12｜#384：幼貓理毛改成和成貓 groom v4 同一套（端坐、低頭閉眼、左右手輪流舔，6 秒一圈），參照 Tina 提供的照片；腳掌往外橫放、嘴貼腳掌內側，頭往下 45°、前臂往前傾 36°。
 - 2026-11-11｜#373：幼貓母體四腳在靜止姿勢就站直、左右對稱（照片是 ¾ 側身走路姿勢）。以左半身為準：前腳手腕放在肩關節正下方（`FRONT_WRIST_AHEAD`）、後腳跗關節對齊；右邊兩隻腳骨頭擺到左腳鏡像（`match_right_legs`），右半身網格貼齊左半身鏡像（`symmetrize_side`，尾巴根、脖子、胸口與肩膀上方不動）。頂點數與 UV 不變，舊貼圖照用。睡姿前腳改用世界方向（`SLEEP_FRONT`）。前腳掌收回後 `PAW_AHEAD_M.kitten` 0.086 → 0.053。
 - 2026-11-11｜#365：成貓母體綁骨時把脊椎與尾巴拉直（只繞 Z 轉、腳掌仍貼地），網格與 UV 不變，舊貼圖照用；鬍鬚是獨立網格掛 `head0`、不綁權重，網頁不用改。貓咪貼圖可改用 AI 三視角直接投影（`project_views.py`），照片看不到的地方才用 Hunyuan＋`step3b_fill.py` 的自然虎斑補紋。
 - 2026-11-09｜#302：大貓是新增的預覽體型（`PreviewBody`），和成貓、幼貓並存，不取代現有母體；接上貓咪製作前不加進 `BodyType`。大貓模型來源 Sketchfab「Cat in Motion 3d model free」（iRahulRajput，CC-BY 4.0），畫面須保留作者與來源標註。
