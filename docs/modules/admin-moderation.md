@@ -96,6 +96,7 @@ MeowHQ（`/MeowHQ`，取代舊隱藏後台）開發中：階段 0（#18）、db�
 - **三視角投影**：`workers/cat-paint/cat_studio/project_views.py` 用拉直後的母體（Tina 電腦 `Meow\cat_base\work\base_rig.glb`，沒有時用 repo 的 `base_clips.glb`）。
 - **每隻貓的貼圖**：本機 `Meow\adoption_cats\<貓咪ID>\paint_albedo.png`；線上 `meow-cat-models/cats/<貓咪ID>/`。
 - **示範貓「第一隻虎斑貓」（`cat_20261030_140731`）**：不在 Supabase，是 repo 靜態檔 `public/hq-cat-models/cats/cat_20261030_140731/`（貼圖、照片、AI 三視角），資料寫在 `src/lib/hq/cat-models/bundled.ts`；要更新就換這裡的檔案並改 `bundled.ts`（#367）。製作原始檔在 Tina 電腦 `Meow\adoption_cats\cat_20261030_140731\`。
+- **成貓休息（rest）**：#387 起是蜷曲休息版（`Meow\cat_base\stepC_clips.py` 的 `clip_curl_rest`，參數 `CURL_*`；8 秒）；幼貓仍是 `Meow\needs_clips.py` 的母雞蹲版（4 秒）。
 - **成貓理毛（groom）**：#377 起是端坐、左右手輪流版（`Meow\cat_base\stepC_clips.py` 的 `clip_groom_sit`，參數 `GROOM_SIT_*`）；幼貓 #384 起也是同一套（`Meow\cat_base_kitten\stepC_clips.py` 的 `clip_groom_sit`，幼貓自己的 `GROOM_SIT_*` 參數）。
 - **改母體的順序**：改 `stepB`／`stepC` → 在 Meow 用 Blender 5.2 跑 B、C（PowerShell 指令前要加 `&`）→ 複製 `base_clips.glb` 到 repo `public/hq-cat-models/base/` → 跑 `eat_drink.mjs` → 成貓再上傳 Storage。直接從 Blender 匯出會蓋掉 eat／drink 的修改；只換單一動作用 `scripts/clips/splice_clip.py`。
 
@@ -197,6 +198,7 @@ ole === "admin" 判斷管理員，而現有 admin 會升為 system_admin；舊�
 | 2026-11-11 | Tina × Claude Code | #377 成貓理毛 v4：香盒坐版（#319）身體變形、左手過度彎曲，改成端坐（沿用 sit 的身體、後腳、尾巴）、頭低 50°、前臂近直立把腳掌送到嘴邊，左右手輪流各舔 3 下，6 秒一圈；`Meow/cat_base/stepC_clips.py` 的 `clip_groom_sit`（舊 `clip_groom` 保留不用），用 `splice_clip.py` 只換 groom；**Storage 母體待重新上傳** | （見 PR） |
 | 2026-11-11 | Tina × Claude Code | #379 成貓新增動作「休息（四腳朝天）」`belly_up`：仰躺（root 繞身體長軸翻 180°）、前腳、後腳都伸直往外張、頭和身體成一直線、閉眼，6 秒循環（呼吸、尾巴尖輕甩、前腳掌偶爾縮）；`Meow/cat_base/stepC_clips.py` 的 `clip_belly_up`（參數 `BELLY_*`），`splice_clip.py` 改成可加入新動作；`clips.ts` 登記（CLIP_LIBRARY_VERSION 9）、`cat-actions.ts` 加入原地隨機動作；幼貓暫無；**Storage 母體待重新上傳** | （見 PR） |
 | 2026-11-12 | Tina × Claude Code | #379 追加：四腳朝天肚子中間有斷層——大腿往後轉太多（約 90°），綁在大腿上的肚皮被拉起來。改成四腳伸直往上往外、只微往後（大腿約轉 35°），肚皮平順 | （見 PR） |
+| 2026-11-12 | Tina × Claude Code | #387 成貓「休息」換成蜷曲休息（參考 Tina 照片）：臀部倒向左側、脊椎 C 字（扭轉分散在 root／body／body_bot，胸口反向扶正，避免腰部摺痕），前腳收在胸前、右前腳略前，後腳收向肚子（膝、踝彎 90～140°，再彎大腿內側會擠出尖刺），尾巴貼地沿右側繞到前面；頭直立、眼睛張開。8 秒循環：呼吸 3 次（深淺有變化）、慢眨眼＋半眨眼、頭轉一下、兩耳各轉一次、尾尖抽兩下；腳掌滑動 < 2 mm、首尾相同。`clip_curl_rest`（`CURL_*`），`splice_clip.py` 只換 rest；CLIP_LIBRARY_VERSION 10、`cat-actions.ts` rest 停留 8～16 秒；幼貓不變；**Storage 母體待重新上傳** | （見 PR） |
 - 2026-10-29｜#24：前端呼叫 `meow_suspend_user`／`meow_unsuspend_user`／`meow_ban_email`／`meow_unban_email`／`meow_review_verification`／`meow_revoke_badge`；「要求補件」不另設狀態，用退回＋快選原因「退回並要求補件」；黑名單狀態只有系統管理員讀得到（RLS），其他管理員看不到黑名單欄與操作。
 
 - 2026-10-31｜#75：虛擬體驗元件分四個區塊（貓咪、室內空間、生活用品、其他），R3 已改寫；貓咪模型的貼圖由 cat_studio/paint_worker.py 產生，網頁只建任務與預覽（共用母體 ase_clips.glb 換 cat_fur 貼圖，不需每隻貓各一個 glb）；動作屬母體，補入新動作後所有貓自動擁有；本機模式（可新增／產生）只在非 production 且設了 CAT_STUDIO_ROOT 時啟用；正式站改讀 `public/hq-cat-models/` 示範貓（已完成的 bb）供預覽，寫入仍關閉。004_meow_cat_models.sql（資料表 meow_cat_models、meow_cat_model_jobs、bucket meow-cat-photos／meow-cat-models）在 PR 3，執行前須經 Tina 確認。

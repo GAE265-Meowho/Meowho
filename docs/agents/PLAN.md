@@ -115,6 +115,7 @@
 | 23-33 | 成貓理毛 v4：端坐、左右手輪流 | admin-moderation | 23-29 | P2 | #377 | Tina × Claude Code | 完成（待上傳 Storage） |
 | 23-34 | 幼貓母體四腳站直、左右對稱（右半身照左半身鏡像、前腳直立） | admin-moderation | — | P2 | #373 | Tina × Claude Code | 完成（#374） |
 | 23-35 | 成貓新增動作：休息（四腳朝天）belly_up | admin-moderation | 23-33 | P2 | #379 | Tina × Claude Code | 完成（待上傳 Storage） |
+| 23-37 | 成貓「休息」換成蜷曲休息（Curled Resting Idle） | admin-moderation | 23-35 | P2 | #387 | Tina × Claude Code | 審查中 |
 | 23-36 | 幼貓理毛 v4：端坐、低頭閉眼、左右手輪流舔（參照照片） | admin-moderation | 23-33 | P2 | #384 | Tina × Claude Code | 完成（#385） |
 | 23-15 | MeowHQ 登入頁依 Stitch 改版、瀏覽器標題改 MeoWho｜喵戶總部 | admin-moderation | — | P2 | #116 | Tina × Claude Code | 完成（#117 已合併） |
 | 23-14 | MeowHQ AI 三視角第二階段：worker 同時用三張照片上色；製作glb工作區選擇要產生的動作 | admin-moderation | 23-13 | P2 | 待建立 | — | 待辦 |
