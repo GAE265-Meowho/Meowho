@@ -1,6 +1,8 @@
 "use client";
 // 虛擬飼養 DEMO（#237）：把 catgame 原版的小遊戲（vanilla JS，見 minis.ts）包成 client component。
 // 原版的小遊戲是蓋在畫面上的對話框（.scrim／.modal），這裡照樣以固定定位疊在 3D 畫面與劇情上面。
+import dynamic from "next/dynamic";
+import { Mini3DModal } from "../mini3d/Mini3DModal";
 import { useEffect, useRef } from "react";
 import { startMini, type MiniCtx, type MiniId } from "./minis";
 import s from "./catgame.module.css";
@@ -19,7 +21,23 @@ function renameCat(root: HTMLElement, name: string): () => void {
   return () => ob.disconnect();
 }
 
-export function CatgameMini({ id, ctx, catName, onDone }: { id: MiniId; ctx: MiniCtx; catName: string; onDone: (r: unknown) => void }) {
+type Props = { id: MiniId; ctx: MiniCtx; catName: string; onDone: (r: unknown) => void };
+const loading = () => <p role="status">3D 遊戲載入中…</p>;
+// 換水：第一視角開水龍頭
+const WaterRefillGame3D = dynamic(() => import("../mini3d/WaterRefillGame3D").then(m => m.WaterRefillGame3D), { ssr: false, loading });
+
+export function CatgameMini(props: Props) {
+  const { id, catName, onDone } = props;
+  // 已改成彈窗 3D 特寫的小遊戲；其他照舊用原版 2D（LegacyMini）
+  if (id === "water") {
+    return <Mini3DModal title={"幫" + catName + "換水"} onCancel={() => onDone(null)}>
+      <WaterRefillGame3D onDone={onDone} />
+    </Mini3DModal>;
+  }
+  return <LegacyMini {...props} />;
+}
+
+function LegacyMini({ id, ctx, catName, onDone }: Props) {
   const root = useRef<HTMLDivElement>(null);
   const done = useRef(onDone);
   const start = useRef(ctx);
