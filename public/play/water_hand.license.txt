@@ -1,0 +1,11 @@
+Model Information:
+* files:	water_hand_right.glb, water_hand_left.glb
+* title:	Jimmy (100Avatars R1), forearm and hand only
+* source:	https://opensourceavatars.com (via Sozai Search, opensourceavatars:100avatars-r1/003_Jimmy)
+* author:	Polygonal Mind
+
+Model License:
+* license type:	CC0-1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+* requirements:	None. Credit kept here as a courtesy.
+
+Cut from the full avatar by 3Dtest/pipeline/make_water_hands.py (skeleton kept, face morphs and VRM data removed).
