@@ -4,7 +4,7 @@
 > 最後更新：2026-11-11｜Tina × Claude Code（#373 幼貓四腳對齊）；Jerry0808 × Codex（PR #327 合併衝突與通知文案修正）；清俊 × Cursor（帶我回家地圖，PR #315）；渝茜 × Claude Code（虛擬飼養讀真實資料）；Tina × Claude Code（#336）
 
 ## 目前狀態
-- **#356 掙扎轉頭 POC**：預設使用內建 MP4，掙扎事件才載入。閉嘴 WebP 用於等待、失敗和減少動態效果。Preview 和實體手機仍需驗收。
+- **#356 掙扎轉頭**：Lv.3–4 首次翻唇到露牙門檻與定時掙扎可觸發內建 MP4。咬人當下結束計分，影片結束或失敗後才顯示結果。開發環境開啟刷牙彈窗並等待圖片載入後，在主控台執行 `window.dispatchEvent(new Event("meow:brush-struggle"))` 可觸發下一次掙扎，主控台會記錄播放與結束事件。Preview 和實體手機仍需驗收。
 - **#356 擬真影像刷牙、3D 摸貓與照護圖示（世安 × Codex）**：分支 feat/356-3d-brush-pet，Draft #358。刷牙使用三張 1086×1448 WebP（合計 1.14 MB），以局部透明度過渡跟隨翻唇，沿用五階段與照護結果；摸貓沿用成貓 GLB。已加入約 2.36 倍口腔特寫、五階段工具與情緒回饋。下一步補驗 1280px Lv.4、375px 雙指、特寫刷頭對位、三種情緒截圖與實體手機。素材規格見 `docs/play-tasks/3-刷牙影像互動審查.md`。
 - **站台標誌（#361，子哲 × Claude Code）**：預設改為向量「門口貓頭款」（`door`），舊三款保留；前台與 MeowHQ 都讀同一個站台標誌（`useSiteLogo()`）。正式站 `meow_site_settings.logo` 目前是 `house`，**合併部署後要在 MeowHQ「網站外觀 Logo」選門口貓頭款**，前台才會換。favicon／網頁圖示在 `src/app/`。
 - **找 3D 貓咪母體檔案先看 `docs/modules/admin-moderation.md`「3D 貓咪母體模型位置」**：repo、Storage、Tina 電腦製作檔與腳本的對照表。

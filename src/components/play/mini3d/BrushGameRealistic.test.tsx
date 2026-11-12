@@ -10,7 +10,7 @@ vi.mock("next/image", () => ({
     <img src={src} alt={alt} loading={loading} onLoad={onLoad} onError={onError} />,
 }));
 
-afterEach(() => { document.body.replaceChildren(); vi.unstubAllGlobals(); });
+afterEach(() => { document.body.replaceChildren(); vi.unstubAllGlobals(); vi.unstubAllEnvs(); });
 
 it("預載三張 WebP 影像後才啟用遊戲，影像失敗時顯示錯誤", () => {
   const ctx = { cat: { trust: 100, stress: 0 }, brushLevel: 4 } as MiniCtx;
@@ -260,6 +260,36 @@ it.each(["error", "rejected", "reduced"] as const)("反應影片 %s 時保留閉
   fireEvent.keyDown(stage, { code: "Space" });
   for (const time of [5600, 5700, 5800]) act(() => frame(time));
   expect(stage.dataset.mouth).toBe("teeth");
+  view.unmount();
+  play.mockRestore();
+});
+
+it("掙扎時咬人會停止遊戲，但影片結束後才顯示結果", () => {
+  vi.stubEnv("NODE_ENV", "development");
+  let frame: FrameRequestCallback;
+  vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => { frame = callback; return 1; });
+  vi.stubGlobal("cancelAnimationFrame", vi.fn());
+  const play = vi.spyOn(HTMLMediaElement.prototype, "play").mockResolvedValue();
+  const onDone = vi.fn();
+  const ctx = { cat: { trust: 0, stress: 100 }, brushLevel: 4 } as MiniCtx;
+  const view = render(<dialog open><BrushGameRealistic ctx={ctx} onDone={onDone} /></dialog>);
+  const stage = screen.getByRole("group");
+  stage.focus();
+  stage.querySelectorAll("img").forEach(image => fireEvent.load(image));
+  fireEvent.keyDown(stage, { code: "Space" });
+  act(() => frame(0));
+  act(() => frame(100));
+  act(() => window.dispatchEvent(new Event("meow:brush-struggle")));
+  for (let time = 200; time <= 900; time += 100) act(() => frame(time));
+  const video = stage.querySelector("video")!;
+  expect(video).toBeTruthy();
+  expect(screen.queryByRole("button", { name: "確認結果" })).toBeNull();
+  expect(stage.dataset.mouth).toBe("closed");
+  fireEvent.ended(video);
+  expect(stage.querySelector("video")).toBeNull();
+  expect(stage.dataset.feedback).toBe("bitten");
+  fireEvent.click(screen.getByRole("button", { name: "確認結果" }));
+  expect(onDone).toHaveBeenCalledWith({ bitten: true, ran: false, score: 0 });
   view.unmount();
   play.mockRestore();
 });

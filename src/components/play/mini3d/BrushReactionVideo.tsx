@@ -16,19 +16,46 @@ export function BrushReactionVideo({ src, onFinish }: { src: string; onFinish: (
       return;
     }
     let active = true;
-    const finish = () => { if (active) onFinish(); };
-    const motionChanged = (event: MediaQueryListEvent) => { if (event.matches) finish(); };
-    const timeout = window.setTimeout(finish, 2500);
+    const trace = (event: string) => {
+      if (process.env.NODE_ENV === "development") console.debug("[brush-reaction]", event, {
+        currentTime: node.currentTime, readyState: node.readyState, paused: node.paused,
+        error: node.error?.code,
+      });
+    };
+    const finish = (reason: string) => {
+      if (!active) return;
+      active = false;
+      trace(reason);
+      onFinish();
+    };
+    const motionChanged = (event: MediaQueryListEvent) => { if (event.matches) finish("reduced-motion"); };
+    let playbackTimeout: number | undefined;
+    const startupTimeout = window.setTimeout(() => finish("startup-timeout"), 2500);
+    const playing = () => {
+      trace("playing");
+      window.clearTimeout(startupTimeout);
+      setPlaying(true);
+      playbackTimeout ??= window.setTimeout(() => finish("playback-timeout"), 5000);
+    };
+    const ended = () => finish("ended");
+    const failed = () => finish("error");
     motion?.addEventListener?.("change", motionChanged);
-    node.play().catch(finish);
+    node.addEventListener("playing", playing);
+    node.addEventListener("ended", ended);
+    node.addEventListener("error", failed);
+    trace("play");
+    node.play().catch(() => finish("play-rejected"));
     return () => {
       active = false;
-      window.clearTimeout(timeout);
+      window.clearTimeout(startupTimeout);
+      window.clearTimeout(playbackTimeout);
       motion?.removeEventListener?.("change", motionChanged);
+      node.removeEventListener("playing", playing);
+      node.removeEventListener("ended", ended);
+      node.removeEventListener("error", failed);
     };
   }, [src, onFinish]);
 
   return <video ref={video} className={styles.reaction} data-playing={playing} src={src}
-    muted playsInline preload="none" aria-hidden="true"
-    onPlaying={() => setPlaying(true)} onEnded={onFinish} onError={onFinish} />;
+    muted playsInline preload="none" aria-hidden="true" />;
 }

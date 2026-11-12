@@ -59,7 +59,8 @@ export function BrushGameRealistic({
   const score = brushScore(state);
   const struggle = brushStruggling(state.elapsed, config);
   const remaining = Math.max(0, config.patience - state.elapsed);
-  const feedback = brushPhotoFeedback(remaining / config.patience, struggle || reaction, state.result);
+  const visibleResult = reaction ? null : state.result;
+  const feedback = brushPhotoFeedback(remaining / config.patience, struggle || reaction, visibleResult);
   const [title, hint] = instructions[config.phase];
 
   const endReaction = useCallback(() => {
@@ -75,6 +76,8 @@ export function BrushGameRealistic({
     let visualLift = 0;
     let heldLip: number | null = null;
     let heldSpace = false;
+    let forceStruggle = false;
+    const requestStruggle = () => { forceStruggle = true; };
     const motion = window.matchMedia?.("(prefers-reduced-motion: reduce)");
     let animation: number;
     const reset = () => {
@@ -120,6 +123,13 @@ export function BrushGameRealistic({
       const wasStruggling = brushStruggling(game.elapsed, config);
       let playing = reactionPlaying.current;
       const holding = wasStruggling ? heldSpace || heldLip !== null : rawHold && !playing;
+      if (forceStruggle && dt > 0 && !wasStruggling && !playing) {
+        forceStruggle = false;
+        started.current = true;
+        liftReactionShown.current = true;
+        const nextWindow = (Math.floor(game.elapsed / config.struggleEvery) + 1) * config.struggleEvery;
+        game = { ...game, elapsed: nextWindow - dt / 2 };
+      }
       if (started.current) {
         const target = holding && !wasStruggling && current.tool ? photoTarget(current.tool, config.teeth) : null;
         game = brushStep(game, config, {
@@ -134,8 +144,9 @@ export function BrushGameRealistic({
       // This makes the reaction discoverable without changing the rule engine's
       // timed struggle / bite behaviour. After the clip finishes, the player can
       // retry the gesture; the delayed struggle rule remains available later.
-      const lifted = current.lift >= .04 || current.keyLift >= .04;
-      if (config.teeth && lifted && !liftReactionShown.current && !playing && reactionSrc && !motion?.matches) {
+      const lifted = rawHold;
+      if (config.teeth && lifted && !game.result && !wasStruggling && !brushStruggling(game.elapsed, config)
+        && !liftReactionShown.current && !playing && reactionSrc && !motion?.matches) {
         liftReactionShown.current = true;
         reactionPlaying.current = true;
         setReaction(true);
@@ -183,11 +194,7 @@ export function BrushGameRealistic({
         displayElapsed = 0;
         setState(game);
       }
-      if (game.result) {
-        reactionPlaying.current = false;
-        setReaction(false);
-        reset();
-      }
+      if (game.result) reset();
       else animation = requestAnimationFrame(tick);
     };
     animation = requestAnimationFrame(tick);
@@ -196,6 +203,7 @@ export function BrushGameRealistic({
     window.addEventListener("blur", blur);
     window.addEventListener("pointerup", releaseHeldLip, true);
     window.addEventListener("pointercancel", releaseHeldLip, true);
+    if (process.env.NODE_ENV === "development") window.addEventListener("meow:brush-struggle", requestStruggle);
     return () => {
       cancelAnimationFrame(animation);
       window.removeEventListener("keydown", keyDown);
@@ -203,6 +211,7 @@ export function BrushGameRealistic({
       window.removeEventListener("blur", blur);
       window.removeEventListener("pointerup", releaseHeldLip, true);
       window.removeEventListener("pointercancel", releaseHeldLip, true);
+      if (process.env.NODE_ENV === "development") window.removeEventListener("meow:brush-struggle", requestStruggle);
       reset();
     };
   }, [config, paste, reactionSrc, ready, touch]);
@@ -344,7 +353,7 @@ export function BrushGameRealistic({
       沿著特寫中的近似牙齦邊緣，輕輕來回刷。刷毛朝向牙齦，與牙齒長軸約成 45°（方向示意）。
     </p>}
     <p className={`${styles.status} ${photo.feedback}`} data-feedback={feedback} role="status">{status}</p>
-    {state.result && <button className="btn" type="button" onClick={() => state.result && onDone(state.result)}>確認結果</button>}
+    {visibleResult && <button className="btn" type="button" onClick={() => onDone(visibleResult)}>確認結果</button>}
     <p>AI 模擬畫面，僅供參考，非醫療建議。</p>
   </>;
 }
