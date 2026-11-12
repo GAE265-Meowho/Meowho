@@ -11,6 +11,16 @@ describe("idleClips", () => {
     expect(idleClips(ALL).sort()).toEqual(["cuddle", "drink", "eat", "idle", "sit", "sleep", "toilet"]);
     expect(idleClips(["walk"])).toEqual([]);
   });
+
+  it("休息（蜷曲，8 秒循環）至少播完一輪（#387）", () => {
+    const pool = idleClips(["idle", "rest"]);
+    const i = pool.indexOf("rest");
+    expect(nextIdle(seq((i + 0.5) / pool.length, 0), ["idle", "rest"], null)).toEqual({ clip: "rest", seconds: 8 });
+  });
+
+  it("母體有四腳朝天（belly_up）時也會排進原地動作（#379）", () => {
+    expect(idleClips(["idle", "belly_up"])).toContain("belly_up");
+  });
 });
 
 describe("nextIdle", () => {

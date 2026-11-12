@@ -39,6 +39,89 @@ export function insideCounties(x: number, y: number, polys: LabelPoly[]) {
   return polys.some((poly) => insidePoly(x, y, poly));
 }
 
+/** 縣市外緣上的一點。海上的名稱取夠長的最近外緣；境內的名稱取最遠的外緣。 */
+export function nearestRingPoint(x: number, y: number, polys: LabelPoly[], farthest = false, minDist = 0): LabelPoint {
+  let best = { x, y };
+  let bestD = farthest ? -1 : Infinity;
+  let fallback = { x, y };
+  let fallbackD = Infinity;
+  const min2 = minDist * minDist;
+  for (const poly of polys) {
+    const ring = poly[0];
+    if (!ring || ring.length < 2) continue;
+    for (let index = 0; index < ring.length; index++) {
+      const a = ring[index];
+      const b = ring[(index + 1) % ring.length];
+      const dx = b.x - a.x;
+      const dy = b.y - a.y;
+      const len2 = dx * dx + dy * dy || 1;
+      const t = Math.max(0, Math.min(1, ((x - a.x) * dx + (y - a.y) * dy) / len2));
+      const px = a.x + t * dx;
+      const py = a.y + t * dy;
+      const dist = (px - x) ** 2 + (py - y) ** 2;
+      if (dist < fallbackD) {
+        fallbackD = dist;
+        fallback = { x: px, y: py };
+      }
+      if (!farthest && dist < min2) continue;
+      if (farthest ? dist > bestD : dist < bestD) {
+        bestD = dist;
+        best = { x: px, y: py };
+      }
+    }
+  }
+  return bestD === Infinity || bestD < 0 ? fallback : best;
+}
+
+/** 面積最大的那一塊。台東的虛線用它，避免接到綠島、蘭嶼。 */
+export function largestPolygon(polys: LabelPoly[]): LabelPoly[] {
+  let best: LabelPoly | undefined;
+  let bestArea = -1;
+  for (const poly of polys) {
+    const outer = poly[0];
+    if (!outer || outer.length < 4) continue;
+    let area = 0;
+    for (let i = 0, j = outer.length - 1; i < outer.length; j = i++) {
+      area += outer[j].x * outer[i].y - outer[i].x * outer[j].y;
+    }
+    const size = Math.abs(area);
+    if (size > bestArea) {
+      bestArea = size;
+      best = poly;
+    }
+  }
+  return best ? [best] : polys;
+}
+
+/** 西岸那一段的中間，給台中、嘉義縣的虛線終點。 */
+export function westCoastMiddle(polys: LabelPoly[]): LabelPoint | null {
+  let ring: LabelPoint[] | undefined;
+  let best = -1;
+  for (const poly of polys) {
+    const outer = poly[0];
+    if (!outer || outer.length < 4) continue;
+    let area = 0;
+    for (let i = 0, j = outer.length - 1; i < outer.length; j = i++) {
+      area += outer[j].x * outer[i].y - outer[i].x * outer[j].y;
+    }
+    if (Math.abs(area) > best) {
+      best = Math.abs(area);
+      ring = outer;
+    }
+  }
+  if (!ring) return null;
+  let minX = Infinity;
+  let maxX = -Infinity;
+  for (const point of ring) {
+    minX = Math.min(minX, point.x);
+    maxX = Math.max(maxX, point.x);
+  }
+  const west = ring.filter((point) => point.x <= minX + (maxX - minX) * 0.22);
+  if (west.length < 3) return null;
+  const sorted = [...west].sort((a, b) => a.y - b.y);
+  return sorted[Math.floor(sorted.length / 2)];
+}
+
 export function edgeClearance(x: number, y: number, polys: LabelPoly[]) {
   let min = Infinity;
   for (const poly of polys) {
@@ -153,14 +236,16 @@ function inlandSpot(own: LabelPoly[], foreign: LabelPoly[], towns: LabelPoint[],
   return inland;
 }
 
-/** 名字中心與縮放。有自己的海就貼在海岸外；否則在自己境內、離行政區字最遠的空位。方框不進其他縣市。 */
-export function pickCountyLabel(options: Options): LabelPoint & { scale: number } {
+/** 名字中心與縮放。sea：有自己的海就貼在海岸外。inland：留在自己境內。方框不進其他縣市。 */
+export function pickCountyLabel(options: Options, where: "sea" | "inland" = "sea"): LabelPoint & { scale: number } {
   const { own, foreign, towns, width, height, hw, hh } = options;
   const outers = own.map((poly) => poly[0]).filter((ring) => ring && ring.length >= 3);
   if (!outers.length) return { x: width / 2, y: height / 2, scale: 1 };
-  for (const scale of [1, 0.82, 0.66, 0.52]) {
-    const sea = coastSpot(own, foreign, width, height, hw * scale, hh * scale);
-    if (sea) return { x: sea.x, y: sea.y, scale };
+  if (where === "sea") {
+    for (const scale of [1, 0.82, 0.66, 0.52]) {
+      const sea = coastSpot(own, foreign, width, height, hw * scale, hh * scale);
+      if (sea) return { x: sea.x, y: sea.y, scale };
+    }
   }
   for (const scale of [1, 0.82, 0.66, 0.52]) {
     const inland = inlandSpot(own, foreign, towns, width, height, hw * scale, hh * scale);

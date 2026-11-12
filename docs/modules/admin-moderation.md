@@ -96,10 +96,12 @@ MeowHQ（`/MeowHQ`，取代舊隱藏後台）開發中：階段 0（#18）、db�
 - **三視角投影**：`workers/cat-paint/cat_studio/project_views.py` 用拉直後的母體（Tina 電腦 `Meow\cat_base\work\base_rig.glb`，沒有時用 repo 的 `base_clips.glb`）。
 - **每隻貓的貼圖**：本機 `Meow\adoption_cats\<貓咪ID>\paint_albedo.png`；線上 `meow-cat-models/cats/<貓咪ID>/`。
 - **示範貓「第一隻虎斑貓」（`cat_20261030_140731`）**：不在 Supabase，是 repo 靜態檔 `public/hq-cat-models/cats/cat_20261030_140731/`（貼圖、照片、AI 三視角），資料寫在 `src/lib/hq/cat-models/bundled.ts`；要更新就換這裡的檔案並改 `bundled.ts`（#367）。製作原始檔在 Tina 電腦 `Meow\adoption_cats\cat_20261030_140731\`。
-- **成貓理毛（groom）**：#377 起是端坐、左右手輪流版（`Meow\cat_base\stepC_clips.py` 的 `clip_groom_sit`，參數 `GROOM_SIT_*`）；幼貓仍是自己的版本。
+- **成貓休息（rest）**：#387 起是蜷曲休息版（`Meow\cat_base\stepC_clips.py` 的 `clip_curl_rest`，參數 `CURL_*`；8 秒）；幼貓仍是 `Meow\needs_clips.py` 的母雞蹲版（4 秒）。
+- **成貓理毛（groom）**：#377 起是端坐、左右手輪流版（`Meow\cat_base\stepC_clips.py` 的 `clip_groom_sit`，參數 `GROOM_SIT_*`）；幼貓 #384 起也是同一套（`Meow\cat_base_kitten\stepC_clips.py` 的 `clip_groom_sit`，幼貓自己的 `GROOM_SIT_*` 參數）。
 - **改母體的順序**：改 `stepB`／`stepC` → 在 Meow 用 Blender 5.2 跑 B、C（PowerShell 指令前要加 `&`）→ 複製 `base_clips.glb` 到 repo `public/hq-cat-models/base/` → 跑 `eat_drink.mjs` → 成貓再上傳 Storage。直接從 Blender 匯出會蓋掉 eat／drink 的修改；只換單一動作用 `scripts/clips/splice_clip.py`。
 
 ## 決策
+- 2026-11-12｜#384：幼貓理毛改成和成貓 groom v4 同一套（端坐、低頭閉眼、左右手輪流舔，6 秒一圈），參照 Tina 提供的照片；前臂直立、手腕往前折、腳掌朝前下垂（不往內彎），嘴貼肉球；頭往下 45°。
 - 2026-11-11｜#373：幼貓母體四腳在靜止姿勢就站直、左右對稱（照片是 ¾ 側身走路姿勢）。以左半身為準：前腳手腕放在肩關節正下方（`FRONT_WRIST_AHEAD`）、後腳跗關節對齊；右邊兩隻腳骨頭擺到左腳鏡像（`match_right_legs`），右半身網格貼齊左半身鏡像（`symmetrize_side`，尾巴根、脖子、胸口與肩膀上方不動）。頂點數與 UV 不變，舊貼圖照用。睡姿前腳改用世界方向（`SLEEP_FRONT`）。前腳掌收回後 `PAW_AHEAD_M.kitten` 0.086 → 0.053。
 - 2026-11-11｜#365：成貓母體綁骨時把脊椎與尾巴拉直（只繞 Z 轉、腳掌仍貼地），網格與 UV 不變，舊貼圖照用；鬍鬚是獨立網格掛 `head0`、不綁權重，網頁不用改。貓咪貼圖可改用 AI 三視角直接投影（`project_views.py`），照片看不到的地方才用 Hunyuan＋`step3b_fill.py` 的自然虎斑補紋。
 - 2026-11-09｜#302：大貓是新增的預覽體型（`PreviewBody`），和成貓、幼貓並存，不取代現有母體；接上貓咪製作前不加進 `BodyType`。大貓模型來源 Sketchfab「Cat in Motion 3d model free」（iRahulRajput，CC-BY 4.0），畫面須保留作者與來源標註。
@@ -194,6 +196,9 @@ ole === "admin" 判斷管理員，而現有 admin 會升為 system_admin；舊�
 | 2026-11-11 | Tina × Claude Code | #365 追加 2：鬍鬚根部再往上移到鼻子兩旁、嘴線之上（鼻頭下 0.1～0.6 cm、往後 0.6～1.7 cm、往外 0.9～1.7 cm），下垂與俯角減少；動作與 main 逐格相同；**Storage 母體待重新上傳** | （見 PR） |
 | 2026-11-11 | Tina × Claude Code | #367 追加：AI 照片裡的鬍鬚越過臉頰、胸口，投影後變成貼圖上的白線（看起來到處長鬍鬚）。`project_views.py` 投影前先抹掉照片的鬍鬚（`remove_whiskers`：比周圍亮很多、偏白的細線，用中值色補；只處理左側與正面照的頭到胸口），示範貓成貓貼圖重新產生；眉毛鬚與鬍鬚網格保留 | （見 PR） |
 | 2026-11-11 | Tina × Claude Code | #377 成貓理毛 v4：香盒坐版（#319）身體變形、左手過度彎曲，改成端坐（沿用 sit 的身體、後腳、尾巴）、頭低 50°、前臂近直立把腳掌送到嘴邊，左右手輪流各舔 3 下，6 秒一圈；`Meow/cat_base/stepC_clips.py` 的 `clip_groom_sit`（舊 `clip_groom` 保留不用），用 `splice_clip.py` 只換 groom；**Storage 母體待重新上傳** | （見 PR） |
+| 2026-11-11 | Tina × Claude Code | #379 成貓新增動作「休息（四腳朝天）」`belly_up`：仰躺（root 繞身體長軸翻 180°）、前腳、後腳都伸直往外張、頭和身體成一直線、閉眼，6 秒循環（呼吸、尾巴尖輕甩、前腳掌偶爾縮）；`Meow/cat_base/stepC_clips.py` 的 `clip_belly_up`（參數 `BELLY_*`），`splice_clip.py` 改成可加入新動作；`clips.ts` 登記（CLIP_LIBRARY_VERSION 9）、`cat-actions.ts` 加入原地隨機動作；幼貓暫無；**Storage 母體待重新上傳** | （見 PR） |
+| 2026-11-12 | Tina × Claude Code | #379 追加：四腳朝天肚子中間有斷層——大腿往後轉太多（約 90°），綁在大腿上的肚皮被拉起來。改成四腳伸直往上往外、只微往後（大腿約轉 35°），肚皮平順 | （見 PR） |
+| 2026-11-12 | Tina × Claude Code | #387 成貓「休息」換成蜷曲休息（參考 Tina 照片）：臀部倒向左側、脊椎 C 字（扭轉分散在 root／body／body_bot，胸口反向扶正，避免腰部摺痕），前腳收在胸前、右前腳略前，後腳收向肚子（膝、踝彎 90～140°，再彎大腿內側會擠出尖刺），尾巴貼地沿右側繞到前面；頭直立、眼睛張開。8 秒循環：呼吸 3 次（深淺有變化）、慢眨眼＋半眨眼、頭轉一下、兩耳各轉一次、尾尖抽兩下；腳掌滑動 < 2 mm、首尾相同。`clip_curl_rest`（`CURL_*`），`splice_clip.py` 只換 rest；CLIP_LIBRARY_VERSION 10、`cat-actions.ts` rest 停留 8～16 秒；幼貓不變；**Storage 母體待重新上傳** | （見 PR） |
 - 2026-10-29｜#24：前端呼叫 `meow_suspend_user`／`meow_unsuspend_user`／`meow_ban_email`／`meow_unban_email`／`meow_review_verification`／`meow_revoke_badge`；「要求補件」不另設狀態，用退回＋快選原因「退回並要求補件」；黑名單狀態只有系統管理員讀得到（RLS），其他管理員看不到黑名單欄與操作。
 
 - 2026-10-31｜#75：虛擬體驗元件分四個區塊（貓咪、室內空間、生活用品、其他），R3 已改寫；貓咪模型的貼圖由 cat_studio/paint_worker.py 產生，網頁只建任務與預覽（共用母體 ase_clips.glb 換 cat_fur 貼圖，不需每隻貓各一個 glb）；動作屬母體，補入新動作後所有貓自動擁有；本機模式（可新增／產生）只在非 production 且設了 CAT_STUDIO_ROOT 時啟用；正式站改讀 `public/hq-cat-models/` 示範貓（已完成的 bb）供預覽，寫入仍關閉。004_meow_cat_models.sql（資料表 meow_cat_models、meow_cat_model_jobs、bucket meow-cat-photos／meow-cat-models）在 PR 3，執行前須經 Tina 確認。
