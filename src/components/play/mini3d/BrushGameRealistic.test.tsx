@@ -14,7 +14,7 @@ afterEach(() => { document.body.replaceChildren(); vi.unstubAllGlobals(); });
 
 it("預載三張 WebP 影像後才啟用遊戲，影像失敗時顯示錯誤", () => {
   const ctx = { cat: { trust: 100, stress: 0 }, brushLevel: 4 } as MiniCtx;
-  const view = render(<dialog open><BrushGameRealistic ctx={ctx} onDone={vi.fn()} /></dialog>);
+  const view = render(<dialog open><BrushGameRealistic ctx={ctx} onDone={vi.fn()} reactionSrc="" /></dialog>);
   const images = view.container.querySelectorAll("img");
   expect([...images].map(image => image.getAttribute("src"))).toEqual([
     "/play/brush/brush-closed.webp",
@@ -27,7 +27,7 @@ it("預載三張 WebP 影像後才啟用遊戲，影像失敗時顯示錯誤", (
   expect(screen.queryByText("刷牙影像載入中…")).toBeNull();
   view.unmount();
 
-  const failed = render(<BrushGameRealistic ctx={ctx} onDone={vi.fn()} />);
+  const failed = render(<BrushGameRealistic ctx={ctx} onDone={vi.fn()} reactionSrc="" />);
   fireEvent.error(failed.container.querySelector("img")!);
   expect(screen.getByRole("alert").textContent).toContain("無法載入刷牙影像");
   failed.unmount();
@@ -49,7 +49,7 @@ it("兩根指標各自控制嘴角與刷具，失去捕捉後停止計分", () =
   }
   vi.stubGlobal("PointerEvent", TestPointerEvent);
   const ctx = { cat: { trust: 100, stress: 0 }, brushLevel: 4 } as MiniCtx;
-  const view = render(<dialog open><BrushGameRealistic ctx={ctx} onDone={vi.fn()} /></dialog>);
+  const view = render(<dialog open><BrushGameRealistic ctx={ctx} onDone={vi.fn()} reactionSrc="" /></dialog>);
   const stage = screen.getByRole("group");
   stage.focus();
   stage.setPointerCapture = vi.fn();
@@ -136,7 +136,7 @@ it.each([
   vi.stubGlobal("cancelAnimationFrame", vi.fn());
   const ctx = { cat: { trust, stress }, brushLevel: level } as MiniCtx;
   const onDone = vi.fn();
-  const view = render(<dialog open><BrushGameRealistic ctx={ctx} onDone={onDone} /></dialog>);
+  const view = render(<dialog open><BrushGameRealistic ctx={ctx} onDone={onDone} reactionSrc="" /></dialog>);
   const stage = screen.getByRole("group");
   stage.focus();
   stage.querySelectorAll("img").forEach(image => fireEvent.load(image));
@@ -168,7 +168,7 @@ it("掙扎只播放一次，播放結束與規則結束後才重新開放操作"
   vi.stubGlobal("cancelAnimationFrame", vi.fn());
   const play = vi.spyOn(HTMLMediaElement.prototype, "play").mockResolvedValue();
   const ctx = { cat: { trust: 0, stress: 100 }, brushLevel: 4 } as MiniCtx;
-  const view = render(<dialog open><BrushGameRealistic ctx={ctx} onDone={vi.fn()} reactionSrc="/reaction.mp4" /></dialog>);
+  const view = render(<dialog open><BrushGameRealistic ctx={ctx} onDone={vi.fn()} /></dialog>);
   const stage = screen.getByRole("group");
   stage.focus();
   stage.querySelectorAll("img").forEach(image => fireEvent.load(image));
@@ -177,6 +177,7 @@ it("掙扎只播放一次，播放結束與規則結束後才重新開放操作"
   for (let time = 0; time <= 4100; time += 100) act(() => frame(time));
   const video = stage.querySelector("video")!;
   expect(video).toBeTruthy();
+  expect(video.getAttribute("src")).toBe("/play/brush/brush-turn-away.mp4");
   expect(video.muted && video.playsInline).toBe(true);
   expect(play).toHaveBeenCalledTimes(1);
   expect(stage.dataset.mouth).toBe("closed");

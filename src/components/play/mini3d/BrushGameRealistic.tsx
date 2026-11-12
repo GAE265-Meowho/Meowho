@@ -31,7 +31,9 @@ function newInput() {
   };
 }
 
-export function BrushGameRealistic({ ctx, onDone, reactionSrc = process.env.NEXT_PUBLIC_BRUSH_REACTION_MP4 }: {
+export function BrushGameRealistic({
+  ctx, onDone, reactionSrc = process.env.NEXT_PUBLIC_BRUSH_REACTION_MP4 || "/play/brush/brush-turn-away.mp4",
+}: {
   ctx: MiniCtx;
   onDone: (result: BrushResult) => void;
   reactionSrc?: string;
