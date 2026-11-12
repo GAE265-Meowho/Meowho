@@ -1,7 +1,7 @@
 "use client";
-// 虛擬飼養第 1 份：換水特寫的兩隻手（第一視角）。
-//   water_hand_right：右手，托碗（cradle）或握碗緣（rim）
-//   water_hand_left：左手，握水龍頭把手（grip）
+// 虛擬飼養第 1 份：換水、餵貓特寫的兩隻手（第一視角）。
+//   water_hand_right：右手，托碗（cradle）、握碗緣（rim）、握飼料袋（hold）、拉罐頭拉環（grip）
+//   water_hand_left：左手，握水龍頭把手（grip）、握罐頭（hold）
 // 模型是從 CC0 的 VRM 替身切出來的前臂和手（public/play/water_hand.license.txt），骨架保留，手勢在這裡套。
 // 這個 group 的原點在手腕，-Z 是指尖方向，+Y 是掌心朝的方向；右手拇指在 +X 那側，左手是鏡像。
 import { useGLTF } from "@react-three/drei";
@@ -11,10 +11,10 @@ import { MathUtils, Matrix4, Quaternion, Vector3, type Bone, type Group, type Ob
 import { clone } from "three/examples/jsm/utils/SkeletonUtils.js";
 
 export type HandId = "water_hand_right" | "water_hand_left";
-export type HandPose = "cradle" | "rim" | "grip";
+export type HandPose = "cradle" | "rim" | "grip" | "hold";
 
 const FINGERS = ["Thumb", "Index", "Middle", "Ring", "Pinky"] as const;
-const FLAT = [0.1, 0.15, 0.1], WRAP = [0.15, 0.4, 0.3], FIST = [1.2, 1.5, 0.9];
+const FLAT = [0.1, 0.15, 0.1], WRAP = [0.15, 0.4, 0.3], FIST = [1.2, 1.5, 0.9], HALF = [0.45, 0.55, 0.35];
 /** curl：每根手指三節往掌心彎的角度（弧度），順序同 FINGERS；at：手上的東西相對手腕的位置（右手，左手 x 反過來） */
 export const HAND_POSES: Record<HandPose, { curl: number[][]; at: [number, number, number] }> = {
   // 托住：碗底坐在掌心，四指微彎包著碗壁，拇指往外張
@@ -23,6 +23,8 @@ export const HAND_POSES: Record<HandPose, { curl: number[][]; at: [number, numbe
   rim: { curl: [[0.6, 0.2, 0.4], FLAT, FLAT, FLAT, FLAT], at: [0.01, 0.015, -0.135] },
   // 握把手：四指捲起來包住橫在掌心的把手
   grip: { curl: [[0.4, 0.5, 0.6], FIST, FIST, FIST, FIST], at: [0, 0.03, -0.105] },
+  // 握著：手掌貼著東西的側面，四指半彎扣住（飼料袋、罐頭）；at 是手掌貼住的那個點
+  hold: { curl: [[0.2, 0.2, 0.2], HALF, HALF, HALF, HALF], at: [0, 0.012, -0.085] },
 };
 /** 袖口離手腕多遠、袖子多長（公尺） */
 const SLEEVE_FROM = 0.16, SLEEVE_LENGTH = 0.6;
