@@ -33,6 +33,7 @@ import { CatgameMini } from "./catgame/CatgameMini";
 import type { MiniCtx } from "./catgame/minis";
 import { CareBar, HomeStep } from "./HomeStep";
 import { NodeStep } from "./NodeStep";
+import { SoundToggle, usePlayBgm } from "./PlayAudio";
 import { PlayStage } from "./PlayStage";
 import { ScanWand } from "./ScanWand";
 import { ReportStep } from "./ReportStep";
@@ -316,6 +317,8 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
   const lookKey = state.step === "node" && bubble && !careAct ? `${state.nodeIndex}:${cur?.kind}:${bubble}:${state.life.care.rounds}` : null;
   const canPeek = state.step === "place" || (state.step === "node" && cur?.kind !== "mini" && !careAct);
   useEffect(() => { setPeek(false); }, [state.step, state.nodeIndex, cur]);
+  // 背景音樂依步驟、節點、場景切換（第 6 份）
+  usePlayBgm({ step: state.step, nodeId: state.step === "node" ? node.id : null, scene: state.scene, home: cur?.kind === "home" });
 
   return (
     <div className={s.page} data-immersive={immersive ? "true" : undefined}>
@@ -329,12 +332,18 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
             </div>
             {state.step === "node" && <StatusMeters trust={state.life.trust} stress={state.life.stress} />}
           </div>
-          <a className={s.exit} href={catHref} onClick={e => { if (!window.confirm("要離開虛擬飼養嗎？目前的進度不會保留。")) e.preventDefault(); }}>離開</a>
+          <div className={s.hudEnd}>
+            <SoundToggle />
+            <a className={s.exit} href={catHref} onClick={e => { if (!window.confirm("要離開虛擬飼養嗎？目前的進度不會保留。")) e.preventDefault(); }}>離開</a>
+          </div>
         </div>
       ) : (
-        <ol className={s.steps} aria-label="進度">
-          {STEP_LABELS.map(([k, label], i) => <li key={k} aria-current={i === stepIndex ? "step" : undefined}>{label}</li>)}
-        </ol>
+        <div className={s.stepsRow}>
+          <ol className={s.steps} aria-label="進度">
+            {STEP_LABELS.map(([k, label], i) => <li key={k} aria-current={i === stepIndex ? "step" : undefined}>{label}</li>)}
+          </ol>
+          <SoundToggle />
+        </div>
       )}
 
       {immersive && state.step === "node" && cur?.kind === "home" && !careAct && <CareBar state={state} canPlay={kind === "scan"} onAct={setCareAct} />}

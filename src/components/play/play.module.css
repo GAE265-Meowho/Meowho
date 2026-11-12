@@ -214,7 +214,15 @@
   display: inline-flex; align-items: center; justify-content: center; min-height: 44px; min-width: 44px; padding: 0 16px; border-radius: 999px;
   background: var(--card); color: var(--ink); border: 2px solid var(--line); font-weight: 700; font-size: 14px; text-decoration: none; flex: 0 0 auto;
 }
-.exit:focus-visible, .peekBtn:focus-visible { outline: 3px solid var(--orange); outline-offset: 2px; }
+.exit:focus-visible, .sound:focus-visible, .peekBtn:focus-visible { outline: 3px solid var(--orange); outline-offset: 2px; }
+/* 音量／靜音按鈕（第 6 份） */
+.hudEnd { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
+.stepsRow { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.sound {
+  display: inline-grid; place-items: center; width: 44px; height: 44px; flex: 0 0 auto; padding: 0; border-radius: 50%;
+  background: var(--card); color: var(--ink); border: 2px solid var(--line); cursor: pointer;
+}
+.sound[aria-pressed="true"] { color: var(--ink-soft); }
 
 .sheet {
   position: absolute; z-index: 4; left: 0; right: 0; bottom: 0; max-height: 56dvh; overflow-y: auto; overscroll-behavior: contain;
