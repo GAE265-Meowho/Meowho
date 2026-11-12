@@ -1,11 +1,13 @@
 # HANDOFF — 接手的 agent 需要知道的事
 
 > 寫給「完全沒有上下文的下一個 agent」。只保留**現在仍然成立**的內容。
-> 最後更新：2026-11-11｜Jerry0808 × Codex（PR #327 合併衝突與通知文案修正）；清俊 × Cursor（帶我回家地圖，PR #315）；渝茜 × Claude Code（虛擬飼養讀真實資料）；Tina × Claude Code（#336）
+> 最後更新：2026-11-11｜Tina × Claude Code（#373 幼貓四腳對齊）；Jerry0808 × Codex（PR #327 合併衝突與通知文案修正）；清俊 × Cursor（帶我回家地圖，PR #315）；渝茜 × Claude Code（虛擬飼養讀真實資料）；Tina × Claude Code（#336）
 
 ## 目前狀態
 - **#356 擬真影像刷牙、3D 摸貓與照護圖示（世安 × Codex）**：分支 feat/356-3d-brush-pet，Draft #358。刷牙使用三張 1086×1448 WebP（合計 1.14 MB），以局部透明度過渡跟隨翻唇，沿用五階段與照護結果；摸貓沿用成貓 GLB。下一步補驗 1280px Lv.4、375px 雙指、局部疊影與實體手機。素材規格見 `docs/play-tasks/3-刷牙影像互動審查.md`。
+- **站台標誌（#361，子哲 × Claude Code）**：預設改為向量「門口貓頭款」（`door`），舊三款保留；前台與 MeowHQ 都讀同一個站台標誌（`useSiteLogo()`）。正式站 `meow_site_settings.logo` 目前是 `house`，**合併部署後要在 MeowHQ「網站外觀 Logo」選門口貓頭款**，前台才會換。favicon／網頁圖示在 `src/app/`。
 - **找 3D 貓咪母體檔案先看 `docs/modules/admin-moderation.md`「3D 貓咪母體模型位置」**：repo、Storage、Tina 電腦製作檔與腳本的對照表。
+- **#373 幼貓母體四腳對齊（Tina × Claude Code，分支 `fix/373-kitten-leg-align`）**：`base_clips_kitten.glb` 已重做（幼貓不在 Storage，合併即生效）。改的是 Tina 電腦 `Meow/cat_base_kitten/stepB_rig.py` 的 `align_legs`、`match_right_legs`、`symmetrize_side`（右半身照左半身鏡像）與 `stepC_clips.py` 的 `SLEEP_FRONT`；網頁 `PAW_AHEAD_M.kitten` 已改 0.053；重做幼貓母體一律 B → C → `eat_drink.mjs … kitten`。舊製作檔備份在 `Meow/cat_base_kitten/work/backup_before_leg_align/`；`.blend` 是 Blender 5.3 存的，5.2 開不了就重跑 B、C。
 - **#365 成貓母體拉直＋鬍鬚（Tina × Claude Code）**：`base_clips.glb` 脊椎與尾巴已拉直、多了 `whiskers` 網格（掛 `head0`），eat／drink 已用 `eat_drink.mjs adult` 重做。**合併後要上傳 Storage** `meow-cat-models/base/v1/base_clips.glb`。新工具 `workers/cat-paint/cat_studio/project_views.py`（AI 三視角投影成貓貼圖），尚未接進 `paint_worker.py --supabase`；目前在 Tina 電腦用 `run_tabby1.bat` 跑。
 - **帶我回家地圖（清俊 × Cursor，PR #315）**：分支 `cursor/adopt-home-map-5901`，尚未建 Issue。首頁 `#adopt` 的「地圖」先選北／中／南／東（澎湖、金門、連江在「離島」）。縣市與行政區界線在 `src/lib/geo/region-bounds.json`（taiwan-atlas，重產用 `scripts/build-region-bounds.mjs`）。縣市名由 `src/lib/geo/county-label.ts` 放在該縣市自己的海上；台北、南投、嘉義市留在境內空位。2026-11-10 清俊再調：新竹縣往左下貼近縣界、台中往右上貼近市界、屏東在泰武右側且離開縣界、嘉義市不標東區／西區。行政區名會跟兩個以上疊在一起的再縮小（`town-label.ts`，最小 5）。貓咪圖示靠近本體，五個圖示是粗框填色的卡通：愛踩踏是腳掌肉墊、貪吃是裝滿飼料的碗、好奇是三個圓潤問號、愛玩是羽毛逗貓棒、慢熟是圓角底上的 >///<. 貓仍來自卡片同一份 `FeedCat`。沒連資料庫時示意貓分布在北、中、東、離島（南區是空的）。手機（窄螢幕或觸控）點貓：第一下只開簡歷，再點同一隻才回到卡片。靠太近的貓只顯示「附近有 N 隻」（不再另外顯示「這區有 N 隻」）。展開後每隻貓回到自己的行政區，蓋過其他堆疊按鈕；「收攏」的底邊在這群貓所在縣市的縣市名上方，不蓋住縣市名。手機上若收攏壓到簡歷，先把簡歷往旁邊推開，收攏留在縣市名上方。PR：[#315](https://github.com/GAE265-Meowho/Meowho/pull/315)。
 - **虛擬飼養讀真實資料＋試養報告給中途看（渝茜 × Claude Code，分支 `feat/play-real-data`，審查中）**：`/cats/[id]/play` 讀這隻貓（`source.ts` 的 `loadPlayCat`）、喵戶（`usePlayData.ts`）、預算、最新 3D 房間、環境報告；玩完報告存 `meow_task_runs.game_report`，按鈕附給中途，對話串 `TaskProof` 顯示。**`0033_meow_play_report.sql` 尚未執行，須子哲確認**；執行前報告頁會顯示「沒有存成功」。細節在 `docs/modules/readiness.md`「虛擬飼養讀真實資料與試養報告給中途」。

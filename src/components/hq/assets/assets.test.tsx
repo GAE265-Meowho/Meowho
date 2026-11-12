@@ -26,7 +26,7 @@ describe("ClipList（UT 動作清單）", () => {
   it("列出動作庫全部動作：已有的可點，這個體型母體沒有的灰色不可點", () => {
     const pick = vi.fn();
     render(<ClipList available={["idle", "walk", "sleep"]} current="idle" onPick={pick} />);
-    expect(screen.getAllByRole("button")).toHaveLength(14);
+    expect(screen.getAllByRole("button")).toHaveLength(15);
     expect(screen.getByRole("button", { name: "待機" })).toHaveAttribute("aria-pressed", "true");
     const eat = screen.getByRole("button", { name: /撒嬌/ });
     expect(eat).toBeDisabled();

@@ -19,7 +19,7 @@
 ## 任務（tracer-bullet，每張可獨立 Demo）
 
 - #356 3D 刷牙、摸貓與照護圖示（世安 × Codex）：審查中。擬真刷牙已加入連續翻唇與刷動回饋，摸貓沿用成貓 GLB；待桌面 Lv.4、375px 雙指、實機與完整劇情驗收。
-
+- 站台標誌換成向量「門口貓頭款」並統一前後台（#361，子哲 × Claude Code，2026-11-11）：審查中；分支 `feat/361-door-cat-logo`。合併部署後要到 MeowHQ 設定選「門口貓頭款」（正式站目前存 `house`）。
 - WelfareLens 安全報告通知／佇列隔離設計（#326，Jerry0808 × Codex，2026-11-11）：PR #327 已整合最新 main，`0034` 通知文案依 `new.error_code` 產生；PGlite、完整測試與 build 通過，Draft PR 待組長 Review；禁止自行部署。佇列採 job container scope + scoped claim 的建議待批准，尚未實作。
 - 帶我回家地圖（清俊 × Cursor，2026-11-10）：審查中（新竹縣左下、台中右上、屏東在泰武右側、嘉義市不標東／西；台北基隆台南高雄重疊區名依面積縮小。**尚未建 Issue**）。分支 `cursor/adopt-home-map-5901`，PR #315。
 - WelfareLens 安全報告讀取 API＋PDF-first 評估頁（#273 C＋D，Jerry0808 × Codex）：進行中；沿用 Draft PR #277／`feat/273-env-report-view`。離線授權與 UI 測試已補；main 合併衝突已在 PR 分支解決；build 已 PASS；Preview 未登入 API/PDF/crop 拒絕驗收 PASS；Owner session 與 Supabase/Azure 設定核驗、手機顯示仍 BLOCKED。
@@ -113,6 +113,9 @@
 | 23-30 | 成貓母體脊椎拉直、加鬍鬚；貼圖三視角投影＋自然虎斑補紋 | admin-moderation | — | P2 | #365 | Tina × Claude Code | 完成（待上傳 Storage） |
 | 23-31 | 示範貓第一隻虎斑貓換新紋理、顯示 AI 三視角 | admin-moderation | 23-30 | P2 | #367 | Tina × Claude Code | 完成 |
 | 23-32 | 體型預覽成貓分頁套用第一隻虎斑貓紋理 | admin-moderation | 23-31 | P2 | #369 | Tina × Claude Code | 完成 |
+| 23-33 | 成貓理毛 v4：端坐、左右手輪流 | admin-moderation | 23-29 | P2 | #377 | Tina × Claude Code | 完成（待上傳 Storage） |
+| 23-34 | 幼貓母體四腳站直、左右對稱（右半身照左半身鏡像、前腳直立） | admin-moderation | — | P2 | #373 | Tina × Claude Code | 完成（#374） |
+| 23-35 | 成貓新增動作：休息（四腳朝天）belly_up | admin-moderation | 23-33 | P2 | #379 | Tina × Claude Code | 完成（待上傳 Storage） |
 | 23-15 | MeowHQ 登入頁依 Stitch 改版、瀏覽器標題改 MeoWho｜喵戶總部 | admin-moderation | — | P2 | #116 | Tina × Claude Code | 完成（#117 已合併） |
 | 23-14 | MeowHQ AI 三視角第二階段：worker 同時用三張照片上色；製作glb工作區選擇要產生的動作 | admin-moderation | 23-13 | P2 | 待建立 | — | 待辦 |
 | 23-16 | MeowHQ 3D 貓咪體型預覽新增大貓（大貓｜成貓｜幼貓三分頁、貓咪資訊）；大貓只做預覽 | admin-moderation | 23-13 | P2 | #302 | Tina × Claude Code | 完成（#305 已合併；肚子鼓包修正見 fix/302-large-cat-belly） |
