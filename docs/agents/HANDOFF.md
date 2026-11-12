@@ -1,9 +1,10 @@
 # HANDOFF — 接手的 agent 需要知道的事
 
 > 寫給「完全沒有上下文的下一個 agent」。只保留**現在仍然成立**的內容。
-> 最後更新：2026-11-12｜珮瑜 × Claude Code（#354 換水改 3D）；2026-11-11｜Tina × Claude Code（#373 幼貓四腳對齊）；Jerry0808 × Codex（PR #327 合併衝突與通知文案修正）；清俊 × Cursor（帶我回家地圖，PR #315）；渝茜 × Claude Code（虛擬飼養讀真實資料）；Tina × Claude Code（#336）
+> 最後更新：2026-11-12｜珮瑜 × Claude Code（#354 換水、餵貓改 3D）；2026-11-11｜Tina × Claude Code（#373 幼貓四腳對齊）；Jerry0808 × Codex（PR #327 合併衝突與通知文案修正）；清俊 × Cursor（帶我回家地圖，PR #315）；渝茜 × Claude Code（虛擬飼養讀真實資料）；Tina × Claude Code（#336）
 
 ## 目前狀態
+- **虛擬飼養餵貓改 3D（#354，珮瑜 × Claude Code，分支 `feat/354-care-feed-3d`，進行中、還沒開 PR）**：這個分支**疊在換水分支 `feat/354-care-water-3d`（PR #391）上面**，#391 合併前開 PR 會連換水一起出現在 diff。餵貓彈窗 `src/components/play/mini3d/FeedGame3D.tsx`：乾飼料袋按住倒顆粒、主食罐（一坨濕食）和湯罐（液體）各一罐；規則 `src/lib/play/mini3d/feed-rules.ts`。`PlayGame.tsx` 改成餵貓、換水的彈窗關掉後貓才走到碗邊，**這一段還沒在真正的房間流程看過**。第 1 份還剩鏟屎、逗貓玩具確認、上方狀態列。細節見 `docs/modules/readiness.md`「B. 小遊戲改 3D」與 `docs/daily/2026-11-12/1514-珮瑜-354.md`。
 - **虛擬飼養換水改 3D（#354，珮瑜 × Claude Code，分支 `feat/354-care-water-3d`，進行中、還沒開 PR）**：換水小遊戲改成彈窗裡的第一視角開水龍頭（`src/components/play/mini3d/WaterRefillGame3D.tsx`）：前三格自動播，之後按住按鈕開水。兩隻手（`WaterHands.tsx`，模型 `public/play/water_hand_*.glb`）、水龍頭（`WaterTap.tsx`）、時間軸（`src/lib/play/mini3d/refill-timeline.ts`）。原本同分支的拖水壺版 `WaterGame3D.tsx` 已刪（珮瑜決定只留水龍頭版）；`mini3d/useScenePointer.ts` 目前沒有人用。`src/app/tmp-props/`、`src/app/tmp-refill/` 是暫時的預覽頁，不提交。只在 `/tmp-refill?game` 試玩過，還沒從 `/cats/[id]/play` 走進來、沒測手機。3D 畫面在背景分頁不會更新，看起來像卡住是正常的。做法與待辦見 `docs/modules/readiness.md`「B. 小遊戲改 3D」與 `docs/daily/2026-11-12/1427-珮瑜-354.md`。
 - **站台標誌（#361，子哲 × Claude Code）**：預設改為向量「門口貓頭款」（`door`），舊三款保留；前台與 MeowHQ 都讀同一個站台標誌（`useSiteLogo()`）。正式站 `meow_site_settings.logo` 目前是 `house`，**合併部署後要在 MeowHQ「網站外觀 Logo」選門口貓頭款**，前台才會換。favicon／網頁圖示在 `src/app/`。
 - **找 3D 貓咪母體檔案先看 `docs/modules/admin-moderation.md`「3D 貓咪母體模型位置」**：repo、Storage、Tina 電腦製作檔與腳本的對照表。

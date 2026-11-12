@@ -4,6 +4,7 @@
 import dynamic from "next/dynamic";
 import { Mini3DModal } from "../mini3d/Mini3DModal";
 import { useEffect, useRef } from "react";
+import { feedPortion } from "@/lib/play/mini3d/feed-rules";
 import { startMini, type MiniCtx, type MiniId } from "./minis";
 import s from "./catgame.module.css";
 
@@ -24,14 +25,21 @@ function renameCat(root: HTMLElement, name: string): () => void {
 type Props = { id: MiniId; ctx: MiniCtx; catName: string; onDone: (r: unknown) => void };
 const loading = () => <p role="status">3D 遊戲載入中…</p>;
 // 換水：第一視角開水龍頭
+// 餵貓：第一視角倒乾飼料、開主食罐和湯罐
+const FeedGame3D = dynamic(() => import("../mini3d/FeedGame3D").then(m => m.FeedGame3D), { ssr: false, loading });
 const WaterRefillGame3D = dynamic(() => import("../mini3d/WaterRefillGame3D").then(m => m.WaterRefillGame3D), { ssr: false, loading });
 
 export function CatgameMini(props: Props) {
-  const { id, catName, onDone } = props;
+  const { id, ctx, catName, onDone } = props;
   // 已改成彈窗 3D 特寫的小遊戲；其他照舊用原版 2D（LegacyMini）
   if (id === "water") {
     return <Mini3DModal title={"幫" + catName + "換水"} onCancel={() => onDone(null)}>
       <WaterRefillGame3D onDone={onDone} />
+    </Mini3DModal>;
+  }
+  if (id === "feed") {
+    return <Mini3DModal title={"餵" + catName + "吃飯"} onCancel={() => onDone(null)}>
+      <FeedGame3D portion={feedPortion(ctx)} onDone={onDone} />
     </Mini3DModal>;
   }
   return <LegacyMini {...props} />;

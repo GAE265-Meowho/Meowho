@@ -97,6 +97,9 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
   const top = useRef<HTMLHeadingElement>(null);
   /** 在家的時光：正在玩哪一個動作的小遊戲 */
   const [careAct, setCareAct] = useState<CareAct | null>(null);
+  // 這個節點裡餵過貓、換過水幾次：每做完一次貓就走到碗邊一次；換節點歸零
+  const [served, setServed] = useState(0);
+  useEffect(() => { setServed(0); }, [state.nodeIndex]);
   /** 手機：把下方的劇情卡收起來，看整個 3D 房間 */
   const [peek, setPeek] = useState(false);
 
@@ -183,11 +186,12 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
   const spots = useMemo(() => placed.map(p => ({ id: p.key.split(":")[0], x: p.x, z: p.z, widthM: p.widthM, depthM: p.depthM })), [placed]);
   // 小遊戲時：躲床底＝躲起來、鏟屎＝走到貓砂盆、陪玩＝在房間裡跑；其他照原版場景的貓姿勢
   const miniId = cur?.kind === "mini" ? cur.mini : null;
-  const careAction: CatAction | null = careAct === "scoop" ? "litter" : careAct === "play" ? "explore" : careAct === "feed" ? "eat" : null;
+  // 餵貓、換水是彈窗裡的特寫：彈窗關掉（做完）之後貓才走到碗邊；吃、喝的動作由第 4 份做，先走過去
+  const careAction: CatAction | null = careAct === "scoop" ? "litter" : careAct === "play" ? "explore" : !careAct && served ? "eat" : null;
   const action: CatAction | null = state.step !== "node" ? "idle"
     : careAction ? careAction
     : miniId === "scoop" ? "litter" : POSE_ACTION[state.scene.cat];
-  const sceneKey = state.step === "node" ? `${state.nodeIndex}:${state.scene.bg}:${state.scene.time}:${state.scene.cat}:${miniId}:${careAct}` : state.step;
+  const sceneKey = state.step === "node" ? `${state.nodeIndex}:${state.scene.bg}:${state.scene.time}:${state.scene.cat}:${miniId}:${careAct}:${served}` : state.step;
   const goal = useMemo<(RoomClick & { at: number }) | null>(() => {
     if (state.step !== "node" || !action) return null;
     const g = goalFor(ROOM_SCENE, action, places, spots);
@@ -443,7 +447,12 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
       )}
       {state.step === "node" && cur?.kind === "home" && careAct && careAct !== "play" && (() => {
         const mini = CARE_ACTS.find(a => a.act === careAct)!.mini!;
-        const done = (r: unknown) => { if (r === null) { setCareAct(null); return; } dispatch({ type: "care", act: careAct, good: careGood(careAct, r) }); setCareAct(null); };
+        const done = (r: unknown) => {
+          if (r === null) { setCareAct(null); return; }
+          dispatch({ type: "care", act: careAct, good: careGood(careAct, r) });
+          if (careAct === "feed" || careAct === "water") setServed(n => n + 1);
+          setCareAct(null);
+        };
         return <CatgameMini key={`care:${careAct}:${state.life.care.rounds}`} id={mini} ctx={miniCtx} catName={catName} onDone={done} />;
       })()}
 
