@@ -11,6 +11,10 @@ describe("idleClips", () => {
     expect(idleClips(ALL).sort()).toEqual(["cuddle", "drink", "eat", "idle", "sit", "sleep", "toilet"]);
     expect(idleClips(["walk"])).toEqual([]);
   });
+
+  it("母體有四腳朝天（belly_up）時也會排進原地動作（#379）", () => {
+    expect(idleClips(["idle", "belly_up"])).toContain("belly_up");
+  });
 });
 
 describe("nextIdle", () => {
