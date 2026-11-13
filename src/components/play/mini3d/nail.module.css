@@ -1,0 +1,56 @@
+/* 虛擬飼養第 2 份：剪指甲 2D 特寫（NailGame2D.tsx）。毛色由 data-coat 切換，顏色都用 globals.css 的 token。 */
+.arena {
+  --fur: var(--coat-tabby); --fur-deep: var(--coat-tabby-deep); --pad: var(--paw-pad); --patch: transparent; --face-ink: var(--ink);
+  display: block;
+  width: 100%;
+  max-width: calc(52dvh * 320 / 300);
+  aspect-ratio: 320 / 300;
+  margin: .65rem auto;
+  border-radius: var(--r-lg);
+  background: var(--paper);
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  cursor: none;
+}
+.arena[data-coat="orange"] { --fur: var(--coat-orange); --fur-deep: var(--coat-orange-deep); }
+.arena[data-coat="black"] { --fur: var(--coat-black); --fur-deep: var(--coat-black-deep); --pad: var(--paw-pad-dark); --face-ink: var(--claw); }
+.arena[data-coat="white"] { --fur: var(--coat-white); --fur-deep: var(--coat-white-deep); }
+.arena[data-coat="calico"] { --fur: var(--coat-white); --fur-deep: var(--coat-white-deep); --patch: var(--coat-orange); }
+
+.fur { fill: var(--fur); stroke: var(--fur-deep); stroke-width: 2.5; stroke-linejoin: round; }
+.stripe { fill: none; stroke: var(--fur-deep); stroke-width: 5; stroke-linecap: round; opacity: .55; }
+.arena[data-coat="white"] .stripe, .arena[data-coat="black"] .stripe, .arena[data-coat="calico"] .stripe { display: none; }
+.patch { fill: var(--patch); }
+.patchDark { fill: var(--coat-black); }
+.arena:not([data-coat="calico"]) .patchDark { display: none; }
+.pad { fill: var(--pad); stroke: var(--fur-deep); stroke-width: 1.5; }
+.toe { fill: var(--pad); stroke: var(--fur-deep); stroke-width: 1.5; cursor: pointer; }
+.toeHeld { stroke: var(--caramel); stroke-width: 4; }
+.toeDone { opacity: .45; }
+.claw { fill: var(--claw); stroke: var(--ink-soft); stroke-width: 1.4; stroke-linejoin: round; }
+.quick { fill: var(--claw-quick); }
+.blood { fill: var(--blood); }
+.drip { fill: var(--blood); animation: nailDrip 1.1s ease-in infinite; }
+.blade { stroke: var(--ink); stroke-width: 3.5; stroke-linecap: round; }
+.clipper { fill: var(--coat-silver); stroke: var(--coat-silver-deep); stroke-width: 2; stroke-linejoin: round; }
+.aim { stroke: var(--blood); stroke-width: 2; stroke-dasharray: 3 3; }
+.clipperGroup { pointer-events: none; }
+.face { pointer-events: none; }
+.line { fill: none; stroke: var(--face-ink); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+.eye { fill: var(--face-ink); }
+.mouth { fill: var(--blood); stroke: var(--ink); stroke-width: 2; }
+.fang { fill: var(--claw); }
+/* 訊息固定留兩行：彈窗是垂直置中的，訊息換行會讓貓掌上下跳，手指就按不準 */
+.message { min-height: 3.4em; align-items: flex-start; }
+.paw { transition: transform .25s ease; }
+.pawPulled { transform: translateY(70px); }
+.pawTense { animation: nailShake .16s linear infinite; }
+
+@keyframes nailDrip { from { transform: translateY(0); opacity: 1; } to { transform: translateY(26px); opacity: 0; } }
+@keyframes nailShake { 0%, 100% { transform: translateX(-1.5px); } 50% { transform: translateX(1.5px); } }
+@media (prefers-reduced-motion: reduce) {
+  .drip, .pawTense { animation: none; }
+  .paw { transition: none; }
+}
