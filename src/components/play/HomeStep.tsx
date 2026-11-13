@@ -3,6 +3,7 @@
 // 不做房間物品互動：貓在背景，動作都是按鈕加小遊戲。規則與數值在 lib/play/care.ts。
 import CatButton from "@/components/ui/CatButton";
 import { CARE_ACTS, type CareAct } from "@/lib/play/care";
+import { CareIcon } from "./CareIcon";
 import { NEEDS } from "@/lib/play/needs";
 import type { PlayState } from "@/lib/play/flow";
 import s from "./play.module.css";
@@ -19,7 +20,7 @@ export function CareBar({ state, canPlay, onAct }: { state: PlayState; canPlay: 
       {NEEDS.filter(n => canPlay || n.act !== "play").map(n => {
         const done = state.homeDone.includes(n.act);
         const label = CARE_ACTS.find(a => a.act === n.act)?.label ?? n.label;
-        return <button key={n.act} type="button" className={s.careIcon} data-done={done ? "true" : undefined} aria-label={`${label}${done ? "（已做，可再做）" : ""}`} title={label} onClick={() => onAct(n.act)}>{n.emoji}</button>;
+        return <button key={n.act} type="button" className={s.careIcon} data-done={done ? "true" : undefined} aria-label={`${label}${done ? "（已做，可再做）" : ""}`} title={label} onClick={() => onAct(n.act)}><CareIcon id={n.act} /></button>;
       })}
     </div>
   );

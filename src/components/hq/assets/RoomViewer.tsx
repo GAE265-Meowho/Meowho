@@ -65,7 +65,7 @@ export interface RoomWand { toy: SceneItem; onCatch: (caught: boolean) => void }
  * items：要擺進房間的虛擬用品（外出籠、餐碗、貓砂盆），位置由 placeScanItems 算在地板上，換了清單會即時更新
  * story：虛擬飼養的貓配合劇情（action＝null 躲起來、carrier 走到外出籠、sleep 跳上床…），換了（at 不同）就執行
  * wand：3D 逗貓。給了就停用拖曳轉頭，玩具跟著滑鼠／手指在地板上移動，貓追著撲；每次撲完呼叫 onCatch(是否抓到)
- * bubble：貓頭頂的小對話框（表情符號），跟著貓在畫面上移動
+ * bubble：貓頭頂的小對話框（SVG 圖示），跟著貓在畫面上移動
  * controls：false 時不顯示拍攝點與貓咪動作按鈕（虛擬飼養用；拖曳、WASD、點地板仍可用）
  * noCat：只看房間、不放貓（前台我的 3D 房間預覽；貓等進了領養任務才出現）
  * overlay：前台預覽版面：前／後／左／右／上五個固定視角疊在畫面上；電腦用 WASD 走、手機用左下角搖桿；
@@ -74,8 +74,8 @@ export interface RoomWand { toy: SceneItem; onCatch: (caught: boolean) => void }
 export default function RoomViewer({ base, cat, items, controls = true, story, wand, bubble, bubbleInset = 0, lookKey, noCat = false, overlay = false }: {
   base: string; cat?: { baseUrl: string; albedoUrl: string } | null; items?: readonly SceneItem[]; controls?: boolean; noCat?: boolean; overlay?: boolean;
   story?: { action: CatAction | null; at: number } | null; wand?: RoomWand | null;
-  /** 貓頭頂的小對話框（表情符號）；null＝不顯示 */
-  bubble?: string | null;
+  /** 貓頭頂的小對話框（SVG 圖示）；null＝不顯示 */
+  bubble?: React.ReactNode;
   /** 畫面下方被劇情卡蓋住的比例（0～1）；對話框不會畫到那裡，貓在卡片後面時貼在卡片上緣 */
   bubbleInset?: number;
   /** 這個值一變，鏡頭就原地轉向貓（null／不變不轉） */
@@ -119,10 +119,10 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
   const orbit = useRef<{ enabled: boolean } | null>(null);
   const wandOn = useRef(false);
   const bubbleEl = useRef<HTMLDivElement>(null);
-  const bubbleText = useRef<string | null>(null);
+  const hasBubble = useRef(false);
   const insetRef = useRef(bubbleInset);
   insetRef.current = bubbleInset;
-  useEffect(() => { bubbleText.current = bubble ?? null; if (bubbleEl.current) bubbleEl.current.textContent = bubble ?? ""; }, [bubble]);
+  useEffect(() => { hasBubble.current = Boolean(bubble); }, [bubble]);
   const onCatch = useRef<RoomWand["onCatch"] | null>(null);
   onCatch.current = wand?.onCatch ?? null;
 
@@ -309,7 +309,7 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
         roomWorld?.update(dt);
         const be = bubbleEl.current;
         if (be) {
-          if (bubbleText.current && roomWorld?.catHead(head)) {
+          if (hasBubble.current && roomWorld?.catHead(head)) {
             head.project(active.camera);
             // 貓在畫面外或鏡頭後面就不顯示（框只跟著貓，不貼邊）；框畫到被劇情卡蓋住的區域時往上推一點
             const onScreen = head.z < 1 && Math.abs(head.x) < 0.95 && head.y > -0.95 && head.y < 0.9;
@@ -485,7 +485,7 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
             </div>
           )}
         </div>}
-        <div ref={bubbleEl} className="hq-roomviewer-bubble" aria-hidden="true" />
+        <div ref={bubbleEl} className="hq-roomviewer-bubble" aria-hidden="true">{bubble}</div>
         {overlay && status === "ready" && <>
           <div className="hq-roomviewer-views" role="group" aria-label="切換視角">
             {VIEW_BUTTONS.map(([name, label]) => (
