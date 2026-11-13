@@ -1,0 +1,89 @@
+/* 虛擬飼養的劇情對話框（#354）：貼底、約畫面三分之一，露出貓和房間。v2 token；字級用 play.module.css 的 --play-fs-*（帶 fallback）。
+   參考準則：台詞由玩家自己按才換下一句、說話的人用名牌＋頭像（不只靠顏色）、實心底板、行高 1.5 以上、靠左不置中、觸控 44px 以上。 */
+.box {
+  --pad: 16px;
+  position: relative; display: flex; flex-direction: column; gap: 10px; min-width: 0;
+  max-height: 34dvh; overflow-y: auto; overscroll-behavior: contain;
+  padding: 10px var(--pad) 14px; border-radius: var(--radius-lg); border: 2px solid var(--line);
+  background: var(--card); box-shadow: var(--shadow-lift);
+  color: var(--ink); font-size: var(--play-fs-body, 17px); line-height: var(--play-lh, 1.7);
+}
+/* 選項、小叮嚀、紀錄、健康聲明：內容比較多，可以長到底部卡片的上限（上面留給「看看房間」） */
+.box[data-tall="true"] { max-height: calc(var(--sheet-max, 56dvh) - 60px); }
+.box[data-tap="true"] { cursor: pointer; -webkit-tap-highlight-color: transparent; }
+
+/* 上緣：節點進度（貓掌）＋貓齡小標 */
+.head { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 24px; }
+.paws { display: inline-flex; align-items: center; gap: 4px; }
+.age { color: var(--ink-soft); font-size: var(--play-fs-tag, 14px); font-weight: 700; line-height: 1.4; white-space: nowrap; }
+
+/* 台詞 */
+.live { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.beat { display: flex; flex-direction: column; gap: 10px; animation: beatIn 0.22s ease-out; }
+.say { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.who { margin: 0; display: flex; align-items: center; gap: 10px; min-width: 0; }
+.name {
+  padding: 2px 14px; border-radius: 999px; background: var(--yellow); color: var(--ink);
+  font-size: var(--play-fs-sub, 15px); font-weight: 700; line-height: 1.6; overflow-wrap: anywhere;
+}
+.text { margin: 0; color: var(--ink); overflow-wrap: anywhere; }
+.say .text { min-height: calc(2em * var(--play-lh, 1.7)); }
+/* 旁白：沒有頭像，字色較淡，左邊一條虛線 */
+.say[data-narrator="true"] .text { color: var(--ink-soft); padding-left: 12px; border-left: 3px dotted var(--line); }
+
+/* 健康聲明：一般內文字級，緊跟在那句台詞下面 */
+.health {
+  margin: 0; display: flex; gap: 8px; align-items: flex-start; padding: 10px 12px; border-radius: var(--radius);
+  background: var(--mint-soft); color: var(--ink);
+}
+.health svg { margin-top: 0.25em; }
+
+/* 下緣：這張卡第幾句（小圓點）＋繼續 */
+.foot { display: flex; align-items: center; justify-content: flex-end; gap: 14px; flex-wrap: wrap; }
+.pips { display: inline-flex; gap: 5px; margin-right: auto; }
+.pips i { width: 8px; height: 8px; border-radius: 50%; background: var(--line); }
+.pips i[data-on="true"] { background: var(--caramel); }
+
+/* 選項：整列的大按鈕 */
+.options { display: grid; gap: 8px; }
+.option {
+  display: flex; align-items: center; gap: 10px; width: 100%; min-height: 52px; padding: 8px 16px;
+  border: 2px solid var(--line); border-radius: var(--radius); background: var(--paper); color: var(--ink);
+  font: inherit; font-weight: 700; line-height: 1.5; text-align: left; cursor: pointer; box-shadow: 0 3px 0 var(--line);
+  transition: transform 0.1s, border-color 0.1s;
+}
+.option svg { flex: 0 0 auto; }
+.option span { min-width: 0; overflow-wrap: anywhere; }
+.option:hover { border-color: var(--orange); background: var(--orange-soft); }
+.option:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--line); }
+.option:focus-visible { outline: 3px solid var(--orange); outline-offset: 2px; }
+
+/* 小叮嚀、紀錄 */
+.title { margin: 0; display: flex; align-items: center; gap: 8px; font-size: var(--play-fs-h, 20px); line-height: 1.45; letter-spacing: 0.04em; color: var(--ink); }
+.tipTag {
+  margin: 0; align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; padding: 2px 14px 2px 10px; border-radius: 999px;
+  background: var(--yellow-soft); color: var(--ink); font-size: var(--play-fs-sub, 15px); font-weight: 700;
+}
+.log { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; }
+.log li { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border-radius: var(--radius); background: var(--paper); }
+.logIcon { display: grid; place-items: center; width: 36px; height: 36px; flex: 0 0 36px; border-radius: 50%; background: var(--yellow-soft); color: var(--ink); }
+.log li[data-kind="good"] .logIcon { background: var(--mint-soft); }
+.log li[data-kind="think"] .logIcon { background: var(--pink-soft); }
+.logBody { display: grid; gap: 0; min-width: 0; }
+.logBody b { font-size: var(--play-fs-sub, 15px); color: var(--ink); }
+.logBody span { color: var(--ink); overflow-wrap: anywhere; }
+
+@keyframes beatIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .beat { animation: none; }
+  .option { transition: none; }
+  .option:active { transform: none; }
+}
+
+/* 桌機：留白大一點 */
+@media (min-width: 900px) {
+  .box { --pad: 24px; padding-top: 14px; padding-bottom: 18px; gap: 12px; }
+  .options { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+/* 橫放的手機：畫面很矮，三分之一放不下一句話 */
+@media (max-height: 520px) { .box { max-height: 52dvh; } }
