@@ -23,7 +23,7 @@ import { nodeLabel } from "@/lib/play/timeline";
 import { catBubble } from "@/lib/play/needs";
 import { StatusMeters } from "./StatusMeters";
 import type { PlayCatSource } from "@/lib/play/source";
-import { clampShop, defaultShop, money, playFoods, shopCost, type PlayShop, type ShopPick } from "@/lib/play/costs";
+import { clampShop, defaultShop, foodStage, money, playFoods, shopCost, type PlayShop, type ShopPick } from "@/lib/play/costs";
 import { playShop, type PlayCatalogItem } from "@/lib/play/catalog";
 import { initialPlay, playReducer, type PlayAction } from "@/lib/play/flow";
 import { homeWord } from "@/lib/play/furniture";
@@ -145,7 +145,7 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
   const places = useMemo(() => ({ hide: homeWord("躲藏處", labels) ?? "角落", high: homeWord("高處", labels) ?? "", sofa: "沙發" }), [labels]);
   const node = STORY[state.nodeIndex];
   const cur = state.cur;
-  const shop = shopCost(pick, "kitten", backShop);
+  const shop = shopCost(pick, foodStage(startMonths), backShop);
   useEffect(() => { setPick(p => clampShop(p, backShop)); }, [backShop]);
   const shopMissing = [...(pick.budget ? [] : ["每月預算"]), ...shop.missing];
 
@@ -309,11 +309,11 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
     const r = room;
     (async () => {
       const lab = r.inventory.labels;
-      const foods = playFoods("kitten").filter(f => f.canBuy);
+      const foods = playFoods(foodStage(startMonths)).filter(f => f.canBuy);
       const qp: ShopPick = { ...defaultShop(), dryId: foods.find(f => f.product.category === "dry")?.product.id ?? null, wetId: foods.find(f => f.product.category === "wet")?.product.id ?? null,
         budget: extras?.budget ?? 5000 };
       setPick(qp);
-      const qs = shopCost(qp, "kitten", backShop);
+      const qs = shopCost(qp, foodStage(startMonths), backShop);
       if (r.kind === "dollhouse") {
         const list: PlacedHouseholdItem[] = [];
         for (const it of playItems) {
@@ -485,7 +485,7 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
 
       {state.step === "shop" && (
         <>
-          <ShopStep pick={pick} shop={backShop} onChange={setPick} />
+          <ShopStep pick={pick} shop={backShop} onChange={setPick} stage={foodStage(startMonths)} catName={catName} />
           {shopMissing.length > 0 && <p className={s.missing}>還缺：{shopMissing.join("、")}</p>}
           <div className={s.actions}>
             <CatButton disabled={shopMissing.length > 0} onClick={() => dispatch({ type: "next" })}>下一步：擺放用品</CatButton>
