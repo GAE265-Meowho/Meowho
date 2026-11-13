@@ -115,14 +115,3 @@ export const NAIL_TEXT: Record<Exclude<NailEvent, null>, string> = {
   ran: "牠掙脫跑走了。",
   done: "全部剪好了！",
 };
-
-/** 貓掌毛色：貓的花色文字（meow_cats.coat，自由填寫）對到五種常見毛色；對不到用虎斑 */
-export type PawCoat = "orange" | "black" | "white" | "tabby" | "calico";
-export function pawCoat(coat: string | null | undefined): PawCoat {
-  const c = coat ?? "";
-  if (/三花|玳瑁|三色/.test(c)) return "calico";
-  if (/橘|橙|黃|茶/.test(c)) return "orange";
-  if (/黑|賓士|乳牛/.test(c)) return "black";
-  if (/白/.test(c)) return "white";
-  return "tabby";
-}

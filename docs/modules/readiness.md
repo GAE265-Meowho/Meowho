@@ -172,10 +172,11 @@
   - 道具：`mini3d/ScoopProps.tsx`（貓砂盆四款 `LitterBox`、`scoop_shovel`、`scoop_bag`、`scoop_poop`、`scoop_clump`，都是程式畫）；場景 `mini3d/ScoopScene.tsx`，拖曳用 `mini3d/useScenePointer.ts`。
   - **還沒接的**：採買選的貓砂盆款式沒有帶進小遊戲（一律開放式）；房間裡的貓砂盆仍是原本那一個模型，四款只在彈窗裡；貓上完廁所砂盆多一條大便沒做。
   - 還沒做：手機實測、甩的靈敏度調整、音效。細節見 `docs/daily/2026-11-12/2130-珮瑜-354.md`。
-- 🚧 審查中（2026-11-13，Tina × Claude Code，#354，分支 `feat/354-care-nail`）**剪指甲改 2D 特寫（第 2 份）**：`CatgameMini.tsx` 的剪指甲改開彈窗，裡面是一隻貓掌的 2D 特寫（`mini3d/NailGame2D.tsx`，SVG，不用 WebGL）。
-  - 玩法：一根手指按住肉球，那一根的指甲才伸出來（放開就縮回）；另一根手指拖指甲刀，放開＝剪。剪在白色尖端算剛好，太淺只算一半，剪到粉紅色血線會流血、角落的貓臉哈氣。電腦：點一下肉球固定（再點一下放開）或按住空白鍵，滑鼠對準後按一下。
+- 🚧 審查中（2026-11-13，Tina × Claude Code，#354，分支 `feat/354-care-nail`）**剪指甲改照片特寫、雙手操作（第 2 份）**：`CatgameMini.tsx` 的剪指甲改開彈窗（`mini3d/NailGame2D.tsx`，不用 WebGL）。底圖是真實感的小貓腳掌照片（AI 合成，`public/play/nail/paw-tabby.webp`），指甲、血、指甲刀是疊在照片上的 SVG。
+  - 玩法：一根手指按住趾肉球，那一根的指甲才伸出來（放開就縮回）；另一根手指拖指甲刀，放開＝剪。剪在白色尖端算剛好，太淺只算一半，剪到粉紅色血線會流血（血滴、畫面泛紅、尖叫與哈氣音效）。電腦：點一下肉球固定（再點一下放開）或按住空白鍵，滑鼠對準後按一下。
   - 規則：`lib/play/mini3d/nail-rules.ts`（`nailPress`、`nailClip`、`nailTick`、`nailResult`，有測試）；回傳 `{ score, bleed, bitten, ran }`。信任低、壓力高時不耐煩升得快（`nailDifficulty`），到 55 會抽腳，抽腳超過 3 次或不耐煩到 100 就咬人或跑掉。
-  - 毛色：`pawCoat()` 把 `meow_cats.coat` 對到橘、黑、白、虎斑、三花五種，顏色是 `globals.css` 的 token（`--coat-*`、`--paw-pad`、`--claw`、`--blood`）。`MiniCtx.coat` 由 `PlayGame.tsx` 帶入。
+  - 對位：`lib/play/mini3d/nail-paw.ts` 記四顆趾肉球、指甲根部與方向（viewBox 320×320）；**換照片要重量這張表**，同一張圖換解析度則照 `paw-tabby.license.txt` 的裁切比例就不用重量。
+  - 目前只有虎斑一張，所有貓共用（Tina 2026-11-13 決定）；底圖是 200px 預覽圖放大的暫用版，等 Tina 提供原圖。
   - 還沒做：真實 `/cats/[id]/play` 流程與實體手機實測；外出籠、貓抓板、穿模修正。細節見 `docs/daily/2026-11-13/1217-Tina-354.md`。
 
 ## 資料表（Supabase）

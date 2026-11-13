@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { careGood } from "@/lib/play/care";
-import { clawScore, cutKind, NAIL_COUNT, NAIL_MAX_PULLS, nailClip, nailCutCount, nailDifficulty, nailPress, nailRelease, nailResult, nailStop, nailTick, newNail, pawCoat, type NailState } from "./nail-rules";
+import { clawScore, cutKind, NAIL_COUNT, NAIL_MAX_PULLS, nailClip, nailCutCount, nailDifficulty, nailPress, nailRelease, nailResult, nailStop, nailTick, newNail, type NailState } from "./nail-rules";
 
 const calm = { trust: 80, stress: 20 }, tense = { trust: 15, stress: 85 };
 /** 按住一根、剪在 depth */
@@ -99,14 +99,5 @@ describe("剪指甲規則", () => {
     expect(nailResult(s).score).toBe(25);
     expect(nailPress(s, 1).event).toBeNull();
     expect(nailTick(s, 1, calm).state).toBe(s);
-  });
-
-  it("貓的花色對到五種貓掌毛色，對不到用虎斑", () => {
-    expect(pawCoat("橘白")).toBe("orange");
-    expect(pawCoat("黑貓")).toBe("black");
-    expect(pawCoat("白底虎斑")).toBe("white");
-    expect(pawCoat("三花")).toBe("calico");
-    expect(pawCoat("虎斑")).toBe("tabby");
-    expect(pawCoat(null)).toBe("tabby");
   });
 });

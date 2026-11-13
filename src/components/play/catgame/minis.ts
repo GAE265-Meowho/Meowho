@@ -13,8 +13,6 @@ export interface MiniCtx {
   /** 幾個月大 */
   age: number;
   cat: { body: number; trust: number; stress: number; /** 虎斑才畫條紋；沒給＝畫 */ tabby?: boolean };
-  /** 這隻貓的花色（meow_cats.coat），剪指甲特寫的貓掌毛色用 */
-  coat?: string | null;
   /** 以下選填，沒給就用原版預設：結紮、刷牙訓練階段（0~5）、牙齒狀況、指甲長度（0~100）、剪指甲訓練階段、外出籠訓練階段 */
   touchFav?: "head" | "chin" | "back" | null;
   neutered?: boolean; brushLevel?: number; dental?: number; nails?: number; nailLevel?: number; carrierLevel?: number;
