@@ -65,6 +65,27 @@ describe("虛擬體驗元件管理｜音效", () => {
     expect(screen.getByText("這個分類還沒有上傳的音檔。")).toBeInTheDocument();
   });
 
+  it("可以依「誰呼叫」篩選，並和分類、只看已上傳一起用（#399）", async () => {
+    const SoundsTab = await load();
+    render(<SoundsTab />);
+    await screen.findByText("已上傳 11 / 35 個；目前顯示 35 個");
+    const who = screen.getByLabelText("誰呼叫");
+    fireEvent.change(who, { target: { value: "Tina" } });
+    expect(screen.getByText("已上傳 11 / 35 個；目前顯示 10 個")).toBeInTheDocument();
+    expect(screen.getByText("sfx_clip")).toBeInTheDocument();
+    expect(screen.queryByText("sfx_yowl")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByLabelText("只看已上傳"));
+    expect(screen.getByText("已上傳 11 / 35 個；目前顯示 2 個")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "逗貓" }));
+    expect(screen.getByText("沒有符合條件的音效。")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "全部" }));
+    fireEvent.click(screen.getByLabelText("只看已上傳"));
+    fireEvent.change(who, { target: { value: "自動切換" } });
+    expect(screen.getByText("已上傳 11 / 35 個；目前顯示 5 個")).toBeInTheDocument();
+    fireEvent.change(who, { target: { value: "all" } });
+    expect(screen.getByText("已上傳 11 / 35 個；目前顯示 35 個")).toBeInTheDocument();
+  });
+
   it("新增音效：選音效、挑檔案，顯示上傳後的檔名，送出後清單更新", async () => {
     const SoundsTab = await load();
     render(<SoundsTab />);

@@ -90,9 +90,19 @@ export const SOUND_KIND_LABEL: Record<SoundKind, string> = {
 /** 第幾份是誰做（docs/play-tasks/00-總表.md） */
 export const PART_OWNER: Record<Sound["part"][number], string> = { 1: "珮瑜", 2: "Tina", 3: "世安", 4: "Tina", 5: "渝茜", 6: "子哲" };
 
+/** 背景音樂不用誰呼叫，依場景自動切換 */
+export const AUTO_CALLER = "自動切換";
+
 /** 「第 2 份（Tina）、第 5 份（渝茜）」；背景音樂自動切換 */
 export const partLabel = (id: SoundId) =>
-  id.startsWith("bgm_") ? "自動切換" : SOUNDS[id].part.map(n => `第 ${n} 份（${PART_OWNER[n]}）`).join("、");
+  id.startsWith("bgm_") ? AUTO_CALLER : SOUNDS[id].part.map(n => `第 ${n} 份（${PART_OWNER[n]}）`).join("、");
+
+/** 這個聲音由誰呼叫（組員名字，不重複）；背景音樂是「自動切換」。MeowHQ 音效分頁「誰呼叫」篩選用（#399） */
+export const callersOf = (id: SoundId): string[] =>
+  id.startsWith("bgm_") ? [AUTO_CALLER] : [...new Set(SOUNDS[id].part.map(n => PART_OWNER[n]))];
+
+/** 「誰呼叫」的篩選選項：照第 1～5 份的順序列出組員，最後是「自動切換」 */
+export const CALLER_OPTIONS: string[] = [...new Set(([1, 2, 3, 4, 5] as const).map(n => PART_OWNER[n])), AUTO_CALLER];
 
 /** 授權檔網址（和音檔放在一起） */
 export const licenseSrc = (id: SoundId, base = SUPABASE_URL) => {
