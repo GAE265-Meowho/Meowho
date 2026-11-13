@@ -101,6 +101,10 @@ export const HQ_PAGE_META_PATHS = {
     "src/components/hq/assets/itemDrag.ts",
     "src/lib/hq/items",
   ],
+  "assets/sounds": [
+    "src/components/hq/assets/SoundsTab.tsx",
+    "src/lib/play/audio.ts",
+  ],
   "assets/others": [
     "src/components/hq/assets/PlannedTab.tsx",
   ],
@@ -137,6 +141,7 @@ const ASSET_TABS = [
   "rooms-floorplan",
   "food",
   "items",
+  "sounds",
   "others",
   "experience",
 ] as const;

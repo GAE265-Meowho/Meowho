@@ -19,6 +19,8 @@ export const ASSET_SECTIONS = [
   { value: "rooms-floorplan", label: "平面圖轉換", parent: "rooms" },
   { value: "food", label: "飼料" },
   { value: "items", label: "生活用品" },
+  // 音效（#393）：虛擬飼養的背景音樂與音效
+  { value: "sounds", label: "音效" },
   { value: "others", label: "其他" },
   // 虛擬體驗（#150）：把上面做好的貓和室內空間放在一起互動
   { value: "experience", label: "虛擬體驗" },

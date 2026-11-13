@@ -1,0 +1,124 @@
+.stage {
+  position: relative;
+  width: min(100%, 38dvh, 24rem);
+  aspect-ratio: 3 / 4;
+  margin: .65rem auto;
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  background: var(--paper);
+  touch-action: none;
+  user-select: none;
+}
+
+.stage img,
+.overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* Keep the eyes and ears on the closed frame while blending the local lip change. */
+.mouth {
+  mask-image: radial-gradient(ellipse 38% 22% at 59% 58%, black 62%, transparent 100%);
+}
+
+.mouth[data-photo-frame="lift"] { opacity: var(--lift-opacity, 0); }
+.mouth[data-photo-frame="teeth"] { opacity: var(--teeth-opacity, 0); }
+
+.reaction {
+  position: absolute;
+  z-index: 3;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  pointer-events: none;
+  opacity: 0;
+}
+
+.reaction[data-playing="true"] { opacity: 1; }
+
+.stage:focus-visible {
+  outline: 2px solid var(--caramel);
+  outline-offset: 3px;
+}
+
+.stage[data-lip-hover="true"] { cursor: grab; }
+
+.marker,
+.tooth {
+  stroke: var(--paper);
+  stroke-width: 5;
+  fill: var(--cocoa);
+}
+
+.marker {
+  stroke-width: 8;
+  fill: none;
+  filter: drop-shadow(0 1px 3px var(--cocoa));
+}
+
+
+.closeup {
+  position: absolute;
+  inset: 6% 7.5% auto;
+  width: 85%;
+  height: auto;
+  border-radius: var(--r-lg);
+  outline: 2px solid var(--paper);
+  box-shadow: 0 4px 18px color-mix(in srgb, var(--cocoa) 50%, transparent);
+  overflow: hidden;
+}
+
+.tooth {
+  stroke-width: 2;
+  fill: transparent;
+  stroke-dasharray: 2 3;
+}
+
+.tooth[data-clean="true"],
+.tooth[data-active="true"] {
+  fill: color-mix(in srgb, var(--paper) 46%, transparent);
+  stroke-dasharray: none;
+}
+
+.tooth[data-active="true"] { stroke: var(--mint-dk); }
+
+.stage[data-feedback="warning"] { outline: 2px solid var(--orange); }
+.stage[data-feedback="resisting"] { box-shadow: inset 0 0 0 3px var(--orange); }
+
+.stage[data-feedback="bitten"]::after,
+.stage[data-feedback="success"]::after {
+  position: absolute;
+  inset: 0;
+  content: "";
+  pointer-events: none;
+  box-shadow: inset 0 0 1.25rem var(--orange);
+  animation: signal .45s ease-out both;
+}
+
+.stage[data-feedback="success"]::after { box-shadow: inset 0 0 1.25rem var(--mint-dk); }
+.meters[data-feedback="warning"] label:last-child progress,
+.meters[data-feedback="resisting"] label:last-child progress { accent-color: var(--orange); }
+
+.feedback[data-feedback="success"],
+.feedback[data-feedback="bitten"] {
+  padding: .55rem .75rem;
+  border-radius: var(--r-lg);
+  background: var(--paper);
+  color: var(--cocoa);
+  box-shadow: inset 3px 0 var(--orange);
+  animation: settle .24s ease-out;
+}
+.feedback[data-feedback="success"] { box-shadow: inset 3px 0 var(--mint-dk); }
+
+@keyframes signal { from { opacity: 1; } to { opacity: .4; } }
+@keyframes settle { from { transform: translateY(4px); } to { transform: translateY(0); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .reaction:not([data-education="true"]) { display: none; }
+  .stage[data-feedback]::after,
+  .feedback[data-feedback] { animation: none; }
+}

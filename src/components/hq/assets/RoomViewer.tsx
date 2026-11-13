@@ -65,17 +65,17 @@ export interface RoomWand { toy: SceneItem; onCatch: (caught: boolean) => void }
  * items：要擺進房間的虛擬用品（外出籠、餐碗、貓砂盆），位置由 placeScanItems 算在地板上，換了清單會即時更新
  * story：虛擬飼養的貓配合劇情（action＝null 躲起來、carrier 走到外出籠、sleep 跳上床…），換了（at 不同）就執行
  * wand：3D 逗貓。給了就停用拖曳轉頭，玩具跟著滑鼠／手指在地板上移動，貓追著撲；每次撲完呼叫 onCatch(是否抓到)
- * bubble：貓頭頂的小對話框（表情符號），跟著貓在畫面上移動
+ * bubble：貓頭頂的小對話框（SVG 圖示），跟著貓在畫面上移動
  * controls：false 時不顯示拍攝點與貓咪動作按鈕（虛擬飼養用；拖曳、WASD、點地板仍可用）
  * noCat：只看房間、不放貓（前台我的 3D 房間預覽；貓等進了領養任務才出現）
  * overlay：前台預覽版面：前／後／左／右／上五個固定視角疊在畫面上；電腦用 WASD 走、手機用左下角搖桿；
- *   每次開場先跳操作說明，按掉後縮成右下角的按鈕；滾輪還給網頁捲動（觸控板不會誤走）；手機瀏覽器支援時有全螢幕按鈕
+ *   每次開場先跳操作說明，按掉後縮成右下角的按鈕；滾輪還給網頁捲動（觸控板不會誤走）；右下角有全螢幕按鈕
  */
 export default function RoomViewer({ base, cat, items, controls = true, story, wand, bubble, bubbleInset = 0, lookKey, noCat = false, overlay = false }: {
   base: string; cat?: { baseUrl: string; albedoUrl: string } | null; items?: readonly SceneItem[]; controls?: boolean; noCat?: boolean; overlay?: boolean;
   story?: { action: CatAction | null; at: number } | null; wand?: RoomWand | null;
-  /** 貓頭頂的小對話框（表情符號）；null＝不顯示 */
-  bubble?: string | null;
+  /** 貓頭頂的小對話框（SVG 圖示）；null＝不顯示 */
+  bubble?: React.ReactNode;
   /** 畫面下方被劇情卡蓋住的比例（0～1）；對話框不會畫到那裡，貓在卡片後面時貼在卡片上緣 */
   bubbleInset?: number;
   /** 這個值一變，鏡頭就原地轉向貓（null／不變不轉） */
@@ -88,8 +88,26 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
   const [touch] = useState(() => typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches);
   const [help, setHelp] = useState(false);
   const [progress, setProgress] = useState<number | null>(null);  // 前台房間下載進度（%）；null＝不顯示
-  // 全螢幕只給手機（轉橫太小）；電腦螢幕夠大，而且不少瀏覽器會擋，按了沒反應反而困惑
-  const [canFull] = useState(() => typeof document !== "undefined" && document.fullscreenEnabled && window.matchMedia("(pointer: coarse)").matches);
+  // 全螢幕：先用 CSS 讓房間佔滿整個瀏覽器視窗（一定有反應，iPhone 也行），瀏覽器支援時再進真正的全螢幕
+  const [full, setFull] = useState(false);
+  useEffect(() => {
+    const sync = () => { if (!document.fullscreenElement) setFull(false); };  // 按 Esc 離開真正全螢幕時一起還原
+    document.addEventListener("fullscreenchange", sync);
+    return () => document.removeEventListener("fullscreenchange", sync);
+  }, []);
+  useEffect(() => {
+    if (!full) return;
+    const esc = (e: KeyboardEvent) => { if (e.key === "Escape") setFull(false); };
+    addEventListener("keydown", esc);
+    return () => removeEventListener("keydown", esc);
+  }, [full]);
+  const toggleFull = () => {
+    if (full) { if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); setFull(false); return; }
+    setFull(true);
+    host.current?.requestFullscreen?.().then(() => {
+      (screen.orientation as ScreenOrientation & { lock?: (o: string) => Promise<void> }).lock?.("landscape").catch(() => {});
+    }).catch(() => {});  // 不支援或被擋：維持 CSS 版
+  };
   const [viewName, setViewName] = useState<RoomViewName>("front");
   const world = useRef<RoomWorld | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
@@ -101,10 +119,10 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
   const orbit = useRef<{ enabled: boolean } | null>(null);
   const wandOn = useRef(false);
   const bubbleEl = useRef<HTMLDivElement>(null);
-  const bubbleText = useRef<string | null>(null);
+  const hasBubble = useRef(false);
   const insetRef = useRef(bubbleInset);
   insetRef.current = bubbleInset;
-  useEffect(() => { bubbleText.current = bubble ?? null; if (bubbleEl.current) bubbleEl.current.textContent = bubble ?? ""; }, [bubble]);
+  useEffect(() => { hasBubble.current = Boolean(bubble); }, [bubble]);
   const onCatch = useRef<RoomWand["onCatch"] | null>(null);
   onCatch.current = wand?.onCatch ?? null;
 
@@ -291,7 +309,7 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
         roomWorld?.update(dt);
         const be = bubbleEl.current;
         if (be) {
-          if (bubbleText.current && roomWorld?.catHead(head)) {
+          if (hasBubble.current && roomWorld?.catHead(head)) {
             head.project(active.camera);
             // 貓在畫面外或鏡頭後面就不顯示（框只跟著貓，不貼邊）；框畫到被劇情卡蓋住的區域時往上推一點
             const onScreen = head.z < 1 && Math.abs(head.x) < 0.95 && head.y > -0.95 && head.y < 0.9;
@@ -454,7 +472,7 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
   }
   return (
     <section className="hq-roomviewer" aria-label="展示房間">
-      <div ref={host} className="hq-roomviewer-host">
+      <div ref={host} className="hq-roomviewer-host" data-full={overlay && full ? "true" : undefined}>
         {status === "loading" && <div className="hq-roomviewer-loading">
           {progress === null ? <HqSkeleton rows={3} /> : (
             <div className="hq-roomviewer-progress" role="progressbar" aria-valuenow={progress} aria-valuemin={0} aria-valuemax={100} aria-label="房間載入中">
@@ -467,17 +485,17 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
             </div>
           )}
         </div>}
-        <div ref={bubbleEl} className="hq-roomviewer-bubble" aria-hidden="true" />
+        <div ref={bubbleEl} className="hq-roomviewer-bubble" aria-hidden="true">{bubble}</div>
         {overlay && status === "ready" && <>
           <div className="hq-roomviewer-views" role="group" aria-label="切換視角">
             {VIEW_BUTTONS.map(([name, label]) => (
               <button key={name} type="button" aria-pressed={viewName === name} onClick={() => goView.current(name)}>{label}</button>
             ))}
           </div>
-          {(!help || canFull) && <div className="hq-roomviewer-tools">
+          <div className="hq-roomviewer-tools">
             {!help && <button type="button" onClick={() => setHelp(true)}>？操作說明</button>}
-            {canFull && <button type="button" aria-label="全螢幕" onClick={() => toggleFull(host.current)}>⛶</button>}
-          </div>}
+            <button type="button" aria-pressed={full} onClick={toggleFull}>{full ? "✕ 縮小" : "⛶ 全螢幕"}</button>
+          </div>
           {touch && <Stick onMove={v => { stick.current = v; }} />}
           {help && <ViewerHelp touch={touch} onClose={() => setHelp(false)} />}
         </>}
@@ -505,14 +523,6 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
 const VIEW_BUTTONS: [RoomViewName, string][] = [["front", "前"], ["back", "後"], ["left", "左"], ["right", "右"], ["top", "上"]];
 
 
-/** 全螢幕切換；手機順便鎖橫向（Android Chrome 支援，iPhone 沒有網頁全螢幕，按鈕不會出現） */
-function toggleFull(el: HTMLElement | null) {
-  if (document.fullscreenElement) { document.exitFullscreen().catch(() => {}); return; }
-  el?.requestFullscreen().then(() => {
-    (screen.orientation as ScreenOrientation & { lock?: (o: string) => Promise<void> }).lock?.("landscape").catch(() => {});
-  }).catch(() => {});
-}
-
 /** 手機左下角的搖桿：往上推前進、往下後退、左右橫移，推越遠走越快 */
 function Stick({ onMove }: { onMove: (v: { x: number; y: number }) => void }) {
   const [knob, setKnob] = useState({ x: 0, y: 0 });
@@ -538,8 +548,8 @@ function Stick({ onMove }: { onMove: (v: { x: number; y: number }) => void }) {
 
 function ViewerHelp({ touch, onClose }: { touch: boolean; onClose: () => void }) {
   const rows: [string, string][] = touch
-    ? [["👆", "單指拖曳畫面：轉頭看四周"], ["🕹️", "左下角搖桿：往上推前進、往下後退、左右橫移"], ["🧭", "上方「前／後／左／右／上」：換到固定視角"], ["📱", "手機轉橫看得更大"]]
-    : [["🖱️", "拖曳畫面：轉頭看四周"], ["⌨️", "W／S 前進後退，A／D 左右橫移，Q／E 下降上升，按住 Shift 加速"], ["🧭", "上方「前／後／左／右／上」：換到固定視角"]];
+    ? [["👆", "單指拖曳畫面：轉頭看四周"], ["🕹️", "左下角搖桿：往上推前進、往下後退、左右橫移"], ["🧭", "上方「前／後／左／右／上」：換到固定視角"], ["⛶", "右下角「全螢幕」看得更大；手機轉橫也可以"]]
+    : [["🖱️", "拖曳畫面：轉頭看四周"], ["⌨️", "W／S 前進後退，A／D 左右橫移，Q／E 下降上升，按住 Shift 加速"], ["🧭", "上方「前／後／左／右／上」：換到固定視角"], ["⛶", "右下角「全螢幕」看得更大，按 Esc 離開"]];
   return (
     <div className="hq-roomviewer-help" role="dialog" aria-modal="false" aria-labelledby="room-help-title">
       <div>

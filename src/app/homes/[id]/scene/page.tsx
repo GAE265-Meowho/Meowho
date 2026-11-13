@@ -151,9 +151,14 @@ export default function ScenePage() {
     </section>
   );
   else if (step === "making" || room?.status === "queued" || room?.status === "running") body = (
-    <section className={`${f.card} ${f.center}`} role="status">
-      <h2>正在建立你家的 3D 房間</h2>
-      <p className={f.lead}>你可以先離開，好了會通知你。</p>
+    <section className={`${f.card} ${f.center}`} aria-labelledby="room-making">
+      <h2 id="room-making">正在建立你家的 3D 房間和居家安全報告</h2>
+      <p className={f.lead} role="status">大約要 20 分鐘。不用留在這頁，好了會通知你。</p>
+      <div className={f.actions} style={{ justifyContent: "center" }}>
+        <CatButton href="/#adopt">先去看貓</CatButton>
+        <CatButton variant="ghost" href={`/homes/${id}/safety`}>看安全報告進度</CatButton>
+        <CatButton variant="ghost" href="/me">回到我的喵戶</CatButton>
+      </div>
     </section>
   );
   else body = (

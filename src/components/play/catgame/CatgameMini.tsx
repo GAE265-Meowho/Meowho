@@ -24,6 +24,8 @@ function renameCat(root: HTMLElement, name: string): () => void {
 
 type Props = { id: MiniId; ctx: MiniCtx; catName: string; onDone: (r: unknown) => void };
 const loading = () => <p role="status">3D 遊戲載入中…</p>;
+const BrushGameRealistic = dynamic(() => import("../mini3d/BrushGameRealistic").then(m => m.BrushGameRealistic), { ssr: false, loading: () => <p role="status">刷牙遊戲載入中…</p> });
+const PetGame3D = dynamic(() => import("../mini3d/PetGame3D").then(m => m.PetGame3D), { ssr: false, loading });
 // 換水：第一視角開水龍頭
 // 鏟屎：第一視角拖曳貓砂鏟
 const ScoopGame3D = dynamic(() => import("../mini3d/ScoopGame3D").then(m => m.ScoopGame3D), { ssr: false, loading });
@@ -34,6 +36,11 @@ const WaterRefillGame3D = dynamic(() => import("../mini3d/WaterRefillGame3D").th
 export function CatgameMini(props: Props) {
   const { id, ctx, catName, onDone } = props;
   // 已改成彈窗 3D 特寫的小遊戲；其他照舊用原版 2D（LegacyMini）
+  if (id === "brush" || id === "pet") {
+    return <Mini3DModal title={id === "brush" ? "幫" + catName + "刷牙" : "摸摸" + catName} onCancel={() => onDone(null)}>
+      {id === "brush" ? <BrushGameRealistic ctx={ctx} onDone={onDone} /> : <PetGame3D ctx={ctx} onDone={onDone} />}
+    </Mini3DModal>;
+  }
   if (id === "water") {
     return <Mini3DModal title={"幫" + catName + "換水"} onCancel={() => onDone(null)}>
       <WaterRefillGame3D onDone={onDone} />
