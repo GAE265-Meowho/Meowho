@@ -18,6 +18,8 @@ const STORE = "https://demo.supabase.co/storage/v1/object/public/meow-play-audio
 const DAILY = `${STORE}/bgm/bgm_daily.mp3`;
 const NIGHT = `${STORE}/bgm/bgm_night.mp3`;
 
+let storeFiles: Record<string, string> | null = null;
+
 const playing = () => FakeAudio.made.filter(a => !a.paused).map(a => a.src);
 
 async function setup() {
@@ -26,6 +28,7 @@ async function setup() {
   FakeAudio.made = [];
   window.localStorage.clear();
   vi.stubGlobal("Audio", FakeAudio);
+  vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ files: storeFiles }), { status: 200 })));
   vi.stubGlobal("requestAnimationFrame", (cb: FrameRequestCallback) => { cb(performance.now() + 10_000); return 0; });
   const mod = await import("./PlayAudio");
   function Game(input: BgmInput) { mod.usePlayBgm(input); return <mod.SoundToggle />; }
@@ -35,7 +38,7 @@ async function setup() {
 const daily: BgmInput = { step: "shop", nodeId: null, scene: { bg: "room", time: "day" }, home: false };
 const night: BgmInput = { step: "node", nodeId: "day30", scene: { bg: "room", time: "night" }, home: false };
 
-beforeEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); });
+beforeEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); storeFiles = null; });
 afterEach(cleanup);
 
 describe("虛擬飼養的背景音樂", () => {
@@ -102,6 +105,17 @@ describe("虛擬飼養的背景音樂", () => {
     player.unlockAudio();
     expect(() => player.playSfx("sfx_meow")).not.toThrow();
     expect(FakeAudio.made).toEqual([]);
+  });
+
+  it("Storage 有新上傳的音效就會播，網址帶版本號；沒有的就不播", async () => {
+    storeFiles = { bgm_daily: "5", sfx_meow: "7" };
+    await setup();
+    const player = await import("@/lib/play/audio-player");
+    await player.loadSoundIndex();
+    player.unlockAudio();
+    player.playSfx("sfx_meow");
+    player.playSfx("sfx_pour_water");
+    expect(FakeAudio.made.map(a => a.src)).toEqual([`${STORE}/sfx/sfx_meow.mp3?v=7`]);
   });
 
   it("已上傳的音效會從 Storage 播放；靜音時不播", async () => {

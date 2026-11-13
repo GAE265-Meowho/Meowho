@@ -103,7 +103,12 @@ export const HQ_PAGE_META_PATHS = {
   ],
   "assets/sounds": [
     "src/components/hq/assets/SoundsTab.tsx",
+    "src/components/hq/assets/soundsTab.module.css",
+    "src/app/api/hq/sounds",
+    "src/app/api/play/sounds",
     "src/lib/play/audio.ts",
+    "src/lib/play/sound-upload.ts",
+    "src/lib/play/sounds-server.ts",
   ],
   "assets/others": [
     "src/components/hq/assets/PlannedTab.tsx",
