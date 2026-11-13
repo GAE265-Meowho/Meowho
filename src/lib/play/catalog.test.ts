@@ -60,4 +60,13 @@ describe("playShop（後台有就用後台）", () => {
     expect(shop.models?.litter_box?.url).toBe("https://x.test/貓砂盆/model.glb");
     expect(playShop(toPlayCatalog([row("外出籠", "外出籠", null, "c/model.glb", null)], url)).models?.carrier).toBeUndefined();
   });
+
+  it("尺寸填錯的迷你用品不採用：最便宜的貓砂盆只有 13 公分，改用同類下一個；全部都太小就沿用程式裡寫的", () => {
+    const tiny = row("便宜貓砂盆", "貓砂盆", 55, "tiny/model.glb", [0.131, 0.114, 0.027]);
+    const ok = row("貓砂盆", "貓砂盆", 1127, "box/model.glb", [0.341, 0.506, 0.379]);
+    expect(playShop(toPlayCatalog([tiny, ok], url)).models?.litter_box).toEqual({ url: "https://x.test/box/model.glb", widthM: 0.341, depthM: 0.506, heightM: 0.379 });
+    expect(playShop(toPlayCatalog([tiny], url)).models?.litter_box).toBeUndefined();
+    // 逗貓棒本來就小，不受限
+    expect(playShop(toPlayCatalog([row("老鼠", "逗貓棒", 15, "mouse/model.glb", [0.054, 0.024, 0.028])], url)).models?.toy?.widthM).toBe(0.054);
+  });
 });

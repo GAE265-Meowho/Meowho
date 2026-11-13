@@ -11,6 +11,8 @@ import { BOWL, WaterBowl } from "./WaterProps";
 
 export type FeedFrame = CanFrame & {
   /** 飼料袋往碗傾倒的程度 0～1；pouring：顆粒正在掉 */
+  /** 右手拿著飼料袋在碗旁邊的程度 0～1（只餵罐頭時固定 0） */
+  bagHand: number;
   bagTilt: number; pouring: boolean;
   /** 正在開的罐頭（沒有就 null） */
   can: CanKind | null;

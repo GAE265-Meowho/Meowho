@@ -36,6 +36,8 @@ export function toPlayCatalog(rows: readonly Row[], publicUrl: (path: string) =>
 const FLAG_CATEGORY: Record<string, ShopFlagKey> = { 貓抓板: "scratcher", 逗貓棒: "toy" };
 const OPTS_CATEGORY: Record<string, Extract<ShopItemKey, "box" | "bowls">> = { 貓砂盆: "box", 餐碗水碗: "bowls" };
 const MODEL_CATEGORY: Record<string, PlayModelKey> = { 外出籠: "carrier", 餐碗水碗: "bowl", 貓砂盆: "litter_box", 逗貓棒: "toy" };
+/** 最長邊至少要這麼長（公尺）才採用：後台尺寸填錯（例如貓砂盆 13 公分）時，房間裡會出現貓進不去的迷你用品 */
+const MIN_LONG_SIDE_M: Partial<Record<PlayModelKey, number>> = { carrier: 0.3, bowl: 0.15, litter_box: 0.3 };
 
 const toModel = (it: PlayCatalogItem): PlayModel | null =>
   it.modelUrl && it.widthM && it.depthM && it.heightM ? { url: it.modelUrl, widthM: it.widthM, depthM: it.depthM, heightM: it.heightM } : null;
@@ -50,12 +52,12 @@ export function playShop(items: readonly PlayCatalogItem[]): PlayShop {
     const opt = OPTS_CATEGORY[it.categoryName];
     if (opt) shop.opts[opt] = [...(shop.opts[opt] ?? []), [it.name, it.priceTwd!] as Opt];
   }
-  // 模型：同類先用有價格（最便宜）的，再用沒價格的；要網址和三個尺寸都有才採用
+  // 模型：同類先用有價格（最便宜）的，再用沒價格的；要網址和三個尺寸都有、而且尺寸合理才採用，不合理就看下一個
   for (const it of [...priced, ...items.filter(i => i.priceTwd === null)]) {
     const m = MODEL_CATEGORY[it.categoryName];
     if (!m || shop.models![m]) continue;
     const model = toModel(it);
-    if (model) shop.models![m] = model;
+    if (model && Math.max(model.widthM, model.depthM, model.heightM) >= (MIN_LONG_SIDE_M[m] ?? 0)) shop.models![m] = model;
   }
   return shop;
 }
