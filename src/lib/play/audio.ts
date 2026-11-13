@@ -1,6 +1,7 @@
 // 虛擬飼養的聲音（第 6 份，#393）：背景音樂依場景切換、音效給第 1～5 份呼叫、靜音記住玩家的選擇。
 // 音檔放在 Supabase Storage 的公開 bucket `meow-play-audio`：bgm/<ID>.mp3、sfx/<ID>.mp3，旁邊有同名 .license.txt（0035）。
-// 上傳：把檔名改成 ID、配好授權檔，跑 `npm run audio:upload -- <資料夾> --apply`，再把那個 ID 的 ready 改成 true。
+// 上傳：MeowHQ「虛擬體驗元件管理」→「音效」按「新增音效」（自動改檔名、寫授權檔），或 `npm run audio:upload -- <資料夾> --apply`。
+// 有沒有音檔以 Storage 實際的檔案為準（/api/play/sounds），上傳後不用改程式。
 // 要找「這個事件該用哪個音效」：查下面的 SOUNDS（usedIn 寫用在哪、part 寫第幾份要呼叫），或用 soundsFor(第幾份)。
 // 這個檔案只放純函式與對照表（有測試）；真的播放在 audio-player.ts。
 import { SUPABASE_URL } from "@/lib/supabase/config";
@@ -18,7 +19,7 @@ export interface Sound {
   usedIn: string;
   /** 第幾份要在程式裡呼叫（背景音樂自動切換，不用呼叫，寫 6） */
   part: (1 | 2 | 3 | 4 | 5 | 6)[];
-  /** 音檔已經上傳到 Storage；false 的呼叫了不會出聲、不會報錯 */
+  /** 初始值：讀不到 Storage 清單（/api/play/sounds）時才用；平常以 Storage 裡實際有的檔案為準 */
   ready: boolean;
 }
 
@@ -105,9 +106,16 @@ export const bgmLoops = (id: BgmId) => id !== "bgm_farewell";
 /** Storage 裡的路徑：bgm/bgm_daily.mp3、sfx/sfx_meow.mp3 */
 export const audioPath = (id: SoundId) => `${id.startsWith("bgm_") ? "bgm" : "sfx"}/${id}.mp3`;
 
-/** 播放用的網址：Supabase 公開網址；沒連資料庫（示範模式）時讀不到，回傳空字串，播放器就不出聲 */
-export const audioSrc = (id: SoundId, base = SUPABASE_URL) =>
-  base ? `${base.replace(/\/$/, "")}/storage/v1/object/public/${AUDIO_BUCKET}/${audioPath(id)}` : "";
+/** 播放用的網址：Supabase 公開網址；沒連資料庫（示範模式）時讀不到，回傳空字串，播放器就不出聲。
+ *  version 是 Storage 的最後更新時間（/api/play/sounds），換檔後網址不同，瀏覽器不會播到舊的。 */
+export const audioSrc = (id: SoundId, base = SUPABASE_URL, version?: string) =>
+  base ? `${base.replace(/\/$/, "")}/storage/v1/object/public/${AUDIO_BUCKET}/${audioPath(id)}${version ? `?v=${version}` : ""}` : "";
+
+/** Storage 裡已經有的音檔：ID → 版本（/api/play/sounds 回傳的 files） */
+export type SoundIndex = Partial<Record<SoundId, string>>;
+
+/** 這個音效有沒有音檔：讀得到 Storage 的清單就照清單，讀不到就照 SOUNDS 的 ready */
+export const hasSound = (id: SoundId, index: SoundIndex | null) => (index ? id in index : SOUNDS[id].ready);
 
 export interface BgmInput {
   /** 流程的步驟（flow.ts 的 step） */

@@ -2,7 +2,7 @@
 // 虛擬飼養的背景音樂與靜音按鈕（第 6 份，#354）。播放規則在 lib/play/audio.ts，播放器在 lib/play/audio-player.ts。
 import { useEffect, useSyncExternalStore } from "react";
 import { bgmFor, type BgmInput } from "@/lib/play/audio";
-import { isMuted, setBgm, setMuted, subscribeMuted, unlockAudio } from "@/lib/play/audio-player";
+import { isMuted, loadSoundIndex, setBgm, setMuted, subscribeMuted, unlockAudio } from "@/lib/play/audio-player";
 import s from "./play.module.css";
 
 /** 依遊戲狀態切換背景音樂；離開遊戲時停掉。第一次點畫面後才會出聲（手機瀏覽器的規定）。 */
@@ -10,6 +10,7 @@ export function usePlayBgm(input: BgmInput) {
   const id = bgmFor(input);
   useEffect(() => { setBgm(id); }, [id]);
   useEffect(() => {
+    void loadSoundIndex();
     const unlock = () => unlockAudio();
     window.addEventListener("pointerdown", unlock, { once: true });
     window.addEventListener("keydown", unlock, { once: true });
