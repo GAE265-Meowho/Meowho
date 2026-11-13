@@ -32,12 +32,14 @@ export interface PlayCatSource {
   tabby: boolean;
   /** true＝還在用 DEMO 麻糬，不是這隻貓自己的資料 */
   demo: boolean;
+  /** 這隻貓現在是否待領養（領養任務開始前的檢查用）；DEMO 不檢查 */
+  adoptable: boolean;
   /** 各體型（幼貓／成貓）要用的 3D 母體與貼圖 */
   look: (body: BodyType) => PlayCatLook;
 }
 
 export function demoPlayCat(catId: string): PlayCatSource {
-  return { catId, name: PLAY_CAT.name, coat: PLAY_CAT.coat, sex: "unknown", neutered: null, mood: { ...BASE_MOOD, reasons: [] }, touchFav: null, ageText: "", months: null, body: "kitten", tabby: true, demo: true, look: playCatLook };
+  return { catId, name: PLAY_CAT.name, coat: PLAY_CAT.coat, sex: "unknown", neutered: null, mood: { ...BASE_MOOD, reasons: [] }, touchFav: null, ageText: "", months: null, body: "kitten", tabby: true, demo: true, adoptable: true, look: playCatLook };
 }
 
 /** 讀這隻貓；任何一步失敗都回 DEMO，不擋遊戲 */
@@ -46,7 +48,7 @@ export async function loadPlayCat(catId: string): Promise<PlayCatSource> {
   if (!sb) return demoPlayCat(catId);
   try {
     const [{ data: c }, { data: model }] = await Promise.all([
-      sb.from("meow_cats").select("name, coat, sex, neutered, life_stage, birthday, est_age_months, personality_scale, personality_tags, personality_notes, description, intro, care").eq("id", catId).maybeSingle(),
+      sb.from("meow_cats").select("name, status, coat, sex, neutered, life_stage, birthday, est_age_months, personality_scale, personality_tags, personality_notes, description, intro, care").eq("id", catId).maybeSingle(),
       sb.from("meow_cat_models").select("variants:meow_cat_model_variants(body_type, confirmed_albedo)").eq("cat_id", catId).maybeSingle(),
     ]);
     if (!c?.name) return demoPlayCat(catId);
@@ -71,6 +73,7 @@ export async function loadPlayCat(catId: string): Promise<PlayCatSource> {
       body: bodyOfStage(c.life_stage as string | null),
       tabby: Boolean(coat?.includes("虎斑")),
       demo: false,
+      adoptable: c.status === "adoptable",
       look: body => catLookFor(body, albedo),
     };
   } catch {

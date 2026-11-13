@@ -285,3 +285,11 @@
 - 照護列、掃描房間需求氣泡與娃娃屋提示共用 CareIcon。RoomViewer 保留既有貓頭投影定位，只更換內容渲染。
 - 翻唇拖動直接控制局部照片透明度；桌面可按住空白鍵並移動滑鼠，放手立即停止計分，照片逐步回到閉嘴。Lv.3–4 在固定全臉上方顯示約 2.36 倍口腔特寫，對準近似牙齦邊緣；五階段使用手指、牙膏手指、指套與軟毛牙刷。耐心、掙扎、咬人、跑掉與成功依原規則分別呈現。動作減量設定下，鍵盤開合省略過渡。視覺取捨與補件規格見 `docs/play-tasks/3-刷牙影像互動審查.md`。
 - 實體手機、正式動畫／音效及帶背景房間的裝置效能留待驗收。
+
+## 領養任務進行中、續玩、放棄、重玩（#354，渝茜 × Claude Code，2026-11-13，分支 `feat/354-play-run-state`）
+照 `docs/play-tasks/7-進行中續玩放棄重玩.md` 實作；`/run` 併進 `/play`，規則只留一套。
+- **資料庫 `0035_meow_play_run_state.sql`（⚠ 執行前須子哲審、確認）**：`meow_task_runs.status` 多 `closed`（貓被領養／下架、或換貓而結束；不寫放棄標籤）；多 `env_report_id`（開始時定格安全報告）。新函式 `meow_start_play_run(貓, 房間)`（個人喵戶、自己建好的房間、這間房間有 ready 的報告；同一隻回傳原本那筆、別隻 `run_in_progress`；錯誤 `household_required`／`run_room_not_ready`／`run_room_pending`／`run_report_missing`／`run_report_pending`）、`meow_complete_play_run(紀錄, 報告)`（取代 `meow_save_play_report` 另外插一筆，舊函式留著不再呼叫）、`meow_switch_task_run(紀錄)`（換貓結束、中途看不到）；trigger `meow_cats_close_runs`：貓離開待領養時進行中的任務自動 `closed` 並通知領養人（type `task`）；`meow_thread_task_status` 多回 `completed_count`。測試：`node supabase/tests/run-pglite-0035.mjs`（19 項，單獨跑；整包 `run-pglite.mjs` 在本機會記憶體不足，非本次造成）。
+- **開始前檢查** `src/lib/play/run-gate.ts`（純函式＋測試）：沒登入／沒喵戶（導去建）／只有中途喵戶（說明不能玩）／別隻貓進行中／沒房間、房間處理中／沒報告、報告處理中；示範貓與沒連資料庫照舊直接玩、不建紀錄。畫面 `RunGateCard.tsx`。
+- **存檔** `src/lib/play/save.ts`：每過一個節點存一次快照（`flow.ts` 的 `Checkpoint`，`PlayState.checkpoint`）連同採買 `pick`、擺放 `placed`／`scanSpots`、喵戶 id 存進 `meow_task_runs.progress`（上限 45 KB，超過會縮短紀錄）；續玩（`resume` 動作）從那個節點的開頭重新開始，節點內的小遊戲重玩；用開始時定格的房間（`frozenRoom`）。可換裝置。
+- **畫面**：`PlayGame` 按「下一步：預算與採買」才建紀錄（`begin`）；HUD 有「放棄」；`ReportStep` 改成完成進行中那筆（`runId`）。貓咪頁 `PlayEntry.tsx` 四種狀態與彈窗（繼續／殘忍放棄／別隻貓時放棄改做／再做一次）；全站右下 `ActiveRunButton`（掛在 `Providers`，任務頁與 MeowHQ 不顯示，位置之後再調）；`AbandonPanel` 從舊 `/run` 搬來。`/cats/[id]/run` 改成轉址到 `/play`，問卷頁、`TaskProof` 的「去做任務」改連 `/play`。
+- **還沒做**：「我的喵戶」頁的繼續任務入口；`/api/cats/[id]/tasks/prepare` 與 `task-run.ts` 的任務選項流程已沒人用（`ABANDON_REASONS` 還在用），之後收掉；浮動按鈕要避開青蛙按鈕（位置待調）；`npm run build` 因本機磁碟已滿（ENOSPC）沒跑成功，tsc、lint、單元測試（1502）都過；沒有用瀏覽器實際走過主線（需要真實帳號、房間與報告）。
