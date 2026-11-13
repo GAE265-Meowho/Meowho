@@ -79,6 +79,7 @@
 3. PLAN.md 其餘任務的 Issue 尚未建立。
 
 ## 地雷與注意
+- **虛擬飼養畫面改版（#354，2026-11-13，渝茜 × Claude Code）**：8 個分支／PR（字體、對話框、上一步與存檔、擺用品俯視、採買、報告、審稿、補貨），詳見 `docs/modules/readiness.md` 最後一節。都還沒在真機走過；俯視鏡頭要在真的掃描房間依 `OVERVIEW` 調參數；`feat/354-play-restock` 疊在整合分支 `integ/354-play-ui` 上，前 7 個合併後要 rebase 到 main。第二批（光線與跑酷、診間與劇情鏡頭、尿漬與結局）接在補貨分支後面做。
 - **照片**：來自 Google Stitch 設計稿的外部網址（`src/lib/photo-urls.json`），可能失效。展示前執行 `npm run photos:download`，並設 `NEXT_PUBLIC_LOCAL_PHOTOS=1`。雲端 agent 的環境可能連不到這些網址，截圖驗證時看到空白屬正常。
 - **字型**：從 Google Fonts 以 `<link>` 載入（Quicksand、Zen Maru Gothic、Noto Sans TC）；離線時退回系統字。
 - **管理者標誌設定**：目前存 localStorage；任務 17 會改存資料庫，不要更換 `public/logos/` 的檔案。
