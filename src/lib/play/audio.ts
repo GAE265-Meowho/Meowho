@@ -81,6 +81,24 @@ export const SFX_READY: ReadonlySet<SfxId> = new Set(SFX_IDS.filter(id => SOUNDS
 /** 第幾份要接哪些音效：soundsFor(5) → 渝茜要呼叫的音效 */
 export const soundsFor = (part: Sound["part"][number]): SfxId[] => SFX_IDS.filter(id => (SOUNDS[id].part as readonly number[]).includes(part));
 
+/** 分類名稱（MeowHQ 音效分頁、說明書用） */
+export const SOUND_KIND_LABEL: Record<SoundKind, string> = {
+  bgm: "背景音樂", cat: "貓的聲音", move: "貓的動作", care: "照顧動作", toy: "逗貓", ui: "介面",
+};
+
+/** 第幾份是誰做（docs/play-tasks/00-總表.md） */
+export const PART_OWNER: Record<Sound["part"][number], string> = { 1: "珮瑜", 2: "Tina", 3: "世安", 4: "Tina", 5: "渝茜", 6: "子哲" };
+
+/** 「第 2 份（Tina）、第 5 份（渝茜）」；背景音樂自動切換 */
+export const partLabel = (id: SoundId) =>
+  id.startsWith("bgm_") ? "自動切換" : SOUNDS[id].part.map(n => `第 ${n} 份（${PART_OWNER[n]}）`).join("、");
+
+/** 授權檔網址（和音檔放在一起） */
+export const licenseSrc = (id: SoundId, base = SUPABASE_URL) => {
+  const src = audioSrc(id, base);
+  return src ? src.replace(/\.mp3$/, ".license.txt") : "";
+};
+
 /** 要循環的背景音樂（升天只播一次） */
 export const bgmLoops = (id: BgmId) => id !== "bgm_farewell";
 

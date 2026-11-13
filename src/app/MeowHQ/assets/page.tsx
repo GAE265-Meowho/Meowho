@@ -1,6 +1,6 @@
 "use client";
 // 虛擬體驗元件管理（T-HQ-11，規格書 04 §1.1）：區塊以 ?tab= 切換，選單在左側子選單（#113，原本頁面上的分頁移除）。
-// 貓咪、室內空間、食物目錄與虛擬體驗；未實作區塊顯示規劃中。
+// 貓咪、室內空間、食物目錄、音效與虛擬體驗；未實作區塊顯示規劃中。
 import { Suspense } from "react";
 import { CatsTab } from "@/components/hq/assets/CatsTab";
 import { FoodTab } from "@/components/hq/assets/FoodTab";
@@ -12,6 +12,7 @@ import { FloorplanTab } from "@/components/hq/assets/FloorplanTab";
 import { ExperienceTab } from "@/components/hq/assets/ExperienceTab";
 import { ItemsTab } from "@/components/hq/assets/ItemsTab";
 import { PlannedTab } from "@/components/hq/assets/PlannedTab";
+import { SoundsTab } from "@/components/hq/assets/SoundsTab";
 import { HqModuleGuard } from "@/components/hq/HqActor";
 import { HqPageHeader } from "@/components/hq/HqPageHeader";
 import { HqSkeleton } from "@/components/hq/HqStates";
@@ -33,11 +34,13 @@ function AssetsPage() {
         sub={tab === "food" ? "分類瀏覽食物照片、規格與 TWD 參考價；詳細資訊連至皇家官方。"
           : tab === "experience" ? "選一隻虛擬貓和一個室內空間（平面圖轉換或影片轉換），把貓放進 3D 互動；平面圖空間右側可篩選生活用品並拖拉進房間。"
           : tab === "items" ? "上傳生活用品 .glb、管理類別與篩選；虛擬體驗可把用品放到房間。"
+          : tab === "sounds" ? "虛擬飼養用的背景音樂與音效：每個 ID 用在哪、誰要呼叫，可以直接試聽。"
           : "虛擬貓咪新手照顧體驗會用到的 3D 元件。"} />
       {parent && <Link href={assetSectionHref(parent.value)} className="hq-back">← {parent.label}</Link>}
       {tab === "cats" ? <CatsTab query={query} update={update} />
         : tab === "food" ? <FoodTab />
         : tab === "items" ? <ItemsTab />
+        : tab === "sounds" ? <SoundsTab />
         : tab === "rooms" ? <RoomsTab />
         : tab === "rooms-video" ? <RoomVideoTab query={query} update={update} />
         : tab === "rooms-floorplan" ? <FloorplanTab />

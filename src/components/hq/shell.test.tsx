@@ -130,6 +130,7 @@ describe("#113 虛擬體驗元件管理分組", () => {
       ["室內空間", "/MeowHQ/assets?tab=rooms"],
       ["飼料", "/MeowHQ/assets?tab=food"],
       ["生活用品", "/MeowHQ/assets?tab=items"],
+      ["音效", "/MeowHQ/assets?tab=sounds"],
       ["其他", "/MeowHQ/assets?tab=others"],
       ["虛擬體驗", "/MeowHQ/assets?tab=experience"],
     ]);
