@@ -56,8 +56,9 @@ describe("聲音對照表與網址", () => {
     expect(soundsFor(6)).toEqual([]);
   });
 
-  it("SFX_READY 只包含標成 ready 的音效（目前還沒有）", () => {
+  it("SFX_READY 只包含已上傳的音效（驗收要的 6 個）", () => {
     expect([...SFX_READY]).toEqual(SFX_IDS.filter(id => SOUNDS[id].ready));
+    expect([...SFX_READY].sort()).toEqual(["sfx_hiss", "sfx_pour_food", "sfx_pour_water", "sfx_scoop", "sfx_scream", "sfx_yowl"]);
   });
 
   it("上傳腳本讀得到同一份 ID 清單", () => {
