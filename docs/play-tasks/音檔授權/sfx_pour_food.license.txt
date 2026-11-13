@@ -1,0 +1,10 @@
+Sound Information:
+* title:	倒飼料（sfx_pour_food）
+* original file:	freesound_community-feed-a-cat-95058.mp3
+* source:	https://cdn.pixabay.com/download/audio/2022/03/17/audio_64e852bbc4.mp3?filename=freesound_community-feed-a-cat-95058.mp3
+* author:	freesound_community（Pixabay）
+
+Sound License:
+* license type:	Pixabay Content License（https://pixabay.com/service/license-summary/）
+* requirements:	可免費商用、可修改，不需要標註作者；不能把音檔單獨拿去販售或散布。
+* confirmed:	子哲 2026-11-13 確認版權沒有問題。
