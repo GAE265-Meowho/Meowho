@@ -1,6 +1,7 @@
 // 房間裡會走動的貓：讀 room_layout.py 輸出的地板網格，閒晃、繞開障礙、走到點擊位置
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { mainRegion } from "./regions";
 
 const CAT_HEIGHT_M = 0.3;   // 站著時頭頂離地的高度
 const WALK_SPEED_M = 0.35;  // 公尺/秒
@@ -31,7 +32,7 @@ export class RoomCat {
     // 上方沒被桌面擋住的格子；舊版 layout 沒有這欄就當全部開放
     this.open = layout.open ? Uint8Array.from(layout.open, (c) => c === "1") : this.walkable;
     this.topM = layout.top_cm ? layout.top_cm.map((c) => c / 100) : null;  // 每格東西頂端高度
-    this.cells = [...this.walkable.keys()].filter((k) => this.walkable[k]);
+    this.cells = mainRegion(this.walkable, this.L.nx);  // 只在最大那塊相連地板出生、閒晃
 
     // 本地座標系：x 沿 e1、y 沿上方向、z 沿 e2，原點在地板網格角落
     const [e1, up, e2, o] = ["e1", "up", "e2", "origin"].map((k) => new THREE.Vector3(...layout[k]));
@@ -133,6 +134,19 @@ export class RoomCat {
     this.cat.position.set(p.x, 0, p.y);
   }
 
+  /** 走不過去時直接出現在格子 k，面向 face 待一會（同走到後的樣子） @param {number} k @param {THREE.Vector2 | null} [face] */
+  appearAt(k, face = null) {
+    this.jump = null;
+    this.surface = null;
+    this.path = [];
+    this.arrive = this.queued = null;
+    this.place(k);
+    this.dest = this.centerOf(k);
+    this.face = face;
+    this.setState("idle");
+    if (face) this.timer = 6;
+  }
+
   // BFS（8 方向、不切牆角）找路，再用視線檢查把鋸齒路徑拉直
   findPath(from, to) {
     const { nx } = this.L;
@@ -192,6 +206,7 @@ export class RoomCat {
     return k < 0 ? this.randomCell() : k;
   }
 
+  /** @param {number} k 目的地格子 @param {THREE.Vector2 | null} [face] 走到後要轉頭看的點（本地 x,z） */
   goTo(k, face = null) {
     if (this.jump || this.surface) {  // 先下來再走
       this.queued = () => this.goTo(k, face);
@@ -224,7 +239,7 @@ export class RoomCat {
             else this.walkable[this.idx(i, j)] = 0;
           }
     }
-    this.cells = [...this.walkable.keys()].filter((k) => this.walkable[k]);
+    this.cells = mainRegion(this.walkable, this.L.nx);  // 只在最大那塊相連地板出生、閒晃
   }
 
   // 虛擬用品（外出籠、碗、貓砂盆）佔的格子（j * nx + i）設成不能走；換清單時先還原成房間原本的樣子
@@ -232,7 +247,7 @@ export class RoomCat {
     this.baseWalkable ??= Uint8Array.from(this.walkable);
     this.walkable.set(this.baseWalkable);
     for (const k of indices) this.walkable[k] = 0;
-    this.cells = [...this.walkable.keys()].filter((k) => this.walkable[k]);
+    this.cells = mainRegion(this.walkable, this.L.nx);  // 只在最大那塊相連地板出生、閒晃
   }
 
   // 可走的格子裡，依 dist（到物品的距離）挑 lo~hi 之間的，鏡頭看得到的優先，其次離貓近

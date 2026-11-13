@@ -4,7 +4,7 @@ import type { CatAction } from "./stage";
 
 export type SceneCatCommand =
   | { kind: "hidden" }                         // 貓不在畫面上（躲起來、不在場）
-  | { kind: "go"; x: number; z: number }       // 走到這個位置
+  | { kind: "go"; x: number; z: number; look?: boolean }  // 走到這個位置旁、面向它；look：鏡頭轉過去看
   | { kind: "jump"; object: string }           // 跳上這件家具（RoomObject.id）
   | { kind: "roam" };                          // 照常在房間裡閒晃
 
@@ -15,16 +15,17 @@ const has = (o: RoomObject, words: string[]) => words.some(w => `${o.name_zh ?? 
 const tallest = (list: RoomObject[]) => [...list].sort((a, b) => b.box.size[1] - a.box.size[1])[0];
 
 export function sceneCatCommand(action: CatAction | null, objects: readonly RoomObject[], placed: readonly { id: string; x: number; z: number }[]): SceneCatCommand {
-  const at = (id: string): SceneCatCommand => {
+  const at = (id: string, look = false): SceneCatCommand => {
     const p = placed.find(x => x.id === id);
-    return p ? { kind: "go", x: p.x, z: p.z } : { kind: "roam" };
+    return p ? { kind: "go", x: p.x, z: p.z, ...(look && { look }) } : { kind: "roam" };
   };
   const jumpable = objects.filter(o => o.affordance.jump_on && o.surfaces?.length !== 0);
   const jumpTo = (o: RoomObject | undefined): SceneCatCommand => (o ? { kind: "jump", object: o.id } : { kind: "roam" });
   switch (action) {
     case null: return { kind: "hidden" };
     case "carrier": return at("carrier");
-    case "eat": return at("bowl");
+    // 餵完、換完水才叫貓去碗邊：鏡頭要轉過去，玩家才看得到牠去吃
+    case "eat": return at("bowl", true);
     case "litter": return at("litter_box");
     case "hide": {
       const o = objects.find(x => x.affordance.hide_under);

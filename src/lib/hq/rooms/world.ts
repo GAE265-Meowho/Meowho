@@ -101,6 +101,11 @@ export async function createRoomWorld({ viewer, threeScene, scene, layout, camer
   let toy: [number, number] | null = null;
   const chase = { cool: 0 };
 
+  /** 鏡頭原地轉頭看向 at（世界座標） */
+  const turnToward = (at: THREE.Vector3) => {
+    const pos = viewer.camera.position.clone();
+    focus({ pos, look: pos.clone().addScaledVector(at.sub(pos).normalize(), unit * LOOK_AT) });
+  };
   const catHead = (out: THREE.Vector3) => {
     if (!cat.visible) return false;
     cat.cat.getWorldPosition(out);
@@ -152,18 +157,13 @@ export async function createRoomWorld({ viewer, threeScene, scene, layout, camer
 
     lookAtCat() {
       const at = new THREE.Vector3();
-      if (!catHead(at)) return;
-      const pos = viewer.camera.position.clone();
-      focus({ pos, look: pos.clone().addScaledVector(at.sub(pos).normalize(), unit * LOOK_AT) });
+      if (catHead(at)) turnToward(at);
     },
 
     callCat() {
       if (!cat.comeTo(viewer.camera)) return;
-      const pos = viewer.camera.position.clone();
       const dest = cat.destWorld();
-      if (!dest) return;
-      const dir = dest.sub(pos).normalize();  // 只轉頭，確保看得到貓走過來
-      focus({ pos, look: pos.clone().addScaledVector(dir, unit * LOOK_AT) });
+      if (dest) turnToward(dest);  // 只轉頭，確保看得到貓走過來
     },
 
     jumpOnBed() {
@@ -193,7 +193,14 @@ export async function createRoomWorld({ viewer, threeScene, scene, layout, camer
       cat.visible = cmd.kind !== "hidden";
       if (cmd.kind === "go") {
         const k = cat.nearestFree(cmd.x * upm, cmd.z * upm, 12);
-        if (k !== undefined && k >= 0) cat.goTo(k);
+        // 走到旁邊後面向目標、多待一會（不然會屁股對著碗，2 秒後就走開）
+        const target = new THREE.Vector2(cmd.x * upm, cmd.z * upm);
+        if (k !== undefined && k >= 0) {
+          // 走不過去（被用品或家具隔開）就直接出現在旁邊，不要原地不動
+          if (!cat.goTo(k, target)) cat.appearAt(k, target);
+          // 鏡頭看目標本身（貓若要先從家具跳下來，牠這一趟的目的地還沒換新）
+          if (cmd.look) turnToward(cat.frame.localToWorld(new THREE.Vector3(target.x, 0.15 * upm, target.y)));
+        }
       } else if (cmd.kind === "jump") {
         const o = objects.find(x => x.id === cmd.object);
         if (o) cat.jumpOn(o, o.surfaces?.[0]?.top_y ?? o.size_m[1], viewer.camera);
