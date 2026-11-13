@@ -1,0 +1,12 @@
+Image Information:
+* file:	paw-tabby.webp
+* title:	虎斑小貓前腳掌（肉球面），剪指甲小遊戲的底圖
+* source:	AI 合成影像，Tina 的 Canva 帳號以 generate-image 產生（media id MAHaxYsrX9c，2026-11-13）
+* author:	Tina（發起）× Claude Code
+
+Image License:
+* license type:	AI 合成，非實拍；依 Canva 使用條款用於本專案
+* requirements:	無
+
+這個檔是從 Tina 提供的 800px 原圖裁切（左 15%、上 7.5%、寬高各 70%）後存成 640px。
+換同一張圖的其他解析度時用同樣的裁切比例，腳趾座標（src/lib/play/mini3d/nail-paw.ts）就不用重量。

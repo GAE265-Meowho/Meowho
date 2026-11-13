@@ -31,6 +31,8 @@ const PetGame3D = dynamic(() => import("../mini3d/PetGame3D").then(m => m.PetGam
 const ScoopGame3D = dynamic(() => import("../mini3d/ScoopGame3D").then(m => m.ScoopGame3D), { ssr: false, loading });
 // 餵貓：第一視角倒乾飼料、開主食罐和湯罐
 const FeedGame3D = dynamic(() => import("../mini3d/FeedGame3D").then(m => m.FeedGame3D), { ssr: false, loading });
+// 剪指甲：2D 貓掌特寫，雙手操作
+const NailGame2D = dynamic(() => import("../mini3d/NailGame2D").then(m => m.NailGame2D), { ssr: false, loading: () => <p role="status">剪指甲遊戲載入中…</p> });
 const WaterRefillGame3D = dynamic(() => import("../mini3d/WaterRefillGame3D").then(m => m.WaterRefillGame3D), { ssr: false, loading });
 
 export function CatgameMini(props: Props) {
@@ -55,6 +57,11 @@ export function CatgameMini(props: Props) {
   if (id === "feed") {
     return <Mini3DModal title={"餵" + catName + "吃飯"} onCancel={() => onDone(null)}>
       <FeedGame3D portion={feedPortion(ctx)} onDone={onDone} />
+    </Mini3DModal>;
+  }
+  if (id === "nail") {
+    return <Mini3DModal title={"幫" + catName + "剪指甲"} onCancel={() => onDone(null)}>
+      <NailGame2D ctx={ctx} onDone={onDone} />
     </Mini3DModal>;
   }
   return <LegacyMini {...props} />;
