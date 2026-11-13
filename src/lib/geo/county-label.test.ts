@@ -136,12 +136,17 @@ describe("縣市名位置", () => {  it("靠海的縣市名貼在自己的海上
         expect(label.arrow, label.name).toBeTruthy();
         expect(edgeClearance(label.arrow?.x2 ?? 0, label.arrow?.y2 ?? 0, own), label.name).toBeLessThan(2);
       }
-      if (label.name === "台中市" || label.name === "嘉義縣") {
-        const ring = (own.find((poly) => (poly[0]?.length ?? 0) > 10)?.[0] ?? []);
+      if (label.name === "嘉義縣") {
+        const ring = largestPolygon(own)[0]?.[0] ?? [];
         const ys = ring.map((point) => point.y);
         const mid = (Math.min(...ys) + Math.max(...ys)) / 2;
-        const span = Math.max(...ys) - Math.min(...ys);
-        expect(Math.abs((label.arrow?.y2 ?? 0) - mid), label.name).toBeLessThan(span * 0.3);
+        expect(Math.abs((label.arrow?.y2 ?? 0) - mid), label.name).toBeLessThan(1);
+      }
+      if (label.name === "台中市") {
+        const ring = largestPolygon(own)[0]?.[0] ?? [];
+        const ys = ring.map((point) => point.y);
+        const mid = (Math.min(...ys) + Math.max(...ys)) / 2;
+        expect(label.arrow?.y2 ?? 0, label.name).toBeLessThan(mid - 8);
       }
     }
     const green = DISTRICTS.find((town) => town.c === "台東縣" && town.n === "綠島鄉");

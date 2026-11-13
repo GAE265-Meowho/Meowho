@@ -47,7 +47,6 @@ function demoFeed(): FeedCat[] {
 
 export default function AdoptSection() {
   const [view, setView] = useState<"cards" | "map">("cards");
-  const [spotlight, setSpotlight] = useState<string | null>(null);
   const [cats, setCats] = useState<FeedCat[] | null>(null);
   const live = Boolean(getBrowserSupabase());
 
@@ -58,20 +57,8 @@ export default function AdoptSection() {
       .then(({ data }) => setCats(((data ?? []) as unknown as FeedRow[]).map((r) => toFeedCat(r))));
   }, []);
 
-  // From the map: switch to cards, then bring that cat's card into view and glow it briefly.
-  const showCard = (id: string) => {
-    setView("cards");
-    setSpotlight(id);
-  };
-
-  useEffect(() => {
-    if (!spotlight || view !== "cards") return;
-    document.getElementById(`cat-${spotlight}`)?.scrollIntoView({ block: "center" });
-    const t = window.setTimeout(() => setSpotlight(null), 2200);
-    return () => window.clearTimeout(t);
-  }, [spotlight, view]);
-
   const list = [...(cats ?? [])].sort((a, b) => b.waitDays - a.waitDays);
+  const catHref = (id: string) => (live ? `/cats/${id}` : "/#adopt");
 
   return (
     <section id="adopt" className={`wrap ${shared.section}`} aria-labelledby="adopt-title">
@@ -113,11 +100,11 @@ export default function AdoptSection() {
         ) : cats.length === 0 ? (
           <p className={styles.count}>目前還沒有待領養的貓。</p>
         ) : view === "map" ? (
-          <AdoptMap cats={cats} onShowCard={showCard} />
+          <AdoptMap cats={cats} catHref={catHref} />
         ) : (
           <ul className={styles.grid}>
             {list.map((c) => (
-              <CatCard key={c.id} cat={c} href={live ? `/cats/${c.id}` : "/#adopt"} spotlight={spotlight === c.id} />
+              <CatCard key={c.id} cat={c} href={catHref(c.id)} />
             ))}
           </ul>
         )}
