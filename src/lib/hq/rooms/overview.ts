@@ -98,3 +98,15 @@ export function overviewStart(frontDir: Vec3): OverviewAngles {
   const flat = Math.hypot(frontDir[0], frontDir[2]);
   return { az: flat > 1e-9 ? wrapAzimuth(Math.atan2(-frontDir[2], -frontDir[0])) : 0, tilt: OVERVIEW.tiltStart };
 }
+
+/**
+ * 鍵盤方向鍵（held＝目前按著的 KeyboardEvent.code）和畫面按鈕（pad）合併成一個按住方向。
+ * 同方向不加倍、相反方向互相抵消；WASD 不算（俯視時不能走動）。
+ */
+export function holdFromKeys(held: ReadonlySet<string>, pad: OverviewHold | null): OverviewHold {
+  const key = (plus: string, minus: string) => (held.has(plus) ? 1 : 0) - (held.has(minus) ? 1 : 0);
+  return {
+    x: Math.sign((pad?.x ?? 0) + key("ArrowRight", "ArrowLeft")) || 0,
+    y: Math.sign((pad?.y ?? 0) + key("ArrowUp", "ArrowDown")) || 0,
+  };
+}

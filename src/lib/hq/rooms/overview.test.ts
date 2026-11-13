@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { OVERVIEW, clampTilt, dragOverview, overviewCamera, overviewStart, stepOverview, wrapAzimuth } from "./overview";
+import { OVERVIEW, clampTilt, dragOverview, holdFromKeys, overviewCamera, overviewStart, stepOverview, wrapAzimuth } from "./overview";
 import { clampInRoom, type RoomScene } from "./demo";
 
 const room: RoomScene["room"] = { min: [0, 0], max: [4, 3] };
@@ -120,5 +120,14 @@ describe("擺用品的俯視鏡頭", () => {
     expect(pos[0]).toBeLessThan(target[0]);
     expect(pos[2]).toBeCloseTo(target[2]);
     expect(overviewStart([0, -1, 0]).az).toBe(0);  // 沒有水平方向時用 0
+  });
+
+  it("鍵盤方向鍵：和畫面上的按鈕合併，同時按左右互相抵消", () => {
+    expect(holdFromKeys(new Set(), { x: 0, y: 0 })).toEqual({ x: 0, y: 0 });
+    expect(holdFromKeys(new Set(["ArrowRight"]), { x: 0, y: 0 })).toEqual({ x: 1, y: 0 });
+    expect(holdFromKeys(new Set(["ArrowLeft", "ArrowUp"]), null)).toEqual({ x: -1, y: 1 });
+    expect(holdFromKeys(new Set(["ArrowLeft", "ArrowRight", "ArrowDown"]), null)).toEqual({ x: 0, y: -1 });
+    expect(holdFromKeys(new Set(["ArrowRight"]), { x: 1, y: 0 })).toEqual({ x: 1, y: 0 });  // 按鈕和鍵盤同一方向不會加倍
+    expect(holdFromKeys(new Set(["KeyW"]), { x: 0, y: -1 })).toEqual({ x: 0, y: -1 });  // WASD 不算
   });
 });

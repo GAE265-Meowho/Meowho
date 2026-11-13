@@ -10,7 +10,7 @@ import {
   cameraForward, clampInRoom, roomSplats, roomUnit, roomViews, sortCameras,
   type RoomCamera, type RoomLayout, type RoomScene, type RoomViewName,
 } from "@/lib/hq/rooms/demo";
-import { OVERVIEW, dragOverview, overviewCamera, overviewStart, stepOverview, type OverviewHold } from "@/lib/hq/rooms/overview";
+import { OVERVIEW, dragOverview, holdFromKeys, overviewCamera, overviewStart, stepOverview, type OverviewHold } from "@/lib/hq/rooms/overview";
 import { createRoomWorld, type RoomWorld } from "@/lib/hq/rooms/world";
 import { isPrivateRoomBase, keepRecentRoom, roomFile } from "@/lib/home-room-cache";
 import { getBrowserSupabase } from "@/lib/supabase/client";
@@ -370,9 +370,9 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
           active.forceRenderNextFrame();
           if (t === 1) tween = null;
         } else if (overviewOn) {
-          // 按住方向鍵連續轉，放開（x、y 都是 0）就停；俯視時不能用 WASD 走動
-          const hold = overviewHold.current;
-          if (hold && (hold.x || hold.y)) {
+          // 按住方向鍵（畫面按鈕或鍵盤 ←↑→↓）連續轉，放開就停；俯視時不能用 WASD 走動
+          const hold = holdFromKeys(held, overviewHold.current);
+          if (hold.x || hold.y) {
             angles = stepOverview(angles, hold, dt, handed);
             jumpTo(overviewView());
           }
@@ -403,7 +403,12 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
     const typing = (e: KeyboardEvent) => e.target instanceof HTMLElement && ["INPUT", "TEXTAREA", "SELECT"].includes(e.target.tagName);
     // 檢視器的內建控制在 window 攔截 WASD 和快捷鍵，在輸入框打字時要先擋下來，否則字打不出來
     addEventListener("keydown", e => { if (typing(e)) e.stopImmediatePropagation(); }, { capture: true, signal: abort.signal });
-    addEventListener("keydown", e => { if (!typing(e)) held.add(e.code); }, { signal: abort.signal });
+    addEventListener("keydown", e => {
+      if (typing(e)) return;
+      held.add(e.code);
+      // 俯視鏡頭：焦點不在任何控制項上時，方向鍵是轉視角，不要捲動網頁
+      if (overviewHold.current && e.code.startsWith("Arrow") && e.target === document.body) e.preventDefault();
+    }, { signal: abort.signal });
     addEventListener("keyup", e => held.delete(e.code), { signal: abort.signal });
     addEventListener("blur", () => held.clear(), { signal: abort.signal });
 
