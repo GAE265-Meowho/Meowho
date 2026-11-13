@@ -20,6 +20,8 @@ import { bowlSlotsOf, detectBowlSlots, setBowlSlots } from "./bowlSlotsDetect";
 import { readItemDragId } from "./itemDrag";
 import type { PlanRoom } from "@/lib/hq/floorplans/types";
 import type { SceneLight } from "@/lib/play/scene-light";
+import { houseStainSpots, STAIN, type Stain } from "@/lib/play/urine-stain";
+import { stainShape } from "./stain-mesh";
 import { shotReach, type CameraShot } from "@/lib/play/camera-shot";
 
 /** 生活用品放在哪：null＝地板；有值＝家具頂面（PlanRoom.furniture 原始索引） */
@@ -582,6 +584,27 @@ function Room({ s, planFurniture, onClick, onRemoveFurniture, onRotateFurniture,
   );
 }
 
+/** 尿漬貼片（#354）：地板上的扁平淡黃半透明塊，不吃燈光（夜晚也看得到） */
+function StainDecals({ scene, stains }: { scene: RoomScene; stains: readonly Stain[] }) {
+  const spots = useMemo(() => houseStainSpots(scene, stains), [scene, stains]);
+  return (
+    <>
+      {spots.map(sp => (
+        <group key={sp.id} position={[sp.x, 0.012, sp.z]} rotation={[-Math.PI / 2, 0, 0]} renderOrder={5}>
+          <mesh>
+            <shapeGeometry args={[stainShape(sp.id, sp.r)]} />
+            <meshBasicMaterial color={STAIN.color} transparent opacity={STAIN.opacity} depthWrite={false} side={THREE.DoubleSide} polygonOffset polygonOffsetFactor={-2} polygonOffsetUnits={-2} />
+          </mesh>
+          <mesh position={[0, 0, 0.003]}>
+            <shapeGeometry args={[stainShape(`${sp.id}-core`, sp.r * 0.55)]} />
+            <meshBasicMaterial color={STAIN.core} transparent opacity={STAIN.opacity} depthWrite={false} side={THREE.DoubleSide} polygonOffset polygonOffsetFactor={-2} polygonOffsetUnits={-2} />
+          </mesh>
+        </group>
+      ))}
+    </>
+  );
+}
+
 export interface ViewerCat { baseUrl: string; albedoUrl: string; body: BodyType }
 
 /**
@@ -834,7 +857,7 @@ function CatGlow({ pos, intensity, color }: { pos: React.RefObject<THREE.Vector3
   return <pointLight ref={ref} intensity={intensity} color={color} distance={1.3} decay={1} />;
 }
 
-export default function FloorplanViewer({ rooms, selected, onPick, cat, placedItems = [], interactMode = "point", removedFurniture, furnitureMoves, onMoveItem, onRotateItem, onRemoveItem, onRemoveFurniture, onMoveFurniture, onRotateFurniture, onFloorDrop, catGoal = null, catClip = null, catSpeed = 1, onItemError, story = null, onStory, light = null, shot = null }: {
+export default function FloorplanViewer({ rooms, selected, onPick, cat, placedItems = [], interactMode = "point", removedFurniture, furnitureMoves, onMoveItem, onRotateItem, onRemoveItem, onRemoveFurniture, onMoveFurniture, onRotateFurniture, onFloorDrop, catGoal = null, catClip = null, catSpeed = 1, onItemError, story = null, onStory, light = null, shot = null, stains = null }: {
   rooms: PlanRoom[]; selected: string | null; onPick: (id: string) => void;
   /** 虛擬體驗（#150）：放一隻貓進去；有貓時只顯示單間（沒有「全部」），點地板叫貓走過去 */
   cat?: ViewerCat | null;
@@ -874,6 +897,8 @@ export default function FloorplanViewer({ rooms, selected, onPick, cat, placedIt
   onStory?: (st: StoryState) => void;
   /** 虛擬飼養的白天／夜晚光（#354，lib/play/scene-light.ts 的 lightFor(time).house）；null／不給＝原本的燈光（MeowHQ） */
   light?: SceneLight["house"] | null;
+  /** 尿漬（#354，lib/play/urine-stain.ts 的 stainsFor）；null／不給＝沒有（預設）。只畫在第一間房 */
+  stains?: readonly Stain[] | null;
   /** 虛擬飼養的劇情鏡頭（#354，lib/play/camera-shot.ts 的 shotFor）；null／不給＝原本的鏡頭（預設） */
   shot?: CameraShot | null;
 }) {
@@ -955,6 +980,7 @@ export default function FloorplanViewer({ rooms, selected, onPick, cat, placedIt
                     setClick({ ...c, at: Date.now() });
                   }}
                 >
+                  {stains?.length && s.id === shown[0]?.id ? <StainDecals scene={s} stains={stains} /> : null}
                   {roomItems.map(item => (
                     <ItemBoundary key={item.key} fallback={<ItemBox item={item} />} onError={() => onItemError?.(item.key)}>
                       <Suspense fallback={null}>

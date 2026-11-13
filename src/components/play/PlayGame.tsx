@@ -48,6 +48,9 @@ import { lightFor, playLightTime, poseSpeed } from "@/lib/play/scene-light";
 import { reportScene, resetScene, sceneOf } from "@/lib/play/scene-change";
 import { shotFor } from "@/lib/play/camera-shot";
 import { showVet } from "@/lib/play/vet-room";
+import { stainsFor } from "@/lib/play/urine-stain";
+import { farewellPhase } from "@/lib/play/farewell";
+import { playSfx } from "@/lib/play/audio-player";
 import { ScanWand } from "./ScanWand";
 import { ReportStep } from "./ReportStep";
 import { AbandonPanel } from "./AbandonPanel";
@@ -457,6 +460,11 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
   useEffect(() => { reportScene(sceneOf({ step: state.step, nodeId: node.id, scene: state.scene, home: cur?.kind === "home" })); }, [state.step, node.id, state.scene, cur?.kind]);
   useEffect(() => resetScene, []);
   // 診間與劇情鏡頭（#354 第 5 份）
+  // 半年後公貓亂噴尿：尿漬出現的同時播噴尿音效（sfx_spray 還沒有音檔時不出聲）；看醫生或劇情結束就消失。結局那一幕疊結局插圖
+  const stains = useMemo(() => stainsFor({ step: state.step, nodeId: node.id, bg: state.scene.bg, pose: state.scene.cat, life: state.life }),
+    [state.step, node.id, state.scene.bg, state.scene.cat, state.life]);
+  useEffect(() => { if (stains.length) playSfx("sfx_spray"); }, [stains.length]);
+  const farewell = farewellPhase({ step: state.step, nodeId: node.id, pose: state.scene.cat });
   const vet = showVet({ step: state.step, bg: state.scene.bg, home: cur?.kind === "home" });
   const shot = useMemo(() => (state.step === "node" && cur?.kind !== "home" ? shotFor(node.id, state.scene.cat) : null), [state.step, cur?.kind, node.id, state.scene.cat]);
 
@@ -512,7 +520,7 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
 
       {showStage && (
         <PlayStage kind={kind} scanBase={scanBase} placeView={state.step === "place"} look={look} bubble={bubble} bubbleInset={peek || (cur?.kind === "home" && !careAct) ? 0.08 : cur?.kind === "lines" || cur?.kind === "personal" ? 0.36 : 0.48} lookKey={lookKey} placed={placed} scanItems={scanItems} story={story} wand={wand}
-          goal={goal} clip={clip} speed={state.step === "node" ? poseSpeed(state.scene.cat, node.speed) : 1} light={light} vet={vet} shot={shot}
+          goal={goal} clip={clip} speed={state.step === "node" ? poseSpeed(state.scene.cat, node.speed) : 1} light={light} vet={vet} shot={shot} stains={stains} farewell={farewell}
           onDrop={state.step === "place" && kind === "dollhouse"
             ? (id, at) => { if (playItems.some(i => i.id === id)) placeAt(id as PlayItem["id"], at); }
             : undefined}>
