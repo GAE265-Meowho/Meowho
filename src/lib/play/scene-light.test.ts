@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { lightFor, lightTime, playLightTime, poseSpeed, veilShift, ZOOM_SPEED } from "./scene-light";
+import { lightFor, lightTime, playLightTime, poseSpeed, ZOOM_SPEED } from "./scene-light";
 import { onSceneChange, reportScene, resetScene, sceneChanged, sceneOf } from "./scene-change";
 
 describe("白天／夜晚兩種光", () => {
@@ -21,34 +21,26 @@ describe("白天／夜晚兩種光", () => {
     const d = lightFor("day");
     expect(d.house).toMatchObject({ background: "#F3EFE7", hemi: { sky: "#fffaf2", ground: "#d8ccb8", intensity: 1.7 }, ambient: 0.35, sun: { color: "#fff6e8", intensity: 2.2 }, catLight: 0 });
     expect(d.scan.hemi).toEqual({ sky: 0xffffff, ground: 0x808080, intensity: 1.6 });
-    expect(d.scan.veil.alpha).toBe(0);
+    expect(d.scan.tint).toEqual([1, 1, 1]);
+    expect(d.scan.catLight).toBe(0);
   });
 
-  it("夜晚整體變暗，但貓有補光、掃描房間的夜色不會全黑", () => {
+  it("夜晚整體變暗偏藍，但貓有補光、掃描房間不會全黑", () => {
     const d = lightFor("day"), n = lightFor("night");
     expect(n.house.hemi.intensity).toBeLessThan(d.house.hemi.intensity);
     expect(n.house.sun.intensity).toBeLessThan(d.house.sun.intensity);
     expect(n.house.catLight).toBeGreaterThan(0);
     expect(n.scan.hemi.intensity).toBeLessThan(d.scan.hemi.intensity);
-    expect(n.scan.veil.alpha).toBeGreaterThan(0.3);
-    expect(n.scan.veil.alpha).toBeLessThan(0.75);
+    const [r, g, b] = n.scan.tint;
+    expect(Math.max(r, g, b)).toBeLessThan(0.7);
+    expect(Math.min(r, g, b)).toBeGreaterThan(0.15);
+    expect(b).toBeGreaterThan(r);
+    expect(n.scan.catLight).toBeGreaterThan(0);
   });
 
   it("半夜跑酷（zoom）加速，其他姿勢不變", () => {
     expect(poseSpeed("zoom", 1)).toBe(ZOOM_SPEED);
     expect(poseSpeed("sit", 0.85)).toBe(0.85);
-  });
-
-  it("夜色的洞跟著貓：畫面中央 → veil 置中；跑出畫面時夾住，veil 仍蓋滿畫面", () => {
-    expect(veilShift(0.5, 0.5).map(v => Math.round(v * 100) / 100)).toEqual([-33.33, -33.33]);
-    expect(veilShift(0, 1)).toEqual([-50, veilShift(1, 1)[1]]);
-    expect(veilShift(-9, 9)).toEqual(veilShift(-0.5, 1.5));
-    // veil 的左緣（宿主寬度的倍數）＝ shift% × 3，夾住後最多到 −2、最少到 −1，右緣都 ≥ 1
-    for (const f of [-9, -0.5, 0, 0.5, 1, 1.5, 9]) {
-      const left = (veilShift(f, f)[0] / 100) * 3;
-      expect(left).toBeLessThanOrEqual(0);
-      expect(left + 3).toBeGreaterThanOrEqual(1);
-    }
   });
 });
 

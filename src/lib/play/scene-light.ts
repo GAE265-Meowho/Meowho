@@ -2,9 +2,10 @@
 // 劇本的 scene.time 有 day／dusk／night 三種，但只做兩種光：傍晚歸白天，待渝茜確認。
 // 兩種 3D 房間吃同一組設定：
 //   - 示範娃娃屋（FloorplanViewer）：一般 three.js 燈光，直接換顏色與強度；夜晚在貓身上多一盞小補光（貓要看得清楚）。
-//   - 掃描房間（RoomViewer）：Gaussian Splat 不吃燈光，只能整體調色。夜晚在畫布上疊一層半透明深藍（veil），
-//     中間挖一個跟著貓走的洞（貓所在區域減弱夜色）；虛擬物件的半球光同時調暗、調藍，才不會和背景脫節。
-//     不加後製 pass、不加陰影、不多渲染一次：veil 只是一個 HTML 元素，跟著貓移動只改 transform（合成層，不重畫）。
+//   - 掃描房間（RoomViewer）：Gaussian Splat 不吃燈光，改成讓 Splat 本身的顏色乘上 tint（材質多一個 uniform，
+//     片段著色器多一個乘法；只在第一次編譯，之後換日夜只改 uniform 值）。白天 tint＝(1,1,1)，畫面和原本一樣。
+//     虛擬物件（貓、用品）照舊吃半球光，夜晚調暗調藍；貓身上多一盞小補光，所以貓比房間亮、看得清楚。
+//     不加後製 pass、不加陰影、不多渲染一次。
 import type { CatPose } from "./story";
 
 export type LightTime = "day" | "night";
@@ -32,10 +33,13 @@ export interface SceneLight {
   };
   /** 掃描房間（RoomViewer） */
   scan: {
+    /** Splat 顏色的乘數（r, g, b，0～1）；白天 (1,1,1)＝原本的顏色 */
+    tint: readonly [number, number, number];
     /** 虛擬物件（貓、用品）的半球光 */
     hemi: { sky: number; ground: number; intensity: number };
-    /** 疊在畫布上的夜色：顏色（r, g, b）與不透明度；0＝不疊 */
-    veil: { rgb: readonly [number, number, number]; alpha: number };
+    /** 貓身上的小補光（點光源）強度；0＝不亮 */
+    catLight: number;
+    catLightColor: number;
   };
 }
 
@@ -50,7 +54,7 @@ const DAY: SceneLight = {
     catLight: 0,
     catLightColor: "#ffe9c9",
   },
-  scan: { hemi: { sky: 0xffffff, ground: 0x808080, intensity: 1.6 }, veil: { rgb: [18, 26, 58], alpha: 0 } },
+  scan: { tint: [1, 1, 1], hemi: { sky: 0xffffff, ground: 0x808080, intensity: 1.6 }, catLight: 0, catLightColor: 0xffe9c9 },
 };
 
 // 夜晚：整體暗、偏藍（月光）；貓身上一盞暖色小補光，貓不會跟著背景一起糊掉
@@ -64,7 +68,8 @@ const NIGHT: SceneLight = {
     catLight: 2.4,
     catLightColor: "#ffe9c9",
   },
-  scan: { hemi: { sky: 0xb4c4ff, ground: 0x404a6a, intensity: 1.25 }, veil: { rgb: [18, 26, 58], alpha: 0.58 } },
+  // 房間乘上偏藍的暗色（月光）：紅綠壓得比藍多
+  scan: { tint: [0.3, 0.36, 0.55], hemi: { sky: 0xb4c4ff, ground: 0x404a6a, intensity: 0.55 }, catLight: 2.6, catLightColor: 0xffe9c9 },
 };
 
 export const lightFor = (time: string | null | undefined): SceneLight => (lightTime(time) === "night" ? NIGHT : DAY);
@@ -72,11 +77,3 @@ export const lightFor = (time: string | null | undefined): SceneLight => (lightT
 /** 半夜跑酷（姿勢 zoom）時貓的速度倍率：母體還沒有奔跑動作（run 只有奔跑貓母體有），先把走路動作加速代替 */
 export const ZOOM_SPEED = 2.2;
 export const poseSpeed = (pose: CatPose, base: number) => (pose === "zoom" ? base * ZOOM_SPEED : base);
-
-/** 掃描房間夜色挖洞的位置：貓頭在畫面的比例座標（0～1，左上為 0）→ veil 元素的 translate（%）。
- *  veil 是宿主 3 倍大的元素、洞在正中間，所以 translate＝(比例 ÷ 3 − 0.5) × 100%；
- *  比例夾在 −0.5～1.5，洞跑到畫面外時 veil 仍蓋滿整個畫面。 */
-export function veilShift(fx: number, fy: number): [number, number] {
-  const c = (v: number) => Math.min(1.5, Math.max(-0.5, v));
-  return [(c(fx) / 3 - 0.5) * 100, (c(fy) / 3 - 0.5) * 100];
-}
