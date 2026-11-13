@@ -3,6 +3,7 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState } f
 import { resolveSiteLogo, type SiteLogo } from "@/lib/site-logo";
 import { getBrowserSupabase } from "@/lib/supabase/client";
 import { useAuth } from "./Auth";
+import { ActiveRunButton } from "./play/ActiveRunButton";
 
 interface UiCtx {
   toast: (msg: string) => void;
@@ -67,6 +68,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <Ctx.Provider value={{ toast, logo, applyLogo }}>
       {children}
+      <ActiveRunButton />
       <div className={`toast${show ? " show" : ""}`} role="status" aria-live="polite">{msg}</div>
     </Ctx.Provider>
   );

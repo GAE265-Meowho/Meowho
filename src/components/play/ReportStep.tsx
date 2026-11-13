@@ -18,12 +18,13 @@ import { STORY } from "@/lib/play/story";
 import { nodeLabel } from "@/lib/play/timeline";
 import { getBrowserSupabase } from "@/lib/supabase/client";
 import s from "./play.module.css";
+import { notifyRunChanged } from "./useActiveRun";
 
-/** 存給中途看的報告（0033）：玩完自動存一筆「已完成」，玩家按「附上試養報告」才分享給中途（同領養任務的規則） */
+/** 存給中途看的報告（0033、0035）：玩完把進行中那筆改成「已完成」並寫入報告，玩家按「附上試養報告」才分享給中途（同領養任務的規則） */
 type Sent = { st: "idle" } | { st: "saving" } | { st: "saved"; runId: string } | { st: "sharing"; runId: string } | { st: "shared"; threadId: string } | { st: "error"; msg: string };
 
-export function ReportStep({ state, pick, monthly, home, catId, demo, roomId, catHref, onRestart }: {
-  state: PlayState; pick: ShopPick; monthly: number; home: PlayerHome; catId: string; demo: boolean; roomId: string | null; catHref: string; onRestart: () => void;
+export function ReportStep({ state, pick, monthly, home, runId, catHref, onRestart }: {
+  state: PlayState; pick: ShopPick; monthly: number; home: PlayerHome; runId: string | null; catHref: string; onRestart: () => void;
 }) {
   const X = state.life, C = X.cost, total = costTotal(C);
   const years = Math.max(1 / 12, (X.age - state.startMonths) / 12);
@@ -36,14 +37,22 @@ export function ReportStep({ state, pick, monthly, home, catId, demo, roomId, ca
   const [sent, setSent] = useState<Sent>({ st: "idle" });
   const saved = useRef(false);
 
-  // 玩完自動存（示範貓、沒登入、被放棄的體驗不存）；存不起來不擋報告
+  // 玩完完成進行中那筆並存報告（示範貓、沒登入＝沒有 runId 不存）；存不起來不擋報告
+  // 劇情裡選了送走牠：不算完成、不給中途看，但要結束進行中那筆（closed，同換貓），不然會一直擋住下一隻貓、還能回去重選
   useEffect(() => {
     const sb = getBrowserSupabase();
-    if (saved.current || demo || !sb || X.abandoned) return;
+    if (saved.current || !runId || !sb) return;
     saved.current = true;
+    if (X.abandoned) {
+      sb.rpc("meow_switch_task_run", { p_run_id: runId }).then(({ error }) => { if (!error) notifyRunChanged(); });
+      return;
+    }
     setSent({ st: "saving" });
-    sb.rpc("meow_save_play_report", { p_cat_id: catId, p_room_id: roomId, p_report: buildPlayReport({ life: X, startMonths: state.startMonths, budget: pick.budget, monthly }) })
-      .then(({ data, error }) => setSent(error || !data ? { st: "error", msg: error?.message ?? "" } : { st: "saved", runId: data as string }));
+    sb.rpc("meow_complete_play_run", { p_run_id: runId, p_report: buildPlayReport({ life: X, startMonths: state.startMonths, budget: pick.budget, monthly }) })
+      .then(({ data, error }) => {
+        if (!error && data) notifyRunChanged();
+        setSent(error || !data ? { st: "error", msg: error?.message ?? "" } : { st: "saved", runId: data as string });
+      });
     // 報告只在進入時存一次
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

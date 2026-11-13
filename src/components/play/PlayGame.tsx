@@ -2,8 +2,10 @@
 // 虛擬飼養 DEMO（#237）：/cats/[id]/play 的整個流程。貓咪（名字、花色、年紀、3D 貼圖）、喵戶背景、每月預算、我的 3D 房間、環境報告
 // 都讀登入者的真實資料（usePlayData.ts）；沒登入或沒有喵戶先帶去登入／建立喵戶（同領養任務頁）。流程狀態在 src/lib/play/flow.ts（純函式）。
 // 背景（喵戶、預算、3D 房間）→ 預算與採買 → 擺用品 → 三個節點（照 catgame 原版劇情：台詞＋選項 → 3D 貓動作 → 小遊戲 → 小叮嚀 → 紀錄）→ 試養報告。
-// 遊戲狀態只放在前端 state（不新增資料表、不寫資料庫）；重新整理會從頭開始。
-// 外部依賴都有備案：喵戶資料欄位缺漏＝範例值；還沒建 3D 房間＝公開示範房間；沒有環境報告＝物品清單加規則；AI 失敗＝規則；遠端 GLB 失敗＝同尺寸方塊。
+// 進行中、續玩、放棄（#354，docs/play-tasks/7-進行中續玩放棄重玩.md）：按「下一步：預算與採買」就建一筆進行中的紀錄（meow_start_play_run），
+// 每過一個節點把快照存進 meow_task_runs.progress（lib/play/save.ts），離開後從貓咪頁、全站「回任務」按鈕回來，從那個節點的開頭接著玩（可換裝置）。
+// 開始前的檢查在 lib/play/run-gate.ts：沒有 3D 房間或安全報告不能開始、不再用示範房間當備案；示範貓、沒連資料庫照舊直接玩、不建紀錄。
+// 外部依賴的備案（只剩示範模式用）：喵戶資料欄位缺漏＝範例值；AI 失敗＝規則；遠端 GLB 失敗＝同尺寸方塊。
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { useAuth } from "@/components/Auth";
 import { useHouseholdGate } from "@/components/useHouseholdGate";
@@ -11,6 +13,10 @@ import type { PlaceAt, PlacedHouseholdItem, RoomClick } from "@/components/hq/as
 import { setItemDragData } from "@/components/hq/assets/itemDrag";
 import CatButton from "@/components/ui/CatButton";
 import { houseScene } from "@/lib/hq/floorplans/scene";
+import { homeSceneBase } from "@/lib/home-room";
+import { playGate, runErrorText, type Gate } from "@/lib/play/run-gate";
+import { buildProgress, parseSaved } from "@/lib/play/save";
+import { getBrowserSupabase } from "@/lib/supabase/client";
 import { SAMPLE_HOME } from "@/lib/play/background";
 import { catKicker } from "@/lib/play/player-data";
 import { nodeLabel } from "@/lib/play/timeline";
@@ -37,6 +43,10 @@ import { SoundToggle, usePlayBgm } from "./PlayAudio";
 import { PlayStage } from "./PlayStage";
 import { ScanWand } from "./ScanWand";
 import { ReportStep } from "./ReportStep";
+import { AbandonPanel } from "./AbandonPanel";
+import e from "./play-entry.module.css";
+import { RunGateCard } from "./RunGateCard";
+import { notifyRunChanged, useActiveRun, useRunProgress } from "./useActiveRun";
 import { ShopStep } from "./ShopStep";
 import { useHouseholdExtras, usePlayHouseholds } from "./usePlayData";
 import s from "./play.module.css";
@@ -69,19 +79,41 @@ interface RoomState { kind: RoomKind; inventory: RoomInventory; notice: string |
 export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string }) {
   const [state, dispatch] = useReducer((st: ReturnType<typeof initialPlay>, a: PlayAction) => playReducer(st, a), undefined, initialPlay);
   const { loading: authLoading, user } = useAuth();
-  const { hasHome, pass } = useHouseholdGate();
+  const { hasHome, pass, toGuide } = useHouseholdGate();
   const households = usePlayHouseholds();
   const [hhId, setHhId] = useState<string | null>(null);
   const hh = households?.find(h => h.id === hhId) ?? households?.[0] ?? null;
   const extras = useHouseholdExtras(hh?.id ?? null);
+  // 進行中的領養任務：runId＝這一輪的紀錄（開始後或續玩讀回來才有）；示範貓、沒連資料庫不建紀錄
+  const active = useActiveRun();
+  const [runId, setRunId] = useState<string | null>(null);
+  const [starting, setStarting] = useState(false);
+  const [startErr, setStartErr] = useState<string | null>(null);
+  const [saveErr, setSaveErr] = useState(false);
+  const [abandoning, setAbandoning] = useState(false);
+  /** 續玩時用開始那一刻定格的房間（玩到一半重新上傳影片，這一輪還是用原本的） */
+  const [frozenRoom, setFrozenRoom] = useState<{ id: string; base: string } | null>(null);
+  const isDemo = cat.demo || !getBrowserSupabase();
   // 一般飼主喵戶的背景；登入了但只有中途／機構喵戶時用範例背景；還在讀＝null
   const guestHome = Boolean(!hh && households && user && hasHome === true);
   const home = useMemo(() => (hh ? (extras ? hh.home : null) : guestHome ? { ...SAMPLE_HOME } : null), [hh, extras, guestHome]);
   // 我的 3D 房間：undefined＝還在讀，null＝還沒建好（改用公開示範房間，見 pickScanBase）
-  const myBase = hh ? (extras ? extras.room?.base ?? null : undefined) : households ? null : undefined;
+  const myBase = frozenRoom ? frozenRoom.base : hh ? (extras ? extras.room?.base ?? null : undefined) : households ? null : undefined;
   // 沒登入、沒有喵戶：帶去登入或建立喵戶，回來接著玩
   const here = `/cats/${cat.catId}/play`;
   useEffect(() => { if (!authLoading && households && !households.length && hasHome !== true) pass(here); }, [authLoading, households, hasHome, pass, here]);
+  const gate: Gate = playGate({
+    demo: isDemo, authLoading, signedIn: Boolean(user), catAdoptable: cat.adoptable,
+    personalHouseholds: households?.length, hasAnyHousehold: hasHome,
+    active: active === undefined ? undefined : active && { runId: active.runId, catId: active.catId, catName: active.catName },
+    thisCatId: cat.catId,
+    room: hh ? (extras ? extras.roomState : "loading") : "none",
+    report: hh ? (extras ? extras.reportState : "loading") : "none",
+  });
+  // 續玩：讀回進度、定格的房間與喵戶，從快照的節點開頭重新開始
+  const resumeId = !runId && gate.kind === "resume" ? gate.runId : null;
+  const resumed = useRunProgress(resumeId);
+  const hydrated = useRef(false);
   const backShop = usePlayShop();
   const playItems = useMemo(() => resolvePlayItems(backShop), [backShop]);
   const playItem = useCallback((id: PlayItem["id"]) => playItems.find(i => i.id === id)!, [playItems]);
@@ -138,7 +170,7 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
 
   // 空間直接從背景資料抓（自己的房間，沒有就用公開示範房間；讀不到用範例娃娃屋），不用上傳
   useEffect(() => {
-    if (room || roomLoading.current || !home || myBase === undefined) return;
+    if (room || roomLoading.current || !home || myBase === undefined || (resumeId && !hydrated.current)) return;
     roomLoading.current = true;
     const dollhouse = (): RoomState => ({ kind: "dollhouse", inventory: inventoryFromPlan(DEMO_DOLLHOUSE), notice: null });
     (async () => {
@@ -151,7 +183,7 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
       }
       setRoom(r);
     })();
-  }, [room, home, myBase, scanBase]);
+  }, [room, home, myBase, scanBase, resumeId]);
 
   // 居家危險：沒有關卡了，房間讀到後在背景請 AI 看物品清單（失敗用規則對照），只給故事事件用（節點 5）
   useEffect(() => {
@@ -216,6 +248,48 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
   useEffect(() => { if (scanWand) setCatches(0); }, [scanWand]);
   const clip = state.step === "node" && action === "sleep" ? "sleep" : null;
   const look = action === null ? null : cat.look(state.step === "node" || state.step === "report" ? bodyAt(state.life.age) : cat.body);
+
+  // 續玩：進度讀回來就還原採買、擺放、喵戶、定格的房間，再回到快照那個節點的開頭
+  const savedCp = useRef<unknown>(null);
+  useEffect(() => {
+    if (!resumeId || resumed.loading || hydrated.current) return;
+    hydrated.current = true;
+    const saved = parseSaved(resumed.progress);
+    const hid = saved?.hhId ?? hh?.id ?? null;
+    setRunId(resumeId);
+    if (hid && resumed.roomId) setFrozenRoom({ id: resumed.roomId, base: homeSceneBase(hid, resumed.roomId) });
+    // 開始後馬上離開、還沒存過進度：從「你的家」接著走，不另外建紀錄
+    if (!saved) return;
+    if (saved.hhId) setHhId(saved.hhId);
+    if (saved.pick) setPick(saved.pick as ShopPick);
+    setPlaced(saved.placed as PlacedHouseholdItem[]);
+    setScanSpots(saved.scanSpots as Partial<Record<PlayItem["id"], string>>);
+    savedCp.current = saved.cp;
+    dispatch({ type: "resume", cp: saved.cp });
+  }, [resumeId, resumed, hh]);
+
+  // 每過一個節點存一次進度（連採買、擺放一起存，可以換裝置續玩）
+  useEffect(() => {
+    const cp = state.checkpoint;
+    const sb = getBrowserSupabase();
+    if (!runId || !cp || !sb || savedCp.current === cp) return;
+    savedCp.current = cp;
+    sb.from("meow_task_runs").update({ progress: buildProgress({ cp, pick, placed, scanSpots, hhId: hh?.id ?? null }) }).eq("id", runId)
+      .then(({ error }) => setSaveErr(Boolean(error)));
+  }, [runId, state.checkpoint, pick, placed, scanSpots, hh]);
+
+  /** 「下一步：預算與採買」：建一筆進行中的紀錄（開始那一刻定格房間與安全報告），之後才進採買 */
+  const begin = async () => {
+    const sb = getBrowserSupabase();
+    if (isDemo || !sb || !extras?.room) { dispatch({ type: "next" }); return; }
+    setStarting(true); setStartErr(null);
+    const { data, error } = await sb.rpc("meow_start_play_run", { p_cat_id: cat.catId, p_room_id: extras.room.id });
+    setStarting(false);
+    if (error || !data) { setStartErr(runErrorText(error?.message ?? "")); return; }
+    setRunId(data as string);
+    notifyRunChanged();
+    dispatch({ type: "next" });
+  };
 
   const startNodes = () => {
     // 原版 fullBegin：依採買記下幾件事
@@ -321,6 +395,18 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
   // 背景音樂依步驟、節點、場景切換（第 6 份）
   usePlayBgm({ step: state.step, nodeId: state.step === "node" ? node.id : null, scene: state.scene, home: cur?.kind === "home" });
 
+  // 開始前被擋下（沒登入、沒喵戶、有別隻貓在進行、沒有房間或報告…）：只顯示說明，不進遊戲
+  const hydrating = Boolean(resumeId && !hydrated.current);
+  if (!isDemo && !runId && state.step === "background" && (hydrating || (gate.kind !== "start" && gate.kind !== "resume" && gate.kind !== "demo"))) {
+    const g = hydrating || gate.kind === "resume" || gate.kind === "demo" || gate.kind === "start" ? ({ kind: "loading" } as const) : gate;
+    return (
+      <div className={s.page}>
+        <h1 className={s.title}><span>{catName}的</span><span>虛擬飼養</span></h1>
+        <RunGateCard gate={g} catName={catName} catHref={catHref} householdId={households?.[0]?.id ?? null} here={here} onGuide={() => toGuide(here)} />
+      </div>
+    );
+  }
+
   return (
     <div className={s.page} data-immersive={immersive ? "true" : undefined}>
       <h1 className={immersive ? s.srOnly : s.title} ref={top}><span>{catName}的</span><span>虛擬飼養</span></h1>
@@ -335,7 +421,8 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
           </div>
           <div className={s.hudEnd}>
             <SoundToggle />
-            <a className={s.exit} href={catHref} onClick={e => { if (!window.confirm("要離開虛擬飼養嗎？目前的進度不會保留。")) e.preventDefault(); }}>離開</a>
+            {runId && <button type="button" className={s.exit} onClick={() => setAbandoning(true)}>放棄</button>}
+            <a className={s.exit} href={catHref} onClick={ev => { if (!window.confirm(runId ? "要離開嗎？下次會從這個節點的開頭接著玩。" : "要離開虛擬飼養嗎？目前的進度不會保留。")) ev.preventDefault(); }}>離開</a>
           </div>
         </div>
       ) : (
@@ -344,7 +431,12 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
             {STEP_LABELS.map(([k, label], i) => <li key={k} aria-current={i === stepIndex ? "step" : undefined}>{label}</li>)}
           </ol>
           <SoundToggle />
+          {runId && <button type="button" className={s.exit} onClick={() => setAbandoning(true)}>放棄任務</button>}
         </div>
+      )}
+      {saveErr && <p className={s.missing} role="status">進度沒有存到，請檢查網路；離開後可能要從上一個節點接著玩。</p>}
+      {abandoning && runId && (
+        <div className={e.overlay}><AbandonPanel catName={catName} runId={runId} onCancel={() => setAbandoning(false)} onDone={() => { window.location.href = catHref; }} /></div>
       )}
 
       {immersive && state.step === "node" && cur?.kind === "home" && !careAct && <CareBar state={state} canPlay={kind === "scan"} onAct={setCareAct} />}
@@ -380,7 +472,12 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
                 <div><dt>3D 房間</dt><dd>{extras?.room ? "你家的房間" : "示範房間（還沒建立）"}</dd></div>
               </dl>
               {hh && extras && !extras.room && <div className={s.actions}><CatButton variant="ghost" href={`/homes/${hh.id}/scene?next=${encodeURIComponent(here)}`}>建立我家的 3D 房間</CatButton></div>}
-              {!room ? <p className={s.lead} role="status">讀取你的空間…</p> : <div className={s.actions}><CatButton onClick={() => dispatch({ type: "next" })}>下一步：預算與採買</CatButton></div>}
+              {!room ? <p className={s.lead} role="status">讀取你的空間…</p> : (
+                <>
+                  {startErr && <p className={s.missing} role="alert">{startErr}</p>}
+                  <div className={s.actions}><CatButton disabled={starting} onClick={begin}>{starting ? "準備中…" : "下一步：預算與採買"}</CatButton></div>
+                </>
+              )}
             </>
           )}
         </section>
@@ -469,8 +566,8 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
       </div>}
 
       {state.step === "report" && home && (
-        <ReportStep state={state} pick={pick} monthly={shop.month} home={home} catId={cat.catId} demo={cat.demo} roomId={extras?.room?.id ?? null} catHref={catHref}
-          onRestart={() => { dispatch({ type: "restart" }); hazardsAsked.current = false; setPlaced([]); setScanSpots({}); setLines({}); }} />
+        <ReportStep state={state} pick={pick} monthly={shop.month} home={home} runId={runId} catHref={catHref}
+          onRestart={() => { dispatch({ type: "restart" }); hazardsAsked.current = false; setPlaced([]); setScanSpots({}); setLines({}); setRunId(null); setFrozenRoom(null); savedCp.current = null; }} />
       )}
     </div>
   );
