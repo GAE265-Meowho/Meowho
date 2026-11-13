@@ -18,6 +18,7 @@
 
 ## 任務（tracer-bullet，每張可獨立 Demo）
 
+- #356 3D 刷牙、摸貓與照護圖示（世安 × Codex）：審查中。擬真刷牙已完成本機 Chrome 1280px／375px 五階段播放與操作驗收；待登入 Preview 驗照護入帳、第 30 天與手機實機。摸貓已整合成貓原始虎斑材質、尾巴命中校準，以及放鬆、抗拒與步行離場，待登入 Preview 與手機實機驗收。
 - 虛擬飼養第 6 份：音效與配樂（#393，子哲 × Claude Code，2026-11-13）：背景音樂 5 首、播放程式、靜音按鈕已合併（PR #394）；音檔改放 Supabase Storage `meow-play-audio`（0035，分支 `feat/393-play-audio-storage` 審查中）。音效檔還沒做；對照表 `SOUNDS`（`src/lib/play/audio.ts`）寫了每個 ID 用在哪、第幾份要呼叫。
 - 站台標誌換成向量「門口貓頭款」並統一前後台（#361，子哲 × Claude Code，2026-11-11）：審查中；分支 `feat/361-door-cat-logo`。合併部署後要到 MeowHQ 設定選「門口貓頭款」（正式站目前存 `house`）。
 - WelfareLens 安全報告通知／佇列隔離設計（#326，Jerry0808 × Codex，2026-11-11）：PR #327 已整合最新 main，`0034` 通知文案依 `new.error_code` 產生；PGlite、完整測試與 build 通過，Draft PR 待組長 Review；禁止自行部署。佇列採 job container scope + scoped claim 的建議待批准，尚未實作。
@@ -46,7 +47,7 @@
 
 | # | 任務 | 模組文件 | 前置 | 期別 | Issue | 負責 | 狀態 |
 |---|---|---|---|---|---|---|---|
-| 354 | 虛擬飼養第 1 份：換水改 3D（PR #391 已合併）、餵貓改 3D（分支 `feat/354-care-feed-3d`，審查中）；還剩鏟屎、逗貓玩具確認、狀態列 | readiness | — | P1 | #354 | 珮瑜 | 進行中 |
+| 354 | 虛擬飼養第 1 份：換水改 3D（PR #391 已合併）、餵貓改 3D（PR #392 已合併，驗收修正 PR #397）、鏟屎改 3D（分支 `feat/354-care-scoop-3d`，審查中）；還剩貓砂盆四款放進房間、逗貓玩具確認、狀態列 | readiness | — | P1 | #354 | 珮瑜 | 進行中 |
 | 273 | WelfareLens 安全報告讀取 API＋PDF-first 評估頁（C＋D；既有 Draft PR #277） | readiness | #263、#274 | P1 | #273 | Jerry0808 | 進行中 |
 | 0 | 首頁原型（Next.js、設計系統、管理者標誌設定） | matching | — | P0 | — | Tina | 完成 |
 | 1 | Supabase、Google 登入、條款同意 | account | — | P1 | #1 | Tina | 審查中 |

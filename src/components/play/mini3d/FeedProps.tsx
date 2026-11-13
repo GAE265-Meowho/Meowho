@@ -102,8 +102,11 @@ export function BowlFood({ state }: { state: RefObject<{ dry: number; wet: boole
 
 const FALL_N = 36, GRAVITY = 9.8;
 
-/** from：袋口（顆粒從這裡掉出來）；on.current：現在有沒有在倒；toY：掉到這個高度就消失（碗裡的高度）。放在場景最外層（世界座標）。 */
-export function KibbleFall({ from, on, toY }: { from: RefObject<Object3D | null>; on: RefObject<boolean>; toY: number }) {
+/**
+ * from：袋口（顆粒從這裡掉出來）；on.current：現在有沒有在倒；toY：掉到這個高度就消失（碗裡的高度）。放在場景最外層（世界座標）。
+ * color、size 不給就是飼料顆粒；鏟屎的漏砂也用這個。
+ */
+export function KibbleFall({ from, on, toY, color = KIBBLE, size = KIBBLE_R }: { from: RefObject<Object3D | null>; on: RefObject<boolean>; toY: number; color?: number; size?: number }) {
   const mesh = useRef<InstancedMesh>(null);
   const parts = useRef(Array.from({ length: FALL_N }, () => ({ age: -1, x: 0, y: 0, z: 0 })));
   const next = useRef(0), clock = useRef(0);
@@ -137,7 +140,7 @@ export function KibbleFall({ from, on, toY }: { from: RefObject<Object3D | null>
   });
 
   return <instancedMesh ref={mesh} args={[undefined, undefined, FALL_N]} frustumCulled={false}>
-    <cylinderGeometry args={[KIBBLE_R, KIBBLE_R, KIBBLE_R * 0.9, 8]} />
-    <meshStandardMaterial color={KIBBLE} roughness={0.9} />
+    <cylinderGeometry args={[size, size, size * 0.9, 8]} />
+    <meshStandardMaterial color={color} roughness={0.9} />
   </instancedMesh>;
 }

@@ -1,0 +1,9 @@
+/* 虛擬體驗元件管理｜音效 */
+.wrap { display: flex; flex-direction: column; gap: 1rem; min-width: 0; }
+.bar { display: flex; justify-content: space-between; align-items: center; gap: .75rem; flex-wrap: wrap; }
+.form { max-width: 560px; width: 100%; }
+.form :global(.hq-label) { display: flex; flex-direction: column; gap: .3rem; }
+.hint { margin: 0; color: var(--hq-sub); font-size: .88rem; overflow-wrap: anywhere; }
+.actions { display: flex; gap: .5rem; flex-wrap: wrap; }
+.check { display: inline-flex; align-items: center; gap: .4rem; min-height: 44px; color: var(--hq-sub); }
+.player { width: 220px; max-width: 100%; }
