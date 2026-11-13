@@ -174,7 +174,7 @@ export default function ApplyPage() {
         {cur && cur.qs.map(q => <QuestionInput key={q.id} q={q} value={answers[q.id]} onChange={v => set(q.id, v)} previews={previews} onPhotos={files => addPhotos(q, files)} busy={busy} />)}
 
         {!cur && !taskDone && (
-          <p className={f.warn}>完成{cat?.name ?? "這隻貓"}的領養任務會影響中途的判斷，強烈建議先完成。<a href={`/cats/${catId}/run`}>去做任務</a></p>
+          <p className={f.warn}>完成{cat?.name ?? "這隻貓"}的領養任務會影響中途的判斷，強烈建議先完成。<a href={`/cats/${catId}/play`}>去做任務</a></p>
         )}
         {!cur && (
           <dl className={s.answers}>

@@ -4,6 +4,7 @@
 > 最後更新：2026-11-13｜清俊 × Cursor（地圖區名錯開、點貓進介紹頁，PR #401）
 
 ## 目前狀態
+- **領養任務進行中／續玩／放棄（#354，渝茜 × Claude Code，分支 `feat/354-play-run-state`，尚未 commit／PR）**：做了 `0035_meow_play_run_state.sql`（**要先給子哲審才能執行**）、`run-gate.ts`、`save.ts`、貓咪頁 `PlayEntry`、全站 `ActiveRunButton`，`/run` 轉址到 `/play`。細節與還沒做的在 `docs/modules/readiness.md` 最後一節。下一步第一個動作：給子哲審 0035 → 執行後用新帳號在正式站走一遍（開始→玩到第 2 節點→換裝置續玩→放棄／完成）。這個工作樹在 `../Meowho-run`，和 `../Meowho`（`feat/play-cat-life`，貓隨機動作，未 commit）分開。
 - **虛擬飼養鏟屎改 3D（#354，珮瑜 × Claude Code，分支 `feat/354-care-scoop-3d`，審查中）**：餵貓（PR #392）已合併，這個 PR 只有鏟屎。鏟屎彈窗 `src/components/play/mini3d/ScoopGame3D.tsx`：按住畫面拖曳貓砂鏟、連砂鏟起、左右甩三下、到垃圾袋上方放開；規則 `src/lib/play/mini3d/scoop-rules.ts`。**貓砂盆四款只畫在彈窗裡（`ScoopProps.tsx`），遊戲一律用開放式，房間裡的貓砂盆沒換**。第 1 份還剩貓砂盆四款放進房間、逗貓玩具確認、上方狀態列。細節見 `docs/modules/readiness.md`「B. 小遊戲改 3D」與 `docs/daily/2026-11-12/2130-珮瑜-354.md`。
 - **#356 摸貓**：保留成貓 GLB 原材質與各節尾骨的碰撞代理。第二階段混合 `idle`、`cuddle`、`walk`，以 `head0` 疊加抗拒轉頭。下一步用合法帳號驗 Preview 照護入帳及手機實機。
 - **#356 掙扎轉頭**：Lv.0–4 每場首次有效接觸觸發一次可略過的衛教示範，固定使用內建 MP4。示範期間暫停練習；定時掙扎仍按原規則判定並尊重減少動態偏好。開發環境可在刷牙彈窗圖片載入後執行 `window.dispatchEvent(new Event("meow:brush-struggle"))`。本機 Chrome 1280px 與 375px 各五階段影片均播完，Lv.3–4 可用鍵鼠或雙指刷牙。Preview 的正式入口需要合法 Google 登入，待驗照護入帳、第 30 天與實體手機。
