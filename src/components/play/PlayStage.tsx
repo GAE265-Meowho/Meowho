@@ -6,7 +6,7 @@
 // 3D 元件一律 next/dynamic（ssr: false）。
 import { CareIcon, type CareIconId } from "./CareIcon";
 import dynamic from "next/dynamic";
-import type { ReactNode } from "react";
+import { useEffect, useState, type KeyboardEvent, type ReactNode } from "react";
 import type { PlaceAt, PlacedHouseholdItem, RoomClick } from "@/components/hq/assets/FloorplanViewer";
 import type { PlayCatLook } from "@/lib/play/cats";
 import { DEMO_DOLLHOUSE } from "@/lib/play/room";
@@ -14,6 +14,7 @@ import type { SceneItem } from "@/lib/play/scene-items";
 import type { RoomWand } from "@/components/hq/assets/RoomViewer";
 import type { CatAction } from "@/lib/play/stage";
 import s from "./play.module.css";
+import p from "./place.module.css";
 
 const loading = () => <div className={s.stageLoading}>3D 房間載入中…</div>;
 const FloorplanViewer = dynamic(() => import("@/components/hq/assets/FloorplanViewer"), { ssr: false, loading });
@@ -22,9 +23,54 @@ const RoomViewer = dynamic(() => import("@/components/hq/assets/RoomViewer"), { 
 const ROOMS = [DEMO_DOLLHOUSE];
 const noop = () => {};
 
-export function PlayStage({ kind, scanBase, look, tag, bubble, bubbleInset, lookKey, placed, scanItems, story, wand, goal, clip, speed, onDrop, onItemError, children }: {
+// 擺用品的四顆方向鍵：x 右 1 左 −1、y 上 1 下 −1（同 lib/hq/rooms/overview.ts 的 OverviewHold）
+const PAD = [
+  { id: "up", label: "往上轉，更俯視", x: 0, y: 1, key: "ArrowUp", turn: 0 },
+  { id: "left", label: "往左轉", x: -1, y: 0, key: "ArrowLeft", turn: -90 },
+  { id: "right", label: "往右轉", x: 1, y: 0, key: "ArrowRight", turn: 90 },
+  { id: "down", label: "往下轉，更斜", x: 0, y: -1, key: "ArrowDown", turn: 180 },
+] as const;
+const STILL = { x: 0, y: 0 };
+
+/** 轉動視角的方向鍵：按住連續轉、放開停止；焦點在按鈕上時鍵盤方向鍵也能轉 */
+function ViewPad({ onHold }: { onHold: (v: { x: number; y: number }) => void }) {
+  const [down, setDown] = useState<string | null>(null);
+  const hold = (b: (typeof PAD)[number] | null) => { setDown(b?.id ?? null); onHold(b ? { x: b.x, y: b.y } : STILL); };
+  // 手指滑出按鈕、切到別的分頁時不會收到放開事件，一律當作放開
+  useEffect(() => {
+    const stop = () => { setDown(null); onHold(STILL); };
+    addEventListener("blur", stop);
+    return () => { removeEventListener("blur", stop); onHold(STILL); };
+  }, [onHold]);
+  const key = (e: KeyboardEvent, pressed: boolean) => {
+    const b = PAD.find(k => k.key === e.key);
+    if (!b) return;
+    e.preventDefault();  // 不要捲動網頁
+    hold(pressed ? b : null);
+  };
+  return (
+    <div className={p.pad} role="group" aria-label="轉動視角" onKeyDown={e => key(e, true)} onKeyUp={e => key(e, false)}>
+      {PAD.map(b => (
+        <button key={b.id} type="button" className={p.key} data-dir={b.id} data-down={down === b.id ? "true" : undefined} aria-label={b.label}
+          onPointerDown={e => { e.currentTarget.setPointerCapture(e.pointerId); hold(b); }}
+          onPointerUp={() => hold(null)} onPointerCancel={() => hold(null)} onLostPointerCapture={() => hold(null)}
+          onBlur={() => hold(null)} onContextMenu={e => e.preventDefault()}
+          onKeyDown={e => { if (e.key === " " || e.key === "Enter") { e.preventDefault(); hold(b); } }}
+          onKeyUp={e => { if (e.key === " " || e.key === "Enter") hold(null); }}>
+          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" style={{ transform: `rotate(${b.turn}deg)` }}>
+            <path d="M12 5l7 9h-4.5v5h-5v-5H5z" fill="currentColor" />
+          </svg>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+export function PlayStage({ kind, scanBase, placeView = false, look, tag, bubble, bubbleInset, lookKey, placed, scanItems, story, wand, goal, clip, speed, onDrop, onItemError, children }: {
   kind: "scan" | "dollhouse";
   scanBase: string | null;
+  /** 擺用品：掃描房間改成俯視鏡頭，畫面上多四顆轉動視角的方向鍵（娃娃屋不變） */
+  placeView?: boolean;
   /** null＝貓不在畫面（原版場景的 cat: "none"） */
   look: PlayCatLook | null;
   /** 左上角的小標（例如「到家第一天」） */
@@ -49,11 +95,14 @@ export function PlayStage({ kind, scanBase, look, tag, bubble, bubbleInset, look
   onItemError?: (key: string) => void;
   children?: ReactNode;
 }) {
+  const [hold, setHold] = useState(STILL);
+  const scan = kind === "scan" && Boolean(scanBase);
+  const overview = scan && placeView;
   return (
-    <section className={s.stage} aria-label="3D 房間">
+    <section className={overview ? `${s.stage} ${p.stage}` : s.stage} aria-label="3D 房間">
       {tag && <span className={s.stageTag}>{tag}</span>}
       {kind === "scan" && scanBase
-        ? <RoomViewer base={scanBase} items={scanItems} controls={false} story={story} wand={wand} bubble={bubble ? <CareIcon id={bubble} /> : null} bubbleInset={bubbleInset} lookKey={lookKey} />
+        ? <RoomViewer base={scanBase} items={scanItems} controls={false} story={story} wand={wand} bubble={bubble ? <CareIcon id={bubble} /> : null} bubbleInset={bubbleInset} lookKey={lookKey} overview={overview ? hold : null} />
         : (
           <FloorplanViewer rooms={ROOMS} selected={ROOMS[0].id} onPick={noop}
             cat={look} placedItems={placed} interactMode="point"
@@ -61,6 +110,7 @@ export function PlayStage({ kind, scanBase, look, tag, bubble, bubbleInset, look
             onFloorDrop={onDrop} onItemError={onItemError} />
         )}
       {kind !== "scan" && bubble && <span className={s.bubbleFixed} aria-hidden="true"><CareIcon id={bubble} /></span>}
+      {overview && <ViewPad onHold={setHold} />}
       {children}
     </section>
   );
