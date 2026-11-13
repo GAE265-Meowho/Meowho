@@ -20,7 +20,7 @@ afterEach(() => {
 });
 
 describe("SafetyReportDetails HTML-summary-first states", () => {
-  it("shows the HTML summary and risks before distinct PDF actions without requesting the PDF", async () => {
+  it("shows the HTML summary and risks before the PDF download action without requesting the PDF", async () => {
     render(<SafetyReportDetails householdId="home-1" reportId="report-1" />);
     const summary = await screen.findByText("已完成安全評估");
     const details = summary.parentElement;
@@ -28,14 +28,12 @@ describe("SafetyReportDetails HTML-summary-first states", () => {
     expect(screen.queryByTitle("WelfareLens 完整居家安全報告 PDF")).toBeNull();
     expect(fetch).toHaveBeenCalledTimes(1);
     expect(vi.mocked(fetch).mock.calls[0][0]).toBe(API_URL);
-    const download = screen.getByRole("link", { name: "下載 PDF" });
+    const download = screen.getByRole("link", { name: "下載完整 PDF 報告" });
     expect(download.getAttribute("href")).toBe(API_URL + "/pdf?download=1");
     expect(download.getAttribute("target")).toBe("_blank");
     expect(download.getAttribute("rel")).toContain("noopener");
     expect(download.getAttribute("referrerpolicy")).toBe("no-referrer");
-    const open = screen.getByRole("link", { name: "檢視完整 PDF" });
-    expect(open.getAttribute("href")).toBe(API_URL + "/pdf");
-    expect(open.getAttribute("target")).toBe("_blank");
+    expect(screen.queryByRole("link", { name: "檢視完整 PDF" })).toBeNull();
     expect(await screen.findByText("電線")).toBeTruthy();
     expect(screen.getByText("高風險")).toBeTruthy();
     expect(screen.getByText("先整理")).toBeTruthy();
@@ -60,7 +58,7 @@ describe("SafetyReportDetails HTML-summary-first states", () => {
     render(<SafetyReportDetails householdId="home-1" reportId="report-1" />);
     expect(await screen.findByText(/示範報告（非真實 AI 分析）/)).toBeTruthy();
     expect(screen.queryByTitle("WelfareLens 完整居家安全報告 PDF")).toBeNull();
-    expect(screen.queryByRole("link", { name: "下載 PDF" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "下載完整 PDF 報告" })).toBeNull();
     expect(screen.queryByRole("link", { name: "檢視完整 PDF" })).toBeNull();
   });
 
@@ -89,7 +87,7 @@ describe("SafetyReportDetails HTML-summary-first states", () => {
     vi.mocked(fetch).mockResolvedValueOnce({ ok: true, json: async () => ({ ...ready, pdfUrl: null }) } as Response);
     render(<SafetyReportDetails householdId="home-1" reportId="report-1" />);
     expect(await screen.findByText("已完成安全評估")).toBeTruthy();
-    expect(screen.queryByRole("link", { name: "下載 PDF" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "下載完整 PDF 報告" })).toBeNull();
     expect(screen.queryByRole("link", { name: "檢視完整 PDF" })).toBeNull();
   });
 
@@ -115,7 +113,7 @@ describe("SafetyReportDetails HTML-summary-first states", () => {
     expect(await screen.findByText("電線")).toBeTruthy();
     expect(screen.getByAltText("電線的風險裁切照")).toBeTruthy();
     expect(screen.queryByTitle("WelfareLens 完整居家安全報告 PDF")).toBeNull();
-    expect(screen.queryByRole("link", { name: "下載 PDF" })).toBeNull();
+    expect(screen.queryByRole("link", { name: "下載完整 PDF 報告" })).toBeNull();
     expect(screen.queryByRole("link", { name: "檢視完整 PDF" })).toBeNull();
   });
 

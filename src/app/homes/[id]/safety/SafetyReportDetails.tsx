@@ -55,10 +55,14 @@ export function SafetyReportDetails({ householdId, reportId }: { householdId: st
   const pdfEndpoint = "/api/homes/" + encodeURIComponent(householdId)
     + "/reports/" + encodeURIComponent(reportId) + "/pdf";
 
+
   return (
     <div className={k.details}>
       {report.demo && <p role="note"><b>示範報告（非真實 AI 分析）</b>：以下內容是預設範例，不代表你的居家環境已完成檢測。</p>}
       <p className={k.summary}>{summary || "尚未提供文字摘要，請參考下方風險項目。"}</p>
+      {report.published && pdfUrl && !report.demo && (
+        <a className={k.pdfLink} href={pdfEndpoint.replace(/\/pdf$/, "/html")}>閱讀完整圖文報告</a>
+      )}
       {items.length === 0 ? <p>本次沒有提供可確認的風險項目；這不代表環境絕對安全。</p> : (
         <ul className={k.items}>
           {items.map(item => (
@@ -81,16 +85,15 @@ export function SafetyReportDetails({ householdId, reportId }: { householdId: st
       )}
       {!pdfUrl && !report.demo && <p className={k.source}>完整 PDF 只提供給喵戶本人；被分享者可查看風險摘要與裁切照。</p>}
       {report.demo && <p className={k.source}>示範資料不含裁切照或 PDF。真實報告需由上傳影片後的 WelfareLens Worker 產生。</p>}
+      <p className={k.source}>本報告提供居家安全參考。AI 模擬圖片呈現建議做法，實際改善仍需現場確認。</p>
       {report.published && pdfUrl && (
         <section className={k.pdfActions} aria-label="完整 PDF">
-          <a className={k.pdfOpen} href={pdfEndpoint} target="_blank"
-            rel="noopener noreferrer" referrerPolicy="no-referrer">檢視完整 PDF</a>
           <a className={k.pdfLink} href={pdfEndpoint + "?download=1"} target="_blank"
-            rel="noopener noreferrer" referrerPolicy="no-referrer">下載 PDF</a>
+            rel="noopener noreferrer" referrerPolicy="no-referrer">下載完整 PDF 報告</a>
           <p className={k.source}>手機若仍以預覽開啟，請從分享選單儲存。</p>
         </section>
       )}
-      <p className={k.source}>僅供居家安全參考，非獸醫診斷；AI 模擬改善不代表現場已完成改善。</p>
+
     </div>
   );
 }

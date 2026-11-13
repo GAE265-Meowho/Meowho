@@ -25,6 +25,9 @@ export default function SafetyPage() {
   const sb = getBrowserSupabase();
   const [rows, setRows] = useState<Row[] | undefined>(undefined);
   const [picked, setPicked] = useState<string | null>(null);
+  useEffect(() => {
+    setPicked(new URLSearchParams(window.location.search).get("report"));
+  }, [id]);
   const [again, setAgain] = useState(false);
   const [making, setMaking] = useState(false);
   const [error, setError] = useState<string | null>(null);
