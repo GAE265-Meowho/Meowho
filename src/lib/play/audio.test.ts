@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
-import { BGM_IDS, SFX_IDS, SFX_READY, SOUNDS, audioPath, audioSrc, soundsFor, bgmFor, bgmLoops, fadeVolume, MUTE_KEY, readMuted, writeMuted, type BgmInput } from "./audio";
+import { AUTO_CALLER, CALLER_OPTIONS, callersOf, BGM_IDS, SFX_IDS, SFX_READY, SOUNDS, audioPath, audioSrc, soundsFor, bgmFor, bgmLoops, fadeVolume, MUTE_KEY, readMuted, writeMuted, type BgmInput } from "./audio";
 
 const at = (over: Partial<BgmInput>): BgmInput => ({ step: "node", nodeId: "day3", scene: { bg: "room", time: "day" }, home: false, ...over });
 
@@ -103,5 +103,17 @@ describe("淡入淡出", () => {
     expect(fadeVolume(1, 0, 200, 800)).toBe(0.75);
     expect(fadeVolume(0, 1, 900, 800)).toBe(1);
     expect(fadeVolume(0.3, 1, 10, 0)).toBe(1);
+  });
+});
+
+describe("誰呼叫（#399）", () => {
+  it("列出呼叫的組員，同一人做兩份只算一次；背景音樂是自動切換", () => {
+    expect(callersOf("sfx_hiss")).toEqual(["Tina", "世安", "渝茜"]);
+    expect(callersOf("sfx_meow")).toEqual(["世安", "Tina"]);
+    expect(callersOf("sfx_land")).toEqual(["Tina", "渝茜"]);
+    expect(callersOf("bgm_daily")).toEqual([AUTO_CALLER]);
+  });
+  it("篩選選項照第 1～5 份的順序，最後是自動切換", () => {
+    expect(CALLER_OPTIONS).toEqual(["珮瑜", "Tina", "世安", "渝茜", "自動切換"]);
   });
 });

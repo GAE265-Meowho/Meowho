@@ -1,10 +1,10 @@
 "use client";
-// 虛擬體驗元件管理｜音效（#393）：虛擬飼養用的背景音樂與音效，可以篩選分類、試聽、看授權檔，也可以上傳。
+// 虛擬體驗元件管理｜音效（#393）：虛擬飼養用的背景音樂與音效，可以篩選分類與誰呼叫（#399）、試聽、看授權檔，也可以上傳。
 // 清單來自 src/lib/play/audio.ts 的 SOUNDS（ID、名稱、用在哪、第幾份要呼叫）；有沒有音檔看 Storage 實際的檔案（/api/play/sounds）。
 // 「新增音效」：選要放到哪個音效、挑 mp3、填來源與授權 → POST /api/hq/sounds。檔名由伺服器改成 ID（sfx/sfx_meow.mp3），授權檔一起寫。
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { HqTable, type Column } from "@/components/hq/list/HqList";
-import { SOUNDS, SOUND_KIND_LABEL, audioSrc, hasSound, licenseSrc, partLabel, type SoundId, type SoundIndex, type SoundKind } from "@/lib/play/audio";
+import { CALLER_OPTIONS, SOUNDS, SOUND_KIND_LABEL, audioSrc, callersOf, hasSound, licenseSrc, partLabel, type SoundId, type SoundIndex, type SoundKind } from "@/lib/play/audio";
 import styles from "./soundsTab.module.css";
 import { LICENSE_OPTIONS, SOUND_MAX_BYTES, SOUND_UPLOAD_ERRORS, checkSoundUpload, uploadPaths, type SoundUploadProblem } from "@/lib/play/sound-upload";
 
@@ -110,6 +110,7 @@ function UploadForm({ initialId, index, onDone, onClose }: { initialId: SoundId 
 
 export function SoundsTab() {
   const [kind, setKind] = useState<SoundKind | "all">("all");
+  const [caller, setCaller] = useState("all");
   const [readyOnly, setReadyOnly] = useState(false);
   const [index, setIndex] = useState<SoundIndex | null>(null);
   const [form, setForm] = useState<{ id: SoundId | null } | null>(null);
@@ -125,7 +126,7 @@ export function SoundsTab() {
   useEffect(() => { void reload(); }, [reload]);
 
   const has = useCallback((id: SoundId) => hasSound(id, index), [index]);
-  const rows = useMemo(() => ROWS.filter(r => (kind === "all" || r.kind === kind) && (!readyOnly || has(r.id))), [kind, readyOnly, has]);
+  const rows = useMemo(() => ROWS.filter(r => (kind === "all" || r.kind === kind) && (caller === "all" || callersOf(r.id).includes(caller)) && (!readyOnly || has(r.id))), [kind, caller, readyOnly, has]);
   const ready = ROWS.filter(r => has(r.id)).length;
 
   const columns: Column<Row>[] = [
@@ -164,12 +165,20 @@ export function SoundsTab() {
           onDone={id => { setForm(null); setDone(`已上傳「${SOUNDS[id].label}」（${uploadPaths(id).audio}），遊戲裡呼叫 playSfx("${id}") 就會出聲。`); void reload(); }} />
       )}
       {done && <p className="hq-box" role="status">{done}</p>}
-      <label className={styles.check}>
-        <input type="checkbox" checked={readyOnly} onChange={e => setReadyOnly(e.target.checked)} />只看已上傳
-      </label>
+      <div className={styles.filters}>
+        <label className={styles.check}>誰呼叫
+          <select className="hq-input" value={caller} onChange={e => setCaller(e.target.value)}>
+            <option value="all">全部</option>
+            {CALLER_OPTIONS.map(c => <option key={c} value={c}>{c}</option>)}
+          </select>
+        </label>
+        <label className={styles.check}>
+          <input type="checkbox" checked={readyOnly} onChange={e => setReadyOnly(e.target.checked)} />只看已上傳
+        </label>
+      </div>
       <p className={styles.hint}>已上傳 {ready} / {ROWS.length} 個；目前顯示 {rows.length} 個</p>
       {rows.length === 0
-        ? <div className="hq-state"><p>這個分類還沒有上傳的音檔。</p></div>
+        ? <div className="hq-state"><p>{caller === "all" ? "這個分類還沒有上傳的音檔。" : "沒有符合條件的音效。"}</p></div>
         : <HqTable rows={rows} columns={columns} rowKey={r => r.id} />}
     </div>
   );
