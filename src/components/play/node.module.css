@@ -3,13 +3,14 @@
 .box {
   --pad: 16px;
   position: relative; display: flex; flex-direction: column; gap: 10px; min-width: 0;
-  max-height: 34dvh; overflow-y: auto; overscroll-behavior: contain;
+  /* 一般台詞一次一句，不設高度上限也不自己捲（貓形按鈕的尾巴會超出一點，設 overflow 會多出捲軸）；太長時由外層 .sheet 捲 */
   padding: 10px var(--pad) 14px; border-radius: var(--radius-lg); border: 2px solid var(--line);
   background: var(--card); box-shadow: var(--shadow-lift);
   color: var(--ink); font-size: var(--play-fs-body, 17px); line-height: var(--play-lh, 1.7);
 }
 /* 選項、小叮嚀、紀錄、健康聲明：內容比較多，可以長到底部卡片的上限（上面留給「看看房間」） */
-.box[data-tall="true"] { max-height: calc(var(--sheet-max, 56dvh) - 60px); }
+.box[data-tall="true"] { max-height: calc(var(--sheet-max, 56dvh) - 60px); overflow-y: auto; overscroll-behavior: contain; }
+.box[data-tall="true"] .foot { padding: 0 14px 10px 0; }
 .box[data-tap="true"] { cursor: pointer; -webkit-tap-highlight-color: transparent; }
 
 /* 上緣：節點進度（貓掌）＋貓齡小標 */
