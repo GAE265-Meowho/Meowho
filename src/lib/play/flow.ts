@@ -30,6 +30,9 @@ export type Cur =
   /** 在家的時光：6 個動作按鈕 */
   | { kind: "home" };
 
+/** 節點開始前的快照：存進 meow_task_runs.progress，續玩時從這個節點的開頭重新開始（queue、cur 裡有函式，不能整包存） */
+export interface Checkpoint { v: 1; nodeIndex: number; life: Life; hazards: Hazard[]; handled: string[]; monthly: number; startMonths: number }
+
 export interface PlayState {
   step: Step_;
   nodeIndex: number;
@@ -51,6 +54,8 @@ export interface PlayState {
   monthly: number;
   /** 這隻貓到家時幾個月大（讀 meow_cats；劇本照原樣演，只是把年紀換成真實的） */
   startMonths: number;
+  /** 最近一個節點開始前的快照（每過一個節點更新一次，畫面拿去存進度）；還沒開始＝null */
+  checkpoint: Checkpoint | null;
 }
 
 export const newLife = (labels: string[] = [], name = "牠", cat: CatTraits = NO_TRAITS): Life => ({
@@ -62,7 +67,7 @@ export const newLife = (labels: string[] = [], name = "牠", cat: CatTraits = NO
 export const initialPlay = (): PlayState => ({
   step: "background", nodeIndex: 0, queue: [], cur: null, pageShown: false,
   scene: { bg: "room", time: "day", cat: "sit" }, bub: null, life: newLife(),
-  hazards: [], handled: [], homeDone: [], homeTried: [], monthly: 0, startMonths: 2,
+  hazards: [], handled: [], homeDone: [], homeTried: [], monthly: 0, startMonths: 2, checkpoint: null,
 });
 
 export type PlayAction =
@@ -78,6 +83,8 @@ export type PlayAction =
   | { type: "relocated" }
   /** 在家的時光：做完一個動作（good＝小遊戲成功） */
   | { type: "care"; act: CareAct; good: boolean }
+  /** 續玩：從存好的快照回到那個節點的開頭 */
+  | { type: "resume"; cp: Checkpoint }
   | { type: "restart" };
 
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
@@ -178,8 +185,13 @@ function endHome(s: PlayState): PlayState {
   return { ...s, life, homeDone: [], homeTried: [] };
 }
 
+/** 進入第 nodeIndex 個節點之前的快照 */
+const checkpointOf = (s: PlayState, nodeIndex: number): Checkpoint => ({
+  v: 1, nodeIndex, life: cloneLife(s.life), hazards: s.hazards, handled: [...s.handled], monthly: s.monthly, startMonths: s.startMonths,
+});
+
 function advance(s: PlayState): PlayState {
-  return !s.life.abandoned && s.nodeIndex + 1 < STORY.length ? enterNode(s, s.nodeIndex + 1) : { ...s, step: "report", cur: null };
+  return !s.life.abandoned && s.nodeIndex + 1 < STORY.length ? enterNode({ ...s, checkpoint: checkpointOf(s, s.nodeIndex + 1) }, s.nodeIndex + 1) : { ...s, step: "report", cur: null };
 }
 
 export function playReducer(s: PlayState, a: PlayAction): PlayState {
@@ -195,7 +207,13 @@ export function playReducer(s: PlayState, a: PlayAction): PlayState {
       if (a.mood) { life.trust = a.mood.trust; life.stress = a.mood.stress; }
       (a.shopPicks ?? []).forEach(p => life.picks.push({ ...p, node: "day1" }));
       life.risk = topRisk(s.hazards);
-      return enterNode({ ...s, step: "node", life, monthly: a.monthly, startMonths: a.startMonths ?? 2, homeDone: [], homeTried: [] }, 0);
+      const begin: PlayState = { ...s, step: "node", life, monthly: a.monthly, startMonths: a.startMonths ?? 2, homeDone: [], homeTried: [] };
+      return enterNode({ ...begin, checkpoint: checkpointOf(begin, 0) }, 0);
+    }
+    case "resume": {
+      const { cp } = a;
+      const life = cloneLife(cp.life);
+      return enterNode({ ...initialPlay(), step: "node", life, hazards: cp.hazards, handled: [...cp.handled], monthly: cp.monthly, startMonths: cp.startMonths, checkpoint: cp }, cp.nodeIndex);
     }
     case "choose": {
       if (s.cur?.kind !== "ask") return s;

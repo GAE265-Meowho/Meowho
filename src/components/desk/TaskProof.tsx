@@ -61,7 +61,7 @@ export function TaskProof({ threadId, catId, catName, isKeeper, showHint, refres
 
   if (!st.completed && !abandons.length) {
     return isKeeper || !showHint ? null : (
-      <p className={s.taskHint}>還沒完成{catName}的領養任務。完成任務會影響中途的判斷，<a href={`/cats/${catId}/run`}>去做任務</a>。</p>
+      <p className={s.taskHint}>還沒完成{catName}的領養任務。完成任務會影響中途的判斷，<a href={`/cats/${catId}/play`}>去做任務</a>。</p>
     );
   }
 

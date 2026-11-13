@@ -1,0 +1,3 @@
+.reasons { display: grid; gap: 4px; margin: 0; padding: 0; border: 0; min-width: 0; }
+.check { display: inline-flex; align-items: center; gap: 8px; min-height: var(--tap); color: var(--ink); cursor: pointer; }
+.check input { width: 20px; height: 20px; accent-color: var(--caramel); }

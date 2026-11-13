@@ -9,6 +9,7 @@ import { homeSceneBase } from "@/lib/home-room";
 import { normalizeHome, type PlayerHome } from "@/lib/play/background";
 import type { Hazard } from "@/lib/play/hazards";
 import { hazardsFromReport, pickReport } from "@/lib/play/player-data";
+import type { Ready } from "@/lib/play/run-gate";
 import { getBrowserSupabase } from "@/lib/supabase/client";
 
 export interface PlayHousehold { id: string; name: string; home: PlayerHome }
@@ -36,6 +37,9 @@ export interface HouseholdExtras {
   room: { id: string; base: string } | null;
   /** 環境報告轉成的危險清單；null＝沒有可用的報告 */
   hazards: Hazard[] | null;
+  /** 開始領養任務前的檢查（run-gate.ts）：房間、這間房間的居家安全報告是備齊、處理中、還是沒有 */
+  roomState: Ready;
+  reportState: Ready;
 }
 
 /** 選定喵戶的預算、3D 房間、環境報告；undefined＝還在讀 */
@@ -46,25 +50,32 @@ export function useHouseholdExtras(householdId: string | null): HouseholdExtras 
     if (!sb || !householdId) return;
     let alive = true;
     (async () => {
-      const [{ data: b }, { data: rooms }, { data: reports }] = await Promise.all([
+      const [{ data: b }, { data: rooms }, { data: pending }, { data: reports }] = await Promise.all([
         sb.from("meow_household_budgets").select("monthly_twd").eq("household_id", householdId).maybeSingle(),
         sb.from("meow_room_models").select("id").eq("owner_household_id", householdId).eq("status", "ready").not("completed_at", "is", null)
           .order("created_at", { ascending: false }).limit(1),
-        sb.from("meow_env_reports").select("room_model_id, status, items, created_at").eq("household_id", householdId).eq("status", "ready")
-          .order("created_at", { ascending: false }).limit(10),
+        sb.from("meow_room_models").select("id").eq("owner_household_id", householdId).in("status", ["queued", "running"]).limit(1),
+        sb.from("meow_env_reports").select("room_model_id, status, items, created_at").eq("household_id", householdId)
+          .order("created_at", { ascending: false }).limit(20),
       ]);
       if (!alive) return;
       const roomId = (rooms?.[0]?.id as string | undefined) ?? null;
-      const report = pickReport((reports ?? []) as { room_model_id: string | null; status: string; items: unknown; created_at: string }[], roomId);
+      const rows = (reports ?? []) as { room_model_id: string | null; status: string; items: unknown; created_at: string }[];
+      const report = pickReport(rows, roomId);
+      // 這間房間最新的一份報告（和 meow_start_play_run 一樣看最新那份）：ready＝可以開始、queued／running＝處理中、其他＝還沒有
+      const latest = roomId ? rows.find(r => r.room_model_id === roomId) : undefined;
+      const reportState: Ready = !latest ? "none" : latest.status === "ready" ? "ready" : latest.status === "queued" || latest.status === "running" ? "pending" : "none";
       setState({
         id: householdId,
         v: {
           budget: typeof b?.monthly_twd === "number" ? b.monthly_twd : null,
           room: roomId ? { id: roomId, base: homeSceneBase(householdId, roomId) } : null,
           hazards: report ? hazardsFromReport(report.items) : null,
+          roomState: roomId ? "ready" : pending?.length ? "pending" : "none",
+          reportState,
         },
       });
-    })().catch(() => { if (alive) setState({ id: householdId, v: { budget: null, room: null, hazards: null } }); });
+    })().catch(() => { if (alive) setState({ id: householdId, v: { budget: null, room: null, hazards: null, roomState: "none", reportState: "none" } }); });
     return () => { alive = false; };
   }, [householdId]);
   return state && state.id === householdId ? state.v : undefined;
