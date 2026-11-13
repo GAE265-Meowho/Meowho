@@ -36,6 +36,8 @@ import { goalFor, itemSpots, type CatAction } from "@/lib/play/stage";
 import { STORY, type CatPose, type NodeId } from "@/lib/play/story";
 import { CARE_ACTS, careGood, type CareAct } from "@/lib/play/care";
 import { CatgameMini } from "./catgame/CatgameMini";
+import { RestockDialog } from "./RestockDialog";
+import { feedKindsAvailable, restockNote } from "@/lib/play/restock";
 import type { MiniCtx } from "./catgame/minis";
 import { CareBar, HomeStep } from "./HomeStep";
 import { NodeStep } from "./NodeStep";
@@ -132,6 +134,14 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
   const top = useRef<HTMLHeadingElement>(null);
   /** 在家的時光：正在玩哪一個動作的小遊戲 */
   const [careAct, setCareAct] = useState<CareAct | null>(null);
+  // 補貨視窗：採買之後又買飼料，更新 pick 並用 shopCost 重算每月花費（之後的節點照新的算）
+  const [restocking, setRestocking] = useState(false);
+  const restock = (next: ShopPick) => {
+    const note = restockNote(pick, next);
+    setPick(next);
+    if (note) dispatch({ type: "restock", monthly: shopCost(next, foodStage(startMonths), backShop).month, note });
+  };
+  const feedKinds = feedKindsAvailable(pick);
   // 這個節點裡餵過貓、換過水幾次：每做完一次貓就走到碗邊一次；換節點歸零
   const [served, setServed] = useState(0);
   useEffect(() => { setServed(0); }, [state.nodeIndex]);
@@ -486,7 +496,7 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
         <div className={e.overlay}><AbandonPanel catName={catName} runId={runId} onCancel={() => setAbandoning(false)} onDone={() => { window.location.href = catHref; }} /></div>
       )}
 
-      {immersive && state.step === "node" && cur?.kind === "home" && !careAct && <CareBar state={state} canPlay={kind === "scan"} onAct={setCareAct} />}
+      {immersive && state.step === "node" && cur?.kind === "home" && !careAct && <CareBar state={state} canPlay={kind === "scan"} onAct={setCareAct} onRestock={() => setRestocking(true)} />}
 
       {showStage && (
         <PlayStage kind={kind} scanBase={scanBase} placeView={state.step === "place"} look={look} bubble={bubble} bubbleInset={peek || (cur?.kind === "home" && !careAct) ? 0.08 : cur?.kind === "lines" || cur?.kind === "personal" ? 0.36 : 0.48} lookKey={lookKey} placed={placed} scanItems={scanItems} story={story} wand={wand}
@@ -591,7 +601,7 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
           onDone={r => dispatch({ type: "miniDone", result: r })} />
       )}
       {state.step === "node" && cur?.kind === "mini" && cur.mini !== "play" && (
-        <CatgameMini key={`${state.nodeIndex}:${cur.mini}:${state.life.picks.length}`} id={cur.mini} ctx={miniCtx} catName={catName}
+        <CatgameMini key={`${state.nodeIndex}:${cur.mini}:${state.life.picks.length}`} id={cur.mini} ctx={miniCtx} catName={catName} feedKinds={feedKinds} onRestock={() => setRestocking(true)}
           // 外出籠：劇情只看成功與否（原版結果 { ok, forced, treats }）
           onDone={r => dispatch({ type: "miniDone", result: cur.mini === "carrier" ? (r as { ok?: boolean } | null)?.ok === true : r })} />
       )}
@@ -607,7 +617,7 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
           if (careAct === "feed" || careAct === "water") setServed(n => n + 1);
           setCareAct(null);
         };
-        return <CatgameMini key={`care:${careAct}:${state.life.care.rounds}`} id={mini} ctx={miniCtx} catName={catName} onDone={done} />;
+        return <CatgameMini key={`care:${careAct}:${state.life.care.rounds}`} id={mini} ctx={miniCtx} catName={catName} onDone={done} feedKinds={feedKinds} onRestock={() => setRestocking(true)} />;
       })()}
 
       </div>}
@@ -616,6 +626,8 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
         <ReportStep state={state} pick={pick} monthly={shop.month} home={home} runId={runId} catHref={catHref}
           onRestart={() => { dispatch({ type: "restart" }); hazardsAsked.current = false; setPlaced([]); setScanSpots({}); setLines({}); setRunId(null); setFrozenRoom(null); savedCp.current = null; }} />
       )}
+
+      {restocking && state.step === "node" && <RestockDialog pick={pick} shop={backShop} stage={foodStage(startMonths)} catName={catName} onChange={restock} onClose={() => setRestocking(false)} />}
     </div>
   );
 }

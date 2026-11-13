@@ -35,7 +35,7 @@ const ICONS: Record<IconName, ReactNode> = {
 const KitIcon = ({ name }: { name: IconName }) => <svg className={c.ico} viewBox="0 0 64 64" aria-hidden="true" focusable="false">{ICONS[name]}</svg>;
 const Thumb = ({ name }: { name: string }) => <img src={thumb(name)} alt="" width={256} height={256} loading="lazy" />;
 
-function FoodCard({ f, on, onPick }: { f: ShopFood; on: boolean; onPick: () => void }) {
+export function FoodCard({ f, on, onPick }: { f: ShopFood; on: boolean; onPick: () => void }) {
   const p = f.product;
   return (
     <li>

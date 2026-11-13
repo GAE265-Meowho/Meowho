@@ -15,7 +15,8 @@ const KINDS: FeedKind[] = ["dry", "wet", "soup"];
 /** 兩隻手都不在畫面裡、什麼都沒在倒 */
 const IDLE = { bagHand: 0, bagTilt: 0, pouring: false, can: null, canIn: 0, tabHand: 0, lid: 0, tilt: 0, drop: 0 } as const;
 
-export function FeedGame3D({ portion, onDone }: { portion: number; onDone: (r: unknown) => void }) {
+/** kinds＝家裡有的飼料種類（lib/play/restock.ts）；沒買的顯示成鎖住，onRestock 開補貨視窗。沒傳 kinds 就三種都能選 */
+export function FeedGame3D({ portion, onDone, kinds = KINDS, onRestock }: { portion: number; onDone: (r: unknown) => void; kinds?: FeedKind[]; onRestock?: () => void }) {
   // 這一餐餵哪一種；還沒選就先問
   const [kind, setKind] = useState<FeedKind | null>(null);
   const time = useRef(0), feed = useRef(newFeed()), holding = useRef(false), tilt = useRef(0);
@@ -55,7 +56,7 @@ export function FeedGame3D({ portion, onDone }: { portion: number; onDone: (r: u
 
   return <>
     <p className={styles.hint}>
-      {!kind ? "這一餐要餵哪一種？一次只餵一種。"
+      {!kind ? (kinds.length === 0 ? "家裡沒有飼料了，先去補貨。" : "這一餐要餵哪一種？一次只餵一種。")
         : kind === "dry" ? `按住「倒乾飼料」，倒到建議份量（${portion}）就放開。`
         : ui.opening ? `打開${KIND_NAME[kind]}，倒進碗裡…` : `按「開一罐${KIND_NAME[kind]}」倒進碗裡，不夠可以再開一罐（建議份量 ${portion}）。`}
     </p>
@@ -66,7 +67,10 @@ export function FeedGame3D({ portion, onDone }: { portion: number; onDone: (r: u
     </div>
     {!kind
       ? <div className={styles.meters} role="group" aria-label="選飼料">
-        {KINDS.map(k => <button key={k} className="btn" type="button" onClick={() => setKind(k)}>{KIND_NAME[k]}</button>)}
+        {KINDS.map(k => kinds.includes(k)
+          ? <button key={k} className="btn" type="button" onClick={() => setKind(k)}>{KIND_NAME[k]}</button>
+          : <button key={k} className="btn" type="button" aria-disabled="true" style={{ opacity: 0.55, cursor: "not-allowed" }}>{KIND_NAME[k]}（{k === "dry" ? "家裡沒有乾糧" : "家裡沒有罐頭"}）</button>)}
+        {kinds.length < KINDS.length && onRestock && <button className="btn" type="button" style={{ minHeight: 44 }} onClick={onRestock}>去補貨</button>}
       </div>
       : <>
         <div className={styles.meters}>

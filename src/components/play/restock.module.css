@@ -1,0 +1,9 @@
+/* 補貨視窗與餵貓鎖住的種類（#354）；顏色走 v2 token，字級用 play 的字級變數 */
+.body { display: grid; gap: 14px; padding: 4px 2px 8px; }
+.text { margin: 0; font-size: var(--play-fs-body, 17px); line-height: var(--play-lh, 1.7); color: var(--ink); }
+.group h3 { margin: 0 0 8px; font-size: var(--play-fs-h, 20px); color: var(--ink); }
+.done { display: flex; justify-content: flex-end; }
+.cost { margin: 0; font-size: var(--play-fs-body, 17px); color: var(--ink-soft); }
+.lockNote { margin: 0; font-size: var(--play-fs-body, 17px); line-height: var(--play-lh, 1.7); color: var(--ink); }
+.locked { opacity: 0.55; cursor: not-allowed; }
+.restockBtn { min-height: 44px; }

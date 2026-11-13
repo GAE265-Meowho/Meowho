@@ -87,6 +87,8 @@ export type PlayAction =
   | { type: "miniDone"; result: unknown }
   /** 貓砂盆重新擺好了 */
   | { type: "relocated" }
+  /** 補貨：採買之後又買了飼料；monthly＝用 shopCost 重算的每月花費（之後的節點照新的算），note＝飼養紀錄 */
+  | { type: "restock"; monthly: number; note: string }
   /** 在家的時光：做完一個動作（good＝小遊戲成功） */
   | { type: "care"; act: CareAct; good: boolean }
   /** 續玩：從存好的快照回到那個節點的開頭 */
@@ -242,6 +244,11 @@ export function playReducer(s: PlayState, a: PlayAction): PlayState {
       return a.good
         ? { ...s, life, homeDone: s.homeDone.includes(a.act) ? s.homeDone : [...s.homeDone, a.act] }
         : { ...s, life, homeTried: s.homeTried.includes(a.act) ? s.homeTried : [...s.homeTried, a.act] };
+    }
+    case "restock": {
+      const life = cloneLife(s.life);
+      life.notes.push({ t: a.note, node: nodeId(s), spent: 0 });
+      return { ...s, life, monthly: a.monthly };
     }
     case "miniDone": {
       if (s.cur?.kind !== "mini") return s;

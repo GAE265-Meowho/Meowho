@@ -4,7 +4,7 @@
 import dynamic from "next/dynamic";
 import { Mini3DModal } from "../mini3d/Mini3DModal";
 import { useEffect, useRef } from "react";
-import { feedPortion } from "@/lib/play/mini3d/feed-rules";
+import { feedPortion, type FeedKind } from "@/lib/play/mini3d/feed-rules";
 import { startMini, type MiniCtx, type MiniId } from "./minis";
 import s from "./catgame.module.css";
 
@@ -22,7 +22,8 @@ function renameCat(root: HTMLElement, name: string): () => void {
   return () => ob.disconnect();
 }
 
-type Props = { id: MiniId; ctx: MiniCtx; catName: string; onDone: (r: unknown) => void };
+/** feedKinds／onRestock：餵貓小遊戲用，家裡有的飼料種類與補貨入口（見 lib/play/restock.ts） */
+type Props = { id: MiniId; ctx: MiniCtx; catName: string; onDone: (r: unknown) => void; feedKinds?: FeedKind[]; onRestock?: () => void };
 const loading = () => <p role="status">3D 遊戲載入中…</p>;
 const BrushGameRealistic = dynamic(() => import("../mini3d/BrushGameRealistic").then(m => m.BrushGameRealistic), { ssr: false, loading: () => <p role="status">刷牙遊戲載入中…</p> });
 const PetGame3D = dynamic(() => import("../mini3d/PetGame3D").then(m => m.PetGame3D), { ssr: false, loading });
@@ -54,7 +55,7 @@ export function CatgameMini(props: Props) {
   }
   if (id === "feed") {
     return <Mini3DModal title={"餵" + catName + "吃飯"} onCancel={() => onDone(null)}>
-      <FeedGame3D portion={feedPortion(ctx)} onDone={onDone} />
+      <FeedGame3D portion={feedPortion(ctx)} onDone={onDone} kinds={props.feedKinds} onRestock={props.onRestock} />
     </Mini3DModal>;
   }
   return <LegacyMini {...props} />;
