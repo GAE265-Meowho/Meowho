@@ -19,6 +19,7 @@ import { CatModel } from "./CatPreview";
 import { bowlSlotsOf, detectBowlSlots, setBowlSlots } from "./bowlSlotsDetect";
 import { readItemDragId } from "./itemDrag";
 import type { PlanRoom } from "@/lib/hq/floorplans/types";
+import type { SceneLight } from "@/lib/play/scene-light";
 
 /** 生活用品放在哪：null＝地板；有值＝家具頂面（PlanRoom.furniture 原始索引） */
 export type ItemSupport = { furnitureIndex: number; localX: number; localZ: number } | null;
@@ -781,7 +782,20 @@ export type PlaceAt = { roomId: string; x: number; z: number; y: number; support
 /** point＝點地板／床叫貓；hand＝拖移已放用品／落地家具（不叫貓） */
 export type InteractMode = "point" | "hand";
 
-export default function FloorplanViewer({ rooms, selected, onPick, cat, placedItems = [], interactMode = "point", removedFurniture, furnitureMoves, onMoveItem, onRotateItem, onRemoveItem, onRemoveFurniture, onMoveFurniture, onRotateFurniture, onFloorDrop, catGoal = null, catClip = null, catSpeed = 1, onItemError, story = null, onStory }: {
+/** 夜晚跟著貓的小點光（#354 半夜跑酷：背景變暗時貓仍看得清楚）；不投影，只照貓附近 */
+function CatGlow({ pos, intensity, color }: { pos: React.RefObject<THREE.Vector3>; intensity: number; color: string }) {
+  const ref = useRef<THREE.PointLight>(null);
+  const to = useMemo(() => new THREE.Vector3(), []);
+  // 放在貓和鏡頭之間、略高：照亮貓朝向鏡頭的那一面，照不太到旁邊的家具
+  useFrame(({ camera }) => {
+    if (!ref.current || !pos.current) return;
+    to.copy(camera.position).sub(pos.current).normalize().multiplyScalar(0.45);
+    ref.current.position.set(pos.current.x + to.x, pos.current.y + 0.35 + Math.max(0, to.y), pos.current.z + to.z);
+  });
+  return <pointLight ref={ref} intensity={intensity} color={color} distance={1.3} decay={1} />;
+}
+
+export default function FloorplanViewer({ rooms, selected, onPick, cat, placedItems = [], interactMode = "point", removedFurniture, furnitureMoves, onMoveItem, onRotateItem, onRemoveItem, onRemoveFurniture, onMoveFurniture, onRotateFurniture, onFloorDrop, catGoal = null, catClip = null, catSpeed = 1, onItemError, story = null, onStory, light = null }: {
   rooms: PlanRoom[]; selected: string | null; onPick: (id: string) => void;
   /** 虛擬體驗（#150）：放一隻貓進去；有貓時只顯示單間（沒有「全部」），點地板叫貓走過去 */
   cat?: ViewerCat | null;
@@ -819,6 +833,8 @@ export default function FloorplanViewer({ rooms, selected, onPick, cat, placedIt
   story?: Story | null;
   /** 故事線進度改變 */
   onStory?: (st: StoryState) => void;
+  /** 虛擬飼養的白天／夜晚光（#354，lib/play/scene-light.ts 的 lightFor(time).house）；null／不給＝原本的燈光（MeowHQ） */
+  light?: SceneLight["house"] | null;
 }) {
   const removedList = useMemo(
     () => (removedFurniture ? [...removedFurniture] : []),
@@ -870,11 +886,13 @@ export default function FloorplanViewer({ rooms, selected, onPick, cat, placedIt
         onDrop={onFloorDrop ? acceptDrop : undefined}
       >
         <Canvas shadows={{ type: THREE.PCFSoftShadowMap }} camera={{ position: cam.position, fov: FOV, near: 0.1, far: 500 }}>
-          <color attach="background" args={["#F3EFE7"]} />
-          <hemisphereLight args={["#fffaf2", "#d8ccb8", 1.7]} />
-          <ambientLight intensity={0.35} />
+          <color attach="background" args={[light?.background ?? "#F3EFE7"]} />
+          <hemisphereLight args={[light?.hemi.sky ?? "#fffaf2", light?.hemi.ground ?? "#d8ccb8", light?.hemi.intensity ?? 1.7]} />
+          <ambientLight intensity={light?.ambient ?? 0.35} />
+          {/* 夜晚貓身上的小補光：有 light 就一直掛著（白天強度 0），切換日夜時燈的數量不變，材質不用重新編譯 */}
+          {light && cat && <CatGlow pos={catPos} intensity={light.catLight} color={light.catLightColor} />}
           {/* 顯示的房間移到原點附近：平行光的目標是原點，陰影範圍才會罩住所有房間 */}
-          <directionalLight position={[-4, 8, 5]} intensity={2.2} color="#fff6e8" castShadow
+          <directionalLight position={[-4, 8, 5]} intensity={light?.sun.intensity ?? 2.2} color={light?.sun.color ?? "#fff6e8"} castShadow
             shadow-mapSize={[2048, 2048]} shadow-bias={-0.0004}
             shadow-camera-left={-half} shadow-camera-right={half} shadow-camera-top={half} shadow-camera-bottom={-half} />
           <group position={[-width / 2, 0, -depth / 2]}>

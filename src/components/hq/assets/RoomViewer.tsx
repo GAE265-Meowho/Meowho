@@ -17,6 +17,7 @@ import { getBrowserSupabase } from "@/lib/supabase/client";
 import { placeScanItems, type SceneItem } from "@/lib/play/scene-items";
 import { sceneCatCommand } from "@/lib/play/scene-cat";
 import type { CatAction } from "@/lib/play/stage";
+import { veilShift, type SceneLight } from "@/lib/play/scene-light";
 
 const ALPHA_THRESHOLD = 5;  // 丟掉幾乎透明的高斯，手機比較順
 const WALK_SPEED = 0.15;    // 每秒走幾個房間單位
@@ -74,8 +75,11 @@ export interface RoomWand { toy: SceneItem; onCatch: (caught: boolean) => void }
  * overview：俯視鏡頭（虛擬飼養「擺用品」用，#354）。給了（物件）就從高處往下看整個房間，只能繞房間中心轉、調俯仰角：
  *   手指拖曳，或由外面的方向鍵傳入按住的方向（x 右 1 左 −1、y 上 1 下 −1）；不能走動、不能縮放。
  *   null／不給＝原本的鏡頭（預設）；從有變成沒有時鏡頭直接回到原本的開場位置。角度與限制都在 lib/hq/rooms/overview.ts 的 OVERVIEW
+ * light：虛擬飼養的白天／夜晚光（#354，lib/play/scene-light.ts 的 lightFor(time).scan）。高斯點不吃燈光，所以夜晚是
+ *   在畫布上疊一層半透明夜色（中間挖洞跟著貓走，貓看得清楚）＋虛擬物件的半球光調暗調藍；不加後製、不多渲染一次。
+ *   null／不給＝原本的燈光、不疊夜色（預設，MeowHQ 照舊）
  */
-export default function RoomViewer({ base, cat, items, controls = true, story, wand, bubble, bubbleInset = 0, lookKey, noCat = false, overlay = false, overview = null }: {
+export default function RoomViewer({ base, cat, items, controls = true, story, wand, bubble, bubbleInset = 0, lookKey, noCat = false, overlay = false, overview = null, light = null }: {
   base: string; cat?: { baseUrl: string; albedoUrl: string } | null; items?: readonly SceneItem[]; controls?: boolean; noCat?: boolean; overlay?: boolean;
   story?: { action: CatAction | null; at: number } | null; wand?: RoomWand | null;
   /** 貓頭頂的小對話框（SVG 圖示）；null＝不顯示 */
@@ -85,12 +89,14 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
   /** 這個值一變，鏡頭就原地轉向貓（null／不變不轉） */
   lookKey?: string | null;
   overview?: OverviewHold | null;
+  light?: SceneLight["scan"] | null;
 }) {
   const host = useRef<HTMLDivElement>(null);
   const goTo = useRef<(step: number) => void>(() => {});
   const goView = useRef<(name: RoomViewName) => void>(() => {});
   const stick = useRef({ x: 0, y: 0 });  // 手機搖桿：x 右、y 前，長度 0～1
   const [touch] = useState(() => typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches);
+  const [reduceMotion] = useState(() => typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
   const [help, setHelp] = useState(false);
   const [progress, setProgress] = useState<number | null>(null);  // 前台房間下載進度（%）；null＝不顯示
   // 全螢幕：先用 CSS 讓房間佔滿整個瀏覽器視窗（一定有反應，iPhone 也行），瀏覽器支援時再進真正的全螢幕
@@ -131,6 +137,11 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
   const overviewHold = useRef<OverviewHold | null>(overview);
   overviewHold.current = overview;
   const setOverview = useRef<(on: boolean) => void>(() => {});
+  // 白天／夜晚光（#354）：半球光留著參照好換色；夜色元素每幀只改 transform 跟著貓
+  const hemi = useRef<THREE.HemisphereLight | null>(null);
+  const veilEl = useRef<HTMLDivElement>(null);
+  const veilOn = useRef(false);
+  veilOn.current = Boolean(light && light.veil.alpha > 0);
   const onCatch = useRef<RoomWand["onCatch"] | null>(null);
   onCatch.current = wand?.onCatch ?? null;
 
@@ -239,7 +250,8 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
       itemFrame.matrixAutoUpdate = false;
       itemFrame.matrix.makeBasis(fe1, fup, fe2).setPosition(forigin);
       itemFrame.updateMatrixWorld(true);
-      threeScene.add(itemFrame, new THREE.HemisphereLight(0xffffff, 0x808080, 1.6));
+      hemi.current = new THREE.HemisphereLight(0xffffff, 0x808080, 1.6);
+      threeScene.add(itemFrame, hemi.current);
       const toyFrame = new THREE.Group();
       toyFrame.matrixAutoUpdate = false;
       toyFrame.matrix.copy(itemFrame.matrix);
@@ -350,9 +362,16 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
         last = now;
         roomWorld?.update(dt);
         const be = bubbleEl.current;
+        const ve = veilOn.current ? veilEl.current : null;
+        const seen = (be && hasBubble.current) || ve ? roomWorld?.catHead(head) ?? false : false;
+        if (seen) head.project(active.camera);
+        if (ve) {
+          // 夜色的洞對準貓頭；貓不在、在鏡頭後面時把洞移到畫面外（veilShift 會夾住，夜色仍蓋滿）
+          const [tx, ty] = seen && head.z < 1 ? veilShift(head.x * 0.5 + 0.5, -head.y * 0.5 + 0.5) : veilShift(-0.5, -0.5);
+          ve.style.transform = `translate(${tx}%, ${ty}%)`;
+        }
         if (be) {
-          if (hasBubble.current && roomWorld?.catHead(head)) {
-            head.project(active.camera);
+          if (hasBubble.current && seen) {
             // 貓在畫面外或鏡頭後面就不顯示（框只跟著貓，不貼邊）；框畫到被劇情卡蓋住的區域時往上推一點
             const onScreen = head.z < 1 && Math.abs(head.x) < 0.95 && head.y > -0.95 && head.y < 0.9;
             if (onScreen) {
@@ -428,6 +447,7 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
       orbit.current = null;
       setWorldReady(false);
       itemStage.current = null;
+      hemi.current = null;
       setItemsReady(false);
       // dispose 會試著把容器從 body 移除，這裡的容器不在 body 底下
       viewer?.dispose().catch(() => {}).finally(() => stage.remove());
@@ -465,6 +485,15 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
   // 俯視鏡頭開關（要排在「鏡頭轉向貓」前面：離開俯視時先回到原本的位置，再轉向貓）
   const overviewWanted = Boolean(overview);
   useEffect(() => { if (status === "ready") setOverview.current(overviewWanted); }, [overviewWanted, status]);
+
+  // 白天／夜晚：虛擬物件的半球光跟著換（房間讀好後才有燈）
+  const hemiSky = light?.hemi.sky ?? 0xffffff, hemiGround = light?.hemi.ground ?? 0x808080, hemiPower = light?.hemi.intensity ?? 1.6;
+  useEffect(() => {
+    const h = hemi.current;
+    if (!h) return;
+    h.color.setHex(hemiSky); h.groundColor.setHex(hemiGround); h.intensity = hemiPower;
+    itemStage.current?.viewer.forceRenderNextFrame();
+  }, [hemiSky, hemiGround, hemiPower, itemsReady]);
 
   // 鏡頭轉向貓：貓頭頂的對話框才看得到
   useEffect(() => { if (lookKey && worldReady) world.current?.lookAtCat(); }, [lookKey, worldReady]);
@@ -544,6 +573,20 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
             </div>
           )}
         </div>}
+        {light && (() => {
+          // 夜色：宿主 3 倍大、洞在正中間的漸層；只換 opacity（日夜切換＝夜色濃度）與 transform（跟著貓），不重畫
+          const [r, g, b] = light.veil.rgb;
+          const c = (a: number) => `rgb(${r} ${g} ${b} / ${a})`;
+          return (
+            <div aria-hidden="true" style={{ position: "absolute", inset: 0, overflow: "hidden", pointerEvents: "none", zIndex: 1 }}>
+              <div ref={veilEl} style={{
+                position: "absolute", left: 0, top: 0, width: "300%", height: "300%", transform: "translate(-33.333%, -33.333%)",
+                background: `radial-gradient(circle closest-side, ${c(0)} 0%, ${c(0)} 11%, ${c(1)} 30%)`,
+                opacity: light.veil.alpha, transition: reduceMotion ? "none" : "opacity .8s ease",
+              }} />
+            </div>
+          );
+        })()}
         <div ref={bubbleEl} className="hq-roomviewer-bubble" aria-hidden="true">{bubble}</div>
         {overlay && status === "ready" && <>
           <div className="hq-roomviewer-views" role="group" aria-label="切換視角">
