@@ -565,8 +565,10 @@ export async function sbAutoPaint(id: string, sb: Sb | SupabaseClient): Promise<
   if (jobRows.some(j => j.status === "queued" || j.status === "running")) return null;
   const { data: variants } = await sb.from("meow_cat_model_variants").select("body_type,albedo_path").eq("model_id", id);
   const variantRows = (variants ?? []) as Pick<VariantRow, "body_type" | "albedo_path">[];
+  // 先做這隻貓年齡層的體型：表單填的年齡優先，沒填就用 AI 看照片判斷的月齡
+  const months = typeof row.profile?.age_months === "number" ? row.profile.age_months : generatedState(row.profile?.generated).aiAge?.months;
   const primary = variantRows.find(v => v.albedo_path === DEFAULT_ALBEDO)?.body_type
-    ?? (typeof row.profile?.age_months === "number" ? bodyFor({ baseVersion: null, hasAlbedo: false, ageMonths: row.profile.age_months }) : undefined);
+    ?? (typeof months === "number" ? bodyFor({ baseVersion: null, hasAlbedo: false, ageMonths: months }) : undefined);
   const pending = [...new Set([...(primary ? [primary] : []), ...BODIES])].filter(b =>
     !jobRows.some(j => j.body_type === b) && !variantRows.some(v => v.body_type === b && realAlbedo(v.albedo_path)));
   if (!pending.length) return null;
@@ -667,10 +669,13 @@ export async function sbStartViews(id: string, views: unknown = GEN_VIEWS, opts:
     // 重新讀一次 profile，避免蓋掉這段時間其他人的修改（例如補傳正面照）
     const { data: fresh } = await user.sb.from("meow_cat_models").select("profile").eq("id", id).maybeSingle();
     const profile = ((fresh as Pick<Row, "profile"> | null)?.profile ?? row.profile) as Row["profile"];
-    await user.sb.from("meow_cat_models").update({
-      profile: { ...profile, generated: finishGenerated(profile.generated, outcome.results, { age: outcome.age, prompts: outcome.prompts }) },
-      updated_at: new Date().toISOString(),
-    }).eq("id", id);
+    const generated = finishGenerated(profile.generated, outcome.results, { age: outcome.age, prompts: outcome.prompts });
+    await user.sb.from("meow_cat_models").update({ profile: { ...profile, generated }, updated_at: new Date().toISOString() }).eq("id", id);
+    // 三張都好了就接著排成貓、幼貓紋理貼圖（前台上傳的貓在 /api/cats/[id]/model 已經這樣做；
+    // MeowHQ 新增的貓以前要等有人打開列表才補排，停在製作頁會一直顯示「尚未產生」）
+    if (viewsReady(generatedState(generated))) {
+      try { await sbAutoPaint(id, user.sb); } catch (e) { console.warn("[cat-models] 自動排紋理貼圖失敗：", e instanceof Error ? e.message : e); }
+    }
   };
   return { ok: true, run };
 }
