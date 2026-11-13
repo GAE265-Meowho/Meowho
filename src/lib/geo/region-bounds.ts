@@ -42,6 +42,14 @@ function insideRing(lng: number, lat: number, ring: Ring) {
   return hit;
 }
 
+export function findDistrict(lng: number, lat: number): DistrictShape | null {
+  for (const town of DISTRICTS) {
+    const hit = town.p.some((poly) => insideRing(lng, lat, poly[0]) && poly.slice(1).every((hole) => !insideRing(lng, lat, hole)));
+    if (hit) return town;
+  }
+  return null;
+}
+
 export function containsCounty(city: string, lng: number, lat: number) {
   const county = COUNTIES.find((item) => item.n === city);
   if (!county) return false;

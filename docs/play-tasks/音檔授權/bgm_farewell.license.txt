@@ -1,0 +1,9 @@
+Music Information:
+* title:	升天（bgm_farewell）
+* source:	https://www.lacuna.fm/（AI 產生的音樂）
+* author:	子哲（ZING15）以 lacuna.fm 產生
+
+Music License:
+* license type:	lacuna.fm Commercial License（https://www.lacuna.fm/commercial-license）
+* requirements:	產生者擁有這首音樂的權利，可以商用、修改、公開發布，不需要標註作者。
+* confirmed:	子哲 2026-11-13 確認這五首的版權沒有問題。

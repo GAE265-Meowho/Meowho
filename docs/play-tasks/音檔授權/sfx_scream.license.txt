@@ -1,0 +1,10 @@
+Sound Information:
+* title:	尖叫（sfx_scream）
+* original file:	freesound_community-very-angry-cat-101289.mp3
+* source:	https://cdn.pixabay.com/download/audio/2022/03/24/audio_f2eaaf4248.mp3?filename=freesound_community-very-angry-cat-101289.mp3
+* author:	freesound_community（Pixabay）
+
+Sound License:
+* license type:	Pixabay Content License（https://pixabay.com/service/license-summary/）
+* requirements:	可免費商用、可修改，不需要標註作者；不能把音檔單獨拿去販售或散布。
+* confirmed:	子哲 2026-11-13 確認版權沒有問題。

@@ -156,6 +156,16 @@
 .districtEdge { stroke: var(--caramel); stroke-width: 1.35px; opacity: 0.9; }
 .countyEdge { stroke: var(--caramel-deep); stroke-width: 3.4px; opacity: 0.9; }
 
+.countyArrow {
+  fill: none;
+  stroke: var(--caramel-deep);
+  stroke-width: 2px;
+  stroke-dasharray: 7 6;
+  stroke-linecap: round;
+  opacity: 0.55;
+  vector-effect: non-scaling-stroke;
+}
+
 .cityMark {
   font-size: 22px;
   font-weight: 800;
@@ -377,4 +387,169 @@
   .marker { transition: none; }
   .marker:hover,
   .marker:focus-visible { transform: translate(-50%, -50%); }
+}
+
+.viewport {
+  position: relative;
+  height: min(72vh, 680px);
+  overflow: hidden;
+  border-radius: 28px;
+  background: var(--map-sea);
+  touch-action: none;
+  user-select: none;
+}
+
+.world {
+  position: absolute;
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
+}
+
+.world .map {
+  width: 100%;
+  height: 100%;
+  border-radius: 0;
+}
+
+.pin {
+  position: absolute;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  margin: 0;
+  padding: 4px 10px 4px 4px;
+  border: 2px solid var(--orange);
+  border-radius: 999px;
+  background: var(--card);
+  box-shadow: 0 4px 0 var(--caramel-deep);
+  transform: translate(-50%, -110%) scale(var(--pin-scale, 1));
+  transform-origin: center bottom;
+  font-weight: 800;
+}
+
+.pinOn {
+  z-index: 6;
+  background: var(--yellow-soft);
+}
+
+.pinCount {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--ink);
+  color: var(--yellow);
+  font-size: 14px;
+}
+
+.pinName {
+  font-size: 14px;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.zoom {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  z-index: 7;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.zoom button {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  border: 1.5px solid var(--line);
+  background: var(--card);
+  color: var(--ink);
+  font-size: 22px;
+  font-weight: 800;
+  box-shadow: 0 4px 0 -1px var(--line);
+}
+
+.sheet {
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+  z-index: 8;
+  padding: 12px;
+  border-radius: 24px;
+  background: var(--card);
+  box-shadow: var(--shadow);
+}
+
+.sheetHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.sheetHead strong {
+  display: block;
+  font-size: 18px;
+}
+
+.sheetHead span {
+  color: var(--ink-soft);
+  font-size: 14px;
+}
+
+.sheetHead button {
+  min-height: 36px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  border: 1.5px solid var(--orange);
+  background: var(--card);
+  color: var(--orange-deep);
+  font-weight: 800;
+}
+
+.catRow {
+  display: flex;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow-x: auto;
+}
+
+.catChip {
+  width: 148px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 8px;
+  border: 0;
+  border-radius: 18px;
+  background: var(--paper, var(--yellow-soft));
+  text-align: left;
+}
+
+.catChip img,
+.catPh {
+  width: 100%;
+  height: 88px;
+  border-radius: 12px;
+  object-fit: cover;
+  background: var(--yellow-soft);
+}
+
+.catChip strong {
+  font-size: 16px;
+}
+
+.catChip span {
+  font-size: 13px;
+  color: var(--ink-soft);
 }

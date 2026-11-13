@@ -1,221 +1,228 @@
 "use client";
 
 /* eslint-disable @next/next/no-img-element */
-import { useLayoutEffect, useRef, useState } from "react";
-import Icon from "@/components/ui/Icon";
+
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
-  ADOPT_REGIONS, MAP_SIZE, actionKey, coatKey, countByRegion, layoutCats, previewTags, regionOf, separateFoldFromPreview,
-  type RegionId,
+  frameTaiwan, homePinScale, layoutHomes, TAIWAN_MAP, taiwanFocus,
+  type HomePin,
 } from "@/lib/adopt-map";
-import { aboveCountyLabel, countyLabels } from "@/lib/geo/county-labels";
 import type { FeedCat } from "@/lib/adopt-feed";
-import CatSprite from "./CatSprite";
-import RegionCanvas from "./RegionCanvas";
+import TaiwanCanvas from "./TaiwanCanvas";
 import styles from "./adoptMap.module.css";
 
 type Props = {
   cats: FeedCat[];
-  /** 目前個性篩選過不過。沒過的貓仍留在地圖上，只是變淡。 */
+  /** 沒過篩選的貓仍留在地圖上，只是變淡。沒傳就全部正常顯示。 */
+  matches?: (catId: string) => boolean;
   onShowCard: (catId: string) => void;
+  /** 測試可傳入。沒傳就向 /api/where 問上網所在縣市。 */
+  initialCity?: string | null;
 };
 
-function sideFor(x: number, width: number) {
-  const ratio = x / width;
-  if (ratio > 0.72) return "left";
-  if (ratio < 0.28) return "right";
-  return "up";
+type Camera = { x: number; y: number; scale: number };
+
+function limits(fit: number) {
+  return { min: fit * 0.65, max: Math.max(fit * 14, 4) };
 }
 
-function Preview({ cat, side, nudgeX = 0, nudgeY = 0 }: { cat: FeedCat; side: "up" | "left" | "right"; nudgeX?: number; nudgeY?: number }) {
-  const [broken, setBroken] = useState(false);
-  const tags = previewTags(cat.tags);
+export default function AdoptMap({ cats, matches = () => true, onShowCard, initialCity }: Props) {
+  const viewportRef = useRef<HTMLDivElement>(null);
+  const worldRef = useRef<HTMLDivElement>(null);
+  const cam = useRef<Camera>({ x: 0, y: 0, scale: 1 });
+  const fitRef = useRef(1);
+  const drag = useRef<{ id: number; x: number; y: number; camX: number; camY: number; moved: boolean } | null>(null);
+  const pointers = useRef(new Map<number, { x: number; y: number }>());
+  const pinch = useRef<{ distance: number; scale: number; x: number; y: number } | null>(null);
+  const [towns, setTowns] = useState(false);
+  const [openId, setOpenId] = useState<string | null>(null);
+  const [city, setCity] = useState<string | null>(initialCity === undefined ? null : initialCity);
+  const [district, setDistrict] = useState<string | null>(null);
+
+  const pins = useMemo(() => layoutHomes(cats), [cats]);
+  const open = pins.find((pin) => pin.id === openId) ?? null;
+  const openCats = open ? open.catIds.flatMap((id) => {
+    const cat = cats.find((item) => item.id === id);
+    return cat ? [cat] : [];
+  }) : [];
+
+  const apply = () => {
+    const node = worldRef.current;
+    const view = viewportRef.current;
+    if (!node || !view) return;
+    const { x, y, scale } = cam.current;
+    node.style.transform = `translate(${x}px, ${y}px) scale(${scale})`;
+    node.style.setProperty("--pin-scale", String(homePinScale(scale, fitRef.current)));
+    const nextTowns = fitRef.current > 0 && scale / fitRef.current >= 2.2;
+    setTowns((cur) => (cur === nextTowns ? cur : nextTowns));
+  };
+
+  const zoomAt = (clientX: number, clientY: number, nextScale: number) => {
+    const view = viewportRef.current?.getBoundingClientRect();
+    if (!view) return;
+    const range = limits(fitRef.current);
+    const scale = Math.min(range.max, Math.max(range.min, nextScale));
+    const px = clientX - view.left;
+    const py = clientY - view.top;
+    const ratio = scale / cam.current.scale;
+    cam.current = {
+      scale,
+      x: px - (px - cam.current.x) * ratio,
+      y: py - (py - cam.current.y) * ratio,
+    };
+    apply();
+  };
+
+  useEffect(() => {
+    if (initialCity !== undefined) return;
+    let stop = false;
+    fetch("/api/where")
+      .then((res) => res.json())
+      .then((data: { city?: unknown; district?: unknown }) => {
+        if (stop) return;
+        setCity(typeof data.city === "string" ? data.city : null);
+        setDistrict(typeof data.district === "string" ? data.district : null);
+      })
+      .catch(() => { if (!stop) { setCity(null); setDistrict(null); } });
+    return () => { stop = true; };
+  }, [initialCity]);
+
+  useLayoutEffect(() => {
+    const view = viewportRef.current?.getBoundingClientRect();
+    if (!view || view.width < 20) return;
+    fitRef.current = Math.min(view.width / TAIWAN_MAP.width, view.height / TAIWAN_MAP.height);
+    const focus = city ? taiwanFocus(city, district) : null;
+    cam.current = frameTaiwan({ width: view.width, height: view.height }, focus, district ? 8.5 : 3.4);
+    apply();
+  }, [city, district]);
+
+  useEffect(() => {
+    const node = viewportRef.current;
+    if (!node) return;
+    const onWheel = (event: WheelEvent) => {
+      event.preventDefault();
+      const factor = event.deltaY < 0 ? 1.14 : 1 / 1.14;
+      zoomAt(event.clientX, event.clientY, cam.current.scale * factor);
+    };
+    node.addEventListener("wheel", onWheel, { passive: false });
+    return () => node.removeEventListener("wheel", onWheel);
+  }, []);
+
+  const onPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    if ((event.target as HTMLElement).closest("button")) return;
+    pointers.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    event.currentTarget.setPointerCapture(event.pointerId);
+    if (pointers.current.size === 1) {
+      drag.current = { id: event.pointerId, x: event.clientX, y: event.clientY, camX: cam.current.x, camY: cam.current.y, moved: false };
+      pinch.current = null;
+    } else if (pointers.current.size === 2) {
+      const [a, b] = [...pointers.current.values()];
+      pinch.current = {
+        distance: Math.hypot(a.x - b.x, a.y - b.y) || 1,
+        scale: cam.current.scale,
+        x: (a.x + b.x) / 2,
+        y: (a.y + b.y) / 2,
+      };
+      drag.current = null;
+    }
+  };
+
+  const onPointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!pointers.current.has(event.pointerId)) return;
+    pointers.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    if (pointers.current.size >= 2 && pinch.current) {
+      const [a, b] = [...pointers.current.values()];
+      const distance = Math.hypot(a.x - b.x, a.y - b.y) || 1;
+      zoomAt(pinch.current.x, pinch.current.y, pinch.current.scale * (distance / pinch.current.distance));
+      return;
+    }
+    const current = drag.current;
+    if (!current || current.id !== event.pointerId) return;
+    const dx = event.clientX - current.x;
+    const dy = event.clientY - current.y;
+    if (Math.hypot(dx, dy) > 4) current.moved = true;
+    cam.current = { ...cam.current, x: current.camX + dx, y: current.camY + dy };
+    apply();
+  };
+
+  const onPointerUp = (event: React.PointerEvent<HTMLDivElement>) => {
+    pointers.current.delete(event.pointerId);
+    if (pointers.current.size < 2) pinch.current = null;
+    if (drag.current?.id === event.pointerId) drag.current = null;
+  };
+
+  const zoomButton = (direction: 1 | -1) => {
+    const view = viewportRef.current?.getBoundingClientRect();
+    if (!view) return;
+    zoomAt(view.left + view.width / 2, view.top + view.height / 2, cam.current.scale * (direction > 0 ? 1.25 : 0.8));
+  };
+
   return (
-    <span
-      className={styles.preview}
-      role="tooltip"
-      data-side={side}
-      style={{ ["--tip-x" as string]: `${nudgeX}px`, ["--tip-y" as string]: `${nudgeY}px` }}
+    <div className={styles.viewport} ref={viewportRef} aria-label="台灣地圖，可以拖曳與縮放"
+      onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp}
     >
-      {cat.photo && !broken ? (
-        <img className={styles.shot} src={cat.photo} alt={`${cat.name}的照片`} onError={() => setBroken(true)} />
-      ) : (
-        <span className={styles.ph}><Icon name="cat" size={28} /></span>
+      <div
+        className={styles.world}
+        ref={worldRef}
+        style={{ width: TAIWAN_MAP.width, height: TAIWAN_MAP.height }}
+      >
+        <TaiwanCanvas showTowns={towns} />
+        {pins.length === 0 && <p className={styles.empty} role="status">這裡還沒有等家的貓</p>}
+        {pins.map((pin) => (
+          <HomePinButton
+            key={pin.id}
+            pin={pin}
+            dim={!pin.catIds.some((id) => matches(id))}
+            pressed={openId === pin.id}
+            onOpen={() => setOpenId(pin.id)}
+          />
+        ))}
+      </div>
+      <span className={styles.compass}>北</span>
+      <div className={styles.zoom}>
+        <button type="button" onClick={() => zoomButton(1)} aria-label="放大地圖">＋</button>
+        <button type="button" onClick={() => zoomButton(-1)} aria-label="縮小地圖">－</button>
+      </div>
+      {open && (
+        <div className={styles.sheet} role="dialog" aria-label={open.name}>
+          <div className={styles.sheetHead}>
+            <div>
+              <strong>{open.name}</strong>
+              <span>{`${open.city}${open.district}`}・{openCats.length} 隻在等家</span>
+            </div>
+            <button type="button" onClick={() => setOpenId(null)}>關閉</button>
+          </div>
+          <ul className={styles.catRow}>
+            {openCats.map((cat) => (
+              <li key={cat.id}>
+                <button type="button" className={styles.catChip} onClick={() => onShowCard(cat.id)}>
+                  {cat.photo ? <img src={cat.photo} alt="" /> : <span className={styles.catPh} />}
+                  <strong>{cat.name}</strong>
+                  <span>{cat.tags.slice(0, 2).join("・") || cat.stage}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
-      <strong>{cat.name}</strong>
-      {cat.district && <span className={styles.where}>{cat.district}</span>}
-      {tags.length > 0 && <span className={styles.tagline}>{tags.join("・")}</span>}
-    </span>
+    </div>
   );
 }
 
-/** 手機沒有滑過：第一次點只打開簡歷，再點同一隻才回到卡片。 */
-function usesTapPreview() {
-  if (typeof window === "undefined" || typeof window.matchMedia !== "function") return false;
-  return window.matchMedia("(hover: none), (pointer: coarse), (max-width: 767px)").matches;
-}
-
-/** 先選北／中／南／東（離島另列），再在該範圍看等家的貓。點貓回到卡片。 */
-export default function AdoptMap({ cats, onShowCard }: Props) {
-  const [region, setRegion] = useState<RegionId | null>(null);
-  const [open, setOpen] = useState<string | null>(null);
-  const [expanded, setExpanded] = useState<Set<string>>(new Set());
-  const [shift, setShift] = useState({ forId: null as string | null, foldY: 0, tipX: 0, tipY: 0 });
-  const stageRef = useRef<HTMLDivElement>(null);
-  const pinned = useRef<string | null>(null);
-  useLayoutEffect(() => {
-    if (!open || !usesTapPreview()) {
-      setShift((cur) => (cur.forId === null && cur.foldY === 0 && cur.tipX === 0 && cur.tipY === 0 ? cur : { forId: null, foldY: 0, tipX: 0, tipY: 0 }));
-      return;
-    }
-    if (shift.forId !== open) {
-      setShift({ forId: open, foldY: 0, tipX: 0, tipY: 0 });
-      return;
-    }
-    const stage = stageRef.current;
-    const tip = stage?.querySelector<HTMLElement>("[role='tooltip']");
-    const foldEl = stage?.querySelector<HTMLElement>("[data-fold]");
-    if (!stage || !tip || !foldEl) return;
-    const bounds = stage.getBoundingClientRect();
-    const box = (el: HTMLElement) => {
-      const rect = el.getBoundingClientRect();
-      return { left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom };
-    };
-    const next = separateFoldFromPreview(box(foldEl), box(tip), {
-      left: 8,
-      top: bounds.top + 4,
-      right: window.innerWidth - 8,
-      bottom: bounds.bottom - 4,
-    });
-    if (next.fold.y === 0 && next.preview.x === 0 && next.preview.y === 0) return;
-    setShift({
-      forId: open,
-      foldY: shift.foldY + next.fold.y,
-      tipX: shift.tipX + next.preview.x,
-      tipY: shift.tipY + next.preview.y,
-    });
-  }, [open, shift, region, expanded]);
-  const counts = countByRegion(cats.map((cat) => cat.city));
-
-  if (!region) {
-    return (
-      <div className={styles.pickerWrap}>
-        <p className={styles.pickLead}>先選一個地區，看看哪裡有貓在等家</p>
-        <div className={styles.picker} role="group" aria-label="選擇地區">
-          {ADOPT_REGIONS.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              className={`${styles.region} ${item.id === "islands" ? styles.islands : ""}`}
-              onClick={() => { setRegion(item.id); setExpanded(new Set()); setOpen(null); }}
-            >
-              <RegionCanvas region={item.id} variant="mini" />
-              <span className={styles.regionLabel}>{item.label}</span>
-              <span className={styles.regionName}>{item.name}</span>
-              {item.note && <span className={styles.regionNote}>{item.note}</span>}
-              <span className={styles.regionCount}>{counts[item.id]} 隻在等家</span>
-            </button>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  const spec = ADOPT_REGIONS.find((item) => item.id === region)!;
-  const size = MAP_SIZE[region];
-  const here = cats.filter((cat) => regionOf(cat.city) === region);
-  const markers = layoutCats(here.map((cat) => ({ ...cat, district: cat.area })), region, expanded);
-
+function HomePinButton({ pin, dim, pressed, onOpen }: {
+  pin: HomePin; dim: boolean; pressed: boolean; onOpen: () => void;
+}) {
   return (
-    <div className={styles.mapCard}>
-      <div className={styles.mapHead}>
-        <p className={styles.kicker}>{spec.name}{spec.note ? `・${spec.note}` : ""}</p>
-        <button type="button" className={styles.back} onClick={() => { setRegion(null); setOpen(null); setExpanded(new Set()); }}>
-          換地區
-        </button>
-      </div>
-      <div className={styles.stage} ref={stageRef}>
-        <RegionCanvas region={region} />
-        <span className={styles.compass} style={{ right: 22, bottom: 14, top: "auto" }}>北</span>
-        {here.length === 0 && <p className={styles.empty} role="status">這裡還沒有等家的貓</p>}
-        {markers.map((marker) => {
-          if (marker.type === "pile") {
-            return (
-              <button
-                key={marker.placeKey}
-                type="button"
-                className={styles.pile}
-                style={{ left: `${(marker.x / size.width) * 100}%`, top: `${(marker.y / size.height) * 100}%`, zIndex: 3 }}
-                aria-expanded={false}
-                aria-label={`附近有 ${marker.count} 隻`}
-                onClick={() => setExpanded((cur) => new Set(cur).add(marker.placeKey))}
-              >
-                {`附近有 ${marker.count} 隻`}
-              </button>
-            );
-          }
-          if (marker.type === "collapse") {
-            const label = countyLabels(region).find((item) => item.name === marker.city);
-            const at = label ? aboveCountyLabel(label) : marker;
-            return (
-              <button
-                key={`fold:${marker.placeKey}`}
-                type="button"
-                className={styles.fold}
-                data-fold=""
-                style={{ left: `${(at.x / size.width) * 100}%`, top: `${(at.y / size.height) * 100}%`, zIndex: 9, ["--fold-y" as string]: `${shift.forId ? shift.foldY : 0}px` }}
-                aria-expanded
-                aria-label={`收攏，回到附近有 ${marker.count} 隻`}
-                onClick={() => {
-                  setExpanded((cur) => {
-                    const next = new Set(cur);
-                    next.delete(marker.placeKey);
-                    return next;
-                  });
-                  pinned.current = null;
-                  setOpen(null);
-                }}
-              >
-                收攏
-              </button>
-            );
-          }
-          const cat = marker.cat;
-          const shown = open === cat.id;
-          const raised = marker.placeKey.startsWith("near:");
-          return (
-            <button
-              key={cat.id}
-              type="button"
-              className={styles.marker}
-              style={{ left: `${(cat.x / size.width) * 100}%`, top: `${(cat.y / size.height) * 100}%`, zIndex: shown ? 10 : raised ? 6 : 2 }}
-              aria-label={`${cat.name}，${here.find((item) => item.id === cat.id)?.district || cat.city}，回到卡片`}
-              onMouseEnter={() => { if (!usesTapPreview()) setOpen(cat.id); }}
-              onMouseLeave={() => { if (!usesTapPreview()) setOpen((cur) => (cur === cat.id ? null : cur)); }}
-              onFocus={() => setOpen(cat.id)}
-              onBlur={() => {
-                if (usesTapPreview()) pinned.current = null;
-                setOpen((cur) => (cur === cat.id ? null : cur));
-              }}
-              onClick={() => {
-                if (!usesTapPreview()) { onShowCard(cat.id); return; }
-                if (pinned.current === cat.id) { onShowCard(cat.id); return; }
-                pinned.current = cat.id;
-                setOpen(cat.id);
-              }}
-            >
-              <CatSprite coat={coatKey(cat.coat)} action={actionKey(cat.tags)} cue={cat.tags.join("、")} />
-              {shown && (
-                <Preview
-                  cat={{ ...cat, district: here.find((item) => item.id === cat.id)?.district ?? cat.district }}
-                  side={sideFor(cat.x, size.width)}
-                  nudgeX={shift.forId === cat.id ? shift.tipX : 0}
-                  nudgeY={shift.forId === cat.id ? shift.tipY : 0}
-                />
-              )}
-            </button>
-          );
-        })}
-      </div>
-    </div>
+    <button
+      type="button"
+      className={`${styles.pin} ${dim ? styles.dim : ""} ${pressed ? styles.pinOn : ""}`}
+      style={{ left: `${(pin.x / TAIWAN_MAP.width) * 100}%`, top: `${(pin.y / TAIWAN_MAP.height) * 100}%` }}
+      aria-pressed={pressed}
+      aria-label={`${pin.name}，${pin.city}${pin.district}，${pin.catIds.length} 隻`}
+      onClick={onOpen}
+    >
+      <span className={styles.pinCount}>{pin.catIds.length}</span>
+      <span className={styles.pinName}>{pin.name}</span>
+    </button>
   );
 }

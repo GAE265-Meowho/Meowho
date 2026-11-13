@@ -154,6 +154,18 @@
 - 逗貓棒模型：渝茜已在後台「生活用品」上傳，品項「老鼠」（英文 mickey，id `5ab12238-f07c-44ba-abf5-83631dfbe45a`），模型 `https://onebpkbkrnnwamwsoelo.supabase.co/storage/v1/object/public/meow-items/87c99fc9-da88-4882-94e3-7f3bc3c00d09/model.glb`，尺寸 0.054 × 0.024 × 0.028 公尺（寬×深×高），價格未填。程式要從後台 `meow_items` 讀，但前台沒登入時讀不到（只有管理員 API `/api/hq/items` 讀得到），在子哲開放公開讀取前，先像 `items.ts` 那樣寫死網址與尺寸。
 - ✅ 已處理（2026-11-07）：後台「外出籠」尺寸原本登錄成原始模型單位 2.216 × 3.428 × 2.046，已用 SQL 改成 0.33 × 0.51 × 0.31 公尺（與 `items.ts` 一致），改讀後台時外出籠不會變巨大。
 - 前置：確認 `PlayStage.tsx` 的 3D 貓可由程式直接設位置、方向，不依賴動畫片段。
+- 🚧 進行中（2026-11-12，珮瑜 × Claude Code，#354，分支 `feat/354-care-water-3d`）**換水改 3D（第 1 份）**：`CatgameMini.tsx` 的換水改開彈窗（`mini3d/Mini3DModal.tsx`），裡面是第一視角開水龍頭的 `mini3d/WaterRefillGame3D.tsx`。
+  - 玩法：前三格自動播（右手拿舊水碗到水槽、倒掉舊水、空碗移到出水口下），之後玩家按住按鈕，左手握把手開水、放開關水，按「倒好了」結束。規則和回傳沿用 `lib/play/mini3d/water-rules.ts`（`{ fill }`，fill ≥ 70 算換好）。
+  - 道具：`WaterProps.tsx`（`WaterBowl` 水碗、`WaterSink` 水槽，程式畫）、`WaterTap.tsx`（`water_tap` 水龍頭，程式畫，把手獨立可抬）、`WaterHands.tsx`（`water_hand_right`／`water_hand_left`，模型在 `public/play/`，CC0，手勢是程式套的）。
+  - 動作：`WaterRefillScene.tsx` 擺畫面；每個時間點的數值在 `lib/play/mini3d/refill-timeline.ts`（六格時間軸 `refillAt`、玩家按住／放開 `refillHold`，有測試）。
+  - 原本同分支上還有一個拖水壺到水碗上方倒水的版本（`mini3d/WaterGame3D.tsx`），2026-11-12 珮瑜決定只留水龍頭版，已刪（沒進過 git）。`mini3d/useScenePointer.ts` 是它用的拖曳工具，現在沒有人用，留給之後的 3D 小遊戲。
+  - 還沒做：音效、水花、從真正的 `/cats/[id]/play` 流程實測、手機取景；細節見 `docs/daily/2026-11-12/1427-珮瑜-354.md`。
+- 🚧 進行中（2026-11-12，珮瑜 × Claude Code，#354，分支 `feat/354-care-feed-3d`，疊在換水分支上）**餵貓改 3D（第 1 份）**：`CatgameMini.tsx` 的餵貓改開彈窗，裡面是第一視角的 `mini3d/FeedGame3D.tsx`。
+  - 玩法：三種飼料分開。乾飼料袋按住倒，掉出來的是一顆一顆的顆粒；主食罐、湯罐各一罐，點一下就播「左手拿罐頭、右手拉開拉環、倒進碗」，主食罐是一坨濕食、湯罐是半透明的液體。按「放好了」結束。
+  - 規則：`lib/play/mini3d/feed-rules.ts`（建議份量 `feedPortion`、`pourDry`、`addCan`、`feedResult`、開罐頭動作 `canFrame`，有測試），數值照 2D 版；回傳 `{ added, over, wet, soup, spill }`，`careGood("feed")` 沒有動。
+  - 道具：`mini3d/FeedProps.tsx`（`feed_bag` 飼料袋、`feed_can` 罐頭兩種、碗裡的東西 `BowlFood`、落下的顆粒 `KibbleFall`，都是程式畫）；場景 `mini3d/FeedScene.tsx`；手多一個手勢 `hold`。
+  - **彈窗只放飼料，貓不在裡面**：`PlayGame.tsx` 改成餵貓、換水做完、彈窗關掉後貓才走到碗邊（`served`）；取消不會觸發。吃、喝的動作等第 4 份。
+  - 還沒做：在真正的房間流程確認貓有走過去、手機實測、音效、包裝圖案；第 1 份還剩鏟屎、逗貓玩具確認、上方狀態列。細節見 `docs/daily/2026-11-12/1514-珮瑜-354.md`。
 
 ## 資料表（Supabase）
 - ［已失效］`env_reports`、`virtual_sessions`、`virtual_tasks`（規劃名稱，改用下列 0017 的表）
@@ -223,6 +235,8 @@
 
 | 2026-11-10 | Jerry0808 × Codex | PDF 下載連結改在新分頁執行，加入手機使用系統分享選單儲存的備案；Azure SAS 的 rscd 僅完成本機 SDK 驗證 | #337（Draft） |
 | 2026-11-10 | Jerry0808 × Codex | 安全報告改為 HTML 摘要、風險項目與辨識限制優先；PDF 保留在內容後方供喵戶本人檢視／下載；頁面不再初載 PDF，也移除閱讀器樣式 | #337（Draft） |
+| 2026-11-12 | 珮瑜 × Claude Code | 換水小遊戲改 3D 第一視角開水龍頭：兩隻手、水龍頭、六格動作時間軸（`mini3d/`、`lib/play/mini3d/`） | （還沒開 PR） |
+| 2026-11-12 | 珮瑜 × Claude Code | 餵貓小遊戲改 3D：乾飼料顆粒、主食罐濕食、湯罐液體；餵貓、換水的彈窗關掉後貓才走到碗邊 | （還沒開 PR） |
 
 ## 虛擬飼養讀真實資料與試養報告給中途（/cats/[id]/play）
 - 貓咪：`lib/play/source.ts` 的 `loadPlayCat(id)` 讀 `meow_cats`（名字、花色、生活階段、生日／估計月齡）＋ `meow_cat_model_variants.confirmed_albedo`（3D 貼圖）；讀不到才用 DEMO 麻糬。劇本裡的名字用 `〈貓名〉`（`furniture.ts` 的 `fullTx`）替換，小遊戲原版寫死的「麻糬」由 `CatgameMini` 畫完後換成貓名；非虎斑花色不畫條紋。

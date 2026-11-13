@@ -1,0 +1,11 @@
+Sound Information:
+* title:	哈氣（sfx_hiss）
+* original file:	freesound_community-angry-cat-70623.mp3
+* source:	https://cdn.pixabay.com/download/audio/2022/03/14/audio_f26422b4e1.mp3?filename=freesound_community-angry-cat-70623.mp3
+* edit:	原檔 33 秒，剪出 27.60～29.75 秒最大聲的一段（2.2 秒），前後加淡入淡出，128 kbps（2026-11-13）
+* author:	freesound_community（Pixabay）
+
+Sound License:
+* license type:	Pixabay Content License（https://pixabay.com/service/license-summary/）
+* requirements:	可免費商用、可修改，不需要標註作者；不能把音檔單獨拿去販售或散布。
+* confirmed:	子哲 2026-11-13 確認版權沒有問題。
