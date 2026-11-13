@@ -36,6 +36,7 @@ import { goalFor, itemSpots, type CatAction } from "@/lib/play/stage";
 import { STORY, type CatPose, type NodeId } from "@/lib/play/story";
 import { CARE_ACTS, careGood, type CareAct } from "@/lib/play/care";
 import { CatgameMini } from "./catgame/CatgameMini";
+import type { BowlFill } from "@/components/hq/assets/bowlSlotsDetect";
 import type { MiniCtx } from "./catgame/minis";
 import { CareBar, HomeStep } from "./HomeStep";
 import { NodeStep } from "./NodeStep";
@@ -133,6 +134,9 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
   // 這個節點裡餵過貓、換過水幾次：每做完一次貓就走到碗邊一次；換節點歸零
   const [served, setServed] = useState(0);
   useEffect(() => { setServed(0); }, [state.nodeIndex]);
+  // 餐碗組裡有沒有飼料、水：放進房間時是空碗，餵完、換完水才有；換節點（過了一段時間）又是空的
+  const [bowlFill, setBowlFill] = useState<BowlFill>({ food: false, water: false });
+  useEffect(() => { setBowlFill({ food: false, water: false }); }, [state.nodeIndex]);
   /** 手機：把下方的劇情卡收起來，看整個 3D 房間 */
   const [peek, setPeek] = useState(false);
 
@@ -442,7 +446,7 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
       {immersive && state.step === "node" && cur?.kind === "home" && !careAct && <CareBar state={state} canPlay={kind === "scan"} onAct={setCareAct} />}
 
       {showStage && (
-        <PlayStage kind={kind} scanBase={scanBase} look={look} bubble={bubble} bubbleInset={peek || (cur?.kind === "home" && !careAct) ? 0.08 : 0.48} lookKey={lookKey} placed={placed} scanItems={scanItems} story={story} wand={wand}
+        <PlayStage kind={kind} scanBase={scanBase} look={look} bubble={bubble} bubbleInset={peek || (cur?.kind === "home" && !careAct) ? 0.08 : 0.48} lookKey={lookKey} placed={placed} scanItems={scanItems} story={story} wand={wand} bowlFill={bowlFill}
           goal={goal} clip={clip} speed={state.step === "node" ? node.speed : 1}
           onDrop={state.step === "place" && kind === "dollhouse"
             ? (id, at) => { if (playItems.some(i => i.id === id)) placeAt(id as PlayItem["id"], at); }
@@ -546,7 +550,11 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
       {state.step === "node" && cur?.kind === "mini" && cur.mini !== "play" && (
         <CatgameMini key={`${state.nodeIndex}:${cur.mini}:${state.life.picks.length}`} id={cur.mini} ctx={miniCtx} catName={catName}
           // 外出籠：劇情只看成功與否（原版結果 { ok, forced, treats }）
-          onDone={r => dispatch({ type: "miniDone", result: cur.mini === "carrier" ? (r as { ok?: boolean } | null)?.ok === true : r })} />
+          onDone={r => {
+            if (r !== null && cur.mini === "feed") setBowlFill(f => ({ ...f, food: true }));
+            if (r !== null && cur.mini === "water") setBowlFill(f => ({ ...f, water: true }));
+            dispatch({ type: "miniDone", result: cur.mini === "carrier" ? (r as { ok?: boolean } | null)?.ok === true : r });
+          }} />
       )}
       {state.step === "node" && cur?.kind === "home" && careAct === "play" && scanWand && (
         <ScanWand key={`care:wand:${state.life.care.rounds}`} catName={catName} catches={catches}
@@ -558,6 +566,8 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
           if (r === null) { setCareAct(null); return; }
           dispatch({ type: "care", act: careAct, good: careGood(careAct, r) });
           if (careAct === "feed" || careAct === "water") setServed(n => n + 1);
+          if (careAct === "feed") setBowlFill(f => ({ ...f, food: true }));
+          if (careAct === "water") setBowlFill(f => ({ ...f, water: true }));
           setCareAct(null);
         };
         return <CatgameMini key={`care:${careAct}:${state.life.care.rounds}`} id={mini} ctx={miniCtx} catName={catName} onDone={done} />;

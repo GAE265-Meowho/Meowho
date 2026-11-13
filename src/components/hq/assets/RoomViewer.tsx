@@ -15,6 +15,7 @@ import { isPrivateRoomBase, keepRecentRoom, roomFile } from "@/lib/home-room-cac
 import { getBrowserSupabase } from "@/lib/supabase/client";
 import { placeScanItems, type SceneItem } from "@/lib/play/scene-items";
 import { sceneCatCommand } from "@/lib/play/scene-cat";
+import { fillBowl, type BowlFill } from "./bowlSlotsDetect";
 import type { CatAction } from "@/lib/play/stage";
 
 const ALPHA_THRESHOLD = 5;  // 丟掉幾乎透明的高斯，手機比較順
@@ -71,8 +72,10 @@ export interface RoomWand { toy: SceneItem; onCatch: (caught: boolean) => void }
  * overlay：前台預覽版面：前／後／左／右／上五個固定視角疊在畫面上；電腦用 WASD 走、手機用左下角搖桿；
  *   每次開場先跳操作說明，按掉後縮成右下角的按鈕；滾輪還給網頁捲動（觸控板不會誤走）；右下角有全螢幕按鈕
  */
-export default function RoomViewer({ base, cat, items, controls = true, story, wand, bubble, bubbleInset = 0, lookKey, noCat = false, overlay = false }: {
+export default function RoomViewer({ base, cat, items, controls = true, story, wand, bubble, bubbleInset = 0, lookKey, noCat = false, overlay = false, bowlFill }: {
   base: string; cat?: { baseUrl: string; albedoUrl: string } | null; items?: readonly SceneItem[]; controls?: boolean; noCat?: boolean; overlay?: boolean;
+  /** 虛擬飼養：餐碗組裡有沒有飼料、水；不給＝照模型原樣 */
+  bowlFill?: BowlFill;
   story?: { action: CatAction | null; at: number } | null; wand?: RoomWand | null;
   /** 貓頭頂的小對話框（SVG 圖示）；null＝不顯示 */
   bubble?: React.ReactNode;
@@ -114,6 +117,8 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
   const [spot, setSpot] = useState({ index: 0, total: 0 });
   const [actions, setActions] = useState({ cat: false, bed: false, cup: false });
   const itemStage = useRef<ItemStage | null>(null);
+  /** 房間裡那個餐碗組（換飼料、換水時開關裡面的東西） */
+  const bowlObj = useRef<THREE.Object3D | null>(null);
   const [itemsReady, setItemsReady] = useState(false);
   const [worldReady, setWorldReady] = useState(false);
   const orbit = useRef<{ enabled: boolean } | null>(null);
@@ -401,11 +406,23 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
         g.add(o);
         st.frame.add(g);
       });
+      const bi = list.findIndex(it => it.id === "bowl");
+      bowlObj.current = bi >= 0 ? objs[bi] : null;
+      if (bowlObj.current && bowlFillRef.current) fillBowl(bowlObj.current, bowlFillRef.current);
       st.viewer.forceRenderNextFrame();
     });
     return () => { stale = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [items, itemsReady, worldReady, story?.action, story?.at]);
+
+  // 餐碗組裡的飼料、水：讀好用品時套一次（上面），之後變了再套
+  const bowlFillRef = useRef(bowlFill);
+  bowlFillRef.current = bowlFill;
+  useEffect(() => {
+    if (!bowlFill || !bowlObj.current) return;
+    fillBowl(bowlObj.current, bowlFill);
+    itemStage.current?.viewer.forceRenderNextFrame();
+  }, [bowlFill]);
 
   // 鏡頭轉向貓：貓頭頂的對話框才看得到
   useEffect(() => { if (lookKey && worldReady) world.current?.lookAtCat(); }, [lookKey, worldReady]);
