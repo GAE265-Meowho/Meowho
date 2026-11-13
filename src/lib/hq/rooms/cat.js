@@ -22,6 +22,8 @@ const AUTO_MAX = 60;
 const PLAY_NEAR_M = 0.12;   // 拍物品時離物品的距離範圍
 const PLAY_FAR_M = 0.4;
 const LAND_INSET_M = 0.3;   // 落點離家具邊緣多遠
+/** 走到碗邊後吃飯、喝水的動作播幾秒（同娃娃屋 story.ts） */
+const CLIP_SECONDS = { eat: 8, drink: 6 };
 const MODEL_YAW = 0;        // 模型本身面向 +Z；若走路方向不對再調這個
 
 export class RoomCat {
@@ -134,8 +136,16 @@ export class RoomCat {
     this.cat.position.set(p.x, 0, p.y);
   }
 
-  /** 走不過去時直接出現在格子 k，面向 face 待一會（同走到後的樣子） @param {number} k @param {THREE.Vector2 | null} [face] */
-  appearAt(k, face = null) {
+  /** 走到了：停下、面向物品多待一會；有 clip 就播吃飯／喝水 */
+  arrived() {
+    this.setState("idle");
+    if (this.face) this.timer = 6;  // 在物品旁多待一會
+    if (this.clip && this.actions[this.clip]) { this.playClip(this.clip, false, 0.3); this.timer = CLIP_SECONDS[this.clip]; }
+    this.clip = null;
+  }
+
+  /** 走不過去時直接出現在格子 k，面向 face 待一會（同走到後的樣子） @param {number} k @param {THREE.Vector2 | null} [face] @param {"eat" | "drink" | null} [clip] */
+  appearAt(k, face = null, clip = null) {
     this.jump = null;
     this.surface = null;
     this.path = [];
@@ -143,8 +153,8 @@ export class RoomCat {
     this.place(k);
     this.dest = this.centerOf(k);
     this.face = face;
-    this.setState("idle");
-    if (face) this.timer = 6;
+    this.clip = clip;
+    this.arrived();
   }
 
   // BFS（8 方向、不切牆角）找路，再用視線檢查把鋸齒路徑拉直
@@ -206,10 +216,10 @@ export class RoomCat {
     return k < 0 ? this.randomCell() : k;
   }
 
-  /** @param {number} k 目的地格子 @param {THREE.Vector2 | null} [face] 走到後要轉頭看的點（本地 x,z） */
-  goTo(k, face = null) {
+  /** @param {number} k 目的地格子 @param {THREE.Vector2 | null} [face] 走到後要轉頭看的點（本地 x,z） @param {"eat" | "drink" | null} [clip] 走到後播的動作 */
+  goTo(k, face = null, clip = null) {
     if (this.jump || this.surface) {  // 先下來再走
-      this.queued = () => this.goTo(k, face);
+      this.queued = () => this.goTo(k, face, clip);
       if (!this.jump) this.jumpDown();
       return true;
     }
@@ -219,6 +229,7 @@ export class RoomCat {
     this.path = path;
     this.dest = this.centerOf(k);
     this.face = face;  // 走到後要轉頭看的點（本地 x,z），沒有就照常閒晃
+    this.clip = clip;
     this.setState("walk");
     return true;
   }
@@ -555,8 +566,7 @@ export class RoomCat {
     if (dist < 0.05 * this.upm) {
       this.path.shift();
       if (!this.path.length) {
-        this.setState("idle");
-        if (this.face) this.timer = 6;  // 在物品旁多待一會
+        this.arrived();
         const go = this.arrive;
         this.arrive = null;
         go?.();

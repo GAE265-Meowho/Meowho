@@ -197,7 +197,7 @@ export async function createRoomWorld({ viewer, threeScene, scene, layout, camer
         const target = new THREE.Vector2(cmd.x * upm, cmd.z * upm);
         if (k !== undefined && k >= 0) {
           // 走不過去（被用品或家具隔開）就直接出現在旁邊，不要原地不動
-          if (!cat.goTo(k, target)) cat.appearAt(k, target);
+          if (!cat.goTo(k, target, cmd.clip)) cat.appearAt(k, target, cmd.clip);
           // 鏡頭看目標本身（貓若要先從家具跳下來，牠這一趟的目的地還沒換新）
           if (cmd.look) turnToward(cat.frame.localToWorld(new THREE.Vector3(target.x, 0.15 * upm, target.y)));
         }
