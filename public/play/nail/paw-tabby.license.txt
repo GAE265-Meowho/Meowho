@@ -8,5 +8,5 @@ Image License:
 * license type:	AI 合成，非實拍；依 Canva 使用條款用於本專案
 * requirements:	無
 
-目前這個檔是從 200px 預覽圖裁切（原圖的 x 30–170、y 15–155）後放大到 640px 的暫用版，畫面會糊。
-換成原圖時用同樣的裁切比例（左 15%、上 7.5%、寬高各 70%），腳趾座標（src/lib/play/mini3d/nail-paw.ts）就不用重量。
+這個檔是從 Tina 提供的 800px 原圖裁切（左 15%、上 7.5%、寬高各 70%）後存成 640px。
+換同一張圖的其他解析度時用同樣的裁切比例，腳趾座標（src/lib/play/mini3d/nail-paw.ts）就不用重量。

@@ -4,7 +4,7 @@
 > 最後更新：2026-11-13｜Tina × Claude Code（虛擬飼養剪指甲照片特寫，#354）
 
 ## 目前狀態
-- **虛擬飼養剪指甲改照片特寫（#354 第 2 份，Tina × Claude Code，分支 `feat/354-care-nail`，審查中）**：彈窗 `src/components/play/mini3d/NailGame2D.tsx`（底圖是 AI 合成的小貓腳掌照片 `public/play/nail/paw-tabby.webp`，指甲與指甲刀疊在上面；雙手：按住肉球＋拖指甲刀放開剪），規則 `src/lib/play/mini3d/nail-rules.ts`、對位座標 `nail-paw.ts`。**底圖是放大的暫用版，等 Tina 提供 Canva 原圖覆蓋。**只在無頭 Chrome 用暫時頁面玩過（滑鼠、空白鍵、兩指觸控），**還沒走真實 `/cats/[id]/play`、沒測實體手機**。第 2 份還剩外出籠小遊戲、貓抓板、穿模修正，各自另開 PR。細節見 `docs/modules/readiness.md`「B. 小遊戲改 3D」與 `docs/daily/2026-11-13/1217-Tina-354.md`。
+- **虛擬飼養剪指甲改照片特寫（#354 第 2 份，Tina × Claude Code，分支 `feat/354-care-nail`，審查中）**：彈窗 `src/components/play/mini3d/NailGame2D.tsx`（底圖是 AI 合成的小貓腳掌照片 `public/play/nail/paw-tabby.webp`，指甲與指甲刀疊在上面；雙手：按住肉球＋拖指甲刀放開剪），規則 `src/lib/play/mini3d/nail-rules.ts`、對位座標 `nail-paw.ts`。只在無頭 Chrome 用暫時頁面玩過（滑鼠、空白鍵、兩指觸控），**還沒走真實 `/cats/[id]/play`、沒測實體手機**。第 2 份還剩外出籠小遊戲、貓抓板、穿模修正，各自另開 PR。細節見 `docs/modules/readiness.md`「B. 小遊戲改 3D」與 `docs/daily/2026-11-13/1217-Tina-354.md`。
 - **虛擬飼養鏟屎改 3D（#354，珮瑜 × Claude Code，分支 `feat/354-care-scoop-3d`，審查中）**：餵貓（PR #392）已合併，這個 PR 只有鏟屎。鏟屎彈窗 `src/components/play/mini3d/ScoopGame3D.tsx`：按住畫面拖曳貓砂鏟、連砂鏟起、左右甩三下、到垃圾袋上方放開；規則 `src/lib/play/mini3d/scoop-rules.ts`。**貓砂盆四款只畫在彈窗裡（`ScoopProps.tsx`），遊戲一律用開放式，房間裡的貓砂盆沒換**。第 1 份還剩貓砂盆四款放進房間、逗貓玩具確認、上方狀態列。細節見 `docs/modules/readiness.md`「B. 小遊戲改 3D」與 `docs/daily/2026-11-12/2130-珮瑜-354.md`。
 - **#356 摸貓**：保留成貓 GLB 原材質與各節尾骨的碰撞代理。第二階段混合 `idle`、`cuddle`、`walk`，以 `head0` 疊加抗拒轉頭。下一步用合法帳號驗 Preview 照護入帳及手機實機。
 - **#356 掙扎轉頭**：Lv.0–4 每場首次有效接觸觸發一次可略過的衛教示範，固定使用內建 MP4。示範期間暫停練習；定時掙扎仍按原規則判定並尊重減少動態偏好。開發環境可在刷牙彈窗圖片載入後執行 `window.dispatchEvent(new Event("meow:brush-struggle"))`。本機 Chrome 1280px 與 375px 各五階段影片均播完，Lv.3–4 可用鍵鼠或雙指刷牙。Preview 的正式入口需要合法 Google 登入，待驗照護入帳、第 30 天與實體手機。
