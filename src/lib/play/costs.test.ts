@@ -1,7 +1,7 @@
 // 虛擬飼養 DEMO（#237）：飼料清單（處方飼料不顯示）與花費公式（照 catgame 原版 SHOP_ITEMS／shopCost；所有金額都由公式算）
 import { describe, expect, it } from "vitest";
-import { FOOD_PRODUCTS } from "@/lib/hq/food/catalog";
-import { SHOP_FLAGS, SHOP_ITEMS, clampShop, costTotal, defaultShop, emptyShop, foodMonthly, packGrams, playFoods, shopCost, shopOpts, type ShopPick } from "./costs";
+import { FOOD_AGES, FOOD_PRODUCTS } from "@/lib/hq/food/catalog";
+import { FOOD_STAGES, SHOP_FLAGS, SHOP_ITEMS, budgetUse, clampShop, foodStage, shopFoods, costTotal, defaultShop, emptyShop, foodMonthly, packGrams, playFoods, shopCost, shopOpts, type ShopPick } from "./costs";
 
 describe("playFoods（飼料清單）", () => {
   it("處方飼料（requiresVetDiagnosis）一律不顯示", () => {
@@ -97,5 +97,52 @@ describe("採買預設", () => {
     expect(shopCost(defaultShop(), "kitten").missing).toEqual(["飼料"]);
     const few = { flags: {}, opts: { fund: [["不存", 0]] as const } };
     expect(shopCost(clampShop(defaultShop(), few), "kitten", few).missing).toEqual(["飼料"]);
+  });
+});
+
+describe("依月齡推薦飼料（#354）", () => {
+  it("foodStage：未滿 12 個月幼貓、成貓、7 歲起熟齡、11 歲起老齡；沒填月齡照劇本當 2 個月", () => {
+    expect([0, 2, 11].map(m => foodStage(m))).toEqual(["kitten", "kitten", "kitten"]);
+    expect([12, 83].map(m => foodStage(m))).toEqual(["adult", "adult"]);
+    expect([84, 131].map(m => foodStage(m))).toEqual(["mature", "mature"]);
+    expect([132, 240].map(m => foodStage(m))).toEqual(["ageing", "ageing"]);
+    expect(foodStage(null)).toBe("kitten");
+  });
+  it("目錄沒有那個階段的飼料時，退到最接近的階段（同距離往年輕的退）", () => {
+    expect(foodStage(200, s => s !== "ageing")).toBe("mature");
+    expect(foodStage(200, s => s === "kitten" || s === "adult")).toBe("adult");
+    expect(foodStage(3, s => s !== "kitten")).toBe("adult");
+    expect(foodStage(100, s => s === "adult" || s === "ageing")).toBe("adult");
+    expect(foodStage(100, () => false)).toBe("mature");
+  });
+  it("四個階段都對得到目錄裡實際有的 ages 值，而且各有能買的乾糧", () => {
+    for (const st of FOOD_STAGES) {
+      expect(FOOD_AGES[st]).toBeTruthy();
+      expect(playFoods(st).some(f => f.canBuy && f.product.category === "dry")).toBe(true);
+    }
+  });
+  it("shopFoods：預設只列這個階段，全部都標推薦；切全部年齡時推薦的排前面", () => {
+    const only = shopFoods("mature", false);
+    expect(only.length).toBe(playFoods("mature").length);
+    expect(only.every(f => f.recommended && f.product.ages.includes("mature"))).toBe(true);
+    const all = shopFoods("ageing", true);
+    expect(all.length).toBe(playFoods(null).length);
+    expect(all.filter(f => f.recommended).length).toBe(playFoods("ageing").length);
+    const firstOther = all.findIndex(f => !f.recommended);
+    expect(all.slice(firstOther).some(f => f.recommended)).toBe(false);
+  });
+  it("熟齡、老齡的每日克數沿用成貓（費用只來自公式，不編新數字）", () => {
+    const price = { amount: 853, pack: "2 kg" };
+    for (const c of ["dry", "wet"] as const) {
+      expect(foodMonthly(price, c, "mature")).toBe(foodMonthly(price, c, "adult"));
+      expect(foodMonthly(price, c, "ageing")).toBe(foodMonthly(price, c, "adult"));
+    }
+    expect(foodMonthly(price, "dry", "adult")).not.toBe(foodMonthly(price, "dry", "kitten"));
+  });
+  it("budgetUse：每月花費佔預算的比例（條的長度最多 100），沒填預算回 null", () => {
+    expect(budgetUse(1500, 3000)).toEqual({ percent: 50, bar: 50, over: false, left: 1500 });
+    expect(budgetUse(3600, 3000)).toEqual({ percent: 120, bar: 100, over: true, left: -600 });
+    expect(budgetUse(3000, 3000)?.over).toBe(false);
+    expect(budgetUse(1000, 0)).toBeNull();
   });
 });
