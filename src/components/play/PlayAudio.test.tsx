@@ -100,7 +100,18 @@ describe("虛擬飼養的背景音樂", () => {
     await setup();
     const player = await import("@/lib/play/audio-player");
     player.unlockAudio();
-    expect(() => player.playSfx("sfx_pour_water")).not.toThrow();
+    expect(() => player.playSfx("sfx_meow")).not.toThrow();
     expect(FakeAudio.made).toEqual([]);
+  });
+
+  it("已上傳的音效會從 Storage 播放；靜音時不播", async () => {
+    await setup();
+    const player = await import("@/lib/play/audio-player");
+    player.unlockAudio();
+    player.playSfx("sfx_pour_water");
+    expect(playing()).toEqual([`${STORE}/sfx/sfx_pour_water.mp3`]);
+    player.setMuted(true);
+    player.playSfx("sfx_scream");
+    expect(FakeAudio.made.map(a => a.src)).not.toContain(`${STORE}/sfx/sfx_scream.mp3`);
   });
 });
