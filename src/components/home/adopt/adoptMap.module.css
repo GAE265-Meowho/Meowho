@@ -124,6 +124,7 @@
 .map text,
 .mini text {
   font-family: inherit;
+  line-height: 1;
   pointer-events: none;
 }
 
@@ -153,8 +154,8 @@
 }
 
 .districtHalo { stroke: #fffaf3; stroke-width: 3.2px; }
-.districtEdge { stroke: var(--caramel); stroke-width: 1.35px; opacity: 0.9; }
-.countyEdge { stroke: var(--caramel-deep); stroke-width: 3.4px; opacity: 0.9; }
+.districtEdge { stroke: var(--caramel); stroke-width: 0.675px; opacity: 0.9; }
+.countyEdge { stroke: var(--caramel-deep); stroke-width: 1.7px; opacity: 0.9; }
 
 .countyArrow {
   fill: none;
@@ -425,7 +426,8 @@
   border-radius: 999px;
   background: var(--card);
   box-shadow: 0 4px 0 var(--caramel-deep);
-  transform: translate(-50%, -110%) scale(var(--pin-scale, 1));
+  /* 底邊對準喵戶。再往上抬會乘上地圖縮放，放大縮小時字會漂離地點。 */
+  transform: translate(-50%, -100%) scale(var(--pin-scale, 1));
   transform-origin: center bottom;
   font-weight: 800;
 }
@@ -533,7 +535,9 @@
   border: 0;
   border-radius: 18px;
   background: var(--paper, var(--yellow-soft));
+  color: inherit;
   text-align: left;
+  text-decoration: none;
 }
 
 .catChip img,

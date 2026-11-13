@@ -1,6 +1,6 @@
 import "@testing-library/jest-dom/vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import type { FeedCat } from "@/lib/adopt-feed";
 import AdoptMap from "./AdoptMap";
 
@@ -24,9 +24,8 @@ const cats = [
 ];
 
 describe("帶我回家地圖", () => {
-  it("全島同一張地圖，點喵戶列出貓，再點貓回到卡片", () => {
-    const onShowCard = vi.fn();
-    render(<AdoptMap cats={cats} matches={() => true} onShowCard={onShowCard} initialCity={null} />);
+  it("全島同一張地圖，點喵戶列出貓，再點貓進介紹頁", () => {
+    render(<AdoptMap cats={cats} matches={() => true} catHref={(id) => `/cats/${id}`} initialCity={null} />);
     expect(screen.queryByRole("button", { name: /中部/ })).toBeNull();
     expect(screen.getByRole("button", { name: "放大地圖" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /小晴的中途貓屋/ })).toHaveTextContent("2");
@@ -34,12 +33,11 @@ describe("帶我回家地圖", () => {
     fireEvent.click(screen.getByRole("button", { name: /小晴的中途貓屋/ }));
     expect(screen.getByRole("dialog", { name: "小晴的中途貓屋" })).toHaveTextContent("橘子");
     expect(screen.getByRole("dialog")).toHaveTextContent("豆沙");
-    fireEvent.click(screen.getByRole("button", { name: /橘子/ }));
-    expect(onShowCard).toHaveBeenCalledWith("橘子");
+    expect(screen.getByRole("link", { name: "認識橘子" })).toHaveAttribute("href", "/cats/橘子");
   });
 
   it("沒有喵戶時說明目前沒有等家的貓", () => {
-    render(<AdoptMap cats={[]} matches={() => true} onShowCard={() => {}} initialCity={null} />);
+    render(<AdoptMap cats={[]} matches={() => true} catHref={(id) => `/cats/${id}`} initialCity={null} />);
     expect(screen.getByRole("status")).toHaveTextContent("這裡還沒有等家的貓");
   });
 });

@@ -2,6 +2,7 @@
 
 /* eslint-disable @next/next/no-img-element */
 
+import Link from "next/link";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import {
   frameTaiwan, homePinScale, layoutHomes, TAIWAN_MAP, taiwanFocus,
@@ -15,7 +16,8 @@ type Props = {
   cats: FeedCat[];
   /** 沒過篩選的貓仍留在地圖上，只是變淡。沒傳就全部正常顯示。 */
   matches?: (catId: string) => boolean;
-  onShowCard: (catId: string) => void;
+  /** 點喵戶裡的貓，連到「認識這隻貓」介紹頁。 */
+  catHref: (catId: string) => string;
   /** 測試可傳入。沒傳就向 /api/where 問上網所在縣市。 */
   initialCity?: string | null;
 };
@@ -26,7 +28,7 @@ function limits(fit: number) {
   return { min: fit * 0.65, max: Math.max(fit * 14, 4) };
 }
 
-export default function AdoptMap({ cats, matches = () => true, onShowCard, initialCity }: Props) {
+export default function AdoptMap({ cats, matches = () => true, catHref, initialCity }: Props) {
   const viewportRef = useRef<HTMLDivElement>(null);
   const worldRef = useRef<HTMLDivElement>(null);
   const cam = useRef<Camera>({ x: 0, y: 0, scale: 1 });
@@ -109,7 +111,7 @@ export default function AdoptMap({ cats, matches = () => true, onShowCard, initi
   }, []);
 
   const onPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
-    if ((event.target as HTMLElement).closest("button")) return;
+    if ((event.target as HTMLElement).closest("button, a")) return;
     pointers.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
     event.currentTarget.setPointerCapture(event.pointerId);
     if (pointers.current.size === 1) {
@@ -195,11 +197,11 @@ export default function AdoptMap({ cats, matches = () => true, onShowCard, initi
           <ul className={styles.catRow}>
             {openCats.map((cat) => (
               <li key={cat.id}>
-                <button type="button" className={styles.catChip} onClick={() => onShowCard(cat.id)}>
+                <Link href={catHref(cat.id)} className={styles.catChip} aria-label={`認識${cat.name}`}>
                   {cat.photo ? <img src={cat.photo} alt="" /> : <span className={styles.catPh} />}
                   <strong>{cat.name}</strong>
                   <span>{cat.tags.slice(0, 2).join("・") || cat.stage}</span>
-                </button>
+                </Link>
               </li>
             ))}
           </ul>

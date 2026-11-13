@@ -2,7 +2,7 @@
 
 > GitHub Issues 是任務的正式來源；本檔是給 agent 快速掌握全局的鏡像與排程。
 > 狀態只用：`待辦`、`進行中`、`審查中`、`完成`、`卡住`。開工改「進行中」並填負責人，收工更新。
-> 最後更新：2026-11-12｜清俊 × Cursor（帶我回家改為全島喵戶地圖，PR #390）
+> 最後更新：2026-11-13｜清俊 × Cursor（地圖區名錯開、點貓進介紹頁，PR #401）
 
 ## 里程碑
 
@@ -22,7 +22,7 @@
 - 虛擬飼養第 6 份：音效與配樂（#393，子哲 × Claude Code，2026-11-13）：背景音樂 5 首、播放程式、靜音按鈕已合併（PR #394）；音檔改放 Supabase Storage `meow-play-audio`（0035，分支 `feat/393-play-audio-storage` 審查中）。音效檔還沒做；對照表 `SOUNDS`（`src/lib/play/audio.ts`）寫了每個 ID 用在哪、第幾份要呼叫。
 - 站台標誌換成向量「門口貓頭款」並統一前後台（#361，子哲 × Claude Code，2026-11-11）：審查中；分支 `feat/361-door-cat-logo`。合併部署後要到 MeowHQ 設定選「門口貓頭款」（正式站目前存 `house`）。
 - WelfareLens 安全報告通知／佇列隔離設計（#326，Jerry0808 × Codex，2026-11-11）：PR #327 已整合最新 main，`0034` 通知文案依 `new.error_code` 產生；PGlite、完整測試與 build 通過，Draft PR 待組長 Review；禁止自行部署。佇列採 job container scope + scoped claim 的建議待批准，尚未實作。
-- 帶我回家地圖（清俊 × Cursor，2026-11-12）：審查中（全島一張、可拖曳縮放、以喵戶為標記；有位置時先對準行政區。縣市連線是半透明虛線，澎湖與南投不連，台東虛線接到本島。**尚未建 Issue**）。分支 `cursor/adopt-home-map-5901`，PR #390。#315 已合併，那張仍是分區地圖。
+- 帶我回家地圖（清俊 × Cursor，2026-11-13）：審查中（#390 已合併。後續：點貓進介紹頁、區名依形狀直排或橫排並錯開、界線減半、台中虛線指清水。**尚未建 Issue**）。分支 `feat/adopt-map-labels`，PR #401。
 - WelfareLens 安全報告讀取 API＋PDF-first 評估頁（#273 C＋D，Jerry0808 × Codex）：進行中；沿用 Draft PR #277／`feat/273-env-report-view`。離線授權與 UI 測試已補；main 合併衝突已在 PR 分支解決；build 已 PASS；Preview 未登入 API/PDF/crop 拒絕驗收 PASS；Owner session 與 Supabase/Azure 設定核驗、手機顯示仍 BLOCKED。
 - 虛擬飼養讀真實資料＋試養報告給中途看（渝茜 × Claude Code，2026-11-10）：審查中；分支 `feat/play-real-data`。貓咪／喵戶／預算／3D 房間／環境報告讀真實資料，玩完報告存 `meow_task_runs.game_report`（`0033`，執行前須子哲確認），中途在對話串看。
 - 虛擬飼養 DEMO（#237，渝茜 × Claude Code，2026-11-06）：審查中；PR #244、分支 `feat/237-catgame-demo`。`/cats/[id]/play` 3 個節點、AI 危險／台詞／建議（規則備案）、採買花費、3D 娃娃屋擺用品、小遊戲、試養報告；Azure／喵戶讀取／遠端 GLB／掃描房間未在沙盒實測。

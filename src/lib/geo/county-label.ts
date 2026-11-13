@@ -93,33 +93,46 @@ export function largestPolygon(polys: LabelPoly[]): LabelPoly[] {
   return best ? [best] : polys;
 }
 
-/** 西岸那一段的中間，給台中、嘉義縣的虛線終點。 */
-export function westCoastMiddle(polys: LabelPoly[]): LabelPoint | null {
-  let ring: LabelPoint[] | undefined;
-  let best = -1;
-  for (const poly of polys) {
-    const outer = poly[0];
-    if (!outer || outer.length < 4) continue;
-    let area = 0;
-    for (let i = 0, j = outer.length - 1; i < outer.length; j = i++) {
-      area += outer[j].x * outer[i].y - outer[i].x * outer[j].y;
-    }
-    if (Math.abs(area) > best) {
-      best = Math.abs(area);
-      ring = outer;
+function westAt(ring: LabelPoint[], y: number): LabelPoint | null {
+  let bestX = Infinity;
+  let hit: LabelPoint | null = null;
+  for (let index = 0; index < ring.length; index++) {
+    const a = ring[index];
+    const b = ring[(index + 1) % ring.length];
+    if (a.y === b.y || y < Math.min(a.y, b.y) || y > Math.max(a.y, b.y)) continue;
+    const t = (y - a.y) / (b.y - a.y);
+    const x = a.x + t * (b.x - a.x);
+    if (x < bestX) {
+      bestX = x;
+      hit = { x, y };
     }
   }
-  if (!ring) return null;
-  let minX = Infinity;
-  let maxX = -Infinity;
+  return hit;
+}
+
+/** 西岸上的一點。fromNorth 0 是北端、1 是南端。台中南岸往西凸，取 0.25 才會落在清水一帶。 */
+export function westCoastMiddle(polys: LabelPoly[], fromNorth = 0.5): LabelPoint | null {
+  const ring = largestPolygon(polys)[0]?.[0];
+  if (!ring || ring.length < 4) return null;
+  let minY = Infinity;
+  let maxY = -Infinity;
   for (const point of ring) {
-    minX = Math.min(minX, point.x);
-    maxX = Math.max(maxX, point.x);
+    minY = Math.min(minY, point.y);
+    maxY = Math.max(maxY, point.y);
   }
-  const west = ring.filter((point) => point.x <= minX + (maxX - minX) * 0.22);
-  if (west.length < 3) return null;
-  const sorted = [...west].sort((a, b) => a.y - b.y);
-  return sorted[Math.floor(sorted.length / 2)];
+  if (fromNorth === 0.5) return westAt(ring, (minY + maxY) / 2);
+  const samples: LabelPoint[] = [];
+  for (let step = 0; step <= 80; step++) {
+    const y = minY + ((maxY - minY) * step) / 80;
+    const hit = westAt(ring, y);
+    if (hit) samples.push(hit);
+  }
+  if (samples.length < 2) return westAt(ring, (minY + maxY) / 2);
+  const minX = Math.min(...samples.map((point) => point.x));
+  const coast = samples.filter((point) => point.x <= minX + 16);
+  const span = coast.length >= 2 ? coast : samples;
+  const y = span[0].y + (span[span.length - 1].y - span[0].y) * fromNorth;
+  return westAt(ring, y);
 }
 
 export function edgeClearance(x: number, y: number, polys: LabelPoly[]) {

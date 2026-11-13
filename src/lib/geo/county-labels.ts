@@ -95,7 +95,7 @@ export function taiwanCountyLabels(): CountyLabel[] {
         placed = { ...at, x: spot.x, y: spot.y };
       }
     }
-    const coast = county.n === "台中市" || county.n === "嘉義縣" ? westCoastMiddle(own) : null;
+    const coast = county.n === "嘉義縣" ? westCoastMiddle(own) : county.n === "台中市" ? westCoastMiddle(own, 0.25) : null;
     const shore = county.n === "台東縣" ? largestPolygon(own) : own;
     const tip = coast ?? nearestRingPoint(placed.x, placed.y, shore, inland, inland ? 0 : 28);
     const dx = tip.x - placed.x;
