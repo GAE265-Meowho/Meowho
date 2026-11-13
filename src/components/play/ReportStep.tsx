@@ -18,9 +18,13 @@ import { STORY } from "@/lib/play/story";
 import { nodeLabel } from "@/lib/play/timeline";
 import { getBrowserSupabase } from "@/lib/supabase/client";
 import s from "./play.module.css";
+import { CostCard, MoodScales, PickZone } from "./ReportParts";
+import r from "./report.module.css";
 import { notifyRunChanged } from "./useActiveRun";
 
 /** 存給中途看的報告（0033、0035）：玩完把進行中那筆改成「已完成」並寫入報告，玩家按「附上試養報告」才分享給中途（同領養任務的規則） */
+const COST_LABELS = { once: "一次性花費（用品、第一次採買）", month: "每月花費累計（飼料、貓砂、零食、預備金）", med: "醫療費（健檢、就醫、安寧）", acc: "意外花費", other: "其他" } as const;
+
 type Sent = { st: "idle" } | { st: "saving" } | { st: "saved"; runId: string } | { st: "sharing"; runId: string } | { st: "shared"; threadId: string } | { st: "error"; msg: string };
 
 export function ReportStep({ state, pick, monthly, home, runId, catHref, onRestart }: {
@@ -73,7 +77,7 @@ export function ReportStep({ state, pick, monthly, home, runId, catHref, onResta
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), 15_000);
     fetch("/api/play/advice", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body), signal: ctrl.signal })
-      .then(r => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+      .then(res => (res.ok ? res.json() : Promise.reject(new Error(String(r.status)))))
       .then((j: { tips?: string[] }) => setTips(j.tips?.length ? j.tips : fallback()))
       .catch(() => setTips(fallback()))
       .finally(() => clearTimeout(timer));
@@ -82,22 +86,22 @@ export function ReportStep({ state, pick, monthly, home, runId, catHref, onResta
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const row = (l: string, v: number) => <><dt>{l}</dt><dd>{money(v)} 元</dd></>;
   return (
     <>
-      <section className={s.card} aria-labelledby="memory-title">
-        <h2 id="memory-title">{X.abandoned ? `你和${X.name}的日子` : `${X.name}的一生`}</h2>
-        <ol className={s.log}>{memoryMoments(X).map((t, i) => <li key={i}>{t}</li>)}</ol>
-      </section>
-
       <section className={s.card} aria-labelledby="report-title">
         <span className={s.kicker}>試養報告</span>
         <h2 id="report-title">{X.abandoned ? `你和${X.name}分開了` : `你和${X.name}的 ${Math.round(years)} 年`}</h2>
         <p className={s.lead}>{X.abandoned ? "在這次體驗裡，生活的變化讓你選擇了送走牠。現實中，這正是很多貓被棄養的時刻。" : outroFor(state.startMonths)}</p>
-        <dl className={s.sum}>
-          <dt>這段期間大約花費</dt><dd>{money(total)} 元</dd>
-          <dt>{X.name}對你</dt><dd>{X.abandoned ? "—" : trustWord(X.trust)}</dd>
+        {!X.abandoned && <MoodScales trust={X.trust} stress={X.stress} />}
+        <dl className={r.heroNum}>
+          <div><dt>這段期間大約花費</dt><dd>{money(total)} 元</dd></div>
+          <div><dt>{X.name}對你</dt><dd>{X.abandoned ? "—" : trustWord(X.trust)}</dd></div>
         </dl>
+      </section>
+
+      <section className={s.card} aria-labelledby="memory-title">
+        <h2 id="memory-title">{X.abandoned ? `你和${X.name}的日子` : `${X.name}的一生`}</h2>
+        <ol className={s.log}>{memoryMoments(X).map((t, i) => <li key={i}>{t}</li>)}</ol>
       </section>
 
       <section className={s.card} aria-labelledby="events-title">
@@ -118,30 +122,20 @@ export function ReportStep({ state, pick, monthly, home, runId, catHref, onResta
 
       <section className={s.card} aria-labelledby="cost-title">
         <h2 id="cost-title">作息與花費</h2>
-        <dl className={s.sum}>
-          {row("一次性花費（用品、第一次採買）", C.once)}
-          {row("每月花費累計（飼料、貓砂、零食、預備金）", C.month)}
-          {row("醫療費（健檢、就醫、安寧）", C.med)}
-          {row("意外花費", C.acc)}
-          {row("其他", C.other)}
-          {row("總花費", total)}
-          <dt>平均每年／每月</dt><dd>{money(total / years)} ／ {money(total / years / 12)} 元</dd>
-          <dt>你填的每月預算</dt><dd>{money(pick.budget)} 元</dd>
-        </dl>
-        {overBudget && <p className={s.over}>每月約 {money(monthly)} 元，超出預算</p>}
+        <CostCard title="總花費" total={total} cost={C} labels={COST_LABELS}>
+          <div><dt>平均每年／每月</dt><dd>{money(total / years)} ／ {money(total / years / 12)} 元</dd></div>
+          <div><dt>你填的每月預算</dt><dd>{money(pick.budget)} 元</dd></div>
+        </CostCard>
+        {overBudget && <p className={r.over}>每月約 {money(monthly)} 元，超出預算</p>}
         <p className={s.lead}>花費是依體驗中的選擇估算，實際金額會因地區、醫院和貓的狀況而不同。</p>
       </section>
 
-      {good.length > 0 && (
-        <section className={s.card} aria-labelledby="good-title">
-          <h2 id="good-title">做得好的地方</h2>
-          <ul className={s.log}>{good.map((p, i) => <li key={i}><span className={`${s.tag} ${s.ok}`}>做得好</span>{p.t}</li>)}</ul>
-        </section>
-      )}
-      {bad.length > 0 && (
-        <section className={s.card} aria-labelledby="bad-title">
-          <h2 id="bad-title">可以再想想的地方</h2>
-          <ul className={s.log}>{bad.map((p, i) => <li key={i}><span className={s.tag}>可以再想想</span>{p.t}</li>)}</ul>
+      {(good.length > 0 || bad.length > 0) && (
+        <section className={s.card} aria-label="做得好與可以再想想">
+          <div className={r.zones}>
+            <PickZone tone="good" title="做得好的地方" items={good.map(p => p.t)} />
+            <PickZone tone="think" title="可以再想想的地方" items={bad.map(p => p.t)} />
+          </div>
         </section>
       )}
 
@@ -164,16 +158,12 @@ export function ReportStep({ state, pick, monthly, home, runId, catHref, onResta
         </div>
         <p className={s.lead} aria-live="polite">{checksVerdict(nChecked)}</p>
         <p className={s.disclaimer}>{HEALTH_NOTE}{DISCLAIMER}</p>
-        {(sent.st === "saved" || sent.st === "sharing" || sent.st === "shared") && (
-          <div className={s.actions} aria-live="polite">
-            {sent.st === "shared"
-              ? <CatButton href={`/me/adoptions?t=${sent.threadId}`} variant="ghost">已附上，到對話看看</CatButton>
-              : <CatButton variant="ghost" disabled={sent.st === "sharing"} onClick={share}>{sent.st === "sharing" ? "附上中…" : "把試養報告附給中途"}</CatButton>}
-          </div>
-        )}
         {sent.st === "error" && <p className={s.missing} role="status">試養報告沒有存成功，不影響這份報告；之後可以再玩一次。</p>}
-        <div className={s.actions}>
-          <CatButton href={catHref} arrow>前往認養這隻貓</CatButton>
+        <div className={`${r.actions} ${r.actionsMain}`} aria-live="polite">
+          {sent.st === "shared"
+            ? <CatButton href={`/me/adoptions?t=${sent.threadId}`}>已附上，到對話看看</CatButton>
+            : (sent.st === "saved" || sent.st === "sharing") && <CatButton disabled={sent.st === "sharing"} onClick={share}>{sent.st === "sharing" ? "附上中…" : "把試養報告附給中途"}</CatButton>}
+          <CatButton href={catHref} arrow variant={sent.st === "saved" || sent.st === "sharing" || sent.st === "shared" ? "ghost" : undefined}>前往認養這隻貓</CatButton>
           <CatButton variant="ghost" size="sm" onClick={onRestart}>再玩一次</CatButton>
         </div>
       </section>
