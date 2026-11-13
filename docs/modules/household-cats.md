@@ -28,8 +28,9 @@
 - **照片（#181，2026-11-04）**：建模型時把封面照片從 `meow-cat-photos` 複製到 `meow-cat-model-photos/<模型ID>/photo.<副檔名>`，`photo_path` 指向複製後的檔案（`src/lib/cat-model-photo.ts`）。之前建的舊模型 `photo_path` 還是前台路徑，MeowHQ 製作頁讀照片時（`sbFileRedirect`）或中途再呼叫 API 時會自動補複製。MeowHQ 貓咪模型列表、貓咪頁、製作glb工作區顯示所屬喵戶。目前 Step 02～04 由管理員在 MeowHQ 手動觸發，之後改自動。
 - **三個角度＋自動 AI 三視角（#188，2026-11-04）**：新增貓咪時依序上傳側面、正面、背面（`CatFields.angles`，必填；之後可再加生活照到 5 張）。建立後 `NewCatFlow` 帶 `{ angles }` 呼叫（#206 起角度照存 `meow_cats.photo_angles`，`pickAngles` 也會讀它） `POST /api/cats/[id]/model`：三張複製成 `<模型ID>/photo.*`、`photo_front.*`、`photo_back.*`（`profile.extra_photos`），三張都有就用 service role 呼叫 `sbStartViews(..., { client })` 在 `after()` 自動產生 AI 三視角（Step 02）。前台貓咪頁的「AI 三視角」（`AiViewsPreview`，`GET /api/cats/[id]/model/views`，只給中途、短時效網址）顯示進度與結果；MeowHQ 製作頁讀同一份 `profile.generated`。Step 03、04 仍由管理員在 MeowHQ 手動觸發。修改既有的貓（`angles = null`）只需要有照片，不要求三個角度。
 - **每隻貓都要有成貓、幼貓一對紋理貼圖（2026-11-06，idea 2）**：照片與 AI 三視角共用，第 3 步（紋理貼圖）才分流。`sbAutoPaint`（`src/lib/hq/cat-models/supabase.ts`）在三視角三張都成功後排缺的體型（AI 左側面照、補花紋沿用上次，沒有就不補）。同一隻貓同時只能有一筆任務，所以先排這隻貓年齡層的體型，另一個記在 `meow_cat_models.meta.auto_paint`，`paint_worker.py` 做完一筆再排下一筆（`queue_next_body`）。
-  - 觸發點：建貓後的背景工作（三視角跑完）、`POST /api/cats/[id]/model` 已有模型時、`GET /api/cats/[id]/model/views` 看到三視角已完成時；MeowHQ 手動產生一個體型時，另一個體型沒有貼圖也會接著做（`planPair`）。
+  - 觸發點：建貓後的背景工作（三視角跑完）、**MeowHQ 製作頁的 AI 三視角跑完（2026-11-13 補上；以前要等有人開列表才補排，停在製作頁會一直「尚未產生」）**、`POST /api/cats/[id]/model` 已有模型時、`GET /api/cats/[id]/model/views` 看到三視角已完成時；MeowHQ 手動產生一個體型時，另一個體型沒有貼圖也會接著做（`planPair`）。
   - MeowHQ 貓咪製作列表的「補排紋理貼圖」（`POST /api/hq/cat-models/auto-paint`，`sbBackfillPaint`）一次掃全部的貓補排。
+  - 先排哪個體型：表單填的年齡優先，沒填就用 AI 看照片判斷的月齡（≤ 6 個月先做幼貓）。
   - 排過的體型（成功或失敗）不會再自動排，失敗請管理員在 MeowHQ 重新產生；三視角沒完成的貓不排。
 - 中途按「確認使用」→ `meow_confirm_cat_model()` 把 `albedo_path` 複製到 `confirmed_albedo`，「準備出發找新主人」的 3D 檢查就通過。
 
@@ -94,6 +95,7 @@
 | 日期 | 發起人 × 工具 | 變更 | PR |
 |---|---|---|---|
 | 2026-10-28 | Tina × Claude Code | 建立模組文件 | — |
+| 2026-11-13 | Tina × Claude Code | MeowHQ 新增的貓三視角完成後立即自動排紋理貼圖；沒填年齡時依 AI 月齡決定先做哪個體型 | 見 PR |
 | 2026-11-03 | 子哲 × Claude Code | 準備中狀態、3D 貓綁定（spec 09、0017） | — |
 | 2026-10-28 | Tina × Claude Code | 貓戶、貓咪資料表與 RLS、照片儲存、我的貓戶頁 | #1 |
 | 2026-10-29 | Tina × Codex | Issue #33 走查 `/onboarding` → `/me` 流程；未修改資料表或 `/me` 查詢 | #33 |
