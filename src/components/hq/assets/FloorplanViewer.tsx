@@ -20,6 +20,7 @@ import { bowlSlotsOf, detectBowlSlots, setBowlSlots } from "./bowlSlotsDetect";
 import { readItemDragId } from "./itemDrag";
 import type { PlanRoom } from "@/lib/hq/floorplans/types";
 import type { SceneLight } from "@/lib/play/scene-light";
+import { shotReach, type CameraShot } from "@/lib/play/camera-shot";
 
 /** 生活用品放在哪：null＝地板；有值＝家具頂面（PlanRoom.furniture 原始索引） */
 export type ItemSupport = { furnitureIndex: number; localX: number; localZ: number } | null;
@@ -750,6 +751,44 @@ function FollowCat({ pos }: { pos: React.RefObject<THREE.Vector3> }) {
   return null;
 }
 
+/** 虛擬飼養的劇情鏡頭（#354，lib/play/camera-shot.ts）：key 一變，等 delayMs，再花 ms 把鏡頭移到旋轉中心（貓）前 dist 公尺、
+ *  高 height 公尺；方向沿用鏡頭當下的水平方向。只改鏡頭相對旋轉中心的位置，FollowCat 照舊跟著貓平移 */
+function ShotRig({ shot }: { shot: CameraShot | null }) {
+  const camera = useThree(st => st.camera);
+  const controls = useThree(st => st.controls) as unknown as { target: THREE.Vector3; update(): void } | null;
+  const anim = useRef<{ from: THREE.Vector3; to: THREE.Vector3; start: number; ms: number } | null>(null);
+  const tmp = useMemo(() => new THREE.Vector3(), []);
+  const shotRef = useRef(shot);
+  shotRef.current = shot;
+  const key = shot?.key ?? null;
+  useEffect(() => {
+    const s = shotRef.current;
+    if (!s) return;
+    const t = window.setTimeout(() => {
+      if (!controls) return;
+      const from = camera.position.clone().sub(controls.target);
+      const flat = new THREE.Vector3(from.x, 0, from.z);
+      if (flat.lengthSq() < 1e-6) flat.set(0, 0, 1);
+      const size = (camera as THREE.PerspectiveCamera).aspect || 1;
+      const { dist, height } = shotReach(s, size);
+      const to = flat.normalize().multiplyScalar(dist).setY(height);
+      const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      anim.current = { from, to, start: performance.now(), ms: still ? 0 : s.ms };
+    }, s.delayMs);
+    return () => window.clearTimeout(t);
+  }, [key, camera, controls]);
+  useFrame(() => {
+    const a = anim.current;
+    if (!a || !controls) return;
+    const t = a.ms ? Math.min(1, (performance.now() - a.start) / a.ms) : 1;
+    const e = t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2;  // 慢進慢出
+    camera.position.copy(controls.target).add(tmp.lerpVectors(a.from, a.to, e));
+    controls.update();
+    if (t === 1) anim.current = null;
+  });
+  return null;
+}
+
 /** 鏡頭：從前上方斜看整戶中心（原點），距離依整戶外框算，讓所有房間完整入鏡 */
 function cameraFor(width: number, depth: number, height: number, aspect: number) {
   const radius = Math.max(Math.hypot(width, depth, height) / 2, 1.5);
@@ -795,7 +834,7 @@ function CatGlow({ pos, intensity, color }: { pos: React.RefObject<THREE.Vector3
   return <pointLight ref={ref} intensity={intensity} color={color} distance={1.3} decay={1} />;
 }
 
-export default function FloorplanViewer({ rooms, selected, onPick, cat, placedItems = [], interactMode = "point", removedFurniture, furnitureMoves, onMoveItem, onRotateItem, onRemoveItem, onRemoveFurniture, onMoveFurniture, onRotateFurniture, onFloorDrop, catGoal = null, catClip = null, catSpeed = 1, onItemError, story = null, onStory, light = null }: {
+export default function FloorplanViewer({ rooms, selected, onPick, cat, placedItems = [], interactMode = "point", removedFurniture, furnitureMoves, onMoveItem, onRotateItem, onRemoveItem, onRemoveFurniture, onMoveFurniture, onRotateFurniture, onFloorDrop, catGoal = null, catClip = null, catSpeed = 1, onItemError, story = null, onStory, light = null, shot = null }: {
   rooms: PlanRoom[]; selected: string | null; onPick: (id: string) => void;
   /** 虛擬體驗（#150）：放一隻貓進去；有貓時只顯示單間（沒有「全部」），點地板叫貓走過去 */
   cat?: ViewerCat | null;
@@ -835,6 +874,8 @@ export default function FloorplanViewer({ rooms, selected, onPick, cat, placedIt
   onStory?: (st: StoryState) => void;
   /** 虛擬飼養的白天／夜晚光（#354，lib/play/scene-light.ts 的 lightFor(time).house）；null／不給＝原本的燈光（MeowHQ） */
   light?: SceneLight["house"] | null;
+  /** 虛擬飼養的劇情鏡頭（#354，lib/play/camera-shot.ts 的 shotFor）；null／不給＝原本的鏡頭（預設） */
+  shot?: CameraShot | null;
 }) {
   const removedList = useMemo(
     () => (removedFurniture ? [...removedFurniture] : []),
@@ -935,6 +976,7 @@ export default function FloorplanViewer({ rooms, selected, onPick, cat, placedIt
           <OrbitControls target={[0, 0, 0]} maxPolarAngle={Math.PI / 2.1} minDistance={cat ? 0.8 : 1.5} maxDistance={cat ? Math.max(cam.dist * 3, 12) : cam.dist * 2.5} makeDefault />
           <CameraRig position={cam.position} view={view} />
           {cat && <FollowCat pos={catPos} />}
+          {cat && shot && <ShotRig shot={shot} />}
           {onFloorDrop && <FloorRayBridge api={floorRay} />}
         </Canvas>
       </div>

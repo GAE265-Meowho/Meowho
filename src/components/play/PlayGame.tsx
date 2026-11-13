@@ -46,6 +46,8 @@ import { SoundToggle, usePlayBgm } from "./PlayAudio";
 import { PlayStage } from "./PlayStage";
 import { lightFor, playLightTime, poseSpeed } from "@/lib/play/scene-light";
 import { reportScene, resetScene, sceneOf } from "@/lib/play/scene-change";
+import { shotFor } from "@/lib/play/camera-shot";
+import { showVet } from "@/lib/play/vet-room";
 import { ScanWand } from "./ScanWand";
 import { ReportStep } from "./ReportStep";
 import { AbandonPanel } from "./AbandonPanel";
@@ -454,6 +456,9 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
   const light = useMemo(() => lightFor(lightTime), [lightTime]);
   useEffect(() => { reportScene(sceneOf({ step: state.step, nodeId: node.id, scene: state.scene, home: cur?.kind === "home" })); }, [state.step, node.id, state.scene, cur?.kind]);
   useEffect(() => resetScene, []);
+  // 診間與劇情鏡頭（#354 第 5 份）
+  const vet = showVet({ step: state.step, bg: state.scene.bg, home: cur?.kind === "home" });
+  const shot = useMemo(() => (state.step === "node" && cur?.kind !== "home" ? shotFor(node.id, state.scene.cat) : null), [state.step, cur?.kind, node.id, state.scene.cat]);
 
   // 開始前被擋下（沒登入、沒喵戶、有別隻貓在進行、沒有房間或報告…）：只顯示說明，不進遊戲
   const hydrating = Boolean(resumeId && !hydrated.current);
@@ -507,7 +512,7 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
 
       {showStage && (
         <PlayStage kind={kind} scanBase={scanBase} placeView={state.step === "place"} look={look} bubble={bubble} bubbleInset={peek || (cur?.kind === "home" && !careAct) ? 0.08 : cur?.kind === "lines" || cur?.kind === "personal" ? 0.36 : 0.48} lookKey={lookKey} placed={placed} scanItems={scanItems} story={story} wand={wand}
-          goal={goal} clip={clip} speed={state.step === "node" ? poseSpeed(state.scene.cat, node.speed) : 1} light={light}
+          goal={goal} clip={clip} speed={state.step === "node" ? poseSpeed(state.scene.cat, node.speed) : 1} light={light} vet={vet} shot={shot}
           onDrop={state.step === "place" && kind === "dollhouse"
             ? (id, at) => { if (playItems.some(i => i.id === id)) placeAt(id as PlayItem["id"], at); }
             : undefined}>
