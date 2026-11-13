@@ -1,6 +1,6 @@
 // 0035（領養任務進行中、續玩、放棄、重玩，#354）：0001→0033 後跑 0035 兩次，在記憶體內的 PGlite 驗證，不會連到任何 Supabase 專案。
 // 用法：node supabase/tests/run-pglite-0035.mjs（需要 @electric-sql/pglite，同 run-pglite.mjs）
-// 涵蓋：開始前檢查、一人一隻、存進度、完成寫報告、換貓不寫放棄標籤、貓下架自動 closed、重玩多一筆
+// 涵蓋：開始前檢查、一人一隻、存進度（只能改 progress）、完成寫報告、換貓不寫放棄標籤、貓下架自動 closed、重玩多一筆、舊的 meow_save_play_report 不能呼叫
 import { readFileSync } from "node:fs";
 
 const { PGlite } = await import("@electric-sql/pglite");
@@ -63,6 +63,11 @@ try {
   await as(id("a1"), `update public.meow_task_runs set progress = '{"node": 2}'::jsonb where id = '${runId}'`);
   eq("RUN-9 進度存得進去（本人直接 update 進行中那筆）", "2", await one(`select progress ->> 'node' from public.meow_task_runs where id = '${runId}'`));
 
+  eq("RUN-9b 本人不能直接改定格的房間、報告與試養報告", `run_not_found|run_not_found|run_not_found|${ROOM}|${id("e0")}`,
+    [await as(id("a1"), `update public.meow_task_runs set room_model_id = '${ROOM3}' where id = '${runId}'`),
+     await as(id("a1"), `update public.meow_task_runs set env_report_id = null where id = '${runId}'`),
+     await as(id("a1"), `update public.meow_task_runs set game_report = '{"x":1}'::jsonb where id = '${runId}'`)].map(code).join("|")
+      + "|" + await one(`select room_model_id || '|' || env_report_id from public.meow_task_runs where id = '${runId}'`));
   await as(id("a1"), `select public.meow_switch_task_run('${runId}')`);
   eq("RUN-10 換貓：結束進行中那筆、不寫放棄標籤", "closed|0",
     await one(`select r.status || '|' || (select count(*) from public.meow_task_abandons) from public.meow_task_runs r where r.id = '${runId}'`));
@@ -92,6 +97,8 @@ try {
   eq("RUN-18 領養人收到通知", "1", await one(`select count(*) from public.meow_notifications where user_id = '${id("a1")}' and type = 'task'`));
   eq("RUN-19 登入的會員可以執行、未登入不行", "t|f",
     await one(`select concat_ws('|', has_function_privilege('authenticated', 'public.meow_start_play_run(uuid,text)', 'execute'), has_function_privilege('anon', 'public.meow_start_play_run(uuid,text)', 'execute'))`));
+  eq("RUN-20 舊的 meow_save_play_report 不再開放呼叫", "false",
+    await one(`select has_function_privilege('authenticated', 'public.meow_save_play_report(uuid,text,jsonb)', 'execute')`));
 } catch (e) {
   console.error(`✗ 0035 測試中斷：${e.message}`);
   process.exit(1);

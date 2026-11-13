@@ -6,6 +6,8 @@
 --   5. meow_switch_task_run：為了換貓結束進行中那筆（closed，不寫放棄標籤，中途看不到）。
 --   6. 貓不再待領養時，自動把進行中的任務改成 closed 並通知領養人（不算放棄）。
 --   7. meow_thread_task_status 多回 completed_count（完成幾次）；重玩不覆蓋，每次都留一筆。
+--   8. meow_task_run_guard 多擋 room_model_id、env_report_id、game_report：本人直接 update 進行中那筆只能改 progress。
+--   9. 收回舊的 meow_save_play_report 執行權限：它不檢查房間與安全報告、直接建一筆已完成，會繞過開始前的檢查。
 -- 可重複執行；只動 meow_ 開頭的物件（AGENTS.md §7）。⚠ 執行前須經發起人確認（AGENTS.md §7.4），先給子哲審。
 
 -- 1. 狀態多一個 closed
@@ -15,6 +17,23 @@ alter table public.meow_task_runs add constraint meow_task_runs_status_check
 
 -- 2. 開始時定格的安全報告
 alter table public.meow_task_runs add column if not exists env_report_id uuid references public.meow_env_reports (id) on delete set null;
+
+-- 2b. 本人直接 update 進行中那筆只能改 progress（其餘照 0017；開始時定格的房間、報告與試養報告只能由函式寫）
+create or replace function public.meow_task_run_guard()
+returns trigger language plpgsql set search_path = public as $$
+begin
+  if auth.uid() is null or coalesce(current_setting('meow.task_flow', true), '') = 'on' then return new; end if;
+  if old.status <> 'in_progress' or new.status is distinct from old.status or new.member_id is distinct from old.member_id
+     or new.cat_id is distinct from old.cat_id or new.version_id is distinct from old.version_id
+     or new.summary is distinct from old.summary or new.proof_shared_at is distinct from old.proof_shared_at
+     or new.finished_at is distinct from old.finished_at or new.started_at is distinct from old.started_at
+     or new.room_model_id is distinct from old.room_model_id or new.env_report_id is distinct from old.env_report_id
+     or new.game_report is distinct from old.game_report then
+    raise exception 'run_not_found' using errcode = 'P0001', hint = '只能更新進行中任務的進度';
+  end if;
+  new.updated_at := now();
+  return new;
+end $$;
 
 -- 3. 開始一輪：不再用示範房間當備案，沒有房間或報告就不能開始（錯誤代碼讓畫面說明下一步）
 create or replace function public.meow_start_play_run(p_cat_id uuid, p_room_id text)
@@ -143,3 +162,5 @@ grant execute on function public.meow_switch_task_run(uuid) to authenticated;
 revoke all on function public.meow_close_runs_on_cat_change() from public, anon, authenticated;
 revoke all on function public.meow_thread_task_status(uuid) from public, anon;
 grant execute on function public.meow_thread_task_status(uuid) to authenticated;
+-- 9. 舊的 meow_save_play_report（0033）保留函式本體，但不再開放呼叫
+revoke all on function public.meow_save_play_report(uuid, text, jsonb) from public, anon, authenticated;

@@ -37,11 +37,16 @@ export function ReportStep({ state, pick, monthly, home, runId, catHref, onResta
   const [sent, setSent] = useState<Sent>({ st: "idle" });
   const saved = useRef(false);
 
-  // 玩完完成進行中那筆並存報告（示範貓、沒登入＝沒有 runId 不存；被放棄的體驗不存）；存不起來不擋報告
+  // 玩完完成進行中那筆並存報告（示範貓、沒登入＝沒有 runId 不存）；存不起來不擋報告
+  // 劇情裡選了送走牠：不算完成、不給中途看，但要結束進行中那筆（closed，同換貓），不然會一直擋住下一隻貓、還能回去重選
   useEffect(() => {
     const sb = getBrowserSupabase();
-    if (saved.current || !runId || !sb || X.abandoned) return;
+    if (saved.current || !runId || !sb) return;
     saved.current = true;
+    if (X.abandoned) {
+      sb.rpc("meow_switch_task_run", { p_run_id: runId }).then(({ error }) => { if (!error) notifyRunChanged(); });
+      return;
+    }
     setSent({ st: "saving" });
     sb.rpc("meow_complete_play_run", { p_run_id: runId, p_report: buildPlayReport({ life: X, startMonths: state.startMonths, budget: pick.budget, monthly }) })
       .then(({ data, error }) => {
