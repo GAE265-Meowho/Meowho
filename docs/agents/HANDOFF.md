@@ -1,7 +1,7 @@
 # HANDOFF — 接手的 agent 需要知道的事
 
 > 寫給「完全沒有上下文的下一個 agent」。只保留**現在仍然成立**的內容。
-> 最後更新：2026-11-12｜珮瑜 × Claude Code（#354 換水改 3D，PR #391；餵貓、鏟屎改 3D）；清俊 × Cursor（帶我回家改為全島喵戶地圖，PR #390）
+> 最後更新：2026-11-13｜清俊 × Cursor（地圖區名錯開、點貓進介紹頁，分支 `feat/adopt-map-labels`）
 
 ## 目前狀態
 - **虛擬飼養鏟屎改 3D（#354，珮瑜 × Claude Code，分支 `feat/354-care-scoop-3d`，審查中）**：餵貓（PR #392）已合併，這個 PR 只有鏟屎。鏟屎彈窗 `src/components/play/mini3d/ScoopGame3D.tsx`：按住畫面拖曳貓砂鏟、連砂鏟起、左右甩三下、到垃圾袋上方放開；規則 `src/lib/play/mini3d/scoop-rules.ts`。**貓砂盆四款只畫在彈窗裡（`ScoopProps.tsx`），遊戲一律用開放式，房間裡的貓砂盆沒換**。第 1 份還剩貓砂盆四款放進房間、逗貓玩具確認、上方狀態列。細節見 `docs/modules/readiness.md`「B. 小遊戲改 3D」與 `docs/daily/2026-11-12/2130-珮瑜-354.md`。
@@ -16,7 +16,7 @@
 - **#387 成貓休息改蜷曲（Tina × Claude Code，分支 `feat/387-curl-rest`）**：`base_clips.glb` 只換 rest（其他 13 個動作逐格相同）。腳本在 Tina 電腦 `Meow/cat_base/stepC_clips.py` 的 `clip_curl_rest`（`CURL_*`）；幼貓 rest 不變。**合併後要上傳 Storage** `meow-cat-models/base/v1/base_clips.glb`。
 - **#373 幼貓母體四腳對齊（Tina × Claude Code，分支 `fix/373-kitten-leg-align`）**：`base_clips_kitten.glb` 已重做（幼貓不在 Storage，合併即生效）。改的是 Tina 電腦 `Meow/cat_base_kitten/stepB_rig.py` 的 `align_legs`、`match_right_legs`、`symmetrize_side`（右半身照左半身鏡像）與 `stepC_clips.py` 的 `SLEEP_FRONT`；網頁 `PAW_AHEAD_M.kitten` 已改 0.053；重做幼貓母體一律 B → C → `eat_drink.mjs … kitten`。舊製作檔備份在 `Meow/cat_base_kitten/work/backup_before_leg_align/`；`.blend` 是 Blender 5.3 存的，5.2 開不了就重跑 B、C。
 - **#365 成貓母體拉直＋鬍鬚（Tina × Claude Code）**：`base_clips.glb` 脊椎與尾巴已拉直、多了 `whiskers` 網格（掛 `head0`），eat／drink 已用 `eat_drink.mjs adult` 重做。**合併後要上傳 Storage** `meow-cat-models/base/v1/base_clips.glb`。新工具 `workers/cat-paint/cat_studio/project_views.py`（AI 三視角投影成貓貼圖），尚未接進 `paint_worker.py --supabase`；目前在 Tina 電腦用 `run_tabby1.bat` 跑。
-- **帶我回家地圖（清俊 × Cursor，PR #390）**：分支 `cursor/adopt-home-map-5901`，尚未建 Issue。首頁 `#adopt` 的「地圖」是一張全島（含澎湖、金門、連江），可拖曳、滾輪與雙指縮放。標記是喵戶，點開橫向列出該戶的貓，再點貓回到卡片。初始中心走 `GET /api/where`（Vercel IP 的縣市與行政區，不要求 GPS）；有行政區時先放大到該區，本機沒有標頭就先看完整島。縣市連線是半透明虛線，澎湖、南投不連；台東名在綠島左下，虛線接到台東本島；嘉義縣、台中的線指西岸中段。喵戶長條在拉近前至少是先前的兩倍，拉近後照原樣慢慢縮小。舊的分區畫布、貓圖示、收攏仍留在程式，首頁地圖不再用。#315 已合併，那張仍是分區地圖。PR：[#390](https://github.com/GAE265-Meowho/Meowho/pull/390)。
+- **帶我回家地圖（清俊 × Cursor，#390 已合併）**：後續在分支 `feat/adopt-map-labels`，尚未建 Issue。首頁 `#adopt` 仍是一張全島。點喵戶裡的貓進 `/cats/[id]` 介紹頁（有資料庫才連過去，示範模式留在首頁）。行政區名依形狀直排或橫排，縮進區內，並跟鄰近名稱錯開；縣市名若蓋到區名只縮小、不挪位。縣市界與行政區界各減半。台中虛線指西岸靠北的清水一帶。喵戶標籤底邊貼住座標。舊的分區畫布首頁不再用。
 - **虛擬飼養讀真實資料＋試養報告給中途看（渝茜 × Claude Code，分支 `feat/play-real-data`，審查中）**：`/cats/[id]/play` 讀這隻貓（`source.ts` 的 `loadPlayCat`）、喵戶（`usePlayData.ts`）、預算、最新 3D 房間、環境報告；玩完報告存 `meow_task_runs.game_report`，按鈕附給中途，對話串 `TaskProof` 顯示。**`0033_meow_play_report.sql` 尚未執行，須子哲確認**；執行前報告頁會顯示「沒有存成功」。細節在 `docs/modules/readiness.md`「虛擬飼養讀真實資料與試養報告給中途」。
 - **WelfareLens #326 安全報告終態通知（Jerry0808 × Codex，PR #327，審查中）**：Draft PR 分支 `feat/326-env-report-notifications`，migration `0034_meow_env_notifications.sql`。通知只在 job 首次終態時送給該報告所屬 Household Owner，dedupe key 防止重複；PGlite 驗證通過。尚未部署共用 Supabase，部署須由子哲按團隊流程確認。#326 佇列隔離只有設計，待子哲批准後另開實作；不得改 #277、0031 或 Worker v05。
 - **WelfareLens 報告 API／PDF-first 安全評估頁（#273 C＋D，Jerry0808 × Codex，進行中）**：Draft PR #277、`feat/273-env-report-view`。離線 API/授權/UI 測試通過；PDF/crop 經授權路由 307 轉向短效 SAS（瀏覽器會收到 SAS URL，勿視為隱藏）；最新 head 的 Vercel check PASS；Preview 未登入 report/PDF/crop 實測 401 與 private,no-store。Owner session、Preview 的 Supabase project／Azure container／SAS 設定仍待核驗。
