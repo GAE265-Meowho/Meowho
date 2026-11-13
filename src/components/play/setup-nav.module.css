@@ -1,0 +1,9 @@
+/* 虛擬飼養開場設定的「上一步」按鈕（#354）：採買、擺用品才有；不是頁面左上的「上一層」。 */
+.row { display: flex; }
+.back {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 44px; padding: 0 16px 0 12px; border-radius: 999px;
+  background: var(--card); color: var(--ink); border: 2px solid var(--line); font: inherit; font-weight: 700; font-size: var(--play-fs-sub, 15px);
+  cursor: pointer; flex: 0 0 auto;
+}
+.back:hover { border-color: var(--caramel); }
+.back:focus-visible { outline: 3px solid var(--orange); outline-offset: 2px; }
