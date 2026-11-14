@@ -1,6 +1,6 @@
 // 虛擬飼養第 1 天：貓整隻縮在外出籠裡，身體任何部位都不能露出籠外。純函式。
 import { describe, expect, it } from "vitest";
-import { carrierInner, CARRIER_MARGIN_M, fitCatInCarrier, insideBox, type Bounds3 } from "./carrier-fit";
+import { carrierExit, carrierInner, CARRIER_MARGIN_M, EXIT_GAP_M, EXIT_REAR_M, fitCatInCarrier, insideBox, type Bounds3 } from "./carrier-fit";
 
 const carrier = { x: 2, z: 3, widthM: 0.33, depthM: 0.51, heightM: 0.31 };
 // 成貓趴姿（含尾巴）約 0.2 寬 × 0.18 高 × 0.6 長，原點在腳底中心、面向 +z
@@ -77,5 +77,26 @@ describe("insideBox", () => {
     expect(insideBox({ min: [-0.5, 0, -0.5], max: [0.5, 0.5, 0.5] }, inner)).toBe(true);
     expect(insideBox({ min: [-0.5, 0, -0.5], max: [0.5, 1.2, 0.5] }, inner)).toBe(false);
     expect(insideBox({ min: [-1.1, 0, -0.5], max: [0.5, 0.5, 0.5] }, inner)).toBe(false);
+  });
+});
+
+describe("carrierExit", () => {
+  const c = { x: 1, z: 2, widthM: 0.33, depthM: 0.51, heightM: 0.31 };
+  it("站在籠門外、面向外面，屁股離籠門至少一段貓身", () => {
+    const e = carrierExit(c);
+    expect(e.heading).toBe(0);
+    expect(e.x).toBeCloseTo(1);
+    expect(e.z - EXIT_REAR_M - (c.z + c.depthM / 2)).toBeCloseTo(EXIT_GAP_M);
+  });
+  it("量到的貓比較長時，退得更遠（尾巴也在籠外）", () => {
+    const cat: Bounds3 = { min: [-0.1, 0, -0.4], max: [0.1, 0.25, 0.2] };
+    const e = carrierExit(c, cat);
+    expect(e.z - 0.4 - (c.z + c.depthM / 2)).toBeCloseTo(EXIT_GAP_M);
+  });
+  it("外出籠轉了方向，從轉過去的門口出來", () => {
+    const e = carrierExit({ ...c, rotY: Math.PI / 2 });
+    expect(e.heading).toBeCloseTo(Math.PI / 2);
+    expect(e.z).toBeCloseTo(2);
+    expect(e.x).toBeGreaterThan(1 + c.depthM / 2 + EXIT_REAR_M);
   });
 });

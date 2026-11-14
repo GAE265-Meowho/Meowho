@@ -8,7 +8,9 @@ import { Canvas, useFrame, useThree, type ThreeEvent } from "@react-three/fiber"
 import { Component, Suspense, useEffect, useMemo, useRef, useState, type DragEvent, type MutableRefObject, type ReactNode } from "react";
 import * as THREE from "three";
 import { FLOOR_TEXTURE, kitScale, kitUrl } from "@/lib/hq/floorplans/kit";
-import { goalForBox, idleAction, stepActor, worldOf, type Actor, type Goal } from "@/lib/hq/floorplans/catjump";
+import { DEFAULT_JUMP_TIMES, goalForBox, idleAction, stepActor, worldOf, type Actor, type Goal, type Jump, type JumpTimes } from "@/lib/hq/floorplans/catjump";
+import { jumpClipFor, jumpKind, type JumpTiming } from "@/lib/hq/rooms/cat-moves";
+import { clipJumpTiming, isJumpClip } from "@/lib/hq/rooms/jump-clips";
 import { blocked, CAT_SCALE, freeSpot, obstacles, type Obstacle } from "@/lib/hq/floorplans/catwalk";
 import { bowlObstacles, bubbleOf, dropTargetBowl, isBowlSet, passableItem, standOff, stepItems, stepSpot, stepStory, STORY_START, withoutItem, type NeedIcon, type Spot, type Story, type StoryState } from "@/lib/hq/floorplans/story";
 import { expandRemovedIndices, type FurnitureMove, type FurnitureSupport } from "@/lib/hq/floorplans/experience-furniture";
@@ -16,7 +18,7 @@ import { boxToSolid, clampFurniturePose, rotatedHalfExtents, type SolidBody } fr
 import { focusScenes, houseScene, sceneBounds, type RoomScene, type SceneBox } from "@/lib/hq/floorplans/scene";
 import type { BodyType } from "@/lib/hq/cat-models/types";
 import { CatModel, CROSSFADE_SECONDS } from "./CatPreview";
-import { fitCatInCarrier, type Bounds3, type CarrierBox } from "@/lib/play/carrier-fit";
+import { carrierExit, fitCatInCarrier, type Bounds3, type CarrierBox } from "@/lib/play/carrier-fit";
 import { nearFree } from "@/lib/play/stage";
 import { poseBounds, tuckClip } from "@/lib/hq/rooms/pose-bounds";
 import { bowlSlotsOf, detectBowlSlots, setBowlSlots } from "./bowlSlotsDetect";
@@ -587,7 +589,7 @@ export interface ViewerCat { baseUrl: string; albedoUrl: string; body: BodyType 
 
 /**
  * 虛擬體驗（#150）：貓在房間裡走、跳上家具。點地板＝走過去；點床、沙發、桌子＝走到旁邊跳上去；
- * 走路與跳躍播 walk（母體還沒有 jump 動作）、停下播 idle；閒置時在地板上逛、在床或沙發上睡覺。
+ * 走路播 walk；跳躍先轉身（walk）再播 jump_a／b／c（cat-moves.ts、原地播，位移由 catjump.ts 算），停下播 idle；閒置時在地板上逛、在床或沙發上睡覺。
  * 規則在 catwalk.ts、catjump.ts（純函式、可測）；貓放大 CAT_SCALE 倍（真實比例在整間房的鏡頭裡太小）。
  * pos：貓的世界座標，給鏡頭跟隨用。
  */
@@ -604,6 +606,28 @@ function TuckBounds({ url, onBounds }: { url: string; onBounds: (b: { clip: stri
     onBounds(name && bounds ? { clip: name, bounds } : null);
   }, [gltf, onBounds]);
   return null;
+}
+
+/** 母體有哪些動作、各跳躍動作的離地／落地時間（給跳躍分段用） */
+interface ClipInfo { names: string[]; jumps: Record<string, JumpTiming | null> }
+function ClipInfoOf({ url, onInfo }: { url: string; onInfo: (i: ClipInfo) => void }) {
+  const gltf = useGLTF(url);
+  useEffect(() => {
+    onInfo({
+      names: gltf.animations.map(a => a.name),
+      jumps: Object.fromEntries(gltf.animations.filter(a => isJumpClip(a.name)).map(a => [a.name, clipJumpTiming(a)])),
+    });
+  }, [gltf, onInfo]);
+  return null;
+}
+
+/** 跳躍中的動作與各段秒數：轉身時踏步（walk），之後播對應的跳躍動作（cat-moves.ts 挑，沒有就用 walk） */
+function jumpPlan(j: Jump | null, info: ClipInfo | null): { clip: string; times: JumpTimes } {
+  if (!j) return { clip: "walk", times: DEFAULT_JUMP_TIMES };
+  const { clip } = jumpClipFor(jumpKind(j.fy, j.ty), info?.names ?? []);
+  const t = clip ? info?.jumps[clip] : null;
+  const times = t ? { crouch: t.takeoff, air: t.land - t.takeoff, land: t.duration - t.land } : DEFAULT_JUMP_TIMES;
+  return { clip: j.phase === "turn" || !clip ? "walk" : clip, times };
 }
 
 function CatActor({ s, look, click, pos, extraObs, forceClip = null, speed = 1, story = null, items = [], onStory, tuck = null }: {
@@ -636,6 +660,7 @@ function CatActor({ s, look, click, pos, extraObs, forceClip = null, speed = 1, 
   const [bubble, setBubble] = useState<NeedIcon | null>(null);
   const [bubbleLabel, setBubbleLabel] = useState("");
   const [tuckPose, setTuckPose] = useState<{ clip: string; bounds: Bounds3 } | null>(null);
+  const [clipInfo, setClipInfo] = useState<ClipInfo | null>(null);
   const fit = useMemo(() => {
     const f = tuck && tuckPose ? fitCatInCarrier(tuck, tuckPose.bounds) : null;
     return f?.fits ? f : null;
@@ -643,11 +668,16 @@ function CatActor({ s, look, click, pos, extraObs, forceClip = null, speed = 1, 
   const tuckT = useRef(0);
   useEffect(() => { if (fit) goal.current = null; }, [fit]);
   // 從外出籠出來：從籠門前的空地板開始走（籠子本身是障礙物，留在籠內會卡住）
+  const lastTuck = useRef<typeof tuck>(null);
   useEffect(() => {
-    if (tuck) return;
-    const a = cat.current;
-    const spot = nearFree(s, world.obs, a.x, a.z);
-    if (spot && blocked(a.x, a.z, s, world.obs)) cat.current = { ...a, ...spot };
+    if (tuck) { lastTuck.current = tuck; return; }
+    const c = lastTuck.current, a = cat.current;
+    lastTuck.current = null;
+    // 籠門前面那塊地板（找不到就從貓現在的位置找最近的空地）
+    const t = c?.rotY ?? 0;
+    const door = c ? carrierExit(c) : a;  // 整隻貓站到籠門外（carrier-fit.ts）
+    const spot = nearFree(s, world.obs, door.x, door.z);
+    if (spot && (c || blocked(a.x, a.z, s, world.obs))) cat.current = { ...a, ...spot, heading: t };
   }, [tuck, s, world]);
   useEffect(() => {
     if (!click) return;
@@ -675,7 +705,7 @@ function CatActor({ s, look, click, pos, extraObs, forceClip = null, speed = 1, 
     const bowls = story ? bowlObstacles(story, items, bowlSlotsOf) : [];
     if (story) storyStep(story, dt, bowls);
     const walkWorld = bowls.length ? { ...world, obs: [...world.obs, ...dropTargetBowl(bowls, spot.current, cat.current)] } : world;
-    const { actor, done } = stepActor(cat.current, goal.current, walkWorld, dt);
+    const { actor, done } = stepActor(cat.current, goal.current, walkWorld, dt, jumpPlan(cat.current.jump, clipInfo).times);
     let next = clip;
     if (done) goal.current = null;
     const doing = story && plot.current.phase === "doing" ? story.steps[plot.current.step] : null;
@@ -686,7 +716,8 @@ function CatActor({ s, look, click, pos, extraObs, forceClip = null, speed = 1, 
       actor.z += (spot.current.z - actor.z) * k;
       actor.heading = spot.current.heading;
     }
-    if (actor.moving || actor.jump) { idle.current = 0; next = "walk"; }
+    if (actor.jump) { idle.current = 0; next = jumpPlan(actor.jump, clipInfo).clip; }
+    else if (actor.moving) { idle.current = 0; next = "walk"; }
     else if (forceClip) next = forceClip;
     else if (doing) { idle.current = 0; next = doing.clip; }
     else {
@@ -748,7 +779,8 @@ function CatActor({ s, look, click, pos, extraObs, forceClip = null, speed = 1, 
   return (
     <group ref={ref} position={[start.x, 0, start.z]} scale={CAT_SCALE}>
       <Suspense fallback={null}>
-        <CatModel baseUrl={look.baseUrl} albedoUrl={look.albedoUrl} clip={clip} follow={false} speed={speed} />
+        <CatModel baseUrl={look.baseUrl} albedoUrl={look.albedoUrl} clip={clip} follow={false} speed={speed} inPlaceJumps />
+        <ClipInfoOf url={look.baseUrl} onInfo={setClipInfo} />
         {tuck && <TuckBounds url={look.baseUrl} onBounds={setTuckPose} />}
       </Suspense>
       {bubble && (
@@ -782,12 +814,19 @@ function NeedGlyph({ icon }: { icon: NeedIcon }) {
 }
 
 /** 虛擬體驗：鏡頭跟著貓（旋轉中心慢慢移到貓身上，鏡頭一起平移；管理員自己轉的角度、縮放保留） */
-function FollowCat({ pos }: { pos: React.RefObject<THREE.Vector3> }) {
+function FollowCat({ pos, on = true, onOff }: { pos: React.RefObject<THREE.Vector3>; on?: boolean; onOff?: () => void }) {
   const camera = useThree(st => st.camera);
-  const controls = useThree(st => st.controls) as unknown as { target: THREE.Vector3; update(): void } | null;
+  const controls = useThree(st => st.controls) as unknown as (THREE.EventDispatcher<{ start: object }> & { target: THREE.Vector3; update(): void }) | null;
   const want = useMemo(() => new THREE.Vector3(), []);
+  // 玩家自己拖曳、轉動鏡頭：跟隨關掉
+  useEffect(() => {
+    if (!controls || !on || !onOff) return;
+    const stop = () => onOff();
+    controls.addEventListener("start", stop);
+    return () => controls.removeEventListener("start", stop);
+  }, [controls, on, onOff]);
   useFrame((_, delta) => {
-    if (!controls || !pos.current) return;
+    if (!on || !controls || !pos.current) return;
     want.copy(pos.current).setY(pos.current.y + 0.25);
     const k = Math.min(1, delta * 3);
     const dx = (want.x - controls.target.x) * k, dy = (want.y - controls.target.y) * k, dz = (want.z - controls.target.z) * k;
@@ -830,7 +869,7 @@ export type PlaceAt = { roomId: string; x: number; z: number; y: number; support
 /** point＝點地板／床叫貓；hand＝拖移已放用品／落地家具（不叫貓） */
 export type InteractMode = "point" | "hand";
 
-export default function FloorplanViewer({ rooms, selected, onPick, cat, placedItems = [], interactMode = "point", removedFurniture, furnitureMoves, onMoveItem, onRotateItem, onRemoveItem, onRemoveFurniture, onMoveFurniture, onRotateFurniture, onFloorDrop, catGoal = null, catClip = null, catSpeed = 1, catTuck = null, onItemError, story = null, onStory }: {
+export default function FloorplanViewer({ rooms, selected, onPick, cat, placedItems = [], interactMode = "point", removedFurniture, furnitureMoves, onMoveItem, onRotateItem, onRemoveItem, onRemoveFurniture, onMoveFurniture, onRotateFurniture, onFloorDrop, catGoal = null, catClip = null, catSpeed = 1, catTuck = null, catFollow = true, onCatFollowOff, onItemError, story = null, onStory }: {
   rooms: PlanRoom[]; selected: string | null; onPick: (id: string) => void;
   /** 虛擬體驗（#150）：放一隻貓進去；有貓時只顯示單間（沒有「全部」），點地板叫貓走過去 */
   cat?: ViewerCat | null;
@@ -864,6 +903,10 @@ export default function FloorplanViewer({ rooms, selected, onPick, cat, placedIt
   catSpeed?: number;
   /** 貓整隻縮在這個外出籠裡（虛擬飼養第 1 天）；null＝照常走動 */
   catTuck?: (CarrierBox & { y?: number }) | null;
+  /** 鏡頭跟著貓（預設開；虛擬飼養由「跟著貓」按鈕控制） */
+  catFollow?: boolean;
+  /** 玩家自己拖曳鏡頭時呼叫（跟隨關掉） */
+  onCatFollowOff?: () => void;
   /** 生活用品模型載入失敗、已改成方塊（#237） */
   onItemError?: (key: string) => void;
   /** 故事線（#297，MeowHQ 虛擬體驗）：例如「貓咪的吃喝拉撒」；null＝自由活動 */
@@ -967,7 +1010,7 @@ export default function FloorplanViewer({ rooms, selected, onPick, cat, placedIt
           </group>
           <OrbitControls target={[0, 0, 0]} maxPolarAngle={Math.PI / 2.1} minDistance={cat ? 0.8 : 1.5} maxDistance={cat ? Math.max(cam.dist * 3, 12) : cam.dist * 2.5} makeDefault />
           <CameraRig position={cam.position} view={view} />
-          {cat && <FollowCat pos={catPos} />}
+          {cat && <FollowCat pos={catPos} on={catFollow} onOff={onCatFollowOff} />}
           {onFloorDrop && <FloorRayBridge api={floorRay} />}
         </Canvas>
       </div>

@@ -57,7 +57,7 @@ const ROOM_SCENE = houseScene([DEMO_DOLLHOUSE])[0];
 const FURNITURE_NAMES = Object.fromEntries((DEMO_DOLLHOUSE.furniture ?? []).map((f, i) => [i, f.label]));
 /** 原版場景的貓姿勢 → 3D 貓的動作（none＝貓不在畫面） */
 const POSE_ACTION: Record<CatPose, CatAction | null> = {
-  sit: "idle", carrier: "carrier", underbed: "hide", hide: "hide", sofa: "sofa", zoom: "explore", frail: "sleep", bed: "sleep", table: "idle", none: null,
+  sit: "idle", carrier: "carrier", underbed: "hide", hide: "hide", sofa: "sofa", zoom: "zoom", frail: "sleep", bed: "sleep", table: "idle", none: null,
 };
 /** 原版 newGame：喜歡的玩具、玩的節奏開局隨機抽（玩家看不到）；DEMO 一開始只有羽毛逗貓棒 */
 

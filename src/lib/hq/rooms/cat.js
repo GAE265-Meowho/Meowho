@@ -1,13 +1,16 @@
 // 房間裡會走動的貓：讀 room_layout.py 輸出的地板網格，閒晃、繞開障礙、走到點擊位置
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
-import { fitCatInCarrier } from "../../play/carrier-fit";
+import { carrierExit, fitCatInCarrier } from "../../play/carrier-fit";
 import { poseBounds, tuckClip } from "./pose-bounds";
+import { clipRate, jumpClipFor, jumpHeading, jumpKind, jumpReady, moveClip, turnStep } from "./cat-moves";
+import { clipJumpTiming, inPlaceClip, isJumpClip } from "./jump-clips";
+import { ZOOM_RUN_M } from "../../play/zoomies";
 
 const CAT_HEIGHT_M = 0.3;   // 站著時頭頂離地的高度
 const WALK_SPEED_M = 0.35;  // 公尺/秒
 const TURN_SPEED = 4;       // 弧度/秒
-const JUMP_CROUCH = 0.27;   // 秒，jump_start 的長度，蹲下蓄力時貓不移動
+const JUMP_CROUCH = 0.27;   // 秒，jump_start 的長度，蹲下蓄力時貓不移動（讀不到跳躍動作時間時的預設）
 const JUMP_AIR = 0.7;       // 秒，騰空時間
 const JUMP_LAND = 0.6;      // 秒，落地後停一下再回到待機
 const JUMP_ARC_M = 0.2;     // 拋物線比直線高多少
@@ -34,6 +37,7 @@ export class RoomCat {
     this.open = layout.open ? Uint8Array.from(layout.open, (c) => c === "1") : this.walkable;
     this.topM = layout.top_cm ? layout.top_cm.map((c) => c / 100) : null;  // 每格東西頂端高度
     this.cells = [...this.walkable.keys()].filter((k) => this.walkable[k]);
+    this.main = null;  // 最大一塊連通的地板，用到時再算（mainRegion）
 
     // 本地座標系：x 沿 e1、y 沿上方向、z 沿 e2，原點在地板網格角落
     const [e1, up, e2, o] = ["e1", "up", "e2", "origin"].map((k) => new THREE.Vector3(...layout[k]));
@@ -54,7 +58,8 @@ export class RoomCat {
     this.arrive = null;   // 走到目的地後要做的事
     this.queued = null;   // 落地後才走的目的地
     this.stick = null;    // 搖桿輸入 { dir（本地 x,z，單位向量）, mag（0~1）}
-    this.sprint = false;  // 追玩具時衝刺（跑步動作、較快的速度與轉身）
+    this.sprint = false;  // 追玩具、半夜跑酷時衝刺（跑步動作、較快的速度與轉身）
+    this.roamFar = false; // 半夜跑酷：閒晃時衝得比較遠
     this.autoIn = AUTO_MIN;
     this.onBored = null;  // 閒晃時想找事做就呼叫，回傳 true 表示開始做了
     /** @type {{ min: number[], max: number[] } | null} */
@@ -86,8 +91,14 @@ export class RoomCat {
     this.mixer = new THREE.AnimationMixer(model);
     // 片段名稱是 rig|rig|walk，取最後一段：idle、walk、run、jump_start、jump、jump_fall、jump_end
     this.clips = {};
-    for (const clip of gltf.animations) {
-      const name = clip.name.split("|").pop();
+    this.jumpTimes = {};  // 跳躍動作的離地、落地時間（從根骨頭位移讀出）
+    for (const raw of gltf.animations) {
+      const name = raw.name.split("|").pop();
+      let clip = raw;
+      if (isJumpClip(name)) {
+        this.jumpTimes[name] = clipJumpTiming(raw);
+        clip = inPlaceClip(raw);  // 位移由程式的拋物線負責，動作只留姿勢
+      }
       this.actions[name] = this.mixer.clipAction(clip);
       this.clips[name] = clip;
     }
@@ -137,6 +148,7 @@ export class RoomCat {
     this.current = this.actions[name];
     this.current.setLoop(THREE.LoopRepeat, Infinity).reset().play();
     this.state = "tuck";
+    this.tucked = carrier;
     return true;
   }
 
@@ -144,7 +156,14 @@ export class RoomCat {
   untuck() {
     if (this.state !== "tuck") return;
     this.cat.scale.setScalar(1);
-    this.cat.position.y = 0;
+    // 從籠門走出來：整隻貓（含屁股、尾巴）站到籠門外、面向外面（carrier-fit.ts 的 carrierExit），不然原尺寸的貓會卡在籠子裡
+    if (this.tucked) {
+      const e = carrierExit(this.tucked, this.tuckBounds?.[this.current?.getClip().name.split("|").pop()] ?? null);
+      this.cat.position.set(e.x * this.upm, 0, e.z * this.upm);
+      this.heading = e.heading;
+      this.cat.rotation.y = e.heading;
+    } else this.cat.position.y = 0;
+    this.tucked = null;
     this.setState("idle");
   }
 
@@ -165,14 +184,39 @@ export class RoomCat {
   }
   randomCell() { return this.cells[Math.floor(Math.random() * this.cells.length)]; }
 
-  nearestFree(x, z, maxR = 6) {
+  nearestFree(x, z, maxR = 6, mainOnly = false) {
     const [ci, cj] = this.cellOf(x, z);
+    const main = mainOnly ? this.mainRegion() : null;
     for (let r = 0; r <= maxR; r++) {
       for (let dj = -r; dj <= r; dj++) for (let di = -r; di <= r; di++) {
-        if (Math.max(Math.abs(di), Math.abs(dj)) === r && this.isFree(ci + di, cj + dj)) return this.idx(ci + di, cj + dj);
+        if (Math.max(Math.abs(di), Math.abs(dj)) === r && this.isFree(ci + di, cj + dj) && (!main || main[this.idx(ci + di, cj + dj)])) return this.idx(ci + di, cj + dj);
       }
     }
     return -1;
+  }
+
+  // 最大一塊連通的地板（1＝在裡面）。家具、虛擬用品會把地板切出小角落，從床上跳下來落到那種角落就走不出去
+  mainRegion() {
+    if (this.main) return this.main;
+    const { nx } = this.L, n = this.walkable.length;
+    const label = new Int32Array(n).fill(-1);
+    let best = -1, bestSize = 0;
+    for (const start of this.cells) {
+      if (label[start] >= 0) continue;
+      const q = [start];
+      label[start] = start;
+      for (let h = 0; h < q.length; h++) {
+        const k = q[h], i = k % nx, j = (k - i) / nx;
+        for (const [di, dj] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+          if (!this.isFree(i + di, j + dj)) continue;
+          const m = this.idx(i + di, j + dj);
+          if (label[m] < 0) { label[m] = start; q.push(m); }
+        }
+      }
+      if (q.length > bestSize) { bestSize = q.length; best = start; }
+    }
+    this.main = Uint8Array.from(label, (l) => (l === best && best >= 0 ? 1 : 0));
+    return this.main;
   }
 
   place(k) {
@@ -273,6 +317,7 @@ export class RoomCat {
           }
     }
     this.cells = [...this.walkable.keys()].filter((k) => this.walkable[k]);
+    this.main = null;  // 最大一塊連通的地板，用到時再算（mainRegion）
   }
 
   // 虛擬用品（外出籠、碗、貓砂盆）佔的格子（j * nx + i）設成不能走；換清單時先還原成房間原本的樣子
@@ -281,6 +326,7 @@ export class RoomCat {
     this.walkable.set(this.baseWalkable);
     for (const k of indices) this.walkable[k] = 0;
     this.cells = [...this.walkable.keys()].filter((k) => this.walkable[k]);
+    this.main = null;  // 最大一塊連通的地板，用到時再算（mainRegion）
   }
 
   // 可走的格子裡，依 dist（到物品的距離）挑 lo~hi 之間的，鏡頭看得到的優先，其次離貓近
@@ -321,20 +367,29 @@ export class RoomCat {
    */
   jumpOn(o, top, camera = null, spot = null, done = null) {
     if (this.surface === o) { done?.(); return true; }
-    const center = new THREE.Vector2(o.floor_pos_m[0], o.floor_pos_m[2]).multiplyScalar(this.upm);
-    const hw = (o.size_m[0] / 2) * this.upm, hd = (o.size_m[2] / 2) * this.upm;
-    const edge = (p) => Math.hypot(Math.max(Math.abs(p.x - center.x) - hw, 0), Math.max(Math.abs(p.y - center.y) - hd, 0));
     const inset = LAND_INSET_M * this.upm;
+    // 檯面範圍：有 surfaces[0] 的中心、大小、轉角就用（掃描的床常斜放，不轉的話床邊的空地算錯、找不到起跳點）
+    const f = o.surfaces?.[0];
+    const rot = f?.center && f?.size;
+    const center = rot ? new THREE.Vector2(f.center[0], f.center[1]).multiplyScalar(this.upm) : new THREE.Vector2(o.floor_pos_m[0], o.floor_pos_m[2]).multiplyScalar(this.upm);
+    const hw = ((rot ? f.size[0] : o.size_m[0]) / 2) * this.upm, hd = ((rot ? f.size[1] : o.size_m[2]) / 2) * this.upm;
+    const yaw = rot ? f.yaw ?? o.box?.yaw ?? 0 : 0, yc = Math.cos(yaw), ys = Math.sin(yaw);
+    const local = (p) => { const dx = p.x - center.x, dz = p.y - center.y; return [dx * yc + dz * ys, -dx * ys + dz * yc]; };
+    const edge = (p) => { const [u, v] = local(p); return Math.hypot(Math.max(Math.abs(u) - hw, 0), Math.max(Math.abs(v) - hd, 0)); };
+    // 落點：夾在檯面內（轉回地板座標）
+    const landAt = (p) => {
+      const [u, v] = local(p), cu = THREE.MathUtils.clamp(u, -hw + inset, hw - inset), cv = THREE.MathUtils.clamp(v, -hd + inset, hd - inset);
+      return new THREE.Vector2(center.x + cu * yc - cv * ys, center.y + cu * ys + cv * yc);
+    };
     const go = () => {
       for (const { k } of this.spotsNear(edge, 0.05 * this.upm, 0.4 * this.upm, camera)) {
         if (!this.goTo(k, center)) continue;
-        const p = this.centerOf(k);
-        const land = new THREE.Vector3(
-          spot ? spot.x : THREE.MathUtils.clamp(p.x, center.x - hw + inset, center.x + hw - inset), top * this.upm,
-          spot ? spot.y : THREE.MathUtils.clamp(p.y, center.y - hd + inset, center.y + hd - inset));
+        // 指定落點（例如玩具位置）離起跳點太遠就落在床邊，上去再跑過去
+        const from = this.centerOf(k), p = spot && spot.distanceTo(from) < this.upm ? spot : landAt(from);
+        const land = new THREE.Vector3(p.x, top * this.upm, p.y);
         this.arrive = () => this.startJump(land, () => {
           this.surface = o;
-          this.surfaceRect = { x: center.x, z: center.y, hw: Math.max(hw - inset / 3, 0), hd: Math.max(hd - inset / 3, 0) };
+          this.surfaceRect = { x: center.x, z: center.y, hw: Math.max(hw - inset / 3, 0), hd: Math.max(hd - inset / 3, 0), yaw };
           this.timer = 10 + Math.random() * 8;
           done?.();
         });
@@ -366,15 +421,18 @@ export class RoomCat {
     const { dir, mag } = this.stick;
     this.turnToward(dir, dt);
     const run = mag > RUN_AT;
-    this.playClip(run ? "run" : "walk", false, 0.2);
-    if (this.actions.walk) this.actions.walk.timeScale = 1;
-    const step = (run ? RUN_SPEED_M : WALK_SPEED_M) * mag * this.upm * dt;
+    const speedM = (run ? RUN_SPEED_M : WALK_SPEED_M) * mag;
+    this.playMove(speedM);
+    const step = speedM * this.upm * dt;
     const p = this.cat.position;
     const x = p.x + dir.x * step, z = p.z + dir.y * step;
     if (this.surface) {
-      const r = this.surfaceRect;
-      p.x = THREE.MathUtils.clamp(x, r.x - r.hw, r.x + r.hw);
-      p.z = THREE.MathUtils.clamp(z, r.z - r.hd, r.z + r.hd);
+      // 夾在檯面內：轉到檯面自己的座標（u 沿寬、v 沿長）再夾，斜放的床也不會走出床緣
+      const r = this.surfaceRect, c = Math.cos(r.yaw ?? 0), s = Math.sin(r.yaw ?? 0);
+      const dx = x - r.x, dz = z - r.z;
+      const u = THREE.MathUtils.clamp(dx * c + dz * s, -r.hw, r.hw), v = THREE.MathUtils.clamp(-dx * s + dz * c, -r.hd, r.hd);
+      p.x = r.x + u * c - v * s;
+      p.z = r.z + u * s + v * c;
       return;
     }
     if (this.canStand(x, p.z)) p.x = x;
@@ -388,7 +446,8 @@ export class RoomCat {
 
   // 跳回最近的空地板
   jumpDown() {
-    const k = this.nearestFree(this.cat.position.x, this.cat.position.z, 15);
+    // 找半徑 2 公尺內最近的空地板（大床的中間離床邊超過 1 公尺，原本 15 格找不到就卡在床上）
+    const k = this.nearestFree(this.cat.position.x, this.cat.position.z, Math.max(15, Math.ceil((2 * this.upm) / this.L.cell)), true);
     if (k < 0) return false;
     const p = this.centerOf(k);
     this.startJump(new THREE.Vector3(p.x, 0, p.y), () => { this.surface = null; });
@@ -410,7 +469,7 @@ export class RoomCat {
       const diff = this.turnToward(p.target.clone().sub(new THREE.Vector2(this.cat.position.x, this.cat.position.z)), dt);
       if (Math.abs(diff) > 0.1) return;
       p.lunged = true;
-      this.playClip("jump_start", true);
+      if (this.actions.jump_start) this.playClip("jump_start", true);  // 舊模型才有撲的前段；新母體原地待著
     }
     p.t += dt;
     if (p.onHit && p.t >= PAW_HIT) { p.onHit(); p.onHit = null; }
@@ -442,12 +501,32 @@ export class RoomCat {
     return false;
   }
 
+  // 跳躍：先原地轉身面向落點（cat-moves.ts 的 jumpReady）→ 蹲下 → 騰空（朝向固定）→ 落地。
+  // 動作依高低差挑 jump_a（往上）、jump_c（往下）、jump_b（平跳），時間點從動作本身讀；舊模型用 jump_start／jump_fall／jump_end。
   startJump(to, then) {
     this.untuck();
-    this.jump = { from: this.cat.position.clone(), to, t: 0, phase: "crouch", then };
+    const from = this.cat.position.clone();
+    const { clip } = jumpClipFor(jumpKind(from.y / this.upm, to.y / this.upm), Object.keys(this.actions));
+    const legacy = clip === "jump_start" || clip === "jump_fall";
+    const time = clip && !legacy ? this.jumpTimes[clip] : null;
+    this.jump = {
+      from, to, t: 0, phase: "turn", then, clip: legacy ? null : clip,
+      heading: jumpHeading({ x: from.x, z: from.z }, { x: to.x, z: to.z }, this.heading),
+      crouch: time ? time.takeoff : JUMP_CROUCH,
+      air: time ? time.land - time.takeoff : JUMP_AIR,
+      land: time ? time.duration - time.land : JUMP_LAND,
+    };
     this.state = "jump";
     this.face = null;
-    this.playClip("jump_start", true);
+    this.playMove(WALK_SPEED_M * 0.4);  // 原地轉身時踏小步
+  }
+
+  // 移動時的動作：走路（或跑步），播放速度配合實際速度（公尺/秒），不滑步
+  playMove(speedM) {
+    const name = moveClip(speedM, Object.keys(this.actions), RUN_AT);
+    this.playClip(name, false, 0.15);
+    const a = this.actions[name];
+    if (a) a.timeScale = name === "walk" ? clipRate(speedM, WALK_SPEED_M) : clipRate(speedM, SPRINT_SPEED_M) * 1.2;
   }
 
   // ---------- 對外操作 ----------
@@ -525,15 +604,24 @@ export class RoomCat {
   updateJump(dt) {
     const j = this.jump;
     j.t += dt;
-    if (j.phase === "crouch") {
-      this.turnToward(new THREE.Vector2(j.to.x - j.from.x, j.to.z - j.from.z), dt);
-      if (j.t >= JUMP_CROUCH) { j.phase = "air"; j.t = 0; this.playClip("jump_fall", false, 0.08); }
+    if (j.phase === "turn") {
+      // 起跳前先轉身：身體面向落點才蹲下起跳，不會側著身體往上跳
+      this.heading = turnStep(this.heading, j.heading, TURN_SPEED * 1.5 * dt);
+      this.cat.rotation.y = this.heading;
+      if (jumpReady(this.heading, j.heading) || j.t > 2) {
+        j.phase = "crouch"; j.t = 0;
+        if (j.clip) this.playClip(j.clip, true, 0.1); else this.playClip("jump_start", true);
+      }
+    } else if (j.phase === "crouch") {
+      this.heading = j.heading;  // 蹲下時補完最後一點角度
+      this.cat.rotation.y = this.heading;
+      if (j.t >= j.crouch) { j.phase = "air"; j.t = 0; if (!j.clip) this.playClip("jump_fall", false, 0.08); }
     } else if (j.phase === "air") {
-      const s = Math.min(j.t / JUMP_AIR, 1);
+      const s = Math.min(j.t / j.air, 1);
       this.cat.position.lerpVectors(j.from, j.to, s);
       this.cat.position.y += 4 * s * (1 - s) * JUMP_ARC_M * this.upm;
-      if (s === 1) { j.phase = "land"; j.t = 0; this.playClip("jump_end", true, 0.08); }
-    } else if (j.t >= JUMP_LAND) {
+      if (s === 1) { j.phase = "land"; j.t = 0; if (!j.clip) this.playClip("jump_end", true, 0.08); }
+    } else if (j.t >= j.land) {
       this.jump = null;
       this.setState("idle");
       j.then();
@@ -573,11 +661,12 @@ export class RoomCat {
           this.autoIn = AUTO_MIN + Math.random() * (AUTO_MAX - AUTO_MIN);
           if (this.onBored?.()) return;
         }
-        // 閒晃：挑 0.6~3 公尺外的隨機格子
+        // 閒晃：挑 0.6~3 公尺外的隨機格子；跑酷（roamFar）時衝到 1.2~4 公尺外
+        const [near, far] = this.roamFar ? ZOOM_RUN_M : [0.6, 3];
         for (let tries = 0; tries < 20; tries++) {
           const k = this.randomCell();
           const d = this.centerOf(k).distanceTo(new THREE.Vector2(this.cat.position.x, this.cat.position.z)) / this.upm;
-          if (d > 0.6 && d < 3 && this.goTo(k)) return;
+          if (d > near && d < far && this.goTo(k)) return;
         }
         this.timer = 1;
       }
@@ -608,9 +697,7 @@ export class RoomCat {
     const step = Math.min(dist, speed * dt);
     this.cat.position.x += Math.sin(this.heading) * step;
     this.cat.position.z += Math.cos(this.heading) * step;
-    if (this.sprint) {  // 衝刺：跑步動作
-      this.playClip("run", false, 0.12);
-      if (this.actions.run) this.actions.run.timeScale = 1.2;
-    } else if (this.actions.walk) this.actions.walk.timeScale = speed / (WALK_SPEED_M * this.upm);
+    // 走路或衝刺：播走路／跑步，速度配合實際移動（母體沒有 run 時用加快的走路）
+    this.playMove(speed / this.upm);
   }
 }

@@ -67,3 +67,19 @@ export function fitCatInCarrier(c: CarrierBox, cat: Bounds3, margin = CARRIER_MA
     fits: ok && insideBox(box, inner),
   };
 }
+
+/** 貓走出籠門後，屁股離籠門至少多遠（公尺）：沒量到包圍盒時當作貓身後半段的長度 */
+export const EXIT_REAR_M = 0.25;
+/** 走出籠門後和籠門留的空隙（公尺） */
+export const EXIT_GAP_M = 0.06;
+
+/**
+ * 從外出籠出來（原尺寸）：貓站在籠門外、面向外面，整隻貓（含屁股、尾巴）都在籠外。
+ * cat＝原尺寸的貓包圍盒（模型座標、面向 +z）；沒有就用 EXIT_REAR_M。
+ */
+export function carrierExit(c: CarrierBox, cat?: Bounds3 | null): { x: number; z: number; heading: number } {
+  const t = c.rotY ?? 0;
+  const rear = Math.max(cat ? -cat.min[2] : 0, EXIT_REAR_M);
+  const out = c.depthM / 2 + rear + EXIT_GAP_M;
+  return { x: c.x + Math.sin(t) * out, z: c.z + Math.cos(t) * out, heading: t };
+}
