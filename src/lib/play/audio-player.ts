@@ -107,4 +107,9 @@ export function playSfx(id: SfxId, volume = SFX_VOLUME) {
   const el = new Audio(url);
   el.volume = volume;
   el.play().catch(() => {});
+  return () => {
+    el.pause();
+    el.removeAttribute("src");
+    el.load();
+  };
 }

@@ -17,13 +17,22 @@ export function createPetMotion(cat: Object3D, clips: AnimationClip[]) {
   const walk = action("walk");
 
   cat.updateWorldMatrix(true, true);
-  const head = cat.getObjectByName("head0");
-  const up = new Vector3(0, 1, 0);
-  if (head) up.applyQuaternion(head.getWorldQuaternion(new Quaternion()).invert());
-  const turn = new Quaternion().setFromAxisAngle(up, -0.42).toArray();
-  const avoid = head ? mixer.clipAction(new AnimationClip("pet-avoid", 1, [
-    new QuaternionKeyframeTrack("head0.quaternion", [0, 1], [...turn, ...turn]),
-  ], AdditiveAnimationBlendMode)).play() : null;
+  function offset(name: string, axis: Vector3, angle: number) {
+    const bone = cat.getObjectByName(name);
+    if (!bone) return [];
+    axis.applyQuaternion(bone.getWorldQuaternion(new Quaternion()).invert());
+    const rotation = new Quaternion().setFromAxisAngle(axis, angle).toArray();
+    return [new QuaternionKeyframeTrack(name + ".quaternion", [0, 1], [...rotation, ...rotation])];
+  }
+  function additive(name: string, tracks: QuaternionKeyframeTrack[]) {
+    return tracks.length ? mixer.clipAction(new AnimationClip(name, 1, tracks, AdditiveAnimationBlendMode)).play() : null;
+  }
+  const avoid = additive("pet-avoid", offset("head0", new Vector3(0, 1, 0), -0.42));
+  const guarded = additive("pet-guarded", [
+    ...offset("ear_left", new Vector3(0, 0, 1), 0.11),
+    ...offset("ear_right", new Vector3(0, 0, 1), -0.11),
+    ...offset("tail0", new Vector3(0, 1, 0), 0.12),
+  ]);
 
   function weight(clip: AnimationAction | null, value: number) {
     if (!clip) return;
@@ -51,6 +60,7 @@ export function createPetMotion(cat: Object3D, clips: AnimationClip[]) {
       weight(cuddle, cuddleWeight);
       weight(walk, walking);
       weight(avoid, resisting);
+      weight(guarded, Math.max(0, (resisting - 0.6) / 0.4));
       if (leaving && !reduced && walked < EXIT_DISTANCE) {
         group.rotation.y = Math.max(EXIT_YAW, group.rotation.y - dt * 3.6);
         // 轉身時先小步，對正後以原步態速度直行。
