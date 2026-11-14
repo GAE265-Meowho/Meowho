@@ -48,9 +48,9 @@ import e from "./play-entry.module.css";
 import { RunGateCard } from "./RunGateCard";
 import { notifyRunChanged, useActiveRun, useRunProgress } from "./useActiveRun";
 import { ShopStep } from "./ShopStep";
-import { useHouseholdExtras, usePlayHouseholds } from "./usePlayData";
+import { useHouseholdExtras, usePlayHouseholds, useRunReportId } from "./usePlayData";
 import { HazardDialog } from "./HazardDialog";
-import { year5HazardMoment } from "@/lib/play/year5-hazard";
+import { canShowHazard, hazardReportTarget, loadReportHazard, year5HazardMoment, type ReportHazardItem } from "@/lib/play/year5-hazard";
 import s from "./play.module.css";
 
 const STEP_LABELS = [["background", "你的家"], ["shop", "採買"], ["place", "擺用品"], ["node", "飼養"], ["report", "報告"]] as const;
@@ -147,11 +147,23 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
   const places = useMemo(() => ({ hide: homeWord("躲藏處", labels) ?? "角落", high: homeWord("高處", labels) ?? "", sofa: "沙發" }), [labels]);
   const node = STORY[state.nodeIndex];
   const cur = state.cur;
-  // 五年後看完醫生回家、小叮嚀那一刻跳一次居家危險彈窗（year5-hazard.ts）；照片只在有自己的環境報告時讀
+  // 五年後意外回到家、小叮嚀那一刻跳一次居家危險彈窗（year5-hazard.ts）：只讀這一輪定格的報告，有真實裁切照才跳
   const [hazardOpen, setHazardOpen] = useState(false);
+  const [hazardItem, setHazardItem] = useState<ReportHazardItem | null>(null);
   const hazardShown = useRef(false);
+  const runReportId = useRunReportId(runId);
+  const hazardTarget = hazardReportTarget({ demo: isDemo, signedIn: Boolean(user), householdId: hh?.id ?? null, runReportId });
+  const hazardHh = hazardTarget?.householdId ?? null, hazardRp = hazardTarget?.reportId ?? null;
+  const inYear5 = state.step === "node" && node.id === "year5";
+  const riskKey = state.life.risk?.key ?? null;
+  useEffect(() => {
+    if (!inYear5 || !hazardHh || !hazardRp || !riskKey) return;
+    const ctrl = new AbortController();
+    loadReportHazard(hazardHh, hazardRp, riskKey, fetch, ctrl.signal).then(v => { if (!ctrl.signal.aborted) setHazardItem(v); });
+    return () => ctrl.abort();
+  }, [inYear5, hazardHh, hazardRp, riskKey]);
   const hazardNow = year5HazardMoment({ step: state.step, nodeId: state.step === "node" ? node.id : null, cur: cur?.kind === "lines" ? { kind: "lines", lines: cur.lines } : cur, sceneBg: state.scene.bg, events: state.life.events, risk: state.life.risk });
-  useEffect(() => { if (hazardNow && !hazardShown.current) { hazardShown.current = true; setHazardOpen(true); } }, [hazardNow]);
+  useEffect(() => { if (hazardNow && canShowHazard(hazardItem) && hazardItem.key === riskKey && !hazardShown.current) { hazardShown.current = true; setHazardOpen(true); } }, [hazardNow, hazardItem, riskKey]);
   const shop = shopCost(pick, "kitten", backShop);
   useEffect(() => { setPick(p => clampShop(p, backShop)); }, [backShop]);
   const shopMissing = [...(pick.budget ? [] : ["每月預算"]), ...shop.missing];
@@ -442,8 +454,8 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
         </div>
       )}
       {saveErr && <p className={s.missing} role="status">進度沒有存到，請檢查網路；離開後可能要從上一個節點接著玩。</p>}
-      {hazardOpen && state.life.risk && (
-        <HazardDialog risk={state.life.risk} householdId={!isDemo && user && hh ? hh.id : null} reportId={!isDemo && user ? extras?.reportId ?? null : null} onClose={() => setHazardOpen(false)} />
+      {hazardOpen && state.life.risk && hazardItem && (
+        <HazardDialog risk={state.life.risk} item={hazardItem} onClose={() => setHazardOpen(false)} />
       )}
       {abandoning && runId && (
         <div className={e.overlay}><AbandonPanel catName={catName} runId={runId} onCancel={() => setAbandoning(false)} onDone={() => { window.location.href = catHref; }} /></div>
@@ -577,7 +589,7 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
 
       {state.step === "report" && home && (
         <ReportStep state={state} pick={pick} monthly={shop.month} home={home} runId={runId} catHref={catHref}
-          onRestart={() => { dispatch({ type: "restart" }); hazardsAsked.current = false; hazardShown.current = false; setPlaced([]); setScanSpots({}); setLines({}); setRunId(null); setFrozenRoom(null); savedCp.current = null; }} />
+          onRestart={() => { dispatch({ type: "restart" }); hazardsAsked.current = false; hazardShown.current = false; setHazardItem(null); setPlaced([]); setScanSpots({}); setLines({}); setRunId(null); setFrozenRoom(null); savedCp.current = null; }} />
       )}
     </div>
   );

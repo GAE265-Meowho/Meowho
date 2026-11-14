@@ -13,18 +13,18 @@ export interface Year5MomentInput {
   /** 目前畫面上的東西（flow.ts 的 cur）；只看 kind 與台詞 */
   cur: { kind: string; lines?: readonly { t: string }[] } | null;
   sceneBg: string;
-  /** 這一輪的劇情事件：year5 有 incident 才是送醫那條路 */
+  /** 這一輪的劇情事件：year5 有 incident（送醫）或 scare（虛驚）才是意外那段 */
   events: readonly { node: NodeId; id: string }[];
   risk: Risk | null;
 }
 
 const TIP = "小叮嚀：";
 
-/** 只在 year5 送醫那條路、場景已從醫院回到家（room）、正在顯示小叮嚀時成立；虛驚（沒送醫）與毛球（沒有危險項目）不算 */
+/** year5 意外那段回到家（room）、正在顯示小叮嚀時成立：送醫是從醫院回家後、虛驚是在家觀察後；毛球（沒有危險項目）不算 */
 export function year5HazardMoment(i: Year5MomentInput): boolean {
   if (i.step !== "node" || i.nodeId !== "year5" || !i.risk) return false;
   if (i.sceneBg !== "room" || i.cur?.kind !== "lines") return false;
-  if (!i.events.some(e => e.node === "year5" && e.id === "incident")) return false;
+  if (!i.events.some(e => e.node === "year5" && (e.id === "incident" || e.id === "scare"))) return false;
   return (i.cur.lines ?? []).some(l => l.t.startsWith(TIP));
 }
 
@@ -80,6 +80,20 @@ export async function loadReportHazard(
   } catch {
     return null;
   }
+}
+
+/**
+ * 要讀哪一份報告：一律用這一輪開始時定格的 meow_task_runs.env_report_id（續玩也一樣），不讀最新那份。
+ * 示範模式、沒登入、沒有喵戶、沒有進行中的紀錄或沒有定格報告 → null（不跳彈窗）。
+ */
+export function hazardReportTarget(i: { demo: boolean; signedIn: boolean; householdId: string | null; runReportId: string | null | undefined }): { householdId: string; reportId: string } | null {
+  if (i.demo || !i.signedIn || !i.householdId || !i.runReportId) return null;
+  return { householdId: i.householdId, reportId: i.runReportId };
+}
+
+/** 只有拿到這一項的真實裁切照才跳彈窗（示範報告、沒照片、對不上、讀不到都不跳） */
+export function canShowHazard(item: ReportHazardItem | null | undefined): item is ReportHazardItem & { cropUrl: string } {
+  return Boolean(item && !item.demo && item.cropUrl);
 }
 
 /** 彈窗要顯示的內容：risk＝劇情的那一項（advice＝小叮嚀原文）；item＝報告裡同一項（有才有照片與 note） */
