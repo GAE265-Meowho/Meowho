@@ -14,7 +14,10 @@ export const VET_COLORS = {
   mintSoft: "#e3f2e7",   // --mint-soft：診療台墊
   pink: "#f4b2ad",       // --pink：小物
   card: "#ffffff",       // --card：診療台金屬面、海報
-  inkSoft: "#7a6252",    // --ink-soft：台腳、把手
+  inkSoft: "#7a6252",    // --ink-soft：台腳、把手、獸醫頭髮與聽診器
+  ink: "#3f2e24",        // --ink：獸醫眼睛、眼鏡、嘴巴
+  orange: "#e8913a",     // --orange：獸醫白袍裡的上衣（同對話框頭像的身體色）
+  orangeSoft: "#fde3c6", // --orange-soft：獸醫的臉和手（同對話框頭像的臉色）
 } as const;
 
 export type VetColor = (typeof VET_COLORS)[keyof typeof VET_COLORS];
@@ -79,4 +82,85 @@ export function vetLight(house: SceneLight["house"] | null | undefined): VetLigh
   if (!house) return DAY_VET;
   const { hemi, ambient, sun, catLight, catLightColor } = house;
   return { hemi, ambient, sun, catLight, catLightColor };
+}
+
+// ── 獸醫（#354，渝茜 2026-11-14）：程式建的低多邊形 Q 版人物，造型對齊對話框頭像（SpeakerAvatar 的 vet）：
+//    圓臉（orange-soft）、深色頭髮（ink-soft）、圓眼鏡、白袍、聽診器。不用照片、不寫實；24 個 mesh。
+//    座標：腳底為原點、正前方 local +z；on＝head 的零件以「脖子頂端」為原點，點頭時一起轉。
+
+export interface DoctorPart {
+  id: string;
+  /** box：寬高深；cyl：上半徑、下半徑、高；sphere：半徑；cap：上半球半徑；torus：半徑、管粗、弧度 */
+  shape: "box" | "cyl" | "sphere" | "cap" | "torus";
+  args: readonly number[];
+  pos: readonly [number, number, number];
+  rot?: readonly [number, number, number];
+  color: VetColor;
+  on: "body" | "head";
+}
+
+/** 脖子頂端（點頭的轉軸）離地高度 */
+export const DOCTOR_NECK_Y = 1.3;
+const HALF = Math.PI;
+
+export const DOCTOR_PARTS: readonly DoctorPart[] = [
+  // 身體：腿、白袍（下寬上窄）、圓肩、袍裡的橘色上衣、手臂、手
+  { id: "leg-l", shape: "cyl", args: [0.06, 0.06, 0.62], pos: [-0.08, 0.31, 0], color: C.inkSoft, on: "body" },
+  { id: "leg-r", shape: "cyl", args: [0.06, 0.06, 0.62], pos: [0.08, 0.31, 0], color: C.inkSoft, on: "body" },
+  { id: "coat", shape: "cyl", args: [0.17, 0.25, 0.62], pos: [0, 0.88, 0], color: C.card, on: "body" },
+  { id: "shoulders", shape: "sphere", args: [0.17], pos: [0, 1.19, 0], color: C.card, on: "body" },
+  { id: "shirt", shape: "box", args: [0.09, 0.1, 0.01], pos: [0, 1.15, 0.19], rot: [-0.2, 0, 0], color: C.orange, on: "body" },
+  { id: "arm-l", shape: "cyl", args: [0.055, 0.065, 0.48], pos: [-0.22, 0.96, 0.02], rot: [0, 0, -0.12], color: C.card, on: "body" },
+  { id: "arm-r", shape: "cyl", args: [0.055, 0.065, 0.48], pos: [0.22, 0.96, 0.02], rot: [0, 0, 0.12], color: C.card, on: "body" },
+  { id: "hand-l", shape: "sphere", args: [0.055], pos: [-0.25, 0.7, 0.03], color: C.orangeSoft, on: "body" },
+  { id: "hand-r", shape: "sphere", args: [0.055], pos: [0.25, 0.7, 0.03], color: C.orangeSoft, on: "body" },
+  { id: "neck", shape: "cyl", args: [0.06, 0.06, 0.1], pos: [0, 1.27, 0], color: C.orangeSoft, on: "body" },
+  // 聽診器：掛在脖子上的弧＋垂下的管子＋聽頭
+  { id: "steth", shape: "torus", args: [0.12, 0.012, HALF], pos: [0, 1.24, 0.1], rot: [-0.5, 0, HALF], color: C.inkSoft, on: "body" },
+  { id: "steth-tube", shape: "cyl", args: [0.012, 0.012, 0.14], pos: [0.12, 1.15, 0.17], color: C.inkSoft, on: "body" },
+  { id: "steth-head", shape: "cyl", args: [0.032, 0.032, 0.016], pos: [0.12, 1.07, 0.2], rot: [HALF / 2, 0, 0], color: C.yellow, on: "body" },
+  { id: "badge", shape: "box", args: [0.07, 0.04, 0.01], pos: [-0.1, 1.06, 0.2], rot: [-0.13, 0, 0], color: C.pink, on: "body" },
+  // 頭（以脖子頂端為原點）：大圓臉、往後傾的頭髮帽、眼睛、圓眼鏡、微笑、腮紅
+  { id: "head", shape: "sphere", args: [0.19], pos: [0, 0.18, 0], color: C.orangeSoft, on: "head" },
+  { id: "hair", shape: "cap", args: [0.2], pos: [0, 0.2, -0.015], rot: [-0.45, 0, 0], color: C.inkSoft, on: "head" },
+  { id: "eye-l", shape: "sphere", args: [0.02], pos: [-0.065, 0.19, 0.172], color: C.ink, on: "head" },
+  { id: "eye-r", shape: "sphere", args: [0.02], pos: [0.065, 0.19, 0.172], color: C.ink, on: "head" },
+  { id: "glass-l", shape: "torus", args: [0.045, 0.007, HALF * 2], pos: [-0.065, 0.19, 0.185], color: C.ink, on: "head" },
+  { id: "glass-r", shape: "torus", args: [0.045, 0.007, HALF * 2], pos: [0.065, 0.19, 0.185], color: C.ink, on: "head" },
+  { id: "bridge", shape: "box", args: [0.04, 0.008, 0.008], pos: [0, 0.195, 0.19], color: C.ink, on: "head" },
+  { id: "smile", shape: "torus", args: [0.03, 0.007, HALF], pos: [0, 0.125, 0.178], rot: [0, 0, HALF], color: C.ink, on: "head" },
+  { id: "cheek-l", shape: "sphere", args: [0.025], pos: [-0.115, 0.13, 0.145], color: C.pink, on: "head" },
+  { id: "cheek-r", shape: "sphere", args: [0.025], pos: [0.115, 0.13, 0.145], color: C.pink, on: "head" },
+];
+
+/** 獸醫站在診療台後側、面向貓（鏡頭從右前方看得到臉）；yaw＝讓 local +z 指向貓 */
+const DOC_X = 0.5, DOC_Z = -0.78;
+export const DOCTOR_AT = { pos: [DOC_X, 0, DOC_Z] as const, yaw: Math.atan2(TABLE_TOP.x - DOC_X, TABLE_TOP.z - DOC_Z) };
+
+/** 平常的頭：微微低頭看診療台上的貓 */
+const BASE_PITCH = 0.18;
+export interface DoctorPose { breathe: number; headPitch: number; headYaw: number }
+
+/**
+ * 獸醫的待機姿勢（純函式，元件每幀呼叫）。t＝秒；nodAge＝獸醫開口後過了幾秒（null＝沒在說話）；still＝減少動態（完全不動）。
+ * 呼吸：身體 y 縮放 ±1.2%；偶爾轉頭看貓（左右 0.12 弧度）、每 8 秒輕輕點一下頭；說話時點兩下頭（0.9 秒）。
+ */
+export function doctorPose(t: number, nodAge: number | null, still: boolean): DoctorPose {
+  if (still) return { breathe: 1, headPitch: BASE_PITCH, headYaw: 0 };
+  const breathe = 1 + 0.012 * Math.sin((2 * Math.PI * t) / 3.6);
+  const phase = ((t % 8) + 8) % 8;
+  const idleNod = phase < 0.8 ? 0.08 * Math.sin((Math.PI * phase) / 0.8) : 0;
+  const talkNod = nodAge !== null && nodAge >= 0 && nodAge < 0.9 ? 0.22 * Math.abs(Math.sin((Math.PI * nodAge) / 0.45)) : 0;
+  return { breathe, headPitch: BASE_PITCH + Math.max(idleNod, talkNod), headYaw: talkNod ? 0 : 0.12 * Math.sin((2 * Math.PI * t) / 9) };
+}
+
+/** 現在的劇情卡片是不是獸醫在說話：是就回一個這張卡專屬的 key（換卡才再點頭），不是回 null */
+export function vetTalkKey(cur: { kind: string; who?: string; t?: string; lines?: readonly { who?: string; t: string }[] } | null | undefined): string | null {
+  if (!cur) return null;
+  if (cur.kind === "ask") return cur.who === "vet" ? `ask:${cur.t ?? ""}` : null;
+  if (cur.kind === "lines") {
+    const said = (cur.lines ?? []).filter(l => l.who === "vet").map(l => l.t);
+    return said.length ? `lines:${said.join("|")}` : null;
+  }
+  return null;
 }
