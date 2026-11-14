@@ -339,24 +339,29 @@ export class RoomCat {
    */
   jumpOn(o, top, camera = null, spot = null, done = null) {
     if (this.surface === o) { done?.(); return true; }
-    const center = new THREE.Vector2(o.floor_pos_m[0], o.floor_pos_m[2]).multiplyScalar(this.upm);
-    const hw = (o.size_m[0] / 2) * this.upm, hd = (o.size_m[2] / 2) * this.upm;
-    const edge = (p) => Math.hypot(Math.max(Math.abs(p.x - center.x) - hw, 0), Math.max(Math.abs(p.y - center.y) - hd, 0));
     const inset = LAND_INSET_M * this.upm;
+    // 檯面範圍：有 surfaces[0] 的中心、大小、轉角就用（掃描的床常斜放，不轉的話床邊的空地算錯、找不到起跳點）
+    const f = o.surfaces?.[0];
+    const rot = f?.center && f?.size;
+    const center = rot ? new THREE.Vector2(f.center[0], f.center[1]).multiplyScalar(this.upm) : new THREE.Vector2(o.floor_pos_m[0], o.floor_pos_m[2]).multiplyScalar(this.upm);
+    const hw = ((rot ? f.size[0] : o.size_m[0]) / 2) * this.upm, hd = ((rot ? f.size[1] : o.size_m[2]) / 2) * this.upm;
+    const yaw = rot ? f.yaw ?? o.box?.yaw ?? 0 : 0, yc = Math.cos(yaw), ys = Math.sin(yaw);
+    const local = (p) => { const dx = p.x - center.x, dz = p.y - center.y; return [dx * yc + dz * ys, -dx * ys + dz * yc]; };
+    const edge = (p) => { const [u, v] = local(p); return Math.hypot(Math.max(Math.abs(u) - hw, 0), Math.max(Math.abs(v) - hd, 0)); };
+    // 落點：夾在檯面內（轉回地板座標）
+    const landAt = (p) => {
+      const [u, v] = local(p), cu = THREE.MathUtils.clamp(u, -hw + inset, hw - inset), cv = THREE.MathUtils.clamp(v, -hd + inset, hd - inset);
+      return new THREE.Vector2(center.x + cu * yc - cv * ys, center.y + cu * ys + cv * yc);
+    };
     const go = () => {
       for (const { k } of this.spotsNear(edge, 0.05 * this.upm, 0.4 * this.upm, camera)) {
         if (!this.goTo(k, center)) continue;
-        const p = this.centerOf(k);
-        const land = new THREE.Vector3(
-          spot ? spot.x : THREE.MathUtils.clamp(p.x, center.x - hw + inset, center.x + hw - inset), top * this.upm,
-          spot ? spot.y : THREE.MathUtils.clamp(p.y, center.y - hd + inset, center.y + hd - inset));
+        // 指定落點（例如玩具位置）離起跳點太遠就落在床邊，上去再跑過去
+        const from = this.centerOf(k), p = spot && spot.distanceTo(from) < this.upm ? spot : landAt(from);
+        const land = new THREE.Vector3(p.x, top * this.upm, p.y);
         this.arrive = () => this.startJump(land, () => {
           this.surface = o;
-          // 檯面範圍：有 surfaces[0] 的中心、大小、轉角就用（掃描的床常斜放），不然用家具的底面
-          const f = o.surfaces?.[0];
-          this.surfaceRect = f?.center && f?.size
-            ? { x: f.center[0] * this.upm, z: f.center[1] * this.upm, hw: Math.max((f.size[0] / 2) * this.upm - inset / 3, 0), hd: Math.max((f.size[1] / 2) * this.upm - inset / 3, 0), yaw: f.yaw ?? o.box?.yaw ?? 0 }
-            : { x: center.x, z: center.y, hw: Math.max(hw - inset / 3, 0), hd: Math.max(hd - inset / 3, 0), yaw: 0 };
+          this.surfaceRect = { x: center.x, z: center.y, hw: Math.max(hw - inset / 3, 0), hd: Math.max(hd - inset / 3, 0), yaw };
           this.timer = 10 + Math.random() * 8;
           done?.();
         });
