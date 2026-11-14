@@ -12,7 +12,8 @@ describe("小遊戲開始前的示範", () => {
     render(<MiniGuideGate id="feed" catName="灰寶"><p>遊戲本體</p></MiniGuideGate>);
     expect(screen.getByText("餵飯怎麼玩")).toBeInTheDocument();
     expect(screen.queryByText("遊戲本體")).toBeNull();
-    fireEvent.click(screen.getByRole("tab", { name: "第 2 步" }));
+    // 有真正遊戲畫面的錄影：放影片，全部步驟一起列出來
+    expect(screen.getByLabelText("餵飯的遊戲畫面示範").getAttribute("src")).toBe("/play/guide/feed.mp4");
     expect(screen.getByText(/份量條到建議份量就放開/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "開始" }));
     expect(screen.getByText("遊戲本體")).toBeInTheDocument();
@@ -27,5 +28,12 @@ describe("小遊戲開始前的示範", () => {
     unmount();
     render(<MiniGuideGate id="pet" catName="灰寶"><p>遊戲本體</p></MiniGuideGate>);
     expect(screen.getByText("遊戲本體")).toBeInTheDocument();
+  });
+
+  it("沒有錄影的（逗貓）用動畫示範圖，可以點圓點換步驟", () => {
+    render(<MiniGuideGate id="play" catName="灰寶"><p>遊戲本體</p></MiniGuideGate>);
+    expect(screen.queryByLabelText("逗貓的遊戲畫面示範")).toBeNull();
+    fireEvent.click(screen.getByRole("tab", { name: "第 2 步" }));
+    expect(screen.getByText(/灰寶會衝過去撲/)).toBeInTheDocument();
   });
 });
