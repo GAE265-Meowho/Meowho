@@ -6,7 +6,7 @@ import { clone } from "three/addons/utils/SkeletonUtils.js";
 import { newPetState, petResult, petStroke, type PetZone } from "@/lib/play/mini3d/pet-rules";
 import { createPetHitRegions } from "@/lib/play/mini3d/pet-hit-regions";
 import { newPetReaction, petReaction } from "@/lib/play/mini3d/pet-reactions";
-import { finishPetSession, PET_LESSONS, petCue } from "@/lib/play/mini3d/pet-learning";
+import { PET_LESSONS, petCue } from "@/lib/play/mini3d/pet-learning";
 import { loadSoundIndex, playSfx, unlockAudio } from "@/lib/play/audio-player";
 import type { MiniCtx } from "../catgame/minis";
 import { useScenePointer } from "./useScenePointer";
@@ -18,13 +18,11 @@ const CAMERA_START: [number, number, number] = [0.92, 0.52, 0.57];
 const CAMERA_TARGET: [number, number, number] = [0, 0.24, -0.025];
 const MODEL = "/hq-cat-models/base/base_clips.glb";
 
-function PetScene({ game, favorite, onStroke, controls, onZone, onPose, enabled, demo, onRelease }: {
+function PetScene({ game, favorite, onStroke, controls, onZone, onPose, onRelease }: {
   game: { current: ReturnType<typeof newPetState> };
   favorite: NonNullable<MiniCtx["touchFav"]>;
   controls: { current: ComponentRef<typeof OrbitControls> | null };
   onZone: (zone: PetZone) => void;
-  enabled: boolean;
-  demo: "resisting" | "leaving" | null;
   onRelease: () => void;
   onPose: (pose: ReturnType<typeof newPetReaction>["pose"]) => void;
   onStroke: (zone: PetZone, distance: number, dt: number, touching: boolean) => boolean;
@@ -66,7 +64,7 @@ function PetScene({ game, favorite, onStroke, controls, onZone, onPose, enabled,
 
   useFrame((_, dt) => {
     const { ran, annoyance } = game.current;
-    if (!demo && !ran && !pointer.current && annoyance > 0) {
+    if (!ran && !pointer.current && annoyance > 0) {
       recovery.current += dt;
       if (recovery.current >= 0.1) {
         onStroke(null, 0, recovery.current, false);
@@ -74,7 +72,7 @@ function PetScene({ game, favorite, onStroke, controls, onZone, onPose, enabled,
       }
     }
     reaction.current = petReaction(reaction.current, { dt, annoyance: game.current.annoyance, ran });
-    const pose = demo ?? reaction.current.pose;
+    const pose = reaction.current.pose;
     if (pose !== lastPose.current) {
       lastPose.current = pose;
       onPose(pose);
@@ -92,7 +90,7 @@ function PetScene({ game, favorite, onStroke, controls, onZone, onPose, enabled,
 
   useScenePointer({
     claim(_event, ray) {
-      if (!enabled || game.current.ran || orbiting.current) return false;
+      if (game.current.ran || orbiting.current) return false;
       const zone = hitRegions.current?.hit(ray, true) ?? null;
       if (!zone) return false;
       if (controls.current) controls.current.enabled = false;
@@ -100,17 +98,18 @@ function PetScene({ game, favorite, onStroke, controls, onZone, onPose, enabled,
       return true;
     },
     hover(_event, ray) {
-      showZone(!enabled || game.current.ran || orbiting.current ? null : hitRegions.current?.hit(ray, true) ?? null);
+      showZone(game.current.ran || orbiting.current ? null : hitRegions.current?.hit(ray, true) ?? null);
     },
     leave() { showZone(null); },
     down(event) {
+      unlockAudio();
       if (!game.current.ran && !pointer.current) {
         pointer.current = { id: event.pointerId, x: event.clientX, y: event.clientY, time: event.timeStamp };
       }
     },
     move(event, ray) {
       const last = pointer.current;
-      if (!enabled || game.current.ran || last?.id !== event.pointerId) return;
+      if (game.current.ran || last?.id !== event.pointerId) return;
       const dt = (event.timeStamp - last.time) / 1000;
       if (dt <= 0) return;
       const distance = Math.hypot(event.clientX - last.x, event.clientY - last.y);
@@ -162,33 +161,32 @@ export function PetGame3D({ ctx, onDone }: { ctx: MiniCtx; onDone: (r: unknown) 
   const [pose, setPose] = useState(newPetReaction().pose);
   const favorite = ctx.touchFav ?? "head";
   const result = petResult(state);
-  const [mode, setMode] = useState<"free" | "guided" | null>(null);
-  const [stage, setStage] = useState<"practice" | "observe" | "warning" | "leaving" | "review">("practice");
-  const [showZones, setShowZones] = useState(true);
-  const [sound, setSound] = useState(false);
   const [paused, setPaused] = useState(false);
   const [pauseDue, setPauseDue] = useState(false);
-  const [respectedPause, setRespectedPause] = useState(false);
   const seconds = useRef(0);
   const interacted = useRef(false);
-  const guided = mode === "guided";
-  const demo = guided && stage === "warning" ? "resisting" : guided && stage === "leaving" ? "leaving" : null;
-  const cue = !mode ? "invite" : demo === "resisting" ? "warning" : demo === "leaving" || state.ran ? "leaving"
-    : stage === "observe" || stage === "review" ? "pause" : petCue(pose, state.annoyance, paused, pauseDue);
+  const relaxedVisits = useRef(0);
+  const hissed = useRef(false);
+  const stopSound = useRef<ReturnType<typeof playSfx>>(undefined);
+  const cue = state.ran ? "leaving" : !interacted.current ? "invite" : petCue(pose, state.annoyance, paused, pauseDue);
   const lesson = PET_LESSONS[cue];
-  const soundCue = stage === "review" ? null : demo === "resisting" || pose === "resisting" ? "sfx_hiss"
-    : pose === "relaxed" && !demo ? "sfx_purr" : null;
 
+  useEffect(() => { void loadSoundIndex(); }, []);
+  useEffect(() => () => stopSound.current?.(), []);
   useEffect(() => {
-    if (sound && soundCue) return playSfx(soundCue, 0.25);
-  }, [sound, soundCue]);
+    if (pose === "resisting" || pose === "leaving") stopSound.current?.();
+    const sound = pose === "resisting" && !hissed.current ? "hiss"
+      : pose === "relaxed" && relaxedVisits.current < 2 ? (++relaxedVisits.current === 1 ? "purr" : "meow") : null;
+    if (!sound) return;
+    if (sound === "hiss") hissed.current = true;
+    stopSound.current?.();
+    // 素材來源尚待確認，本機試玩用音檔不隨 Git 或正式建置發佈。
+    const local = process.env.NEXT_PUBLIC_PET_LOCAL_AUDIO === "1" ? "/play/pet-audio-local/cat-" + sound + ".mp3" : undefined;
+    stopSound.current = playSfx(`sfx_${sound}`, sound === "hiss" ? 0.18 : 0.25, local);
+  }, [pose]);
 
   return <>
-    <p className={styles.hint}>觀察牠的反應，讓牠自己選擇。</p>
-    {!mode && <div className={styles.petControls}>
-      <button className="btn" type="button" onClick={() => setMode("free")}>自由互動</button>
-      <button className="btn" type="button" onClick={() => setMode("guided")}>引導式練習</button>
-    </div>}
+    <p className={styles.hint}>輕輕撫摸，觀察牠是否想繼續。</p>
     <div className={styles.scene}>
       <Canvas dpr={[1, 1.5]} camera={{ position: CAMERA_START, fov: 38, near: 0.02, far: 12 }}
         onCreated={({ camera }) => camera.lookAt(...CAMERA_TARGET)}
@@ -197,13 +195,10 @@ export function PetGame3D({ ctx, onDone }: { ctx: MiniCtx; onDone: (r: unknown) 
         <directionalLight position={[1, 2, 3]} intensity={1.65} />
         <Suspense fallback={null}>
           <PetScene game={current} favorite={favorite} controls={controls} onZone={setZone} onPose={setPose}
-            enabled={mode !== null && stage === "practice"} demo={demo}
             onRelease={() => {
-              if (!current.current.ran && current.current.annoyance >= 28) setRespectedPause(true);
               setPaused(seconds.current >= 3 || current.current.annoyance >= 28);
               seconds.current = 0;
               setPauseDue(false);
-              if (guided && stage === "practice" && pose === "relaxed") setStage("observe");
             }} onStroke={(zone, distancePx, dt, touching) => {
             if (touching && zone && distancePx > 0) {
               interacted.current = true;
@@ -222,7 +217,10 @@ export function PetGame3D({ ctx, onDone }: { ctx: MiniCtx; onDone: (r: unknown) 
       </Canvas>
     </div>
     <div className={styles.petControls}>
-      <button className="btn" type="button" onClick={() => {
+      <p className={styles.hint}>{zone
+        ? ZONE_LABELS[zone] + " · " + (zone === favorite ? "這隻貓的偏好部位" : zone === "belly" || zone === "tail" ? "先避開" : "輕摸並觀察")
+        : "拖曳背景轉動視角。可先輕摸頭或下巴。"}</p>
+      <button className="btn ghost" type="button" onClick={() => {
         const orbit = controls.current;
         if (!orbit?.enabled) return;
         orbit.object.position.set(...CAMERA_START);
@@ -230,36 +228,18 @@ export function PetGame3D({ ctx, onDone }: { ctx: MiniCtx; onDone: (r: unknown) 
         orbit.update();
         setZone(null);
       }}>重設視角</button>
-      <button className="btn" type="button" aria-pressed={showZones} onClick={() => setShowZones(!showZones)}>部位提示</button>
-      <button className="btn" type="button" aria-pressed={sound} onClick={() => {
-        if (!sound) { unlockAudio(); void loadSoundIndex(); }
-        setSound(!sound);
-      }}>貓咪音效</button>
     </div>
-    {showZones && <p className={styles.hint}>{zone
-      ? ZONE_LABELS[zone] + " · " + (zone === favorite ? "這隻貓的偏好部位" : zone === "belly" || zone === "tail" ? "先避開" : "輕摸並觀察")
-      : "拖曳背景轉動視角。可以先從頭或下巴附近開始。"}</p>}
-    {mode === "free" && <div className={styles.meters}>
+    <div className={styles.meters}>
       <label>開心 <progress max={100} value={result.fun} /> {result.fun}</label>
       <label>煩躁 <progress max={100} value={state.annoyance} /></label>
-    </div>}
+    </div>
     <section className={styles.petLesson}>
-      {demo && <strong>情境示範</strong>}
       <p role="status">{lesson.hint}</p>
       <details><summary>為什麼？</summary><p>{lesson.detail} <a href={lesson.source} target="_blank" rel="noreferrer">閱讀資料來源</a></p></details>
     </section>
-    {guided && <div className={styles.petControls}>
-      {(stage === "practice" || stage === "observe") && <button className="btn" type="button" onClick={() => setStage("warning")}>觀察轉頭示範</button>}
-      {stage === "warning" && <button className="btn" type="button" onClick={() => {
-        setRespectedPause(true);
-        setStage("leaving");
-      }}>停手，讓牠自己選擇</button>}
-      {stage === "leaving" && <button className="btn" type="button" onClick={() => setStage("review")}>查看照護回顧</button>}
-    </div>}
-    {mode === "free" && stage !== "review" && <button className="btn" type="button" onClick={() => setStage("review")}>結束摸貓</button>}
-    {stage === "review" && <p>{respectedPause && "你看到牠可能想休息，並選擇停手。"}
-      先邀請，輕摸幾秒，再停下來看牠是否想繼續。讓牠自己決定要不要再次靠近。</p>}
-    {(!mode || stage === "review") && <button className="btn" type="button" onClick={() =>
-      onDone(finishPetSession(guided, interacted.current, petResult(current.current)))}>返回</button>}
+    <button className="btn" type="button" onClick={() => {
+      stopSound.current?.();
+      onDone(interacted.current ? petResult(current.current) : null);
+    }}>結束互動</button>
   </>;
 }

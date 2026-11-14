@@ -316,6 +316,7 @@ export function BrushGameRealistic({
     <p className={styles.hint} id="brush-photo-hint"><strong>{title}：</strong>{hint}
       {!paste && " 桌面可按住空白鍵，移動滑鼠操作。"}
     </p>
+    <p className={styles.hint}>刷牙畫面為 AI 生成的操作示意，並非目前選擇的貓咪實際外觀。</p>
     <div ref={scene} className={photo.stage} data-mouth={frame} data-feedback={feedback} role="group" aria-label="刷牙練習影像"
       aria-describedby="brush-photo-hint" tabIndex={0}
       onPointerDown={down} onPointerMove={move} onPointerLeave={leave}
@@ -358,6 +359,6 @@ export function BrushGameRealistic({
     </p>
     {reaction === "education" && <button className="btn" type="button" onClick={endReaction}>略過衛教示範</button>}
     {visibleResult && <button className="btn" type="button" onClick={() => onDone(visibleResult)}>確認結果</button>}
-    <p>AI 模擬畫面，僅供參考，非醫療建議。</p>
+    <p>僅供參考，非醫療建議。</p>
   </>;
 }

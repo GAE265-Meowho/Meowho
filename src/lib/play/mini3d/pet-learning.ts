@@ -1,5 +1,3 @@
-import type { petResult } from "./pet-rules";
-
 const CAT = "https://pmc.ncbi.nlm.nih.gov/articles/PMC8381768/";
 const PROTECTION = "https://www.cats.org.uk/cats-blog/how-to-pet-a-cat";
 const HANDLING = "https://pmc.ncbi.nlm.nih.gov/articles/PMC10845437/";
@@ -19,8 +17,4 @@ export function petCue(pose: string, annoyance: number, paused: boolean, pauseDu
   if (pose === "resisting" || annoyance >= 28) return "warning";
   if (pauseDue) return "pause";
   return pose === "relaxed" ? "relaxed" : "observe";
-}
-
-export function finishPetSession(guided: boolean, interacted: boolean, result: ReturnType<typeof petResult>) {
-  return guided || !interacted ? null : result;
 }

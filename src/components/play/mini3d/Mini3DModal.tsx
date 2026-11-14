@@ -3,10 +3,11 @@
 import { Component, useEffect, useId, useRef, type ReactNode } from "react";
 import styles from "./mini3d.module.css";
 
-export function Mini3DModal({ title, onCancel, children }: {
+export function Mini3DModal({ title, onCancel, children, quietCancel }: {
   title: string;
   onCancel: () => void;
   children: ReactNode;
+  quietCancel?: boolean;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const titleId = useId();
@@ -24,7 +25,7 @@ export function Mini3DModal({ title, onCancel, children }: {
     }}>
       <header className={styles.header}>
         <h2 id={titleId} tabIndex={-1}>{title}</h2>
-        <button className="btn" type="button" onClick={onCancel}>取消</button>
+        <button className={quietCancel ? "btn ghost" : "btn"} type="button" onClick={onCancel}>取消</button>
       </header>
       <SceneBoundary>{children}</SceneBoundary>
     </dialog>

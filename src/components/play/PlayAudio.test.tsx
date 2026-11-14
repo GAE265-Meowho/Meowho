@@ -4,10 +4,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { BgmInput } from "@/lib/play/audio";
 
 // 假的 Audio：記下每個建出來的音檔、有沒有在播
-class FakeAudio {
+class FakeAudio extends EventTarget {
   static made: FakeAudio[] = [];
   src: string; loop = false; volume = 1; preload = ""; paused = true;
-  constructor(src: string) { this.src = src; FakeAudio.made.push(this); }
+  constructor(src: string) { super(); this.src = src; FakeAudio.made.push(this); }
   play() { this.paused = false; return Promise.resolve(); }
   pause() { this.paused = true; }
   load() {}
@@ -127,5 +127,20 @@ describe("虛擬飼養的背景音樂", () => {
     player.setMuted(true);
     player.playSfx("sfx_scream");
     expect(FakeAudio.made.map(a => a.src)).not.toContain(`${STORE}/sfx/sfx_scream.mp3`);
+  });
+
+  it("本機摸貓音效沿用全域靜音，靜音後不會重播", async () => {
+    await setup();
+    const player = await import("@/lib/play/audio-player");
+    const url = "/play/pet-audio-local/cat-purr.mp3";
+    player.unlockAudio();
+    const stop = player.playSfx("sfx_purr", 0.25, url);
+    expect(playing()).toEqual([url]);
+    player.setMuted(true);
+    player.playSfx("sfx_purr", 0.25, url);
+    player.setMuted(false);
+    expect(playing()).toEqual([]);
+    expect(FakeAudio.made).toHaveLength(1);
+    stop?.();
   });
 });

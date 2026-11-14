@@ -273,7 +273,7 @@ Worker 選用的 `report.html` 與 `html-assets/` 位於既有 attempt 前綴。
 
 ### #356 3D 刷牙與摸貓
 
-- 摸貓可選自由互動或引導式練習。自由模式有接觸暫停提示與回顧，完成仍回傳 `{ ran, fun }`。引導模式在同一場景示範轉頭與離場，結束回傳 `null`，不派送照護事件。無撫摸的自由觀察也不入帳。
+- 摸貓直接進入自由互動，停手時提供衛教回饋，完成回傳 `{ ran, fun }`。取消與未撫摸的觀察回傳 `null`。放鬆反應可觸發呼嚕或喵聲，明顯抗拒每場最多觸發一次哈氣，沿用主遊戲靜音。本機驗收可設 `NEXT_PUBLIC_PET_LOCAL_AUDIO=1`，使用 Git 忽略的 `public/play/pet-audio-local/cat-{purr,meow,hiss}.mp3`。刷牙在影像上方說明 AI 素材並非所選貓咪的實際外觀。
 - 衛教文案與來源位於 `pet-learning.ts`。音效預設關閉，共用音效索引確認上架後才可使用 `sfx_purr`／`sfx_hiss`（Storage `meow-play-audio/sfx/` 的同名 MP3）。
 
 - 摸貓反應使用成貓 GLB 的 `idle`、`cuddle`、`walk`。連續輕撫偏好部位才混入 `cuddle`，停手後回待機。煩躁達 55 混入 `head0` 的小幅轉向，降至 36 以下才解除；達既有離場門檻就停止計分，轉向後沿模型朝向走出畫面。減少動態模式保留靜態姿勢與衛教文字。
