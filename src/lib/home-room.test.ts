@@ -13,15 +13,15 @@ describe("喵戶卡片的兩顆按鈕（規格 09 §7.2 狀態表）", () => {
       safety: { label: "居家安全檢測", state: "start" },
     });
   });
-  it("3D 房間處理中：兩顆一起停用（建模同時在產生報告）", () => {
+  it("3D 房間處理中：僅在沒有已完成報告時停用安全檢測", () => {
     for (const status of ["queued", "running"]) {
       expect(homeTools([room(status)], [])).toEqual({
         scene: { label: "3D 房間處理中", state: "busy" },
         safety: { label: "安全檢測處理中", state: "busy" },
       });
     }
-    // 之前有報告也一樣停用
-    expect(homeTools([room("running")], [report("ready")]).safety.state).toBe("busy");
+    // 可在 3D 完成前閱讀已完成的安全報告
+    expect(homeTools([room("running")], [report("ready")]).safety).toEqual({ label: "查看報告", state: "view" });
   });
   it("單獨檢測處理中：第一顆照常、第二顆停用", () => {
     expect(homeTools([], [report("queued")])).toEqual({
