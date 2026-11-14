@@ -352,7 +352,11 @@ export class RoomCat {
           spot ? spot.y : THREE.MathUtils.clamp(p.y, center.y - hd + inset, center.y + hd - inset));
         this.arrive = () => this.startJump(land, () => {
           this.surface = o;
-          this.surfaceRect = { x: center.x, z: center.y, hw: Math.max(hw - inset / 3, 0), hd: Math.max(hd - inset / 3, 0) };
+          // 檯面範圍：有 surfaces[0] 的中心、大小、轉角就用（掃描的床常斜放），不然用家具的底面
+          const f = o.surfaces?.[0];
+          this.surfaceRect = f?.center && f?.size
+            ? { x: f.center[0] * this.upm, z: f.center[1] * this.upm, hw: Math.max((f.size[0] / 2) * this.upm - inset / 3, 0), hd: Math.max((f.size[1] / 2) * this.upm - inset / 3, 0), yaw: f.yaw ?? o.box?.yaw ?? 0 }
+            : { x: center.x, z: center.y, hw: Math.max(hw - inset / 3, 0), hd: Math.max(hd - inset / 3, 0), yaw: 0 };
           this.timer = 10 + Math.random() * 8;
           done?.();
         });
@@ -390,9 +394,12 @@ export class RoomCat {
     const p = this.cat.position;
     const x = p.x + dir.x * step, z = p.z + dir.y * step;
     if (this.surface) {
-      const r = this.surfaceRect;
-      p.x = THREE.MathUtils.clamp(x, r.x - r.hw, r.x + r.hw);
-      p.z = THREE.MathUtils.clamp(z, r.z - r.hd, r.z + r.hd);
+      // 夾在檯面內：轉到檯面自己的座標（u 沿寬、v 沿長）再夾，斜放的床也不會走出床緣
+      const r = this.surfaceRect, c = Math.cos(r.yaw ?? 0), s = Math.sin(r.yaw ?? 0);
+      const dx = x - r.x, dz = z - r.z;
+      const u = THREE.MathUtils.clamp(dx * c + dz * s, -r.hw, r.hw), v = THREE.MathUtils.clamp(-dx * s + dz * c, -r.hd, r.hd);
+      p.x = r.x + u * c - v * s;
+      p.z = r.z + u * s + v * c;
       return;
     }
     if (this.canStand(x, p.z)) p.x = x;
@@ -406,7 +413,8 @@ export class RoomCat {
 
   // 跳回最近的空地板
   jumpDown() {
-    const k = this.nearestFree(this.cat.position.x, this.cat.position.z, 15);
+    // 找半徑 2 公尺內最近的空地板（大床的中間離床邊超過 1 公尺，原本 15 格找不到就卡在床上）
+    const k = this.nearestFree(this.cat.position.x, this.cat.position.z, Math.max(15, Math.ceil((2 * this.upm) / this.L.cell)));
     if (k < 0) return false;
     const p = this.centerOf(k);
     this.startJump(new THREE.Vector3(p.x, 0, p.y), () => { this.surface = null; });
