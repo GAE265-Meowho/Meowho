@@ -129,18 +129,4 @@ describe("虛擬飼養的背景音樂", () => {
     expect(FakeAudio.made.map(a => a.src)).not.toContain(`${STORE}/sfx/sfx_scream.mp3`);
   });
 
-  it("本機摸貓音效沿用全域靜音，靜音後不會重播", async () => {
-    await setup();
-    const player = await import("@/lib/play/audio-player");
-    const url = "/play/pet-audio-local/cat-purr.mp3";
-    player.unlockAudio();
-    const stop = player.playSfx("sfx_purr", 0.25, url);
-    expect(playing()).toEqual([url]);
-    player.setMuted(true);
-    player.playSfx("sfx_purr", 0.25, url);
-    player.setMuted(false);
-    expect(playing()).toEqual([]);
-    expect(FakeAudio.made).toHaveLength(1);
-    stop?.();
-  });
 });

@@ -7,7 +7,6 @@ import { newPetState, petResult, petStroke, type PetZone } from "@/lib/play/mini
 import { createPetHitRegions } from "@/lib/play/mini3d/pet-hit-regions";
 import { newPetReaction, petReaction } from "@/lib/play/mini3d/pet-reactions";
 import { PET_LESSONS, petCue } from "@/lib/play/mini3d/pet-learning";
-import { loadSoundIndex, playSfx, unlockAudio } from "@/lib/play/audio-player";
 import type { MiniCtx } from "../catgame/minis";
 import { useScenePointer } from "./useScenePointer";
 import { createPetMotion } from "./pet-motion";
@@ -102,7 +101,6 @@ function PetScene({ game, favorite, onStroke, controls, onZone, onPose, onReleas
     },
     leave() { showZone(null); },
     down(event) {
-      unlockAudio();
       if (!game.current.ran && !pointer.current) {
         pointer.current = { id: event.pointerId, x: event.clientX, y: event.clientY, time: event.timeStamp };
       }
@@ -165,25 +163,8 @@ export function PetGame3D({ ctx, onDone }: { ctx: MiniCtx; onDone: (r: unknown) 
   const [pauseDue, setPauseDue] = useState(false);
   const seconds = useRef(0);
   const interacted = useRef(false);
-  const relaxedVisits = useRef(0);
-  const hissed = useRef(false);
-  const stopSound = useRef<ReturnType<typeof playSfx>>(undefined);
   const cue = state.ran ? "leaving" : !interacted.current ? "invite" : petCue(pose, state.annoyance, paused, pauseDue);
   const lesson = PET_LESSONS[cue];
-
-  useEffect(() => { void loadSoundIndex(); }, []);
-  useEffect(() => () => stopSound.current?.(), []);
-  useEffect(() => {
-    if (pose === "resisting" || pose === "leaving") stopSound.current?.();
-    const sound = pose === "resisting" && !hissed.current ? "hiss"
-      : pose === "relaxed" && relaxedVisits.current < 2 ? (++relaxedVisits.current === 1 ? "purr" : "meow") : null;
-    if (!sound) return;
-    if (sound === "hiss") hissed.current = true;
-    stopSound.current?.();
-    // 素材來源尚待確認，本機試玩用音檔不隨 Git 或正式建置發佈。
-    const local = process.env.NEXT_PUBLIC_PET_LOCAL_AUDIO === "1" ? "/play/pet-audio-local/cat-" + sound + ".mp3" : undefined;
-    stopSound.current = playSfx(`sfx_${sound}`, sound === "hiss" ? 0.18 : 0.25, local);
-  }, [pose]);
 
   return <>
     <p className={styles.hint}>輕輕撫摸，觀察牠是否想繼續。</p>
@@ -238,7 +219,6 @@ export function PetGame3D({ ctx, onDone }: { ctx: MiniCtx; onDone: (r: unknown) 
       <details><summary>為什麼？</summary><p>{lesson.detail} <a href={lesson.source} target="_blank" rel="noreferrer">閱讀資料來源</a></p></details>
     </section>
     <button className="btn" type="button" onClick={() => {
-      stopSound.current?.();
       onDone(interacted.current ? petResult(current.current) : null);
     }}>結束互動</button>
   </>;

@@ -100,9 +100,9 @@ export function setMuted(next: boolean) {
 }
 
 /** 第 1～5 份在對的時機呼叫，例如 playSfx("sfx_pour_water") */
-export function playSfx(id: SfxId, volume = SFX_VOLUME, localSrc?: string) {
+export function playSfx(id: SfxId, volume = SFX_VOLUME) {
   if (!unlocked || isMuted() || typeof Audio === "undefined") return;
-  const url = localSrc ?? (hasSound(id, index) ? src(id) : "");
+  const url = hasSound(id, index) ? src(id) : "";
   if (!url) return;
   const el = new Audio(url);
   el.volume = volume;
