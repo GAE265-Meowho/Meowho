@@ -8,9 +8,7 @@
   background: var(--card); box-shadow: var(--shadow-lift);
   color: var(--ink); font-size: var(--play-fs-body, 17px); line-height: var(--play-lh, 1.7);
 }
-/* 選項、小叮嚀、紀錄、健康聲明：內容比較多，可以長到底部卡片的上限（上面留給「看看房間」） */
-.box[data-tall="true"] { max-height: calc(var(--sheet-max, 56dvh) - 60px); overflow-y: auto; overscroll-behavior: contain; }
-.box[data-tall="true"] .foot { padding: 0 14px 10px 0; }
+/* 不捲動（渝茜 2026-11-14）：選項、紀錄放不下時由 NodeStep 分頁（lib/play/dialog-fit.ts），這裡不設 overflow */
 .box[data-tap="true"] { cursor: pointer; -webkit-tap-highlight-color: transparent; }
 
 /* 上緣：節點進度（貓掌）＋貓齡小標 */
@@ -45,8 +43,9 @@
 .pips i { width: 8px; height: 8px; border-radius: 50%; background: var(--line); }
 .pips i[data-on="true"] { background: var(--caramel); }
 
-/* 選項：整列的大按鈕 */
+/* 選項：整列的大按鈕；欄數由 NodeStep 依寬度決定（內容寬 480 以上兩欄） */
 .options { display: grid; gap: 8px; }
+.options[data-cols="2"] { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .option {
   display: flex; align-items: center; gap: 10px; width: 100%; min-height: 52px; padding: 8px 16px;
   border: 2px solid var(--line); border-radius: var(--radius); background: var(--paper); color: var(--ink);
@@ -65,14 +64,22 @@
   margin: 0; align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; padding: 2px 14px 2px 10px; border-radius: 999px;
   background: var(--yellow-soft); color: var(--ink); font-size: var(--play-fs-sub, 15px); font-weight: 700;
 }
-.log { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; }
-.log li { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border-radius: var(--radius); background: var(--paper); }
-.logIcon { display: grid; place-items: center; width: 36px; height: 36px; flex: 0 0 36px; border-radius: 50%; background: var(--yellow-soft); color: var(--ink); }
-.log li[data-kind="good"] .logIcon { background: var(--mint-soft); }
-.log li[data-kind="think"] .logIcon { background: var(--pink-soft); }
-.logBody { display: grid; gap: 0; min-width: 0; }
-.logBody b { font-size: var(--play-fs-sub, 15px); color: var(--ink); }
-.logBody span { color: var(--ink); overflow-wrap: anywhere; }
+/* 這一段的飼養紀錄：一行小結＋小晶片（圖示＋短句），種類用圖示＋底色區分，完整句在 title */
+.logTitle { margin: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; font-size: var(--play-fs-h, 20px); line-height: 1.45; color: var(--ink); }
+.logTitle svg { flex: 0 0 auto; }
+.logSum { color: var(--ink-soft); font-size: var(--play-fs-sub, 15px); font-weight: 700; }
+.chips { margin: 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 6px; }
+.chip {
+  display: inline-flex; align-items: center; gap: 6px; max-width: 100%; min-height: 34px; padding: 4px 12px 4px 8px;
+  border-radius: 999px; border: 2px solid var(--line); background: var(--yellow-soft); color: var(--ink);
+  font-size: var(--play-fs-sub, 15px); font-weight: 700; line-height: 1.4;
+}
+.chip svg { flex: 0 0 auto; }
+.chip span:last-child { min-width: 0; overflow-wrap: anywhere; }
+.chip[data-kind="good"] { background: var(--mint-soft); }
+.chip[data-kind="think"] { background: var(--pink-soft); }
+.chip[data-kind="event"] { background: var(--orange-soft); }
+.srOnly { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 
 @keyframes beatIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) {
@@ -84,7 +91,4 @@
 /* 桌機：留白大一點 */
 @media (min-width: 900px) {
   .box { --pad: 24px; padding-top: 14px; padding-bottom: 18px; gap: 12px; }
-  .options { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
-/* 橫放的手機：畫面很矮，三分之一放不下一句話 */
-@media (max-height: 520px) { .box { max-height: 52dvh; } }
