@@ -32,3 +32,40 @@ describe("補貨 action", () => {
     expect(s.life.cost.month).toBe(playReducer(initialPlay(), { type: "startNodes", catName: "麻糬", labels: [], once: 0, monthly: m0 }).life.cost.month);
   });
 });
+
+import { applyPurchase, emptySel, hasPurchase, purchaseDelta, toggleSel } from "./restock";
+
+describe("補貨選取與購買", () => {
+  const dry2 = playFoods("adult").filter(f => f.canBuy && f.product.category === "dry")[1]?.product ?? dry;
+  it("點一下選取、再點一下取消", () => {
+    const a = toggleSel(emptySel(), "wetId", wet.id);
+    expect(a.wetId).toBe(wet.id);
+    expect(toggleSel(a, "wetId", wet.id).wetId).toBeNull();
+  });
+  it("乾糧濕糧可各選一款，同類選另一款就換掉", () => {
+    let sel = toggleSel(toggleSel(emptySel(), "dryId", dry.id), "wetId", wet.id);
+    expect(sel).toEqual({ dryId: dry.id, wetId: wet.id });
+    sel = toggleSel(sel, "dryId", dry2.id);
+    expect(sel.dryId).toBe(dry2.id);
+  });
+  it("選了還沒購買：pick 不變；沒選任何東西不能購買", () => {
+    const p = pick(dry.id, null);
+    expect(hasPurchase(p, emptySel())).toBe(false);
+    expect(hasPurchase(p, { dryId: dry.id, wetId: null })).toBe(false);
+    expect(hasPurchase(p, { dryId: null, wetId: wet.id })).toBe(true);
+  });
+  it("購買後 pick 更新，沒選的類別維持原本", () => {
+    const next = applyPurchase(pick(dry.id, null), { dryId: null, wetId: wet.id });
+    expect(next.dryId).toBe(dry.id);
+    expect(next.wetId).toBe(wet.id);
+  });
+  it("每月增加的花費等於 shopCost 的差；買完 flow 的 monthly 跟著變", () => {
+    const p = pick(dry.id, null), sel = { dryId: null, wetId: wet.id };
+    const delta = purchaseDelta(p, sel, "adult");
+    expect(delta).toBe(shopCost(applyPurchase(p, sel), "adult").month - shopCost(p, "adult").month);
+    expect(purchaseDelta(p, emptySel(), "adult")).toBe(0);
+    let s = playReducer(initialPlay(), { type: "startNodes", catName: "麻糬", labels: [], once: 0, monthly: shopCost(p, "adult").month });
+    s = playReducer(s, { type: "restock", monthly: shopCost(applyPurchase(p, sel), "adult").month, note: "補買了濕糧" });
+    expect(s.monthly - shopCost(p, "adult").month).toBe(delta);
+  });
+});

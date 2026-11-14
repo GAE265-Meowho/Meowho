@@ -37,6 +37,7 @@ import { STORY, type CatPose, type NodeId } from "@/lib/play/story";
 import { CARE_ACTS, careGood, type CareAct } from "@/lib/play/care";
 import { CatgameMini } from "./catgame/CatgameMini";
 import { RestockDialog } from "./RestockDialog";
+import rs from "./restock.module.css";
 import { feedKindsAvailable, restockNote } from "@/lib/play/restock";
 import type { MiniCtx } from "./catgame/minis";
 import { CareBar, HomeStep } from "./HomeStep";
@@ -139,8 +140,14 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
   const restock = (next: ShopPick) => {
     const note = restockNote(pick, next);
     setPick(next);
-    if (note) dispatch({ type: "restock", monthly: shopCost(next, foodStage(startMonths), backShop).month, note });
+    if (note) {
+      const monthly = shopCost(next, foodStage(startMonths), backShop).month;
+      dispatch({ type: "restock", monthly, note });
+      setRestockMsg(`${note}，每月花費變成約 ${money(monthly)} 元`);
+      window.setTimeout(() => setRestockMsg(null), 5000);
+    }
   };
+  const [restockMsg, setRestockMsg] = useState<string | null>(null);
   const feedKinds = feedKindsAvailable(pick);
   // 這個節點裡餵過貓、換過水幾次：每做完一次貓就走到碗邊一次；換節點歸零
   const [served, setServed] = useState(0);
@@ -627,7 +634,8 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
           onRestart={() => { dispatch({ type: "restart" }); hazardsAsked.current = false; setPlaced([]); setScanSpots({}); setLines({}); setRunId(null); setFrozenRoom(null); savedCp.current = null; }} />
       )}
 
-      {restocking && state.step === "node" && <RestockDialog pick={pick} shop={backShop} stage={foodStage(startMonths)} catName={catName} onChange={restock} onClose={() => setRestocking(false)} />}
+      {restocking && state.step === "node" && <RestockDialog pick={pick} shop={backShop} stage={foodStage(startMonths)} catName={catName} onBuy={restock} onClose={() => setRestocking(false)} />}
+      {restockMsg && <p className={rs.notice} role="status">{restockMsg}</p>}
     </div>
   );
 }

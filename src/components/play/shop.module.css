@@ -27,10 +27,9 @@
 .groupArt img, .statArt img, .kitArt img { width: 100%; height: 100%; object-fit: contain; display: block; }
 .groupNote { margin-left: auto; padding: 4px 12px; border-radius: 999px; background: var(--paper); color: var(--ink-soft); font-size: var(--play-fs-tag, 14px); font-weight: 700; }
 
-.foods { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 0; padding: 0; list-style: none; }
-@media (min-width: 640px) { .foods { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.foods { display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 8px; margin: 0; padding: 0; list-style: none; }
 .food {
-  width: 100%; height: 100%; display: flex; flex-direction: column; gap: 6px; padding: 8px 8px 12px; border-radius: 22px;
+  width: 100%; height: 100%; min-height: 44px; display: flex; flex-direction: column; gap: 4px; padding: 6px 6px 8px; border-radius: 16px;
   border: 2px solid var(--line); background: var(--card); font: inherit; text-align: left; color: var(--ink); cursor: pointer;
   transition: transform 0.15s ease, border-color 0.15s ease;
 }
@@ -38,17 +37,22 @@
 .food[aria-pressed="true"] { border-color: var(--caramel); background: var(--orange-soft); }
 .food:disabled { cursor: not-allowed; opacity: 0.6; }
 .food:focus-visible { outline: 3px solid var(--orange); outline-offset: 2px; }
-.foodImg { position: relative; aspect-ratio: 1; border-radius: 16px; background: var(--yellow-soft); display: grid; place-items: center; overflow: hidden; }
+.foodImg { position: relative; aspect-ratio: 1; border-radius: 12px; background: var(--yellow-soft); display: grid; place-items: center; overflow: hidden; }
 .foodImg img { width: 100%; height: 100%; object-fit: contain; }
-.badge {
-  position: absolute; top: 6px; left: 6px; padding: 2px 10px; border-radius: 999px;
-  background: var(--caramel); color: var(--card); font-size: var(--play-fs-tag, 14px); font-weight: 700; line-height: 1.5;
+.badge, .owned {
+  position: absolute; top: 4px; padding: 0 8px; border-radius: 999px;
+  color: var(--card); font-size: 12px; font-weight: 700; line-height: 1.6;
 }
-.check { position: absolute; right: 6px; bottom: 6px; width: 30px; height: 30px; }
+.badge { left: 4px; background: var(--caramel); }
+.owned { right: 4px; background: var(--ink); }
+.check { position: absolute; right: 4px; bottom: 4px; width: 24px; height: 24px; }
 .check circle { fill: var(--caramel); }
 .check path { fill: none; stroke: var(--card); stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
-.foodName { padding: 0 4px; font-size: var(--play-fs-sub, 15px); line-height: 1.45; font-weight: 700; overflow-wrap: anywhere; }
-.price { margin-top: auto; padding: 0 4px; font-size: var(--play-fs-tag, 14px); color: var(--ink-soft); }
+.foodName {
+  padding: 0 2px; font-size: 13px; line-height: 1.35; font-weight: 700; overflow-wrap: anywhere;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; min-height: 2.7em;
+}
+.price { margin-top: auto; padding: 0 2px; font-size: 12px; color: var(--ink-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* ---------- 已經準備好的東西 ---------- */
 .kit { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 0; padding: 0; list-style: none; }

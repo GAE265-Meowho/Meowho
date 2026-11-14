@@ -35,7 +35,8 @@ const ICONS: Record<IconName, ReactNode> = {
 const KitIcon = ({ name }: { name: IconName }) => <svg className={c.ico} viewBox="0 0 64 64" aria-hidden="true" focusable="false">{ICONS[name]}</svg>;
 const Thumb = ({ name }: { name: string }) => <img src={thumb(name)} alt="" width={256} height={256} loading="lazy" />;
 
-export function FoodCard({ f, on, onPick }: { f: ShopFood; on: boolean; onPick: () => void }) {
+/** owned＝家裡已經有（顯示「家裡有」，不算這次購買）；on＝目前選取 */
+export function FoodCard({ f, on, onPick, owned }: { f: ShopFood; on: boolean; onPick: () => void; owned?: boolean }) {
   const p = f.product;
   return (
     <li>
@@ -43,9 +44,10 @@ export function FoodCard({ f, on, onPick }: { f: ShopFood; on: boolean; onPick: 
         <span className={c.foodImg}>
           <img src={p.image} alt="" loading="lazy" />
           {f.recommended && <span className={c.badge}>推薦</span>}
+          {owned && <span className={c.owned}>家裡有</span>}
           {on && <svg className={c.check} viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" /><path d="M6.5 12.5l3.5 3.5 7-8" /></svg>}
         </span>
-        <span className={c.foodName}>{p.name}</span>
+        <span className={c.foodName} title={p.name}>{p.name}</span>
         <span className={c.price}>{p.referencePrice ? `${formatFoodPrice(p.referencePrice.amount)}／${p.referencePrice.pack}` : "待查價"}</span>
       </button>
     </li>
