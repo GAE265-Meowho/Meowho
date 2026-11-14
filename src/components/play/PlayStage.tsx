@@ -72,7 +72,7 @@ function ViewPad({ onHold }: { onHold: (v: { x: number; y: number }) => void }) 
   );
 }
 
-export function PlayStage({ kind, scanBase, placeView = false, look, tag, bubble, bubbleInset, lookKey, placed, scanItems, story, wand, goal, clip, speed, light, vet = false, shot = null, stains = null, elder = null, onDrop, onItemError, children }: {
+export function PlayStage({ kind, scanBase, placeView = false, look, tag, bubble, bubbleInset, lookKey, placed, scanItems, story, wand, goal, clip, speed, light, vet = false, vetTalk = null, shot = null, stains = null, elder = null, onDrop, onItemError, children }: {
   kind: "scan" | "dollhouse";
   scanBase: string | null;
   /** 擺用品：掃描房間改成俯視鏡頭，畫面上多四顆轉動視角的方向鍵（娃娃屋不變） */
@@ -101,6 +101,8 @@ export function PlayStage({ kind, scanBase, placeView = false, look, tag, bubble
   light?: SceneLight | null;
   /** 看獸醫：診間疊在房間上面（房間不卸載，換回來不重新載入）；lib/play/vet-room.ts 的 showVet */
   vet?: boolean;
+  /** 診間裡獸醫在說話的卡片 key（vetTalkKey）；一換獸醫就點頭 */
+  vetTalk?: string | null;
   /** 劇情鏡頭（lib/play/camera-shot.ts 的 shotFor）；null＝原本的鏡頭 */
   shot?: CameraShot | null;
   /** 尿漬（lib/play/urine-stain.ts 的 stainsFor）；空／null＝沒有 */
@@ -130,7 +132,7 @@ export function PlayStage({ kind, scanBase, placeView = false, look, tag, bubble
         )}
       {vetUsed && (
         <div className={v.vet} data-on={vet ? "true" : "false"} aria-label={vet ? "動物醫院診間" : undefined} role={vet ? "img" : undefined}>
-          <VetRoom look={look} light={light?.house ?? null} active={vet} />
+          <VetRoom look={look} light={light?.house ?? null} active={vet} talk={vet ? vetTalk : null} />
         </div>
       )}
       {kind !== "scan" && bubble && <span className={s.bubbleFixed} aria-hidden="true"><CareIcon id={bubble} /></span>}
