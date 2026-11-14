@@ -18,7 +18,7 @@ import { boxToSolid, clampFurniturePose, rotatedHalfExtents, type SolidBody } fr
 import { focusScenes, houseScene, sceneBounds, type RoomScene, type SceneBox } from "@/lib/hq/floorplans/scene";
 import type { BodyType } from "@/lib/hq/cat-models/types";
 import { CatModel, CROSSFADE_SECONDS } from "./CatPreview";
-import { fitCatInCarrier, type Bounds3, type CarrierBox } from "@/lib/play/carrier-fit";
+import { carrierExit, fitCatInCarrier, type Bounds3, type CarrierBox } from "@/lib/play/carrier-fit";
 import { nearFree } from "@/lib/play/stage";
 import { poseBounds, tuckClip } from "@/lib/hq/rooms/pose-bounds";
 import { bowlSlotsOf, detectBowlSlots, setBowlSlots } from "./bowlSlotsDetect";
@@ -674,8 +674,8 @@ function CatActor({ s, look, click, pos, extraObs, forceClip = null, speed = 1, 
     const c = lastTuck.current, a = cat.current;
     lastTuck.current = null;
     // 籠門前面那塊地板（找不到就從貓現在的位置找最近的空地）
-    const t = c?.rotY ?? 0, out = c ? c.depthM / 2 + 0.2 : 0;
-    const door = c ? { x: c.x + Math.sin(t) * out, z: c.z + Math.cos(t) * out } : a;
+    const t = c?.rotY ?? 0;
+    const door = c ? carrierExit(c) : a;  // 整隻貓站到籠門外（carrier-fit.ts）
     const spot = nearFree(s, world.obs, door.x, door.z);
     if (spot && (c || blocked(a.x, a.z, s, world.obs))) cat.current = { ...a, ...spot, heading: t };
   }, [tuck, s, world]);

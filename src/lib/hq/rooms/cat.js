@@ -1,7 +1,7 @@
 // 房間裡會走動的貓：讀 room_layout.py 輸出的地板網格，閒晃、繞開障礙、走到點擊位置
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
-import { fitCatInCarrier } from "../../play/carrier-fit";
+import { carrierExit, fitCatInCarrier } from "../../play/carrier-fit";
 import { poseBounds, tuckClip } from "./pose-bounds";
 import { clipRate, jumpClipFor, jumpHeading, jumpKind, jumpReady, moveClip, turnStep } from "./cat-moves";
 import { clipJumpTiming, inPlaceClip, isJumpClip } from "./jump-clips";
@@ -153,9 +153,13 @@ export class RoomCat {
   untuck() {
     if (this.state !== "tuck") return;
     this.cat.scale.setScalar(1);
-    // 從籠門走出來：站到門口前面的地板（不然原尺寸的貓會卡在籠子裡、穿過外殼）
-    const c = this.tucked, t = c.rotY ?? 0, out = c.depthM / 2 + 0.18;
-    this.cat.position.set((c.x + Math.sin(t) * out) * this.upm, 0, (c.z + Math.cos(t) * out) * this.upm);
+    // 從籠門走出來：整隻貓（含屁股、尾巴）站到籠門外、面向外面（carrier-fit.ts 的 carrierExit），不然原尺寸的貓會卡在籠子裡
+    if (this.tucked) {
+      const e = carrierExit(this.tucked, this.tuckBounds?.[this.current?.getClip().name.split("|").pop()] ?? null);
+      this.cat.position.set(e.x * this.upm, 0, e.z * this.upm);
+      this.heading = e.heading;
+      this.cat.rotation.y = e.heading;
+    } else this.cat.position.y = 0;
     this.tucked = null;
     this.setState("idle");
   }
