@@ -2,12 +2,12 @@
 // 虛擬飼養：結案報告出現後的「認養貓咪」彈窗（#354，渝茜 2026-11-14）。要不要跳由 lib/play/ending.ts 的 shouldOfferAdopt 決定。
 //   報告頁淡入、活潑音樂開始後約 1.6 秒跳出；同一輪只自動跳一次（記憶體＋這一輪的 sessionStorage，重新整理報告頁不再跳）。
 //   畫面：這隻貓在平台上的照片 → 回顧裡最後一張遊戲截圖 → 貓的剪影（SVG），不會空白。
-//   主按鈕＝填認養問卷（/cats/[id]/apply，同貓咪頁）；次按鈕＝去跟中途談談（沿用貓咪頁的 MessageButton，開啟或沿用和喵戶長的私訊）。
+//   主按鈕＝填認養問卷（/cats/[id]/apply，同貓咪頁；中途沒開放問卷時不顯示，見 adoptActions）；次按鈕＝去跟中途談談（沿用貓咪頁的 MessageButton，開啟或沿用和喵戶長的私訊）。
 //   示範模式或沒登入：兩顆按鈕加 data-login（Providers 會提示登入）。關閉：右上角 X、Esc、點背景；關掉後停在報告頁，焦點回到報告。
 import { useEffect, useRef, useState } from "react";
 import { MessageButton } from "@/components/cats/MessageButton";
 import CatButton from "@/components/ui/CatButton";
-import { ADOPT_DELAY_MS, adoptSeenKey, shouldOfferAdopt } from "@/lib/play/ending";
+import { ADOPT_DELAY_MS, adoptActions, adoptSeenKey, shouldOfferAdopt } from "@/lib/play/ending";
 import a from "./adopt.module.css";
 
 const seenNow = new Set<string>();
@@ -23,8 +23,10 @@ const Silhouette = () => (
   </svg>
 );
 
-export function AdoptDialog({ catId, catName, photo, shot, runId, canAct, adoptable, abandoned }: {
+export function AdoptDialog({ catId, catName, photo, shot, runId, canAct, adoptable, abandoned, formOpen }: {
   catId: string; catName: string;
+  /** 中途是否開放認養問卷（source.ts 的 formOpen） */
+  formOpen: boolean;
   /** 這隻貓在平台上的照片（source.ts 的 photo） */
   photo: string | null;
   /** 回顧裡最後一張遊戲截圖 */
@@ -62,6 +64,7 @@ export function AdoptDialog({ catId, catName, photo, shot, runId, canAct, adopta
   if (!open) return null;
   const src = photo ?? shot;
   const login = canAct ? undefined : "認養這隻貓";
+  const actions = adoptActions({ formOpen });
   return (
     <dialog ref={ref} className={a.dialog} aria-labelledby="adopt-title" aria-describedby="adopt-desc"
       onCancel={ev => { ev.preventDefault(); close(); }}
@@ -79,11 +82,11 @@ export function AdoptDialog({ catId, catName, photo, shot, runId, canAct, adopta
           <div className={a.text}>
             <span className={a.kicker}>認養貓咪</span>
             <h2 id="adopt-title">想讓{catName}真的回家嗎？</h2>
-            <p id="adopt-desc">{catName}正在等一個家。準備好了，可以先填認養問卷，或先和照顧牠的中途聊聊。</p>
+            <p id="adopt-desc">{catName}正在等一個家。{formOpen ? "準備好了，可以先填認養問卷，或先和照顧牠的中途聊聊。" : "想多認識牠，可以先和照顧牠的中途聊聊。"}</p>
             <div className={a.actions}>
-              {canAct
+              {actions.includes("apply") && (canAct
                 ? <CatButton href={`/cats/${catId}/apply`}>填認養問卷</CatButton>
-                : <span data-login={login}><CatButton onClick={() => {}}>填認養問卷</CatButton></span>}
+                : <span data-login={login}><CatButton onClick={() => {}}>填認養問卷</CatButton></span>)}
               {canAct
                 ? <MessageButton catId={catId} label="去跟中途談談" />
                 : <span data-login={login}><CatButton variant="ghost" ears={false} onClick={() => {}}>去跟中途談談</CatButton></span>}

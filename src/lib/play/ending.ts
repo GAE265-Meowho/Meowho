@@ -91,5 +91,10 @@ export function shouldOfferAdopt(a: { adoptable: boolean; abandoned: boolean; se
   return a.adoptable && !a.abandoned && !a.seen;
 }
 
+/** 彈窗裡有哪些按鈕：中途開放認養問卷（meow_adoption_forms.is_open，同貓咪頁）才有「填認養問卷」，「去跟中途談談」一直都有 */
+export function adoptActions({ formOpen }: { formOpen: boolean }): ("apply" | "message")[] {
+  return formOpen ? ["apply", "message"] : ["message"];
+}
+
 /** 這一輪跳過彈窗的紀錄（sessionStorage 的 key） */
 export const adoptSeenKey = (runId: string | null, catId: string) => (runId ? `meowho.play.adopt.${runId}` : `meowho.play.adopt.demo.${catId}`);

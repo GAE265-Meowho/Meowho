@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  adoptSeenKey, captureMoment, ENDING_MS, endingBgmLevel, endingSchedule, endingStarts, fitSize, mergeShots, shouldOfferAdopt, type ReviewShot,
+  adoptActions, adoptSeenKey, captureMoment, ENDING_MS, endingBgmLevel, endingSchedule, endingStarts, fitSize, mergeShots, shouldOfferAdopt, type ReviewShot,
 } from "./ending";
 
 describe("endingStarts：結局的暗幕什麼時候開始", () => {
@@ -100,6 +100,10 @@ describe("shouldOfferAdopt：報告後要不要跳「認養貓咪」彈窗", () 
     expect(shouldOfferAdopt({ ...base, seen: true })).toBe(false);
     expect(shouldOfferAdopt({ ...base, adoptable: false })).toBe(false);
     expect(shouldOfferAdopt({ ...base, abandoned: true })).toBe(false);
+  });
+  it("中途沒開放認養問卷：只剩「去跟中途談談」；開放：兩顆都有（問卷在前）", () => {
+    expect(adoptActions({ formOpen: true })).toEqual(["apply", "message"]);
+    expect(adoptActions({ formOpen: false })).toEqual(["message"]);
   });
   it("記錄用的 key：有 runId 用 runId，示範模式用貓", () => {
     expect(adoptSeenKey("r1", "c1")).toBe("meowho.play.adopt.r1");

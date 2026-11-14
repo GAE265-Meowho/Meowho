@@ -695,7 +695,7 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
       {state.step === "report" && ended && <div className={endFx.whiteOut} aria-hidden="true" />}
       {state.step === "report" && (
         <AdoptDialog catId={cat.catId} catName={catName} photo={cat.photo} shot={shots[shots.length - 1]?.src ?? null} runId={runId}
-          canAct={!isDemo && Boolean(user)} adoptable={cat.adoptable} abandoned={state.life.abandoned} />
+          canAct={!isDemo && Boolean(user)} adoptable={cat.adoptable} formOpen={cat.formOpen} abandoned={state.life.abandoned} />
       )}
 
       {state.step === "report" && home && (

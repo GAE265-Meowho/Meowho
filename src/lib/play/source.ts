@@ -35,6 +35,8 @@ export interface PlayCatSource {
   demo: boolean;
   /** 這隻貓現在是否待領養（領養任務開始前的檢查用）；DEMO 不檢查 */
   adoptable: boolean;
+  /** 中途是否開放認養問卷（meow_adoption_forms.is_open，同貓咪頁）；沒開放時認養彈窗不放「填認養問卷」。DEMO＝true（只示範版面，按鈕是 data-login） */
+  formOpen: boolean;
   /** 這隻貓在平台上的照片（封面排第一張，同貓咪頁）；沒有照片、DEMO＝null。結局後的認養彈窗用 */
   photo: string | null;
   /** 各體型（幼貓／成貓）要用的 3D 母體與貼圖 */
@@ -42,7 +44,7 @@ export interface PlayCatSource {
 }
 
 export function demoPlayCat(catId: string): PlayCatSource {
-  return { catId, name: PLAY_CAT.name, coat: PLAY_CAT.coat, sex: "unknown", neutered: null, mood: { ...BASE_MOOD, reasons: [] }, touchFav: null, ageText: "", months: null, body: "kitten", tabby: true, demo: true, adoptable: true, photo: null, look: playCatLook };
+  return { catId, name: PLAY_CAT.name, coat: PLAY_CAT.coat, sex: "unknown", neutered: null, mood: { ...BASE_MOOD, reasons: [] }, touchFav: null, ageText: "", months: null, body: "kitten", tabby: true, demo: true, adoptable: true, formOpen: true, photo: null, look: playCatLook };
 }
 
 /** 讀這隻貓；任何一步失敗都回 DEMO，不擋遊戲 */
@@ -50,8 +52,9 @@ export async function loadPlayCat(catId: string): Promise<PlayCatSource> {
   const sb = getBrowserSupabase();
   if (!sb) return demoPlayCat(catId);
   try {
-    const [{ data: c }, { data: model }] = await Promise.all([
+    const [{ data: c }, { data: form }, { data: model }] = await Promise.all([
       sb.from("meow_cats").select("name, status, coat, sex, neutered, life_stage, birthday, est_age_months, personality_scale, personality_tags, personality_notes, description, intro, care, cover, photo_angles, photo_paths").eq("id", catId).maybeSingle(),
+      sb.from("meow_adoption_forms").select("is_open").eq("cat_id", catId).maybeSingle(),
       sb.from("meow_cat_models").select("variants:meow_cat_model_variants(body_type, confirmed_albedo)").eq("cat_id", catId).maybeSingle(),
     ]);
     if (!c?.name) return demoPlayCat(catId);
@@ -77,6 +80,7 @@ export async function loadPlayCat(catId: string): Promise<PlayCatSource> {
       tabby: Boolean(coat?.includes("虎斑")),
       demo: false,
       adoptable: c.status === "adoptable",
+      formOpen: Boolean((form as { is_open?: boolean } | null)?.is_open),
       photo: (() => { const p = catPagePhotos(c as Parameters<typeof catPagePhotos>[0])[0]; return p ? photoSrc(sb, p) : null; })(),
       look: body => catLookFor(body, albedo),
     };
