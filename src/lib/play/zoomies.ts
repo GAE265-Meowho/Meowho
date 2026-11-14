@@ -2,8 +2,24 @@
 // 跑酷：貓用跑步動作在房間裡衝來衝去，時不時跳上家具、待一下又跳下來；移動方向就是頭的方向（RoomCat 沿 heading 前進）。
 // 逗貓：玩具可以拖到家具（床等）的檯面上，貓跟著跳上去追；玩具回到地板，貓就跳下來。
 
-/** 有檯面的家具：底部中心 x、z，長寬，檯面高度 top */
-export interface Top { id: string; x: number; z: number; w: number; d: number; top: number }
+/**
+ * 有檯面的家具：檯面中心 x、z，長寬 w（沿 yaw 轉過的 x）、d，檯面高度 top，水平轉角 yaw（弧度）。
+ * yaw 的方向同房間（demo.ts roomViews）：地板座標＝(u·cos − v·sin, u·sin + v·cos)。掃描的床常常斜放（例如 0.7 弧度）。
+ */
+export interface Top { id: string; x: number; z: number; w: number; d: number; top: number; yaw?: number }
+
+/** 地板座標 → 檯面自己的座標（u 沿寬、v 沿長，原點在檯面中心） */
+export function toTop(t: Top, x: number, z: number): [number, number] {
+  const c = Math.cos(t.yaw ?? 0), s = Math.sin(t.yaw ?? 0), dx = x - t.x, dz = z - t.z;
+  return [dx * c + dz * s, -dx * s + dz * c];
+}
+
+/** 檯面上隨機一點（扣掉邊緣），地板座標；跑酷跳上家具時當落點 */
+export function topSpot(t: Top, rand: () => number = Math.random, edge = 0.15): [number, number] {
+  const u = (rand() - 0.5) * Math.max(0, t.w - 2 * edge), v = (rand() - 0.5) * Math.max(0, t.d - 2 * edge);
+  const c = Math.cos(t.yaw ?? 0), s = Math.sin(t.yaw ?? 0);
+  return [t.x + u * c - v * s, t.z + u * s + v * c];
+}
 
 /** 檯面邊緣內縮多少才算玩具「在檯面上」（太靠邊貓站不上去） */
 export const TOP_EDGE_M = 0.05;
@@ -12,7 +28,8 @@ export const TOP_EDGE_M = 0.05;
 export function topUnder(x: number, z: number, tops: readonly Top[], edge = TOP_EDGE_M): Top | null {
   let best: Top | null = null;
   for (const t of tops) {
-    const inX = Math.abs(x - t.x) <= t.w / 2 - edge, inZ = Math.abs(z - t.z) <= t.d / 2 - edge;
+    const [u, v] = toTop(t, x, z);
+    const inX = Math.abs(u) <= t.w / 2 - edge, inZ = Math.abs(v) <= t.d / 2 - edge;
     if (inX && inZ && (!best || t.top > best.top)) best = t;
   }
   return best;

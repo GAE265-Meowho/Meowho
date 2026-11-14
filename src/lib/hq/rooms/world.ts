@@ -7,7 +7,7 @@ import { cameraForward, dropTarget, placeObjects, type PlacedObject, type RoomCa
 import { RoomPhysics } from "./physics";
 import { footprintCells } from "@/lib/play/scene-items";
 import { CATCH_M, isCaught, type SceneCatCommand } from "@/lib/play/scene-cat";
-import { nextZoom, rayHit, topUnder, zoomRest, type Top } from "@/lib/play/zoomies";
+import { nextZoom, rayHit, topSpot, topUnder, zoomRest, type Top } from "@/lib/play/zoomies";
 
 const PUSH_IMPULSE = 0.48;  // 牛頓秒，貓撥杯子的力道；0.34 時杯子會停在桌緣
 const PAW_REACH_M = 0.22;   // 貓站在杯子後方多遠
@@ -107,7 +107,13 @@ export async function createRoomWorld({ viewer, threeScene, scene, layout, camer
   let toyJump: PlacedObject | null = null;  // 貓正要跳上去追玩具的家具（避免每一幀重找路）
   // 有檯面、可以跳上去的家具（跑酷、逗貓上家具用）
   const jumpables = objects.filter(o => o.affordance.jump_on && o.surfaces?.length);
-  const tops: Top[] = jumpables.map(o => ({ id: o.id, x: o.floor_pos_m[0], z: o.floor_pos_m[2], w: o.size_m[0], d: o.size_m[2], top: o.surfaces![0].top_y }));
+  // 檯面用 surfaces[0] 自己的中心、大小、轉角（床常斜放）；舊資料沒有就用家具的底面
+  const tops: Top[] = jumpables.map(o => {
+    const f = o.surfaces![0] as { top_y: number; center?: [number, number]; size?: [number, number]; yaw?: number };
+    return f.center && f.size
+      ? { id: o.id, x: f.center[0], z: f.center[1], w: f.size[0], d: f.size[1], top: f.top_y, yaw: f.yaw ?? o.box.yaw }
+      : { id: o.id, x: o.floor_pos_m[0], z: o.floor_pos_m[2], w: o.size_m[0], d: o.size_m[2], top: f.top_y, yaw: o.box.yaw };
+  });
   const topOf = (id: string) => jumpables.find(o => o.id === id) ?? null;
   // 半夜跑酷（第 30 天）：貓用跑步動作衝來衝去、時不時跳上家具（zoomies.ts）
   let zoom = false;
@@ -136,7 +142,8 @@ export async function createRoomWorld({ viewer, threeScene, scene, layout, camer
           const step = nextZoom(onTop, tops);
           if (step.kind === "jump") {
             const o = topOf(step.top.id);
-            if (o) cat.jumpOn(o, step.top.top, viewer.camera);
+            const [sx, sz] = topSpot(step.top);  // 落點挑在檯面上（斜放的床也不會落到床外）
+            if (o) cat.jumpOn(o, step.top.top, viewer.camera, new THREE.Vector2(sx * upm, sz * upm));
           }
           // run、down：交給 RoomCat 的閒晃（timer 到了就衝到 1.2～4 公尺外，或從家具跳下來）
         }

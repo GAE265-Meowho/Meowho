@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { nextZoom, rayHit, topUnder, ZOOM_JUMP_P, zoomRest, type Top } from "./zoomies";
+import { nextZoom, rayHit, topSpot, topUnder, ZOOM_JUMP_P, zoomRest, type Top } from "./zoomies";
 
 const bed: Top = { id: "bed", x: 2, z: 2, w: 1.4, d: 2, top: 0.5 };
 const desk: Top = { id: "desk", x: 2.5, z: 2.5, w: 1, d: 0.6, top: 0.75 };
@@ -53,5 +53,22 @@ describe("nextZoom", () => {
 describe("zoomRest", () => {
   it("地板上幾乎不停、家具上待久一點", () => {
     expect(zoomRest(false, () => 1)).toBeLessThan(zoomRest(true, () => 0));
+  });
+});
+
+describe("斜放的家具（掃描的床常常轉了角度）", () => {
+  const tilted: Top = { id: "bed", x: 0, z: 0, w: 2, d: 0.4, top: 0.44, yaw: Math.PI / 4 };
+  it("轉過的長條檯面：沿著轉過的方向在上面，沒轉的方向不在", () => {
+    // 寬 2 公尺沿 (cos45, sin45) 方向
+    expect(topUnder(0.6, 0.6, [tilted])?.id).toBe("bed");
+    expect(topUnder(0.6, -0.6, [tilted])).toBeNull();
+  });
+  it("隨機落點都在檯面上", () => {
+    let seed = 0.1;
+    const rand = () => (seed = (seed * 9301 + 0.49297) % 1);
+    for (let i = 0; i < 20; i++) {
+      const [x, z] = topSpot(tilted, rand);
+      expect(topUnder(x, z, [tilted])?.id).toBe("bed");
+    }
   });
 });
