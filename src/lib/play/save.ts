@@ -2,6 +2,7 @@
 // 續玩時從那個節點的開頭重新開始，節點裡玩到一半的小遊戲會重玩（docs/play-tasks/7-進行中續玩放棄重玩.md 第二節第 4 點）。純函式。
 import type { Checkpoint } from "./flow";
 import { STORY } from "./story";
+import { parsePoses, type ItemPose } from "./scan-place";
 
 /** 資料庫的上限是 50000 位元組；留一點空間 */
 export const PROGRESS_LIMIT = 45_000;
@@ -16,6 +17,8 @@ export interface SavedRun<Pick = unknown, Placed = unknown> {
   placed: Placed[];
   /** 掃描房間：用品放在哪個家具旁 */
   scanSpots: Record<string, string>;
+  /** 掃描房間：玩家自己擺的位置與旋轉（選填；舊存檔沒有） */
+  scanPose?: Record<string, ItemPose>;
   /** 玩的是哪個喵戶 */
   hhId: string | null;
   savedAt: string;
@@ -24,8 +27,12 @@ export interface SavedRun<Pick = unknown, Placed = unknown> {
 const bytes = (v: unknown) => new TextEncoder().encode(JSON.stringify(v)).length;
 
 /** 組成要存的進度；太大時依序縮短會一直長的欄位（選過的選項、紀錄、事件） */
-export function buildProgress<Pick, Placed>(a: { cp: Checkpoint; pick: Pick; placed: Placed[]; scanSpots: Record<string, string>; hhId: string | null; now?: Date }): SavedRun<Pick, Placed> {
-  const out: SavedRun<Pick, Placed> = { v: 1, cp: a.cp, pick: a.pick, placed: a.placed, scanSpots: a.scanSpots, hhId: a.hhId, savedAt: (a.now ?? new Date()).toISOString() };
+export function buildProgress<Pick, Placed>(a: { cp: Checkpoint; pick: Pick; placed: Placed[]; scanSpots: Record<string, string>; scanPose?: Record<string, ItemPose>; hhId: string | null; now?: Date }): SavedRun<Pick, Placed> {
+  const out: SavedRun<Pick, Placed> = {
+    v: 1, cp: a.cp, pick: a.pick, placed: a.placed, scanSpots: a.scanSpots,
+    ...(a.scanPose && Object.keys(a.scanPose).length ? { scanPose: a.scanPose } : {}),
+    hhId: a.hhId, savedAt: (a.now ?? new Date()).toISOString(),
+  };
   if (bytes(out) <= PROGRESS_LIMIT) return out;
   const life = out.cp.life;
   const tight = (keep: number, len: number): SavedRun<Pick, Placed> => ({
@@ -58,6 +65,7 @@ export function parseSaved(raw: unknown): SavedRun | null {
   const spots = isObj(raw.scanSpots) ? Object.fromEntries(Object.entries(raw.scanSpots).filter(([, v]) => typeof v === "string")) as Record<string, string> : {};
   return {
     v: 1, cp: cp as unknown as Checkpoint, pick: raw.pick ?? null, placed: Array.isArray(raw.placed) ? raw.placed : [], scanSpots: spots,
+    ...(raw.scanPose !== undefined && Object.keys(parsePoses(raw.scanPose)).length ? { scanPose: parsePoses(raw.scanPose) } : {}),
     hhId: typeof raw.hhId === "string" ? raw.hhId : null, savedAt: typeof raw.savedAt === "string" ? raw.savedAt : "",
   };
 }

@@ -12,7 +12,7 @@ import type { PlaceAt, PlacedHouseholdItem, RoomClick } from "@/components/hq/as
 import type { PlayCatLook } from "@/lib/play/cats";
 import { DEMO_DOLLHOUSE } from "@/lib/play/room";
 import type { SceneItem } from "@/lib/play/scene-items";
-import type { RoomWand } from "@/components/hq/assets/RoomViewer";
+import type { RoomPlaceEdit, RoomWand } from "@/components/hq/assets/RoomViewer";
 import type { CatAction } from "@/lib/play/stage";
 import s from "./play.module.css";
 import p from "./place.module.css";
@@ -76,11 +76,13 @@ function useBottomCover(stage: React.RefObject<HTMLElement | null>, on: boolean)
   return cover;
 }
 
-export function PlayStage({ kind, scanBase, placeView = false, look, tag, bubble, bubbleInset, lookKey, placed, scanItems, story, wand, goal, clip, speed, onDrop, onItemError, children }: {
+export function PlayStage({ kind, scanBase, placeView = false, place = null, look, tag, bubble, bubbleInset, lookKey, placed, scanItems, story, wand, goal, clip, speed, onDrop, onItemError, children }: {
   kind: "scan" | "dollhouse";
   scanBase: string | null;
   /** 擺用品：掃描房間改成從某一側俯視整個房間，畫面上多四顆切換視角的鈕（娃娃屋不變） */
   placeView?: boolean;
+  /** 擺用品：在掃描房間裡點地板放用品、拖曳用品、移動鈕（見 RoomViewer 的 place） */
+  place?: RoomPlaceEdit | null;
   /** null＝貓不在畫面（原版場景的 cat: "none"） */
   look: PlayCatLook | null;
   /** 左上角的小標（例如「到家第一天」） */
@@ -128,7 +130,7 @@ export function PlayStage({ kind, scanBase, placeView = false, look, tag, bubble
     <section ref={stageEl} className={overview ? `${s.stage} ${p.stage}` : s.stage} aria-label="3D 房間">
       {tag && <span className={s.stageTag}>{tag}</span>}
       {kind === "scan" && scanBase
-        ? <RoomViewer base={scanBase} items={scanItems} controls={false} story={story} wand={wand} bubble={bubble ? <CareIcon id={bubble} /> : null} bubbleInset={bubbleInset} lookKey={lookKey} overview={overview ? side : null} overviewCover={cover} />
+        ? <RoomViewer base={scanBase} items={scanItems} controls={false} story={story} wand={wand} bubble={bubble ? <CareIcon id={bubble} /> : null} bubbleInset={bubbleInset} lookKey={lookKey} overview={overview ? side : null} overviewCover={cover} place={overview ? place : null} />
         : (
           <FloorplanViewer rooms={ROOMS} selected={ROOMS[0].id} onPick={noop}
             cat={look} placedItems={placed} interactMode="point"
