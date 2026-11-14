@@ -270,14 +270,38 @@ export function playFov(baseFov: number): number {
   return Math.min(PLAY_VIEW.maxFov, Math.max(baseFov, baseFov * PLAY_VIEW.fovScale));
 }
 
-/** 拍攝點（地板座標：公尺，y 向上）與視線 → 往後退、抬高後的位置與視線（單位向量） */
-export function playView(pos: Vec3, dir: Vec3): { pos: Vec3; dir: Vec3 } {
+/** 離牆至少幾公尺：太靠牆會貼到窗簾、牆面上的雜訊（渝茜 2026-11-14：鏡頭卡在窗簾那片霧裡） */
+const PLAY_WALL_M = 0.6;
+
+/**
+ * 拍攝點（地板座標：公尺，y 向上）與視線 → 往後退、抬高後的位置與視線（單位向量）。
+ * 給了房間範圍時：往後退最多退到離牆 PLAY_WALL_M；拍攝點本來就太靠牆，先往房間中心移到離牆 PLAY_WALL_M（房間太小就停在中心）。
+ */
+export function playView(pos: Vec3, dir: Vec3, room?: RoomScene["room"]): { pos: Vec3; dir: Vec3 } {
   const len = Math.hypot(dir[0], dir[1], dir[2]) || 1;
   const d: Vec3 = [dir[0] / len, dir[1] / len, dir[2] / len];
   const hl = Math.hypot(d[0], d[2]);
   const h: Vec3 = hl > 1e-6 ? [d[0] / hl, 0, d[2] / hl] : [0, 0, 1];
   const aim: Vec3 = [pos[0] + d[0] * PLAY_VIEW.aimM, pos[1] + d[1] * PLAY_VIEW.aimM, pos[2] + d[2] * PLAY_VIEW.aimM];
-  const np: Vec3 = [pos[0] - h[0] * PLAY_VIEW.backM, Math.max(pos[1], PLAY_VIEW.minHeightM), pos[2] - h[2] * PLAY_VIEW.backM];
+  let x = pos[0], z = pos[2], back: number = PLAY_VIEW.backM;
+  if (room) {
+    const c = Math.cos(room.yaw ?? 0), sn = Math.sin(room.yaw ?? 0);
+    const cu = (room.min[0] + room.max[0]) / 2, cv = (room.min[1] + room.max[1]) / 2;
+    const hu = Math.max(0, (room.max[0] - room.min[0]) / 2 - PLAY_WALL_M), hv = Math.max(0, (room.max[1] - room.min[1]) / 2 - PLAY_WALL_M);
+    const toUV = (px: number, pz: number) => [px * c + pz * sn, -px * sn + pz * c] as const;
+    const inside = (px: number, pz: number) => { const [u, v] = toUV(px, pz); return Math.abs(u - cu) <= hu + 1e-9 && Math.abs(v - cv) <= hv + 1e-9; };
+    // 太靠牆：往中心移，夾進離牆 PLAY_WALL_M 的範圍
+    if (!inside(x, z)) {
+      const [u, v] = toUV(x, z);
+      const nu = Math.min(Math.max(u, cu - hu), cu + hu), nv = Math.min(Math.max(v, cv - hv), cv + hv);
+      x = nu * c - nv * sn; z = nu * sn + nv * c;
+    }
+    // 往後退：退到牆邊留白為止（每 5 公分試一次）
+    let ok = 0;
+    for (let t = 0.05; t <= PLAY_VIEW.backM + 1e-9; t += 0.05) { if (inside(x - h[0] * t, z - h[2] * t)) ok = t; else break; }
+    back = ok;
+  }
+  const np: Vec3 = [x - h[0] * back, Math.min(2.1, Math.max(pos[1], PLAY_VIEW.minHeightM)), z - h[2] * back];
   const nd: Vec3 = [aim[0] - np[0], aim[1] - np[1], aim[2] - np[2]];
   const nl = Math.hypot(nd[0], nd[1], nd[2]) || 1;
   return { pos: np, dir: [nd[0] / nl, nd[1] / nl, nd[2] / nl] };

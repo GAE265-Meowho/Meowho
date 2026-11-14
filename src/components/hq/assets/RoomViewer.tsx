@@ -282,7 +282,7 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
         const v = homeView();
         if (!playModeRef.current) return v;
         const d = v.look.clone().sub(v.pos);
-        return floorView(playView(floorOf(v.pos), [d.dot(ve1), d.dot(vup), d.dot(ve2)]));
+        return floorView(playView(floorOf(v.pos), [d.dot(ve1), d.dot(vup), d.dot(ve2)], scene.room));
       };
       const first = overviewOn ? overviewView() : playHome();
       const threeScene = new THREE.Scene();  // 貓畫在這，高斯點會依深度蓋在它前面
