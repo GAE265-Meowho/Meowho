@@ -69,15 +69,14 @@ export function safetyBusyLabel(hasReadyReport: boolean): string {
   return hasReadyReport ? "另有安全檢測處理中" : "安全檢測處理中";
 }
 
-/** 喵戶卡片兩顆按鈕的狀態（§7.2 狀態表）：建模中兩顆一起停用；有任何一份產生好的報告，第二顆就是「查看報告」 */
+/** 喵戶卡片兩顆按鈕的狀態（§7.2 狀態表）：建模中暫停新檢測；已完成的安全報告仍可查看 */
 export function homeTools(rooms: RoomRow[], reports: Pick<ReportRow, "status">[]): { scene: HomeTool; safety: HomeTool } {
-  if (rooms.some(r => BUSY.has(r.status))) {
-    return { scene: { label: "3D 房間處理中", state: "busy" }, safety: { label: "安全檢測處理中", state: "busy" } };
-  }
-  const scene: HomeTool = rooms.some(r => r.status === "ready")
+  const roomBusy = rooms.some(r => BUSY.has(r.status));
+  const scene: HomeTool = roomBusy ? { label: "3D 房間處理中", state: "busy" }
+    : rooms.some(r => r.status === "ready")
     ? { label: "查看模型", state: "view" } : { label: "生成 3D 環境", state: "start" };
   const safety: HomeTool = reports.some(r => r.status === "ready") ? { label: "查看報告", state: "view" }
-    : reports.some(r => BUSY.has(r.status)) ? { label: "安全檢測處理中", state: "busy" }
+    : roomBusy || reports.some(r => BUSY.has(r.status)) ? { label: "安全檢測處理中", state: "busy" }
     : { label: "居家安全檢測", state: "start" };
   return { scene, safety };
 }

@@ -37,7 +37,7 @@ export function CatgameMini(props: Props) {
   const { id, ctx, catName, onDone } = props;
   // 已改成彈窗 3D 特寫的小遊戲；其他照舊用原版 2D（LegacyMini）
   if (id === "brush" || id === "pet") {
-    return <Mini3DModal title={id === "brush" ? "幫" + catName + "刷牙" : "摸摸" + catName} onCancel={() => onDone(null)}>
+    return <Mini3DModal title={id === "brush" ? "幫" + catName + "刷牙" : "摸摸" + catName} onCancel={() => onDone(null)} quietCancel={id === "pet"}>
       {id === "brush" ? <BrushGameRealistic ctx={ctx} onDone={onDone} /> : <PetGame3D ctx={ctx} onDone={onDone} />}
     </Mini3DModal>;
   }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { initialPlay, playReducer, type PlayAction, type PlayState } from "./flow";
-import { buildProgress, parseSaved, progressLabel, PROGRESS_LIMIT } from "./save";
+import { buildProgress, parseSaved, progressKey, progressLabel, PROGRESS_LIMIT } from "./save";
 import { STORY } from "./story";
 
 const labels = ["沙發", "床"];
@@ -43,7 +43,7 @@ describe("resume：續玩回到節點開頭", () => {
   it("從快照回到那個節點，信任、壓力、花費、選過的選項都還在", () => {
     const mid = playToNode(start(), 2);
     const saved = JSON.parse(JSON.stringify(buildProgress({ cp: mid.checkpoint!, pick: null, placed: [], scanSpots: {}, hhId: "h1" })));
-    const back = playReducer(initialPlay(), { type: "resume", cp: parseSaved(saved)!.cp });
+    const back = playReducer(initialPlay(), { type: "resume", cp: parseSaved(saved)!.cp! });
     expect(back.step).toBe("node");
     expect(back.nodeIndex).toBe(2);
     expect(back.cur).not.toBeNull();
@@ -72,7 +72,7 @@ describe("parseSaved：壞掉的存檔回傳 null", () => {
   const good = () => JSON.parse(JSON.stringify(buildProgress({ cp: start().checkpoint!, pick: { budget: 5000 }, placed: [{ key: "a" }], scanSpots: { bowl: "床旁" }, hhId: "h1" })));
   it("正常的存檔讀得回來", () => {
     const p = parseSaved(good())!;
-    expect(p.cp.nodeIndex).toBe(0);
+    expect(p.cp?.nodeIndex).toBe(0);
     expect(p.pick).toEqual({ budget: 5000 });
     expect(p.scanSpots).toEqual({ bowl: "床旁" });
     expect(p.hhId).toBe("h1");
@@ -91,7 +91,7 @@ describe("parseSaved：壞掉的存檔回傳 null", () => {
 describe("buildProgress：不超過資料庫上限", () => {
   it("一般大小原樣保存", () => {
     const cp = start().checkpoint!;
-    expect(buildProgress({ cp, pick: null, placed: [], scanSpots: {}, hhId: null }).cp.life.picks).toEqual(cp.life.picks);
+    expect(buildProgress({ cp, pick: null, placed: [], scanSpots: {}, hhId: null }).cp?.life.picks).toEqual(cp.life.picks);
   });
   it("紀錄長到超過上限時縮短，仍然讀得回來", () => {
     const cp = start().checkpoint!;
@@ -109,4 +109,47 @@ describe("progressLabel：回任務按鈕的文字", () => {
     expect(progressLabel("妹妹", JSON.parse(JSON.stringify(buildProgress({ cp: mid.checkpoint!, pick: null, placed: [], scanSpots: {}, hhId: null }))))).toBe(`妹妹的任務 2／${STORY.length}`);
   });
   it("還沒存過進度就是第 1 個", () => expect(progressLabel("妹妹", {})).toBe(`妹妹的任務 1／${STORY.length}`));
+});
+
+describe("開場設定階段的存檔（還沒進節點，cp＝null）", () => {
+  const setup = (step: "background" | "shop" | "place" = "place") =>
+    JSON.parse(JSON.stringify(buildProgress({ cp: null, setupStep: step, pick: { budget: 5000, dryId: "d1" }, placed: [{ key: "bowl:1" }], scanSpots: { bowl: "床旁" }, hhId: "h1" })));
+  it("存下目前在哪一步與採買、擺放、喵戶，讀得回來", () => {
+    const p = parseSaved(setup())!;
+    expect(p.cp).toBeNull();
+    expect(p.setupStep).toBe("place");
+    expect(p.pick).toEqual({ budget: 5000, dryId: "d1" });
+    expect(p.placed).toEqual([{ key: "bowl:1" }]);
+    expect(p.scanSpots).toEqual({ bowl: "床旁" });
+    expect(p.hhId).toBe("h1");
+    expect(parseSaved(setup("shop"))!.setupStep).toBe("shop");
+    expect(parseSaved(setup("background"))!.setupStep).toBe("background");
+  });
+  it("沒有 cp 又沒有合法的 setupStep 回傳 null", () => {
+    expect(parseSaved({ ...setup(), setupStep: "node" })).toBeNull();
+    expect(parseSaved({ ...setup(), setupStep: undefined })).toBeNull();
+    expect(parseSaved({ v: 1, cp: null })).toBeNull();
+  });
+  it("舊格式（只有 cp、沒有 setupStep）照樣讀得回來，setupStep＝null", () => {
+    const old = JSON.parse(JSON.stringify(buildProgress({ cp: start().checkpoint!, pick: null, placed: [], scanSpots: {}, hhId: null })));
+    delete old.setupStep;
+    const p = parseSaved(old)!;
+    expect(p.cp?.nodeIndex).toBe(0);
+    expect(p.setupStep).toBeNull();
+  });
+  it("進了節點之後存的進度不帶 setupStep（有 cp 就以 cp 為準）", () => {
+    const p = parseSaved(JSON.parse(JSON.stringify({ ...buildProgress({ cp: start().checkpoint!, pick: null, placed: [], scanSpots: {}, hhId: null }), setupStep: "shop" })))!;
+    expect(p.cp?.nodeIndex).toBe(0);
+    expect(p.setupStep).toBeNull();
+  });
+  it("回任務按鈕：設定階段顯示第 1 個節點", () => {
+    expect(progressLabel("妹妹", setup("shop"))).toBe(`妹妹的任務 1／${STORY.length}`);
+  });
+  it("progressKey：內容一樣（只差存檔時間）就不用重存", () => {
+    const a = buildProgress({ cp: null, setupStep: "shop", pick: { budget: 1 }, placed: [], scanSpots: {}, hhId: "h", now: new Date(1) });
+    const b = buildProgress({ cp: null, setupStep: "shop", pick: { budget: 1 }, placed: [], scanSpots: {}, hhId: "h", now: new Date(2) });
+    const c = buildProgress({ cp: null, setupStep: "shop", pick: { budget: 2 }, placed: [], scanSpots: {}, hhId: "h", now: new Date(1) });
+    expect(progressKey(a)).toBe(progressKey(b));
+    expect(progressKey(a)).not.toBe(progressKey(c));
+  });
 });

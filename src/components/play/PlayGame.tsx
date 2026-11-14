@@ -15,7 +15,7 @@ import CatButton from "@/components/ui/CatButton";
 import { houseScene } from "@/lib/hq/floorplans/scene";
 import { homeSceneBase } from "@/lib/home-room";
 import { playGate, runErrorText, type Gate } from "@/lib/play/run-gate";
-import { buildProgress, parseSaved } from "@/lib/play/save";
+import { buildProgress, parseSaved, progressKey } from "@/lib/play/save";
 import { getBrowserSupabase } from "@/lib/supabase/client";
 import { SAMPLE_HOME } from "@/lib/play/background";
 import { catKicker } from "@/lib/play/player-data";
@@ -25,7 +25,7 @@ import { StatusMeters } from "./StatusMeters";
 import type { PlayCatSource } from "@/lib/play/source";
 import { clampShop, defaultShop, money, playFoods, shopCost, type PlayShop, type ShopPick } from "@/lib/play/costs";
 import { playShop, type PlayCatalogItem } from "@/lib/play/catalog";
-import { initialPlay, playReducer, type PlayAction } from "@/lib/play/flow";
+import { initialPlay, playReducer, prevSetupStep, type PlayAction } from "@/lib/play/flow";
 import { homeWord } from "@/lib/play/furniture";
 import { ruleHazards, type Hazard } from "@/lib/play/hazards";
 import { resolvePlayItems, resolvePlayToy, type PlayItem } from "@/lib/play/items";
@@ -51,8 +51,11 @@ import { notifyRunChanged, useActiveRun, useRunProgress } from "./useActiveRun";
 import { ShopStep } from "./ShopStep";
 import { DayEndDialog } from "./DayEndDialog";
 import { dayEnd, type DayEnd, endsDay } from "@/lib/play/day-end";
-import { useHouseholdExtras, usePlayHouseholds } from "./usePlayData";
+import { useHouseholdExtras, usePlayHouseholds, useRunReportId } from "./usePlayData";
+import { HazardDialog } from "./HazardDialog";
+import { canShowHazard, hazardReportTarget, loadReportHazard, year5HazardMoment, type ReportHazardItem } from "@/lib/play/year5-hazard";
 import s from "./play.module.css";
+import nav from "./setup-nav.module.css";
 
 const STEP_LABELS = [["background", "你的家"], ["shop", "採買"], ["place", "擺用品"], ["node", "飼養"], ["report", "報告"]] as const;
 const SCAN_BASE = process.env.NEXT_PUBLIC_ROOM_DEMO_BASE?.trim() || null;
@@ -148,6 +151,23 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
   const places = useMemo(() => ({ hide: homeWord("躲藏處", labels) ?? "角落", high: homeWord("高處", labels) ?? "", sofa: "沙發" }), [labels]);
   const node = STORY[state.nodeIndex];
   const cur = state.cur;
+  // 五年後意外回到家、小叮嚀那一刻跳一次居家危險彈窗（year5-hazard.ts）：只讀這一輪定格的報告，有真實裁切照才跳
+  const [hazardOpen, setHazardOpen] = useState(false);
+  const [hazardItem, setHazardItem] = useState<ReportHazardItem | null>(null);
+  const hazardShown = useRef(false);
+  const runReportId = useRunReportId(runId);
+  const hazardTarget = hazardReportTarget({ demo: isDemo, signedIn: Boolean(user), householdId: hh?.id ?? null, runReportId });
+  const hazardHh = hazardTarget?.householdId ?? null, hazardRp = hazardTarget?.reportId ?? null;
+  const inYear5 = state.step === "node" && node.id === "year5";
+  const riskKey = state.life.risk?.key ?? null;
+  useEffect(() => {
+    if (!inYear5 || !hazardHh || !hazardRp || !riskKey) return;
+    const ctrl = new AbortController();
+    loadReportHazard(hazardHh, hazardRp, riskKey, fetch, ctrl.signal).then(v => { if (!ctrl.signal.aborted) setHazardItem(v); });
+    return () => ctrl.abort();
+  }, [inYear5, hazardHh, hazardRp, riskKey]);
+  const hazardNow = year5HazardMoment({ step: state.step, nodeId: state.step === "node" ? node.id : null, cur: cur?.kind === "lines" ? { kind: "lines", lines: cur.lines } : cur, sceneBg: state.scene.bg, events: state.life.events, risk: state.life.risk });
+  useEffect(() => { if (hazardNow && canShowHazard(hazardItem) && hazardItem.key === riskKey && !hazardShown.current) { hazardShown.current = true; setHazardOpen(true); } }, [hazardNow, hazardItem, riskKey]);
   const shop = shopCost(pick, "kitten", backShop);
   useEffect(() => { setPick(p => clampShop(p, backShop)); }, [backShop]);
   const shopMissing = [...(pick.budget ? [] : ["每月預算"]), ...shop.missing];
@@ -267,9 +287,41 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
     if (saved.pick) setPick(saved.pick as ShopPick);
     setPlaced(saved.placed as PlacedHouseholdItem[]);
     setScanSpots(saved.scanSpots as Partial<Record<PlayItem["id"], string>>);
+    // 還在開場設定（採買、擺用品）就離開：回到那一步，選好的都還在
+    if (!saved.cp) { if (saved.setupStep) dispatch({ type: "goto", step: saved.setupStep }); return; }
     savedCp.current = saved.cp;
     dispatch({ type: "resume", cp: saved.cp });
   }, [resumeId, resumed, hh]);
+
+  // 開場設定階段也存（目前在哪一步、採買、擺放、喵戶）：換步驟馬上存，選擇變動後等 1 秒沒再動才存；示範模式沒有 runId，不存
+  const setupSaved = useRef<{ run: string | null; step: string | null; key: string | null; flush: (() => void) | null }>({ run: null, step: null, key: null, flush: null });
+  useEffect(() => {
+    const sb = getBrowserSupabase();
+    const step = state.step;
+    const ref = setupSaved.current;
+    // 帶牠回家之後改由節點存檔負責：丟掉還沒送出的設定存檔，免得離開時蓋掉節點快照
+    if (!runId || !sb || state.checkpoint || (step !== "background" && step !== "shop" && step !== "place")) { ref.flush = null; return; }
+    // 重玩建了新的一輪：從頭記
+    if (ref.run !== runId) { ref.run = runId; ref.step = null; ref.key = null; }
+    const save = () => {
+      ref.flush = null;
+      const progress = buildProgress({ cp: null, setupStep: step, pick, placed, scanSpots, hhId: hh?.id ?? null });
+      const key = progressKey(progress);
+      if (ref.key === key) return;
+      ref.key = key;
+      sb.from("meow_task_runs").update({ progress }).eq("id", runId).then(({ error }) => { setSaveErr(Boolean(error)); if (error) ref.key = null; });
+    };
+    if (ref.step !== step) { ref.step = step; save(); return; }
+    ref.flush = save;
+    const timer = setTimeout(save, 1000);
+    return () => clearTimeout(timer);
+  }, [runId, state.step, state.checkpoint, pick, placed, scanSpots, hh]);
+  // 離開頁面（站內換頁、關分頁、按「離開」整頁跳轉）時還在等的那一次馬上存
+  useEffect(() => {
+    const flush = () => setupSaved.current.flush?.();
+    window.addEventListener("pagehide", flush);
+    return () => { window.removeEventListener("pagehide", flush); flush(); };
+  }, []);
 
   // 每過一個節點存一次進度（連採買、擺放一起存，可以換裝置續玩）
   useEffect(() => {
@@ -284,7 +336,8 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
   /** 「下一步：預算與採買」：建一筆進行中的紀錄（開始那一刻定格房間與安全報告），之後才進採買 */
   const begin = async () => {
     const sb = getBrowserSupabase();
-    if (isDemo || !sb || !extras?.room) { dispatch({ type: "next" }); return; }
+    // 按過上一步回來看「你的家」：這一輪已經建好了，不再建一次
+    if (isDemo || !sb || !extras?.room || runId) { dispatch({ type: "next" }); return; }
     setStarting(true); setStartErr(null);
     const { data, error } = await sb.rpc("meow_start_play_run", { p_cat_id: cat.catId, p_room_id: extras.room.id });
     setStarting(false);
@@ -293,6 +346,14 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
     notifyRunChanged();
     dispatch({ type: "next" });
   };
+
+  // 上一步：只有開場設定的採買、擺用品有（帶牠回家之後就沒有）
+  const backBtn = prevSetupStep(state.step) && (
+    <button type="button" className={nav.back} onClick={() => dispatch({ type: "back" })}>
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M19 12H5M11 6l-6 6 6 6" /></svg>
+      上一步
+    </button>
+  );
 
   const startNodes = () => {
     // 原版 fullBegin：依採買記下幾件事
@@ -427,14 +488,17 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
               {state.step === "node" && <span className={s.hudChip}>{nodeLabel(node, state.startMonths)}</span>}
             </div>
             {state.step === "node" && <StatusMeters trust={state.life.trust} stress={state.life.stress} />}
+            {backBtn}
           </div>
           <div className={s.hudEnd}>
             <SoundToggle />
             {runId && <button type="button" className={s.exit} onClick={() => setAbandoning(true)}>放棄</button>}
-            <a className={s.exit} href={catHref} onClick={ev => { if (!window.confirm(runId ? "要離開嗎？下次會從這個節點的開頭接著玩。" : "要離開虛擬飼養嗎？目前的進度不會保留。")) ev.preventDefault(); }}>離開</a>
+            <a className={s.exit} href={catHref} onClick={ev => { if (!window.confirm(runId ? (state.step === "place" ? "要離開嗎？下次會回到擺用品這一步，選好的都會保留。" : "要離開嗎？下次會從這個節點的開頭接著玩。") : "要離開虛擬飼養嗎？目前的進度不會保留。")) ev.preventDefault(); }}>離開</a>
           </div>
         </div>
       ) : (
+        <>
+        {backBtn && <div className={nav.row}>{backBtn}</div>}
         <div className={s.stepsRow}>
           <ol className={s.steps} aria-label="進度">
             {STEP_LABELS.map(([k, label], i) => <li key={k} aria-current={i === stepIndex ? "step" : undefined}>{label}</li>)}
@@ -442,8 +506,12 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
           <SoundToggle />
           {runId && <button type="button" className={s.exit} onClick={() => setAbandoning(true)}>放棄任務</button>}
         </div>
+        </>
       )}
       {saveErr && <p className={s.missing} role="status">進度沒有存到，請檢查網路；離開後可能要從上一個節點接著玩。</p>}
+      {hazardOpen && state.life.risk && hazardItem && (
+        <HazardDialog risk={state.life.risk} item={hazardItem} onClose={() => setHazardOpen(false)} />
+      )}
       {abandoning && runId && (
         <div className={e.overlay}><AbandonPanel catName={catName} runId={runId} onCancel={() => setAbandoning(false)} onDone={() => { window.location.href = catHref; }} /></div>
       )}
@@ -468,7 +536,7 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
               <p className={s.lead}>{home.sample ? "還沒登入或還沒有喵戶，先用一個範例的家來玩。" : "這些資料來自你的喵戶，劇情會依你的家改寫。"}</p>
               {(households?.length ?? 0) > 1 && (
                 <div className={s.chips} role="group" aria-label="用哪個喵戶">
-                  {households!.map(h => <button key={h.id} type="button" className={s.chipBtn} aria-pressed={hh?.id === h.id} onClick={() => setHhId(h.id)}>{h.name}</button>)}
+                  {households!.map(h => <button key={h.id} type="button" className={s.chipBtn} aria-pressed={hh?.id === h.id} disabled={Boolean(runId)} onClick={() => setHhId(h.id)}>{h.name}</button>)}
                 </div>
               )}
               <dl className={s.facts}>
@@ -578,7 +646,7 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
 
       {state.step === "report" && home && (
         <ReportStep state={state} pick={pick} monthly={shop.month} home={home} runId={runId} catHref={catHref}
-          onRestart={() => { dispatch({ type: "restart" }); hazardsAsked.current = false; setPlaced([]); setScanSpots({}); setLines({}); setRunId(null); setFrozenRoom(null); savedCp.current = null; }} />
+          onRestart={() => { dispatch({ type: "restart" }); hazardsAsked.current = false; hazardShown.current = false; setHazardItem(null); setPlaced([]); setScanSpots({}); setLines({}); setRunId(null); setFrozenRoom(null); savedCp.current = null; }} />
       )}
     </div>
   );
