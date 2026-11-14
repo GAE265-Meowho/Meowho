@@ -245,6 +245,7 @@ Worker 選用的 `report.html` 與 `html-assets/` 位於既有 attempt 前綴。
 | 2026-11-04 | 珮瑜 × Claude Code | 前台我的 3D 房間接上影片轉換：上傳、建房間＋排工作＋環境報告、worker 寫私有 bucket 與通知、預覽與完成 | （見 PR） |
 | 2026-11-06 | 渝茜 × Claude Code | 虛擬飼養 DEMO `/cats/[id]/play`：3 個節點、AI 危險／台詞／建議（含規則備案）、採買花費公式、3D 娃娃屋擺用品、小遊戲、試養報告 | #244 |
 | 2026-11-06 | 渝茜 × Claude Code | 虛擬飼養 DEMO 劇情、事件、採買、小遊戲、試養報告改成照 catgame 原版 | #244 |
+| 2026-11-13 | Tina × Claude Code | 貓跳上、跳下家具落地播 `sfx_land`（娃娃屋房間；`FloorplanViewer` 的 `onCatLand`，音檔未上傳） | #354 |
 
 | 2026-11-10 | Jerry0808 × Codex | PDF 下載連結改在新分頁執行，加入手機使用系統分享選單儲存的備案；Azure SAS 的 rscd 僅完成本機 SDK 驗證 | #337（Draft） |
 | 2026-11-10 | Jerry0808 × Codex | 安全報告改為 HTML 摘要、風險項目與辨識限制優先；PDF 保留在內容後方供喵戶本人檢視／下載；頁面不再初載 PDF，也移除閱讀器樣式 | #337（Draft） |

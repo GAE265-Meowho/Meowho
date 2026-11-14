@@ -110,6 +110,9 @@ function startJump(a: Actor, to: { x: number; z: number }, toSurface: number | n
  * 每格呼叫一次。回傳新的狀態與 done（到達目標或走不到了，呼叫端清掉目標）。
  * 流程：同一層（都在地板或同一個檯面）直接走；要上檯面＝走到旁邊再跳上去；要下來或換檯面＝走到邊緣、先跳到地板。
  */
+/** 這一格剛落地（上一格還在跳、這一格跳完）：跳上、跳下家具都算，播落地音效用 */
+export const justLanded = (before: Actor, after: Actor): boolean => before.jump !== null && after.jump === null;
+
 export function stepActor(a: Actor, goal: Goal | null, w: World, dt: number): { actor: Actor; done: boolean } {
   // 跳躍中：沿弧線移動，落地後換到新的那一層
   if (a.jump) {

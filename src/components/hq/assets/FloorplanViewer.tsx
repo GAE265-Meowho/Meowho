@@ -8,7 +8,7 @@ import { Canvas, useFrame, useThree, type ThreeEvent } from "@react-three/fiber"
 import { Component, Suspense, useEffect, useMemo, useRef, useState, type DragEvent, type MutableRefObject, type ReactNode } from "react";
 import * as THREE from "three";
 import { FLOOR_TEXTURE, kitScale, kitUrl } from "@/lib/hq/floorplans/kit";
-import { goalForBox, idleAction, stepActor, worldOf, type Actor, type Goal } from "@/lib/hq/floorplans/catjump";
+import { goalForBox, idleAction, justLanded, stepActor, worldOf, type Actor, type Goal } from "@/lib/hq/floorplans/catjump";
 import { blocked, CAT_SCALE, freeSpot, obstacles, type Obstacle } from "@/lib/hq/floorplans/catwalk";
 import { bowlObstacles, bubbleOf, dropTargetBowl, isBowlSet, passableItem, standOff, stepItems, stepSpot, stepStory, STORY_START, withoutItem, type NeedIcon, type Spot, type Story, type StoryState } from "@/lib/hq/floorplans/story";
 import { expandRemovedIndices, type FurnitureMove, type FurnitureSupport } from "@/lib/hq/floorplans/experience-furniture";
@@ -588,7 +588,7 @@ export interface ViewerCat { baseUrl: string; albedoUrl: string; body: BodyType 
  * 規則在 catwalk.ts、catjump.ts（純函式、可測）；貓放大 CAT_SCALE 倍（真實比例在整間房的鏡頭裡太小）。
  * pos：貓的世界座標，給鏡頭跟隨用。
  */
-function CatActor({ s, look, click, pos, extraObs, forceClip = null, speed = 1, story = null, items = [], onStory }: {
+function CatActor({ s, look, click, pos, extraObs, forceClip = null, speed = 1, story = null, items = [], onStory, onLand }: {
   s: RoomScene; look: ViewerCat; click: (RoomClick & { at: number }) | null; pos: React.RefObject<THREE.Vector3>;
   extraObs: Obstacle[];
   /** 停下來時固定播這個動作（例如 sleep），不自己閒逛（#237 虛擬飼養劇情） */
@@ -601,6 +601,8 @@ function CatActor({ s, look, click, pos, extraObs, forceClip = null, speed = 1, 
   items?: PlacedHouseholdItem[];
   /** 故事線狀態改變時通知（畫面顯示進度） */
   onStory?: (st: StoryState) => void;
+  /** 貓跳上、跳下家具落地的那一刻（前台虛擬飼養播 sfx_land） */
+  onLand?: () => void;
 }) {
   const world = useMemo(() => worldOf(s, [...obstacles(s), ...extraObs]), [s, extraObs]);
   const start = useMemo(() => freeSpot(s, world.obs) ?? { x: s.size[0] / 2, z: s.size[1] / 2 }, [s, world]);
@@ -628,6 +630,7 @@ function CatActor({ s, look, click, pos, extraObs, forceClip = null, speed = 1, 
     if (story) storyStep(story, dt, bowls);
     const walkWorld = bowls.length ? { ...world, obs: [...world.obs, ...dropTargetBowl(bowls, spot.current, cat.current)] } : world;
     const { actor, done } = stepActor(cat.current, goal.current, walkWorld, dt);
+    if (justLanded(cat.current, actor)) onLand?.();
     let next = clip;
     if (done) goal.current = null;
     const doing = story && plot.current.phase === "doing" ? story.steps[plot.current.step] : null;
@@ -781,7 +784,7 @@ export type PlaceAt = { roomId: string; x: number; z: number; y: number; support
 /** point＝點地板／床叫貓；hand＝拖移已放用品／落地家具（不叫貓） */
 export type InteractMode = "point" | "hand";
 
-export default function FloorplanViewer({ rooms, selected, onPick, cat, placedItems = [], interactMode = "point", removedFurniture, furnitureMoves, onMoveItem, onRotateItem, onRemoveItem, onRemoveFurniture, onMoveFurniture, onRotateFurniture, onFloorDrop, catGoal = null, catClip = null, catSpeed = 1, onItemError, story = null, onStory }: {
+export default function FloorplanViewer({ rooms, selected, onPick, cat, placedItems = [], interactMode = "point", removedFurniture, furnitureMoves, onMoveItem, onRotateItem, onRemoveItem, onRemoveFurniture, onMoveFurniture, onRotateFurniture, onFloorDrop, catGoal = null, catClip = null, catSpeed = 1, onItemError, story = null, onStory, onCatLand }: {
   rooms: PlanRoom[]; selected: string | null; onPick: (id: string) => void;
   /** 虛擬體驗（#150）：放一隻貓進去；有貓時只顯示單間（沒有「全部」），點地板叫貓走過去 */
   cat?: ViewerCat | null;
@@ -819,6 +822,8 @@ export default function FloorplanViewer({ rooms, selected, onPick, cat, placedIt
   story?: Story | null;
   /** 故事線進度改變 */
   onStory?: (st: StoryState) => void;
+  /** 貓跳上、跳下家具落地時通知（前台虛擬飼養播落地音效；MeowHQ 不傳＝不出聲） */
+  onCatLand?: () => void;
 }) {
   const removedList = useMemo(
     () => (removedFurniture ? [...removedFurniture] : []),
@@ -909,7 +914,7 @@ export default function FloorplanViewer({ rooms, selected, onPick, cat, placedIt
                       </Suspense>
                     </ItemBoundary>
                   ))}
-                  {cat && <CatActor key={`${s.id}:${cat.albedoUrl}`} s={s} look={cat} click={catClick} pos={catPos} extraObs={itemObstacles(roomItems.filter(i => !passableItem(story, i.name)))} forceClip={catClip} speed={catSpeed} story={story} items={roomItems} onStory={onStory} />}
+                  {cat && <CatActor key={`${s.id}:${cat.albedoUrl}`} s={s} look={cat} click={catClick} pos={catPos} extraObs={itemObstacles(roomItems.filter(i => !passableItem(story, i.name)))} forceClip={catClip} speed={catSpeed} story={story} items={roomItems} onStory={onStory} onLand={onCatLand} />}
                 </Room>
               );
             })}

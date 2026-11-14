@@ -2,7 +2,7 @@
 import { describe, expect, it } from "vitest";
 import { normalizeReading } from "./read";
 import { blocked, obstacles } from "./catwalk";
-import { clampTop, goalForBox, idleAction, MAX_JUMP_M, onTop, stepActor, worldOf, type Actor, type Goal, type World } from "./catjump";
+import { clampTop, goalForBox, idleAction, justLanded, MAX_JUMP_M, onTop, stepActor, worldOf, type Actor, type Goal, type World } from "./catjump";
 import { houseScene } from "./scene";
 import type { PlanRoom } from "./types";
 
@@ -131,5 +131,29 @@ describe("閒置", () => {
     const onFloor = idleAction(floor(1.6, 2.7), w, () => seq[k++ % seq.length]);
     expect(onFloor.sleep).toBe(false);
     expect(onFloor.wander?.surface).toBeNull();
+  });
+});
+
+describe("落地（#354 sfx_land）", () => {
+  it("跳上床、再跳回地板，各只在落地那一格算一次；走路不算", () => {
+    const w = world();
+    const bed = boxOf(w, "bed"), box = w.scene.boxes[bed];
+    const count = (from: Actor, goal: Goal) => {
+      let a = from, lands = 0;
+      for (let i = 0; i < 900; i++) {
+        const r = stepActor(a, goal, w, 1 / 30);
+        if (justLanded(a, r.actor)) lands++;
+        a = r.actor;
+        if (r.done) break;
+      }
+      return { a, lands };
+    };
+    const up = count(floor(1.6, 2.8), goalForBox(w, bed, box.x, box.z)!);
+    expect(up.a.on).not.toBeNull();
+    expect(up.lands).toBe(1);
+    const down = count(up.a, { x: 1.6, z: 2.8, surface: null });
+    expect(down.a.on).toBeNull();
+    expect(down.lands).toBe(1);
+    expect(count(floor(1.6, 2.8), { x: 1.2, z: 2.9, surface: null }).lands).toBe(0);
   });
 });

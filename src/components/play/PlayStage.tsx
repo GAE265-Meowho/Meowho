@@ -14,12 +14,15 @@ import type { SceneItem } from "@/lib/play/scene-items";
 import type { RoomWand } from "@/components/hq/assets/RoomViewer";
 import type { CatAction } from "@/lib/play/stage";
 import s from "./play.module.css";
+import { playSfx } from "@/lib/play/audio-player";
 
 const loading = () => <div className={s.stageLoading}>3D 房間載入中…</div>;
 const FloorplanViewer = dynamic(() => import("@/components/hq/assets/FloorplanViewer"), { ssr: false, loading });
 const RoomViewer = dynamic(() => import("@/components/hq/assets/RoomViewer"), { ssr: false, loading });
 
 const ROOMS = [DEMO_DOLLHOUSE];
+/** 貓跳上、跳下家具落地的聲音（音檔還沒上傳時不出聲） */
+const landSound = () => playSfx("sfx_land");
 const noop = () => {};
 
 export function PlayStage({ kind, scanBase, look, tag, bubble, bubbleInset, lookKey, placed, scanItems, story, wand, goal, clip, speed, onDrop, onItemError, children }: {
@@ -58,7 +61,7 @@ export function PlayStage({ kind, scanBase, look, tag, bubble, bubbleInset, look
           <FloorplanViewer rooms={ROOMS} selected={ROOMS[0].id} onPick={noop}
             cat={look} placedItems={placed} interactMode="point"
             catGoal={goal} catClip={clip} catSpeed={speed}
-            onFloorDrop={onDrop} onItemError={onItemError} />
+            onFloorDrop={onDrop} onItemError={onItemError} onCatLand={landSound} />
         )}
       {kind !== "scan" && bubble && <span className={s.bubbleFixed} aria-hidden="true"><CareIcon id={bubble} /></span>}
       {children}
