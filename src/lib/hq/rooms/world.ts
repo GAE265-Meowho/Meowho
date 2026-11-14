@@ -62,6 +62,7 @@ export async function createRoomWorld({ viewer, threeScene, scene, layout, camer
     origin.clone().addScaledVector(e1, x * upm).addScaledVector(up, y * upm).addScaledVector(e2, z * upm);
 
   const cat = await new RoomCat(layout).load(catUrl, albedoUrl);
+  if (typeof location !== "undefined" && location.search.includes("debugcat")) Object.assign(globalThis, { __roomCat: cat, __roomDbg: () => ({ toy, toyOn: toyOn?.id ?? null, toyJump: toyJump?.id ?? null, zoom, state: cat.state, surface: cat.surface?.id ?? null, pos: [cat.cat.position.x / upm, cat.cat.position.y / upm, cat.cat.position.z / upm], vis: cat.visible, stick: Boolean(cat.stick), path: cat.path?.length, rect: cat.surfaceRect }) }); // TEMP-DEBUG
   cat.addTo(threeScene);
   cat.addObstacles(objects);
   cat.room = scene.room;
