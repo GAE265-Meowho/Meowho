@@ -13,6 +13,7 @@ import { DEMO_DOLLHOUSE } from "@/lib/play/room";
 import type { SceneItem } from "@/lib/play/scene-items";
 import type { RoomWand } from "@/components/hq/assets/RoomViewer";
 import type { CatAction } from "@/lib/play/stage";
+import type { BowlFill } from "@/components/hq/assets/bowlSlotsDetect";
 import s from "./play.module.css";
 
 const loading = () => <div className={s.stageLoading}>3D 房間載入中…</div>;
@@ -22,7 +23,7 @@ const RoomViewer = dynamic(() => import("@/components/hq/assets/RoomViewer"), { 
 const ROOMS = [DEMO_DOLLHOUSE];
 const noop = () => {};
 
-export function PlayStage({ kind, scanBase, look, tag, bubble, bubbleInset, lookKey, placed, scanItems, story, wand, goal, clip, speed, onDrop, onItemError, children }: {
+export function PlayStage({ kind, scanBase, look, tag, bubble, bubbleInset, lookKey, placed, scanItems, story, wand, goal, clip, speed, onDrop, onItemError, bowlFill, children }: {
   kind: "scan" | "dollhouse";
   scanBase: string | null;
   /** null＝貓不在畫面（原版場景的 cat: "none"） */
@@ -47,18 +48,20 @@ export function PlayStage({ kind, scanBase, look, tag, bubble, bubbleInset, look
   speed: number;
   onDrop?: (itemId: string, at: PlaceAt) => void;
   onItemError?: (key: string) => void;
+  /** 餐碗組裡有沒有飼料、水 */
+  bowlFill?: BowlFill;
   children?: ReactNode;
 }) {
   return (
     <section className={s.stage} aria-label="3D 房間">
       {tag && <span className={s.stageTag}>{tag}</span>}
       {kind === "scan" && scanBase
-        ? <RoomViewer base={scanBase} items={scanItems} controls={false} story={story} wand={wand} bubble={bubble ? <CareIcon id={bubble} /> : null} bubbleInset={bubbleInset} lookKey={lookKey} />
+        ? <RoomViewer base={scanBase} items={scanItems} controls={false} story={story} wand={wand} bubble={bubble ? <CareIcon id={bubble} /> : null} bubbleInset={bubbleInset} lookKey={lookKey} bowlFill={bowlFill} />
         : (
           <FloorplanViewer rooms={ROOMS} selected={ROOMS[0].id} onPick={noop}
             cat={look} placedItems={placed} interactMode="point"
             catGoal={goal} catClip={clip} catSpeed={speed}
-            onFloorDrop={onDrop} onItemError={onItemError} />
+            onFloorDrop={onDrop} onItemError={onItemError} bowlFill={bowlFill} />
         )}
       {kind !== "scan" && bubble && <span className={s.bubbleFixed} aria-hidden="true"><CareIcon id={bubble} /></span>}
       {children}

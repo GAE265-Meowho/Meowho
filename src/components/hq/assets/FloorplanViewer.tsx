@@ -16,7 +16,7 @@ import { boxToSolid, clampFurniturePose, rotatedHalfExtents, type SolidBody } fr
 import { focusScenes, houseScene, sceneBounds, type RoomScene, type SceneBox } from "@/lib/hq/floorplans/scene";
 import type { BodyType } from "@/lib/hq/cat-models/types";
 import { CatModel } from "./CatPreview";
-import { bowlSlotsOf, detectBowlSlots, setBowlSlots } from "./bowlSlotsDetect";
+import { bowlSlotsOf, detectBowlSlots, setBowlSlots, fillBowl, type BowlFill } from "./bowlSlotsDetect";
 import { readItemDragId } from "./itemDrag";
 import type { PlanRoom } from "@/lib/hq/floorplans/types";
 
@@ -311,8 +311,10 @@ function Furniture({ b, room, roomId, boxIndex, planFurniture, onClick, onRemove
 type MovePayload = { x: number; z: number; y: number; rotY: number; support: ItemSupport };
 
 /** 生活用品：依量到的公尺尺寸縮放；可放地板或桌面；手掌模式可拖移；上方 × 可刪除；落地物貓會繞過 */
-function PlacedItemModel({ item, room, dragEnabled, onMove, onRotate, onRemove }: {
+function PlacedItemModel({ item, room, dragEnabled, onMove, onRotate, onRemove, bowlFill }: {
   item: PlacedHouseholdItem;
+  /** 餐碗組裡有沒有飼料、水；不給＝照模型原樣 */
+  bowlFill?: BowlFill;
   room: RoomScene;
   dragEnabled: boolean;
   onMove?: (key: string, place: MovePayload) => void;
@@ -344,6 +346,7 @@ function PlacedItemModel({ item, room, dragEnabled, onMove, onRotate, onRemove }
     setBowlSlots(item.key, detectBowlSlots(prepared.m, prepared.scale));
     return () => setBowlSlots(item.key, null);
   }, [item.key, item.name, prepared]);
+  useEffect(() => { if (bowlFill && isBowlSet(item.name)) fillBowl(prepared.m, bowlFill); }, [bowlFill, item.name, prepared]);
 
   useEffect(() => {
     if (dragging.current) return;
@@ -781,12 +784,14 @@ export type PlaceAt = { roomId: string; x: number; z: number; y: number; support
 /** point＝點地板／床叫貓；hand＝拖移已放用品／落地家具（不叫貓） */
 export type InteractMode = "point" | "hand";
 
-export default function FloorplanViewer({ rooms, selected, onPick, cat, placedItems = [], interactMode = "point", removedFurniture, furnitureMoves, onMoveItem, onRotateItem, onRemoveItem, onRemoveFurniture, onMoveFurniture, onRotateFurniture, onFloorDrop, catGoal = null, catClip = null, catSpeed = 1, onItemError, story = null, onStory }: {
+export default function FloorplanViewer({ rooms, selected, onPick, cat, placedItems = [], bowlFill, interactMode = "point", removedFurniture, furnitureMoves, onMoveItem, onRotateItem, onRemoveItem, onRemoveFurniture, onMoveFurniture, onRotateFurniture, onFloorDrop, catGoal = null, catClip = null, catSpeed = 1, onItemError, story = null, onStory }: {
   rooms: PlanRoom[]; selected: string | null; onPick: (id: string) => void;
   /** 虛擬體驗（#150）：放一隻貓進去；有貓時只顯示單間（沒有「全部」），點地板叫貓走過去 */
   cat?: ViewerCat | null;
   /** 虛擬體驗（#197）：已放進房間的生活用品；只能從右側選單拖放進來，點地板不會新增 */
   placedItems?: PlacedHouseholdItem[];
+  /** 虛擬飼養：餐碗組裡有沒有飼料、水；不給＝照模型原樣（MeowHQ） */
+  bowlFill?: BowlFill;
   /** 點／手掌：點＝叫貓；手掌＝拖移用品／家具、移除家具 */
   interactMode?: InteractMode;
   /** 本次體驗暫時拿掉的讀圖家具（`roomId:index`） */
@@ -905,6 +910,7 @@ export default function FloorplanViewer({ rooms, selected, onPick, cat, placedIt
                           onMove={onMoveItem}
                           onRotate={interactMode === "hand" ? onRotateItem : undefined}
                           onRemove={onRemoveItem}
+                          bowlFill={bowlFill}
                         />
                       </Suspense>
                     </ItemBoundary>

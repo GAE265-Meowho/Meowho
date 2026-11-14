@@ -251,6 +251,7 @@ Worker 選用的 `report.html` 與 `html-assets/` 位於既有 attempt 前綴。
 | 2026-11-12 | 珮瑜 × Claude Code | 餵貓小遊戲改 3D：乾飼料顆粒、主食罐濕食、湯罐液體；餵貓、換水的彈窗關掉後貓才走到碗邊 | （還沒開 PR） |
 | 2026-11-12 | 珮瑜 × Claude Code | 鏟屎小遊戲改 3D：拖曳貓砂鏟、連砂鏟起、左右甩掉砂、倒進垃圾袋；貓砂盆四款（只在彈窗裡） | （還沒開 PR） |
 | 2026-11-13 | 珮瑜 × Claude Code | 驗收修正：餵貓一餐只餵一種（先選再倒、選完手先伸進來、罐頭可連開）；後台用品模型尺寸太小的不採用（貓砂盆 13 公分那筆） | （見 PR） |
+| 2026-11-13 | 珮瑜 × Claude Code | 餐碗組放進房間時是空碗，餵完、換完水才出現飼料和水（`fillBowl`、`bowlFill`） | （見 PR） |
 
 ## 虛擬飼養讀真實資料與試養報告給中途（/cats/[id]/play）
 - 貓咪：`lib/play/source.ts` 的 `loadPlayCat(id)` 讀 `meow_cats`（名字、花色、生活階段、生日／估計月齡）＋ `meow_cat_model_variants.confirmed_albedo`（3D 貼圖）；讀不到才用 DEMO 麻糬。劇本裡的名字用 `〈貓名〉`（`furniture.ts` 的 `fullTx`）替換，小遊戲原版寫死的「麻糬」由 `CatgameMini` 畫完後換成貓名；非虎斑花色不畫條紋。
