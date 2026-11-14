@@ -1,6 +1,6 @@
-/* 「跟著貓」按鈕：電腦版在 3D 畫面左下（劇情卡在中間、右上是音量和離開），手機版在左上狀態列下方 */
+/* 「跟著貓」按鈕（2026-11-14 渝茜）：放在右上角，齒輪鈕的左邊（齒輪 44px＋間距 8px） */
 .follow {
-  position: absolute; left: 16px; bottom: 16px; z-index: 6;
+  position: absolute; top: max(10px, env(safe-area-inset-top)); right: calc(max(12px, env(safe-area-inset-right)) + 52px); z-index: 6;
   display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 0 16px 0 12px;
   border-radius: 999px; border: 2px solid var(--line); background: var(--card); color: var(--ink);
   font: inherit; font-size: var(--play-fs-tag, 14px); font-weight: 700; cursor: pointer; box-shadow: 0 2px 0 var(--line);
@@ -8,6 +8,5 @@
 .follow svg { width: 22px; height: 22px; flex: 0 0 auto; }
 .follow[aria-pressed="true"] { background: var(--caramel); border-color: var(--caramel); color: var(--paper); box-shadow: 0 2px 0 var(--ink-soft); }
 .follow:focus-visible { outline: 3px solid var(--orange, var(--caramel)); outline-offset: 2px; }
-@media (max-width: 899px) {
-  .follow { top: 112px; bottom: auto; left: 12px; }
-}
+/* 手機：字收起來只留圖示 */
+@media (max-width: 480px) { .follow { padding: 0 10px; } .follow span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); } }

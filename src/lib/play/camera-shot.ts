@@ -20,10 +20,10 @@ export interface CameraShot {
 type Shot = Omit<CameraShot, "key">;
 
 const SHOTS: Partial<Record<NodeId, Partial<Record<CatPose, Shot>>>> = {
-  // 貓鑽進外出籠：靠近、壓低，看得到籠口
-  day1: { carrier: { id: "carrier", dist: 1.9, height: 0.7, ms: 1400, delayMs: 1500 } },
+  // 貓鑽進外出籠：看得到籠口，也看得到周圍（渝茜 2026-11-14：原本 1.9／0.7 太貼地板）
+  day1: { carrier: { id: "carrier", dist: 2.5, height: 1.0, ms: 1400, delayMs: 1500 } },
   // 半夜跑酷：拉遠、拉高，整段衝刺都在畫面裡
-  day30: { zoom: { id: "zoom", dist: 2.4, height: 1.1, ms: 1200, delayMs: 300 } },
+  day30: { zoom: { id: "zoom", dist: 3.0, height: 1.3, ms: 1200, delayMs: 300 } },
   // 結尾：先中景，最後一幕（睡著）很慢地推近
   farewell: {
     frail: { id: "farewell", dist: 1.6, height: 0.6, ms: 2400, delayMs: 800 },

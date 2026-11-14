@@ -1,0 +1,60 @@
+/* 小遊戲開始前的示範（#354，渝茜 2026-11-14）：插圖＋會動的手＋一句說明，下次不再顯示 */
+.card { display: flex; flex-direction: column; gap: 10px; }
+.kicker { margin: 0; align-self: flex-start; padding: 3px 12px; border-radius: 999px; background: var(--yellow); color: var(--ink); font-weight: 700; font-size: var(--play-fs-tag, 14px); }
+.stage { border-radius: 14px; overflow: hidden; }
+.svg { display: block; width: 100%; height: auto; max-height: 38dvh; animation: fade 0.35s ease both; }
+.text { margin: 0; display: flex; gap: 10px; align-items: flex-start; min-height: 3.4em; font-size: var(--play-fs-body, 17px); line-height: var(--play-lh, 1.7); color: var(--ink); }
+.num { flex: 0 0 auto; display: inline-grid; place-items: center; width: 26px; height: 26px; margin-top: 2px; border-radius: 50%; background: var(--caramel); color: #fff; font-size: 14px; font-weight: 700; }
+.dots { display: flex; justify-content: center; gap: 6px; }
+.dot { width: 28px; height: 28px; padding: 0; border: 0; background: none; cursor: pointer; position: relative; }
+.dot::after { content: ""; position: absolute; inset: 9px; border-radius: 50%; background: var(--line); }
+.dot[aria-selected="true"]::after { background: var(--caramel); }
+.dot:focus-visible { outline: 3px solid var(--orange); outline-offset: 0; border-radius: 50%; }
+.foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding-top: 4px; }
+.skip { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; font-size: var(--play-fs-sub, 15px); color: var(--ink-soft); cursor: pointer; }
+.skip input { width: 20px; height: 20px; accent-color: var(--caramel); }
+
+/* 手勢 */
+.hand { transform-box: fill-box; }
+.ring { opacity: 0; }
+.hold .ring, .tap .ring { animation: ring 1.6s ease-out infinite; }
+.hold { animation: press 1.6s ease-in-out infinite; }
+.tap { animation: tapIt 1s ease-in-out infinite; }
+.circle { animation: circle 1.6s linear infinite; }
+.drag { animation: drag 2.2s ease-in-out infinite; }
+.shake { animation: shake 0.5s ease-in-out infinite; }
+.stroke { animation: stroke 1.8s ease-in-out infinite; }
+.scrub { animation: scrub 0.45s ease-in-out infinite; }
+.follow { animation: follow 2.4s ease-in-out infinite; }
+.rest { animation: none; opacity: 0.85; }
+.toy { animation: toyRun 2.4s ease-in-out infinite; }
+.water { animation: drip 0.6s linear infinite; }
+.treat { animation: tapIt 1.4s ease-in-out infinite; }
+
+@keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes ring { 0% { opacity: 0.9; transform: scale(0.4); } 100% { opacity: 0; transform: scale(1.6); } }
+@keyframes press { 0%, 100% { transform: translateY(-8px); } 20%, 80% { transform: translateY(0) scale(0.94); } }
+@keyframes tapIt { 0%, 100% { transform: translateY(-10px); } 45% { transform: translateY(0) scale(0.94); } }
+@keyframes circle {
+  0% { transform: translate(18px, 0); } 25% { transform: translate(0, 7px); } 50% { transform: translate(-18px, 0); }
+  75% { transform: translate(0, -7px); } 100% { transform: translate(18px, 0); }
+}
+@keyframes drag { 0% { transform: translate(0, 0); } 45%, 55% { transform: translate(-60px, -20px); } 100% { transform: translate(0, 0); } }
+@keyframes shake { 0%, 100% { transform: translateX(-10px); } 50% { transform: translateX(10px); } }
+@keyframes stroke { 0% { transform: translateX(0); } 50% { transform: translateX(90px); } 100% { transform: translateX(0); } }
+@keyframes scrub { 0%, 100% { transform: translateX(-14px); } 50% { transform: translateX(14px); } }
+@keyframes follow {
+  0% { transform: translate(0, 0); } 25% { transform: translate(60px, -14px); } 50% { transform: translate(130px, 6px); }
+  75% { transform: translate(70px, 16px); } 100% { transform: translate(0, 0); }
+}
+/* 玩具跟在手後面（手的起點 60,70；地板高度約 116） */
+@keyframes toyRun {
+  0% { transform: translate(60px, 116px); } 25% { transform: translate(116px, 112px); } 50% { transform: translate(186px, 118px); }
+  75% { transform: translate(126px, 120px); } 100% { transform: translate(60px, 116px); }
+}
+@keyframes drip { from { stroke-dashoffset: 0; } to { stroke-dashoffset: -12; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .hand, .ring, .toy, .water, .treat, .svg { animation: none !important; }
+  .toy { transform: translate(60px, 116px); }
+}

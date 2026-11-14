@@ -176,11 +176,11 @@ export function PlayStage({ kind, scanBase, placeView = false, place = null, loo
       )}
       {kind !== "scan" && bubble && <span className={s.bubbleFixed} aria-hidden="true"><CareIcon id={bubble} /></span>}
       {story && look && (
-        <button type="button" className={f.follow} aria-pressed={follow} onClick={() => setFollow(v => !v)}>
+        <button type="button" className={f.follow} aria-pressed={follow} aria-label="跟隨貓咪" onClick={() => setFollow(v => !v)}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <circle cx="12" cy="12" r="3" /><path d="M12 2v4M12 18v4M2 12h4M18 12h4" /><circle cx="12" cy="12" r="8" />
           </svg>
-          跟著貓
+          <span>跟隨貓咪</span>
         </button>
       )}
       {overview && <ViewPad side={side} onSide={setSide} />}

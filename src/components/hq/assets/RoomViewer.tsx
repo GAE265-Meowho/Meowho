@@ -10,7 +10,7 @@ import {
   cameraForward, clampInRoom, roomSplats, roomUnit, roomViews, sortCameras,
   type RoomCamera, type RoomLayout, type RoomScene, type RoomViewName,
 } from "@/lib/hq/rooms/demo";
-import { OVERVIEW, coverViewOffset, dragSideOffset, fitFov, sideAzimuth, sideCamera, type OverviewSide } from "@/lib/hq/rooms/overview";
+import { OVERVIEW, coverViewOffset, dragSideOffset, fitFov, playFov, playView, sideAzimuth, sideCamera, type OverviewSide } from "@/lib/hq/rooms/overview";
 import { createRoomWorld, type RoomWorld } from "@/lib/hq/rooms/world";
 import { isPrivateRoomBase, keepRecentRoom, roomFile } from "@/lib/home-room-cache";
 import { getBrowserSupabase } from "@/lib/supabase/client";
@@ -183,6 +183,9 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
   const hasBubble = useRef(false);
   const insetRef = useRef(bubbleInset);
   insetRef.current = bubbleInset;
+  // 虛擬飼養（沒有操作列、不是前台預覽）：一般鏡頭從拍攝點往後退、抬高，視野放大（overview.ts 的 PLAY_VIEW）
+  const playModeRef = useRef(false);
+  playModeRef.current = !controls && !overlay;
   const followRef = useRef(follow);
   followRef.current = follow;
   const followOffRef = useRef(onFollowOff);
@@ -274,7 +277,14 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
       const sideCam = () => sideCamera(scene.room, sideAzimuth(views.front.dir, side, handed) + dragOff);
       const overviewView = () => floorView(sideCam());
       const homeView = () => (overlay ? fixedView("front") : view(cameras[index]));
-      const first = overviewOn ? overviewView() : homeView();
+      // 虛擬飼養的開場位置：拍攝點常貼著地板往下拍，往後退、抬高再看（PLAY_VIEW）
+      const playHome = () => {
+        const v = homeView();
+        if (!playModeRef.current) return v;
+        const d = v.look.clone().sub(v.pos);
+        return floorView(playView(floorOf(v.pos), [d.dot(ve1), d.dot(vup), d.dot(ve2)]));
+      };
+      const first = overviewOn ? overviewView() : playHome();
       const threeScene = new THREE.Scene();  // 貓畫在這，高斯點會依深度蓋在它前面
       const movable = scene.assets.room_cut && scene.objects.some(o => o.splat);
       viewer = new GS.Viewer({
@@ -352,6 +362,7 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
       };
       // 俯視時的鏡頭「鏡片」：FOV 與往上移的畫面中心（view offset）。離開俯視時還原
       const baseFov = active.camera.fov;
+      const homeFov = playModeRef.current ? playFov(baseFov) : baseFov;
       let lensNow: [number, number] = [baseFov, 0];
       let lensKey = "";
       const setLens = ([fov, off]: [number, number], on: boolean) => {
@@ -371,7 +382,8 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
         if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) { jumpTo(overviewView()); setLens(lensTarget(), true); return; }
         tween = { from: { pos: active.camera.position.clone(), look: controls.target.clone() }, to: overviewView(), start: performance.now(), ms: OVERVIEW.flyMs, lens: [lensNow, lensTarget()] };
       };
-      if (overviewOn) { orbit.current.enabled = false; setLens(lensTarget(), true); }  // 內建的拖曳轉頭、平移都關掉，改由下面的拖曳微調
+      if (overviewOn) { orbit.current.enabled = false; setLens(lensTarget(), true); }
+      else if (homeFov !== baseFov) setLens([homeFov, 0], false);  // 內建的拖曳轉頭、平移都關掉，改由下面的拖曳微調
       setOverview.current = next => {
         if (next === (overviewOn ? side : null)) return;
         const was = overviewOn;
@@ -382,8 +394,8 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
           dragOff = 0;
           flyOver();
         } else if (was) {
-          jumpTo(homeView());  // 直接回原本的開場位置：接下來的「轉向貓」是從鏡頭當下的位置算的，不能還在半空中
-          setLens([baseFov, 0], false);
+          jumpTo(playHome());  // 直接回開場位置：接下來的「轉向貓」是從鏡頭當下的位置算的，不能還在半空中
+          setLens([homeFov, 0], false);
         }
       };
       goTo.current = step => {

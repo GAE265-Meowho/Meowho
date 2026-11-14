@@ -100,6 +100,8 @@ export interface StoryNode {
 
 /** 這隻貓還是幼貓（不到 1 歲）：幼貓才講「小貓」「毛球」，大貓用比較中性的說法 */
 const young = (X: Life) => X.age < 12;
+/** 第 3 天中途說的餐數 */
+const meals = (X: Life) => (young(X) ? "小貓胃口小，一天要分 3 到 4 餐。" : "成貓一天分 2 到 3 餐，定時定量就好。");
 export const sc = (bg: string, time = "day", cat: CatPose = "sit"): Step => ({ k: "scene", bg, time, cat });
 export const XN = (t: string): Step => ({ k: "line", t });
 export const VT = (t: string): Step => ({ k: "line", who: "vet", t, health: true });
@@ -232,18 +234,26 @@ export const STORY: readonly StoryNode[] = [
     id: "day3", label: "第 3 天", sub: "〈貓名〉・2 個月", age: 2.1, body: "kitten", speed: 1, home: true, personal: false,
     steps: [
       sc("room", "day"),
-      FN(X => [WHO("clerk", `${young(X) ? "小貓一天要吃 3 到 4 餐" : "成貓一天分 2 到 3 餐，定時定量"}。砂盆放在安靜的角落，水碗離飯碗遠一點，牠會比較願意喝水。`)]),
-      ASK("you", "（砂盆和碗要放哪裡？）", [
-        { l: "砂盆和碗分開放", fx: { trust: 3 }, pick: "砂盆和碗分開放", good: true, then: [{ k: "relocate", mode: "apart", then: [XN("你把貓砂盆搬到另一個安靜的角落。一切順利，〈貓名〉很快就知道哪裡是廁所、哪裡是餐廳。")] }] },
-        { l: "放在一起", fx: { stress: 8 }, pick: "砂盆和碗放在一起", good: false, then: [{ k: "relocate", mode: "together", then: [XN("你把貓砂盆搬到餐碗旁邊。〈貓名〉開始在別的地方上廁所。")] }] },
-      ]),
+      // 2026-11-14 渝茜：台詞改通順；擺用品時已經把砂盆和碗分開放（flags.litterApart，PlayGame 開始時算）就不再叫玩家重擺
+      FN(X => X.flags.litterApart
+        ? [
+          WHO("clerk", `${meals(X)}你把貓砂盆和碗分開放了，這樣很好，牠吃飯、上廁所都會比較安心。`),
+          REC({ fx: { trust: 3 }, pick: "砂盆和碗分開放", good: true }),
+        ]
+        : [
+          WHO("clerk", `${meals(X)}貓砂盆要放在安靜的角落，離吃飯的地方遠一點。`),
+          ASK("you", "（砂盆和碗要放哪裡？）", [
+            { l: "砂盆和碗分開放", fx: { trust: 3 }, pick: "砂盆和碗分開放", good: true, then: [{ k: "relocate", mode: "apart", then: [XN("你把貓砂盆搬到另一個安靜的角落。一切順利，〈貓名〉很快就知道哪裡是廁所、哪裡是餐廳。")] }] },
+            { l: "放在一起", fx: { stress: 8 }, pick: "砂盆和碗放在一起", good: false, then: [{ k: "relocate", mode: "together", then: [XN("你把貓砂盆搬到餐碗旁邊。〈貓名〉開始在別的地方上廁所。")] }] },
+          ]),
+        ]),
       REC({ note: "到家用品（砂盆、碗、飼料）已在採買算過", pick: "布置了基本用品。", good: null }),
       XN("你把〈貓名〉的第一餐倒進碗裡。"),
       MINI("feed"),
       XN("接著把貓砂盆鏟乾淨，這是每天都要做的事。"),
       MINI("scoop"),
     ],
-    page: { title: "第一次清砂盆", tip: "每天清一到兩次砂盆，順便看尿塊和便便正不正常。（鏟屎在「在家的時光」做）" },
+    page: { title: "第一次清砂盆", tip: "每天清一到兩次砂盆，順便看尿塊和便便正不正常。之後每天都可以按畫面上方的鏟屎按鈕清砂盆。" },
   },
   {
     id: "day30", label: "第 30 天", sub: "〈貓名〉・3 個月", age: 3, body: "kitten", speed: 1, home: true, personal: false,

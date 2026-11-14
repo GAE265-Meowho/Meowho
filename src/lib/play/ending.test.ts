@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  adoptActions, adoptSeenKey, captureMoment, ENDING_MS, endingBgmLevel, endingSchedule, endingStarts, fitSize, mergeShots, shouldOfferAdopt, type ReviewShot,
+  adoptActions, adoptFacts, adoptSeenKey, captureMoment, ENDING_MS, endingBgmLevel, endingSchedule, endingStarts, fitSize, mergeShots, shouldOfferAdopt, type ReviewShot,
 } from "./ending";
 
 describe("endingStarts：結局的暗幕什麼時候開始", () => {
@@ -102,8 +102,8 @@ describe("shouldOfferAdopt：報告後要不要跳「認養貓咪」彈窗", () 
     expect(shouldOfferAdopt({ ...base, abandoned: true })).toBe(false);
   });
   it("中途沒開放認養問卷：只剩「去跟中途談談」；開放：兩顆都有（問卷在前）", () => {
-    expect(adoptActions({ formOpen: true })).toEqual(["apply", "message"]);
-    expect(adoptActions({ formOpen: false })).toEqual(["message"]);
+    expect(adoptActions({ formOpen: true })).toEqual(["apply", "message", "browse"]);
+    expect(adoptActions({ formOpen: false })).toEqual(["message", "browse"]);
     // 第一顆是主按鈕：沒開放問卷時「去跟中途談談」改成主按鈕
     expect(adoptActions({ formOpen: true })[0]).toBe("apply");
     expect(adoptActions({ formOpen: false })[0]).toBe("message");
@@ -111,5 +111,12 @@ describe("shouldOfferAdopt：報告後要不要跳「認養貓咪」彈窗", () 
   it("記錄用的 key：有 runId 用 runId，示範模式用貓", () => {
     expect(adoptSeenKey("r1", "c1")).toBe("meowho.play.adopt.r1");
     expect(adoptSeenKey(null, "c1")).toBe("meowho.play.adopt.demo.c1");
+  });
+});
+
+describe("adoptFacts：領養資訊的基本資料", () => {
+  it("有的欄位才列", () => {
+    expect(adoptFacts({ ageText: "2 歲", sex: "male", neutered: true, coat: "灰白" })).toEqual([["年紀", "2 歲"], ["性別", "公貓"], ["結紮", "已結紮"], ["花色", "灰白"]]);
+    expect(adoptFacts({ ageText: "", sex: "unknown", neutered: null, coat: null })).toEqual([]);
   });
 });

@@ -28,3 +28,9 @@
 }
 @keyframes pop { from { opacity: 0; transform: translateY(12px) scale(0.96); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .dialog[open] { animation: none; } }
+/* 領養資訊的基本資料（2026-11-14） */
+.facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px 16px; margin: 0; }
+.facts div { display: flex; gap: 8px; font-size: var(--play-fs-sub, 15px); }
+.facts dt { color: var(--ink-soft); }
+.facts dd { margin: 0; font-weight: 700; color: var(--ink); }
+.text p#adopt-desc { display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }

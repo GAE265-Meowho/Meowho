@@ -247,3 +247,38 @@ export function dragSideOffset(offset: number, dx: number, handed = 1): number {
   const max = SIDE_VIEW.dragMaxDeg * DEG;
   return Math.min(Math.max(offset + handed * dx * OVERVIEW.dragRadPerPx, -max), max);
 }
+
+/**
+ * 虛擬飼養的一般鏡頭（#354，渝茜 2026-11-14）：擺完用品離開俯視後，原本跳回掃描影片的拍攝點，
+ * 手機常拿得很低、往下拍，畫面貼著地板看不到東西。改成從那個拍攝點往後退、抬到至少 minHeightM，
+ * 仍然看著原本畫面中間的那一點；視野（FOV）放大 fovScale 倍。數值只改這裡。
+ */
+export const PLAY_VIEW = {
+  /** 視野放大倍數（渝茜：大概放大 30%） */
+  fovScale: 1.3,
+  /** 視野上限（度）：再大邊緣會變形 */
+  maxFov: 80,
+  /** 從拍攝點水平往後退幾公尺（退到牆會被 keepInRoom 擋住） */
+  backM: 0.8,
+  /** 鏡頭至少離地幾公尺 */
+  minHeightM: 1.45,
+  /** 原本畫面中間要繼續看著的那一點，在拍攝點前方幾公尺 */
+  aimM: 1.6,
+} as const;
+
+export function playFov(baseFov: number): number {
+  return Math.min(PLAY_VIEW.maxFov, Math.max(baseFov, baseFov * PLAY_VIEW.fovScale));
+}
+
+/** 拍攝點（地板座標：公尺，y 向上）與視線 → 往後退、抬高後的位置與視線（單位向量） */
+export function playView(pos: Vec3, dir: Vec3): { pos: Vec3; dir: Vec3 } {
+  const len = Math.hypot(dir[0], dir[1], dir[2]) || 1;
+  const d: Vec3 = [dir[0] / len, dir[1] / len, dir[2] / len];
+  const hl = Math.hypot(d[0], d[2]);
+  const h: Vec3 = hl > 1e-6 ? [d[0] / hl, 0, d[2] / hl] : [0, 0, 1];
+  const aim: Vec3 = [pos[0] + d[0] * PLAY_VIEW.aimM, pos[1] + d[1] * PLAY_VIEW.aimM, pos[2] + d[2] * PLAY_VIEW.aimM];
+  const np: Vec3 = [pos[0] - h[0] * PLAY_VIEW.backM, Math.max(pos[1], PLAY_VIEW.minHeightM), pos[2] - h[2] * PLAY_VIEW.backM];
+  const nd: Vec3 = [aim[0] - np[0], aim[1] - np[1], aim[2] - np[2]];
+  const nl = Math.hypot(nd[0], nd[1], nd[2]) || 1;
+  return { pos: np, dir: [nd[0] / nl, nd[1] / nl, nd[2] / nl] };
+}
