@@ -65,6 +65,8 @@ export function AdoptDialog({ catId, catName, photo, shot, runId, canAct, adopta
   const src = photo ?? shot;
   const login = canAct ? undefined : "認養這隻貓";
   const actions = adoptActions({ formOpen });
+  // 第一顆是主按鈕：沒開放問卷時只剩「去跟中途談談」，改用主要樣式
+  const msgVariant = actions[0] === "message" ? "primary" : "ghost";
   return (
     <dialog ref={ref} className={a.dialog} aria-labelledby="adopt-title" aria-describedby="adopt-desc"
       onCancel={ev => { ev.preventDefault(); close(); }}
@@ -88,8 +90,8 @@ export function AdoptDialog({ catId, catName, photo, shot, runId, canAct, adopta
                 ? <CatButton href={`/cats/${catId}/apply`}>填認養問卷</CatButton>
                 : <span data-login={login}><CatButton onClick={() => {}}>填認養問卷</CatButton></span>)}
               {canAct
-                ? <MessageButton catId={catId} label="去跟中途談談" />
-                : <span data-login={login}><CatButton variant="ghost" ears={false} onClick={() => {}}>去跟中途談談</CatButton></span>}
+                ? <MessageButton catId={catId} label="去跟中途談談" variant={msgVariant} />
+                : <span data-login={login}><CatButton variant={msgVariant} ears={msgVariant === "primary"} onClick={() => {}}>去跟中途談談</CatButton></span>}
             </div>
           </div>
         </div>

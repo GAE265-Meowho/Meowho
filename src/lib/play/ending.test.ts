@@ -104,6 +104,9 @@ describe("shouldOfferAdopt：報告後要不要跳「認養貓咪」彈窗", () 
   it("中途沒開放認養問卷：只剩「去跟中途談談」；開放：兩顆都有（問卷在前）", () => {
     expect(adoptActions({ formOpen: true })).toEqual(["apply", "message"]);
     expect(adoptActions({ formOpen: false })).toEqual(["message"]);
+    // 第一顆是主按鈕：沒開放問卷時「去跟中途談談」改成主按鈕
+    expect(adoptActions({ formOpen: true })[0]).toBe("apply");
+    expect(adoptActions({ formOpen: false })[0]).toBe("message");
   });
   it("記錄用的 key：有 runId 用 runId，示範模式用貓", () => {
     expect(adoptSeenKey("r1", "c1")).toBe("meowho.play.adopt.r1");

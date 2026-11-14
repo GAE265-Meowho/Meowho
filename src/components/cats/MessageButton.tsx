@@ -18,7 +18,7 @@ const ERRORS: Record<string, string> = {
 };
 
 /** label：按鈕文字（預設「傳訊息給喵戶長」；虛擬飼養結局的認養彈窗寫「去跟中途談談」） */
-export function MessageButton({ catId, label = "傳訊息給喵戶長" }: { catId: string; label?: string }) {
+export function MessageButton({ catId, label = "傳訊息給喵戶長", variant = "ghost" }: { catId: string; label?: string; variant?: "primary" | "ghost" }) {
   const { user } = useAuth();
   const { hasHome, pass, toGuide } = useHouseholdGate();
   const [busy, setBusy] = useState(false);
@@ -51,7 +51,7 @@ export function MessageButton({ catId, label = "傳訊息給喵戶長" }: { catI
 
   return (
     <>
-      <CatButton variant="ghost" ears={false} disabled={busy} onClick={() => { if (pass(back())) open(); }}>
+      <CatButton variant={variant} ears={variant === "primary"} disabled={busy} onClick={() => { if (pass(back())) open(); }}>
         <Icon name="comment" size={18} />{busy ? "開啟中…" : label}
       </CatButton>
       {error && <p className={f.error} role="alert">{error}</p>}
