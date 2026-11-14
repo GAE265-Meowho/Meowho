@@ -101,10 +101,25 @@ export function setMuted(next: boolean) {
 
 /** 第 1～5 份在對的時機呼叫，例如 playSfx("sfx_pour_water") */
 export function playSfx(id: SfxId, volume = SFX_VOLUME) {
-  if (!unlocked || isMuted() || !hasSound(id, index) || typeof Audio === "undefined") return;
-  const url = src(id);
+  if (!unlocked || isMuted() || typeof Audio === "undefined") return;
+  const url = hasSound(id, index) ? src(id) : "";
   if (!url) return;
   const el = new Audio(url);
   el.volume = volume;
-  el.play().catch(() => {});
+  let stopped = false;
+  const stop = () => {
+    if (stopped) return;
+    stopped = true;
+    unsubscribe();
+    el.removeEventListener("ended", stop);
+    el.removeEventListener("error", stop);
+    el.pause();
+    el.removeAttribute("src");
+    el.load();
+  };
+  const unsubscribe = subscribeMuted(() => { if (isMuted()) stop(); });
+  el.addEventListener("ended", stop);
+  el.addEventListener("error", stop);
+  el.play().catch(stop);
+  return stop;
 }
