@@ -32,7 +32,6 @@ import { resolvePlayItems, resolvePlayToy, type PlayItem } from "@/lib/play/item
 import { nearLabel, type SceneItem } from "@/lib/play/scene-items";
 import { parsePoses, type ItemPose } from "@/lib/play/scan-place";
 import type { RoomPlaceApi, RoomPlaceEdit } from "@/components/hq/assets/RoomViewer";
-import { PlaceMovePad } from "./PlaceMovePad";
 import pm from "./place.module.css";
 import { LINES_TIMEOUT_MS, ruleLines, type Line } from "@/lib/play/lines";
 import { DEMO_DOLLHOUSE, inventoryFromPlan, inventoryFromScan, pickScanBase, type RoomInventory, type RoomKind } from "@/lib/play/room";
@@ -608,7 +607,7 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
         <section className={s.card} aria-labelledby="place-title">
           <h2 id="place-title">把外出籠、餐碗和貓砂盆放進房間</h2>
           {kind === "scan" && <p className={s.lead}>選好用品，點房間地板放上去，放好的可以拖曳；右上角箭頭切換視角。</p>}
-          {/* 用品鈕和移動鈕排在同一列（電腦版），整張卡片不用捲動就看得完 */}
+          {/* 用品鈕和轉向鈕排在同一列，整張卡片不用捲動就看得完 */}
           <div className={pm.placeRow}>
             <div className={s.chips} role="group" aria-label="要放的用品">
               {playItems.map(i => (
@@ -619,10 +618,11 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
                 </button>
               ))}
             </div>
+            {/* 用品用滑鼠拖曳移動（渝茜 2026-11-14：不要物件方向鍵）；只留轉向 */}
             {kind === "scan" && scanSpots[placing] && (
-              <PlaceMovePad name={playItem(placing).name}
-                onNudge={dir => placeApi.current?.nudge(placing, dir) ?? false}
-                onRotate={() => placeApi.current?.rotate(placing) ?? false} />
+              <button type="button" className={s.chipBtn} onClick={() => placeApi.current?.rotate(placing)}>
+                {playItem(placing).name}轉向
+              </button>
             )}
           </div>
           {placeMsg && <p className={s.missing} role="status">{placeMsg}</p>}

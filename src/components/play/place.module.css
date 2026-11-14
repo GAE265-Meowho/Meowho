@@ -28,26 +28,6 @@
 @media (max-height: 520px) { .pad { top: calc(max(10px, env(safe-area-inset-top)) + 52px); grid-template-columns: repeat(3, 44px); grid-template-rows: repeat(3, 44px); } .key { width: 44px; height: 44px; } }
 @media (prefers-reduced-motion: reduce) { .key { transition: none; } .key:active { transform: none; } }
 
-/* 物件移動鈕（在擺用品卡片裡、和右上角的「切換視角」鈕分開）：方角、焦糖色，一看就知道是搬東西用的 */
-.move { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-.moveName { font-weight: 700; color: var(--ink); font-size: var(--play-fs-sub, 15px); }
-.movePad { display: grid; grid-template-columns: repeat(3, 44px); grid-template-rows: repeat(2, 44px); gap: 4px; grid-template-areas: "rot up ." "left down right"; }
-.moveKey {
-  width: 44px; height: 44px; padding: 0; display: grid; place-items: center; border-radius: 12px;
-  border: 2px solid var(--caramel); background: var(--paper); color: var(--ink); cursor: pointer;
-  touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; transition: transform 0.12s;
-}
-.moveKey[data-dir="up"] { grid-area: up; }
-.moveKey[data-dir="down"] { grid-area: down; }
-.moveKey[data-dir="left"] { grid-area: left; }
-.moveKey[data-dir="right"] { grid-area: right; }
-.moveKey[data-dir="rot"] { grid-area: rot; }
-.moveKey svg { pointer-events: none; }
-.moveKey:hover { background: var(--yellow-soft); }
-.moveKey:active { transform: scale(0.94); }
-.moveKey:focus-visible { outline: 3px solid var(--orange); outline-offset: 2px; }
-@media (prefers-reduced-motion: reduce) { .moveKey { transition: none; } .moveKey:active { transform: none; } }
-
-/* 擺用品卡片：用品鈕在左、移動鈕在右，同一列；窄螢幕自動換行 */
+/* 擺用品卡片：用品鈕在左、轉向鈕在右，同一列；窄螢幕自動換行 */
 .placeRow { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .placeRow > :first-child { flex: 1 1 260px; }
