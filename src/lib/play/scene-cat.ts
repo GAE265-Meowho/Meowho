@@ -1,10 +1,12 @@
 // 虛擬飼養：掃描房間（3D）裡的貓。把劇情動作換成房間裡的位置，並判定 3D 逗貓有沒有抓到。純函式，座標是地板座標（公尺）。
 import type { RoomObject } from "@/lib/hq/rooms/demo";
+import type { CarrierBox } from "./carrier-fit";
 import type { CatAction } from "./stage";
 
 export type SceneCatCommand =
   | { kind: "hidden" }                         // 貓不在畫面上（躲起來、不在場）
   | { kind: "go"; x: number; z: number }       // 走到這個位置
+  | { kind: "tuck"; carrier: CarrierBox }       // 整隻縮在外出籠裡（地板座標，公尺）
   | { kind: "jump"; object: string }           // 跳上這件家具（RoomObject.id）
   | { kind: "roam" };                          // 照常在房間裡閒晃
 
@@ -14,7 +16,9 @@ const FUN_PER_CATCH = 17;  // 抓到一次的開心度（3 次約 51，過 50 �
 const has = (o: RoomObject, words: string[]) => words.some(w => `${o.name_zh ?? ""}${o.label}`.toLowerCase().includes(w));
 const tallest = (list: RoomObject[]) => [...list].sort((a, b) => b.box.size[1] - a.box.size[1])[0];
 
-export function sceneCatCommand(action: CatAction | null, objects: readonly RoomObject[], placed: readonly { id: string; x: number; z: number }[]): SceneCatCommand {
+/** items：用品尺寸（公尺），外出籠要用來算籠內空間；沒給就照舊走到外出籠旁 */
+export function sceneCatCommand(action: CatAction | null, objects: readonly RoomObject[], placed: readonly { id: string; x: number; z: number }[],
+  items: readonly { id: string; widthM: number; depthM: number; heightM: number }[] = []): SceneCatCommand {
   const at = (id: string): SceneCatCommand => {
     const p = placed.find(x => x.id === id);
     return p ? { kind: "go", x: p.x, z: p.z } : { kind: "roam" };
@@ -23,7 +27,10 @@ export function sceneCatCommand(action: CatAction | null, objects: readonly Room
   const jumpTo = (o: RoomObject | undefined): SceneCatCommand => (o ? { kind: "jump", object: o.id } : { kind: "roam" });
   switch (action) {
     case null: return { kind: "hidden" };
-    case "carrier": return at("carrier");
+    case "carrier": {
+      const p = placed.find(x => x.id === "carrier"), it = items.find(x => x.id === "carrier");
+      return p && it ? { kind: "tuck", carrier: { x: p.x, z: p.z, widthM: it.widthM, depthM: it.depthM, heightM: it.heightM } } : at("carrier");
+    }
     case "eat": return at("bowl");
     case "litter": return at("litter_box");
     case "hide": {

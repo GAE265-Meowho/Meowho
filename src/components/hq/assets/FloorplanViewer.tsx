@@ -15,7 +15,10 @@ import { expandRemovedIndices, type FurnitureMove, type FurnitureSupport } from 
 import { boxToSolid, clampFurniturePose, rotatedHalfExtents, type SolidBody } from "@/lib/hq/floorplans/experience-physics";
 import { focusScenes, houseScene, sceneBounds, type RoomScene, type SceneBox } from "@/lib/hq/floorplans/scene";
 import type { BodyType } from "@/lib/hq/cat-models/types";
-import { CatModel } from "./CatPreview";
+import { CatModel, CROSSFADE_SECONDS } from "./CatPreview";
+import { fitCatInCarrier, type Bounds3, type CarrierBox } from "@/lib/play/carrier-fit";
+import { nearFree } from "@/lib/play/stage";
+import { poseBounds, tuckClip } from "@/lib/hq/rooms/pose-bounds";
 import { bowlSlotsOf, detectBowlSlots, setBowlSlots } from "./bowlSlotsDetect";
 import { readItemDragId } from "./itemDrag";
 import type { PlanRoom } from "@/lib/hq/floorplans/types";
@@ -588,7 +591,22 @@ export interface ViewerCat { baseUrl: string; albedoUrl: string; body: BodyType 
  * 規則在 catwalk.ts、catjump.ts（純函式、可測）；貓放大 CAT_SCALE 倍（真實比例在整間房的鏡頭裡太小）。
  * pos：貓的世界座標，給鏡頭跟隨用。
  */
-function CatActor({ s, look, click, pos, extraObs, forceClip = null, speed = 1, story = null, items = [], onStory }: {
+/** 切換到躲藏動作後多久才顯示貓（要比 CatModel 的淡入淡出長） */
+const TUCK_FADE_S = CROSSFADE_SECONDS + 0.1;
+
+/** 量貓模型躲藏動作（趴姿）整段播放的包圍盒，給外出籠用（在 Suspense 裡，等模型讀好） */
+function TuckBounds({ url, onBounds }: { url: string; onBounds: (b: { clip: string; bounds: Bounds3 } | null) => void }) {
+  const gltf = useGLTF(url);
+  useEffect(() => {
+    const name = tuckClip(gltf.animations.map(a => a.name));
+    const clip = gltf.animations.find(a => a.name === name);
+    const bounds = clip ? poseBounds(gltf.scene, clip) : null;
+    onBounds(name && bounds ? { clip: name, bounds } : null);
+  }, [gltf, onBounds]);
+  return null;
+}
+
+function CatActor({ s, look, click, pos, extraObs, forceClip = null, speed = 1, story = null, items = [], onStory, tuck = null }: {
   s: RoomScene; look: ViewerCat; click: (RoomClick & { at: number }) | null; pos: React.RefObject<THREE.Vector3>;
   extraObs: Obstacle[];
   /** 停下來時固定播這個動作（例如 sleep），不自己閒逛（#237 虛擬飼養劇情） */
@@ -601,6 +619,8 @@ function CatActor({ s, look, click, pos, extraObs, forceClip = null, speed = 1, 
   items?: PlacedHouseholdItem[];
   /** 故事線狀態改變時通知（畫面顯示進度） */
   onStory?: (st: StoryState) => void;
+  /** 虛擬飼養第 1 天：貓整隻縮在這個外出籠裡（y＝籠底高度）；null＝照常走動 */
+  tuck?: (CarrierBox & { y?: number }) | null;
 }) {
   const world = useMemo(() => worldOf(s, [...obstacles(s), ...extraObs]), [s, extraObs]);
   const start = useMemo(() => freeSpot(s, world.obs) ?? { x: s.size[0] / 2, z: s.size[1] / 2 }, [s, world]);
@@ -615,6 +635,20 @@ function CatActor({ s, look, click, pos, extraObs, forceClip = null, speed = 1, 
   const storyGoal = useRef(false);
   const [bubble, setBubble] = useState<NeedIcon | null>(null);
   const [bubbleLabel, setBubbleLabel] = useState("");
+  const [tuckPose, setTuckPose] = useState<{ clip: string; bounds: Bounds3 } | null>(null);
+  const fit = useMemo(() => {
+    const f = tuck && tuckPose ? fitCatInCarrier(tuck, tuckPose.bounds) : null;
+    return f?.fits ? f : null;
+  }, [tuck, tuckPose]);
+  const tuckT = useRef(0);
+  useEffect(() => { if (fit) goal.current = null; }, [fit]);
+  // 從外出籠出來：從籠門前的空地板開始走（籠子本身是障礙物，留在籠內會卡住）
+  useEffect(() => {
+    if (tuck) return;
+    const a = cat.current;
+    const spot = nearFree(s, world.obs, a.x, a.z);
+    if (spot && blocked(a.x, a.z, s, world.obs)) cat.current = { ...a, ...spot };
+  }, [tuck, s, world]);
   useEffect(() => {
     if (!click) return;
     storyGoal.current = false;
@@ -623,6 +657,20 @@ function CatActor({ s, look, click, pos, extraObs, forceClip = null, speed = 1, 
   }, [click, world]);
   useFrame((_, delta) => {
     const dt = Math.min(delta, 0.1) * speed;
+    if (fit && tuck) {
+      // 縮在外出籠裡：固定趴姿、縮放到整隻放得下、面向門口，不走動
+      cat.current = { ...cat.current, x: fit.x, z: fit.z, heading: fit.heading, moving: false, on: null, jump: null };
+      ref.current?.position.set(fit.x, (tuck.y ?? 0) + fit.y, fit.z);
+      ref.current?.rotation.set(0, fit.heading, 0);
+      ref.current?.scale.setScalar(fit.scale);
+      ref.current?.getWorldPosition(pos.current);
+      if (clip !== tuckPose!.clip) { setClip(tuckPose!.clip); tuckT.current = 0; }
+      // 動作淡入時會混到站姿（頭會穿出籠頂），淡入完才顯示
+      tuckT.current += delta;
+      if (ref.current) ref.current.visible = tuckT.current > TUCK_FADE_S;
+      return;
+    }
+    if (ref.current) { ref.current.scale.setScalar(CAT_SCALE); ref.current.visible = true; }
     // 故事線（#318）：碗有自己的碰撞（餐碗組＝兩個碗），最後靠近時拿掉要吃的那個
     const bowls = story ? bowlObstacles(story, items, bowlSlotsOf) : [];
     if (story) storyStep(story, dt, bowls);
@@ -701,6 +749,7 @@ function CatActor({ s, look, click, pos, extraObs, forceClip = null, speed = 1, 
     <group ref={ref} position={[start.x, 0, start.z]} scale={CAT_SCALE}>
       <Suspense fallback={null}>
         <CatModel baseUrl={look.baseUrl} albedoUrl={look.albedoUrl} clip={clip} follow={false} speed={speed} />
+        {tuck && <TuckBounds url={look.baseUrl} onBounds={setTuckPose} />}
       </Suspense>
       {bubble && (
         <Html position={[0, look.body === "kitten" ? 0.42 : 0.62, 0]} center zIndexRange={[40, 30]} style={{ pointerEvents: "none" }}>
@@ -781,7 +830,7 @@ export type PlaceAt = { roomId: string; x: number; z: number; y: number; support
 /** point＝點地板／床叫貓；hand＝拖移已放用品／落地家具（不叫貓） */
 export type InteractMode = "point" | "hand";
 
-export default function FloorplanViewer({ rooms, selected, onPick, cat, placedItems = [], interactMode = "point", removedFurniture, furnitureMoves, onMoveItem, onRotateItem, onRemoveItem, onRemoveFurniture, onMoveFurniture, onRotateFurniture, onFloorDrop, catGoal = null, catClip = null, catSpeed = 1, onItemError, story = null, onStory }: {
+export default function FloorplanViewer({ rooms, selected, onPick, cat, placedItems = [], interactMode = "point", removedFurniture, furnitureMoves, onMoveItem, onRotateItem, onRemoveItem, onRemoveFurniture, onMoveFurniture, onRotateFurniture, onFloorDrop, catGoal = null, catClip = null, catSpeed = 1, catTuck = null, onItemError, story = null, onStory }: {
   rooms: PlanRoom[]; selected: string | null; onPick: (id: string) => void;
   /** 虛擬體驗（#150）：放一隻貓進去；有貓時只顯示單間（沒有「全部」），點地板叫貓走過去 */
   cat?: ViewerCat | null;
@@ -813,6 +862,8 @@ export default function FloorplanViewer({ rooms, selected, onPick, cat, placedIt
   catClip?: string | null;
   /** 貓的動作速度倍率（#237） */
   catSpeed?: number;
+  /** 貓整隻縮在這個外出籠裡（虛擬飼養第 1 天）；null＝照常走動 */
+  catTuck?: (CarrierBox & { y?: number }) | null;
   /** 生活用品模型載入失敗、已改成方塊（#237） */
   onItemError?: (key: string) => void;
   /** 故事線（#297，MeowHQ 虛擬體驗）：例如「貓咪的吃喝拉撒」；null＝自由活動 */
@@ -909,7 +960,7 @@ export default function FloorplanViewer({ rooms, selected, onPick, cat, placedIt
                       </Suspense>
                     </ItemBoundary>
                   ))}
-                  {cat && <CatActor key={`${s.id}:${cat.albedoUrl}`} s={s} look={cat} click={catClick} pos={catPos} extraObs={itemObstacles(roomItems.filter(i => !passableItem(story, i.name)))} forceClip={catClip} speed={catSpeed} story={story} items={roomItems} onStory={onStory} />}
+                  {cat && <CatActor key={`${s.id}:${cat.albedoUrl}`} s={s} look={cat} click={catClick} pos={catPos} extraObs={itemObstacles(roomItems.filter(i => !passableItem(story, i.name)))} forceClip={catClip} speed={catSpeed} tuck={catTuck} story={story} items={roomItems} onStory={onStory} />}
                 </Room>
               );
             })}

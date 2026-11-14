@@ -21,6 +21,9 @@ describe("sceneCatCommand", () => {
   });
   it("躲外出籠 → 走到外出籠", () => {
     expect(sceneCatCommand("carrier", objects, placed)).toEqual({ kind: "go", x: 1, z: 1 });
+    // 有外出籠尺寸：整隻縮進籠子裡（第 1 天）
+    expect(sceneCatCommand("carrier", objects, placed, [{ id: "carrier", widthM: 0.33, depthM: 0.51, heightM: 0.31 }]))
+      .toEqual({ kind: "tuck", carrier: { x: 1, z: 1, widthM: 0.33, depthM: 0.51, heightM: 0.31 } });
   });
   it("吃飯去碗、上廁所去貓砂盆；沒擺就隨便逛", () => {
     expect(sceneCatCommand("eat", objects, placed)).toMatchObject({ kind: "go", x: 1.5, z: 3 });

@@ -191,6 +191,16 @@ export async function createRoomWorld({ viewer, threeScene, scene, layout, camer
 
     command(cmd) {
       cat.visible = cmd.kind !== "hidden";
+      if (cmd.kind === "tuck") {
+        // 縮在外出籠裡；量不到或放不下時退回走到外出籠旁
+        if (!cat.tuck(cmd.carrier)) {
+          const k = cat.nearestFree(cmd.carrier.x * upm, cmd.carrier.z * upm, 12);
+          if (k !== undefined && k >= 0) cat.goTo(k);
+        }
+        viewer.forceRenderNextFrame();
+        return;
+      }
+      cat.untuck();
       if (cmd.kind === "go") {
         const k = cat.nearestFree(cmd.x * upm, cmd.z * upm, 12);
         if (k !== undefined && k >= 0) cat.goTo(k);

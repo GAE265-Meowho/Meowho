@@ -6,7 +6,7 @@
 // 3D 元件一律 next/dynamic（ssr: false）。
 import { CareIcon, type CareIconId } from "./CareIcon";
 import dynamic from "next/dynamic";
-import type { ReactNode } from "react";
+import { useMemo, type ReactNode } from "react";
 import type { PlaceAt, PlacedHouseholdItem, RoomClick } from "@/components/hq/assets/FloorplanViewer";
 import type { PlayCatLook } from "@/lib/play/cats";
 import { DEMO_DOLLHOUSE } from "@/lib/play/room";
@@ -49,6 +49,11 @@ export function PlayStage({ kind, scanBase, look, tag, bubble, bubbleInset, look
   onItemError?: (key: string) => void;
   children?: ReactNode;
 }) {
+  // 第 1 天（劇情叫貓躲外出籠）：娃娃屋的貓整隻縮在擺好的外出籠裡
+  const carrier = story?.action === "carrier" ? placed.find(p => p.key.startsWith("carrier:")) : undefined;
+  const tuck = useMemo(() => (carrier
+    ? { x: carrier.x, y: carrier.y, z: carrier.z, widthM: carrier.widthM, depthM: carrier.depthM, heightM: carrier.heightM, rotY: ((carrier.rotY ?? 0) * Math.PI) / 180 }
+    : null), [carrier]);
   return (
     <section className={s.stage} aria-label="3D 房間">
       {tag && <span className={s.stageTag}>{tag}</span>}
@@ -57,7 +62,7 @@ export function PlayStage({ kind, scanBase, look, tag, bubble, bubbleInset, look
         : (
           <FloorplanViewer rooms={ROOMS} selected={ROOMS[0].id} onPick={noop}
             cat={look} placedItems={placed} interactMode="point"
-            catGoal={goal} catClip={clip} catSpeed={speed}
+            catGoal={goal} catClip={clip} catSpeed={speed} catTuck={tuck}
             onFloorDrop={onDrop} onItemError={onItemError} />
         )}
       {kind !== "scan" && bubble && <span className={s.bubbleFixed} aria-hidden="true"><CareIcon id={bubble} /></span>}

@@ -415,7 +415,7 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
     const st = itemStage.current;
     if (!worldReady || !story || wand || !st) return;
     const placed = placeScanItems(st.scene, st.layout, items ?? []);
-    world.current?.command(sceneCatCommand(story.action, st.scene.objects, placed));
+    world.current?.command(sceneCatCommand(story.action, st.scene.objects, placed, items ?? []));
     // items 變了不用重走；只在劇情動作換了（story.at）或房間讀好、逗貓結束時執行
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [story?.at, story?.action, worldReady, itemsReady, wand]);

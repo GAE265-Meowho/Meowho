@@ -1,6 +1,8 @@
 // 房間裡會走動的貓：讀 room_layout.py 輸出的地板網格，閒晃、繞開障礙、走到點擊位置
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { fitCatInCarrier } from "../../play/carrier-fit";
+import { poseBounds, tuckClip } from "./pose-bounds";
 
 const CAT_HEIGHT_M = 0.3;   // 站著時頭頂離地的高度
 const WALK_SPEED_M = 0.35;  // 公尺/秒
@@ -83,7 +85,13 @@ export class RoomCat {
 
     this.mixer = new THREE.AnimationMixer(model);
     // 片段名稱是 rig|rig|walk，取最後一段：idle、walk、run、jump_start、jump、jump_fall、jump_end
-    for (const clip of gltf.animations) this.actions[clip.name.split("|").pop()] = this.mixer.clipAction(clip);
+    this.clips = {};
+    for (const clip of gltf.animations) {
+      const name = clip.name.split("|").pop();
+      this.actions[name] = this.mixer.clipAction(clip);
+      this.clips[name] = clip;
+    }
+    this.model = model;
     this.actions.idle?.play();
     this.current = this.actions.idle;
 
@@ -99,6 +107,45 @@ export class RoomCat {
 
     this.place(this.randomCell());
     return this;
+  }
+
+  // ---------- 縮在外出籠裡（虛擬飼養第 1 天） ----------
+
+  /**
+   * 整隻貓縮在外出籠裡：固定播趴姿、縮放到整段動作（含尾巴、耳朵）都在籠內、貼著最裡面、面向門口。放不下回 false。
+   * @param {{ x: number, z: number, widthM: number, depthM: number, heightM: number, rotY?: number }} carrier 地板座標（公尺）
+   */
+  tuck(carrier) {
+    const name = tuckClip(Object.keys(this.clips ?? {}));
+    if (!name || !this.model) return false;
+    this.tuckBounds ??= {};
+    if (!(name in this.tuckBounds)) {
+      const b = poseBounds(this.model, this.clips[name]);  // 單位是房間單位，換成公尺
+      this.tuckBounds[name] = b && { min: b.min.map((v) => v / this.upm), max: b.max.map((v) => v / this.upm) };
+    }
+    const bounds = this.tuckBounds[name];
+    const fit = bounds && fitCatInCarrier(carrier, bounds);
+    if (!fit?.fits) return false;
+    this.path = [];
+    this.arrive = this.queued = this.face = this.stick = this.jump = this.surface = this.pawing = null;
+    this.cat.position.set(fit.x * this.upm, fit.y * this.upm, fit.z * this.upm);
+    this.heading = fit.heading;
+    this.cat.rotation.y = fit.heading;
+    this.cat.scale.setScalar(fit.scale);
+    // 不淡入：淡入時會混到站姿，頭會穿出籠頂
+    this.mixer.stopAllAction();
+    this.current = this.actions[name];
+    this.current.setLoop(THREE.LoopRepeat, Infinity).reset().play();
+    this.state = "tuck";
+    return true;
+  }
+
+  // 從外出籠出來：恢復原本大小，照常閒晃
+  untuck() {
+    if (this.state !== "tuck") return;
+    this.cat.scale.setScalar(1);
+    this.cat.position.y = 0;
+    this.setState("idle");
   }
 
   addTo(scene) {
@@ -193,6 +240,7 @@ export class RoomCat {
   }
 
   goTo(k, face = null) {
+    this.untuck();
     if (this.jump || this.surface) {  // 先下來再走
       this.queued = () => this.goTo(k, face);
       if (!this.jump) this.jumpDown();
@@ -349,6 +397,7 @@ export class RoomCat {
 
   // 轉向 target（本地 x,z）後撲一下，onHit 在碰到的瞬間呼叫。模型沒有撥弄動畫，先用起跳的前撲動作代替
   paw(target, onHit, done = null) {
+    this.untuck();
     this.pawing = { target, onHit, done, t: 0 };
     this.state = "paw";
     this.face = null;
@@ -394,6 +443,7 @@ export class RoomCat {
   }
 
   startJump(to, then) {
+    this.untuck();
     this.jump = { from: this.cat.position.clone(), to, t: 0, phase: "crouch", then };
     this.state = "jump";
     this.face = null;
@@ -497,6 +547,7 @@ export class RoomCat {
     if (!this.mixer || !this.visible) return;
     this.mixer.update(dt);
 
+    if (this.state === "tuck") return;  // 縮在外出籠裡：只播動作、不移動
     if (this.state === "jump") { this.updateJump(dt); return; }
     if (this.state === "paw") { this.updatePaw(dt); return; }
     if (this.stick) {
