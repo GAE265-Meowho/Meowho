@@ -1,7 +1,6 @@
-import { CareIcon } from "../CareIcon";
-import { useGLTF } from "@react-three/drei";
-import { Canvas, useFrame } from "@react-three/fiber";
-import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { OrbitControls, useGLTF } from "@react-three/drei";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import { Suspense, useEffect, useMemo, useRef, useState, type ComponentRef } from "react";
 import { SkinnedMesh, Vector3 } from "three";
 import { clone } from "three/addons/utils/SkeletonUtils.js";
 import { newPetState, petResult, petStroke, type PetZone } from "@/lib/play/mini3d/pet-rules";
@@ -12,13 +11,22 @@ import { useScenePointer } from "./useScenePointer";
 import { createPetMotion } from "./pet-motion";
 import styles from "./mini3d.module.css";
 
+const ZONE_LABELS = { head: "頭部", chin: "下巴", back: "背部", belly: "肚子", tail: "尾巴" };
+const CAMERA_START: [number, number, number] = [0.92, 0.52, 0.57];
+const CAMERA_TARGET: [number, number, number] = [0, 0.24, -0.025];
 const MODEL = "/hq-cat-models/base/base_clips.glb";
 
-function PetScene({ game, favorite, onStroke }: {
+function PetScene({ game, favorite, onStroke, controls, onZone, onPose }: {
   game: { current: ReturnType<typeof newPetState> };
   favorite: NonNullable<MiniCtx["touchFav"]>;
+  controls: { current: ComponentRef<typeof OrbitControls> | null };
+  onZone: (zone: PetZone) => void;
+  onPose: (pose: ReturnType<typeof newPetReaction>["pose"]) => void;
   onStroke: (zone: PetZone, distance: number, dt: number, touching: boolean) => boolean;
 }) {
+  const canvas = useThree(state => state.gl.domElement);
+  const orbiting = useRef(false);
+  const lastPose = useRef(newPetReaction().pose);
   const { scene, animations } = useGLTF(MODEL);
   const cat = useMemo(() => clone(scene), [scene]);
   const hitRegions = useRef<ReturnType<typeof createPetHitRegions> | null>(null);
@@ -61,10 +69,35 @@ function PetScene({ game, favorite, onStroke }: {
       }
     }
     reaction.current = petReaction(reaction.current, { dt, annoyance: game.current.annoyance, ran });
-    if (group.current) motion.current?.step(Math.min(dt, 0.05), reaction.current.pose, reduced.current, group.current);
+    const pose = reaction.current.pose;
+    if (pose !== lastPose.current) {
+      lastPose.current = pose;
+      onPose(pose);
+    }
+    if (group.current) motion.current?.step(Math.min(dt, 0.05), pose, reduced.current, group.current,
+      Math.min(1, Math.max(0, (game.current.annoyance - 28) / 27)));
   });
 
+  function showZone(zone: PetZone) {
+    canvas.style.cursor = orbiting.current ? "grabbing" : zone ? "pointer" : "grab";
+    onZone(zone);
+  }
+
+  useEffect(() => () => { canvas.style.removeProperty("cursor"); }, [canvas]);
+
   useScenePointer({
+    claim(_event, ray) {
+      if (game.current.ran || orbiting.current) return false;
+      const zone = hitRegions.current?.hit(ray, true) ?? null;
+      if (!zone) return false;
+      if (controls.current) controls.current.enabled = false;
+      showZone(zone);
+      return true;
+    },
+    hover(_event, ray) {
+      showZone(game.current.ran || orbiting.current ? null : hitRegions.current?.hit(ray, true) ?? null);
+    },
+    leave() { showZone(null); },
     down(event) {
       if (!game.current.ran && !pointer.current) {
         pointer.current = { id: event.pointerId, x: event.clientX, y: event.clientY, time: event.timeStamp };
@@ -76,7 +109,8 @@ function PetScene({ game, favorite, onStroke }: {
       const dt = (event.timeStamp - last.time) / 1000;
       if (dt <= 0) return;
       const distance = Math.hypot(event.clientX - last.x, event.clientY - last.y);
-      const zone = hitRegions.current?.hit(ray) ?? null;
+      const zone = hitRegions.current?.hit(ray, true) ?? null;
+      showZone(zone);
       const gentle = onStroke(zone, distance, dt, true);
       if (zone === favorite && gentle) {
         reaction.current = petReaction(reaction.current, { dt, annoyance: game.current.annoyance, favoriteStroke: true });
@@ -84,13 +118,25 @@ function PetScene({ game, favorite, onStroke }: {
       pointer.current = { id: event.pointerId, x: event.clientX, y: event.clientY, time: event.timeStamp };
     },
     release(event) {
-      if (pointer.current?.id === event.pointerId) pointer.current = null;
+      if (pointer.current?.id !== event.pointerId) return;
+      pointer.current = null;
+      if (controls.current) controls.current.enabled = true;
+      showZone(null);
     },
-    reset() { pointer.current = null; },
+    reset() {
+      pointer.current = null;
+      orbiting.current = false;
+      if (controls.current) controls.current.enabled = true;
+    },
   });
 
   return <>
-    <group ref={group}><primitive object={cat} /></group>
+    <OrbitControls ref={controls} domElement={canvas} target={CAMERA_TARGET}
+      enablePan={false} enableDamping={false} minDistance={0.85} maxDistance={1.55}
+      minPolarAngle={0.48} maxPolarAngle={Math.PI / 2 - 0.12}
+      onStart={() => { orbiting.current = true; showZone(null); }}
+      onEnd={() => { orbiting.current = false; showZone(null); }} />
+    <group ref={group} dispose={null}><primitive object={cat} /></group>
     <mesh rotation={[-Math.PI / 2, 0, 0]} position={new Vector3(0, -0.006, 0)}>
       <circleGeometry args={[0.42, 40]} />
       <meshStandardMaterial color={0xd9ccb6} />
@@ -101,18 +147,21 @@ function PetScene({ game, favorite, onStroke }: {
 export function PetGame3D({ ctx, onDone }: { ctx: MiniCtx; onDone: (r: unknown) => void }) {
   const current = useRef(newPetState());
   const [state, setState] = useState(current.current);
+  const controls = useRef<ComponentRef<typeof OrbitControls>>(null);
+  const [zone, setZone] = useState<PetZone>(null);
+  const [pose, setPose] = useState(newPetReaction().pose);
   const favorite = ctx.touchFav ?? "head";
   const result = petResult(state);
   return <>
-    <p className={styles.hint}>輕輕滑過頭、下巴或背部。貓咪不高興時先停手。</p>
+    <p className={styles.hint}>拖曳背景轉動視角。先試著輕摸頭或下巴，再觀察牠是否願意繼續。</p>
     <div className={styles.scene}>
-      <Canvas dpr={[1, 1.5]} camera={{ position: [0.92, 0.52, 0.57], fov: 38, near: 0.02, far: 12 }}
-        onCreated={({ camera }) => camera.lookAt(0, 0.24, -0.025)}
+      <Canvas dpr={[1, 1.5]} camera={{ position: CAMERA_START, fov: 38, near: 0.02, far: 12 }}
+        onCreated={({ camera }) => camera.lookAt(...CAMERA_TARGET)}
         fallback={<p role="alert">這個瀏覽器無法顯示 3D 場景。</p>}>
         <hemisphereLight intensity={1.45} color={0xffffff} groundColor={0xd8c0a0} />
         <directionalLight position={[1, 2, 3]} intensity={1.65} />
         <Suspense fallback={null}>
-          <PetScene game={current} favorite={favorite} onStroke={(zone, distancePx, dt, touching) => {
+          <PetScene game={current} favorite={favorite} controls={controls} onZone={setZone} onPose={setPose} onStroke={(zone, distancePx, dt, touching) => {
             const previous = current.current;
             const next = petStroke(previous, { zone, distancePx, dt, touching, favorite, ...ctx.cat });
             current.current = next;
@@ -123,11 +172,24 @@ export function PetGame3D({ ctx, onDone }: { ctx: MiniCtx; onDone: (r: unknown) 
         </Suspense>
       </Canvas>
     </div>
+    <div className={styles.header}>
+      <button className="btn" type="button" onClick={() => {
+        const orbit = controls.current;
+        if (!orbit?.enabled) return;
+        orbit.object.position.set(...CAMERA_START);
+        orbit.target.set(...CAMERA_TARGET);
+        orbit.update();
+        setZone(null);
+      }}>重設視角</button>
+      <span>{state.ran ? "" : zone ? `目前位置：${ZONE_LABELS[zone]}` : "可試摸頭、下巴或背部"}</span>
+    </div>
     <div className={styles.meters}>
       <label>開心 <progress max={100} value={result.fun} /> {result.fun}</label>
       <label>煩躁 <progress max={100} value={state.annoyance} /></label>
     </div>
-    <p className={styles.status} role="status">{state.ran ? "貓咪離開了" : state.annoyance >= 55 ? <><CareIcon id="hiss" /> 貓咪開始抗拒，請停止撫摸，讓牠自己選擇是否繼續互動。</> : result.fun > 0 ? <><CareIcon id="heart" /> {result.fun >= 50 ? "貓咪很喜歡" : "貓咪放鬆了"}</> : ""}</p>
+    <p className={styles.status} role="status">{state.ran ? "牠離開了，讓牠休息吧。" :
+      pose === "resisting" || state.annoyance >= 28 ? "牠可能想休息，先停手觀察。" :
+      pose === "relaxed" ? "牠看起來比較放鬆。可以停一下，看看牠是否想繼續。" : ""}</p>
     <button className="btn" type="button" disabled={!state.ran && result.fun === 0 && state.annoyance === 0} onClick={() => onDone(petResult(current.current))}>結束摸貓</button>
   </>;
 }

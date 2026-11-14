@@ -18,6 +18,7 @@
 
 ## 任務（tracer-bullet，每張可獨立 Demo）
 
+- #356 摸貓自由視角（世安 × Codex）：進行中。手勢分流、命中回饋及早期轉頭已實作，待完成跨裝置驗收。
 - #356 3D 刷牙、摸貓與照護圖示（世安 × Codex）：審查中。擬真刷牙已完成本機 Chrome 1280px／375px 五階段播放與操作驗收；待登入 Preview 驗照護入帳、第 30 天與手機實機。摸貓已整合成貓原始虎斑材質、尾巴命中校準，以及放鬆、抗拒與步行離場，待登入 Preview 與手機實機驗收。
 - MeowHQ 音效分頁「誰呼叫」可以篩選（#399，Tina × Claude Code，2026-11-13）：審查中；分支 `feat/399-sounds-caller-filter`。
 - 虛擬飼養第 6 份：音效與配樂（#393，子哲 × Claude Code，2026-11-13）：背景音樂 5 首、播放程式、靜音按鈕已合併（PR #394）；音檔改放 Supabase Storage `meow-play-audio`（0035，分支 `feat/393-play-audio-storage` 審查中）。音效檔還沒做；對照表 `SOUNDS`（`src/lib/play/audio.ts`）寫了每個 ID 用在哪、第幾份要呼叫。

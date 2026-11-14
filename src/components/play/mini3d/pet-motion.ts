@@ -38,11 +38,11 @@ export function createPetMotion(cat: Object3D, clips: AnimationClip[]) {
   let walking = 0;
   let walked = 0;
   return {
-    step(dt: number, pose: "idle" | "relaxed" | "resisting" | "leaving", reduced: boolean, group: Object3D) {
+    step(dt: number, pose: "idle" | "relaxed" | "resisting" | "leaving", reduced: boolean, group: Object3D, warning = 0) {
       const leaving = pose === "leaving";
       const mix = (value: number, target: boolean) => MathUtils.damp(value, Number(target), 13, dt);
       relaxed = cuddle && !reduced ? mix(relaxed, pose === "relaxed") : 0;
-      resisting = reduced ? 0 : mix(resisting, pose === "resisting");
+      resisting = reduced ? 0 : MathUtils.damp(resisting, leaving ? 0 : pose === "resisting" ? 1 : warning * 0.65, 13, dt);
       walking = walk && !reduced ? mix(walking, leaving) : 0;
       if (relaxed < 0.001) relaxed = 0;
       if (resisting < 0.001) resisting = 0;
