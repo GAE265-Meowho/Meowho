@@ -90,3 +90,19 @@ describe("用品不穿過家具", () => {
     expect(Math.max(Math.abs(q.x - 2), Math.abs(q.z - 2))).toBeGreaterThan(0.5);
   });
 });
+
+describe("placeScanItems：玩家自己擺的位置", () => {
+  it("有 at 就直接用，其他用品避開它；回傳順序不變", () => {
+    const auto = placeScanItems(scene, layout, [item("carrier", "床")])[0];
+    const out = placeScanItems(scene, layout, [item("carrier", "床"), { ...item("bowl", null, 0.5, 0.3), at: { x: auto.x, z: auto.z } }]);
+    expect(out.map(o => o.id)).toEqual(["carrier", "bowl"]);
+    expect(out[1]).toEqual({ id: "bowl", x: auto.x, z: auto.z });
+    expect(Math.hypot(out[0].x - auto.x, out[0].z - auto.z)).toBeGreaterThan(0.3);
+  });
+
+  it("nearItem：放在另一件用品旁", () => {
+    const [bowl] = placeScanItems(scene, layout, [item("bowl", null, 0.5, 0.3)]);
+    const out = placeScanItems(scene, layout, [{ ...item("bowl", null, 0.5, 0.3), at: { x: bowl.x, z: bowl.z } }, { ...item("litter_box", null, 0.35, 0.5), nearItem: "bowl" }]);
+    expect(Math.hypot(out[1].x - bowl.x, out[1].z - bowl.z)).toBeLessThan(1.6);
+  });
+});

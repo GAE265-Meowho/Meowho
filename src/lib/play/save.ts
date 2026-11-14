@@ -4,6 +4,7 @@
 // 格式向下相容：舊資料只有 cp、沒有 setupStep，照樣讀得回來；有 cp 就以 cp 為準。資料庫只檢查「是物件、50 KB 以內」，不用改 migration。
 import type { Checkpoint, SetupStep } from "./flow";
 import { STORY } from "./story";
+import { parsePoses, type ItemPose } from "./scan-place";
 
 /** 資料庫的上限是 50000 位元組；留一點空間 */
 export const PROGRESS_LIMIT = 45_000;
@@ -20,6 +21,8 @@ export interface SavedRun<Pick = unknown, Placed = unknown> {
   placed: Placed[];
   /** 掃描房間：用品放在哪個家具旁 */
   scanSpots: Record<string, string>;
+  /** 掃描房間：玩家自己擺的位置與旋轉（選填；舊存檔沒有） */
+  scanPose?: Record<string, ItemPose>;
   /** 玩的是哪個喵戶 */
   hhId: string | null;
   savedAt: string;
@@ -28,8 +31,12 @@ export interface SavedRun<Pick = unknown, Placed = unknown> {
 const bytes = (v: unknown) => new TextEncoder().encode(JSON.stringify(v)).length;
 
 /** 組成要存的進度；太大時依序縮短會一直長的欄位（選過的選項、紀錄、事件） */
-export function buildProgress<Pick, Placed>(a: { cp: Checkpoint | null; setupStep?: SetupStep; pick: Pick; placed: Placed[]; scanSpots: Record<string, string>; hhId: string | null; now?: Date }): SavedRun<Pick, Placed> {
-  const out: SavedRun<Pick, Placed> = { v: 1, cp: a.cp, setupStep: a.cp ? null : a.setupStep ?? "background", pick: a.pick, placed: a.placed, scanSpots: a.scanSpots, hhId: a.hhId, savedAt: (a.now ?? new Date()).toISOString() };
+export function buildProgress<Pick, Placed>(a: { cp: Checkpoint | null; setupStep?: SetupStep; pick: Pick; placed: Placed[]; scanSpots: Record<string, string>; scanPose?: Record<string, ItemPose>; hhId: string | null; now?: Date }): SavedRun<Pick, Placed> {
+  const out: SavedRun<Pick, Placed> = {
+    v: 1, cp: a.cp, setupStep: a.cp ? null : a.setupStep ?? "background", pick: a.pick, placed: a.placed, scanSpots: a.scanSpots,
+    ...(a.scanPose && Object.keys(a.scanPose).length ? { scanPose: a.scanPose } : {}),
+    hhId: a.hhId, savedAt: (a.now ?? new Date()).toISOString(),
+  };
   const cp = out.cp;
   // 開場設定只有採買與擺放，不會長大，不用縮
   if (!cp || bytes(out) <= PROGRESS_LIMIT) return out;
@@ -56,7 +63,9 @@ const isObj = (x: unknown): x is Record<string, unknown> => typeof x === "object
 export function parseSaved(raw: unknown): SavedRun | null {
   if (!isObj(raw) || raw.v !== 1) return null;
   const spots = isObj(raw.scanSpots) ? Object.fromEntries(Object.entries(raw.scanSpots).filter(([, v]) => typeof v === "string")) as Record<string, string> : {};
+  const poses = raw.scanPose !== undefined ? parsePoses(raw.scanPose) : {};
   const rest = { pick: raw.pick ?? null, placed: Array.isArray(raw.placed) ? raw.placed : [], scanSpots: spots,
+    ...(Object.keys(poses).length ? { scanPose: poses } : {}),
     hhId: typeof raw.hhId === "string" ? raw.hhId : null, savedAt: typeof raw.savedAt === "string" ? raw.savedAt : "" };
   // 開場設定階段：沒有快照，只記目前在哪一步
   if (raw.cp === null || raw.cp === undefined) {

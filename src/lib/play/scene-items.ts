@@ -2,7 +2,15 @@
 // 玩家在「擺用品」選的是「某某旁」或「房間角落」，這裡換成房間裡真的能放的位置：在房間內、在能走的地板上、不壓到別的用品。
 import type { RoomLayout, RoomObject, RoomScene } from "@/lib/hq/rooms/demo";
 
-export interface SceneItem { id: string; url: string; widthM: number; depthM: number; heightM: number; near: string | null }
+export interface SceneItem {
+  id: string; url: string; widthM: number; depthM: number; heightM: number; near: string | null;
+  /** 玩家在房間裡自己擺的位置（有就直接用，不再找「某某旁」） */
+  at?: { x: number; z: number };
+  /** 轉了幾個 90°（0～3） */
+  rot?: number;
+  /** 放在另一件用品旁（例如第 3 天砂盆搬到自由擺放的餐碗旁）；找不到那件就照 near */
+  nearItem?: string;
+}
 export interface ScenePlacement { id: string; x: number; z: number }
 
 const WALL_GAP_M = 0.12;  // 離牆
@@ -48,8 +56,17 @@ export function placeScanItems(scene: RoomScene, layout: Layout, items: readonly
   const taken: { x: number; z: number; r: number }[] = [];
   const out: ScenePlacement[] = [];
 
-  for (const it of items) {
+  // 玩家自己擺的先放（位置不動），其他的再避開它們找位置；回傳順序和 items 一樣
+  const order = items.map((it, i) => i).sort((a, b) => Number(!items[a].at) - Number(!items[b].at));
+  const byIndex: ScenePlacement[] = [];
+  for (const idx of order) {
+    const it = items[idx];
     const r = Math.max(it.widthM, it.depthM) / 2;
+    if (it.at) {
+      taken.push({ x: it.at.x, z: it.at.z, r });
+      byIndex[idx] = { id: it.id, x: it.at.x, z: it.at.z };
+      continue;
+    }
     const inside = (x: number, z: number) => x > minX + WALL_GAP_M + r && x < maxX - WALL_GAP_M - r && z > minZ + WALL_GAP_M + r && z < maxZ - WALL_GAP_M - r;
     const ok = (x: number, z: number) =>
       inside(x, z)
@@ -57,7 +74,11 @@ export function placeScanItems(scene: RoomScene, layout: Layout, items: readonly
       && walls.every(o => !hitsBox(o, x, z, r))
       && taken.every(t => Math.hypot(x - t.x, z - t.z) >= r + t.r + GAP_M);
 
-    const target = findObject(scene, it.near);
+    const mate = it.nearItem ? byIndex[items.findIndex(o => o.id === it.nearItem)] : undefined;
+    const mateItem = mate ? items.find(o => o.id === it.nearItem)! : undefined;
+    const target = mate && mateItem
+      ? { box: { center: [mate.x, 0, mate.z], size: [mateItem.widthM, 0, mateItem.depthM] } }
+      : findObject(scene, it.near);
     let spot: [number, number] | null = null;
     if (target) {
       const [ox, , oz] = target.box.center;
@@ -86,8 +107,9 @@ export function placeScanItems(scene: RoomScene, layout: Layout, items: readonly
     }
     const [x, z] = spot ?? [cx, cz];  // 實在沒地方就放房間中央，至少看得到
     taken.push({ x, z, r });
-    out.push({ id: it.id, x, z });
+    byIndex[idx] = { id: it.id, x, z };
   }
+  out.push(...byIndex);
   return out;
 }
 
