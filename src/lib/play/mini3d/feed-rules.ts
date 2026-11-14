@@ -43,14 +43,21 @@ export const canFits = (s: FeedState, can: FeedCan) => feedAmount(s) + CAN_ADD[c
 /** 一罐罐頭倒進碗；可以再開第二罐，碗放不下就不算 */
 export const addCan = (s: FeedState, can: FeedCan): FeedState => (canFits(s, can) ? { ...s, [can]: s[can] + 1 } : s);
 
-/** 結果格式照 careGood("feed")：added ≥ 15、over 不是 true、spill < 1.5 才算餵好 */
-export function feedResult(s: FeedState, portion: number) {
-  const added = Math.round(feedAmount(s));
-  return { added, over: added > portion * 1.5, wet: s.wet > 0, soup: s.soup > 0, spill: Math.round(s.spill * 10) / 10 };
+/**
+ * 結果格式照 careGood("feed")：碗裡總量 total ≥ 15、這次真的有倒（added > 0）、over 不是 true、spill < 1.5 才算餵好。
+ * start＝進來時碗裡原本有的（同一天已經倒過，見 lib/play/care-day.ts）：added 只算這一次倒的，over 看碗裡總量；
+ * bowl 是碗裡現在的樣子（只有數字），存回今日照顧狀態，下次進來碗還是這樣。
+ */
+export function feedResult(s: FeedState, portion: number, start: FeedState = newFeed()) {
+  const total = Math.round(feedAmount(s)), added = total - Math.round(feedAmount(start));
+  return { added, total, over: total > portion * 1.5, wet: s.wet > 0, soup: s.soup > 0, spill: Math.round(s.spill * 10) / 10,
+    bowl: { dry: Math.round(s.dry * 10) / 10, wet: s.wet, soup: s.soup } };
 }
 
-export function feedHint(s: FeedState, portion: number, pouring: boolean): string {
+/** already＝今天已經倒過飼料、這次還沒加：先提示碗裡還有 */
+export function feedHint(s: FeedState, portion: number, pouring: boolean, already = false): string {
   const amount = feedAmount(s);
+  if (already && !pouring && amount > 0) return amount >= portion * 0.8 ? "碗裡還有飼料，今天已經餵過了。" : "碗裡還有一點飼料，今天已經倒過一些了。";
   if (s.spill > 0.3) return "碗滿了，飼料灑到外面了。";
   if (amount > portion * 1.5) return "太多了，這樣會吃過量。";
   // 八成以上就算差不多：主食罐一罐是 30，建議份量 35 時不該還說不夠（再開一罐就過量了）

@@ -13,12 +13,18 @@ import { DEMO_DOLLHOUSE } from "@/lib/play/room";
 import type { SceneItem } from "@/lib/play/scene-items";
 import type { RoomWand } from "@/components/hq/assets/RoomViewer";
 import type { CatAction } from "@/lib/play/stage";
+import type { SceneLight } from "@/lib/play/scene-light";
+import type { CameraShot } from "@/lib/play/camera-shot";
+import type { Stain } from "@/lib/play/urine-stain";
+import type { ElderCat } from "@/lib/play/elder-cat";
+import v from "./vet.module.css";
 import s from "./play.module.css";
 import p from "./place.module.css";
 
 const loading = () => <div className={s.stageLoading}>3D 房間載入中…</div>;
 const FloorplanViewer = dynamic(() => import("@/components/hq/assets/FloorplanViewer"), { ssr: false, loading });
 const RoomViewer = dynamic(() => import("@/components/hq/assets/RoomViewer"), { ssr: false, loading });
+const VetRoom = dynamic(() => import("./VetRoom"), { ssr: false });
 
 const ROOMS = [DEMO_DOLLHOUSE];
 const noop = () => {};
@@ -66,7 +72,7 @@ function ViewPad({ onHold }: { onHold: (v: { x: number; y: number }) => void }) 
   );
 }
 
-export function PlayStage({ kind, scanBase, placeView = false, look, tag, bubble, bubbleInset, lookKey, placed, scanItems, story, wand, goal, clip, speed, onDrop, onItemError, children }: {
+export function PlayStage({ kind, scanBase, placeView = false, look, tag, bubble, bubbleInset, lookKey, placed, scanItems, story, wand, goal, clip, speed, light, vet = false, vetTalk = null, shot = null, stains = null, elder = null, onDrop, onItemError, children }: {
   kind: "scan" | "dollhouse";
   scanBase: string | null;
   /** 擺用品：掃描房間改成俯視鏡頭，畫面上多四顆轉動視角的方向鍵（娃娃屋不變） */
@@ -91,6 +97,18 @@ export function PlayStage({ kind, scanBase, placeView = false, look, tag, bubble
   goal: (RoomClick & { at: number }) | null;
   clip: string | null;
   speed: number;
+  /** 白天／夜晚光（lib/play/scene-light.ts 的 lightFor）；兩種房間吃同一組 */
+  light?: SceneLight | null;
+  /** 看獸醫：診間疊在房間上面（房間不卸載，換回來不重新載入）；lib/play/vet-room.ts 的 showVet */
+  vet?: boolean;
+  /** 診間裡獸醫在說話的卡片 key（vetTalkKey）；一換獸醫就點頭 */
+  vetTalk?: string | null;
+  /** 劇情鏡頭（lib/play/camera-shot.ts 的 shotFor）；null＝原本的鏡頭 */
+  shot?: CameraShot | null;
+  /** 尿漬（lib/play/urine-stain.ts 的 stainsFor）；空／null＝沒有 */
+  stains?: readonly Stain[] | null;
+  /** 老貓的樣子（結局，lib/play/elder-cat.ts 的 elderFor）；null＝原本的樣子 */
+  elder?: ElderCat | null;
   onDrop?: (itemId: string, at: PlaceAt) => void;
   onItemError?: (key: string) => void;
   children?: ReactNode;
@@ -98,17 +116,25 @@ export function PlayStage({ kind, scanBase, placeView = false, look, tag, bubble
   const [hold, setHold] = useState(STILL);
   const scan = kind === "scan" && Boolean(scanBase);
   const overview = scan && placeView;
+  // 診間第一次出現才載入，之後留著（淡出時還看得到；不在畫面時 VetRoom 自己停掉繪製）
+  const [vetUsed, setVetUsed] = useState(vet);
+  useEffect(() => { if (vet) setVetUsed(true); }, [vet]);
   return (
     <section className={overview ? `${s.stage} ${p.stage}` : s.stage} aria-label="3D 房間">
       {tag && <span className={s.stageTag}>{tag}</span>}
       {kind === "scan" && scanBase
-        ? <RoomViewer base={scanBase} items={scanItems} controls={false} story={story} wand={wand} bubble={bubble ? <CareIcon id={bubble} /> : null} bubbleInset={bubbleInset} lookKey={lookKey} overview={overview ? hold : null} />
+        ? <RoomViewer base={scanBase} items={scanItems} controls={false} story={story} wand={wand} bubble={bubble ? <CareIcon id={bubble} /> : null} bubbleInset={bubbleInset} lookKey={lookKey} overview={overview ? hold : null} light={light?.scan ?? null} shot={shot} stains={stains} elder={elder} capture />
         : (
           <FloorplanViewer rooms={ROOMS} selected={ROOMS[0].id} onPick={noop}
             cat={look} placedItems={placed} interactMode="point"
-            catGoal={goal} catClip={clip} catSpeed={speed}
+            catGoal={goal} catClip={clip} catSpeed={speed} light={light?.house ?? null} shot={shot} stains={stains} elder={elder} capture
             onFloorDrop={onDrop} onItemError={onItemError} />
         )}
+      {vetUsed && (
+        <div className={v.vet} data-on={vet ? "true" : "false"} aria-label={vet ? "動物醫院診間" : undefined} role={vet ? "img" : undefined}>
+          <VetRoom look={look} light={light?.house ?? null} active={vet} talk={vet ? vetTalk : null} />
+        </div>
+      )}
       {kind !== "scan" && bubble && <span className={s.bubbleFixed} aria-hidden="true"><CareIcon id={bubble} /></span>}
       {overview && <ViewPad onHold={setHold} />}
       {children}

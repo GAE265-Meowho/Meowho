@@ -8,12 +8,17 @@ import { pourWater, waterHint, waterResult } from "@/lib/play/mini3d/water-rules
 import { WaterRefillScene } from "./WaterRefillScene";
 import styles from "./mini3d.module.css";
 
-export function WaterRefillGame3D({ onDone }: { onDone: (r: unknown) => void }) {
+/** initialFill＝今天已經換好的水量（lib/play/care-day.ts）；換過（70 以上）就不再倒掉重接，只提示今天換過了 */
+export function WaterRefillGame3D({ onDone, initialFill = 0 }: { onDone: (r: unknown) => void; initialFill?: number }) {
   const time = useRef(0), fill = useRef(0), holding = useRef(false), hold = useRef({ leftReach: 0, open: 0 });
   const [step, setStep] = useState(0);
   const [shown, setShown] = useState(0);
   const [pouring, setPouring] = useState(false);
   const ready = step >= 3;  // 前三格播完，換玩家
+  if (initialFill >= 70) return <>
+    <p className={styles.hint}>今天已經換過水了，碗裡的水還是乾淨的（水量 {Math.round(initialFill)}）。</p>
+    <button className="btn" type="button" onClick={() => onDone(null)}>好</button>
+  </>;
 
   function drive(dt: number) {
     time.current += dt;
