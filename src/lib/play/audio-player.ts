@@ -2,9 +2,10 @@
 // 手機瀏覽器規定使用者點過畫面才能出聲：還沒點過時只記下要播哪首，第一次點擊（unlockAudio）再開始播。
 // 第 1～5 份要出聲時呼叫 playSfx(<ID>)；還沒有音檔的音效呼叫了也不會出聲、不會報錯。
 // 有哪些音檔：第一次用到時讀 /api/play/sounds（Storage 實際的檔案），讀不到就照 SOUNDS 的 ready。
-import { audioSrc, bgmLoops, fadeVolume, hasSound, readMuted, writeMuted, type BgmId, type SfxId, type SoundId, type SoundIndex } from "./audio";
+import { BGM_FALLBACK, audioSrc, bgmLoops, fadeVolume, hasSound, readMuted, writeMuted, type BgmId, type SfxId, type SoundId, type SoundIndex } from "./audio";
 
-const BGM_VOLUME = 0.45;
+// 2026-11-14 渝茜：背景音樂調降 40%（原 0.45）
+const BGM_VOLUME = 0.27;
 const SFX_VOLUME = 0.8;
 const FADE_MS = 900;
 
@@ -65,7 +66,8 @@ function startWanted() {
     return;
   }
   if (current) fadeOutAndStop(current.el);
-  const url = hasSound(wanted, index) ? src(wanted) : "";
+  const fb = BGM_FALLBACK[wanted];
+  const url = hasSound(wanted, index) ? src(wanted) : fb && hasSound(fb, index) ? src(fb) : "";
   if (!url) { current = null; return; }
   const el = new Audio(url);
   el.loop = bgmLoops(wanted);
