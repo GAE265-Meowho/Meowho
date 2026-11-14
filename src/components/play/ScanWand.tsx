@@ -15,7 +15,7 @@ export function ScanWand({ catName, catches, onDone }: { catName: string; catche
   return (
     <section className={s.card} aria-label="逗貓">
       <h2>逗{catName}</h2>
-      <p className={s.lead}>在上面的房間裡移動滑鼠（手機用手指滑），讓玩具在地板上跑，{catName}會衝過去追，真的碰到才算抓到。玩夠了再按「先到這裡」。</p>
+      <p className={s.lead}>在上面的房間裡移動滑鼠（手機用手指滑），讓玩具在地板上跑，也可以跑到床上，{catName}會衝過去追，真的碰到才算抓到。玩夠了再按「先到這裡」。</p>
       <div className={s.meter} role="progressbar" aria-label="開心度" aria-valuenow={fun} aria-valuemin={0} aria-valuemax={100}><span style={{ width: `${fun}%` }} /></div>
       <p className={s.lead}>抓到 {catches} 次</p>
       <div className={s.actions}><CatButton onClick={finish}>先到這裡</CatButton></div>

@@ -1,6 +1,7 @@
 // 虛擬體驗（#150，Tina 2026-11-03）：點床、沙發、桌子，貓走到旁邊跳上去；在上面可以走，點地板就跳下來。純函式。
 // 座標同 catwalk.ts（一間房的左上角＝原點，公尺）；y 是貓腳底的高度。
-// 跳躍用弧線移動；母體還沒有 jump 動作時畫面先用 walk 動作（clips.ts 的 jump 是 planned）。
+// 跳躍：先原地轉身面向落點（cat-moves.ts）→ 蹲下 → 弧線騰空（朝向固定）→ 落地；各段時間由畫面依跳躍動作傳入（JumpTimes）。
+import { jumpHeading, jumpReady, turnStep } from "@/lib/hq/rooms/cat-moves";
 import { blocked, CAT_RADIUS_M, headingTo, stepCat, stepToward, wanderSpot, type CatState, type Obstacle } from "./catwalk";
 import type { RoomScene } from "./scene";
 
@@ -8,6 +9,11 @@ import type { RoomScene } from "./scene";
 export const MAX_JUMP_M = 1.0;
 /** 一次跳躍的時間（秒） */
 export const JUMP_SECONDS = 0.45;
+/** 起跳前原地轉身的速度（弧度／秒） */
+const JUMP_TURN_SPEED = 6;
+/** 跳躍各段的秒數：蹲下、騰空、落地緩衝（畫面依動作片段的離地、落地時間給；預設＝沒有動作時只有騰空） */
+export interface JumpTimes { crouch: number; air: number; land: number }
+export const DEFAULT_JUMP_TIMES: JumpTimes = { crouch: 0, air: JUMP_SECONDS, land: 0 };
 /** 弧線比起點、終點較高者再高多少 */
 const JUMP_ARC_M = 0.25;
 /** 檯面邊緣留多少不站（貓的腳要在檯面上） */
@@ -89,7 +95,11 @@ const distToTop = (s: Surface, x: number, z: number) => {
 
 /** 目標：地板上的一點（surface＝null）或某個檯面上的一點 */
 export interface Goal { x: number; z: number; surface: number | null }
-export interface Jump { fx: number; fz: number; fy: number; tx: number; tz: number; ty: number; t: number; to: number | null }
+/** t＝騰空進度 0～1；phase：turn 原地轉身、crouch 蹲下、air 騰空、land 落地緩衝；pt＝這一段過了幾秒；heading＝跳躍方向 */
+export interface Jump {
+  fx: number; fz: number; fy: number; tx: number; tz: number; ty: number; t: number; to: number | null;
+  phase?: "turn" | "crouch" | "air" | "land"; pt?: number; heading?: number;
+}
 /** 貓的狀態：on＝站在哪個檯面（surfaces 的索引，null＝地板）；jump＝跳躍中 */
 export interface Actor extends CatState { y: number; on: number | null; jump: Jump | null }
 export interface World { scene: RoomScene; obs: Obstacle[]; tops: Surface[] }
@@ -101,8 +111,8 @@ const floorBlocked = (w: World) => (x: number, z: number) => blocked(x, z, w.sce
 function startJump(a: Actor, to: { x: number; z: number }, toSurface: number | null, w: World): Actor {
   const ty = toSurface === null ? 0 : w.tops[toSurface].y;
   return {
-    ...a, moving: true, heading: headingTo(to.x - a.x, to.z - a.z),
-    jump: { fx: a.x, fz: a.z, fy: a.y, tx: to.x, tz: to.z, ty, t: 0, to: toSurface },
+    ...a, moving: true,
+    jump: { fx: a.x, fz: a.z, fy: a.y, tx: to.x, tz: to.z, ty, t: 0, to: toSurface, phase: "turn", pt: 0, heading: jumpHeading(a, to, a.heading) },
   };
 }
 
@@ -110,16 +120,34 @@ function startJump(a: Actor, to: { x: number; z: number }, toSurface: number | n
  * 每格呼叫一次。回傳新的狀態與 done（到達目標或走不到了，呼叫端清掉目標）。
  * 流程：同一層（都在地板或同一個檯面）直接走；要上檯面＝走到旁邊再跳上去；要下來或換檯面＝走到邊緣、先跳到地板。
  */
-export function stepActor(a: Actor, goal: Goal | null, w: World, dt: number): { actor: Actor; done: boolean } {
-  // 跳躍中：沿弧線移動，落地後換到新的那一層
+export function stepActor(a: Actor, goal: Goal | null, w: World, dt: number, times: JumpTimes = DEFAULT_JUMP_TIMES): { actor: Actor; done: boolean } {
+  // 跳躍中：先轉身、蹲下，再沿弧線移動，落地緩衝完換到新的那一層
   if (a.jump) {
     const j = a.jump;
-    const t = Math.min(1, j.t + dt / JUMP_SECONDS);
+    const target = j.heading ?? headingTo(j.tx - j.fx, j.tz - j.fz);
+    const pt = (j.pt ?? 0) + dt;
+    if (j.phase === "turn") {
+      const heading = turnStep(a.heading, target, JUMP_TURN_SPEED * dt);
+      const ready = jumpReady(heading, target) || pt > 2;
+      return { actor: { ...a, heading, jump: { ...j, phase: ready ? "crouch" : "turn", pt: ready ? 0 : pt } }, done: false };
+    }
+    if (j.phase === "crouch") {
+      const go = pt >= times.crouch;
+      return { actor: { ...a, heading: target, jump: { ...j, phase: go ? "air" : "crouch", pt: go ? 0 : pt } }, done: false };
+    }
+    if (j.phase === "land") {
+      if (pt < times.land) return { actor: { ...a, jump: { ...j, pt } }, done: false };
+      const landed: Actor = { ...a, y: j.ty, on: j.to, jump: null, moving: false };
+      const arrived = !goal || (goal.surface === j.to && Math.hypot(goal.x - landed.x, goal.z - landed.z) < 0.08);
+      return { actor: landed, done: arrived };
+    }
+    const t = Math.min(1, j.t + dt / Math.max(times.air, 0.05));
     const peak = Math.max(j.fy, j.ty) + JUMP_ARC_M;
     // 二次貝茲：起點 → 頂點 → 終點
     const y = (1 - t) ** 2 * j.fy + 2 * (1 - t) * t * peak + t ** 2 * j.ty;
-    const moved = { ...a, x: j.fx + (j.tx - j.fx) * t, z: j.fz + (j.tz - j.fz) * t, y };
-    if (t < 1) return { actor: { ...moved, jump: { ...j, t } }, done: false };
+    const moved = { ...a, heading: target, x: j.fx + (j.tx - j.fx) * t, z: j.fz + (j.tz - j.fz) * t, y };
+    if (t < 1) return { actor: { ...moved, jump: { ...j, t, phase: "air", pt } }, done: false };
+    if (times.land > 0) return { actor: { ...moved, y: j.ty, jump: { ...j, t: 1, phase: "land", pt: 0 } }, done: false };
     const landed: Actor = { ...moved, y: j.ty, on: j.to, jump: null, moving: false };
     const arrived = !goal || (goal.surface === j.to && Math.hypot(goal.x - landed.x, goal.z - landed.z) < 0.08);
     return { actor: landed, done: arrived };

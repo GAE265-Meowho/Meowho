@@ -1,0 +1,11 @@
+### 22:10｜渝茜（發起）× Claude Code
+- Issue：#354 虛擬飼養改版（第 5 份：診間、劇情鏡頭）
+- 分支／PR：feat/354-play-vet-camera｜（主 agent 統一開）
+- 模組：readiness
+- 做了什麼：
+  - 診間：`lib/play/vet-room.ts`（零件清單 22 個 mesh、v2 色票常數、診療台高度、`showVet`、`vetLight`）＋`components/play/VetRoom.tsx`（three.js 低多邊形小診間，不開陰影，貓用 CatModel 坐在診療台上、播 idle）；`PlayStage` 在 bg＝vet 時把診間疊在房間上面淡入，離開淡出，房間不卸載；`prefers-reduced-motion` 直接切。
+  - 劇情鏡頭：`lib/play/camera-shot.ts` 的 `shotFor(nodeId, pose)`（第 1 天外出籠、第 30 天跑酷、結尾兩段）、`shotReach`（手機直式退遠）；`RoomViewer`、`FloorplanViewer` 新增 `shot` prop（預設不變）。
+  - 測試：`vet-room.test.ts`、`camera-shot.test.ts`。
+- 決策：診間用疊層＋淡入淡出，不卸載房間（換回來不重新下載 Splat）；診間不在畫面時 frameloop 停掉。
+- 未完成／下一步：掃描房間（Splat）的劇情鏡頭與診間疊層沒實際看過（沙盒沒有掃描房間）；診間顯示時底下的房間仍在繪製。
+- 風險／地雷：無資料庫變更。

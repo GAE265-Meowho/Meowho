@@ -3,8 +3,10 @@
 import { Component, useEffect, useId, useRef, type ReactNode } from "react";
 import styles from "./mini3d.module.css";
 
-export function Mini3DModal({ title, onCancel, children, quietCancel }: {
+export function Mini3DModal({ title, onCancel, wide, children, quietCancel }: {
   title: string;
+  /** 寬版（電腦版放得下一排多張卡） */
+  wide?: boolean;
   onCancel: () => void;
   children: ReactNode;
   quietCancel?: boolean;
@@ -19,7 +21,7 @@ export function Mini3DModal({ title, onCancel, children, quietCancel }: {
   }, []);
 
   return (
-    <dialog ref={dialog} className={styles.modal} aria-labelledby={titleId} onCancel={event => {
+    <dialog ref={dialog} className={styles.modal} style={wide ? { width: "min(62rem, calc(100% - 1rem))" } : undefined} aria-labelledby={titleId} onCancel={event => {
       event.preventDefault();
       onCancel();
     }}>

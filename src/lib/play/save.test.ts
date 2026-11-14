@@ -164,3 +164,15 @@ describe("開場設定階段的存檔（還沒進節點，cp＝null）", () => {
     expect(progressKey(a)).not.toBe(progressKey(c));
   });
 });
+
+describe("今日照顧狀態存進進度（選填、向下相容）", () => {
+  it("快照帶著今天的狀態，存檔讀回來續玩照樣有；舊存檔沒有 today 就當新的一天", () => {
+    const cp = start().checkpoint!;
+    expect(cp.today).toEqual({ node: cp.nodeIndex, feed: { dry: 0, wet: 0, soup: 0 }, water: 0, litter: null, done: [] });
+    const back = parseSaved(JSON.parse(JSON.stringify(buildProgress({ cp, pick: {}, placed: [], scanSpots: {}, hhId: null }))))!;
+    expect(playReducer(initialPlay(), { type: "resume", cp: back.cp! }).today).toEqual(cp.today);
+    const { today: _drop, ...old } = cp;
+    void _drop;
+    expect(playReducer(initialPlay(), { type: "resume", cp: old }).today.node).toBe(cp.nodeIndex);
+  });
+});

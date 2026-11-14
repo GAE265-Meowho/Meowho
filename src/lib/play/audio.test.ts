@@ -1,12 +1,16 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
-import { BGM_FALLBACK, AUTO_CALLER, CALLER_OPTIONS, callersOf, BGM_IDS, SFX_IDS, SFX_READY, SOUNDS, audioPath, audioSrc, soundsFor, bgmFor, bgmLoops, fadeVolume, MUTE_KEY, readMuted, writeMuted, type BgmInput } from "./audio";
+import { BGM_FALLBACK, AUTO_CALLER, CALLER_OPTIONS, callersOf, BGM_IDS, SFX_IDS, SFX_READY, SOUNDS, audioPath, audioSrc, soundsFor, bgmFor, bgmLoops, playableBgm, fadeVolume, MUTE_KEY, readMuted, writeMuted, type BgmInput } from "./audio";
 
 const at = (over: Partial<BgmInput>): BgmInput => ({ step: "node", nodeId: "day3", scene: { bg: "room", time: "day" }, home: false, ...over });
 
 describe("背景音樂依場景切換", () => {
-  it("開場、採買、擺用品、試養報告都是日常", () => {
-    for (const step of ["background", "shop", "place", "report"]) expect(bgmFor(at({ step, nodeId: null }))).toBe("bgm_daily");
+  it("開場、採買、擺用品都是日常；結案報告是報告音樂（還沒音檔時退回日常）", () => {
+    for (const step of ["background", "shop", "place"]) expect(bgmFor(at({ step, nodeId: null }))).toBe("bgm_daily");
+    expect(bgmFor(at({ step: "report", nodeId: null }))).toBe("bgm_report");
+    expect(playableBgm("bgm_report", {})).toBe("bgm_daily");
+    expect(playableBgm("bgm_report", { bgm_report: "1" })).toBe("bgm_report");
+    expect(playableBgm("bgm_night", {})).toBe("bgm_night");
   });
 
   it("第 1 天剛到家，硬拉那晚是半夜", () => {
@@ -21,13 +25,15 @@ describe("背景音樂依場景切換", () => {
     expect(bgmFor(at({ nodeId: "year10", scene: { bg: "room", time: "dusk" } }))).toBe("bgm_daily");
   });
 
-  it("結尾是升天，在家的時光一律日常", () => {
-    expect(bgmFor(at({ nodeId: "farewell", scene: { bg: "room", time: "dusk" } }))).toBe("bgm_farewell");
+  it("結尾：前一天、隔天照原本的日常；黑畫面開始才是升天；在家的時光一律日常", () => {
+    expect(bgmFor(at({ nodeId: "farewell", scene: { bg: "room", time: "dusk" } }))).toBe("bgm_daily");
+    expect(bgmFor(at({ nodeId: "farewell", scene: { bg: "room", time: "dusk" }, ending: "dark" }))).toBe("bgm_daily");
+    for (const ending of ["hush", "review", "white", "done"] as const) expect(bgmFor(at({ nodeId: "farewell", scene: { bg: "room", time: "dusk" }, ending }))).toBe("bgm_farewell");
     expect(bgmFor(at({ nodeId: "day30", scene: { bg: "room", time: "night" }, home: true }))).toBe("bgm_daily");
   });
 
   it("升天不循環，其他都循環", () => {
-    expect(BGM_IDS.filter(bgmLoops)).toEqual(["bgm_arrive", "bgm_daily", "bgm_night", "bgm_vet", "bgm_accident"]);
+    expect(BGM_IDS.filter(bgmLoops)).toEqual(["bgm_arrive", "bgm_daily", "bgm_night", "bgm_vet", "bgm_accident", "bgm_report"]);
   });
 });
 
@@ -38,9 +44,9 @@ describe("聲音對照表與網址", () => {
       expect(s.usedIn, id).not.toBe("");
       expect(s.part.length, id).toBeGreaterThan(0);
     }
-    expect(BGM_IDS).toHaveLength(6);
-    // 出事了（bgm_accident）還沒上傳，其他背景音樂都有音檔
-    expect(BGM_IDS.filter(id => !SOUNDS[id].ready)).toEqual(["bgm_accident"]);
+    expect(BGM_IDS).toHaveLength(7);
+    // 出事了（bgm_accident）還沒上傳、結案報告（bgm_report）等第 6 份補音檔，其他背景音樂都有音檔
+    expect(BGM_IDS.filter(id => !SOUNDS[id].ready)).toEqual(["bgm_accident", "bgm_report"]);
   });
 
   it("背景音樂放 bgm/、音效放 sfx/，網址是 Supabase 公開網址", () => {
