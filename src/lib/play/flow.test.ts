@@ -1,7 +1,7 @@
 // 虛擬飼養 DEMO（#237）：newgame 版流程狀態機——6 個節點＋結尾、每個節點後的「在家的時光」、節點 5 居家意外（送獸醫／虛驚）、節點 6 健檢。
 import { describe, expect, it } from "vitest";
 import { careEffect, CARE_ACTS, skipEffect } from "./care";
-import { initialPlay, playReducer, STEPS, type PlayAction, type PlayState } from "./flow";
+import { initialPlay, playReducer, prevSetupStep, STEPS, type PlayAction, type PlayState } from "./flow";
 import { ruleHazards, type Hazard } from "./hazards";
 import { DEMO_DOLLHOUSE, inventoryFromPlan } from "./room";
 import { STORY, topRisk, VET_RISKS, type CatTraits } from "./story";
@@ -260,3 +260,28 @@ describe("在家的時光：做好才算完成", () => {
   });
 });
 
+
+describe("back：開場設定的上一步", () => {
+  it("擺用品回採買、採買回你的家；其他狀態原樣保留", () => {
+    let s = playReducer(playReducer(initialPlay(), { type: "next" }), { type: "next" });
+    s = playReducer(s, { type: "toggleHandled", key: "k" });
+    expect(s.step).toBe("place");
+    const shop = playReducer(s, { type: "back" });
+    expect(shop).toEqual({ ...s, step: "shop" });
+    expect(playReducer(shop, { type: "back" }).step).toBe("background");
+    // 回去之後再往下走，還是同一條路
+    expect(playReducer(playReducer(shop, { type: "back" }), { type: "next" }).step).toBe("shop");
+  });
+  it("你的家、飼養、報告沒有上一步", () => {
+    const home = initialPlay();
+    expect(playReducer(home, { type: "back" })).toBe(home);
+    const node = playReducer(initialPlay(), { type: "startNodes", catName: "麻糬", labels: [], once: 0, monthly: 0 });
+    expect(node.step).toBe("node");
+    expect(playReducer(node, { type: "back" })).toBe(node);
+    const report: PlayState = { ...node, step: "report" };
+    expect(playReducer(report, { type: "back" })).toBe(report);
+  });
+  it("prevSetupStep：只有採買、擺用品有上一步", () => {
+    expect(STEPS.map(prevSetupStep)).toEqual([null, "background", "shop", null, null]);
+  });
+});
