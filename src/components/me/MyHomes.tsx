@@ -115,7 +115,7 @@ function HomeSection({ home, cats, favorites, verifs, tools, googleAvatar, onVer
       <div className={s.tools}>
         {owner ? (
           <>
-            {/* 兩顆按鈕依規格 09 §7.2 狀態表切換；建模中兩顆一起停用（決策 007：只給一般飼主看自己的家） */}
+            {/* 兩顆按鈕依規格 09 §7.2 狀態表切換；建模期間仍可查看已完成的安全報告（決策 007：只給一般飼主看自己的家） */}
             <ToolButton tool={tools.scene} href={`/homes/${home.id}/scene`} icon="scan" variant="primary" />
             <ToolButton tool={tools.safety} href={`/homes/${home.id}/safety`} icon="check" variant="ghost" />
           </>

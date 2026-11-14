@@ -25,6 +25,13 @@ export default function SafetyPage() {
   const sb = getBrowserSupabase();
   const [rows, setRows] = useState<Row[] | undefined>(undefined);
   const [picked, setPicked] = useState<string | null>(null);
+  const [fallbackReport, setFallbackReport] = useState<string | null>(null);
+  useEffect(() => {
+    const query = new URLSearchParams(window.location.search);
+    const report = query.get("report");
+    setPicked(report);
+    setFallbackReport(query.get("view") === "summary" ? report : null);
+  }, [id]);
   const [again, setAgain] = useState(false);
   const [making, setMaking] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -79,7 +86,7 @@ export default function SafetyPage() {
       <>
         <section className={f.card} aria-labelledby="report-title">
           <h2 id="report-title">{day(shown.created_at)}的安全報告</h2>
-          <p className={k.source}>分析完成・{shown.source}・{shown.riskCount ? `${shown.riskCount} 個要注意的地方` : "沒有發現要注意的地方"}</p>
+          <p className={k.source}>分析完成・{shown.source}</p>
           {!sb ? (
             <div className={k.details}>
               <p role="note"><b>示範報告（非真實 AI 分析）</b>：以下為預設範例，不代表你的居家環境已檢測。</p>
@@ -93,7 +100,7 @@ export default function SafetyPage() {
                 ))}
               </ul>
             </div>
-          ) : <SafetyReportDetails householdId={id} reportId={shown.id} />}
+          ) : <SafetyReportDetails key={shown.id} householdId={id} reportId={shown.id} summaryOnly={fallbackReport === shown.id} />}
           <div className={f.actions}>
             {busy
               ? <CatButton disabled>{safetyBusyLabel(shown.status === "ready")}</CatButton>
@@ -107,10 +114,10 @@ export default function SafetyPage() {
           <ul className={k.records}>
             {records.map(x => (
               <li key={x.id}>
-                <button type="button" className={k.record} aria-current={x.id === shown.id ? "true" : undefined} onClick={() => setPicked(x.id)}>
+                <button type="button" className={k.record} aria-current={x.id === shown.id ? "true" : undefined} onClick={() => { setFallbackReport(null); setPicked(x.id); }}>
                   <span>{day(x.created_at)}</span>
                   <span>{x.source}</span>
-                  <span>{x.riskCount} 項</span>
+                  <span>已完成</span>
                 </button>
               </li>
             ))}
