@@ -451,7 +451,7 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [story?.at, story?.action, worldReady, itemsReady, wand]);
 
-  // 3D 逗貓：玩具跟著指標在地板上移動，貓追著撲
+  // 3D 逗貓：玩具跟著指標在地板或家具檯面上移動，貓追著撲（玩具上了床，貓跟著跳上去）
   const wandUrl = wand?.toy.url ?? null;
   useEffect(() => {
     const st = itemStage.current, w = world.current, el = host.current;
@@ -472,12 +472,13 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
     const move = (e: PointerEvent) => {
       if (!(e.target instanceof Node) || !el.contains(e.target)) return;
       const r = el.getBoundingClientRect();
-      const at = w.floorAt(new THREE.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1));
+      // 玩具先打到家具檯面（床等）就放在檯面上，貓會跳上去追；否則在地板上（world.ts 的 toyAt）
+      const at = w.toyAt(new THREE.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1));
       if (!at) return;
-      const x = Math.min(maxX - 0.1, Math.max(minX + 0.1, at[0])), z = Math.min(maxZ - 0.1, Math.max(minZ + 0.1, at[1]));
-      group.position.set(x * upm, 0, z * upm);
+      const x = Math.min(maxX - 0.1, Math.max(minX + 0.1, at.x)), z = Math.min(maxZ - 0.1, Math.max(minZ + 0.1, at.z));
+      group.position.set(x * upm, at.y * upm, z * upm);
       group.visible = true;
-      w.setToy([x, z]);
+      w.setToy([x, z], at.on);
       st.viewer.forceRenderNextFrame();
     };
     // 檢視器的內建控制可能攔下事件，所以在 window 的捕獲階段接，再確認指標在房間畫面上

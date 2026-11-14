@@ -5,6 +5,7 @@ import { carrierExit, fitCatInCarrier } from "../../play/carrier-fit";
 import { poseBounds, tuckClip } from "./pose-bounds";
 import { clipRate, jumpClipFor, jumpHeading, jumpKind, jumpReady, moveClip, turnStep } from "./cat-moves";
 import { clipJumpTiming, inPlaceClip, isJumpClip } from "./jump-clips";
+import { ZOOM_RUN_M } from "../../play/zoomies";
 
 const CAT_HEIGHT_M = 0.3;   // 站著時頭頂離地的高度
 const WALK_SPEED_M = 0.35;  // 公尺/秒
@@ -56,7 +57,8 @@ export class RoomCat {
     this.arrive = null;   // 走到目的地後要做的事
     this.queued = null;   // 落地後才走的目的地
     this.stick = null;    // 搖桿輸入 { dir（本地 x,z，單位向量）, mag（0~1）}
-    this.sprint = false;  // 追玩具時衝刺（跑步動作、較快的速度與轉身）
+    this.sprint = false;  // 追玩具、半夜跑酷時衝刺（跑步動作、較快的速度與轉身）
+    this.roamFar = false; // 半夜跑酷：閒晃時衝得比較遠
     this.autoIn = AUTO_MIN;
     this.onBored = null;  // 閒晃時想找事做就呼叫，回傳 true 表示開始做了
     /** @type {{ min: number[], max: number[] } | null} */
@@ -618,11 +620,12 @@ export class RoomCat {
           this.autoIn = AUTO_MIN + Math.random() * (AUTO_MAX - AUTO_MIN);
           if (this.onBored?.()) return;
         }
-        // 閒晃：挑 0.6~3 公尺外的隨機格子
+        // 閒晃：挑 0.6~3 公尺外的隨機格子；跑酷（roamFar）時衝到 1.2~4 公尺外
+        const [near, far] = this.roamFar ? ZOOM_RUN_M : [0.6, 3];
         for (let tries = 0; tries < 20; tries++) {
           const k = this.randomCell();
           const d = this.centerOf(k).distanceTo(new THREE.Vector2(this.cat.position.x, this.cat.position.z)) / this.upm;
-          if (d > 0.6 && d < 3 && this.goTo(k)) return;
+          if (d > near && d < far && this.goTo(k)) return;
         }
         this.timer = 1;
       }

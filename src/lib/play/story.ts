@@ -251,7 +251,7 @@ export const STORY: readonly StoryNode[] = [
       sc("room", "night", "zoom"),
       XN("凌晨三點，客廳傳來跑來跑去的聲音。〈貓名〉精神好得很。"),
       ASK("you", "（牠完全沒有要睡的意思……）", [
-        { l: "睡前陪牠玩到累，再餵一小餐", fx: { trust: 3, minutes: 15 }, pick: "為半夜跑酷調整了作息", good: true, then: [XN("你拿出逗貓棒，陪〈貓名〉玩了一陣子。"), MINI("play"), XN("連續幾天後，〈貓名〉開始一覺睡到天亮。")] },
+        { l: "睡前陪牠玩到累，再餵一小餐", fx: { trust: 3, minutes: 15 }, pick: "為半夜跑酷調整了作息", good: true, then: [MINI("play"), XN("你陪〈貓名〉玩了一陣子。"), XN("連續幾天後，〈貓名〉開始一覺睡到天亮。")] },
         { l: "把牠關在房門外", fx: { stress: 10, trust: -3 }, pick: "把貓關在房門外", good: false, then: [XN("〈貓名〉在門外叫了一整夜。")] },
       ]),
       REC({ fx: { spent: 1800, kind: "med" }, note: "預防針、驅蟲" }),

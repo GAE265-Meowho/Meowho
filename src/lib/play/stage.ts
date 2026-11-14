@@ -6,7 +6,7 @@ import { blocked, CAT_RADIUS_M, obstacles, type Obstacle } from "@/lib/hq/floorp
 import type { RoomScene } from "@/lib/hq/floorplans/scene";
 
 /** 3D 貓的動作（由劇本的場景姿勢、小遊戲換算） */
-export type CatAction = "hide" | "carrier" | "explore" | "eat" | "litter" | "high" | "sofa" | "sleep" | "idle";
+export type CatAction = "hide" | "carrier" | "explore" | "zoom" | "eat" | "litter" | "high" | "sofa" | "sleep" | "idle";
 
 export interface Spot { x: number; z: number }
 export interface PlacedSpot extends Spot { id: string; widthM: number; depthM: number }
@@ -69,6 +69,7 @@ export function goalFor(s: RoomScene, action: CatAction | undefined, places: { h
       const spot = nearFree(s, obs, item.x, item.z);
       return spot && { box: null, ...spot };
     }
+    case "zoom":  // 半夜跑酷：娃娃屋照舊走到房間另一頭（掃描房間另有跑酷，見 zoomies.ts）
     case "explore": {
       const spot = nearFree(s, obs, s.size[0] * 0.7, s.size[1] * 0.45);
       return spot && { box: null, ...spot };

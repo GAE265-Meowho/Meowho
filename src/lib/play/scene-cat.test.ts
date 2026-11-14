@@ -42,6 +42,7 @@ describe("sceneCatCommand", () => {
   it("找不到能跳的家具就隨便逛；探索與一般姿勢也是隨便逛", () => {
     expect(sceneCatCommand("sleep", [], placed)).toEqual({ kind: "roam" });
     expect(sceneCatCommand("explore", objects, placed)).toEqual({ kind: "roam" });
+    expect(sceneCatCommand("zoom", objects, placed)).toEqual({ kind: "zoomies" });
     expect(sceneCatCommand("idle", objects, placed)).toEqual({ kind: "roam" });
   });
 });

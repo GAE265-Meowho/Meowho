@@ -8,7 +8,8 @@ export type SceneCatCommand =
   | { kind: "go"; x: number; z: number }       // 走到這個位置
   | { kind: "tuck"; carrier: CarrierBox }       // 整隻縮在外出籠裡（地板座標，公尺）
   | { kind: "jump"; object: string }           // 跳上這件家具（RoomObject.id）
-  | { kind: "roam" };                          // 照常在房間裡閒晃
+  | { kind: "roam" }                           // 照常在房間裡閒晃
+  | { kind: "zoomies" };                       // 半夜跑酷：跑步衝來衝去、跳上跳下（zoomies.ts）
 
 export const CATCH_M = 0.3;  // 貓和玩具的距離在這之內才算碰到（公尺）
 const FUN_PER_CATCH = 17;  // 抓到一次的開心度（3 次約 51，過 50 算成功）
@@ -40,6 +41,7 @@ export function sceneCatCommand(action: CatAction | null, objects: readonly Room
     case "sleep": return jumpTo(jumpable.find(o => has(o, ["床", "bed"])) ?? tallest(jumpable));
     case "sofa": return jumpTo(jumpable.find(o => has(o, ["沙發", "sofa"])) ?? tallest(jumpable));
     case "high": return jumpTo(tallest(jumpable));
+    case "zoom": return { kind: "zoomies" };
     default: return { kind: "roam" };
   }
 }
