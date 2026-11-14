@@ -1,0 +1,11 @@
+### 08:34｜渝茜（發起）× Claude Code
+- Issue：#354 虛擬飼養改版（五年後居家危險彈窗）
+- 分支／PR：feat/354-play-year5-hazard｜（主 agent 開）
+- 模組：readiness
+- 做了什麼：
+  - 新增 `src/lib/play/year5-hazard.ts`：`year5HazardMoment`（送醫後回到 room、顯示小叮嚀那一步）、`pickReportItem`／`safeCropUrl`（只收同源 `/crops/<key>` 路由）、`loadReportHazard`（同源報告 API，401／404／失敗回 null）、`hazardDialogView`；測試 9 項
+  - 新增 `HazardDialog.tsx`＋`hazard-dialog.module.css`：原生 `<dialog>` showModal，右上 X、Esc、點背景關閉；電腦版照片左文字右
+  - `usePlayData.ts` 多回 `reportId`（危險清單來源的報告 id）；`PlayGame.tsx` 加觸發與渲染（約 10 行）
+- 決策：示範模式、沒登入、沒有環境報告或讀不到 → 跳只有文字（小叮嚀）的版本；虛驚（沒送醫）路線不跳
+- 未完成／下一步：After 圖——報告 API 沒有（AI 模擬 After 只在本人 PDF 內），要 Worker／世安另外輸出 After 圖並由 API 提供同源路由
+- 風險／地雷：續玩時危險清單仍讀「最新」報告，不是 run 定格的 `env_report_id`

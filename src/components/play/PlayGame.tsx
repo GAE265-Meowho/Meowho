@@ -49,6 +49,8 @@ import { RunGateCard } from "./RunGateCard";
 import { notifyRunChanged, useActiveRun, useRunProgress } from "./useActiveRun";
 import { ShopStep } from "./ShopStep";
 import { useHouseholdExtras, usePlayHouseholds } from "./usePlayData";
+import { HazardDialog } from "./HazardDialog";
+import { year5HazardMoment } from "@/lib/play/year5-hazard";
 import s from "./play.module.css";
 
 const STEP_LABELS = [["background", "你的家"], ["shop", "採買"], ["place", "擺用品"], ["node", "飼養"], ["report", "報告"]] as const;
@@ -145,6 +147,11 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
   const places = useMemo(() => ({ hide: homeWord("躲藏處", labels) ?? "角落", high: homeWord("高處", labels) ?? "", sofa: "沙發" }), [labels]);
   const node = STORY[state.nodeIndex];
   const cur = state.cur;
+  // 五年後看完醫生回家、小叮嚀那一刻跳一次居家危險彈窗（year5-hazard.ts）；照片只在有自己的環境報告時讀
+  const [hazardOpen, setHazardOpen] = useState(false);
+  const hazardShown = useRef(false);
+  const hazardNow = year5HazardMoment({ step: state.step, nodeId: state.step === "node" ? node.id : null, cur: cur?.kind === "lines" ? { kind: "lines", lines: cur.lines } : cur, sceneBg: state.scene.bg, events: state.life.events, risk: state.life.risk });
+  useEffect(() => { if (hazardNow && !hazardShown.current) { hazardShown.current = true; setHazardOpen(true); } }, [hazardNow]);
   const shop = shopCost(pick, "kitten", backShop);
   useEffect(() => { setPick(p => clampShop(p, backShop)); }, [backShop]);
   const shopMissing = [...(pick.budget ? [] : ["每月預算"]), ...shop.missing];
@@ -435,6 +442,9 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
         </div>
       )}
       {saveErr && <p className={s.missing} role="status">進度沒有存到，請檢查網路；離開後可能要從上一個節點接著玩。</p>}
+      {hazardOpen && state.life.risk && (
+        <HazardDialog risk={state.life.risk} householdId={!isDemo && user && hh ? hh.id : null} reportId={!isDemo && user ? extras?.reportId ?? null : null} onClose={() => setHazardOpen(false)} />
+      )}
       {abandoning && runId && (
         <div className={e.overlay}><AbandonPanel catName={catName} runId={runId} onCancel={() => setAbandoning(false)} onDone={() => { window.location.href = catHref; }} /></div>
       )}
@@ -567,7 +577,7 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
 
       {state.step === "report" && home && (
         <ReportStep state={state} pick={pick} monthly={shop.month} home={home} runId={runId} catHref={catHref}
-          onRestart={() => { dispatch({ type: "restart" }); hazardsAsked.current = false; setPlaced([]); setScanSpots({}); setLines({}); setRunId(null); setFrozenRoom(null); savedCp.current = null; }} />
+          onRestart={() => { dispatch({ type: "restart" }); hazardsAsked.current = false; hazardShown.current = false; setPlaced([]); setScanSpots({}); setLines({}); setRunId(null); setFrozenRoom(null); savedCp.current = null; }} />
       )}
     </div>
   );
