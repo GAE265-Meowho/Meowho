@@ -4,6 +4,7 @@
 > 最後更新：2026-11-13｜清俊 × Cursor（地圖區名錯開、點貓進介紹頁，PR #401）
 
 ## 目前狀態
+- **虛擬飼養第 5 份（#354，渝茜 × Claude Code，2026-11-14）**：PR #432（第 1 天貓縮在外出籠，base main）→ PR #433（`feat/354-play-cat-motion`：貓走路跳躍動作串接、起跳前轉身、跟著貓按鈕、出籠站到籠門外、第 30 天半夜跑酷、逗貓玩具上床）。#433 要等 #432 合併後把 base 改回 main。細節見 `docs/modules/readiness.md` 最後一節。地雷：掃描房間的床常斜放（`surfaces[0].yaw`），檯面範圍要轉過去算（`zoomies.ts` 的 `toTop`）；房間範圍 `room.min/max` 是沿牆座標，夾位置要用 `clampInRoom`。
 - **領養任務進行中／續玩／放棄（#354，渝茜 × Claude Code，分支 `feat/354-play-run-state`，尚未 commit／PR）**：做了 `0035_meow_play_run_state.sql`（**要先給子哲審才能執行**）、`run-gate.ts`、`save.ts`、貓咪頁 `PlayEntry`、全站 `ActiveRunButton`，`/run` 轉址到 `/play`。細節與還沒做的在 `docs/modules/readiness.md` 最後一節。下一步第一個動作：給子哲審 0035 → 執行後用新帳號在正式站走一遍（開始→玩到第 2 節點→換裝置續玩→放棄／完成）。這個工作樹在 `../Meowho-run`，和 `../Meowho`（`feat/play-cat-life`，貓隨機動作，未 commit）分開。
 - **虛擬飼養鏟屎改 3D（#354，珮瑜 × Claude Code，分支 `feat/354-care-scoop-3d`，審查中）**：餵貓（PR #392）已合併，這個 PR 只有鏟屎。鏟屎彈窗 `src/components/play/mini3d/ScoopGame3D.tsx`：按住畫面拖曳貓砂鏟、連砂鏟起、左右甩三下、到垃圾袋上方放開；規則 `src/lib/play/mini3d/scoop-rules.ts`。**貓砂盆四款只畫在彈窗裡（`ScoopProps.tsx`），遊戲一律用開放式，房間裡的貓砂盆沒換**。第 1 份還剩貓砂盆四款放進房間、逗貓玩具確認、上方狀態列。細節見 `docs/modules/readiness.md`「B. 小遊戲改 3D」與 `docs/daily/2026-11-12/2130-珮瑜-354.md`。
 - **#356 摸貓完整體驗（世安 × Codex）**：`feat/356-pet-orbit`。開發模式 `/dev/pet-orbit` 使用正式摸貓彈窗，直接進入自由互動；本次 PR 不含摸貓專屬音效。下一步由組長審查，再用合法登入驗 Preview 照護入帳及手機實機。

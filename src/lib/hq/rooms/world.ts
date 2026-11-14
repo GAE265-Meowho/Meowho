@@ -7,6 +7,7 @@ import { cameraForward, dropTarget, placeObjects, type PlacedObject, type RoomCa
 import { RoomPhysics } from "./physics";
 import { footprintCells } from "@/lib/play/scene-items";
 import { CATCH_M, isCaught, type SceneCatCommand } from "@/lib/play/scene-cat";
+import { nextZoom, rayHit, topSpot, topUnder, zoomRest, type Top } from "@/lib/play/zoomies";
 
 const PUSH_IMPULSE = 0.48;  // 牛頓秒，貓撥杯子的力道；0.34 時杯子會停在桌緣
 const PAW_REACH_M = 0.22;   // 貓站在杯子後方多遠
@@ -29,9 +30,12 @@ export interface RoomWorld {
   command(cmd: SceneCatCommand): void;
   /** 畫面上的點 → 地板座標（公尺）；沒打到地板回 null */
   floorAt(ndc: THREE.Vector2): [number, number] | null;
+  /** 逗貓：畫面上的點 → 玩具落點（地板座標，公尺），先打到家具檯面就放在檯面上（y＝檯面高度）；沒打到回 null */
+  toyAt(ndc: THREE.Vector2): { x: number; y: number; z: number; on: string | null } | null;
   /** 3D 逗貓：貓追著玩具跑、撲；撲到玩具時呼叫 onCatch(是否抓到)。toy 為 null 表示玩具不在場 */
   play(on: ((caught: boolean) => void) | null): void;
-  setToy(at: [number, number] | null): void;
+  /** on＝玩具在哪個家具檯面上（RoomObject.id，地板＝null），貓會跳上去追 */
+  setToy(at: [number, number] | null, on?: string | null): void;
   /** 虛擬用品（地板座標，公尺）：貓繞過去、不會穿過 */
   setItems(items: { x: number; z: number; widthM: number; depthM: number }[]): void;
   /** 貓頭頂上方的世界座標（給畫面上的對話框定位）；貓不在畫面時回 false */
@@ -99,6 +103,20 @@ export async function createRoomWorld({ viewer, threeScene, scene, layout, camer
   // 3D 逗貓：貓閒下來就追玩具，撲的瞬間玩具還在附近才算抓到
   let onPlay: ((caught: boolean) => void) | null = null;
   let toy: [number, number] | null = null;
+  let toyOn: PlacedObject | null = null;  // 玩具在哪個家具的檯面上（null＝地板）
+  let toyJump: PlacedObject | null = null;  // 貓正要跳上去追玩具的家具（避免每一幀重找路）
+  // 有檯面、可以跳上去的家具（跑酷、逗貓上家具用）
+  const jumpables = objects.filter(o => o.affordance.jump_on && o.surfaces?.length);
+  // 檯面用 surfaces[0] 自己的中心、大小、轉角（床常斜放）；舊資料沒有就用家具的底面
+  const tops: Top[] = jumpables.map(o => {
+    const f = o.surfaces![0] as { top_y: number; center?: [number, number]; size?: [number, number]; yaw?: number };
+    return f.center && f.size
+      ? { id: o.id, x: f.center[0], z: f.center[1], w: f.size[0], d: f.size[1], top: f.top_y, yaw: f.yaw ?? o.box.yaw }
+      : { id: o.id, x: o.floor_pos_m[0], z: o.floor_pos_m[2], w: o.size_m[0], d: o.size_m[2], top: f.top_y, yaw: o.box.yaw };
+  });
+  const topOf = (id: string) => jumpables.find(o => o.id === id) ?? null;
+  // 半夜跑酷（第 30 天）：貓用跑步動作衝來衝去、時不時跳上家具（zoomies.ts）
+  let zoom = false;
   const chase = { cool: 0 };
 
   const catHead = (out: THREE.Vector3) => {
@@ -114,8 +132,56 @@ export async function createRoomWorld({ viewer, threeScene, scene, layout, camer
     hasCup: Boolean(cup),
 
     update(dt) {
-      cat.sprint = Boolean(onPlay && toy);
-      if (onPlay && toy && cat.visible) {
+      cat.sprint = Boolean(onPlay && toy) || zoom;
+      cat.roamFar = zoom;
+      if (zoom && !onPlay && cat.visible && cat.state === "idle") {
+        // 跑酷：在地板上幾乎不停，挑下一步（衝到別處或跳上家具）；在家具上待一下就跳下來
+        const onTop = Boolean(cat.surface);
+        cat.timer = Math.min(cat.timer, zoomRest(onTop));
+        if (cat.timer <= dt) {
+          const step = nextZoom(onTop, tops);
+          if (step.kind === "jump") {
+            const o = topOf(step.top.id);
+            const [sx, sz] = topSpot(step.top);  // 落點挑在檯面上（斜放的床也不會落到床外）
+            if (o) cat.jumpOn(o, step.top.top, viewer.camera, new THREE.Vector2(sx * upm, sz * upm));
+          }
+          // run、down：交給 RoomCat 的閒晃（timer 到了就衝到 1.2～4 公尺外，或從家具跳下來）
+        }
+      }
+      if (onPlay && toy && cat.visible && toyOn) {
+        // 玩具在家具檯面上：貓跳上去追；已經在同一個檯面上就在檯面上跑過去撲
+        chase.cool -= dt;
+        cat.timer = Math.max(cat.timer, 1);
+        const me = cat.cat.position;
+        const dx = toy[0] - me.x / upm, dz = toy[1] - me.z / upm, dist = Math.hypot(dx, dz);
+        if (cat.state !== "jump" && cat.state !== "paw") {
+          if (cat.surface !== toyOn) {
+            cat.setStick(null, 0);
+            const spot = new THREE.Vector2(toy[0] * upm, toy[1] * upm);
+            if (toyJump !== toyOn || cat.state === "idle") {
+              toyJump = toyOn;
+              if (!cat.jumpOn(toyOn, toyOn.surfaces![0].top_y, viewer.camera, spot)) toyJump = null;
+            }
+          } else if (dist <= CATCH_M) {
+            toyJump = null;
+            cat.setStick(null, 0);
+            if (chase.cool <= 0 && cat.state === "idle") {
+              cat.paw(new THREE.Vector2(toy[0] * upm, toy[1] * upm), () => {
+                const p = cat.cat.position;
+                onPlay?.(toy ? isCaught([p.x / upm, p.z / upm], toy) : false);
+              });
+              chase.cool = 1.2;
+            }
+          } else {
+            cat.setStick(new THREE.Vector2(dx / dist, dz / dist), 1);  // 在檯面上衝過去（RoomCat 會擋在檯面邊緣內）
+          }
+        }
+      } else if (onPlay && toy && cat.visible && cat.surface && cat.state !== "jump" && cat.state !== "paw") {
+        // 玩具回到地板：從家具上跳下來追
+        toyJump = null;
+        cat.setStick(null, 0);
+        cat.jumpDown();
+      } else if (onPlay && toy && cat.visible) {
         // 3D 逗貓：貓衝刺到玩具旁邊（路徑上的最近空地板），碰得到（30 公分內）才撲；撲的瞬間還碰得到才算抓到
         chase.cool -= dt;
         cat.timer = Math.max(cat.timer, 1);  // 追玩具時不要自己跑去閒晃
@@ -131,7 +197,7 @@ export async function createRoomWorld({ viewer, threeScene, scene, layout, camer
               chase.cool = 1.2;
             }
           } else if (dist > CATCH_M) {
-            const k = cat.nearestFree(toy[0] * upm, toy[1] * upm, 12);
+            const k = cat.nearestFree(toy[0] * upm, toy[1] * upm, 12, true);
             if (k !== undefined && k >= 0 && (cat.state === "idle" || !cat.dest || cat.dest.distanceTo(cat.centerOf(k)) > 1e-3)) cat.goTo(k);
           }
         }
@@ -191,12 +257,25 @@ export async function createRoomWorld({ viewer, threeScene, scene, layout, camer
 
     command(cmd) {
       cat.visible = cmd.kind !== "hidden";
+      zoom = cmd.kind === "zoomies";
+      if (cmd.kind === "tuck") {
+        // 縮在外出籠裡；量不到或放不下時退回走到外出籠旁
+        if (!cat.tuck(cmd.carrier)) {
+          const k = cat.nearestFree(cmd.carrier.x * upm, cmd.carrier.z * upm, 12);
+          if (k !== undefined && k >= 0) cat.goTo(k);
+        }
+        viewer.forceRenderNextFrame();
+        return;
+      }
+      cat.untuck();
       if (cmd.kind === "go") {
         const k = cat.nearestFree(cmd.x * upm, cmd.z * upm, 12);
         if (k !== undefined && k >= 0) cat.goTo(k);
       } else if (cmd.kind === "jump") {
         const o = objects.find(x => x.id === cmd.object);
         if (o) cat.jumpOn(o, o.surfaces?.[0]?.top_y ?? o.size_m[1], viewer.camera);
+      } else if (cmd.kind === "zoomies") {
+        cat.timer = 0;  // 馬上開始跑
       } else if (cmd.kind === "roam" && cat.surface) {
         cat.jumpDown();
       }
@@ -214,12 +293,24 @@ export async function createRoomWorld({ viewer, threeScene, scene, layout, camer
 
     play(on) {
       onPlay = on;
-      if (!on) cat.sprint = false;
+      if (!on) { cat.sprint = zoom; cat.setStick(null, 0); }
       chase.cool = 0.5;
     },
 
-    setToy(at) {
+    setToy(at, on = null) {
       toy = at;
+      toyOn = at && on ? topOf(on) : null;
+    },
+
+    toyAt(ndc) {
+      const ray = new THREE.Raycaster();
+      ray.setFromCamera(ndc, viewer.camera);
+      const o = cat.frame.worldToLocal(ray.ray.origin.clone());
+      const d = cat.frame.worldToLocal(ray.ray.origin.clone().add(ray.ray.direction)).sub(o);
+      const h = rayHit([o.x / upm, o.y / upm, o.z / upm], [d.x, d.y, d.z], tops);
+      if (!h) return null;
+      // 太靠檯面邊緣、站不上去的點當作地板
+      return h.on && !topUnder(h.x, h.z, [h.on]) ? { x: h.x, y: 0, z: h.z, on: null } : { x: h.x, y: h.y, z: h.z, on: h.on?.id ?? null };
     },
 
     setItems(list) {

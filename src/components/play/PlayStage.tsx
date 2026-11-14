@@ -6,7 +6,7 @@
 // 3D 元件一律 next/dynamic（ssr: false）。
 import { CareIcon, type CareIconId } from "./CareIcon";
 import dynamic from "next/dynamic";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { sideFromKey, type OverviewSide } from "@/lib/hq/rooms/overview";
 import type { PlaceAt, PlacedHouseholdItem, RoomClick } from "@/components/hq/assets/FloorplanViewer";
 import type { PlayCatLook } from "@/lib/play/cats";
@@ -15,6 +15,7 @@ import type { SceneItem } from "@/lib/play/scene-items";
 import type { RoomPlaceEdit, RoomWand } from "@/components/hq/assets/RoomViewer";
 import type { CatAction } from "@/lib/play/stage";
 import s from "./play.module.css";
+import f from "./PlayFollow.module.css";
 import p from "./place.module.css";
 
 const loading = () => <div className={s.stageLoading}>3D 房間載入中…</div>;
@@ -107,6 +108,15 @@ export function PlayStage({ kind, scanBase, placeView = false, place = null, loo
   onItemError?: (key: string) => void;
   children?: ReactNode;
 }) {
+  // 第 1 天（劇情叫貓躲外出籠）：娃娃屋的貓整隻縮在擺好的外出籠裡
+  const carrier = story?.action === "carrier" ? placed.find(p => p.key.startsWith("carrier:")) : undefined;
+  const tuck = useMemo(() => (carrier
+    ? { x: carrier.x, y: carrier.y, z: carrier.z, widthM: carrier.widthM, depthM: carrier.depthM, heightM: carrier.heightM, rotY: ((carrier.rotY ?? 0) * Math.PI) / 180 }
+    : null), [carrier]);
+  // 跟著貓：飼養中（有劇情動作）才有按鈕；娃娃屋原本就一直跟，預設開；掃描房間預設關
+  const [follow, setFollow] = useState(kind === "dollhouse");
+  useEffect(() => { setFollow(kind === "dollhouse"); }, [kind]);
+  const followOff = useCallback(() => setFollow(false), []);
   const [side, setSide] = useState<OverviewSide>("front");
   const scan = kind === "scan" && Boolean(scanBase);
   const overview = scan && placeView;
@@ -130,14 +140,22 @@ export function PlayStage({ kind, scanBase, placeView = false, place = null, loo
     <section ref={stageEl} className={overview ? `${s.stage} ${p.stage}` : s.stage} aria-label="3D 房間">
       {tag && <span className={s.stageTag}>{tag}</span>}
       {kind === "scan" && scanBase
-        ? <RoomViewer base={scanBase} items={scanItems} controls={false} story={story} wand={wand} bubble={bubble ? <CareIcon id={bubble} /> : null} bubbleInset={bubbleInset} lookKey={lookKey} overview={overview ? side : null} overviewCover={cover} place={overview ? place : null} />
+        ? <RoomViewer base={scanBase} items={scanItems} controls={false} story={story} wand={wand} bubble={bubble ? <CareIcon id={bubble} /> : null} bubbleInset={bubbleInset} lookKey={lookKey} follow={follow} onFollowOff={followOff} overview={overview ? side : null} overviewCover={cover} place={overview ? place : null} />
         : (
           <FloorplanViewer rooms={ROOMS} selected={ROOMS[0].id} onPick={noop}
             cat={look} placedItems={placed} interactMode="point"
-            catGoal={goal} catClip={clip} catSpeed={speed}
+            catGoal={goal} catClip={clip} catSpeed={speed} catTuck={tuck} catFollow={follow} onCatFollowOff={followOff}
             onFloorDrop={onDrop} onItemError={onItemError} />
         )}
       {kind !== "scan" && bubble && <span className={s.bubbleFixed} aria-hidden="true"><CareIcon id={bubble} /></span>}
+      {story && look && (
+        <button type="button" className={f.follow} aria-pressed={follow} onClick={() => setFollow(v => !v)}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="3" /><path d="M12 2v4M12 18v4M2 12h4M18 12h4" /><circle cx="12" cy="12" r="8" />
+          </svg>
+          跟著貓
+        </button>
+      )}
       {overview && <ViewPad side={side} onSide={setSide} />}
       {children}
     </section>

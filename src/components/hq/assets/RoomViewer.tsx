@@ -98,7 +98,7 @@ export interface RoomPlaceApi {
   rotate: (id: string) => boolean;
 }
 
-export default function RoomViewer({ base, cat, items, controls = true, story, wand, bubble, bubbleInset = 0, lookKey, noCat = false, overlay = false, overview = null, overviewCover = 0, place = null }: {
+export default function RoomViewer({ base, cat, items, controls = true, story, wand, bubble, bubbleInset = 0, lookKey, follow = false, onFollowOff, noCat = false, overlay = false, overview = null, overviewCover = 0, place = null }: {
   base: string; cat?: { baseUrl: string; albedoUrl: string } | null; items?: readonly SceneItem[]; controls?: boolean; noCat?: boolean; overlay?: boolean;
   story?: { action: CatAction | null; at: number } | null; wand?: RoomWand | null;
   /** 貓頭頂的小對話框（SVG 圖示）；null＝不顯示 */
@@ -107,6 +107,10 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
   bubbleInset?: number;
   /** 這個值一變，鏡頭就原地轉向貓（null／不變不轉） */
   lookKey?: string | null;
+  /** 跟隨貓：鏡頭保持開啟時的距離與角度，平順跟著貓移動；劇情鏡頭（轉向貓等）進行中暫停，結束後接著跟 */
+  follow?: boolean;
+  /** 玩家自己拖曳、轉動或移動鏡頭時呼叫（跟隨自動關掉） */
+  onFollowOff?: () => void;
   overview?: OverviewSide | null;
   overviewCover?: number;
   place?: RoomPlaceEdit | null;
@@ -152,6 +156,10 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
   const hasBubble = useRef(false);
   const insetRef = useRef(bubbleInset);
   insetRef.current = bubbleInset;
+  const followRef = useRef(follow);
+  followRef.current = follow;
+  const followOffRef = useRef(onFollowOff);
+  followOffRef.current = onFollowOff;
   useEffect(() => { hasBubble.current = Boolean(bubble); }, [bubble]);
   const overviewSide = useRef<OverviewSide | null>(overview);
   overviewSide.current = overview;
@@ -506,12 +514,23 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
         move(directions().fwd.multiplyScalar(-Math.sign(e.deltaY) * unit * 0.03));
       }, { passive: false, signal: abort.signal });
 
-      const head = new THREE.Vector3();
+      // 玩家自己動鏡頭：跟隨關掉
+      let dragFrom: [number, number] | null = null;
+      const userMoved = () => { if (followRef.current) followOffRef.current?.(); };
+      el.addEventListener("pointerdown", e => { if (e.isPrimary) dragFrom = [e.clientX, e.clientY]; }, { signal: abort.signal });
+      el.addEventListener("pointermove", e => {
+        if (dragFrom && Math.hypot(e.clientX - dragFrom[0], e.clientY - dragFrom[1]) > 6) { dragFrom = null; userMoved(); }
+      }, { signal: abort.signal });
+      el.addEventListener("pointerup", () => { dragFrom = null; }, { signal: abort.signal });
+      el.addEventListener("wheel", userMoved, { signal: abort.signal });
+      const head = new THREE.Vector3(), catAt = new THREE.Vector3();
+      let followOff: THREE.Vector3 | null = null;  // 開啟跟隨時鏡頭相對貓的位置（保持距離與角度）
       let last = performance.now();
       const tick = (now: number) => {
         const dt = Math.min(0.1, (now - last) / 1000);
         last = now;
         roomWorld?.update(dt);
+        if (!followRef.current) followOff = null;
         const be = bubbleEl.current;
         if (be) {
           if (hasBubble.current && roomWorld?.catHead(head)) {
@@ -536,11 +555,23 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
           }
           active.forceRenderNextFrame();
           if (t === 1) tween = null;
+          followOff = null;  // 劇情鏡頭結束後，用新的角度接著跟
         } else if (overviewOn) {
           // 俯視時不能用 WASD 走動；畫面大小或卡片高度變了就重算 FOV 與畫面中心
           const key = `${el.clientWidth}x${el.clientHeight}|${coverRef.current.toFixed(3)}|${side}|${dragOff.toFixed(3)}`;
           if (key !== lensKey) { lensKey = key; setLens(lensTarget(), true); }
+        } else if (followRef.current && !wandOn.current && roomWorld?.catHead(catAt)) {
+          if (held.size || stick.current.x || stick.current.y) userMoved();
+          // 檢視器的 orbit 目標貼在鏡頭前 LOOK_AT 處，所以距離與角度要用「鏡頭相對貓」記
+          followOff ??= active.camera.position.clone().sub(catAt);
+          const k = 1 - Math.exp(-dt * 4);  // 平順跟上
+          const reach = controls.target.distanceTo(active.camera.position);
+          active.camera.position.lerp(catAt.clone().add(followOff), k);
+          const look = catAt.clone().sub(active.camera.position).normalize();
+          controls.target.lerp(active.camera.position.clone().addScaledVector(look, reach), Math.max(k, 0.3));
+          active.forceRenderNextFrame();
         } else if (held.size || stick.current.x || stick.current.y) {
+          followOff = null;
           const { up, fwd, right } = directions();
           const d = new THREE.Vector3();
           // 搖桿推越遠走越快；和鍵盤同時用時合起來不超過全速
@@ -644,12 +675,12 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
     const st = itemStage.current;
     if (!worldReady || !story || wand || !st) return;
     const placed = placeScanItems(st.scene, st.layout, items ?? []);
-    world.current?.command(sceneCatCommand(story.action, st.scene.objects, placed));
+    world.current?.command(sceneCatCommand(story.action, st.scene.objects, placed, items ?? []));
     // items 變了不用重走；只在劇情動作換了（story.at）或房間讀好、逗貓結束時執行
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [story?.at, story?.action, worldReady, itemsReady, wand]);
 
-  // 3D 逗貓：玩具跟著指標在地板上移動，貓追著撲
+  // 3D 逗貓：玩具跟著指標在地板或家具檯面上移動，貓追著撲（玩具上了床，貓跟著跳上去）
   const wandUrl = wand?.toy.url ?? null;
   useEffect(() => {
     const st = itemStage.current, w = world.current, el = host.current;
@@ -666,16 +697,17 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
     if (orbit.current) orbit.current.enabled = false;
     w.command({ kind: "roam" });  // 躲起來的貓也要出來玩
     w.play(caught => onCatch.current?.(caught));
-    const [minX, minZ] = st.scene.room.min, [maxX, maxZ] = st.scene.room.max;
     const move = (e: PointerEvent) => {
       if (!(e.target instanceof Node) || !el.contains(e.target)) return;
       const r = el.getBoundingClientRect();
-      const at = w.floorAt(new THREE.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1));
+      // 玩具先打到家具檯面（床等）就放在檯面上，貓會跳上去追；否則在地板上（world.ts 的 toyAt）
+      const at = w.toyAt(new THREE.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1));
       if (!at) return;
-      const x = Math.min(maxX - 0.1, Math.max(minX + 0.1, at[0])), z = Math.min(maxZ - 0.1, Math.max(minZ + 0.1, at[1]));
-      group.position.set(x * upm, 0, z * upm);
+      // 房間範圍是沿牆方向（轉 yaw 後）的座標，要轉過去再夾（clampInRoom）；不然斜的房間會把玩具夾到別處
+      const [x, , z] = clampInRoom([at.x, 1, at.z], st.scene.room, 0.1);
+      group.position.set(x * upm, at.y * upm, z * upm);
       group.visible = true;
-      w.setToy([x, z]);
+      w.setToy([x, z], at.on);
       st.viewer.forceRenderNextFrame();
     };
     // 檢視器的內建控制可能攔下事件，所以在 window 的捕獲階段接，再確認指標在房間畫面上
