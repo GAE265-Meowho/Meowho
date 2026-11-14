@@ -18,7 +18,8 @@ import { placeScanItems, type SceneItem } from "@/lib/play/scene-items";
 import { sceneCatCommand } from "@/lib/play/scene-cat";
 import type { CatAction } from "@/lib/play/stage";
 import type { SceneLight } from "@/lib/play/scene-light";
-import { TINT_UNIFORM, tintFragment } from "@/lib/hq/rooms/splat-tint";
+import { CAT_TINT_UNIFORM, TINT_UNIFORM, tintFragment } from "@/lib/hq/rooms/splat-tint";
+import { tintObject } from "@/lib/hq/rooms/tint-material";
 
 const ALPHA_THRESHOLD = 5;  // 丟掉幾乎透明的高斯，手機比較順
 const WALK_SPEED = 0.15;    // 每秒走幾個房間單位
@@ -77,9 +78,9 @@ export interface RoomWand { toy: SceneItem; onCatch: (caught: boolean) => void }
  *   手指拖曳，或由外面的方向鍵傳入按住的方向（x 右 1 左 −1、y 上 1 下 −1）；不能走動、不能縮放。
  *   null／不給＝原本的鏡頭（預設）；從有變成沒有時鏡頭直接回到原本的開場位置。角度與限制都在 lib/hq/rooms/overview.ts 的 OVERVIEW
  * light：虛擬飼養的白天／夜晚光（#354，lib/play/scene-light.ts 的 lightFor(time).scan）。高斯點不吃燈光，所以
- *   Splat 材質的片段著色器最後乘上 uTint（lib/hq/rooms/splat-tint.ts；只編譯一次，之後換日夜只改 uniform 值），
- *   虛擬物件的半球光調暗調藍，貓身上多一盞小補光；不加後製、不多渲染一次。
- *   null／不給＝不改著色器、原本的燈光（預設，MeowHQ 照舊）
+ *   Splat 材質與虛擬物件（用品、玩具）材質的片段著色器最後都乘上同一個 uTint，貓乘 uCatTint（亮一點）
+ *   （lib/hq/rooms/splat-tint.ts；每個材質只編譯一次，之後換日夜只改 uniform 值）；燈光不動、不加燈、不加後製。
+ *   null／不給＝不改著色器（預設，MeowHQ 照舊）
  */
 export default function RoomViewer({ base, cat, items, controls = true, story, wand, bubble, bubbleInset = 0, lookKey, noCat = false, overlay = false, overview = null, light = null }: {
   base: string; cat?: { baseUrl: string; albedoUrl: string } | null; items?: readonly SceneItem[]; controls?: boolean; noCat?: boolean; overlay?: boolean;
@@ -138,10 +139,10 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
   const overviewHold = useRef<OverviewHold | null>(overview);
   overviewHold.current = overview;
   const setOverview = useRef<(on: boolean) => void>(() => {});
-  // 白天／夜晚光（#354）：半球光、貓的補光留著參照好換色；tint 是 Splat 著色器 uTint 的值（所有材質共用同一個向量）
-  const hemi = useRef<THREE.HemisphereLight | null>(null);
-  const glow = useRef<THREE.PointLight | null>(null);
+  // 白天／夜晚光（#354）：tint＝Splat 與用品的 uTint、catTint＝貓的 uCatTint（所有材質共用同一個向量，換日夜只改值）
   const tint = useRef(new THREE.Vector3(1, 1, 1));
+  const catTint = useRef(new THREE.Vector3(1, 1, 1));
+  const retint = useRef<() => void>(() => {});
   const lit = useRef(false);
   lit.current = Boolean(light);
   const onCatch = useRef<RoomWand["onCatch"] | null>(null);
@@ -252,13 +253,7 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
       itemFrame.matrixAutoUpdate = false;
       itemFrame.matrix.makeBasis(fe1, fup, fe2).setPosition(forigin);
       itemFrame.updateMatrixWorld(true);
-      hemi.current = new THREE.HemisphereLight(0xffffff, 0x808080, 1.6);
-      threeScene.add(itemFrame, hemi.current);
-      // 貓的補光：有 light 才加（一開始就加好，白天強度 0；換日夜時燈的數量不變，貓的材質不用重新編譯）
-      if (lit.current) {
-        glow.current = new THREE.PointLight(0xffe9c9, 0, layout.units_per_meter * 1.2, 1);
-        threeScene.add(glow.current);
-      }
+      threeScene.add(itemFrame, new THREE.HemisphereLight(0xffffff, 0x808080, 1.6));
       const toyFrame = new THREE.Group();
       toyFrame.matrixAutoUpdate = false;
       toyFrame.matrix.copy(itemFrame.matrix);
@@ -374,17 +369,25 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
         m.needsUpdate = true;
         v.forceRenderNextFrame();
       };
+      // 虛擬物件：用品、玩具乘 uTint（和房間一樣暗），貓（其他掛在場景上的模型）乘 uCatTint。
+      // 材質換成複本再改（lib/hq/rooms/tint-material.ts），不動模型快取；每個材質只換一次、只重編一次。
+      // 場景很小（貓＋幾件用品），每 20 幀掃一次新出現的物件就好；用品、玩具換了會立刻掃（retint）
+      let sweep = 0;
+      retint.current = () => { sweep = 0; };  // 用品、玩具換了：下一幀就掃，不等 20 幀
+      const tintObjects = () => {
+        if (--sweep > 0) return;
+        sweep = 20;
+        for (const child of threeScene.children) {
+          const cat = child !== itemFrame && child !== toyFrame;
+          tintObject(child, cat ? CAT_TINT_UNIFORM : TINT_UNIFORM, cat ? catTint.current : tint.current);
+        }
+      };
       let last = performance.now();
       const tick = (now: number) => {
         const dt = Math.min(0.1, (now - last) / 1000);
         last = now;
         roomWorld?.update(dt);
-        if (lit.current) tintSplats(active);
-        // 補光放在貓頭和鏡頭之間（照亮貓朝鏡頭那一面）；白天強度 0 就不用算
-        const g = glow.current;
-        if (g && g.intensity > 0 && roomWorld?.catHead(head)) {
-          g.position.copy(active.camera.position).sub(head).normalize().multiplyScalar(0.4 * layout.units_per_meter).add(head);
-        }
+        if (lit.current) { tintSplats(active); tintObjects(); }
         const be = bubbleEl.current;
         if (be) {
           if (hasBubble.current && roomWorld?.catHead(head)) {
@@ -464,8 +467,6 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
       orbit.current = null;
       setWorldReady(false);
       itemStage.current = null;
-      hemi.current = null;
-      glow.current = null;
       setItemsReady(false);
       // dispose 會試著把容器從 body 移除，這裡的容器不在 body 底下
       viewer?.dispose().catch(() => {}).finally(() => stage.remove());
@@ -494,6 +495,7 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
         g.add(o);
         st.frame.add(g);
       });
+      retint.current();
       st.viewer.forceRenderNextFrame();
     });
     return () => { stale = true; };
@@ -504,18 +506,14 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
   const overviewWanted = Boolean(overview);
   useEffect(() => { if (status === "ready") setOverview.current(overviewWanted); }, [overviewWanted, status]);
 
-  // 白天／夜晚：Splat 的 tint、虛擬物件的半球光、貓的補光跟著換（房間讀好後才有燈）；只改數值，不重新編譯
+  // 白天／夜晚：只改 uTint／uCatTint 的值，不重新編譯
   const [tr, tg, tb] = light?.tint ?? [1, 1, 1];
-  const hemiSky = light?.hemi.sky ?? 0xffffff, hemiGround = light?.hemi.ground ?? 0x808080, hemiPower = light?.hemi.intensity ?? 1.6;
-  const glowPower = light?.catLight ?? 0, glowColor = light?.catLightColor ?? 0xffe9c9;
+  const [cr, cg, cb] = light?.catTint ?? [1, 1, 1];
   useEffect(() => {
     tint.current.set(tr, tg, tb);
-    const h = hemi.current;
-    if (h) { h.color.setHex(hemiSky); h.groundColor.setHex(hemiGround); h.intensity = hemiPower; }
-    const g = glow.current;
-    if (g) { g.intensity = glowPower; g.color.setHex(glowColor); }
+    catTint.current.set(cr, cg, cb);
     itemStage.current?.viewer.forceRenderNextFrame();
-  }, [tr, tg, tb, hemiSky, hemiGround, hemiPower, glowPower, glowColor, itemsReady]);
+  }, [tr, tg, tb, cr, cg, cb, itemsReady]);
 
   // 鏡頭轉向貓：貓頭頂的對話框才看得到
   useEffect(() => { if (lookKey && worldReady) world.current?.lookAtCat(); }, [lookKey, worldReady]);
@@ -542,7 +540,7 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
     group.scale.setScalar(upm);
     group.visible = false;
     st.toyFrame.add(group);
-    itemObject({ ...toy, widthM: toy.widthM * TOY_SHOW, depthM: toy.depthM * TOY_SHOW, heightM: toy.heightM * TOY_SHOW }).then(o => { if (!stale) group.add(o); });
+    itemObject({ ...toy, widthM: toy.widthM * TOY_SHOW, depthM: toy.depthM * TOY_SHOW, heightM: toy.heightM * TOY_SHOW }).then(o => { if (!stale) { group.add(o); retint.current(); } });
     wandOn.current = true;
     if (orbit.current) orbit.current.enabled = false;
     w.command({ kind: "roam" });  // 躲起來的貓也要出來玩
