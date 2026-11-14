@@ -99,6 +99,8 @@ export type PlayAction =
   | { type: "care"; act: CareAct; good: boolean; result?: unknown }
   /** 續玩：從存好的快照回到那個節點的開頭 */
   | { type: "resume"; cp: Checkpoint }
+  /** 結局的暗幕播完（或玩家略過）：剩下的台詞、紀錄一次走完，進報告；遇到選項、小遊戲就停（不替玩家選） */
+  | { type: "finish" }
   | { type: "restart" };
 
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
@@ -212,6 +214,15 @@ function advance(s: PlayState): PlayState {
 export function playReducer(s: PlayState, a: PlayAction): PlayState {
   switch (a.type) {
     case "restart": return initialPlay();
+    case "finish": {
+      let n = s;
+      for (let i = 0; i < 50 && n.step === "node"; i++) {
+        const next = playReducer(n, { type: "next" });
+        if (next === n) break;
+        n = next;
+      }
+      return n;
+    }
     case "goto": return { ...s, step: a.step };
     case "back": { const prev = prevSetupStep(s.step); return prev ? { ...s, step: prev } : s; }
     case "setHazards": return { ...s, hazards: a.hazards, handled: s.handled.filter(k => a.hazards.some(h => h.key === k)) };
