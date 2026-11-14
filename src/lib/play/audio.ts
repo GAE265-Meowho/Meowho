@@ -5,6 +5,7 @@
 // 要找「這個事件該用哪個音效」：查下面的 SOUNDS（usedIn 寫用在哪、part 寫第幾份要呼叫），或用 soundsFor(第幾份)。
 // 這個檔案只放純函式與對照表（有測試）；真的播放在 audio-player.ts。
 import { SUPABASE_URL } from "@/lib/supabase/config";
+import type { EndingPhase } from "./ending";
 import type { NodeId } from "./story";
 
 export const AUDIO_BUCKET = "meow-play-audio";
@@ -27,10 +28,11 @@ export interface Sound {
 export const SOUNDS = {
   // 背景音樂（自動依場景切換，見 bgmFor）
   bgm_arrive: { kind: "bgm", label: "剛到家", usedIn: "第 1 天，貓躲在外出籠、等牠出來", part: [6], ready: true },
-  bgm_daily: { kind: "bgm", label: "日常", usedIn: "開場、採買、擺用品、在家的時光、白天與傍晚的節點、試養報告", part: [6], ready: true },
+  bgm_daily: { kind: "bgm", label: "日常", usedIn: "開場、採買、擺用品、在家的時光、白天與傍晚的節點（含結尾的前一天、隔天）；結案報告沒有專用音樂時也用這首", part: [6], ready: true },
   bgm_night: { kind: "bgm", label: "半夜", usedIn: "夜晚：第 30 天跑酷、半年後噴尿或發情大叫、第 1 天硬拉那晚", part: [6], ready: true },
   bgm_vet: { kind: "bgm", label: "醫院", usedIn: "診間：半年後、五年後、十年後看獸醫", part: [6], ready: true },
-  bgm_farewell: { kind: "bgm", label: "升天", usedIn: "結尾 15 歲（只播一次）", part: [6], ready: true },
+  bgm_farewell: { kind: "bgm", label: "升天", usedIn: "結尾 15 歲：暗幕全黑後才進來、回顧時播、漸白時淡出（只播一次）", part: [6], ready: true },
+  bgm_report: { kind: "bgm", label: "結案報告", usedIn: "結案報告（比較活潑；還沒音檔時退回日常）", part: [6], ready: false },
   // 貓的聲音
   sfx_meow: { kind: "cat", label: "一般喵", usedIn: "貓回應、需求氣泡出現", part: [3, 4], ready: false },
   sfx_meow_cute: { kind: "cat", label: "撒嬌喵", usedIn: "摸貓摸得好、信任上升", part: [3], ready: false },
@@ -135,21 +137,30 @@ export interface BgmInput {
   scene: { bg: string; time: string };
   /** 在家的時光 */
   home: boolean;
+  /** 結局的鋪陳走到哪（ending.ts）；沒有＝null */
+  ending?: EndingPhase | null;
 }
 
 /**
  * 現在該播哪首背景音樂（總表「目前遊戲的節點」那張表）：
- * 開場、採買、擺用品、試養報告、在家的時光＝日常；診間＝醫院；結尾＝升天；
- * 第 1 天＝剛到家（硬拉那晚是半夜）；其他節點的夜晚＝半夜，白天、傍晚＝日常。
+ * 開場、採買、擺用品、在家的時光＝日常；結案報告＝報告音樂（沒音檔退回日常，見 playableBgm）；診間＝醫院；
+ * 結尾：前一天、隔天照一般規則，暗幕全黑之後才是升天；第 1 天＝剛到家（硬拉那晚是半夜）；其他節點的夜晚＝半夜，白天、傍晚＝日常。
  */
-export function bgmFor({ step, nodeId, scene, home }: BgmInput): BgmId {
+export function bgmFor({ step, nodeId, scene, home, ending = null }: BgmInput): BgmId {
+  if (step === "report") return "bgm_report";
   if (step !== "node" || home) return "bgm_daily";
-  if (nodeId === "farewell") return "bgm_farewell";
+  if (nodeId === "farewell" && ending && ending !== "dark") return "bgm_farewell";
   if (scene.bg === "vet") return "bgm_vet";
   if (scene.time === "night") return "bgm_night";
   if (nodeId === "day1") return "bgm_arrive";
   return "bgm_daily";
 }
+
+/** 還沒有音檔時改播哪首（第 6 份補上音檔就自動換） */
+const BGM_FALLBACK: Partial<Record<BgmId, BgmId>> = { bgm_report: "bgm_daily" };
+
+/** 實際要播的那首：沒有音檔又有備用的，改播備用 */
+export const playableBgm = (id: BgmId, index: SoundIndex | null): BgmId => (!hasSound(id, index) && BGM_FALLBACK[id]) || id;
 
 export const MUTE_KEY = "meowho.play.muted";
 

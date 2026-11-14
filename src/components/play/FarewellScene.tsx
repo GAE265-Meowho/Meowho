@@ -1,8 +1,9 @@
 "use client";
-// 虛擬飼養：結局插圖（#354，節點 farewell）。疊在 3D 房間上面、對話框後面。
+// 虛擬飼養：結局插圖（#354，節點 farewell）。2026-11-14 起結局改成 3D 家裡＋回顧截圖（EndingOverlay），
+// 這張插圖只在回顧「一張截圖都沒有」（截圖失敗、WebGL 讀不到）時當備用畫面，用 gone（星空與貓掌印）。
 //   sleep：老貓（毛色變淡、比較瘦）在窗邊的陽光裡睡著；gone：陽光與貓慢慢淡出，變成星空與一個貓掌印。
 // 純 SVG＋CSS，不寫實、不悲傷過度；prefers-reduced-motion 時不做淡入淡出與閃爍，直接顯示該幕的樣子。
-import type { FarewellPhase } from "@/lib/play/farewell";
+export type FarewellPhase = "sleep" | "gone";
 import f from "./farewell.module.css";
 
 const STARS: readonly [number, number, number][] = [

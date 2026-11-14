@@ -5,7 +5,8 @@
 import { albedoSrc } from "@/lib/cat-publish";
 import type { BodyType } from "@/lib/hq/cat-models/types";
 import { getBrowserSupabase } from "@/lib/supabase/client";
-import { SUPABASE_URL } from "@/lib/supabase/config";
+import { catPagePhotos } from "@/lib/cat-profile/new-cat";
+import { photoSrc, SUPABASE_URL } from "@/lib/supabase/config";
 import { catLookFor, PLAY_CAT, playCatLook, type PlayCatLook } from "./cats";
 import { ageMonths, ageText, BASE_MOOD, bodyOfStage, startMood, touchFavOf, type KeeperNotes, type StartMood } from "./player-data";
 
@@ -34,12 +35,14 @@ export interface PlayCatSource {
   demo: boolean;
   /** 這隻貓現在是否待領養（領養任務開始前的檢查用）；DEMO 不檢查 */
   adoptable: boolean;
+  /** 這隻貓在平台上的照片（封面排第一張，同貓咪頁）；沒有照片、DEMO＝null。結局後的認養彈窗用 */
+  photo: string | null;
   /** 各體型（幼貓／成貓）要用的 3D 母體與貼圖 */
   look: (body: BodyType) => PlayCatLook;
 }
 
 export function demoPlayCat(catId: string): PlayCatSource {
-  return { catId, name: PLAY_CAT.name, coat: PLAY_CAT.coat, sex: "unknown", neutered: null, mood: { ...BASE_MOOD, reasons: [] }, touchFav: null, ageText: "", months: null, body: "kitten", tabby: true, demo: true, adoptable: true, look: playCatLook };
+  return { catId, name: PLAY_CAT.name, coat: PLAY_CAT.coat, sex: "unknown", neutered: null, mood: { ...BASE_MOOD, reasons: [] }, touchFav: null, ageText: "", months: null, body: "kitten", tabby: true, demo: true, adoptable: true, photo: null, look: playCatLook };
 }
 
 /** 讀這隻貓；任何一步失敗都回 DEMO，不擋遊戲 */
@@ -48,7 +51,7 @@ export async function loadPlayCat(catId: string): Promise<PlayCatSource> {
   if (!sb) return demoPlayCat(catId);
   try {
     const [{ data: c }, { data: model }] = await Promise.all([
-      sb.from("meow_cats").select("name, status, coat, sex, neutered, life_stage, birthday, est_age_months, personality_scale, personality_tags, personality_notes, description, intro, care").eq("id", catId).maybeSingle(),
+      sb.from("meow_cats").select("name, status, coat, sex, neutered, life_stage, birthday, est_age_months, personality_scale, personality_tags, personality_notes, description, intro, care, cover, photo_angles, photo_paths").eq("id", catId).maybeSingle(),
       sb.from("meow_cat_models").select("variants:meow_cat_model_variants(body_type, confirmed_albedo)").eq("cat_id", catId).maybeSingle(),
     ]);
     if (!c?.name) return demoPlayCat(catId);
@@ -74,6 +77,7 @@ export async function loadPlayCat(catId: string): Promise<PlayCatSource> {
       tabby: Boolean(coat?.includes("虎斑")),
       demo: false,
       adoptable: c.status === "adoptable",
+      photo: (() => { const p = catPagePhotos(c as Parameters<typeof catPagePhotos>[0])[0]; return p ? photoSrc(sb, p) : null; })(),
       look: body => catLookFor(body, albedo),
     };
   } catch {

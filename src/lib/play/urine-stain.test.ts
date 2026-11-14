@@ -4,7 +4,6 @@ import { houseScene } from "@/lib/hq/floorplans/scene";
 import type { Life } from "./story";
 import { DEMO_DOLLHOUSE } from "./room";
 import { blobOutline, houseStainSpots, scanStainSpots, stainsFor } from "./urine-stain";
-import { farewellPhase } from "./farewell";
 
 const life = (sex: "male" | "female" | "unknown", neutered: boolean | null = false, age = 8) =>
   ({ cat: { coat: null, sex, neutered }, age } as unknown as Life);
@@ -52,15 +51,5 @@ describe("blobOutline", () => {
     const a = blobOutline("s1", 0.3), b = blobOutline("s1", 0.3);
     expect(a).toEqual(b);
     for (const [x, y] of a) { const r = Math.hypot(x, y); expect(r).toBeGreaterThan(0.3 * 0.7 - 1e-9); expect(r).toBeLessThan(0.3 * 1.15 + 1e-9); }
-  });
-});
-
-describe("farewellPhase", () => {
-  it("結尾：睡著那一幕＝sleep，貓離開那一幕＝gone，其他＝null", () => {
-    expect(farewellPhase({ step: "node", nodeId: "farewell", pose: "bed" })).toBe("sleep");
-    expect(farewellPhase({ step: "node", nodeId: "farewell", pose: "none" })).toBe("gone");
-    expect(farewellPhase({ step: "node", nodeId: "farewell", pose: "frail" })).toBeNull();
-    expect(farewellPhase({ step: "node", nodeId: "year10", pose: "none" })).toBeNull();
-    expect(farewellPhase({ step: "report", nodeId: "farewell", pose: "none" })).toBeNull();
   });
 });
