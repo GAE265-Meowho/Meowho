@@ -23,6 +23,8 @@ import type { SceneLight } from "@/lib/play/scene-light";
 import { houseStainSpots, STAIN, type Stain } from "@/lib/play/urine-stain";
 import { stainShape } from "./stain-mesh";
 import { shotReach, type CameraShot } from "@/lib/play/camera-shot";
+import { applyElderTint, type ElderCat } from "@/lib/play/elder-cat";
+import { registerSceneGrab } from "@/lib/play/snapshot";
 
 /** 生活用品放在哪：null＝地板；有值＝家具頂面（PlanRoom.furniture 原始索引） */
 export type ItemSupport = { furnitureIndex: number; localX: number; localZ: number } | null;
@@ -613,7 +615,7 @@ export interface ViewerCat { baseUrl: string; albedoUrl: string; body: BodyType 
  * 規則在 catwalk.ts、catjump.ts（純函式、可測）；貓放大 CAT_SCALE 倍（真實比例在整間房的鏡頭裡太小）。
  * pos：貓的世界座標，給鏡頭跟隨用。
  */
-function CatActor({ s, look, click, pos, extraObs, forceClip = null, speed = 1, story = null, items = [], onStory }: {
+function CatActor({ s, look, click, pos, extraObs, forceClip = null, speed = 1, story = null, items = [], onStory, elder = null }: {
   s: RoomScene; look: ViewerCat; click: (RoomClick & { at: number }) | null; pos: React.RefObject<THREE.Vector3>;
   extraObs: Obstacle[];
   /** 停下來時固定播這個動作（例如 sleep），不自己閒逛（#237 虛擬飼養劇情） */
@@ -626,7 +628,16 @@ function CatActor({ s, look, click, pos, extraObs, forceClip = null, speed = 1, 
   items?: PlacedHouseholdItem[];
   /** 故事線狀態改變時通知（畫面顯示進度） */
   onStory?: (st: StoryState) => void;
+  /** 老貓（#354 結局，lib/play/elder-cat.ts）：毛色調淡偏灰、縮小一點；null＝原本的樣子 */
+  elder?: ElderCat | null;
 }) {
+  // 模型是非同步載入的，所以每幀檢查一次（已套過的不重算）；換回 null 時還原一次就停
+  const tinted = useRef(false);
+  useFrame(() => {
+    if (!elder && !tinted.current) return;
+    applyElderTint(ref.current, elder);
+    tinted.current = Boolean(elder);
+  });
   const world = useMemo(() => worldOf(s, [...obstacles(s), ...extraObs]), [s, extraObs]);
   const start = useMemo(() => freeSpot(s, world.obs) ?? { x: s.size[0] / 2, z: s.size[1] / 2 }, [s, world]);
   const ref = useRef<THREE.Group>(null);
@@ -723,7 +734,7 @@ function CatActor({ s, look, click, pos, extraObs, forceClip = null, speed = 1, 
   }
 
   return (
-    <group ref={ref} position={[start.x, 0, start.z]} scale={CAT_SCALE}>
+    <group ref={ref} position={[start.x, 0, start.z]} scale={CAT_SCALE * (elder?.scale ?? 1)}>
       <Suspense fallback={null}>
         <CatModel baseUrl={look.baseUrl} albedoUrl={look.albedoUrl} clip={clip} follow={false} speed={speed} />
       </Suspense>
@@ -771,6 +782,13 @@ function FollowCat({ pos }: { pos: React.RefObject<THREE.Vector3> }) {
     camera.position.set(camera.position.x + dx, camera.position.y + dy, camera.position.z + dz);
     controls.update();
   });
+  return null;
+}
+
+/** 結局回顧的截圖（#354）：登記「現在畫一幀、回傳畫布」，截圖在同一個工作裡讀，不用全域 preserveDrawingBuffer */
+function SceneGrab() {
+  const { gl, scene, camera } = useThree();
+  useEffect(() => registerSceneGrab(() => { gl.render(scene, camera); return gl.domElement; }), [gl, scene, camera]);
   return null;
 }
 
@@ -857,7 +875,7 @@ function CatGlow({ pos, intensity, color }: { pos: React.RefObject<THREE.Vector3
   return <pointLight ref={ref} intensity={intensity} color={color} distance={1.3} decay={1} />;
 }
 
-export default function FloorplanViewer({ rooms, selected, onPick, cat, placedItems = [], interactMode = "point", removedFurniture, furnitureMoves, onMoveItem, onRotateItem, onRemoveItem, onRemoveFurniture, onMoveFurniture, onRotateFurniture, onFloorDrop, catGoal = null, catClip = null, catSpeed = 1, onItemError, story = null, onStory, light = null, shot = null, stains = null }: {
+export default function FloorplanViewer({ rooms, selected, onPick, cat, placedItems = [], interactMode = "point", removedFurniture, furnitureMoves, onMoveItem, onRotateItem, onRemoveItem, onRemoveFurniture, onMoveFurniture, onRotateFurniture, onFloorDrop, catGoal = null, catClip = null, catSpeed = 1, onItemError, story = null, onStory, light = null, shot = null, stains = null, elder = null, capture = false }: {
   rooms: PlanRoom[]; selected: string | null; onPick: (id: string) => void;
   /** 虛擬體驗（#150）：放一隻貓進去；有貓時只顯示單間（沒有「全部」），點地板叫貓走過去 */
   cat?: ViewerCat | null;
@@ -901,6 +919,10 @@ export default function FloorplanViewer({ rooms, selected, onPick, cat, placedIt
   stains?: readonly Stain[] | null;
   /** 虛擬飼養的劇情鏡頭（#354，lib/play/camera-shot.ts 的 shotFor）；null／不給＝原本的鏡頭（預設） */
   shot?: CameraShot | null;
+  /** 老貓的樣子（#354 結局，lib/play/elder-cat.ts）；null／不給＝原本的樣子 */
+  elder?: ElderCat | null;
+  /** 登記結局回顧的截圖（#354，lib/play/snapshot.ts）；只有虛擬飼養要 */
+  capture?: boolean;
 }) {
   const removedList = useMemo(
     () => (removedFurniture ? [...removedFurniture] : []),
@@ -994,7 +1016,7 @@ export default function FloorplanViewer({ rooms, selected, onPick, cat, placedIt
                       </Suspense>
                     </ItemBoundary>
                   ))}
-                  {cat && <CatActor key={`${s.id}:${cat.albedoUrl}`} s={s} look={cat} click={catClick} pos={catPos} extraObs={itemObstacles(roomItems.filter(i => !passableItem(story, i.name)))} forceClip={catClip} speed={catSpeed} story={story} items={roomItems} onStory={onStory} />}
+                  {cat && <CatActor key={`${s.id}:${cat.albedoUrl}`} s={s} look={cat} click={catClick} pos={catPos} extraObs={itemObstacles(roomItems.filter(i => !passableItem(story, i.name)))} forceClip={catClip} speed={catSpeed} story={story} items={roomItems} onStory={onStory} elder={elder} />}
                 </Room>
               );
             })}
@@ -1004,6 +1026,7 @@ export default function FloorplanViewer({ rooms, selected, onPick, cat, placedIt
           {cat && <FollowCat pos={catPos} />}
           {cat && shot && <ShotRig shot={shot} />}
           {onFloorDrop && <FloorRayBridge api={floorRay} />}
+          {capture && <SceneGrab />}
         </Canvas>
       </div>
     </div>
