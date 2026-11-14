@@ -7,7 +7,7 @@
 // MiniGuideGate：示範看完才顯示 children（小遊戲本體）；modal＝自己包一層 Mini3DModal（原版 2D 小遊戲、3D 逗貓用）。
 import { useEffect, useId, useState, type ReactNode } from "react";
 import CatButton from "@/components/ui/CatButton";
-import { GUIDE_STEP_MS, MINI_GUIDES, guideSkipped, guideText, setGuideSkipped, type GuideId, type GuideProp, type GuideStep } from "@/lib/play/mini-guide";
+import { GUIDE_STEP_MS, GUIDE_VIDEOS, MINI_GUIDES, guideSkipped, guideText, setGuideSkipped, type GuideId, type GuideProp, type GuideStep } from "@/lib/play/mini-guide";
 import { Mini3DModal } from "./mini3d/Mini3DModal";
 import g from "./guide.module.css";
 
@@ -137,12 +137,11 @@ function GuideCard({ id, catName, onStart }: { id: GuideId; catName: string; onS
     return (
       <div className={g.card} role="group" aria-labelledby={titleId}>
         <p className={g.kicker} id={titleId}>{guide.title}怎麼玩</p>
-        <div className={g.videoRow}>
-          <VideoDemo src={guide.video} label={`${guide.title}的遊戲畫面示範`} />
-          <ol className={g.list}>
-            {guide.steps.map((st, k) => <li key={k}><span className={g.num}>{k + 1}</span>{guideText(st.text, catName)}</li>)}
-          </ol>
-        </div>
+        {/* 錄影在上，下面一排三個短步驟（2026-11-14 渝茜） */}
+        <VideoDemo src={guide.video} label={`${guide.title}的遊戲畫面示範`} />
+        <ol className={g.list}>
+          {guide.steps.map((st, k) => <li key={k}><span className={g.num}>{k + 1}</span>{guideText(st.text, catName)}</li>)}
+        </ol>
         {foot}
       </div>
     );
@@ -162,10 +161,22 @@ function GuideCard({ id, catName, onStart }: { id: GuideId; catName: string; onS
   );
 }
 
+/** 預載好的示範影片（網址 → blob 網址）：打開示範時直接從記憶體播，不用等下載（2026-11-14 渝茜：錄影很慢才出現） */
+const warmed = new Map<string, string>();
+let warming = false;
+/** 飼養開始時呼叫一次：在背景把全部示範影片（約 570KB）抓進記憶體 */
+export function warmGuideVideos() {
+  if (warming || typeof window === "undefined" || typeof URL.createObjectURL !== "function") return;
+  warming = true;
+  for (const src of GUIDE_VIDEOS) {
+    fetch(src).then(r => (r.ok ? r.blob() : null)).then(b => { if (b) warmed.set(src, URL.createObjectURL(b)); }).catch(() => { /* 抓不到就照原本的網址播 */ });
+  }
+}
+
 /** 真正遊戲畫面的錄影：靜音循環自動播放；減少動態時不自動播，改給控制列 */
 function VideoDemo({ src, label }: { src: string; label: string }) {
   const [still] = useState(() => typeof window !== "undefined" && Boolean(window.matchMedia?.("(prefers-reduced-motion: reduce)").matches));
-  return <video className={g.video} src={src} aria-label={label} muted loop playsInline autoPlay={!still} controls={still} preload="auto" />;
+  return <video className={g.video} src={warmed.get(src) ?? src} aria-label={label} muted loop playsInline autoPlay={!still} controls={still} preload="auto" />;
 }
 
 /** 示範看完才顯示小遊戲；這台裝置勾過「下次不再顯示」就直接顯示 */

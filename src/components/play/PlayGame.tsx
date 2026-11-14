@@ -63,7 +63,7 @@ import { AdoptDialog } from "./AdoptDialog";
 import endFx from "./ending.module.css";
 import { playSfx } from "@/lib/play/audio-player";
 import { ScanWand } from "./ScanWand";
-import { MiniGuideGate } from "./MiniGuide";
+import { MiniGuideGate, warmGuideVideos } from "./MiniGuide";
 import { ReportStep } from "./ReportStep";
 import { AbandonPanel } from "./AbandonPanel";
 import e from "./play-entry.module.css";
@@ -542,6 +542,8 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
   const [endPhase, setEndPhase] = useState<EndingPhase | null>(null);
   const [endSlides, setEndSlides] = useState<ReviewShot[] | null>(null);
   const [ended, setEnded] = useState(false);
+  // 飼養開始就在背景預載小遊戲示範影片
+  useEffect(() => { if (state.step === "node") warmGuideVideos(); }, [state.step]);
   // 報告讀完才跳領養資訊；報告最後的按鈕可以再打開（AdoptDialog）
   const [reportRead, setReportRead] = useState(false);
   const [adoptOpen, setAdoptOpen] = useState(0);

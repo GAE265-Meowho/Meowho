@@ -190,9 +190,9 @@ describe("結尾與花費", () => {
     expect(s.life.cost.month).toBeCloseTo(2000 * (180 - 2), 5);
   });
 
-  it("三個節點有個人化台詞：第 1 天、五年後、結尾", () => {
+  it("兩個節點有個人化台詞：五年後、結尾（第 1 天拿掉了，選硬拉也會播「慢慢陪牠」，渝茜 2026-11-14）", () => {
     const { personal } = playThrough();
-    expect(personal).toHaveLength(3);
+    expect(personal).toHaveLength(2);
   });
 });
 

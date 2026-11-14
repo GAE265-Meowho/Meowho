@@ -206,6 +206,9 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
   // 目前房間裡每件用品的位置與包圍盒（換過清單就更新；移動鈕連按時先樂觀更新）
   const poses = useRef<(Footprint & { id: string; rot: number; widthM: number; depthM: number })[]>([]);
   const shotTo = useRef<(s: CameraShot) => void>(() => {});
+  // 俯瞰的劇情鏡頭進行中（跟著貓暫停）；shotEnd＝飛回開場位置
+  const shotWide = useRef(false);
+  const shotEnd = useRef<() => void>(() => {});
   // 白天／夜晚光（#354）：tint＝Splat 與用品的 uTint、catTint＝貓的 uCatTint（所有材質共用同一個向量，換日夜只改值）
   const tint = useRef(new THREE.Vector3(1, 1, 1));
   const catTint = useRef(new THREE.Vector3(1, 1, 1));
@@ -300,6 +303,10 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
         dynamicScene: Boolean(movable),               // 杯子掉落時要每幀更新姿態
       });
       viewer.camera.near = unit * 0.002;  // 預設值會切掉近處牆面
+      // 虛擬飼養：拿掉檢視器自帶的鍵盤快捷鍵（左右方向鍵會讓鏡頭繞視線翻滾，畫面歪掉、拖曳也跟著怪，渝茜 2026-11-14 回報「畫面卡住」「方向鍵整個畫面旋轉」）；
+      // 其他還有 C／U／I／O／P／F／G／=／-（除錯用）。MeowHQ 保留。型別檔沒寫 keyDownListener，函式庫實際有
+      const lib = viewer as unknown as { keyDownListener?: ((e: KeyboardEvent) => void) | null };
+      if (playModeRef.current && lib.keyDownListener) { removeEventListener("keydown", lib.keyDownListener); lib.keyDownListener = null; }
       viewer.camera.updateProjectionMatrix();
       const blobUrls: string[] = [];
       const splatPath = async (url: string) => {
@@ -422,8 +429,28 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
       const drawable = active as unknown as { render(): void; renderer: THREE.WebGLRenderer };
       if (captureRef.current) unGrab = registerSceneGrab(() => { drawable.render(); return drawable.renderer.domElement; });
       // 劇情鏡頭：從鏡頭當下看貓的水平方向退 dist 公尺、抬高 height 公尺（keepInRoom 會把鏡頭留在房間裡）
+      // 俯瞰整個房間的劇情鏡頭（第 30 天半夜跑酷）：從鏡頭當下面向的那一側高處往下看，FOV 放大到裝得下整間房；結束後飛回開場位置
+      shotEnd.current = () => {
+        if (!shotWide.current) return;
+        shotWide.current = false;
+        const to = playHome();
+        if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) { jumpTo(to); setLens([homeFov, 0], false); return; }
+        tween = { from: { pos: active.camera.position.clone(), look: controls.target.clone() }, to, start: performance.now(), ms: OVERVIEW.flyMs, lens: [lensNow, [homeFov, 0]] };
+      };
       if (roomWorld) shotTo.current = s => {
         if (overviewOn) return;
+        if (s.overview) {
+          const d = controls.target.clone().sub(active.camera.position);
+          const az = Math.atan2(-d.dot(ve2), -d.dot(ve1));
+          const cam = sideCamera(scene.room, az);
+          const to = floorView(cam);
+          const fov = fitFov(scene.room, cam, (el.clientWidth || 1) / (el.clientHeight || 1), 0);
+          shotWide.current = true;
+          if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) { jumpTo(to); setLens([fov, 0], true); return; }
+          tween = { from: { pos: active.camera.position.clone(), look: controls.target.clone() }, to, start: performance.now(), ms: s.ms, lens: [lensNow, [fov, 0]] };
+          return;
+        }
+        shotEnd.current();
         const head = new THREE.Vector3();
         if (!roomWorld.catHead(head)) return;
         const upm = layout.units_per_meter;
@@ -665,7 +692,7 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
           // 俯視時不能用 WASD 走動；畫面大小或卡片高度變了就重算 FOV 與畫面中心
           const key = `${el.clientWidth}x${el.clientHeight}|${coverRef.current.toFixed(3)}|${side}|${dragOff.toFixed(3)}`;
           if (key !== lensKey) { lensKey = key; setLens(lensTarget(), true); }
-        } else if (followRef.current && !wandOn.current && roomWorld?.catHead(catAt)) {
+        } else if (followRef.current && !wandOn.current && !shotWide.current && roomWorld?.catHead(catAt)) {
           if (held.size || stick.current.x || stick.current.y) userMoved();
           // 檢視器的 orbit 目標貼在鏡頭前 LOOK_AT 處，所以距離與角度要用「鏡頭相對貓」記
           followOff ??= active.camera.position.clone().sub(catAt);
@@ -811,6 +838,8 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
   shotRef.current = shot;
   useEffect(() => {
     const s = shotRef.current;
+    // 俯瞰那一幕結束（換成別的鏡頭或沒有）：飛回開場位置
+    if (!s?.overview) shotEnd.current();
     if (!s || !worldReady) return;
     const t = window.setTimeout(() => shotTo.current(s), s.delayMs);
     return () => window.clearTimeout(t);

@@ -15,6 +15,8 @@ export interface CameraShot {
   ms: number;
   /** 等多久再取景（毫秒）：讓貓先走到定位（例如走到外出籠旁） */
   delayMs: number;
+  /** 改用俯瞰整個房間（擺用品那套俯視鏡頭；dist、height 不用）。這一幕結束後鏡頭飛回原本的位置 */
+  overview?: boolean;
 }
 
 type Shot = Omit<CameraShot, "key">;
@@ -22,8 +24,8 @@ type Shot = Omit<CameraShot, "key">;
 const SHOTS: Partial<Record<NodeId, Partial<Record<CatPose, Shot>>>> = {
   // 貓鑽進外出籠：看得到籠口，也看得到周圍（渝茜 2026-11-14：原本 1.9／0.7 太貼地板）
   day1: { carrier: { id: "carrier", dist: 2.5, height: 1.0, ms: 1400, delayMs: 1500 } },
-  // 半夜跑酷：拉遠、拉高，整段衝刺都在畫面裡
-  day30: { zoom: { id: "zoom", dist: 3.0, height: 1.3, ms: 1200, delayMs: 300 } },
+  // 半夜跑酷：俯瞰整個房間，貓跑到哪都看得到（渝茜 2026-11-14）；dist、height 是沒有房間範圍時的備用
+  day30: { zoom: { id: "zoom", dist: 3.0, height: 1.3, ms: 1200, delayMs: 300, overview: true } },
   // 結尾：先中景，最後一幕（睡著）很慢地推近
   farewell: {
     frail: { id: "farewell", dist: 1.6, height: 0.6, ms: 2400, delayMs: 800 },

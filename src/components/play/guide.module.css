@@ -59,12 +59,12 @@
   .toy { transform: translate(60px, 116px); }
 }
 
-/* 真正遊戲畫面的錄影＋全部步驟（2026-11-14 渝茜） */
-.videoRow { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 16px; align-items: start; }
-.video { display: block; height: min(46dvh, 400px); width: auto; max-width: 100%; border-radius: 12px; background: var(--yellow-soft, #fff6e0); box-shadow: 0 0 0 1px var(--line); }
-.list { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 12px; }
-.list li { display: flex; gap: 10px; align-items: flex-start; font-size: var(--play-fs-sub, 15px); line-height: 1.65; color: var(--ink); }
-@media (max-width: 560px) {
-  .videoRow { grid-template-columns: 1fr; }
-  .video { height: auto; width: 100%; max-height: 40dvh; object-fit: contain; }
+/* 真正遊戲畫面的錄影在上，下面一排三個短步驟（2026-11-14 渝茜） */
+.video { display: block; align-self: center; height: min(48dvh, 420px); width: auto; max-width: 100%; border-radius: 12px; background: var(--yellow-soft, #fff6e0); box-shadow: 0 0 0 1px var(--line); }
+.list { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.list li { display: flex; gap: 6px; align-items: flex-start; font-size: var(--play-fs-sub, 15px); line-height: 1.5; color: var(--ink); }
+.list .num { width: 22px; height: 22px; margin-top: 1px; font-size: 13px; }
+@media (max-width: 420px) {
+  .video { height: auto; width: 100%; max-height: 42dvh; object-fit: contain; }
+  .list { grid-template-columns: 1fr; gap: 4px; }
 }

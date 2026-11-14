@@ -12,16 +12,19 @@ p.on("pageerror", e => console.log("pageerror", e.message));
 const wait = ms => new Promise(r => setTimeout(r, ms));
 await p.goto(`http://localhost:3000/dev/play-guide-rec?g=${game}`, { waitUntil: "networkidle2", timeout: 180000 });
 await wait(3000);
-// 游標放到 top layer（彈窗之上）
+// 游標放到 top layer（彈窗之上）：白色滑鼠箭頭（黑邊、陰影），按下時箭頭尖端出現橘色波紋（2026-11-14 渝茜：不要用圓圈）
 await p.evaluate(() => {
   const c = document.createElement("div");
   c.setAttribute("popover", "manual");
-  c.id = "fakecur";
-  c.style.cssText = "position:fixed;inset:auto;margin:0;padding:0;left:-60px;top:-60px;width:34px;height:34px;transform:translate(-17px,-17px);border-radius:50%;border:3px solid #fff;background:rgba(232,120,40,.5);box-shadow:0 0 0 2px rgba(0,0,0,.35);pointer-events:none;overflow:visible";
+  c.style.cssText = "position:fixed;inset:auto;margin:0;padding:0;border:0;background:none;left:-80px;top:-80px;width:44px;height:52px;pointer-events:none;overflow:visible";
+  c.innerHTML = `<span style="position:absolute;left:-20px;top:-20px;width:40px;height:40px;border-radius:50%;background:rgba(232,120,40,.55);transform:scale(0);transition:transform .12s,opacity .12s;opacity:0"></span>
+    <svg width="34" height="46" viewBox="0 0 17 23" style="position:absolute;left:-2px;top:-1px;filter:drop-shadow(0 2px 2px rgba(0,0,0,.45));transition:transform .1s;transform-origin:2px 1px">
+      <path d="M1 1v17.5l4.4-4.2 2.9 6.8 3-1.3-2.9-6.6H15z" fill="#fff" stroke="#111" stroke-width="1.4" stroke-linejoin="round"/></svg>`;
   document.body.appendChild(c); c.showPopover();
+  const ring = c.firstElementChild, arrow = c.querySelector("svg");
   addEventListener("pointermove", e => { c.style.left = e.clientX + "px"; c.style.top = e.clientY + "px"; }, true);
-  addEventListener("pointerdown", () => { c.style.background = "rgba(232,120,40,.9)"; c.style.transform = "translate(-17px,-17px) scale(.8)"; }, true);
-  addEventListener("pointerup", () => { c.style.background = "rgba(232,120,40,.5)"; c.style.transform = "translate(-17px,-17px)"; }, true);
+  addEventListener("pointerdown", () => { ring.style.transform = "scale(1)"; ring.style.opacity = "1"; arrow.style.transform = "scale(.9)"; }, true);
+  addEventListener("pointerup", () => { ring.style.transform = "scale(0)"; ring.style.opacity = "0"; arrow.style.transform = "none"; }, true);
 });
 const box = async sel => { const h = await p.$(sel); return h ? h.boundingBox() : null; };
 const btn = async text => {

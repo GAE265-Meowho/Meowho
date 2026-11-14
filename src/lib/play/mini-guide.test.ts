@@ -13,7 +13,8 @@ describe("小遊戲開始前的示範", () => {
       const g = MINI_GUIDES[id];
       expect(g.steps.length, id).toBeGreaterThanOrEqual(2);
       expect(g.steps.length, id).toBeLessThanOrEqual(4);
-      for (const s of g.steps) expect(s.text.length, id).toBeGreaterThan(5);
+      // 說明要短（2026-11-14 渝茜：約原本的 1/3）
+      for (const s of g.steps) { expect(s.text.length, id).toBeGreaterThanOrEqual(4); expect(s.text.length, id).toBeLessThanOrEqual(12); }
     }
   });
 
@@ -36,6 +37,6 @@ describe("小遊戲開始前的示範", () => {
   });
 
   it("〈貓名〉換成這隻貓", () => {
-    expect(guideText(MINI_GUIDES.pet.steps[0].text, "灰寶")).toContain("灰寶");
+    expect(guideText(MINI_GUIDES.play.steps[1].text, "灰寶")).toContain("灰寶");
   });
 });

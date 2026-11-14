@@ -1,6 +1,6 @@
 # 小遊戲示範影片（#354，渝茜 2026-11-14）
 
-每個小遊戲開始前的「怎麼玩」示範（`src/components/play/MiniGuide.tsx`、`src/lib/play/mini-guide.ts`）放的是**真正遊戲畫面**的錄影：`public/play/guide/<小遊戲>.mp4`（480px 寬、約 10～17 秒、靜音循環，七段合計約 570KB）。橘色圓點是滑鼠位置。
+每個小遊戲開始前的「怎麼玩」示範（`src/components/play/MiniGuide.tsx`、`src/lib/play/mini-guide.ts`）放的是**真正遊戲畫面**的錄影：`public/play/guide/<小遊戲>.mp4`（480px 寬、約 10～17 秒、靜音循環，七段合計約 570KB）。白色箭頭是滑鼠，按下時箭頭尖端有橘色波紋（`rec.mjs` 畫的，headless 錄不到系統游標）。說明在影片下面一排三步，每步 4～12 字。
 
 | 小遊戲 | 檔案 | 錄了什麼 |
 |---|---|---|

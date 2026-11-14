@@ -214,7 +214,8 @@ function monthSteps(X: Life): Step[] {
 
 export const STORY: readonly StoryNode[] = [
   {
-    id: "day1", label: "第 1 天", sub: "〈貓名〉・2 個月", age: 2, body: "kitten", speed: 1, home: true, personal: true,
+    // 2026-11-14 渝茜：第 1 天不要晚上的劇情；選項後的個人化台詞（「給牠一點時間」等）選了硬拉也會播，拿掉（personal: false）
+    id: "day1", label: "第 1 天", sub: "〈貓名〉・2 個月", age: 2, body: "kitten", speed: 1, home: true, personal: false,
     steps: [
       sc("room", "day", "carrier"),
       FN(X => [XN(young(X)
@@ -225,8 +226,7 @@ export const STORY: readonly StoryNode[] = [
         { l: "在旁邊等牠自己出來", fx: { trust: 10, stress: -10 }, pick: "到家第一天，等牠自己出來", good: true,
           then: [sc("room", "dusk"), BUB("heart"), XN("傍晚，〈貓名〉自己走出來，在你腳邊聞了聞，還蹭了一下你的褲管。")] },
         { l: "硬把牠拉出來", fx: { trust: -10, stress: 15 }, pick: "到家第一天，硬把牠拉出來", good: false,
-          // 2026-11-14 渝茜：選完馬上變半夜太突然，先在白天演完抓人，再暗下來交代晚上
-          then: [BUB("hiss"), XN("〈貓名〉抓了你一下，又縮回最裡面。"), sc("room", "night", "carrier"), XN("到了晚上，牠還是一直縮在外出籠裡，沒有出來。")] },
+          then: [BUB("hiss"), XN("〈貓名〉抓了你一下，又縮回最裡面，一直不肯出來。")] },
       ]),
     ],
     page: { title: "到家的第一天", tip: "剛到新家，躲起來是正常的。給牠一個安靜、可以躲的地方，比抱牠更能建立信任。" },

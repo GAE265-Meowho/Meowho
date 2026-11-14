@@ -1,7 +1,7 @@
 // 小遊戲開始前的示範（#354，渝茜 2026-11-14）：每個小遊戲先放幾張會動的示範圖（手勢動畫＋一句說明），
 // 看完按「開始」才進遊戲；勾「下次不再顯示」就記在這台裝置（localStorage），之後直接開始。純資料＋讀寫函式。
 // 2026-11-14 渝茜：示範要用真正的遊戲畫面。逗貓以外都有錄影（docs/play-tasks/guide-videos.md 寫怎麼重錄）；逗貓要在掃描房間裡玩，還沒錄，先用動畫示範圖。
-// 文字照各小遊戲畫面上的提示寫（FeedGame3D、WaterRefillGame3D、ScoopGame3D、PetGame3D、BrushGameRealistic、minis.ts 的剪指甲與外出籠、ScanWand）。
+// 2026-11-14 渝茜：說明縮短成約原本的 1/3，放在錄影下面一排。文字照各小遊戲畫面上的提示寫（FeedGame3D、WaterRefillGame3D、ScoopGame3D、PetGame3D、BrushGameRealistic、minis.ts 的剪指甲與外出籠、ScanWand）。
 
 export type GuideId = "feed" | "water" | "scoop" | "pet" | "brush" | "nail" | "carrier" | "play";
 /** 示範圖裡的手勢：hold 按住、tap 點、circle 畫圈、drag 拖過去、shake 左右甩、stroke 來回順摸、scrub 小幅來回刷、follow 帶著玩具跑、rest 手停著（提醒） */
@@ -20,44 +20,44 @@ const C = "〈貓名〉";
 
 export const MINI_GUIDES: Record<GuideId, MiniGuide> = {
   feed: { title: "餵飯", video: "/play/guide/feed.mp4", steps: [
-    { prop: "bowl", gesture: "tap", button: "乾飼料", text: "先選這一餐要餵哪一種：乾飼料、主食罐或湯罐，一次只餵一種。" },
-    { prop: "bowl", gesture: "hold", button: "倒乾飼料", text: "乾飼料按住「倒乾飼料」，份量條到建議份量就放開；罐頭按「開一罐」倒進碗裡。" },
-    { prop: "bowl", gesture: "rest", text: "倒太多會灑出來、吃過量。今天倒過的飼料會留在碗裡，不用重倒。" },
+    { prop: "bowl", gesture: "tap", button: "乾飼料", text: "選一種飼料" },
+    { prop: "bowl", gesture: "hold", button: "倒乾飼料", text: "按住倒，到建議份量放開" },
+    { prop: "bowl", gesture: "rest", text: "倒太多會灑出來" },
   ] },
   water: { title: "換水", video: "/play/guide/water.mp4", steps: [
-    { prop: "dirtyBowl", gesture: "circle", text: "按住碗裡拖曳，用菜瓜布畫圈或來回，把水垢刷掉。" },
-    { prop: "tap", gesture: "hold", button: "開水龍頭", text: "按住「開水龍頭」把泡泡沖乾淨，放開就關水。" },
-    { prop: "tap", gesture: "hold", button: "開水龍頭", text: "倒掉沖碗的水後再接新水，七分滿就放開。" },
+    { prop: "dirtyBowl", gesture: "circle", text: "在碗裡畫圈刷水垢" },
+    { prop: "tap", gesture: "hold", button: "開水龍頭", text: "按住開水沖掉泡泡" },
+    { prop: "tap", gesture: "hold", button: "開水龍頭", text: "接新水到七分滿" },
   ] },
   scoop: { title: "鏟屎", video: "/play/guide/scoop.mp4", steps: [
-    { prop: "litter", gesture: "drag", text: "按住畫面拖曳貓砂鏟，慢慢鏟起大便和結塊。" },
-    { prop: "litter", gesture: "shake", text: "左右甩一甩，把乾淨的砂子甩掉。" },
-    { prop: "bag", gesture: "drag", text: "拿到左邊的垃圾袋上方放開。動作太大會掉回去。" },
+    { prop: "litter", gesture: "drag", text: "拖鏟子鏟起砂團" },
+    { prop: "litter", gesture: "shake", text: "左右甩掉砂子" },
+    { prop: "bag", gesture: "drag", text: "拿到垃圾袋上放開" },
   ] },
   pet: { title: "摸摸", video: "/play/guide/pet.mp4", steps: [
-    { prop: "cat", gesture: "stroke", text: `在${C}身上慢慢拖曳，輕輕地摸。` },
-    { prop: "cat", gesture: "stroke", text: "摸牠喜歡的地方（頭、下巴或背），牠會舒服地呼嚕。" },
-    { prop: "cat", gesture: "rest", text: "尾巴用力甩、耳朵往後，就是不想被摸了，先停手。" },
+    { prop: "cat", gesture: "stroke", text: "在牠身上慢慢拖曳" },
+    { prop: "cat", gesture: "stroke", text: "摸頭、下巴或背" },
+    { prop: "cat", gesture: "rest", text: "牠甩尾巴就停手" },
   ] },
   brush: { title: "刷牙", video: "/play/guide/brush.mp4", steps: [
-    { prop: "mouth", gesture: "tap", text: "先從碰碰嘴邊開始，讓牠習慣牙刷。" },
-    { prop: "mouth", gesture: "scrub", text: "沿著牙齒小幅來回輕刷，一次刷一小段。" },
-    { prop: "mouth", gesture: "rest", text: "看忍耐條，牠快不耐煩了就先停，下次再練。" },
+    { prop: "mouth", gesture: "tap", text: "按住嘴角標記" },
+    { prop: "mouth", gesture: "scrub", text: "沿著牙齒輕輕刷" },
+    { prop: "mouth", gesture: "rest", text: "牠不耐煩就先停" },
   ] },
   nail: { title: "剪指甲", video: "/play/guide/nail.mp4", steps: [
-    { prop: "paw", gesture: "tap", text: "點粉紅色的肉球，把指甲推出來。" },
-    { prop: "paw", gesture: "tap", text: "把指甲剪的紅點對準白色尖端，點下去剪。" },
-    { prop: "paw", gesture: "rest", text: "指甲根部粉紅色的是血管，不要剪到；牠要抽腳就先停一下。" },
+    { prop: "paw", gesture: "tap", text: "點肉球推出指甲" },
+    { prop: "paw", gesture: "tap", text: "對準白色尖端剪" },
+    { prop: "paw", gesture: "rest", text: "避開粉紅色血線" },
   ] },
   carrier: { title: "進外出籠", video: "/play/guide/carrier.mp4", steps: [
-    { prop: "carrier", gesture: "tap", text: "點地板放一顆零食，放在離籠子遠一點、牠覺得安全的地方。" },
-    { prop: "carrier", gesture: "tap", text: "牠吃了之後，再一顆一顆往籠子裡面放。" },
-    { prop: "carrier", gesture: "rest", text: "紅色虛線是牠覺得危險的範圍，放太近牠會不敢過去。" },
+    { prop: "carrier", gesture: "tap", text: "在遠處放零食" },
+    { prop: "carrier", gesture: "tap", text: "一顆一顆往籠子放" },
+    { prop: "carrier", gesture: "rest", text: "太近牠會不敢過去" },
   ] },
   play: { title: "逗貓", steps: [
-    { prop: "toy", gesture: "follow", text: "在房間畫面上移動滑鼠（手機用手指滑），玩具會在地板上跑。" },
-    { prop: "toy", gesture: "follow", text: `${C}會衝過去撲，真的碰到才算抓到。玩具可以放到床上，牠會跳上去追。` },
-    { prop: "toy", gesture: "tap", button: "先到這裡", text: "玩夠了就按「先到這裡」。" },
+    { prop: "toy", gesture: "follow", text: "移動滑鼠帶玩具跑" },
+    { prop: "toy", gesture: "follow", text: `${C}碰到才算抓到` },
+    { prop: "toy", gesture: "tap", button: "先到這裡", text: "玩夠按「先到這裡」" },
   ] },
 };
 
@@ -80,3 +80,6 @@ export function setGuideSkipped(id: GuideId, skip: boolean, s: Store = storage()
 
 /** 示範文字裡的〈貓名〉換成這隻貓 */
 export const guideText = (t: string, catName: string) => t.split(C).join(catName);
+
+/** 有錄影的示範影片網址（飼養開始時先預載，打開示範就能馬上播） */
+export const GUIDE_VIDEOS: string[] = Object.values(MINI_GUIDES).flatMap(g => (g.video ? [g.video] : []));
