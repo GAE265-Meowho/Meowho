@@ -33,12 +33,16 @@ const asset = createHash("sha256").update(image).digest("hex") + ".jpg";
 beforeEach(() => {
   Object.assign(mock, { user: "owner", owner: true, report: true });
   mock.download.mockReset().mockImplementation(async (path: string) =>
-    path === prefix + "report.html" ? Buffer.from(`<!doctype html><img src="html-assets/${asset}">`) : image);
+    path === prefix + "report.html" ? Buffer.from(`<!doctype html><body><img src="html-assets/${asset}"></body>`) : image);
 });
 
 it("serves the owner document and referenced current-attempt image with private headers", async () => {
   const response = await readPrivateReport({ id, reportId });
   expect(response.status).toBe(200);
+  expect(await response.text()).toContain('/safety#records-title');
+  const head = await readPrivateReport({ id, reportId }, undefined, true);
+  expect(head.status).toBe(204);
+  expect(await head.text()).toBe("");
   expect(response.headers.get("Content-Security-Policy")).toContain("sandbox");
   expect(response.headers.get("Cache-Control")).toBe("private, no-store");
   expect((await readPrivateReport({ id, reportId }, asset)).status).toBe(200);
@@ -51,6 +55,7 @@ it("rejects logged-out, shared and unrelated reports before reading storage", as
   mock.user = "keeper";
   mock.owner = false;
   expect((await readPrivateReport({ id, reportId }, asset)).status).toBe(404);
+  expect((await readPrivateReport({ id, reportId }, undefined, true)).status).toBe(404);
   mock.owner = true;
   mock.report = false;
   expect((await readPrivateReport({ id, reportId })).status).toBe(404);
@@ -61,9 +66,12 @@ it("redirects a legacy report and rejects malformed, unreferenced and corrupt as
   expect((await readPrivateReport({ id, reportId }, "../report.pdf")).status).toBe(404);
   expect((await readPrivateReport({ id, reportId }, "a".repeat(64) + ".png")).status).toBe(404);
   mock.download.mockImplementation(async (path: string) =>
-    path.endsWith("report.html") ? Buffer.from(`<!doctype html><img src="html-assets/${asset}">`) : Buffer.from("corrupt"));
+    path.endsWith("report.html") ? Buffer.from(`<!doctype html><body><img src="html-assets/${asset}"></body>`) : Buffer.from("corrupt"));
   expect((await readPrivateReport({ id, reportId }, asset)).status).toBe(404);
   mock.download.mockResolvedValue(null);
-  expect((await readPrivateReport({ id, reportId })).status).toBe(303);
+  const legacy = await readPrivateReport({ id, reportId });
+  expect(legacy.status).toBe(303);
+  expect(legacy.headers.get("Location")).toBe(`/homes/${id}/safety?view=summary&report=${reportId}`);
+  expect((await readPrivateReport({ id, reportId }, undefined, true)).status).toBe(404);
   expect((await readPrivateReport({ id, reportId }, asset)).status).toBe(404);
 });

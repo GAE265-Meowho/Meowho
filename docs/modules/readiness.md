@@ -2,7 +2,7 @@
 
 ### WelfareLens 原生圖文報告（#273，待整合驗收）
 
-完整報告與圖片的新增同源 GET 路由只允許喵戶 Owner 存取目前已發布的 attempt。舊報告缺少 HTML 時回到摘要。PDF 下載與既有 JSON、RPC 及資料表沿用原契約。
+完整報告與圖片的新增同源 GET 路由只允許喵戶 Owner 存取目前已發布的 attempt。安全檢測頁先以同一個授權路由確認完整報告可讀，Owner 點選「查看報告」即可開啟原生 HTML，並從報告返回檢測紀錄。3D 尚在處理時也能查看已完成的安全報告。舊版報告及已授權 Keeper 沿用摘要和裁切照。PDF 下載與既有 JSON、RPC 及資料表沿用原契約。
 
 Worker 選用的 `report.html` 與 `html-assets/` 位於既有 attempt 前綴。正式啟用前須驗證清理程式會移除未採用的 attempt、選用 HTML 發布失敗留下的圖片，以及刪除報告後的所有產物，同時保留現行有效報告。佇列隔離與真實 Owner／Keeper 驗收仍待完成。
 

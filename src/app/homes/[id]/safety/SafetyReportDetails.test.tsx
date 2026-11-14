@@ -12,21 +12,22 @@ const ready = {
 };
 
 beforeEach(() => {
-  vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => ready }));
+  vi.stubGlobal("fetch", vi.fn((url: string) => Promise.resolve(url === API_URL + "/html"
+    ? { ok: false, status: 404 } : { ok: true, json: async () => ready })));
 });
 afterEach(() => {
   cleanup();
   vi.unstubAllGlobals();
 });
 
-describe("SafetyReportDetails HTML-summary-first states", () => {
+describe("SafetyReportDetails native report and summary fallback states", () => {
   it("shows the HTML summary and risks before the PDF download action without requesting the PDF", async () => {
     render(<SafetyReportDetails householdId="home-1" reportId="report-1" />);
     const summary = await screen.findByText("已完成安全評估");
     const details = summary.parentElement;
     expect(details?.firstElementChild).toBe(summary);
     expect(screen.queryByTitle("WelfareLens 完整居家安全報告 PDF")).toBeNull();
-    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(fetch).toHaveBeenCalledTimes(2);
     expect(vi.mocked(fetch).mock.calls[0][0]).toBe(API_URL);
     const download = screen.getByRole("link", { name: "下載完整 PDF 報告" });
     expect(download.getAttribute("href")).toBe(API_URL + "/pdf?download=1");
@@ -40,6 +41,33 @@ describe("SafetyReportDetails HTML-summary-first states", () => {
     expect(screen.getByText("部分畫面仍需補拍確認。")).toBeTruthy();
     expect(screen.getByText(/手機若仍以預覽開啟，請從分享選單儲存/)).toBeTruthy();
     expect(screen.getByAltText("電線的風險裁切照").getAttribute("src")).toBe("/api/crop");
+  });
+
+  it("opens the native document without displaying a duplicate summary or crops", async () => {
+    vi.mocked(fetch).mockImplementation(async url => url === API_URL + "/html"
+      ? { ok: true, status: 204 } as Response
+      : { ok: true, json: async () => ready } as Response);
+    render(<SafetyReportDetails householdId="home-1" reportId="report-1" />);
+    const link = await screen.findByRole("link", { name: "查看報告" });
+    expect(link.getAttribute("href")).toBe(API_URL + "/html");
+    expect(screen.queryByText("已完成安全評估")).toBeNull();
+    expect(screen.queryByAltText("電線的風險裁切照")).toBeNull();
+    expect(fetch).toHaveBeenCalledWith(API_URL + "/html", expect.objectContaining({ method: "HEAD" }));
+  });
+
+  it("does not probe again after a legacy HTML redirect", async () => {
+    render(<SafetyReportDetails householdId="home-1" reportId="report-1" summaryOnly />);
+    await screen.findByText("已完成安全評估");
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("retains a readable summary during a temporary HTML outage", async () => {
+    vi.mocked(fetch).mockImplementation(async url => url === API_URL + "/html"
+      ? { ok: false, status: 503 } as Response
+      : { ok: true, json: async () => ready } as Response);
+    render(<SafetyReportDetails householdId="home-1" reportId="report-1" />);
+    expect(await screen.findByText(/完整圖文報告暫時無法載入/)).toBeTruthy();
+    expect(screen.getByText("已完成安全評估")).toBeTruthy();
   });
 
   it("shows an empty summary message without hiding risk items", async () => {
@@ -111,6 +139,7 @@ describe("SafetyReportDetails HTML-summary-first states", () => {
     } as Response);
     render(<SafetyReportDetails householdId="home-1" reportId="report-1" />);
     expect(await screen.findByText("電線")).toBeTruthy();
+    expect(fetch).toHaveBeenCalledTimes(1);
     expect(screen.getByAltText("電線的風險裁切照")).toBeTruthy();
     expect(screen.queryByTitle("WelfareLens 完整居家安全報告 PDF")).toBeNull();
     expect(screen.queryByRole("link", { name: "下載完整 PDF 報告" })).toBeNull();

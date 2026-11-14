@@ -17,27 +17,38 @@ type Result = {
   warnings: Array<{ code?: string; message?: string }>;
   pdfUrl: string | null;
 };
-type View = { loading: true } | { loading: false; result: Result | null; error: string | null };
+type View = { loading: true } | { loading: false; result: Result | null; error: string | null; html: "available" | "missing" | "unavailable" };
 const LEVEL: Record<RiskItem["level"], string> = { high: "高風險", medium: "要注意", low: "低風險" };
 
-export function SafetyReportDetails({ householdId, reportId }: { householdId: string; reportId: string }) {
+export function SafetyReportDetails({ householdId, reportId, summaryOnly = false }: { householdId: string; reportId: string; summaryOnly?: boolean }) {
   const [view, setView] = useState<View>({ loading: true });
+
+  const reportEndpoint = "/api/homes/" + encodeURIComponent(householdId) + "/reports/" + encodeURIComponent(reportId);
+  const htmlEndpoint = reportEndpoint + "/html";
 
   useEffect(() => {
     const ctrl = new AbortController();
     setView({ loading: true });
-    fetch("/api/homes/" + encodeURIComponent(householdId) + "/reports/" + encodeURIComponent(reportId), {
+    fetch(reportEndpoint, {
       cache: "no-store", credentials: "same-origin", signal: ctrl.signal,
     }).then(async response => {
       if (!response.ok) throw new Error("report_unavailable");
       return response.json() as Promise<Result>;
-    }).then(result => {
-      if (!ctrl.signal.aborted) setView({ loading: false, result, error: null });
+    }).then(async result => {
+      let html: "available" | "missing" | "unavailable" = "missing";
+      if (!summaryOnly && result.report.status === "ready" && result.report.published && !result.report.demo && result.pdfUrl) {
+        html = await fetch(htmlEndpoint, {
+          method: "HEAD", cache: "no-store", credentials: "same-origin", signal: ctrl.signal,
+        }).then(response => response.status === 204 ? "available" as const
+          : response.status === 404 ? "missing" as const : "unavailable" as const)
+          .catch(() => "unavailable" as const);
+      }
+      if (!ctrl.signal.aborted) setView({ loading: false, result, error: null, html });
     }).catch(() => {
-      if (!ctrl.signal.aborted) setView({ loading: false, result: null, error: "安全報告暫時無法載入，請稍後再試。" });
+      if (!ctrl.signal.aborted) setView({ loading: false, result: null, html: "unavailable", error: "安全報告暫時無法載入，請稍後再試。" });
     });
     return () => ctrl.abort();
-  }, [householdId, reportId]);
+  }, [reportEndpoint, htmlEndpoint, summaryOnly]);
 
   if (view.loading) return <p role="status">載入安全報告中…</p>;
   if (view.error || !view.result) return <p role="alert">{view.error ?? "安全報告無法讀取。"}</p>;
@@ -52,17 +63,17 @@ export function SafetyReportDetails({ householdId, reportId }: { householdId: st
 
   // PDF links use the same-origin route, which rechecks ownership and requests
   // a fresh short-lived URL only after the user chooses an action.
-  const pdfEndpoint = "/api/homes/" + encodeURIComponent(householdId)
-    + "/reports/" + encodeURIComponent(reportId) + "/pdf";
+  const pdfEndpoint = reportEndpoint + "/pdf";
 
+  if (view.html === "available") {
+    return <a className={k.pdfLink} href={htmlEndpoint}>查看報告</a>;
+  }
 
   return (
     <div className={k.details}>
       {report.demo && <p role="note"><b>示範報告（非真實 AI 分析）</b>：以下內容是預設範例，不代表你的居家環境已完成檢測。</p>}
       <p className={k.summary}>{summary || "尚未提供文字摘要，請參考下方風險項目。"}</p>
-      {report.published && pdfUrl && !report.demo && (
-        <a className={k.pdfLink} href={pdfEndpoint.replace(/\/pdf$/, "/html")}>閱讀完整圖文報告</a>
-      )}
+      {view.html === "unavailable" && <p role="status">完整圖文報告暫時無法載入，目前顯示摘要。</p>}
       {items.length === 0 ? <p>本次沒有提供可確認的風險項目；這不代表環境絕對安全。</p> : (
         <ul className={k.items}>
           {items.map(item => (

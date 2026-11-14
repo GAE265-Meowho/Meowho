@@ -16,7 +16,7 @@ const empty = (status: number) => new Response(null, { status, headers });
 
 export async function readPrivateReport({ id, reportId }: {
   id: string; reportId: string;
-}, asset?: string) {
+}, asset?: string, availabilityOnly = false) {
   if (!isReportUuid(id) || !isReportUuid(reportId) || (asset !== undefined && !imageName.test(asset))) return empty(404);
   try {
     const sb = await getServerSupabase();
@@ -36,13 +36,19 @@ export async function readPrivateReport({ id, reportId }: {
     const store = getMediaStore();
     if (!store) return empty(503);
     const document = await store.download(prefix + "report.html");
-    if (!document) return asset ? empty(404) : new Response(null, {
-      status: 303, headers: { ...headers, Location: "/homes/" + id + "/safety?report=" + reportId },
+    if (!document) return asset || availabilityOnly ? empty(404) : new Response(null, {
+      status: 303, headers: { ...headers, Location: "/homes/" + id + "/safety?view=summary&report=" + reportId },
     });
     if (!document.length || document.length > 1024 * 1024) return empty(404);
     const html = new TextDecoder().decode(document);
     if (!html.startsWith("<!doctype html>")) return empty(404);
-    if (!asset) return new Response(html, { headers: { ...headers, "Content-Type": "text/html; charset=utf-8" } });
+    if (availabilityOnly) return empty(204);
+    if (!asset) {
+      const back = '<nav aria-label="MeowHome"><a class="back-link" href="/homes/' + id
+        + '/safety#records-title">返回居家安全檢測紀錄</a></nav>';
+      const page = html.replace("<body>", "<body>" + back);
+      return new Response(page, { headers: { ...headers, "Content-Type": "text/html; charset=utf-8" } });
+    }
     if (!html.includes('src="html-assets/' + asset + '"')) return empty(404);
     const image = await store.download(prefix + "html-assets/" + asset);
     if (!image || image.length > 4 * 1024 * 1024
