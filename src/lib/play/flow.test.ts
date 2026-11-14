@@ -68,10 +68,12 @@ describe("流程（newgame v0.5）", () => {
     expect(s.life.care.rounds).toBe(6);
   });
 
-  it("節點 1：貓躲進外出籠；台詞裡沒有床底", () => {
+  it("節點 1：中途把外出籠交給你，貓一直縮在籠裡；台詞裡沒有床底", () => {
     const { seen } = playThrough();
     const all = seen.join("");
-    expect(all).toContain("鑽進你擺好的外出籠");
+    expect(all).toContain("中途把外出籠交給你");
+    expect(all).toContain("一直縮在外出籠最裡面");
+    expect(all).not.toContain("提籃");
     expect(all).not.toContain("床底");
   });
 

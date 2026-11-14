@@ -111,6 +111,17 @@ describe("progressLabel：回任務按鈕的文字", () => {
   it("還沒存過進度就是第 1 個", () => expect(progressLabel("妹妹", {})).toBe(`妹妹的任務 1／${STORY.length}`));
 });
 
+describe("存檔：掃描房間自由擺放（選填欄位）", () => {
+  it("有擺就存、讀回一樣；沒擺或舊存檔就沒有這欄", () => {
+    const cp = start().checkpoint!;
+    const saved = JSON.parse(JSON.stringify(buildProgress({ cp, pick: null, placed: [], scanSpots: { bowl: "自選位置" }, scanPose: { bowl: { x: 1.2, z: 0.5, rot: 1 } }, hhId: null })));
+    expect(parseSaved(saved)?.scanPose).toEqual({ bowl: { x: 1.2, z: 0.5, rot: 1 } });
+    const old = JSON.parse(JSON.stringify(buildProgress({ cp, pick: null, placed: [], scanSpots: {}, hhId: null })));
+    expect("scanPose" in old).toBe(false);
+    expect(parseSaved(old)?.scanPose).toBeUndefined();
+  });
+});
+
 describe("開場設定階段的存檔（還沒進節點，cp＝null）", () => {
   const setup = (step: "background" | "shop" | "place" = "place") =>
     JSON.parse(JSON.stringify(buildProgress({ cp: null, setupStep: step, pick: { budget: 5000, dryId: "d1" }, placed: [{ key: "bowl:1" }], scanSpots: { bowl: "床旁" }, hhId: "h1" })));

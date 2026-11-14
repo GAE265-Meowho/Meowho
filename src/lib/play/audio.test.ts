@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
-import { AUTO_CALLER, CALLER_OPTIONS, callersOf, BGM_IDS, SFX_IDS, SFX_READY, SOUNDS, audioPath, audioSrc, soundsFor, bgmFor, bgmLoops, playableBgm, fadeVolume, MUTE_KEY, readMuted, writeMuted, type BgmInput } from "./audio";
+import { BGM_FALLBACK, AUTO_CALLER, CALLER_OPTIONS, callersOf, BGM_IDS, SFX_IDS, SFX_READY, SOUNDS, audioPath, audioSrc, soundsFor, bgmFor, bgmLoops, playableBgm, fadeVolume, MUTE_KEY, readMuted, writeMuted, type BgmInput } from "./audio";
 
 const at = (over: Partial<BgmInput>): BgmInput => ({ step: "node", nodeId: "day3", scene: { bg: "room", time: "day" }, home: false, ...over });
 
@@ -33,7 +33,7 @@ describe("背景音樂依場景切換", () => {
   });
 
   it("升天不循環，其他都循環", () => {
-    expect(BGM_IDS.filter(bgmLoops)).toEqual(["bgm_arrive", "bgm_daily", "bgm_night", "bgm_vet", "bgm_report"]);
+    expect(BGM_IDS.filter(bgmLoops)).toEqual(["bgm_arrive", "bgm_daily", "bgm_night", "bgm_vet", "bgm_accident", "bgm_report"]);
   });
 });
 
@@ -44,9 +44,9 @@ describe("聲音對照表與網址", () => {
       expect(s.usedIn, id).not.toBe("");
       expect(s.part.length, id).toBeGreaterThan(0);
     }
-    expect(BGM_IDS).toHaveLength(6);
-    // 結案報告的音樂（bgm_report）等第 6 份補音檔，其他都有
-    expect(BGM_IDS.filter(id => !SOUNDS[id].ready)).toEqual(["bgm_report"]);
+    expect(BGM_IDS).toHaveLength(7);
+    // 出事了（bgm_accident）還沒上傳、結案報告（bgm_report）等第 6 份補音檔，其他背景音樂都有音檔
+    expect(BGM_IDS.filter(id => !SOUNDS[id].ready)).toEqual(["bgm_accident", "bgm_report"]);
   });
 
   it("背景音樂放 bgm/、音效放 sfx/，網址是 Supabase 公開網址", () => {
@@ -122,5 +122,16 @@ describe("誰呼叫（#399）", () => {
   });
   it("篩選選項照第 1～5 份的順序，最後是自動切換", () => {
     expect(CALLER_OPTIONS).toEqual(["珮瑜", "Tina", "世安", "渝茜", "自動切換"]);
+  });
+});
+
+describe("五年後半夜（2026-11-14）", () => {
+  it("五年後的夜晚播出事了，其他節點的夜晚照舊半夜", () => {
+    expect(bgmFor({ step: "node", nodeId: "year5", scene: { bg: "room", time: "night" }, home: false })).toBe("bgm_accident");
+    expect(bgmFor({ step: "node", nodeId: "day30", scene: { bg: "room", time: "night" }, home: false })).toBe("bgm_night");
+  });
+  it("出事了還沒上傳時退回半夜", () => {
+    expect(BGM_FALLBACK.bgm_accident).toBe("bgm_night");
+    expect(SOUNDS.bgm_accident.ready).toBe(false);
   });
 });

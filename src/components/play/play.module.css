@@ -263,6 +263,8 @@
   .sheet .text { font-size: 17px; }
 }
 @media (max-height: 520px) { .sheet { --sheet-max: 70dvh; } }
+/* 寬螢幕：對話框目標高度約 56%（lib/play/dialog-fit.ts 的 WIDE_SHARE），再加上「看看房間」按鈕的位置 */
+@media (min-width: 1024px) and (min-height: 521px) { .sheet { --sheet-max: calc(56dvh + 60px); } }
 
 /* ---------- 手機：一般頁面（你的家、採買、報告） ---------- */
 @media (max-width: 480px) {

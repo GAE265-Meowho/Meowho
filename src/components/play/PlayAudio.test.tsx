@@ -4,10 +4,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { BgmInput } from "@/lib/play/audio";
 
 // 假的 Audio：記下每個建出來的音檔、有沒有在播
-class FakeAudio {
+class FakeAudio extends EventTarget {
   static made: FakeAudio[] = [];
   src: string; loop = false; volume = 1; preload = ""; paused = true;
-  constructor(src: string) { this.src = src; FakeAudio.made.push(this); }
+  constructor(src: string) { super(); this.src = src; FakeAudio.made.push(this); }
   play() { this.paused = false; return Promise.resolve(); }
   pause() { this.paused = true; }
   load() {}
@@ -128,4 +128,5 @@ describe("虛擬飼養的背景音樂", () => {
     player.playSfx("sfx_scream");
     expect(FakeAudio.made.map(a => a.src)).not.toContain(`${STORE}/sfx/sfx_scream.mp3`);
   });
+
 });

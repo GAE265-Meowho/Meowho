@@ -1,5 +1,11 @@
 # 模組：準備度評估（readiness）
 
+### WelfareLens 原生圖文報告（#273，待整合驗收）
+
+完整報告與圖片的新增同源 GET 路由只允許喵戶 Owner 存取目前已發布的 attempt。安全檢測頁先以同一個授權路由確認完整報告可讀，Owner 點選「查看報告」即可開啟原生 HTML，並從報告返回檢測紀錄。3D 尚在處理時也能查看已完成的安全報告。舊版報告及已授權 Keeper 沿用摘要和裁切照。PDF 下載與既有 JSON、RPC 及資料表沿用原契約。
+
+Worker 選用的 `report.html` 與 `html-assets/` 位於既有 attempt 前綴。正式啟用前須驗證清理程式會移除未採用的 attempt、選用 HTML 發布失敗留下的圖片，以及刪除報告後的所有產物，同時保留現行有效報告。佇列隔離與真實 Owner／Keeper 驗收仍待完成。
+
 > 最後更新：2026-11-10｜Jerry0808 × Codex（#277 報告摘要優先）
 > 規則：本檔隨程式碼同一個 PR 更新；「決策」與「地雷」只增不刪（過時的標註［已失效］）。
 
@@ -155,6 +161,7 @@
 - ✅ 已處理（2026-11-07）：後台「外出籠」尺寸原本登錄成原始模型單位 2.216 × 3.428 × 2.046，已用 SQL 改成 0.33 × 0.51 × 0.31 公尺（與 `items.ts` 一致），改讀後台時外出籠不會變巨大。
 - 前置：確認 `PlayStage.tsx` 的 3D 貓可由程式直接設位置、方向，不依賴動畫片段。
 - 🚧 進行中（2026-11-12，珮瑜 × Claude Code，#354，分支 `feat/354-care-water-3d`）**換水改 3D（第 1 份）**：`CatgameMini.tsx` 的換水改開彈窗（`mini3d/Mini3DModal.tsx`），裡面是第一視角開水龍頭的 `mini3d/WaterRefillGame3D.tsx`。
+  - 2026-11-13 加洗碗（分支 `feat/354-water-wash`）：倒掉舊水後左手指尖捏菜瓜布在碗裡搓（算搓過的距離，畫圈、來回都算），碗移到出水口下按住開水沖掉泡泡，自動倒掉沖碗的水，再接新水。規則在 `lib/play/mini3d/wash-rules.ts`；回傳多一欄 `washed`，`careGood("water")` 不變。
   - 玩法：前三格自動播（右手拿舊水碗到水槽、倒掉舊水、空碗移到出水口下），之後玩家按住按鈕，左手握把手開水、放開關水，按「倒好了」結束。規則和回傳沿用 `lib/play/mini3d/water-rules.ts`（`{ fill }`，fill ≥ 70 算換好）。
   - 道具：`WaterProps.tsx`（`WaterBowl` 水碗、`WaterSink` 水槽，程式畫）、`WaterTap.tsx`（`water_tap` 水龍頭，程式畫，把手獨立可抬）、`WaterHands.tsx`（`water_hand_right`／`water_hand_left`，模型在 `public/play/`，CC0，手勢是程式套的）。
   - 動作：`WaterRefillScene.tsx` 擺畫面；每個時間點的數值在 `lib/play/mini3d/refill-timeline.ts`（六格時間軸 `refillAt`、玩家按住／放開 `refillHold`，有測試）。
@@ -245,6 +252,7 @@
 | 2026-11-12 | 珮瑜 × Claude Code | 餵貓小遊戲改 3D：乾飼料顆粒、主食罐濕食、湯罐液體；餵貓、換水的彈窗關掉後貓才走到碗邊 | （還沒開 PR） |
 | 2026-11-12 | 珮瑜 × Claude Code | 鏟屎小遊戲改 3D：拖曳貓砂鏟、連砂鏟起、左右甩掉砂、倒進垃圾袋；貓砂盆四款（只在彈窗裡） | （還沒開 PR） |
 | 2026-11-13 | 珮瑜 × Claude Code | 驗收修正：餵貓一餐只餵一種（先選再倒、選完手先伸進來、罐頭可連開）；後台用品模型尺寸太小的不採用（貓砂盆 13 公分那筆） | （見 PR） |
+| 2026-11-13 | 珮瑜 × Claude Code | 換水加洗碗：菜瓜布搓碗、沖碗倒掉、再接新水（`wash-rules.ts`、`WaterRefillGame3D.tsx`） | （見 PR） |
 
 ## 虛擬飼養讀真實資料與試養報告給中途（/cats/[id]/play）
 - 貓咪：`lib/play/source.ts` 的 `loadPlayCat(id)` 讀 `meow_cats`（名字、花色、生活階段、生日／估計月齡）＋ `meow_cat_model_variants.confirmed_albedo`（3D 貼圖）；讀不到才用 DEMO 麻糬。劇本裡的名字用 `〈貓名〉`（`furniture.ts` 的 `fullTx`）替換，小遊戲原版寫死的「麻糬」由 `CatgameMini` 畫完後換成貓名；非虎斑花色不畫條紋。
@@ -266,6 +274,9 @@
 - 起始信任／壓力由中途評論算（`startMood`）；沒有任何資料時用預設 30／40。
 
 ### #356 3D 刷牙與摸貓
+
+- 摸貓直接進入自由互動，停手時提供衛教回饋，完成回傳 `{ ran, fun }`。取消與未撫摸的觀察回傳 `null`。本版不含摸貓專屬音效；呼嚕、喵叫、哈氣僅保留在全域音效目錄的規劃，不由摸貓互動播放。刷牙在影像上方說明 AI 素材並非所選貓咪的實際外觀。
+- 衛教文案與來源位於 `pet-learning.ts`。全域背景音樂、靜音與其他照護遊戲音效仍由 `PlayAudio`／`audio-player.ts` 管理。
 
 - 摸貓反應使用成貓 GLB 的 `idle`、`cuddle`、`walk`。連續輕撫偏好部位才混入 `cuddle`，停手後回待機。煩躁達 55 混入 `head0` 的小幅轉向，降至 36 以下才解除；達既有離場門檻就停止計分，轉向後沿模型朝向走出畫面。減少動態模式保留靜態姿勢與衛教文字。
 
@@ -305,3 +316,31 @@
 - **存檔** `src/lib/play/save.ts`：每過一個節點存一次快照（`flow.ts` 的 `Checkpoint`，`PlayState.checkpoint`）連同採買 `pick`、擺放 `placed`／`scanSpots`、喵戶 id 存進 `meow_task_runs.progress`（上限 45 KB，超過會縮短紀錄）；續玩（`resume` 動作）從那個節點的開頭重新開始，節點內的小遊戲重玩；用開始時定格的房間（`frozenRoom`）。可換裝置。
 - **畫面**：`PlayGame` 按「下一步：預算與採買」才建紀錄（`begin`）；HUD 有「放棄」；`ReportStep` 改成完成進行中那筆（`runId`）。貓咪頁 `PlayEntry.tsx` 四種狀態與彈窗（繼續／殘忍放棄／別隻貓時放棄改做／再做一次）；全站右下 `ActiveRunButton`（掛在 `Providers`，任務頁與 MeowHQ 不顯示，位置之後再調）；`AbandonPanel` 從舊 `/run` 搬來。`/cats/[id]/run` 改成轉址到 `/play`，問卷頁、`TaskProof` 的「去做任務」改連 `/play`。
 - **還沒做**：「我的喵戶」頁的繼續任務入口；`/api/cats/[id]/tasks/prepare` 與 `task-run.ts` 的任務選項流程已沒人用（`ABANDON_REASONS` 還在用），之後收掉；浮動按鈕要避開青蛙按鈕（位置待調）；`npm run build` 因本機磁碟已滿（ENOSPC）沒跑成功，tsc、lint、單元測試（1502）都過；沒有用瀏覽器實際走過主線（需要真實帳號、房間與報告）。
+
+## 虛擬飼養畫面改版（#354，渝茜 × Claude Code，2026-11-13，第 5 份任務表）
+拆成 8 個分支／PR，都還沒在真機或 Preview 走過完整流程（沙盒沒有登入、沒有掃描房間）；合併後請用 390px 與 1280px 各走一次。
+- **字體與字級**（`feat/354-play-type`）：`play.module.css` 的 `.page` 定義字體鏈 `--play-font`（缺字只退到圓體／黑體，不退到明體）與字級變數 `--play-fs-title/h/body/sub/tag`（24/20/17/15/14，≥768px 加 1–2px）、`--play-lh: 1.7`。其他 CSS Module 用 `var(--play-fs-*, 預設值)`。只改虛擬飼養範圍，全站字型沒動。
+- **劇情對話框**（`feat/354-play-dialog`）：`NodeStep.tsx`＋`node.module.css`；頭像與小圖示 `SpeakerAvatar.tsx`（SVG）；純邏輯 `src/lib/play/dialog.ts`（逐句 `nextBeat`、說話者 `voiceOf`、節點貓掌 `pawSteps`）。一次一句，整張卡看完才 `onNext`；說話者有頭像＋名牌，旁白沒有頭像、字色較淡；節點進度是 7 個貓掌。台詞卡時 `PlayGame` 的 `bubbleInset` 是 0.36。
+- **上一步與開場存檔**（`feat/354-play-back-save`）：開場設定（你的家 → 採買 → 擺用品）有「上一步」（`flow.ts` 的 `back`／`prevSetupStep`），帶牠回家之後沒有。回你的家只能看：開始後不能換喵戶，`begin()` 有 `runId` 時不再建紀錄。存檔格式 `SavedRun.cp` 可為 null＋`setupStep`（舊資料照讀）。設定階段換步驟馬上存、改選擇後 1 秒存、離開頁面（`pagehide`）補存；節點中照舊每進一個節點存一次。
+- **擺用品俯視視角**（`feat/354-play-place-view`）：`RoomViewer` 新增 `overview` prop（預設 null＝原本行為）；擺用品時掃描房間改成俯視，只能繞中心轉、調俯仰角（離垂直 15°～60°，開場 35°），不能走動、縮放。操作：`PlayStage` 四顆方向鍵（按住連轉）、拖曳、鍵盤方向鍵。常數在 `src/lib/hq/rooms/overview.ts` 的 `OVERVIEW`。示範娃娃屋沒有方向鍵。
+- **採買**（`feat/354-play-shop`）：飼料依貓月齡分階段（`foodStage`：<12 個月幼貓、12 個月起成貓、84 個月起熟齡、132 個月起老貓，目錄沒有的階段退到最近），預設列該階段並掛「推薦」，可切全部年齡；熟齡、老貓每日克數沿用成貓。小提示 `src/lib/play/food-tips.ts`（待獸醫確認）。用品圖是 3D 截圖（`node scripts/render-play-thumbs.mjs` → `public/play/thumbs/`，需 google-chrome）；沒有模型的用 `ShopStep.tsx` 的 2D `KitIcon`。
+- **試養報告**（`feat/354-play-report`）：`ReportStep` 與中途對話串的 `TaskProof`（`GameReport`）共用 `ReportParts.tsx` 的 `MoodScales`、`CostCard`、`PickZone`。中途端仍不含家裡位置與物件清單。
+- **濕糧與補貨**（`feat/354-play-restock`，疊在前面幾個分支上）：沒買乾糧／濕糧，餵貓小遊戲對應種類鎖住（湯罐目錄沒有商品，先跟著濕糧走，`src/lib/play/restock.ts`）。在家的時光有「補貨」圖示、餵貓視窗被鎖住時有「去補貨」，開 `RestockDialog`；補貨走 `restock` action，用 `shopCost` 重算每月花費並在 `life.notes` 記一筆。只做有／沒有，不做數量消耗。
+- **劇情審稿**：`docs/play-tasks/5-劇情審稿.md`（91 項，第二區 18 項健康台詞要獸醫確認後才能定稿）。`故事文字總整理.md` 不在 repo，沒對照原稿。
+
+### 地雷（2026-11-13 改版）
+- 俯視鏡頭的 `OVERVIEW.heightM`／`tiltStart`／`tiltMax` 還沒實機調過；掃描房間從上方看可能有破洞。
+- `.sheet` 的 `--sheet-max` 被 `node.module.css` 拿來算長卡片高度；對話框高度改了 `bubbleInset` 要跟著調。一般台詞卡不要設 `overflow`（貓形按鈕的尾巴會超出，會多出捲軸）。
+- 改花費項目時要同步改 `CostCard` 的五個 key。
+- 審稿找到的程式問題（沒改）：`accidentSteps` 沒有風險清單時仍送獸醫並扣 2,500 元，與註解「在家觀察」不符；`report.ts` 的 `flags.scolded` 沒有地方設定；`lines.ts` 寫死「五年」與幼貓語氣。
+
+## 貓動作串接、跟著貓、第 30 天半夜跑酷（#354 第 5 份，渝茜 × Claude Code，2026-11-14，PR #432、#433）
+- **第 1 天外出籠（#432）**：台詞改「中途把外出籠交給你」；`src/lib/play/carrier-fit.ts` 把貓縮放到外出籠裡、貼最裡面、面向門口（掃描房間 `RoomCat.tuck`、娃娃屋 `CatActor`）。出籠時 `carrierExit` 讓整隻貓（含屁股、尾巴）站到籠門外、面向外面（#433 修：之前半身卡在籠裡）。
+- **動作串接（#433）**：`src/lib/hq/rooms/cat-moves.ts`（純函式）走路／跑步播放速度配合實際速度；跳躍依高低差挑 `jump_a`（上）、`jump_c`（下）、`jump_b`（平），起跳前先原地轉身面向落點。`jump-clips.ts` 拿掉跳躍動作的根骨頭位移、從動作讀離地／落地時間，讓程式的拋物線對上動作。
+- **跟著貓按鈕**：`PlayStage` 左下（手機左上），娃娃屋預設開、掃描房間預設關；玩家自己拖曳或移動鏡頭就關掉。
+- **第 30 天半夜跑酷**：故事的 `zoom` 姿勢對應新的 `CatAction` `zoom`；掃描房間給 `zoomies` 指令（`scene-cat.ts`），`world.ts` 讓貓衝刺（跑步動作）到 1.2～4 公尺外、35% 機率跳上有檯面的家具（落點用 `topSpot` 挑在檯面內）、在家具上待 0.6～1.4 秒就跳下來（`src/lib/play/zoomies.ts`）。移動方向＝頭的方向（RoomCat 沿 heading 前進）。娃娃屋照舊走到房間另一頭。
+- **陪牠玩**：選「睡前陪牠玩到累」先開逗貓小遊戲，玩完才出「你陪〈貓名〉玩了一陣子」。
+- **逗貓玩具上家具**：`world.toyAt` 用鏡頭射線先打檯面（`rayHit`）再打地板，玩具放在檯面高度；玩具在床上時貓跳上去（落點＝玩具位置），在檯面上衝過去撲；玩具回地板貓跳下來。玩具位置改用 `clampInRoom` 夾在房間內（原本把沿牆座標當地板座標夾，斜的房間玩具會被夾到別處）。
+- **驗證**：在渝茜的真實掃描房間（1280×800，Vercel 預覽）看過第 1 天貓在籠內、第 3 天出籠、第 30 天跑酷跳上床再跳下。夜晚光在 #422，這個分支沒有。
+- **斜放的床與連通地板**：`RoomCat.jumpOn` 的起跳點、落點與在床上走動的範圍都照 `surfaces[0]` 的中心、大小、轉角算；從家具跳下來、追地板上的玩具都只挑最大一塊連通地板（`RoomCat.mainRegion`），不會落進家具和用品之間走不出去的小角落。玩具若放在那種小角落，貓會走到最近的地方等。
+- **還沒做／待確認**：#422（夜晚光、跑酷音效）合併時 `world.ts`、`RoomViewer.tsx`、`PlayStage.tsx` 會衝突，兩邊保留；3D 畫面在背景分頁（桌面版視窗縮小）時會整個暫停，驗證時要讓瀏覽器在前景。

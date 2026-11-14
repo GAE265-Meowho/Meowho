@@ -1,6 +1,6 @@
 // 虛擬飼養 DEMO（#237）：newgame 版主線劇情（6 個節點＋結尾）。設計稿在團隊專題的 newgame/story.md、nodes.md（v0.5）。
-//   開場：玩家一定要先在家裡擺一個外出籠（PlayGame 的擺放步驟）；節點 1、6 都用同一個。
-//   節點 1 第 1 天（2 個月）貓躲進外出籠　2 第 3 天（砂盆、碗）　3 第 30 天（半夜跑酷、練刷牙）　4 半年後（結紮）
+//   開場：玩家一定要先選好外出籠擺在家裡哪裡（PlayGame 的擺放步驟；外出籠是中途裝著貓帶來交給你的）；節點 1、6 都用同一個。
+//   節點 1 第 1 天（2 個月）貓縮在中途帶來的外出籠裡　2 第 3 天（砂盆、碗）　3 第 30 天（半夜跑酷、練刷牙）　4 半年後（結紮）
 //   節點 5 五年後（5 歲）居家意外：資料來自居家安全清單（之後換世安的報告），沒有玩家選擇；電線、線繩、植物、窗戶送獸醫，其餘虛驚一場
 //   節點 6 十年後（10 歲）熟齡健檢：牙齒、體態、飲水三個累積值決定獸醫怎麼說　結尾 15 歲：寵物升天，沒有選擇
 //   每個節點（結尾除外）結束後有一次「在家的時光」（flow.ts、care.ts）：逗貓、餵貓、換水、鏟屎、剪指甲、刷牙。
@@ -13,7 +13,7 @@ import { ageText } from "./player-data";
 export type NodeId = "day1" | "day3" | "day30" | "month8" | "year5" | "year10" | "farewell";
 /** scoop、pet、feed、water、nail、brush、carrier 是小遊戲（catgame/minis.ts）；逗貓是 3D（ScanWand，掃描房間） */
 export type MiniId = "scoop" | "pet" | "feed" | "water" | "nail" | "brush" | "carrier" | "play";
-/** 貓的姿勢：carrier 躲進外出籠（外出籠旁）、sit 坐著、none 不在畫面… */
+/** 貓的姿勢：carrier 整隻縮在外出籠裡、sit 坐著、none 不在畫面… */
 export type CatPose = "sit" | "underbed" | "hide" | "sofa" | "zoom" | "frail" | "bed" | "table" | "none" | "carrier";
 export type Speaker = "you" | "clerk" | "vet" | "partner" | string;
 
@@ -216,8 +216,8 @@ export const STORY: readonly StoryNode[] = [
     steps: [
       sc("room", "day", "carrier"),
       FN(X => [XN(young(X)
-        ? `中途把提籃交給你。籃子一打開，一隻小小的${coatNoun(X.cat.coat)}就咻地鑽進你擺好的外出籠，縮在最裡面。`
-        : "中途把提籃交給你。籃子一打開，〈貓名〉小心翼翼地走進你擺好的外出籠，縮在最裡面。")]),
+        ? `中途把外出籠交給你，你把它放在先前選好的位置。一隻小小的${coatNoun(X.cat.coat)}一直縮在外出籠最裡面。`
+        : "中途把外出籠交給你，你把它放在先前選好的位置。〈貓名〉一直縮在外出籠最裡面，小心翼翼地看著外面。")]),
       WHO("clerk", "剛到新家的貓都會躲起來，這很正常。前幾天先別硬抓牠，讓牠自己決定什麼時候出來。"),
       ASK("you", "（外出籠裡只看得到兩顆發亮的眼睛……）", [
         { l: "在旁邊等牠自己出來", fx: { trust: 10, stress: -10 }, pick: "到家第一天，等牠自己出來", good: true,
@@ -251,7 +251,7 @@ export const STORY: readonly StoryNode[] = [
       sc("room", "night", "zoom"),
       XN("凌晨三點，客廳傳來跑來跑去的聲音。〈貓名〉精神好得很。"),
       ASK("you", "（牠完全沒有要睡的意思……）", [
-        { l: "睡前陪牠玩到累，再餵一小餐", fx: { trust: 3, minutes: 15 }, pick: "為半夜跑酷調整了作息", good: true, then: [XN("你拿出逗貓棒，陪〈貓名〉玩了一陣子。"), MINI("play"), XN("連續幾天後，〈貓名〉開始一覺睡到天亮。")] },
+        { l: "睡前陪牠玩到累，再餵一小餐", fx: { trust: 3, minutes: 15 }, pick: "為半夜跑酷調整了作息", good: true, then: [MINI("play"), XN("你陪〈貓名〉玩了一陣子。"), XN("連續幾天後，〈貓名〉開始一覺睡到天亮。")] },
         { l: "把牠關在房門外", fx: { stress: 10, trust: -3 }, pick: "把貓關在房門外", good: false, then: [XN("〈貓名〉在門外叫了一整夜。")] },
       ]),
       REC({ fx: { spent: 1800, kind: "med" }, note: "預防針、驅蟲" }),
