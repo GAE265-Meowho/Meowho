@@ -34,6 +34,8 @@ describe("版面估算", () => {
   it("對話框可用高度約畫面四成，矮畫面也至少留一點", () => {
     expect(fitBudget(800)).toBe(320);
     expect(fitBudget(300)).toBeGreaterThanOrEqual(160);
+    expect(fitBudget(800, 0.5, 1280)).toBe(448);
+    expect(fitBudget(800, 0.5, 580)).toBe(400);
   });
   it("選項：寬的框兩欄、窄的一欄；放不下就分頁", () => {
     const opts = ["先等等", "把牠抱出來", "打開籠門放點零食", "叫全家來看"];

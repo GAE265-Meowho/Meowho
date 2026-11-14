@@ -46,10 +46,13 @@ export function boxInner(viewW: number): number {
   return box - (wide ? 48 : 32) - 4;
 }
 
-/** 對話框整體的目標高度：約畫面的 share（預設四成），露出貓和房間；畫面很矮時至少 160 */
-export function fitBudget(viewH: number, share = 0.4): number {
-  return Math.max(160, Math.round(viewH * share));
+/** 對話框整體的目標高度：約畫面的 share（預設四成），露出貓和房間；畫面很矮時至少 160。
+ *  寬螢幕（viewW ≥ 1024，渝茜 2026-11-14）放寬到約 56%，讓健康聲明和選項盡量同一頁（play.module.css 的 .sheet 同步加高） */
+export function fitBudget(viewH: number, share = 0.4, viewW = 0): number {
+  return Math.max(160, Math.round(viewH * (viewW >= WIDE_W ? Math.max(share, WIDE_SHARE) : share)));
 }
+export const WIDE_W = 1024;
+export const WIDE_SHARE = 0.56;
 
 /** 選項：內容寬 480 以上排兩欄；估每個按鈕的高度（會換行），放不下就分頁。回傳欄數與每頁的選項索引 */
 export function optionPages(labels: string[], inner: number, avail: number, fontPx: number): { cols: 1 | 2; pages: number[][] } {
@@ -76,5 +79,5 @@ export function healthHeight(note: string, inner: number, fontPx = 17): number {
 export function healthOwnPage(viewW: number, viewH: number, sayText: string, note: string, extra = 60): boolean {
   const inner = boxInner(viewW);
   const chrome = (viewW >= 900 ? 32 : 24) + 4 + 24 + 30 + 56;
-  return chrome + sayHeight(sayText, inner) + healthHeight(note, inner) + extra > fitBudget(viewH, 0.5);
+  return chrome + sayHeight(sayText, inner) + healthHeight(note, inner) + extra > fitBudget(viewH, 0.5, viewW);
 }

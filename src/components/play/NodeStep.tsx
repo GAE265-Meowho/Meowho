@@ -118,7 +118,7 @@ function LogCard({ state, items, cta, onNext }: {
     const titleLines = Math.ceil((estimateTextWidth(`這一段 ${summary}`, FS_H) + 32) / inner);
     // 外框內距與邊框、貓掌列、標題、按鈕列、間距
     const chrome = (view.w >= 900 ? 32 : 24) + 4 + 24 + titleLines * FS_H * 1.45 + 60 + 30;
-    return pageBreaks(rows.map(() => CHIP_H), Math.max(CHIP_H, fitBudget(view.h) - chrome), CHIP_GAP)
+    return pageBreaks(rows.map(() => CHIP_H), Math.max(CHIP_H, fitBudget(view.h, 0.4, view.w) - chrome), CHIP_GAP)
       .map(p => p.flatMap(r => rows[r]));
   }, [view, items, summary]);
   const [at, setAt] = usePage(items, pages.length);
@@ -161,7 +161,7 @@ function AskCard({ state, cur, label, onChoose }: {
     const inner = boxInner(view.w);
     const health = cur.health ? healthHeight(split ? HEALTH_NOTE : HEALTH_NOTE + DISCLAIMER, inner) : 0;
     const chrome = (view.w >= 900 ? 32 : 24) + 4 + 24 + sayHeight(cur.t, inner) + health + 30;
-    const avail = fitBudget(view.h, 0.5) - chrome;
+    const avail = fitBudget(view.h, 0.5, view.w) - chrome;
     const one = optionPages(labels, inner, avail, FS_BODY);
     return one.pages.length > 1 ? optionPages(labels, inner, avail - 56, FS_BODY) : one;
   }, [view, labels, cur, split]);
