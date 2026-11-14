@@ -161,6 +161,7 @@ Worker 選用的 `report.html` 與 `html-assets/` 位於既有 attempt 前綴。
 - ✅ 已處理（2026-11-07）：後台「外出籠」尺寸原本登錄成原始模型單位 2.216 × 3.428 × 2.046，已用 SQL 改成 0.33 × 0.51 × 0.31 公尺（與 `items.ts` 一致），改讀後台時外出籠不會變巨大。
 - 前置：確認 `PlayStage.tsx` 的 3D 貓可由程式直接設位置、方向，不依賴動畫片段。
 - 🚧 進行中（2026-11-12，珮瑜 × Claude Code，#354，分支 `feat/354-care-water-3d`）**換水改 3D（第 1 份）**：`CatgameMini.tsx` 的換水改開彈窗（`mini3d/Mini3DModal.tsx`），裡面是第一視角開水龍頭的 `mini3d/WaterRefillGame3D.tsx`。
+  - 2026-11-13 加洗碗（分支 `feat/354-water-wash`）：倒掉舊水後左手指尖捏菜瓜布在碗裡搓（算搓過的距離，畫圈、來回都算），碗移到出水口下按住開水沖掉泡泡，自動倒掉沖碗的水，再接新水。規則在 `lib/play/mini3d/wash-rules.ts`；回傳多一欄 `washed`，`careGood("water")` 不變。
   - 玩法：前三格自動播（右手拿舊水碗到水槽、倒掉舊水、空碗移到出水口下），之後玩家按住按鈕，左手握把手開水、放開關水，按「倒好了」結束。規則和回傳沿用 `lib/play/mini3d/water-rules.ts`（`{ fill }`，fill ≥ 70 算換好）。
   - 道具：`WaterProps.tsx`（`WaterBowl` 水碗、`WaterSink` 水槽，程式畫）、`WaterTap.tsx`（`water_tap` 水龍頭，程式畫，把手獨立可抬）、`WaterHands.tsx`（`water_hand_right`／`water_hand_left`，模型在 `public/play/`，CC0，手勢是程式套的）。
   - 動作：`WaterRefillScene.tsx` 擺畫面；每個時間點的數值在 `lib/play/mini3d/refill-timeline.ts`（六格時間軸 `refillAt`、玩家按住／放開 `refillHold`，有測試）。
@@ -251,6 +252,7 @@ Worker 選用的 `report.html` 與 `html-assets/` 位於既有 attempt 前綴。
 | 2026-11-12 | 珮瑜 × Claude Code | 餵貓小遊戲改 3D：乾飼料顆粒、主食罐濕食、湯罐液體；餵貓、換水的彈窗關掉後貓才走到碗邊 | （還沒開 PR） |
 | 2026-11-12 | 珮瑜 × Claude Code | 鏟屎小遊戲改 3D：拖曳貓砂鏟、連砂鏟起、左右甩掉砂、倒進垃圾袋；貓砂盆四款（只在彈窗裡） | （還沒開 PR） |
 | 2026-11-13 | 珮瑜 × Claude Code | 驗收修正：餵貓一餐只餵一種（先選再倒、選完手先伸進來、罐頭可連開）；後台用品模型尺寸太小的不採用（貓砂盆 13 公分那筆） | （見 PR） |
+| 2026-11-13 | 珮瑜 × Claude Code | 換水加洗碗：菜瓜布搓碗、沖碗倒掉、再接新水（`wash-rules.ts`、`WaterRefillGame3D.tsx`） | （見 PR） |
 
 ## 虛擬飼養讀真實資料與試養報告給中途（/cats/[id]/play）
 - 貓咪：`lib/play/source.ts` 的 `loadPlayCat(id)` 讀 `meow_cats`（名字、花色、生活階段、生日／估計月齡）＋ `meow_cat_model_variants.confirmed_albedo`（3D 貼圖）；讀不到才用 DEMO 麻糬。劇本裡的名字用 `〈貓名〉`（`furniture.ts` 的 `fullTx`）替換，小遊戲原版寫死的「麻糬」由 `CatgameMini` 畫完後換成貓名；非虎斑花色不畫條紋。
