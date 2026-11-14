@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { lightFor } from "./scene-light";
-import { DOCTOR_AT, DOCTOR_PARTS, doctorPose, showVet, TABLE_TOP, VET_COLORS, VET_PARTS, vetLight, vetTalkKey } from "./vet-room";
+import { CAT_AT, DOCTOR_AT, DOCTOR_PARTS, doctorPose, showVet, TABLE_TOP, VET_COLORS, VET_PARTS, vetLight, vetTalkKey } from "./vet-room";
 
 describe("診間（看獸醫時的場景）", () => {
   it("只有劇情節點裡 bg＝vet 才換成診間；在家的時光、開場、報告都是自己家", () => {
@@ -53,12 +53,12 @@ describe("診間的獸醫", () => {
 
   it("站在診療台旁、面向貓", () => {
     const [x, , z] = DOCTOR_AT.pos;
-    const d = Math.hypot(x - TABLE_TOP.x, z - TABLE_TOP.z);
+    const d = Math.hypot(x - CAT_AT.x, z - CAT_AT.z);
     expect(d).toBeGreaterThan(0.4);
     expect(d).toBeLessThan(1);
     // 轉 yaw 後的正前方（local +z）指向貓
     const fx = Math.sin(DOCTOR_AT.yaw), fz = Math.cos(DOCTOR_AT.yaw);
-    const tx = (TABLE_TOP.x - x) / d, tz = (TABLE_TOP.z - z) / d;
+    const tx = (CAT_AT.x - x) / d, tz = (CAT_AT.z - z) / d;
     expect(fx * tx + fz * tz).toBeGreaterThan(0.95);
   });
 
