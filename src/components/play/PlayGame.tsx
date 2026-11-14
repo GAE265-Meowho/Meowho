@@ -96,9 +96,9 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
   const isDemo = cat.demo || !getBrowserSupabase();
   // 一般飼主喵戶的背景；登入了但只有中途／機構喵戶時用範例背景；還在讀＝null
   const guestHome = Boolean(!hh && households && user && hasHome === true);
-  const home = useMemo(() => (hh ? (extras ? hh.home : null) : { ...SAMPLE_HOME }), [hh, extras, guestHome]); // TEMP-SHOT
+  const home = useMemo(() => (hh ? (extras ? hh.home : null) : guestHome ? { ...SAMPLE_HOME } : null), [hh, extras, guestHome]);
   // 我的 3D 房間：undefined＝還在讀，null＝還沒建好（改用公開示範房間，見 pickScanBase）
-  const myBase = frozenRoom ? frozenRoom.base : hh ? (extras ? extras.room?.base ?? null : undefined) : null; // TEMP-SHOT
+  const myBase = frozenRoom ? frozenRoom.base : hh ? (extras ? extras.room?.base ?? null : undefined) : households ? null : undefined;
   // 沒登入、沒有喵戶：帶去登入或建立喵戶，回來接著玩
   const here = `/cats/${cat.catId}/play`;
   useEffect(() => { if (!authLoading && households && !households.length && hasHome !== true) pass(here); }, [authLoading, households, hasHome, pass, here]);

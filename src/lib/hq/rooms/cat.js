@@ -113,7 +113,6 @@ export class RoomCat {
     model.scale.setScalar(s);
     model.position.y = -feet * s;
 
-    globalThis.__cat = this; // TEMP-SHOT
     this.place(this.randomCell());
     return this;
   }
@@ -134,7 +133,6 @@ export class RoomCat {
     }
     const bounds = this.tuckBounds[name];
     const fit = bounds && fitCatInCarrier(carrier, bounds);
-    globalThis.__tuck = { name, bounds, fit, carrier }; // TEMP-SHOT
     if (!fit?.fits) return false;
     this.path = [];
     this.arrive = this.queued = this.face = this.stick = this.jump = this.surface = this.pawing = null;
@@ -154,7 +152,6 @@ export class RoomCat {
   // 從外出籠出來：恢復原本大小，照常閒晃
   untuck() {
     if (this.state !== "tuck") return;
-    (globalThis.__untuck ??= []).push(new Error().stack.split('\n').slice(1,6).join(' | ')); // TEMP-SHOT
     this.cat.scale.setScalar(1);
     // 從籠門走出來：站到門口前面的地板（不然原尺寸的貓會卡在籠子裡、穿過外殼）
     const c = this.tucked, t = c.rotY ?? 0, out = c.depthM / 2 + 0.18;

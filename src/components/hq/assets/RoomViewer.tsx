@@ -34,7 +34,6 @@ const modelCache = new Map<string, Promise<THREE.Object3D>>();
 
 /** 把一個用品（GLB）放成「底部中心在原點、尺寸剛好是公尺 w × h × d」的物件；載入失敗畫同尺寸方塊 */
 async function itemObject(it: SceneItem): Promise<THREE.Object3D> {
-  if (it.id === "carrier") it = { ...it, url: "/play/cat_carrier.glb" }; // TEMP-SHOT
   const box = new THREE.Group();
   try {
     if (!modelCache.has(it.url)) modelCache.set(it.url, gltf.loadAsync(it.url).then(g => g.scene));
@@ -252,7 +251,6 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
         tween = { from: { pos: active.camera.position.clone(), look: controls.target.clone() }, to, start: performance.now() };
       };
       orbit.current = controls as unknown as { enabled: boolean };
-      (window as unknown as Record<string, unknown>).__rv = { tweenTo, THREE }; // TEMP-SHOT
       goTo.current = step => {
         index = (index + step + cameras.length) % cameras.length;
         setSpot({ index, total: cameras.length });
@@ -272,7 +270,6 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
       });
       if (cancelled) return;
       world.current = roomWorld;
-      (window as unknown as Record<string, unknown>).__world = roomWorld; // TEMP-SHOT
       setWorldReady(Boolean(roomWorld));
       if (roomWorld) setActions({ cat: true, bed: roomWorld.hasBed, cup: roomWorld.hasCup });
       let downAt: [number, number] | null = null;
@@ -421,7 +418,6 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
     let stale = false;
     const list = items ?? [];
     const spots = placeScanItems(st.scene, st.layout, list);
-    (window as unknown as Record<string, unknown>).__spots = spots; // TEMP-SHOT
     // 貓不能穿過任何用品；只有劇情叫牠躲進外出籠（第 1 天）時，外出籠才讓牠進去
     const hideInCarrier = story?.action === "carrier";
     world.current?.setItems(list.flatMap((it, i) => (hideInCarrier && it.id === "carrier" ? [] : [{ x: spots[i].x, z: spots[i].z, widthM: it.widthM, depthM: it.depthM }])));
