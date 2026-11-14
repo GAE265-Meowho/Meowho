@@ -10,7 +10,7 @@ import {
   cameraForward, clampInRoom, roomSplats, roomUnit, roomViews, sortCameras,
   type RoomCamera, type RoomLayout, type RoomScene, type RoomViewName,
 } from "@/lib/hq/rooms/demo";
-import { OVERVIEW, coverViewOffset, dragSideOffset, fitFov, playFov, playView, sideAzimuth, sideCamera, type OverviewSide } from "@/lib/hq/rooms/overview";
+import { OVERVIEW, PLAY_VIEW, coverViewOffset, dragSideOffset, fitFov, sideAzimuth, sideCamera, type OverviewSide } from "@/lib/hq/rooms/overview";
 import { createRoomWorld, type RoomWorld } from "@/lib/hq/rooms/world";
 import { isPrivateRoomBase, keepRecentRoom, roomFile } from "@/lib/home-room-cache";
 import { getBrowserSupabase } from "@/lib/supabase/client";
@@ -280,13 +280,11 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
       const sideCam = () => sideCamera(scene.room, sideAzimuth(views.front.dir, side, handed) + dragOff);
       const overviewView = () => floorView(sideCam());
       const homeView = () => (overlay ? fixedView("front") : view(cameras[index]));
-      // 虛擬飼養的開場位置：拍攝點常貼著地板往下拍，往後退、抬高再看（PLAY_VIEW）
-      const playHome = () => {
-        const v = homeView();
-        if (!playModeRef.current) return v;
-        const d = v.look.clone().sub(v.pos);
-        return floorView(playView(floorOf(v.pos), [d.dot(ve1), d.dot(vup), d.dot(ve2)], scene.room));
-      };
+      // 虛擬飼養的一般鏡頭（渝茜 2026-11-14：畫面卡在窗簾那片霧裡）：不用掃描影片的拍攝點（常貼著地板、靠窗，旁邊都是雜訊，
+      // 這裡又只能原地轉頭走不開），改成擺用品那種從房間一側高處往下看整間房，方向和拍攝方向一樣；FOV 放大到裝得下整間房（playLens）
+      const playAz = (() => { const v = homeView(); const d = v.look.clone().sub(v.pos); return Math.atan2(-d.dot(ve2), -d.dot(ve1)); })();
+      const playCam = () => sideCamera(scene.room, playAz);
+      const playHome = () => (playModeRef.current ? floorView(playCam()) : homeView());
       const first = overviewOn ? overviewView() : playHome();
       const threeScene = new THREE.Scene();  // 貓畫在這，高斯點會依深度蓋在它前面
       const movable = scene.assets.room_cut && scene.objects.some(o => o.splat);
@@ -369,7 +367,7 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
       };
       // 俯視時的鏡頭「鏡片」：FOV 與往上移的畫面中心（view offset）。離開俯視時還原
       const baseFov = active.camera.fov;
-      const homeFov = playModeRef.current ? playFov(baseFov) : baseFov;
+      const homeFov = playModeRef.current ? Math.min(PLAY_VIEW.maxFov, Math.max(baseFov, fitFov(scene.room, playCam(), (el.clientWidth || 1) / (el.clientHeight || 1), 0))) : baseFov;
       let lensNow: [number, number] = [baseFov, 0];
       let lensKey = "";
       const setLens = ([fov, off]: [number, number], on: boolean) => {
