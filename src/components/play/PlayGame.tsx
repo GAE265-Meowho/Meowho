@@ -33,6 +33,7 @@ import { nearLabel, type SceneItem } from "@/lib/play/scene-items";
 import { parsePoses, type ItemPose } from "@/lib/play/scan-place";
 import type { RoomPlaceApi, RoomPlaceEdit } from "@/components/hq/assets/RoomViewer";
 import { PlaceMovePad } from "./PlaceMovePad";
+import pm from "./place.module.css";
 import { LINES_TIMEOUT_MS, ruleLines, type Line } from "@/lib/play/lines";
 import { DEMO_DOLLHOUSE, inventoryFromPlan, inventoryFromScan, pickScanBase, type RoomInventory, type RoomKind } from "@/lib/play/room";
 import { goalFor, itemSpots, type CatAction } from "@/lib/play/stage";
@@ -606,21 +607,24 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
       {state.step === "place" && (
         <section className={s.card} aria-labelledby="place-title">
           <h2 id="place-title">把外出籠、餐碗和貓砂盆放進房間</h2>
-          {kind === "scan" && <p className={s.lead}>選好用品後點房間的地板就能放上去，放好的用品可以直接拖曳；右上角的箭頭切換從哪一側看。</p>}
-          <div className={s.chips} role="group" aria-label="要放的用品">
-            {playItems.map(i => (
-              <button key={i.id} type="button" className={s.chipBtn} aria-pressed={placing === i.id}
-                draggable onDragStart={e => setItemDragData(e.dataTransfer, i.id)}
-                onClick={() => setPlacing(i.id)}>
-                {i.name}{placedIds.includes(i.id) ? "（已放）" : ""}
-              </button>
-            ))}
+          {kind === "scan" && <p className={s.lead}>選好用品，點房間地板放上去，放好的可以拖曳；右上角箭頭切換視角。</p>}
+          {/* 用品鈕和移動鈕排在同一列（電腦版），整張卡片不用捲動就看得完 */}
+          <div className={pm.placeRow}>
+            <div className={s.chips} role="group" aria-label="要放的用品">
+              {playItems.map(i => (
+                <button key={i.id} type="button" className={s.chipBtn} aria-pressed={placing === i.id}
+                  draggable onDragStart={e => setItemDragData(e.dataTransfer, i.id)}
+                  onClick={() => setPlacing(i.id)}>
+                  {i.name}{placedIds.includes(i.id) ? "（已放）" : ""}
+                </button>
+              ))}
+            </div>
+            {kind === "scan" && scanSpots[placing] && (
+              <PlaceMovePad name={playItem(placing).name}
+                onNudge={dir => placeApi.current?.nudge(placing, dir) ?? false}
+                onRotate={() => placeApi.current?.rotate(placing) ?? false} />
+            )}
           </div>
-          {kind === "scan" && scanSpots[placing] && (
-            <PlaceMovePad name={playItem(placing).name}
-              onNudge={dir => placeApi.current?.nudge(placing, dir) ?? false}
-              onRotate={() => placeApi.current?.rotate(placing) ?? false} />
-          )}
           {placeMsg && <p className={s.missing} role="status">{placeMsg}</p>}
           <p className={s.lead}>{kind === "scan" ? "或快速放在" : `選一個位置放${playItem(placing).name}`}{kind === "dollhouse" ? "，或用滑鼠把上面的用品拖進房間" : ""}：</p>
           <div className={s.chips} role="group" aria-label="位置">

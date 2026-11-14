@@ -47,3 +47,7 @@
 .moveKey:active { transform: scale(0.94); }
 .moveKey:focus-visible { outline: 3px solid var(--orange); outline-offset: 2px; }
 @media (prefers-reduced-motion: reduce) { .moveKey { transition: none; } .moveKey:active { transform: none; } }
+
+/* 擺用品卡片：用品鈕在左、移動鈕在右，同一列；窄螢幕自動換行 */
+.placeRow { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.placeRow > :first-child { flex: 1 1 260px; }
