@@ -34,6 +34,7 @@ const modelCache = new Map<string, Promise<THREE.Object3D>>();
 
 /** 把一個用品（GLB）放成「底部中心在原點、尺寸剛好是公尺 w × h × d」的物件；載入失敗畫同尺寸方塊 */
 async function itemObject(it: SceneItem): Promise<THREE.Object3D> {
+  if (it.id === "carrier") it = { ...it, url: "/play/cat_carrier.glb" }; // TEMP-SHOT
   const box = new THREE.Group();
   try {
     if (!modelCache.has(it.url)) modelCache.set(it.url, gltf.loadAsync(it.url).then(g => g.scene));
@@ -71,7 +72,7 @@ export interface RoomWand { toy: SceneItem; onCatch: (caught: boolean) => void }
  * overlay：前台預覽版面：前／後／左／右／上五個固定視角疊在畫面上；電腦用 WASD 走、手機用左下角搖桿；
  *   每次開場先跳操作說明，按掉後縮成右下角的按鈕；滾輪還給網頁捲動（觸控板不會誤走）；右下角有全螢幕按鈕
  */
-export default function RoomViewer({ base, cat, items, controls = true, story, wand, bubble, bubbleInset = 0, lookKey, noCat = false, overlay = false }: {
+export default function RoomViewer({ base, cat, items, controls = true, story, wand, bubble, bubbleInset = 0, lookKey, follow = false, onFollowOff, noCat = false, overlay = false }: {
   base: string; cat?: { baseUrl: string; albedoUrl: string } | null; items?: readonly SceneItem[]; controls?: boolean; noCat?: boolean; overlay?: boolean;
   story?: { action: CatAction | null; at: number } | null; wand?: RoomWand | null;
   /** 貓頭頂的小對話框（SVG 圖示）；null＝不顯示 */
@@ -80,6 +81,10 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
   bubbleInset?: number;
   /** 這個值一變，鏡頭就原地轉向貓（null／不變不轉） */
   lookKey?: string | null;
+  /** 跟隨貓：鏡頭保持開啟時的距離與角度，平順跟著貓移動；劇情鏡頭（轉向貓等）進行中暫停，結束後接著跟 */
+  follow?: boolean;
+  /** 玩家自己拖曳、轉動或移動鏡頭時呼叫（跟隨自動關掉） */
+  onFollowOff?: () => void;
 }) {
   const host = useRef<HTMLDivElement>(null);
   const goTo = useRef<(step: number) => void>(() => {});
@@ -122,6 +127,10 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
   const hasBubble = useRef(false);
   const insetRef = useRef(bubbleInset);
   insetRef.current = bubbleInset;
+  const followRef = useRef(follow);
+  followRef.current = follow;
+  const followOffRef = useRef(onFollowOff);
+  followOffRef.current = onFollowOff;
   useEffect(() => { hasBubble.current = Boolean(bubble); }, [bubble]);
   const onCatch = useRef<RoomWand["onCatch"] | null>(null);
   onCatch.current = wand?.onCatch ?? null;
@@ -243,6 +252,7 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
         tween = { from: { pos: active.camera.position.clone(), look: controls.target.clone() }, to, start: performance.now() };
       };
       orbit.current = controls as unknown as { enabled: boolean };
+      (window as unknown as Record<string, unknown>).__rv = { tweenTo, THREE }; // TEMP-SHOT
       goTo.current = step => {
         index = (index + step + cameras.length) % cameras.length;
         setSpot({ index, total: cameras.length });
@@ -262,6 +272,7 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
       });
       if (cancelled) return;
       world.current = roomWorld;
+      (window as unknown as Record<string, unknown>).__world = roomWorld; // TEMP-SHOT
       setWorldReady(Boolean(roomWorld));
       if (roomWorld) setActions({ cat: true, bed: roomWorld.hasBed, cup: roomWorld.hasCup });
       let downAt: [number, number] | null = null;
@@ -301,12 +312,23 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
         move(directions().fwd.multiplyScalar(-Math.sign(e.deltaY) * unit * 0.03));
       }, { passive: false, signal: abort.signal });
 
-      const head = new THREE.Vector3();
+      // 玩家自己動鏡頭：跟隨關掉
+      let dragFrom: [number, number] | null = null;
+      const userMoved = () => { if (followRef.current) followOffRef.current?.(); };
+      el.addEventListener("pointerdown", e => { if (e.isPrimary) dragFrom = [e.clientX, e.clientY]; }, { signal: abort.signal });
+      el.addEventListener("pointermove", e => {
+        if (dragFrom && Math.hypot(e.clientX - dragFrom[0], e.clientY - dragFrom[1]) > 6) { dragFrom = null; userMoved(); }
+      }, { signal: abort.signal });
+      el.addEventListener("pointerup", () => { dragFrom = null; }, { signal: abort.signal });
+      el.addEventListener("wheel", userMoved, { signal: abort.signal });
+      const head = new THREE.Vector3(), catAt = new THREE.Vector3();
+      let followOff: THREE.Vector3 | null = null;  // 開啟跟隨時鏡頭相對貓的位置（保持距離與角度）
       let last = performance.now();
       const tick = (now: number) => {
         const dt = Math.min(0.1, (now - last) / 1000);
         last = now;
         roomWorld?.update(dt);
+        if (!followRef.current) followOff = null;
         const be = bubbleEl.current;
         if (be) {
           if (hasBubble.current && roomWorld?.catHead(head)) {
@@ -327,7 +349,19 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
           controls.target.lerpVectors(tween.from.look, tween.to.look, t);
           active.forceRenderNextFrame();
           if (t === 1) tween = null;
+          followOff = null;  // 劇情鏡頭結束後，用新的角度接著跟
+        } else if (followRef.current && !wandOn.current && roomWorld?.catHead(catAt)) {
+          if (held.size || stick.current.x || stick.current.y) userMoved();
+          // 檢視器的 orbit 目標貼在鏡頭前 LOOK_AT 處，所以距離與角度要用「鏡頭相對貓」記
+          followOff ??= active.camera.position.clone().sub(catAt);
+          const k = 1 - Math.exp(-dt * 4);  // 平順跟上
+          const reach = controls.target.distanceTo(active.camera.position);
+          active.camera.position.lerp(catAt.clone().add(followOff), k);
+          const look = catAt.clone().sub(active.camera.position).normalize();
+          controls.target.lerp(active.camera.position.clone().addScaledVector(look, reach), Math.max(k, 0.3));
+          active.forceRenderNextFrame();
         } else if (held.size || stick.current.x || stick.current.y) {
+          followOff = null;
           const { up, fwd, right } = directions();
           const d = new THREE.Vector3();
           // 搖桿推越遠走越快；和鍵盤同時用時合起來不超過全速
@@ -387,6 +421,7 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
     let stale = false;
     const list = items ?? [];
     const spots = placeScanItems(st.scene, st.layout, list);
+    (window as unknown as Record<string, unknown>).__spots = spots; // TEMP-SHOT
     // 貓不能穿過任何用品；只有劇情叫牠躲進外出籠（第 1 天）時，外出籠才讓牠進去
     const hideInCarrier = story?.action === "carrier";
     world.current?.setItems(list.flatMap((it, i) => (hideInCarrier && it.id === "carrier" ? [] : [{ x: spots[i].x, z: spots[i].z, widthM: it.widthM, depthM: it.depthM }])));

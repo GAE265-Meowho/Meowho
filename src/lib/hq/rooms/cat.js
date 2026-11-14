@@ -3,11 +3,13 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { fitCatInCarrier } from "../../play/carrier-fit";
 import { poseBounds, tuckClip } from "./pose-bounds";
+import { clipRate, jumpClipFor, jumpHeading, jumpKind, jumpReady, moveClip, turnStep } from "./cat-moves";
+import { clipJumpTiming, inPlaceClip, isJumpClip } from "./jump-clips";
 
 const CAT_HEIGHT_M = 0.3;   // 站著時頭頂離地的高度
 const WALK_SPEED_M = 0.35;  // 公尺/秒
 const TURN_SPEED = 4;       // 弧度/秒
-const JUMP_CROUCH = 0.27;   // 秒，jump_start 的長度，蹲下蓄力時貓不移動
+const JUMP_CROUCH = 0.27;   // 秒，jump_start 的長度，蹲下蓄力時貓不移動（讀不到跳躍動作時間時的預設）
 const JUMP_AIR = 0.7;       // 秒，騰空時間
 const JUMP_LAND = 0.6;      // 秒，落地後停一下再回到待機
 const JUMP_ARC_M = 0.2;     // 拋物線比直線高多少
@@ -86,8 +88,14 @@ export class RoomCat {
     this.mixer = new THREE.AnimationMixer(model);
     // 片段名稱是 rig|rig|walk，取最後一段：idle、walk、run、jump_start、jump、jump_fall、jump_end
     this.clips = {};
-    for (const clip of gltf.animations) {
-      const name = clip.name.split("|").pop();
+    this.jumpTimes = {};  // 跳躍動作的離地、落地時間（從根骨頭位移讀出）
+    for (const raw of gltf.animations) {
+      const name = raw.name.split("|").pop();
+      let clip = raw;
+      if (isJumpClip(name)) {
+        this.jumpTimes[name] = clipJumpTiming(raw);
+        clip = inPlaceClip(raw);  // 位移由程式的拋物線負責，動作只留姿勢
+      }
       this.actions[name] = this.mixer.clipAction(clip);
       this.clips[name] = clip;
     }
@@ -105,6 +113,7 @@ export class RoomCat {
     model.scale.setScalar(s);
     model.position.y = -feet * s;
 
+    globalThis.__cat = this; // TEMP-SHOT
     this.place(this.randomCell());
     return this;
   }
@@ -125,6 +134,7 @@ export class RoomCat {
     }
     const bounds = this.tuckBounds[name];
     const fit = bounds && fitCatInCarrier(carrier, bounds);
+    globalThis.__tuck = { name, bounds, fit, carrier }; // TEMP-SHOT
     if (!fit?.fits) return false;
     this.path = [];
     this.arrive = this.queued = this.face = this.stick = this.jump = this.surface = this.pawing = null;
@@ -137,14 +147,19 @@ export class RoomCat {
     this.current = this.actions[name];
     this.current.setLoop(THREE.LoopRepeat, Infinity).reset().play();
     this.state = "tuck";
+    this.tucked = carrier;
     return true;
   }
 
   // 從外出籠出來：恢復原本大小，照常閒晃
   untuck() {
     if (this.state !== "tuck") return;
+    (globalThis.__untuck ??= []).push(new Error().stack.split('\n').slice(1,6).join(' | ')); // TEMP-SHOT
     this.cat.scale.setScalar(1);
-    this.cat.position.y = 0;
+    // 從籠門走出來：站到門口前面的地板（不然原尺寸的貓會卡在籠子裡、穿過外殼）
+    const c = this.tucked, t = c.rotY ?? 0, out = c.depthM / 2 + 0.18;
+    this.cat.position.set((c.x + Math.sin(t) * out) * this.upm, 0, (c.z + Math.cos(t) * out) * this.upm);
+    this.tucked = null;
     this.setState("idle");
   }
 
@@ -366,9 +381,9 @@ export class RoomCat {
     const { dir, mag } = this.stick;
     this.turnToward(dir, dt);
     const run = mag > RUN_AT;
-    this.playClip(run ? "run" : "walk", false, 0.2);
-    if (this.actions.walk) this.actions.walk.timeScale = 1;
-    const step = (run ? RUN_SPEED_M : WALK_SPEED_M) * mag * this.upm * dt;
+    const speedM = (run ? RUN_SPEED_M : WALK_SPEED_M) * mag;
+    this.playMove(speedM);
+    const step = speedM * this.upm * dt;
     const p = this.cat.position;
     const x = p.x + dir.x * step, z = p.z + dir.y * step;
     if (this.surface) {
@@ -410,7 +425,7 @@ export class RoomCat {
       const diff = this.turnToward(p.target.clone().sub(new THREE.Vector2(this.cat.position.x, this.cat.position.z)), dt);
       if (Math.abs(diff) > 0.1) return;
       p.lunged = true;
-      this.playClip("jump_start", true);
+      if (this.actions.jump_start) this.playClip("jump_start", true);  // 舊模型才有撲的前段；新母體原地待著
     }
     p.t += dt;
     if (p.onHit && p.t >= PAW_HIT) { p.onHit(); p.onHit = null; }
@@ -442,12 +457,32 @@ export class RoomCat {
     return false;
   }
 
+  // 跳躍：先原地轉身面向落點（cat-moves.ts 的 jumpReady）→ 蹲下 → 騰空（朝向固定）→ 落地。
+  // 動作依高低差挑 jump_a（往上）、jump_c（往下）、jump_b（平跳），時間點從動作本身讀；舊模型用 jump_start／jump_fall／jump_end。
   startJump(to, then) {
     this.untuck();
-    this.jump = { from: this.cat.position.clone(), to, t: 0, phase: "crouch", then };
+    const from = this.cat.position.clone();
+    const { clip } = jumpClipFor(jumpKind(from.y / this.upm, to.y / this.upm), Object.keys(this.actions));
+    const legacy = clip === "jump_start" || clip === "jump_fall";
+    const time = clip && !legacy ? this.jumpTimes[clip] : null;
+    this.jump = {
+      from, to, t: 0, phase: "turn", then, clip: legacy ? null : clip,
+      heading: jumpHeading({ x: from.x, z: from.z }, { x: to.x, z: to.z }, this.heading),
+      crouch: time ? time.takeoff : JUMP_CROUCH,
+      air: time ? time.land - time.takeoff : JUMP_AIR,
+      land: time ? time.duration - time.land : JUMP_LAND,
+    };
     this.state = "jump";
     this.face = null;
-    this.playClip("jump_start", true);
+    this.playMove(WALK_SPEED_M * 0.4);  // 原地轉身時踏小步
+  }
+
+  // 移動時的動作：走路（或跑步），播放速度配合實際速度（公尺/秒），不滑步
+  playMove(speedM) {
+    const name = moveClip(speedM, Object.keys(this.actions), RUN_AT);
+    this.playClip(name, false, 0.15);
+    const a = this.actions[name];
+    if (a) a.timeScale = name === "walk" ? clipRate(speedM, WALK_SPEED_M) : clipRate(speedM, SPRINT_SPEED_M) * 1.2;
   }
 
   // ---------- 對外操作 ----------
@@ -525,15 +560,24 @@ export class RoomCat {
   updateJump(dt) {
     const j = this.jump;
     j.t += dt;
-    if (j.phase === "crouch") {
-      this.turnToward(new THREE.Vector2(j.to.x - j.from.x, j.to.z - j.from.z), dt);
-      if (j.t >= JUMP_CROUCH) { j.phase = "air"; j.t = 0; this.playClip("jump_fall", false, 0.08); }
+    if (j.phase === "turn") {
+      // 起跳前先轉身：身體面向落點才蹲下起跳，不會側著身體往上跳
+      this.heading = turnStep(this.heading, j.heading, TURN_SPEED * 1.5 * dt);
+      this.cat.rotation.y = this.heading;
+      if (jumpReady(this.heading, j.heading) || j.t > 2) {
+        j.phase = "crouch"; j.t = 0;
+        if (j.clip) this.playClip(j.clip, true, 0.1); else this.playClip("jump_start", true);
+      }
+    } else if (j.phase === "crouch") {
+      this.heading = j.heading;  // 蹲下時補完最後一點角度
+      this.cat.rotation.y = this.heading;
+      if (j.t >= j.crouch) { j.phase = "air"; j.t = 0; if (!j.clip) this.playClip("jump_fall", false, 0.08); }
     } else if (j.phase === "air") {
-      const s = Math.min(j.t / JUMP_AIR, 1);
+      const s = Math.min(j.t / j.air, 1);
       this.cat.position.lerpVectors(j.from, j.to, s);
       this.cat.position.y += 4 * s * (1 - s) * JUMP_ARC_M * this.upm;
-      if (s === 1) { j.phase = "land"; j.t = 0; this.playClip("jump_end", true, 0.08); }
-    } else if (j.t >= JUMP_LAND) {
+      if (s === 1) { j.phase = "land"; j.t = 0; if (!j.clip) this.playClip("jump_end", true, 0.08); }
+    } else if (j.t >= j.land) {
       this.jump = null;
       this.setState("idle");
       j.then();
@@ -608,9 +652,7 @@ export class RoomCat {
     const step = Math.min(dist, speed * dt);
     this.cat.position.x += Math.sin(this.heading) * step;
     this.cat.position.z += Math.cos(this.heading) * step;
-    if (this.sprint) {  // 衝刺：跑步動作
-      this.playClip("run", false, 0.12);
-      if (this.actions.run) this.actions.run.timeScale = 1.2;
-    } else if (this.actions.walk) this.actions.walk.timeScale = speed / (WALK_SPEED_M * this.upm);
+    // 走路或衝刺：播走路／跑步，速度配合實際移動（母體沒有 run 時用加快的走路）
+    this.playMove(speed / this.upm);
   }
 }

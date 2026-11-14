@@ -16,6 +16,7 @@ import type { BodyType } from "@/lib/hq/cat-models/types";
 import { FALLBACK_CLIP } from "@/lib/hq/cat-models/clips";
 import { headDownPose, PROCEDURAL_CLIPS } from "@/lib/hq/floorplans/story";
 import { nextIdle, type IdleStep } from "@/lib/cat-actions";
+import { inPlaceClip, isJumpClip } from "@/lib/hq/rooms/jump-clips";
 
 /** 程式版吃飯、喝水會壓的骨頭（成貓、幼貓骨架同名），由上而下 */
 const EAT_BONES = ["neck0", "neck1", "head0"] as const;
@@ -90,6 +91,8 @@ export interface CatPreviewProps {
   /** 環境亮度（曝光） */
   light?: number;
   follow?: boolean;
+  /** 跳躍動作原地播（拿掉根骨頭位移，位移由場景程式算；虛擬飼養娃娃屋用） */
+  inPlaceJumps?: boolean;
   onInfo?: (info: PreviewInfo) => void;
   onTextureError?: () => void;
 }
@@ -108,7 +111,7 @@ export function Environment() {
   return null;
 }
 
-export function CatModel({ baseUrl, albedoUrl, clip, speed = 1, paused = false, blink = 0, pupil = 0.25, eye, eyeRight, follow = true, onInfo, onTextureError }: CatPreviewProps) {
+export function CatModel({ baseUrl, albedoUrl, clip, speed = 1, paused = false, blink = 0, pupil = 0.25, eye, eyeRight, follow = true, inPlaceJumps = false, onInfo, onTextureError }: CatPreviewProps) {
   const [textureReady, setTextureReady] = useState(false);
   const gltf = useGLTF(baseUrl);
   const matL = useMemo(() => createCatEyeMaterial(), []);
@@ -144,7 +147,8 @@ export function CatModel({ baseUrl, albedoUrl, clip, speed = 1, paused = false, 
   }, [gltf, matL, matR]);
 
   const mixer = useMemo(() => new THREE.AnimationMixer(rig.root), [rig]);
-  const actions = useMemo(() => Object.fromEntries(gltf.animations.map(c => [c.name, mixer.clipAction(c)])), [gltf, mixer]);
+  const actions = useMemo(() => Object.fromEntries(gltf.animations.map(c =>
+    [c.name, mixer.clipAction(inPlaceJumps && isJumpClip(c.name) ? inPlaceClip(c) : c)])), [gltf, mixer, inPlaceJumps]);
   const current = useRef<THREE.AnimationAction | null>(null);
   // 程式版吃飯／喝水（#297）：骨架 glb 還沒有這個動作時，播 idle 再把頭頸往下壓（story.ts 的 headDownPose）
   const procClip = clip && PROCEDURAL_CLIPS.has(clip) && !actions[clip] ? clip : null;
