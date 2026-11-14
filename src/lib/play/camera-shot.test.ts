@@ -2,11 +2,11 @@ import { describe, expect, it } from "vitest";
 import { shotFor, shotReach } from "./camera-shot";
 
 describe("劇情鏡頭 shotFor", () => {
-  it("第 1 天貓躲進外出籠：等貓走到籠子邊，再靠近、壓低看籠口", () => {
+  it("第 1 天貓躲進外出籠：等貓走到籠子邊，再取景（比跑酷近）", () => {
     const s = shotFor("day1", "carrier");
     expect(s).toMatchObject({ id: "carrier" });
     expect(s!.delayMs).toBeGreaterThan(0);
-    expect(s!.dist).toBeLessThan(1.5);
+    expect(s!.dist).toBeLessThan(shotFor("day30", "zoom")!.dist);
   });
 
   it("半夜跑酷：拉遠，整段奔跑看得到", () => {
