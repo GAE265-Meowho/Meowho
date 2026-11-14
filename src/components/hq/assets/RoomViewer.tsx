@@ -18,9 +18,13 @@ import { placeScanItems, type SceneItem } from "@/lib/play/scene-items";
 import { sceneCatCommand } from "@/lib/play/scene-cat";
 import type { CatAction } from "@/lib/play/stage";
 import type { SceneLight } from "@/lib/play/scene-light";
+import { scanStainSpots, type Stain } from "@/lib/play/urine-stain";
+import { disposeStains, stainMesh } from "./stain-mesh";
 import { CAT_TINT_UNIFORM, TINT_UNIFORM, tintFragment } from "@/lib/hq/rooms/splat-tint";
 import { tintObject } from "@/lib/hq/rooms/tint-material";
 import { shotReach, type CameraShot } from "@/lib/play/camera-shot";
+import { applyElderTint, type ElderCat } from "@/lib/play/elder-cat";
+import { registerSceneGrab } from "@/lib/play/snapshot";
 
 const ALPHA_THRESHOLD = 5;  // 丟掉幾乎透明的高斯，手機比較順
 const WALK_SPEED = 0.15;    // 每秒走幾個房間單位
@@ -59,7 +63,7 @@ async function itemObject(it: SceneItem): Promise<THREE.Object3D> {
   return box;
 }
 
-interface ItemStage { scene: RoomScene; layout: RoomLayout; viewer: GS.Viewer; frame: THREE.Group; toyFrame: THREE.Group }
+interface ItemStage { scene: RoomScene; layout: RoomLayout; viewer: GS.Viewer; frame: THREE.Group; toyFrame: THREE.Group; stainFrame: THREE.Group }
 
 const TOY_SHOW = 6;  // 逗貓玩具在畫面上放大幾倍（真實的老鼠只有 5 公分，看不到）
 
@@ -86,7 +90,7 @@ export interface RoomWand { toy: SceneItem; onCatch: (caught: boolean) => void }
  *   再用 tweenTo（花 ms 毫秒）移到貓頭前 dist 公尺、高 height 公尺的位置看著貓；方向沿用鏡頭當下看貓的方向。
  *   有劇情鏡頭時 lookKey 不再原地轉向（劇情鏡頭已經對著貓）。null／不給＝原本的鏡頭（預設）；俯視鏡頭時不套用
  */
-export default function RoomViewer({ base, cat, items, controls = true, story, wand, bubble, bubbleInset = 0, lookKey, noCat = false, overlay = false, overview = null, light = null, shot = null }: {
+export default function RoomViewer({ base, cat, items, controls = true, story, wand, bubble, bubbleInset = 0, lookKey, noCat = false, overlay = false, overview = null, light = null, shot = null, stains = null, elder = null, capture = false }: {
   base: string; cat?: { baseUrl: string; albedoUrl: string } | null; items?: readonly SceneItem[]; controls?: boolean; noCat?: boolean; overlay?: boolean;
   story?: { action: CatAction | null; at: number } | null; wand?: RoomWand | null;
   /** 貓頭頂的小對話框（SVG 圖示）；null＝不顯示 */
@@ -97,9 +101,19 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
   lookKey?: string | null;
   overview?: OverviewHold | null;
   light?: SceneLight["scan"] | null;
+  /** 尿漬（#354，lib/play/urine-stain.ts 的 stainsFor）；null／不給＝沒有（預設） */
+  stains?: readonly Stain[] | null;
   shot?: CameraShot | null;
+  /** 老貓的樣子（#354 結局，lib/play/elder-cat.ts）：毛色調淡偏灰、縮小一點；null／不給＝原本的樣子 */
+  elder?: ElderCat | null;
+  /** 登記結局回顧的截圖（#354，lib/play/snapshot.ts）；只有虛擬飼養要 */
+  capture?: boolean;
 }) {
   const host = useRef<HTMLDivElement>(null);
+  const elderRef = useRef(elder);
+  elderRef.current = elder;
+  const captureRef = useRef(capture);
+  captureRef.current = capture;
   const goTo = useRef<(step: number) => void>(() => {});
   const goView = useRef<(name: RoomViewName) => void>(() => {});
   const stick = useRef({ x: 0, y: 0 });  // 手機搖桿：x 右、y 前，長度 0～1
@@ -160,6 +174,7 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
     let cancelled = false;
     let viewer: GS.Viewer | null = null;
     let frame = 0;
+    let unGrab: (() => void) | null = null;
     const stage = document.createElement("div");
     stage.className = "hq-roomviewer-stage";
     el.append(stage);
@@ -265,7 +280,12 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
       toyFrame.matrix.copy(itemFrame.matrix);
       toyFrame.updateMatrixWorld(true);
       threeScene.add(toyFrame);
-      itemStage.current = { scene, layout, viewer: active, frame: itemFrame, toyFrame };
+      const stainFrame = new THREE.Group();
+      stainFrame.matrixAutoUpdate = false;
+      stainFrame.matrix.copy(itemFrame.matrix);
+      stainFrame.updateMatrixWorld(true);
+      threeScene.add(stainFrame);
+      itemStage.current = { scene, layout, viewer: active, frame: itemFrame, toyFrame, stainFrame };
       setItemsReady(true);
       const controls = active.controls;
       controls.enableZoom = false;  // 滾輪改成前後走
@@ -314,6 +334,10 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
       });
       if (cancelled) return;
       world.current = roomWorld;
+      // 結局回顧的截圖：畫一幀後同一個工作裡讀畫布（不用全域 preserveDrawingBuffer）
+      // （型別檔沒寫 render、renderer，函式庫實際有：gaussian-splats-3d Viewer.render）
+      const drawable = active as unknown as { render(): void; renderer: THREE.WebGLRenderer };
+      if (captureRef.current) unGrab = registerSceneGrab(() => { drawable.render(); return drawable.renderer.domElement; });
       // 劇情鏡頭：從鏡頭當下看貓的水平方向退 dist 公尺、抬高 height 公尺（keepInRoom 會把鏡頭留在房間裡）
       if (roomWorld) shotTo.current = s => {
         if (overviewOn) return;
@@ -405,11 +429,19 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
         }
       };
       let last = performance.now();
+      let elderOn = false;
       const tick = (now: number) => {
         const dt = Math.min(0.1, (now - last) / 1000);
         last = now;
         roomWorld?.update(dt);
         if (lit.current) { tintSplats(active); tintObjects(); }
+        // 老貓：毛色與體型（換回來時還原一次）
+        if (roomWorld && (elderRef.current || elderOn)) {
+          const el = elderRef.current;
+          applyElderTint(roomWorld.catRoot, el);
+          roomWorld.catRoot.scale.setScalar(el?.scale ?? 1);
+          elderOn = Boolean(el);
+        }
         const be = bubbleEl.current;
         if (be) {
           if (hasBubble.current && roomWorld?.catHead(head)) {
@@ -480,6 +512,7 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
 
     return () => {
       cancelled = true;
+      unGrab?.();
       abort.abort();
       cancelAnimationFrame(frame);
       goTo.current = () => {};
@@ -523,6 +556,25 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
     return () => { stale = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [items, itemsReady, worldReady, story?.action, story?.at]);
+
+  // 尿漬（#354，lib/play/urine-stain.ts）：地板上的扁平貼片，不吃燈光（夜晚也看得到）；清單變了就重畫，null／空＝全部拿掉
+  useEffect(() => {
+    const st = itemStage.current;
+    if (!itemsReady || !st) return;
+    disposeStains(st.stainFrame);
+    if (stains?.length) {
+      const spots = scanStainSpots(st.scene, st.layout, stains);
+      const upm = st.layout.units_per_meter;
+      for (const sp of spots) {
+        const g = stainMesh(sp.id, sp.r);
+        g.scale.setScalar(upm);
+        g.position.set(sp.x * upm, 0.04 * upm, sp.z * upm);
+        st.stainFrame.add(g);
+      }
+    }
+    st.viewer.forceRenderNextFrame();
+    return () => { disposeStains(st.stainFrame); };
+  }, [stains, itemsReady]);
 
   // 俯視鏡頭開關（要排在「鏡頭轉向貓」前面：離開俯視時先回到原本的位置，再轉向貓）
   const overviewWanted = Boolean(overview);

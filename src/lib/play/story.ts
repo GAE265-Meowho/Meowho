@@ -286,17 +286,23 @@ export const STORY: readonly StoryNode[] = [
     page: { title: "熟齡健康檢查", tip: "7 歲以後建議每年健康檢查。很多慢性病早期沒有症狀，及早發現，才有機會及早調整照護。" },
   },
   {
-    id: "farewell", label: "結尾", sub: "〈貓名〉・15 歲", age: 180, body: "adult", speed: 0.55, home: false, personal: true,
+    // 結局的鋪陳（渝茜 2026-11-14）：前一天（白天，老貓在家裡躺著睡）→ 個人化台詞 → 隔天（傍晚，在睡夢中離去）。
+    // 台詞演完輪到飼養紀錄時，畫面接暗幕、回顧、漸白、結案報告（lib/play/ending.ts）；「享年」那句在暗幕裡顯示（farewellCaption）。
+    // 個人化台詞放在前一天之後（personal: false，步驟裡自己放），才不會排在牠離開之後。
+    id: "farewell", label: "結尾", sub: "〈貓名〉・15 歲", age: 180, body: "adult", speed: 0.55, home: false, personal: false,
     steps: [
-      sc("room", "dusk", "frail"),
-      XN("又過了幾年，〈貓名〉的腳步慢了，睡覺的時間變長了。牠還是會在你下班回家時，慢慢走到門口。"),
+      sc("room", "day", "frail"),
+      XN("又過了幾年。最近〈貓名〉好像沒什麼活力，常常黏在你身邊睡覺。"),
+      { k: "personal" },
       sc("room", "dusk", "bed"),
-      XN("一個安靜的下午，〈貓名〉窩在你身邊，輕輕地睡著了，就沒有再醒來。"),
-      sc("room", "dusk", "none"),
-      FN(X => [XN(`${X.name}享年 ${Math.floor(X.age / 12)} 歲。牠在你家度過了一生。`), REC({ pick: "陪伴到最後。", good: null })]),
+      XN("隔天，〈貓名〉窩在你身邊，在睡夢中安靜地離去了。"),
+      REC({ pick: "陪伴到最後。", good: null }),
     ],
     page: null,
   },
 ];
+
+/** 結局暗幕裡的那句：「麻糬享年 15 歲。牠在你家度過了一生。」 */
+export const farewellCaption = (X: Pick<Life, "name" | "age">) => `${X.name}享年 ${Math.floor(X.age / 12)} 歲。牠在你家度過了一生。`;
 
 export const nodeById = (id: NodeId) => STORY.find(n => n.id === id)!;

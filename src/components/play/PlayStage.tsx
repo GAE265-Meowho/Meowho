@@ -15,6 +15,8 @@ import type { RoomWand } from "@/components/hq/assets/RoomViewer";
 import type { CatAction } from "@/lib/play/stage";
 import type { SceneLight } from "@/lib/play/scene-light";
 import type { CameraShot } from "@/lib/play/camera-shot";
+import type { Stain } from "@/lib/play/urine-stain";
+import type { ElderCat } from "@/lib/play/elder-cat";
 import v from "./vet.module.css";
 import s from "./play.module.css";
 import p from "./place.module.css";
@@ -70,7 +72,7 @@ function ViewPad({ onHold }: { onHold: (v: { x: number; y: number }) => void }) 
   );
 }
 
-export function PlayStage({ kind, scanBase, placeView = false, look, tag, bubble, bubbleInset, lookKey, placed, scanItems, story, wand, goal, clip, speed, light, vet = false, vetTalk = null, shot = null, onDrop, onItemError, children }: {
+export function PlayStage({ kind, scanBase, placeView = false, look, tag, bubble, bubbleInset, lookKey, placed, scanItems, story, wand, goal, clip, speed, light, vet = false, vetTalk = null, shot = null, stains = null, elder = null, onDrop, onItemError, children }: {
   kind: "scan" | "dollhouse";
   scanBase: string | null;
   /** 擺用品：掃描房間改成俯視鏡頭，畫面上多四顆轉動視角的方向鍵（娃娃屋不變） */
@@ -103,6 +105,10 @@ export function PlayStage({ kind, scanBase, placeView = false, look, tag, bubble
   vetTalk?: string | null;
   /** 劇情鏡頭（lib/play/camera-shot.ts 的 shotFor）；null＝原本的鏡頭 */
   shot?: CameraShot | null;
+  /** 尿漬（lib/play/urine-stain.ts 的 stainsFor）；空／null＝沒有 */
+  stains?: readonly Stain[] | null;
+  /** 老貓的樣子（結局，lib/play/elder-cat.ts 的 elderFor）；null＝原本的樣子 */
+  elder?: ElderCat | null;
   onDrop?: (itemId: string, at: PlaceAt) => void;
   onItemError?: (key: string) => void;
   children?: ReactNode;
@@ -117,11 +123,11 @@ export function PlayStage({ kind, scanBase, placeView = false, look, tag, bubble
     <section className={overview ? `${s.stage} ${p.stage}` : s.stage} aria-label="3D 房間">
       {tag && <span className={s.stageTag}>{tag}</span>}
       {kind === "scan" && scanBase
-        ? <RoomViewer base={scanBase} items={scanItems} controls={false} story={story} wand={wand} bubble={bubble ? <CareIcon id={bubble} /> : null} bubbleInset={bubbleInset} lookKey={lookKey} overview={overview ? hold : null} light={light?.scan ?? null} shot={shot} />
+        ? <RoomViewer base={scanBase} items={scanItems} controls={false} story={story} wand={wand} bubble={bubble ? <CareIcon id={bubble} /> : null} bubbleInset={bubbleInset} lookKey={lookKey} overview={overview ? hold : null} light={light?.scan ?? null} shot={shot} stains={stains} elder={elder} capture />
         : (
           <FloorplanViewer rooms={ROOMS} selected={ROOMS[0].id} onPick={noop}
             cat={look} placedItems={placed} interactMode="point"
-            catGoal={goal} catClip={clip} catSpeed={speed} light={light?.house ?? null} shot={shot}
+            catGoal={goal} catClip={clip} catSpeed={speed} light={light?.house ?? null} shot={shot} stains={stains} elder={elder} capture
             onFloorDrop={onDrop} onItemError={onItemError} />
         )}
       {vetUsed && (

@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 afterEach(cleanup);
 
 const STORE = "https://demo.supabase.co/storage/v1/object/public/meow-play-audio";
-// Storage 裡有的檔案（/api/play/sounds）：5 首背景音樂＋6 個音效
+// Storage 裡有的檔案（/api/play/sounds）：5 首背景音樂（結案報告 bgm_report 還沒有）＋6 個音效
 const FILES: Record<string, string> = {
   bgm_arrive: "1", bgm_daily: "1", bgm_night: "1", bgm_vet: "1", bgm_farewell: "1",
   sfx_pour_food: "2", sfx_pour_water: "2", sfx_scoop: "2", sfx_scream: "2", sfx_hiss: "2", sfx_yowl: "2",
@@ -42,7 +42,7 @@ describe("虛擬體驗元件管理｜音效", () => {
   it("有沒有音檔照 Storage 實際的檔案；已上傳的可以試聽、看授權檔", async () => {
     const SoundsTab = await load();
     render(<SoundsTab />);
-    expect(await screen.findByText("已上傳 11 / 35 個；目前顯示 35 個")).toBeInTheDocument();
+    expect(await screen.findByText("已上傳 11 / 36 個；目前顯示 36 個")).toBeInTheDocument();
     const yowl = rowOf("sfx_yowl");
     expect(within(yowl).getByText("第 5 份（渝茜）")).toBeInTheDocument();
     expect(within(yowl).getByLabelText("試聽：半夜發情大叫")).toHaveAttribute("src", `${STORE}/sfx/sfx_yowl.mp3?v=2`);
@@ -55,12 +55,12 @@ describe("虛擬體驗元件管理｜音效", () => {
   it("可以依分類篩選、只看已上傳", async () => {
     const SoundsTab = await load();
     render(<SoundsTab />);
-    await screen.findByText("已上傳 11 / 35 個；目前顯示 35 個");
+    await screen.findByText("已上傳 11 / 36 個；目前顯示 36 個");
     fireEvent.click(screen.getByRole("button", { name: "背景音樂" }));
-    expect(screen.getByText("已上傳 11 / 35 個；目前顯示 5 個")).toBeInTheDocument();
+    expect(screen.getByText("已上傳 11 / 36 個；目前顯示 6 個")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "貓的聲音" }));
     fireEvent.click(screen.getByLabelText("只看已上傳"));
-    expect(screen.getByText("已上傳 11 / 35 個；目前顯示 3 個")).toBeInTheDocument();
+    expect(screen.getByText("已上傳 11 / 36 個；目前顯示 3 個")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "逗貓" }));
     expect(screen.getByText("這個分類還沒有上傳的音檔。")).toBeInTheDocument();
   });
@@ -68,28 +68,28 @@ describe("虛擬體驗元件管理｜音效", () => {
   it("可以依「誰呼叫」篩選，並和分類、只看已上傳一起用（#399）", async () => {
     const SoundsTab = await load();
     render(<SoundsTab />);
-    await screen.findByText("已上傳 11 / 35 個；目前顯示 35 個");
+    await screen.findByText("已上傳 11 / 36 個；目前顯示 36 個");
     const who = screen.getByLabelText("誰呼叫");
     fireEvent.change(who, { target: { value: "Tina" } });
-    expect(screen.getByText("已上傳 11 / 35 個；目前顯示 10 個")).toBeInTheDocument();
+    expect(screen.getByText("已上傳 11 / 36 個；目前顯示 10 個")).toBeInTheDocument();
     expect(screen.getByText("sfx_clip")).toBeInTheDocument();
     expect(screen.queryByText("sfx_yowl")).not.toBeInTheDocument();
     fireEvent.click(screen.getByLabelText("只看已上傳"));
-    expect(screen.getByText("已上傳 11 / 35 個；目前顯示 2 個")).toBeInTheDocument();
+    expect(screen.getByText("已上傳 11 / 36 個；目前顯示 2 個")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "逗貓" }));
     expect(screen.getByText("沒有符合條件的音效。")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "全部" }));
     fireEvent.click(screen.getByLabelText("只看已上傳"));
     fireEvent.change(who, { target: { value: "自動切換" } });
-    expect(screen.getByText("已上傳 11 / 35 個；目前顯示 5 個")).toBeInTheDocument();
+    expect(screen.getByText("已上傳 11 / 36 個；目前顯示 6 個")).toBeInTheDocument();
     fireEvent.change(who, { target: { value: "all" } });
-    expect(screen.getByText("已上傳 11 / 35 個；目前顯示 35 個")).toBeInTheDocument();
+    expect(screen.getByText("已上傳 11 / 36 個；目前顯示 36 個")).toBeInTheDocument();
   });
 
   it("新增音效：選音效、挑檔案，顯示上傳後的檔名，送出後清單更新", async () => {
     const SoundsTab = await load();
     render(<SoundsTab />);
-    await screen.findByText("已上傳 11 / 35 個；目前顯示 35 個");
+    await screen.findByText("已上傳 11 / 36 個；目前顯示 36 個");
     fireEvent.click(screen.getByRole("button", { name: "新增音效" }));
     const form = screen.getByRole("form", { name: "新增音效" });
     fireEvent.change(within(form).getByLabelText("要放到哪個音效＊"), { target: { value: "sfx_meow" } });
@@ -105,14 +105,14 @@ describe("虛擬體驗元件管理｜音效", () => {
     expect(body.get("license")).toBe("Pixabay Content License");
     expect((body.get("file") as File).name).toBe("cat meow (1).mp3");
     expect(await screen.findByRole("status")).toHaveTextContent("已上傳「一般喵」（sfx/sfx_meow.mp3）");
-    await waitFor(() => expect(screen.getByText("已上傳 12 / 35 個；目前顯示 35 個")).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText("已上傳 12 / 36 個；目前顯示 36 個")).toBeInTheDocument());
     expect(screen.queryByRole("form", { name: "新增音效" })).toBeNull();
   });
 
   it("從某一列按「換檔」會先選好那個音效，並提醒會取代舊檔", async () => {
     const SoundsTab = await load();
     render(<SoundsTab />);
-    await screen.findByText("已上傳 11 / 35 個；目前顯示 35 個");
+    await screen.findByText("已上傳 11 / 36 個；目前顯示 36 個");
     fireEvent.click(within(rowOf("sfx_hiss")).getByRole("button", { name: "換檔：哈氣" }));
     const form = screen.getByRole("form", { name: "新增音效" });
     expect(within(form).getByLabelText("要放到哪個音效＊")).toHaveValue("sfx_hiss");
@@ -122,7 +122,7 @@ describe("虛擬體驗元件管理｜音效", () => {
   it("沒填完、檔案不對，在送出前就擋下；伺服器拒絕時顯示原因", async () => {
     const SoundsTab = await load();
     render(<SoundsTab />);
-    await screen.findByText("已上傳 11 / 35 個；目前顯示 35 個");
+    await screen.findByText("已上傳 11 / 36 個；目前顯示 36 個");
     fireEvent.click(screen.getByRole("button", { name: "新增音效" }));
     const form = screen.getByRole("form", { name: "新增音效" });
     fireEvent.click(within(form).getByRole("button", { name: "上傳" }));
@@ -145,7 +145,7 @@ describe("虛擬體驗元件管理｜音效", () => {
   it("沒連資料庫時不放播放器", async () => {
     const SoundsTab = await load("");
     render(<SoundsTab />);
-    await screen.findByText(/^已上傳 \d+ \/ 35 個/);
+    await screen.findByText(/^已上傳 \d+ \/ 36 個/);
     expect(screen.queryByLabelText(/^試聽/)).toBeNull();
   });
 });

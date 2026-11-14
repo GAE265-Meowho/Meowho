@@ -20,7 +20,11 @@ import { bowlSlotsOf, detectBowlSlots, setBowlSlots } from "./bowlSlotsDetect";
 import { readItemDragId } from "./itemDrag";
 import type { PlanRoom } from "@/lib/hq/floorplans/types";
 import type { SceneLight } from "@/lib/play/scene-light";
+import { houseStainSpots, STAIN, type Stain } from "@/lib/play/urine-stain";
+import { stainShape } from "./stain-mesh";
 import { shotReach, type CameraShot } from "@/lib/play/camera-shot";
+import { applyElderTint, type ElderCat } from "@/lib/play/elder-cat";
+import { registerSceneGrab } from "@/lib/play/snapshot";
 import { CAT_TINT_UNIFORM } from "@/lib/hq/rooms/splat-tint";
 import { tintObject } from "@/lib/hq/rooms/tint-material";
 
@@ -584,6 +588,27 @@ function Room({ s, planFurniture, onClick, onRemoveFurniture, onRotateFurniture,
   );
 }
 
+/** 尿漬貼片（#354）：地板上的扁平淡黃半透明塊，不吃燈光（夜晚也看得到） */
+function StainDecals({ scene, stains }: { scene: RoomScene; stains: readonly Stain[] }) {
+  const spots = useMemo(() => houseStainSpots(scene, stains), [scene, stains]);
+  return (
+    <>
+      {spots.map(sp => (
+        <group key={sp.id} position={[sp.x, 0.012, sp.z]} rotation={[-Math.PI / 2, 0, 0]} renderOrder={5}>
+          <mesh>
+            <shapeGeometry args={[stainShape(sp.id, sp.r)]} />
+            <meshBasicMaterial color={STAIN.color} transparent opacity={STAIN.opacity} depthWrite={false} side={THREE.DoubleSide} polygonOffset polygonOffsetFactor={-2} polygonOffsetUnits={-2} />
+          </mesh>
+          <mesh position={[0, 0, 0.003]}>
+            <shapeGeometry args={[stainShape(`${sp.id}-core`, sp.r * 0.55)]} />
+            <meshBasicMaterial color={STAIN.core} transparent opacity={STAIN.opacity} depthWrite={false} side={THREE.DoubleSide} polygonOffset polygonOffsetFactor={-2} polygonOffsetUnits={-2} />
+          </mesh>
+        </group>
+      ))}
+    </>
+  );
+}
+
 export interface ViewerCat { baseUrl: string; albedoUrl: string; body: BodyType }
 
 const CAT_FUR = { inPlace: true, only: (m: THREE.Material) => m.name === "cat_fur" };
@@ -594,7 +619,7 @@ const CAT_FUR = { inPlace: true, only: (m: THREE.Material) => m.name === "cat_fu
  * 規則在 catwalk.ts、catjump.ts（純函式、可測）；貓放大 CAT_SCALE 倍（真實比例在整間房的鏡頭裡太小）。
  * pos：貓的世界座標，給鏡頭跟隨用。
  */
-function CatActor({ s, look, click, pos, extraObs, forceClip = null, speed = 1, story = null, items = [], onStory, tint = null }: {
+function CatActor({ s, look, click, pos, extraObs, forceClip = null, speed = 1, story = null, items = [], onStory, elder = null, tint = null }: {
   s: RoomScene; look: ViewerCat; click: (RoomClick & { at: number }) | null; pos: React.RefObject<THREE.Vector3>;
   extraObs: Obstacle[];
   /** 停下來時固定播這個動作（例如 sleep），不自己閒逛（#237 虛擬飼養劇情） */
@@ -607,9 +632,18 @@ function CatActor({ s, look, click, pos, extraObs, forceClip = null, speed = 1, 
   items?: PlacedHouseholdItem[];
   /** 故事線狀態改變時通知（畫面顯示進度） */
   onStory?: (st: StoryState) => void;
+  /** 老貓（#354 結局，lib/play/elder-cat.ts）：毛色調淡偏灰、縮小一點；null＝原本的樣子 */
+  elder?: ElderCat | null;
   /** 虛擬飼養日夜（#354）：貓的材質輸出乘上這個向量；null＝不改材質 */
   tint?: THREE.Vector3 | null;
 }) {
+  // 模型是非同步載入的，所以每幀檢查一次（已套過的不重算）；換回 null 時還原一次就停
+  const tinted = useRef(false);
+  useFrame(() => {
+    if (!elder && !tinted.current) return;
+    applyElderTint(ref.current, elder);
+    tinted.current = Boolean(elder);
+  });
   const world = useMemo(() => worldOf(s, [...obstacles(s), ...extraObs]), [s, extraObs]);
   const start = useMemo(() => freeSpot(s, world.obs) ?? { x: s.size[0] / 2, z: s.size[1] / 2 }, [s, world]);
   const ref = useRef<THREE.Group>(null);
@@ -710,7 +744,7 @@ function CatActor({ s, look, click, pos, extraObs, forceClip = null, speed = 1, 
   }
 
   return (
-    <group ref={ref} position={[start.x, 0, start.z]} scale={CAT_SCALE}>
+    <group ref={ref} position={[start.x, 0, start.z]} scale={CAT_SCALE * (elder?.scale ?? 1)}>
       <Suspense fallback={null}>
         <CatModel baseUrl={look.baseUrl} albedoUrl={look.albedoUrl} clip={clip} follow={false} speed={speed} />
       </Suspense>
@@ -758,6 +792,13 @@ function FollowCat({ pos }: { pos: React.RefObject<THREE.Vector3> }) {
     camera.position.set(camera.position.x + dx, camera.position.y + dy, camera.position.z + dz);
     controls.update();
   });
+  return null;
+}
+
+/** 結局回顧的截圖（#354）：登記「現在畫一幀、回傳畫布」，截圖在同一個工作裡讀，不用全域 preserveDrawingBuffer */
+function SceneGrab() {
+  const { gl, scene, camera } = useThree();
+  useEffect(() => registerSceneGrab(() => { gl.render(scene, camera); return gl.domElement; }), [gl, scene, camera]);
   return null;
 }
 
@@ -831,7 +872,7 @@ export type PlaceAt = { roomId: string; x: number; z: number; y: number; support
 /** point＝點地板／床叫貓；hand＝拖移已放用品／落地家具（不叫貓） */
 export type InteractMode = "point" | "hand";
 
-export default function FloorplanViewer({ rooms, selected, onPick, cat, placedItems = [], interactMode = "point", removedFurniture, furnitureMoves, onMoveItem, onRotateItem, onRemoveItem, onRemoveFurniture, onMoveFurniture, onRotateFurniture, onFloorDrop, catGoal = null, catClip = null, catSpeed = 1, onItemError, story = null, onStory, light = null, shot = null }: {
+export default function FloorplanViewer({ rooms, selected, onPick, cat, placedItems = [], interactMode = "point", removedFurniture, furnitureMoves, onMoveItem, onRotateItem, onRemoveItem, onRemoveFurniture, onMoveFurniture, onRotateFurniture, onFloorDrop, catGoal = null, catClip = null, catSpeed = 1, onItemError, story = null, onStory, light = null, shot = null, stains = null, elder = null, capture = false }: {
   rooms: PlanRoom[]; selected: string | null; onPick: (id: string) => void;
   /** 虛擬體驗（#150）：放一隻貓進去；有貓時只顯示單間（沒有「全部」），點地板叫貓走過去 */
   cat?: ViewerCat | null;
@@ -871,8 +912,14 @@ export default function FloorplanViewer({ rooms, selected, onPick, cat, placedIt
   onStory?: (st: StoryState) => void;
   /** 虛擬飼養的白天／夜晚光（#354，lib/play/scene-light.ts 的 lightFor(time).house）；null／不給＝原本的燈光（MeowHQ） */
   light?: SceneLight["house"] | null;
+  /** 尿漬（#354，lib/play/urine-stain.ts 的 stainsFor）；null／不給＝沒有（預設）。只畫在第一間房 */
+  stains?: readonly Stain[] | null;
   /** 虛擬飼養的劇情鏡頭（#354，lib/play/camera-shot.ts 的 shotFor）；null／不給＝原本的鏡頭（預設） */
   shot?: CameraShot | null;
+  /** 老貓的樣子（#354 結局，lib/play/elder-cat.ts）；null／不給＝原本的樣子 */
+  elder?: ElderCat | null;
+  /** 登記結局回顧的截圖（#354，lib/play/snapshot.ts）；只有虛擬飼養要 */
+  capture?: boolean;
 }) {
   const removedList = useMemo(
     () => (removedFurniture ? [...removedFurniture] : []),
@@ -954,6 +1001,7 @@ export default function FloorplanViewer({ rooms, selected, onPick, cat, placedIt
                     setClick({ ...c, at: Date.now() });
                   }}
                 >
+                  {stains?.length && s.id === shown[0]?.id ? <StainDecals scene={s} stains={stains} /> : null}
                   {roomItems.map(item => (
                     <ItemBoundary key={item.key} fallback={<ItemBox item={item} />} onError={() => onItemError?.(item.key)}>
                       <Suspense fallback={null}>
@@ -967,7 +1015,7 @@ export default function FloorplanViewer({ rooms, selected, onPick, cat, placedIt
                       </Suspense>
                     </ItemBoundary>
                   ))}
-                  {cat && <CatActor key={`${s.id}:${cat.albedoUrl}`} s={s} look={cat} click={catClick} pos={catPos} extraObs={itemObstacles(roomItems.filter(i => !passableItem(story, i.name)))} forceClip={catClip} speed={catSpeed} story={story} items={roomItems} onStory={onStory} tint={light ? catTint : null} />}
+                  {cat && <CatActor key={`${s.id}:${cat.albedoUrl}`} s={s} look={cat} click={catClick} pos={catPos} extraObs={itemObstacles(roomItems.filter(i => !passableItem(story, i.name)))} forceClip={catClip} speed={catSpeed} story={story} items={roomItems} onStory={onStory} elder={elder} tint={light ? catTint : null} />}
                 </Room>
               );
             })}
@@ -977,6 +1025,7 @@ export default function FloorplanViewer({ rooms, selected, onPick, cat, placedIt
           {cat && <FollowCat pos={catPos} />}
           {cat && shot && <ShotRig shot={shot} />}
           {onFloorDrop && <FloorRayBridge api={floorRay} />}
+          {capture && <SceneGrab />}
         </Canvas>
       </div>
     </div>

@@ -38,6 +38,8 @@ export interface RoomWorld {
   catHead(out: THREE.Vector3): boolean;
   /** 鏡頭原地轉向貓（貓不在場就不動），讓頭頂的對話框和貓一起在畫面裡 */
   lookAtCat(): void;
+  /** 貓的節點（移動、轉向用的那層）：虛擬飼養結局把貓換成老貓的毛色與體型（lib/play/elder-cat.ts） */
+  catRoot: THREE.Object3D;
 }
 
 export async function createRoomWorld({ viewer, threeScene, scene, layout, cameras, catUrl, albedoUrl, unit, focus }: {
@@ -110,6 +112,7 @@ export async function createRoomWorld({ viewer, threeScene, scene, layout, camer
 
   return {
     catHead,
+    catRoot: cat.cat,
     hasBed: Boolean(bed),
     hasCup: Boolean(cup),
 
