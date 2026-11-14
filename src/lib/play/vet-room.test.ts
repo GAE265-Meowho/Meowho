@@ -27,12 +27,10 @@ describe("診間（看獸醫時的場景）", () => {
     expect(TABLE_TOP.z).toBe(top!.pos[2]);
   });
 
-  it("吃白天／夜晚光：夜晚比白天暗，貓仍有補光", () => {
+  it("吃白天／夜晚光：夜晚比白天暗", () => {
     const d = vetLight(lightFor("day").house), n = vetLight(lightFor("night").house);
     expect(n.hemi.intensity).toBeLessThan(d.hemi.intensity);
     expect(n.sun.intensity).toBeLessThan(d.sun.intensity);
-    expect(n.catLight).toBeGreaterThan(0);
-    expect(d.catLight).toBe(0);
     // 沒傳光＝白天
     expect(vetLight(null)).toEqual(d);
   });

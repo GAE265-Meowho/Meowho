@@ -26,3 +26,15 @@ describe("Splat 片段著色器乘上 uTint", () => {
     expect(tintFragment("")).toBe("");
   });
 });
+
+describe("虛擬物件材質（three.js 內建，onBeforeCompile 時還是 #include）", () => {
+  const STD = "uniform vec3 diffuse;\nvoid main() {\n  #include <colorspace_fragment>\n  #include <dithering_fragment>\n}";
+
+  it("不要求 gl_FragColor，乘在色彩空間轉換之後；可指定 uniform 名稱", () => {
+    expect(tintFragment(STD)).toBe(STD);
+    const out = tintFragment(STD, "uCatTint", false);
+    expect(out.startsWith("uniform vec3 uCatTint;")).toBe(true);
+    expect(out.indexOf("gl_FragColor.rgb *= uCatTint;")).toBeGreaterThan(out.indexOf("#include <dithering_fragment>"));
+    expect(tintFragment(out, "uCatTint", false)).toBe(out);
+  });
+});

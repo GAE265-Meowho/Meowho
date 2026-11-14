@@ -78,14 +78,14 @@ export function showVet({ step, bg, home }: { step: string; bg: string; home: bo
 }
 
 /** 診間的燈：直接吃白天／夜晚（lightFor(time).house）；沒傳＝白天。診間不需要背景色（牆蓋滿畫面） */
-export type VetLight = Pick<SceneLight["house"], "hemi" | "ambient" | "sun" | "catLight" | "catLightColor">;
+export type VetLight = Pick<SceneLight["house"], "hemi" | "ambient" | "sun">;
 const DAY_VET: VetLight = {
-  hemi: { sky: "#fffaf2", ground: "#d8ccb8", intensity: 1.7 }, ambient: 0.35, sun: { color: "#fff6e8", intensity: 2.2 }, catLight: 0, catLightColor: "#ffe9c9",
+  hemi: { sky: "#fffaf2", ground: "#d8ccb8", intensity: 1.7 }, ambient: 0.35, sun: { color: "#fff6e8", intensity: 2.2 },
 };
 export function vetLight(house: SceneLight["house"] | null | undefined): VetLight {
   if (!house) return DAY_VET;
-  const { hemi, ambient, sun, catLight, catLightColor } = house;
-  return { hemi, ambient, sun, catLight, catLightColor };
+  const { hemi, ambient, sun } = house;
+  return { hemi, ambient, sun };
 }
 
 // ── 獸醫（#354，渝茜 2026-11-14）：程式建的低多邊形 Q 版人物，造型對齊對話框頭像（SpeakerAvatar 的 vet）：

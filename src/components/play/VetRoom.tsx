@@ -139,8 +139,7 @@ export default function VetRoom({ look, light, active, talk = null }: { look: Pl
       <hemisphereLight args={[l.hemi.sky, l.hemi.ground, l.hemi.intensity]} />
       <ambientLight intensity={l.ambient} />
       <directionalLight position={[2, 4, 3]} intensity={l.sun.intensity} color={l.sun.color} />
-      {/* 夜晚診療台上的小補光：一直掛著（白天強度 0），切換日夜時材質不用重新編譯 */}
-      <pointLight position={[TABLE_TOP.x + 0.4, TABLE_TOP.y + 0.6, TABLE_TOP.z + 0.6]} intensity={l.catLight} color={l.catLightColor} distance={1.6} decay={1} />
+      {/* 夜晚不加貓的點光源（#422 第三輪拿掉，診間照舊只用半球光、環境光、平行光） */}
       {VET_PARTS.map(p => (
         <mesh key={p.id} position={[...p.pos]}>
           {p.shape === "box"

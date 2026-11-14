@@ -19,23 +19,21 @@ describe("白天／夜晚兩種光", () => {
 
   it("白天＝兩個 3D 元件原本的燈光（白天傳進去畫面不變）", () => {
     const d = lightFor("day");
-    expect(d.house).toMatchObject({ background: "#F3EFE7", hemi: { sky: "#fffaf2", ground: "#d8ccb8", intensity: 1.7 }, ambient: 0.35, sun: { color: "#fff6e8", intensity: 2.2 }, catLight: 0 });
-    expect(d.scan.hemi).toEqual({ sky: 0xffffff, ground: 0x808080, intensity: 1.6 });
-    expect(d.scan.tint).toEqual([1, 1, 1]);
-    expect(d.scan.catLight).toBe(0);
+    expect(d.house).toMatchObject({ background: "#F3EFE7", hemi: { sky: "#fffaf2", ground: "#d8ccb8", intensity: 1.7 }, ambient: 0.35, sun: { color: "#fff6e8", intensity: 2.2 }, catTint: [1, 1, 1] });
+    expect(d.scan).toEqual({ tint: [1, 1, 1], catTint: [1, 1, 1] });
   });
 
   it("夜晚整體變暗偏藍，但貓有補光、掃描房間不會全黑", () => {
     const d = lightFor("day"), n = lightFor("night");
     expect(n.house.hemi.intensity).toBeLessThan(d.house.hemi.intensity);
     expect(n.house.sun.intensity).toBeLessThan(d.house.sun.intensity);
-    expect(n.house.catLight).toBeGreaterThan(0);
-    expect(n.scan.hemi.intensity).toBeLessThan(d.scan.hemi.intensity);
+    n.house.catTint.forEach(c => expect(c).toBeGreaterThan(1.5));
     const [r, g, b] = n.scan.tint;
     expect(Math.max(r, g, b)).toBeLessThan(0.7);
     expect(Math.min(r, g, b)).toBeGreaterThan(0.15);
     expect(b).toBeGreaterThan(r);
-    expect(n.scan.catLight).toBeGreaterThan(0);
+    // 貓比房間亮（看得清楚），但也比白天暗一點（不像貼上去的）
+    n.scan.catTint.forEach((c, i) => { expect(c).toBeGreaterThan(n.scan.tint[i] + 0.2); expect(c).toBeLessThan(1); });
   });
 
   it("半夜跑酷（zoom）加速，其他姿勢不變", () => {
