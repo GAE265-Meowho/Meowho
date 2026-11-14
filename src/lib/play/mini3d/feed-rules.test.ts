@@ -77,3 +77,18 @@ describe("開罐頭的動作順序", () => {
     expect(frames.filter((f) => f.k > away.k).every((f) => f.lid === 0)).toBe(true);
   });
 });
+
+describe("碗裡原本就有飼料（同一天再進來）", () => {
+  it("added 只算這一次倒的，over 看碗裡總量", () => {
+    const start = pour(newFeed(), 1.6);  // 35
+    const r = feedResult(pour(start, 0.5), 35, start);
+    expect(r.total).toBe(46);
+    expect(r.added).toBe(11);
+    expect(r.bowl.dry).toBeCloseTo(46, 0);
+    expect(feedResult(start, 35, start)).toMatchObject({ added: 0, total: 35 });
+    expect(feedResult(pour(start, 1), 35, start).over).toBe(true);
+  });
+  it("一進來就提示碗裡還有飼料", () => {
+    expect(feedHint(pour(newFeed(), 1.6), 35, false, true)).toContain("碗裡還有飼料");
+  });
+});

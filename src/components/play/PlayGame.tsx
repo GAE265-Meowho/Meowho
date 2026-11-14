@@ -601,23 +601,23 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
           onDone={r => dispatch({ type: "miniDone", result: r })} />
       )}
       {state.step === "node" && cur?.kind === "mini" && cur.mini !== "play" && (
-        <CatgameMini key={`${state.nodeIndex}:${cur.mini}:${state.life.picks.length}`} id={cur.mini} ctx={miniCtx} catName={catName} feedKinds={feedKinds} onRestock={() => setRestocking(true)}
+        <CatgameMini key={`${state.nodeIndex}:${cur.mini}:${state.life.picks.length}`} id={cur.mini} ctx={miniCtx} catName={catName} feedKinds={feedKinds} onRestock={() => setRestocking(true)} day={state.today}
           // 外出籠：劇情只看成功與否（原版結果 { ok, forced, treats }）
           onDone={r => dispatch({ type: "miniDone", result: cur.mini === "carrier" ? (r as { ok?: boolean } | null)?.ok === true : r })} />
       )}
       {state.step === "node" && cur?.kind === "home" && careAct === "play" && scanWand && (
         <ScanWand key={`care:wand:${state.life.care.rounds}`} catName={catName} catches={catches}
-          onDone={r => { dispatch({ type: "care", act: "play", good: careGood("play", r) }); setCareAct(null); }} />
+          onDone={r => { dispatch({ type: "care", act: "play", good: careGood("play", r), result: r }); setCareAct(null); }} />
       )}
       {state.step === "node" && cur?.kind === "home" && careAct && careAct !== "play" && (() => {
         const mini = CARE_ACTS.find(a => a.act === careAct)!.mini!;
         const done = (r: unknown) => {
           if (r === null) { setCareAct(null); return; }
-          dispatch({ type: "care", act: careAct, good: careGood(careAct, r) });
+          dispatch({ type: "care", act: careAct, good: careGood(careAct, r), result: r });
           if (careAct === "feed" || careAct === "water") setServed(n => n + 1);
           setCareAct(null);
         };
-        return <CatgameMini key={`care:${careAct}:${state.life.care.rounds}`} id={mini} ctx={miniCtx} catName={catName} onDone={done} feedKinds={feedKinds} onRestock={() => setRestocking(true)} />;
+        return <CatgameMini key={`care:${careAct}:${state.life.care.rounds}`} id={mini} ctx={miniCtx} catName={catName} onDone={done} feedKinds={feedKinds} onRestock={() => setRestocking(true)} day={state.today} />;
       })()}
 
       </div>}

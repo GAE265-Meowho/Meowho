@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import { Mini3DModal } from "../mini3d/Mini3DModal";
 import { useEffect, useRef } from "react";
 import { feedPortion, type FeedKind } from "@/lib/play/mini3d/feed-rules";
+import type { CareDay } from "@/lib/play/care-day";
 import { startMini, type MiniCtx, type MiniId } from "./minis";
 import s from "./catgame.module.css";
 
@@ -22,8 +23,9 @@ function renameCat(root: HTMLElement, name: string): () => void {
   return () => ob.disconnect();
 }
 
-/** feedKinds／onRestock：餵貓小遊戲用，家裡有的飼料種類與補貨入口（見 lib/play/restock.ts） */
-type Props = { id: MiniId; ctx: MiniCtx; catName: string; onDone: (r: unknown) => void; feedKinds?: FeedKind[]; onRestock?: () => void };
+/** feedKinds／onRestock：餵貓小遊戲用，家裡有的飼料種類與補貨入口（見 lib/play/restock.ts）；
+ *  day：今日照顧狀態（lib/play/care-day.ts），碗裡的飼料、水、砂盆剩幾坨照今天做過的樣子開場 */
+type Props = { id: MiniId; ctx: MiniCtx; catName: string; onDone: (r: unknown) => void; feedKinds?: FeedKind[]; onRestock?: () => void; day?: CareDay };
 const loading = () => <p role="status">3D 遊戲載入中…</p>;
 const BrushGameRealistic = dynamic(() => import("../mini3d/BrushGameRealistic").then(m => m.BrushGameRealistic), { ssr: false, loading: () => <p role="status">刷牙遊戲載入中…</p> });
 const PetGame3D = dynamic(() => import("../mini3d/PetGame3D").then(m => m.PetGame3D), { ssr: false, loading });
@@ -44,18 +46,18 @@ export function CatgameMini(props: Props) {
   }
   if (id === "water") {
     return <Mini3DModal title={"幫" + catName + "換水"} onCancel={() => onDone(null)}>
-      <WaterRefillGame3D onDone={onDone} />
+      <WaterRefillGame3D onDone={onDone} initialFill={props.day?.water} />
     </Mini3DModal>;
   }
   if (id === "scoop") {
     // shortcut: 貓砂盆一律用開放式；採買選的款式（PlayGame 的 box）還沒帶進 MiniCtx，帶得到時傳給 box
     return <Mini3DModal title={"幫" + catName + "鏟屎"} onCancel={() => onDone(null)}>
-      <ScoopGame3D onDone={onDone} />
+      <ScoopGame3D onDone={onDone} clumps={props.day?.litter} />
     </Mini3DModal>;
   }
   if (id === "feed") {
     return <Mini3DModal title={"餵" + catName + "吃飯"} onCancel={() => onDone(null)}>
-      <FeedGame3D portion={feedPortion(ctx)} onDone={onDone} kinds={props.feedKinds} onRestock={props.onRestock} />
+      <FeedGame3D portion={feedPortion(ctx)} onDone={onDone} kinds={props.feedKinds} onRestock={props.onRestock} initial={props.day?.feed} />
     </Mini3DModal>;
   }
   return <LegacyMini {...props} />;
