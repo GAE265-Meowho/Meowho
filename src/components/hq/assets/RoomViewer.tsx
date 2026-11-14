@@ -468,14 +468,14 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
     if (orbit.current) orbit.current.enabled = false;
     w.command({ kind: "roam" });  // 躲起來的貓也要出來玩
     w.play(caught => onCatch.current?.(caught));
-    const [minX, minZ] = st.scene.room.min, [maxX, maxZ] = st.scene.room.max;
     const move = (e: PointerEvent) => {
       if (!(e.target instanceof Node) || !el.contains(e.target)) return;
       const r = el.getBoundingClientRect();
       // 玩具先打到家具檯面（床等）就放在檯面上，貓會跳上去追；否則在地板上（world.ts 的 toyAt）
       const at = w.toyAt(new THREE.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1));
       if (!at) return;
-      const x = Math.min(maxX - 0.1, Math.max(minX + 0.1, at.x)), z = Math.min(maxZ - 0.1, Math.max(minZ + 0.1, at.z));
+      // 房間範圍是沿牆方向（轉 yaw 後）的座標，要轉過去再夾（clampInRoom）；不然斜的房間會把玩具夾到別處
+      const [x, , z] = clampInRoom([at.x, 1, at.z], st.scene.room, 0.1);
       group.position.set(x * upm, at.y * upm, z * upm);
       group.visible = true;
       w.setToy([x, z], at.on);
