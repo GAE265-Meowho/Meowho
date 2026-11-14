@@ -287,3 +287,13 @@
 - **存檔** `src/lib/play/save.ts`：每過一個節點存一次快照（`flow.ts` 的 `Checkpoint`，`PlayState.checkpoint`）連同採買 `pick`、擺放 `placed`／`scanSpots`、喵戶 id 存進 `meow_task_runs.progress`（上限 45 KB，超過會縮短紀錄）；續玩（`resume` 動作）從那個節點的開頭重新開始，節點內的小遊戲重玩；用開始時定格的房間（`frozenRoom`）。可換裝置。
 - **畫面**：`PlayGame` 按「下一步：預算與採買」才建紀錄（`begin`）；HUD 有「放棄」；`ReportStep` 改成完成進行中那筆（`runId`）。貓咪頁 `PlayEntry.tsx` 四種狀態與彈窗（繼續／殘忍放棄／別隻貓時放棄改做／再做一次）；全站右下 `ActiveRunButton`（掛在 `Providers`，任務頁與 MeowHQ 不顯示，位置之後再調）；`AbandonPanel` 從舊 `/run` 搬來。`/cats/[id]/run` 改成轉址到 `/play`，問卷頁、`TaskProof` 的「去做任務」改連 `/play`。
 - **還沒做**：「我的喵戶」頁的繼續任務入口；`/api/cats/[id]/tasks/prepare` 與 `task-run.ts` 的任務選項流程已沒人用（`ABANDON_REASONS` 還在用），之後收掉；浮動按鈕要避開青蛙按鈕（位置待調）；`npm run build` 因本機磁碟已滿（ENOSPC）沒跑成功，tsc、lint、單元測試（1502）都過；沒有用瀏覽器實際走過主線（需要真實帳號、房間與報告）。
+
+## 貓動作串接、跟著貓、第 30 天半夜跑酷（#354 第 5 份，渝茜 × Claude Code，2026-11-14，PR #432、#433）
+- **第 1 天外出籠（#432）**：台詞改「中途把外出籠交給你」；`src/lib/play/carrier-fit.ts` 把貓縮放到外出籠裡、貼最裡面、面向門口（掃描房間 `RoomCat.tuck`、娃娃屋 `CatActor`）。出籠時 `carrierExit` 讓整隻貓（含屁股、尾巴）站到籠門外、面向外面（#433 修：之前半身卡在籠裡）。
+- **動作串接（#433）**：`src/lib/hq/rooms/cat-moves.ts`（純函式）走路／跑步播放速度配合實際速度；跳躍依高低差挑 `jump_a`（上）、`jump_c`（下）、`jump_b`（平），起跳前先原地轉身面向落點。`jump-clips.ts` 拿掉跳躍動作的根骨頭位移、從動作讀離地／落地時間，讓程式的拋物線對上動作。
+- **跟著貓按鈕**：`PlayStage` 左下（手機左上），娃娃屋預設開、掃描房間預設關；玩家自己拖曳或移動鏡頭就關掉。
+- **第 30 天半夜跑酷**：故事的 `zoom` 姿勢對應新的 `CatAction` `zoom`；掃描房間給 `zoomies` 指令（`scene-cat.ts`），`world.ts` 讓貓衝刺（跑步動作）到 1.2～4 公尺外、35% 機率跳上有檯面的家具（落點用 `topSpot` 挑在檯面內）、在家具上待 0.6～1.4 秒就跳下來（`src/lib/play/zoomies.ts`）。移動方向＝頭的方向（RoomCat 沿 heading 前進）。娃娃屋照舊走到房間另一頭。
+- **陪牠玩**：選「睡前陪牠玩到累」先開逗貓小遊戲，玩完才出「你陪〈貓名〉玩了一陣子」。
+- **逗貓玩具上家具**：`world.toyAt` 用鏡頭射線先打檯面（`rayHit`）再打地板，玩具放在檯面高度；玩具在床上時貓跳上去（落點＝玩具位置），在檯面上衝過去撲；玩具回地板貓跳下來。玩具位置改用 `clampInRoom` 夾在房間內（原本把沿牆座標當地板座標夾，斜的房間玩具會被夾到別處）。
+- **驗證**：在渝茜的真實掃描房間（1280×800，Vercel 預覽）看過第 1 天貓在籠內、第 3 天出籠、第 30 天跑酷跳上床再跳下。夜晚光在 #422，這個分支沒有。
+- **還沒做／待確認**：#422（夜晚光、跑酷音效）合併時 `world.ts`、`RoomViewer.tsx`、`PlayStage.tsx` 會衝突，兩邊保留；跑酷在家具上走動仍用家具的軸向範圍（`RoomCat.surfaceRect` 沒考慮 yaw），斜放的床可能走到床緣外一點。
