@@ -298,3 +298,20 @@ Worker 選用的 `report.html` 與 `html-assets/` 位於既有 attempt 前綴。
 - **存檔** `src/lib/play/save.ts`：每過一個節點存一次快照（`flow.ts` 的 `Checkpoint`，`PlayState.checkpoint`）連同採買 `pick`、擺放 `placed`／`scanSpots`、喵戶 id 存進 `meow_task_runs.progress`（上限 45 KB，超過會縮短紀錄）；續玩（`resume` 動作）從那個節點的開頭重新開始，節點內的小遊戲重玩；用開始時定格的房間（`frozenRoom`）。可換裝置。
 - **畫面**：`PlayGame` 按「下一步：預算與採買」才建紀錄（`begin`）；HUD 有「放棄」；`ReportStep` 改成完成進行中那筆（`runId`）。貓咪頁 `PlayEntry.tsx` 四種狀態與彈窗（繼續／殘忍放棄／別隻貓時放棄改做／再做一次）；全站右下 `ActiveRunButton`（掛在 `Providers`，任務頁與 MeowHQ 不顯示，位置之後再調）；`AbandonPanel` 從舊 `/run` 搬來。`/cats/[id]/run` 改成轉址到 `/play`，問卷頁、`TaskProof` 的「去做任務」改連 `/play`。
 - **還沒做**：「我的喵戶」頁的繼續任務入口；`/api/cats/[id]/tasks/prepare` 與 `task-run.ts` 的任務選項流程已沒人用（`ABANDON_REASONS` 還在用），之後收掉；浮動按鈕要避開青蛙按鈕（位置待調）；`npm run build` 因本機磁碟已滿（ENOSPC）沒跑成功，tsc、lint、單元測試（1502）都過；沒有用瀏覽器實際走過主線（需要真實帳號、房間與報告）。
+
+## 虛擬飼養畫面改版（#354，渝茜 × Claude Code，2026-11-13，第 5 份任務表）
+拆成 8 個分支／PR，都還沒在真機或 Preview 走過完整流程（沙盒沒有登入、沒有掃描房間）；合併後請用 390px 與 1280px 各走一次。
+- **字體與字級**（`feat/354-play-type`）：`play.module.css` 的 `.page` 定義字體鏈 `--play-font`（缺字只退到圓體／黑體，不退到明體）與字級變數 `--play-fs-title/h/body/sub/tag`（24/20/17/15/14，≥768px 加 1–2px）、`--play-lh: 1.7`。其他 CSS Module 用 `var(--play-fs-*, 預設值)`。只改虛擬飼養範圍，全站字型沒動。
+- **劇情對話框**（`feat/354-play-dialog`）：`NodeStep.tsx`＋`node.module.css`；頭像與小圖示 `SpeakerAvatar.tsx`（SVG）；純邏輯 `src/lib/play/dialog.ts`（逐句 `nextBeat`、說話者 `voiceOf`、節點貓掌 `pawSteps`）。一次一句，整張卡看完才 `onNext`；說話者有頭像＋名牌，旁白沒有頭像、字色較淡；節點進度是 7 個貓掌。台詞卡時 `PlayGame` 的 `bubbleInset` 是 0.36。
+- **上一步與開場存檔**（`feat/354-play-back-save`）：開場設定（你的家 → 採買 → 擺用品）有「上一步」（`flow.ts` 的 `back`／`prevSetupStep`），帶牠回家之後沒有。回你的家只能看：開始後不能換喵戶，`begin()` 有 `runId` 時不再建紀錄。存檔格式 `SavedRun.cp` 可為 null＋`setupStep`（舊資料照讀）。設定階段換步驟馬上存、改選擇後 1 秒存、離開頁面（`pagehide`）補存；節點中照舊每進一個節點存一次。
+- **擺用品俯視視角**（`feat/354-play-place-view`）：`RoomViewer` 新增 `overview` prop（預設 null＝原本行為）；擺用品時掃描房間改成俯視，只能繞中心轉、調俯仰角（離垂直 15°～60°，開場 35°），不能走動、縮放。操作：`PlayStage` 四顆方向鍵（按住連轉）、拖曳、鍵盤方向鍵。常數在 `src/lib/hq/rooms/overview.ts` 的 `OVERVIEW`。示範娃娃屋沒有方向鍵。
+- **採買**（`feat/354-play-shop`）：飼料依貓月齡分階段（`foodStage`：<12 個月幼貓、12 個月起成貓、84 個月起熟齡、132 個月起老貓，目錄沒有的階段退到最近），預設列該階段並掛「推薦」，可切全部年齡；熟齡、老貓每日克數沿用成貓。小提示 `src/lib/play/food-tips.ts`（待獸醫確認）。用品圖是 3D 截圖（`node scripts/render-play-thumbs.mjs` → `public/play/thumbs/`，需 google-chrome）；沒有模型的用 `ShopStep.tsx` 的 2D `KitIcon`。
+- **試養報告**（`feat/354-play-report`）：`ReportStep` 與中途對話串的 `TaskProof`（`GameReport`）共用 `ReportParts.tsx` 的 `MoodScales`、`CostCard`、`PickZone`。中途端仍不含家裡位置與物件清單。
+- **濕糧與補貨**（`feat/354-play-restock`，疊在前面幾個分支上）：沒買乾糧／濕糧，餵貓小遊戲對應種類鎖住（湯罐目錄沒有商品，先跟著濕糧走，`src/lib/play/restock.ts`）。在家的時光有「補貨」圖示、餵貓視窗被鎖住時有「去補貨」，開 `RestockDialog`；補貨走 `restock` action，用 `shopCost` 重算每月花費並在 `life.notes` 記一筆。只做有／沒有，不做數量消耗。
+- **劇情審稿**：`docs/play-tasks/5-劇情審稿.md`（91 項，第二區 18 項健康台詞要獸醫確認後才能定稿）。`故事文字總整理.md` 不在 repo，沒對照原稿。
+
+### 地雷（2026-11-13 改版）
+- 俯視鏡頭的 `OVERVIEW.heightM`／`tiltStart`／`tiltMax` 還沒實機調過；掃描房間從上方看可能有破洞。
+- `.sheet` 的 `--sheet-max` 被 `node.module.css` 拿來算長卡片高度；對話框高度改了 `bubbleInset` 要跟著調。一般台詞卡不要設 `overflow`（貓形按鈕的尾巴會超出，會多出捲軸）。
+- 改花費項目時要同步改 `CostCard` 的五個 key。
+- 審稿找到的程式問題（沒改）：`accidentSteps` 沒有風險清單時仍送獸醫並扣 2,500 元，與註解「在家觀察」不符；`report.ts` 的 `flags.scolded` 沒有地方設定；`lines.ts` 寫死「五年」與幼貓語氣。
