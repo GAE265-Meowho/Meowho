@@ -23,7 +23,7 @@ import { nodeLabel } from "@/lib/play/timeline";
 import { catBubble } from "@/lib/play/needs";
 import { StatusMeters } from "./StatusMeters";
 import type { PlayCatSource } from "@/lib/play/source";
-import { clampShop, defaultShop, money, playFoods, shopCost, type PlayShop, type ShopPick } from "@/lib/play/costs";
+import { clampShop, defaultShop, foodStage, money, playFoods, shopCost, type PlayShop, type ShopPick } from "@/lib/play/costs";
 import { playShop, type PlayCatalogItem } from "@/lib/play/catalog";
 import { initialPlay, playReducer, prevSetupStep, type PlayAction } from "@/lib/play/flow";
 import { homeWord } from "@/lib/play/furniture";
@@ -42,6 +42,7 @@ import { CatgameMini } from "./catgame/CatgameMini";
 import type { MiniCtx } from "./catgame/minis";
 import { CareBar, HomeStep } from "./HomeStep";
 import { NodeStep } from "./NodeStep";
+import { Glyph } from "./SpeakerAvatar";
 import { SoundToggle, usePlayBgm } from "./PlayAudio";
 import { PlayStage } from "./PlayStage";
 import { ScanWand } from "./ScanWand";
@@ -51,6 +52,8 @@ import e from "./play-entry.module.css";
 import { RunGateCard } from "./RunGateCard";
 import { notifyRunChanged, useActiveRun, useRunProgress } from "./useActiveRun";
 import { ShopStep } from "./ShopStep";
+import { DayEndDialog } from "./DayEndDialog";
+import { dayEnd, type DayEnd, endsDay } from "@/lib/play/day-end";
 import { useHouseholdExtras, usePlayHouseholds, useRunReportId } from "./usePlayData";
 import { HazardDialog } from "./HazardDialog";
 import { canShowHazard, hazardReportTarget, loadReportHazard, year5HazardMoment, type ReportHazardItem } from "@/lib/play/year5-hazard";
@@ -176,7 +179,7 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
   }, [inYear5, hazardHh, hazardRp, riskKey]);
   const hazardNow = year5HazardMoment({ step: state.step, nodeId: state.step === "node" ? node.id : null, cur: cur?.kind === "lines" ? { kind: "lines", lines: cur.lines } : cur, sceneBg: state.scene.bg, events: state.life.events, risk: state.life.risk });
   useEffect(() => { if (hazardNow && canShowHazard(hazardItem) && hazardItem.key === riskKey && !hazardShown.current) { hazardShown.current = true; setHazardOpen(true); } }, [hazardNow, hazardItem, riskKey]);
-  const shop = shopCost(pick, "kitten", backShop);
+  const shop = shopCost(pick, foodStage(startMonths), backShop);
   useEffect(() => { setPick(p => clampShop(p, backShop)); }, [backShop]);
   const shopMissing = [...(pick.budget ? [] : ["每月預算"]), ...shop.missing];
 
@@ -382,11 +385,11 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
     const r = room;
     (async () => {
       const lab = r.inventory.labels;
-      const foods = playFoods("kitten").filter(f => f.canBuy);
+      const foods = playFoods(foodStage(startMonths)).filter(f => f.canBuy);
       const qp: ShopPick = { ...defaultShop(), dryId: foods.find(f => f.product.category === "dry")?.product.id ?? null, wetId: foods.find(f => f.product.category === "wet")?.product.id ?? null,
         budget: extras?.budget ?? 5000 };
       setPick(qp);
-      const qs = shopCost(qp, "kitten", backShop);
+      const qs = shopCost(qp, foodStage(startMonths), backShop);
       if (r.kind === "dollhouse") {
         const list: PlacedHouseholdItem[] = [];
         for (const it of playItems) {
@@ -491,6 +494,12 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
   const bubble = state.step === "node" ? catBubble({ storyBub: cur?.kind === "home" ? null : state.bub, home: cur?.kind === "home", busy: careAct !== null, done: state.homeDone, canPlay: kind === "scan" }) : null;
   // 有對話框時把鏡頭轉向貓，不然框只能貼在畫面邊緣
   const lookKey = state.step === "node" && bubble && !careAct ? `${state.nodeIndex}:${cur?.kind}:${bubble}:${state.life.care.rounds}` : null;
+  // 每天結束的儀式（#354）：這次「下一步」會進下一個節點時，先跳中途的視窗（結尾前不跳）
+  const [dayEndShown, setDayEndShown] = useState<DayEnd | null>(null);
+  const nextOrDayEnd = () => {
+    const d = endsDay({ step: state.step, nodeIndex: state.nodeIndex, abandoned: state.life.abandoned, cur: cur?.kind ?? null }) ? dayEnd(state.nodeIndex, catName) : null;
+    if (d) setDayEndShown(d); else dispatch({ type: "next" });
+  };
   const canPeek = state.step === "place" || (state.step === "node" && cur?.kind !== "mini" && !careAct);
   useEffect(() => { setPeek(false); }, [state.step, state.nodeIndex, cur]);
   // 背景音樂依步驟、節點、場景切換（第 6 份）
@@ -550,7 +559,7 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
       {immersive && state.step === "node" && cur?.kind === "home" && !careAct && <CareBar state={state} canPlay={kind === "scan"} onAct={setCareAct} />}
 
       {showStage && (
-        <PlayStage kind={kind} scanBase={scanBase} placeView={state.step === "place"} place={placeEdit} look={look} bubble={bubble} bubbleInset={peek || (cur?.kind === "home" && !careAct) ? 0.08 : 0.48} lookKey={lookKey} placed={placed} scanItems={scanItems} story={story} wand={wand}
+        <PlayStage kind={kind} scanBase={scanBase} placeView={state.step === "place"} place={placeEdit} look={look} bubble={bubble} bubbleInset={peek || (cur?.kind === "home" && !careAct) ? 0.08 : cur?.kind === "lines" || cur?.kind === "personal" ? 0.36 : 0.48} lookKey={lookKey} placed={placed} scanItems={scanItems} story={story} wand={wand}
           goal={goal} clip={clip} speed={state.step === "node" ? node.speed : 1}
           onDrop={state.step === "place" && kind === "dollhouse"
             ? (id, at) => { if (playItems.some(i => i.id === id)) placeAt(id as PlayItem["id"], at); }
@@ -593,7 +602,7 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
 
       {state.step === "shop" && (
         <>
-          <ShopStep pick={pick} shop={backShop} onChange={setPick} />
+          <ShopStep pick={pick} shop={backShop} onChange={setPick} stage={foodStage(startMonths)} catName={catName} />
           {shopMissing.length > 0 && <p className={s.missing}>還缺：{shopMissing.join("、")}</p>}
           <div className={s.actions}>
             <CatButton disabled={shopMissing.length > 0} onClick={() => dispatch({ type: "next" })}>下一步：擺放用品</CatButton>
@@ -602,7 +611,7 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
       )}
 
       {immersive && <div className={s.sheet} data-peek={peek ? "true" : undefined}>
-      {canPeek && <button type="button" className={s.peekBtn} aria-pressed={peek} onClick={() => setPeek(p => !p)}>{peek ? "回到劇情" : "看看房間"}</button>}
+      {canPeek && <button type="button" className={s.peekBtn} aria-pressed={peek} onClick={() => setPeek(p => !p)}><Glyph id="eye" size={18} />{peek ? "回到劇情" : "看看房間"}</button>}
       {state.step === "place" && (
         <section className={s.card} aria-labelledby="place-title">
           <h2 id="place-title">把外出籠、餐碗和貓砂盆放進房間</h2>
@@ -643,7 +652,7 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
 
       {state.step === "node" && (
         <NodeStep state={state} personal={personal}
-          onNext={() => dispatch({ type: "next" })} onChoose={i => dispatch({ type: "choose", index: i })} />
+          onNext={nextOrDayEnd} onChoose={i => dispatch({ type: "choose", index: i })} />
       )}
       {relocateMode === "apart" && (
         <section className={s.card} aria-labelledby="relocate-title">
@@ -654,8 +663,10 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
           </div>
         </section>
       )}
+      {/* 每天結束的儀式（#354）：中途說今天是第幾天、接下來做什麼，按「開始」才進下一天 */}
+      {dayEndShown && <DayEndDialog day={dayEndShown} onStart={() => { setDayEndShown(null); dispatch({ type: "next" }); }} />}
       {state.step === "node" && cur?.kind === "home" && !careAct && (
-        <HomeStep onFinish={() => dispatch({ type: "next" })} />
+        <HomeStep onFinish={nextOrDayEnd} />
       )}
       {playMini && scanWand && (
         <ScanWand key={`story:wand:${state.nodeIndex}`} catName={catName} catches={catches}
