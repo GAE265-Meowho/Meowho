@@ -1,0 +1,83 @@
+/* 虛擬飼養採買畫面（#354）：圖像為主的卡片。顏色只用 globals.css 的 v2 token；字級用 play.module.css .page 定義的變數（帶 fallback）。 */
+.text { margin: 0; color: var(--ink); font-size: var(--play-fs-body, 17px); line-height: var(--play-lh, 1.7); }
+
+/* 2D 圖示：線條 --ink，面用 data-f 指定 token 色 */
+.ico { width: 100%; height: 100%; fill: none; stroke: var(--ink); stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
+.ico [data-f="yellow"] { fill: var(--yellow); }
+.ico [data-f="orange"] { fill: var(--orange-soft); }
+.ico [data-f="pink"] { fill: var(--pink); }
+.ico [data-f="mint"] { fill: var(--mint-soft); }
+.ico [data-f="card"] { fill: var(--card); }
+.ico [data-f="ink"] { fill: var(--ink); }
+
+/* ---------- 預算 ---------- */
+.budget { flex-direction: row; align-items: center; gap: 16px; }
+.art { flex: none; width: 76px; height: 76px; padding: 12px; border-radius: 50%; background: var(--yellow-soft); }
+.budgetBody { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 10px; }
+
+/* ---------- 飼料 ---------- */
+.tips { display: flex; gap: 12px; align-items: flex-start; padding: 14px 16px; border-radius: 22px; background: var(--yellow-soft); }
+.tips > div { min-width: 0; display: grid; gap: 4px; }
+.tipsArt { flex: none; width: 44px; height: 44px; }
+.tipsHead { margin: 0; color: var(--ink); font-weight: 700; font-size: var(--play-fs-h, 20px); line-height: 1.5; }
+.chip { min-height: 44px; font-size: var(--play-fs-sub, 15px); }
+.group { display: flex; flex-direction: column; gap: 10px; }
+.groupHead { display: flex; align-items: center; gap: 10px; margin: 0; color: var(--ink); font-size: var(--play-fs-h, 20px); }
+.groupArt { width: 44px; height: 44px; flex: none; }
+.groupArt img, .statArt img, .kitArt img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.groupNote { margin-left: auto; padding: 4px 12px; border-radius: 999px; background: var(--paper); color: var(--ink-soft); font-size: var(--play-fs-tag, 14px); font-weight: 700; }
+
+.foods { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 0; padding: 0; list-style: none; }
+@media (min-width: 640px) { .foods { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.food {
+  width: 100%; height: 100%; display: flex; flex-direction: column; gap: 6px; padding: 8px 8px 12px; border-radius: 22px;
+  border: 2px solid var(--line); background: var(--card); font: inherit; text-align: left; color: var(--ink); cursor: pointer;
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+.food:hover:not(:disabled) { transform: translateY(-2px); border-color: var(--yellow); }
+.food[aria-pressed="true"] { border-color: var(--caramel); background: var(--orange-soft); }
+.food:disabled { cursor: not-allowed; opacity: 0.6; }
+.food:focus-visible { outline: 3px solid var(--orange); outline-offset: 2px; }
+.foodImg { position: relative; aspect-ratio: 1; border-radius: 16px; background: var(--yellow-soft); display: grid; place-items: center; overflow: hidden; }
+.foodImg img { width: 100%; height: 100%; object-fit: contain; }
+.badge {
+  position: absolute; top: 6px; left: 6px; padding: 2px 10px; border-radius: 999px;
+  background: var(--caramel); color: var(--card); font-size: var(--play-fs-tag, 14px); font-weight: 700; line-height: 1.5;
+}
+.check { position: absolute; right: 6px; bottom: 6px; width: 30px; height: 30px; }
+.check circle { fill: var(--caramel); }
+.check path { fill: none; stroke: var(--card); stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
+.foodName { padding: 0 4px; font-size: var(--play-fs-sub, 15px); line-height: 1.45; font-weight: 700; overflow-wrap: anywhere; }
+.price { margin-top: auto; padding: 0 4px; font-size: var(--play-fs-tag, 14px); color: var(--ink-soft); }
+
+/* ---------- 已經準備好的東西 ---------- */
+.kit { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 0; padding: 0; list-style: none; }
+@media (min-width: 480px) { .kit { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (min-width: 720px) { .kit { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.kitCard { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 10px 8px 12px; border-radius: 22px; background: var(--paper); text-align: center; min-width: 0; }
+.kitArt { width: 100%; max-width: 112px; aspect-ratio: 1; padding: 8px; }
+.kitName { color: var(--ink); font-weight: 700; font-size: var(--play-fs-body, 17px); line-height: 1.4; }
+.kitDetail { color: var(--ink-soft); font-size: var(--play-fs-tag, 14px); line-height: 1.4; overflow-wrap: anywhere; }
+.kitPrice { margin-top: 4px; padding: 2px 12px; border-radius: 999px; background: var(--card); color: var(--ink); font-weight: 700; font-size: var(--play-fs-sub, 15px); }
+
+/* ---------- 花費：預算條 ---------- */
+.meter { display: grid; gap: 8px; padding: 14px 16px; border-radius: 22px; background: var(--paper); }
+.meterHead { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 4px 12px; margin: 0; color: var(--ink); font-size: var(--play-fs-body, 17px); }
+.meterHead b { font-size: var(--play-fs-title, 24px); font-family: var(--font-quicksand), var(--font); }
+.bar { height: 22px; border-radius: 999px; background: var(--card); border: 2px solid var(--line); overflow: hidden; }
+.fill { display: block; height: 100%; border-radius: 999px; background: var(--yellow); transition: width 0.3s ease; }
+.meterNote { margin: 0; color: var(--ink); font-weight: 700; font-size: var(--play-fs-body, 17px); }
+.meter[data-over] { background: var(--pink-soft); }
+.meter[data-over] .fill { background: var(--orange-deep); }
+.meter[data-over] .meterNote, .meter[data-over] .meterHead b { color: var(--caramel-deep); }
+
+.stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 0; padding: 0; list-style: none; }
+.stats li { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 12px 6px; border-radius: 22px; background: var(--paper); text-align: center; color: var(--ink); min-width: 0; }
+.stats .ico, .statArt { width: 48px; height: 48px; flex: none; }
+.statLabel { color: var(--ink-soft); font-size: var(--play-fs-tag, 14px); line-height: 1.4; }
+.stats b { font-size: var(--play-fs-body, 17px); font-family: var(--font-quicksand), var(--font); }
+
+@media (prefers-reduced-motion: reduce) {
+  .food, .fill { transition: none; }
+  .food:hover:not(:disabled) { transform: none; }
+}
