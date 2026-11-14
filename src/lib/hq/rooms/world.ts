@@ -198,7 +198,7 @@ export async function createRoomWorld({ viewer, threeScene, scene, layout, camer
               chase.cool = 1.2;
             }
           } else if (dist > CATCH_M) {
-            const k = cat.nearestFree(toy[0] * upm, toy[1] * upm, 12);
+            const k = cat.nearestFree(toy[0] * upm, toy[1] * upm, 12, true);
             if (k !== undefined && k >= 0 && (cat.state === "idle" || !cat.dest || cat.dest.distanceTo(cat.centerOf(k)) > 1e-3)) cat.goTo(k);
           }
         }

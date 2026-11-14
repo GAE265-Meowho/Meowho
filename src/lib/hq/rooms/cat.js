@@ -37,6 +37,7 @@ export class RoomCat {
     this.open = layout.open ? Uint8Array.from(layout.open, (c) => c === "1") : this.walkable;
     this.topM = layout.top_cm ? layout.top_cm.map((c) => c / 100) : null;  // 每格東西頂端高度
     this.cells = [...this.walkable.keys()].filter((k) => this.walkable[k]);
+    this.main = null;  // 最大一塊連通的地板，用到時再算（mainRegion）
 
     // 本地座標系：x 沿 e1、y 沿上方向、z 沿 e2，原點在地板網格角落
     const [e1, up, e2, o] = ["e1", "up", "e2", "origin"].map((k) => new THREE.Vector3(...layout[k]));
@@ -183,14 +184,39 @@ export class RoomCat {
   }
   randomCell() { return this.cells[Math.floor(Math.random() * this.cells.length)]; }
 
-  nearestFree(x, z, maxR = 6) {
+  nearestFree(x, z, maxR = 6, mainOnly = false) {
     const [ci, cj] = this.cellOf(x, z);
+    const main = mainOnly ? this.mainRegion() : null;
     for (let r = 0; r <= maxR; r++) {
       for (let dj = -r; dj <= r; dj++) for (let di = -r; di <= r; di++) {
-        if (Math.max(Math.abs(di), Math.abs(dj)) === r && this.isFree(ci + di, cj + dj)) return this.idx(ci + di, cj + dj);
+        if (Math.max(Math.abs(di), Math.abs(dj)) === r && this.isFree(ci + di, cj + dj) && (!main || main[this.idx(ci + di, cj + dj)])) return this.idx(ci + di, cj + dj);
       }
     }
     return -1;
+  }
+
+  // 最大一塊連通的地板（1＝在裡面）。家具、虛擬用品會把地板切出小角落，從床上跳下來落到那種角落就走不出去
+  mainRegion() {
+    if (this.main) return this.main;
+    const { nx } = this.L, n = this.walkable.length;
+    const label = new Int32Array(n).fill(-1);
+    let best = -1, bestSize = 0;
+    for (const start of this.cells) {
+      if (label[start] >= 0) continue;
+      const q = [start];
+      label[start] = start;
+      for (let h = 0; h < q.length; h++) {
+        const k = q[h], i = k % nx, j = (k - i) / nx;
+        for (const [di, dj] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+          if (!this.isFree(i + di, j + dj)) continue;
+          const m = this.idx(i + di, j + dj);
+          if (label[m] < 0) { label[m] = start; q.push(m); }
+        }
+      }
+      if (q.length > bestSize) { bestSize = q.length; best = start; }
+    }
+    this.main = Uint8Array.from(label, (l) => (l === best && best >= 0 ? 1 : 0));
+    return this.main;
   }
 
   place(k) {
@@ -291,6 +317,7 @@ export class RoomCat {
           }
     }
     this.cells = [...this.walkable.keys()].filter((k) => this.walkable[k]);
+    this.main = null;  // 最大一塊連通的地板，用到時再算（mainRegion）
   }
 
   // 虛擬用品（外出籠、碗、貓砂盆）佔的格子（j * nx + i）設成不能走；換清單時先還原成房間原本的樣子
@@ -299,6 +326,7 @@ export class RoomCat {
     this.walkable.set(this.baseWalkable);
     for (const k of indices) this.walkable[k] = 0;
     this.cells = [...this.walkable.keys()].filter((k) => this.walkable[k]);
+    this.main = null;  // 最大一塊連通的地板，用到時再算（mainRegion）
   }
 
   // 可走的格子裡，依 dist（到物品的距離）挑 lo~hi 之間的，鏡頭看得到的優先，其次離貓近
@@ -419,7 +447,7 @@ export class RoomCat {
   // 跳回最近的空地板
   jumpDown() {
     // 找半徑 2 公尺內最近的空地板（大床的中間離床邊超過 1 公尺，原本 15 格找不到就卡在床上）
-    const k = this.nearestFree(this.cat.position.x, this.cat.position.z, Math.max(15, Math.ceil((2 * this.upm) / this.L.cell)));
+    const k = this.nearestFree(this.cat.position.x, this.cat.position.z, Math.max(15, Math.ceil((2 * this.upm) / this.L.cell)), true);
     if (k < 0) return false;
     const p = this.centerOf(k);
     this.startJump(new THREE.Vector3(p.x, 0, p.y), () => { this.surface = null; });
