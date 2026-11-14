@@ -6,15 +6,17 @@
 // 3D 元件一律 next/dynamic（ssr: false）。
 import { CareIcon, type CareIconId } from "./CareIcon";
 import dynamic from "next/dynamic";
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { sideFromKey, type OverviewSide } from "@/lib/hq/rooms/overview";
 import type { PlaceAt, PlacedHouseholdItem, RoomClick } from "@/components/hq/assets/FloorplanViewer";
 import type { PlayCatLook } from "@/lib/play/cats";
 import { DEMO_DOLLHOUSE } from "@/lib/play/room";
 import type { SceneItem } from "@/lib/play/scene-items";
-import type { RoomWand } from "@/components/hq/assets/RoomViewer";
+import type { RoomPlaceEdit, RoomWand } from "@/components/hq/assets/RoomViewer";
 import type { CatAction } from "@/lib/play/stage";
 import s from "./play.module.css";
 import f from "./PlayFollow.module.css";
+import p from "./place.module.css";
 
 const loading = () => <div className={s.stageLoading}>3D 房間載入中…</div>;
 const FloorplanViewer = dynamic(() => import("@/components/hq/assets/FloorplanViewer"), { ssr: false, loading });
@@ -23,9 +25,65 @@ const RoomViewer = dynamic(() => import("@/components/hq/assets/RoomViewer"), { 
 const ROOMS = [DEMO_DOLLHOUSE];
 const noop = () => {};
 
-export function PlayStage({ kind, scanBase, look, tag, bubble, bubbleInset, lookKey, placed, scanItems, story, wand, goal, clip, speed, onDrop, onItemError, children }: {
+// 擺用品的四顆視角鈕：切換到從房間哪一側往裡看（像看平面圖：門口＝前側在下方，所以上＝後側）
+const PAD = [
+  { id: "up", side: "back", label: "從房間後側看", key: "ArrowUp", turn: 0 },
+  { id: "left", side: "left", label: "從房間左側看", key: "ArrowLeft", turn: -90 },
+  { id: "right", side: "right", label: "從房間右側看", key: "ArrowRight", turn: 90 },
+  { id: "down", side: "front", label: "從房間前側（門口）看", key: "ArrowDown", turn: 180 },
+] as const satisfies readonly { id: string; side: OverviewSide; label: string; key: string; turn: number }[];
+
+/** 切換俯視視點的四顆鈕；目前那一側亮起（aria-pressed） */
+function ViewPad({ side, onSide }: { side: OverviewSide; onSide: (s: OverviewSide) => void }) {
+  return (
+    <div className={p.pad} role="group" aria-label="切換視角">
+      {PAD.map(b => (
+        <button key={b.id} type="button" className={p.key} data-dir={b.id} aria-pressed={side === b.side} aria-label={b.label} title={b.label}
+          onClick={() => onSide(b.side)}>
+          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" style={{ transform: `rotate(${b.turn}deg)` }}>
+            <path d="M12 5l7 9h-4.5v5h-5v-5H5z" fill="currentColor" />
+          </svg>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/** 量擺用品卡片（劇情卡底板 .sheet 的最後一張）蓋住舞台下方的比例；卡片大小、視窗大小一變就重量 */
+function useBottomCover(stage: React.RefObject<HTMLElement | null>, on: boolean) {
+  const [cover, setCover] = useState(0);
+  useEffect(() => {
+    const el = stage.current;
+    if (!on || !el) { setCover(0); return; }
+    const sheet = el.parentElement?.querySelector<HTMLElement>(`.${CSS.escape(s.sheet)}`) ?? null;
+    const measure = () => {
+      const card = sheet?.lastElementChild as HTMLElement | null | undefined;
+      const r = el.getBoundingClientRect();
+      if (!card || !r.height || card.offsetParent === null) { setCover(0); return; }
+      const c = card.getBoundingClientRect();
+      // 只算真的疊在舞台上的部分（電腦版卡片在舞台中下方，也算）
+      const overlap = Math.min(r.bottom, c.bottom) - Math.max(r.top, c.top);
+      setCover(overlap > 0 && c.top > r.top ? Math.round((Math.min(r.bottom, c.bottom) - c.top) / r.height * 100) / 100 : 0);
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    if (sheet) { ro.observe(sheet); for (const c of Array.from(sheet.children)) ro.observe(c); }
+    const mo = sheet ? new MutationObserver(() => { for (const c of Array.from(sheet.children)) ro.observe(c); measure(); }) : null;
+    mo?.observe(sheet!, { childList: true, attributes: true });
+    addEventListener("resize", measure);
+    return () => { ro.disconnect(); mo?.disconnect(); removeEventListener("resize", measure); };
+  }, [stage, on]);
+  return cover;
+}
+
+export function PlayStage({ kind, scanBase, placeView = false, place = null, look, tag, bubble, bubbleInset, lookKey, placed, scanItems, story, wand, goal, clip, speed, onDrop, onItemError, children }: {
   kind: "scan" | "dollhouse";
   scanBase: string | null;
+  /** 擺用品：掃描房間改成從某一側俯視整個房間，畫面上多四顆切換視角的鈕（娃娃屋不變） */
+  placeView?: boolean;
+  /** 擺用品：在掃描房間裡點地板放用品、拖曳用品、移動鈕（見 RoomViewer 的 place） */
+  place?: RoomPlaceEdit | null;
   /** null＝貓不在畫面（原版場景的 cat: "none"） */
   look: PlayCatLook | null;
   /** 左上角的小標（例如「到家第一天」） */
@@ -59,11 +117,30 @@ export function PlayStage({ kind, scanBase, look, tag, bubble, bubbleInset, look
   const [follow, setFollow] = useState(kind === "dollhouse");
   useEffect(() => { setFollow(kind === "dollhouse"); }, [kind]);
   const followOff = useCallback(() => setFollow(false), []);
+  const [side, setSide] = useState<OverviewSide>("front");
+  const scan = kind === "scan" && Boolean(scanBase);
+  const overview = scan && placeView;
+  const stageEl = useRef<HTMLElement>(null);
+  const cover = useBottomCover(stageEl, overview);
+  // 鍵盤方向鍵切換視角（焦點在輸入框時不攔）
+  useEffect(() => {
+    if (!overview) return;
+    const onKey = (e: globalThis.KeyboardEvent) => {
+      if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey || e.repeat) return;
+      if (e.target instanceof HTMLElement && ["INPUT", "TEXTAREA", "SELECT"].includes(e.target.tagName)) return;
+      const next = sideFromKey(e.code);
+      if (!next) return;
+      e.preventDefault();
+      setSide(next);
+    };
+    addEventListener("keydown", onKey);
+    return () => removeEventListener("keydown", onKey);
+  }, [overview]);
   return (
-    <section className={s.stage} aria-label="3D 房間">
+    <section ref={stageEl} className={overview ? `${s.stage} ${p.stage}` : s.stage} aria-label="3D 房間">
       {tag && <span className={s.stageTag}>{tag}</span>}
       {kind === "scan" && scanBase
-        ? <RoomViewer base={scanBase} items={scanItems} controls={false} story={story} wand={wand} bubble={bubble ? <CareIcon id={bubble} /> : null} bubbleInset={bubbleInset} lookKey={lookKey} follow={follow} onFollowOff={followOff} />
+        ? <RoomViewer base={scanBase} items={scanItems} controls={false} story={story} wand={wand} bubble={bubble ? <CareIcon id={bubble} /> : null} bubbleInset={bubbleInset} lookKey={lookKey} follow={follow} onFollowOff={followOff} overview={overview ? side : null} overviewCover={cover} place={overview ? place : null} />
         : (
           <FloorplanViewer rooms={ROOMS} selected={ROOMS[0].id} onPick={noop}
             cat={look} placedItems={placed} interactMode="point"
@@ -79,6 +156,7 @@ export function PlayStage({ kind, scanBase, look, tag, bubble, bubbleInset, look
           跟著貓
         </button>
       )}
+      {overview && <ViewPad side={side} onSide={setSide} />}
       {children}
     </section>
   );

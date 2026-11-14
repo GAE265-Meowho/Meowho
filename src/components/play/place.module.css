@@ -1,0 +1,33 @@
+/* 虛擬飼養「擺用品」（#354）：俯視鏡頭切換「從房間哪一側看」的四顆鈕，疊在 3D 掃描房間右上方（下半部是擺用品的卡片）。 */
+
+/* 拖曳是微調視角，不要讓瀏覽器拿去捲動或縮放頁面 */
+.stage :global(.hq-roomviewer-host) { touch-action: none; }
+
+.pad {
+  position: absolute; z-index: 4; right: max(12px, env(safe-area-inset-right)); top: calc(max(10px, env(safe-area-inset-top)) + 92px);
+  display: grid; grid-template-columns: repeat(3, 48px); grid-template-rows: repeat(3, 48px); gap: 2px;
+  grid-template-areas: ". up ." "left . right" ". down .";
+}
+.key {
+  width: 48px; height: 48px; padding: 0; display: grid; place-items: center; border-radius: 50%;
+  border: 2px solid var(--line); background: var(--card); color: var(--ink); box-shadow: var(--shadow);
+  cursor: pointer; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+  transition: transform 0.12s, background-color 0.12s;
+}
+.key[data-dir="up"] { grid-area: up; }
+.key[data-dir="left"] { grid-area: left; }
+.key[data-dir="right"] { grid-area: right; }
+.key[data-dir="down"] { grid-area: down; }
+.key svg { pointer-events: none; }
+.key:hover { background: var(--yellow-soft); }
+.key[aria-pressed="true"] { background: var(--yellow); border-color: var(--ink); }
+.key:active { transform: scale(0.94); }
+.key:focus-visible { outline: 3px solid var(--orange); outline-offset: 2px; }
+
+/* 矮螢幕（橫放的手機）：往上收，不要被下面的卡片蓋住 */
+@media (max-height: 520px) { .pad { top: calc(max(10px, env(safe-area-inset-top)) + 52px); grid-template-columns: repeat(3, 44px); grid-template-rows: repeat(3, 44px); } .key { width: 44px; height: 44px; } }
+@media (prefers-reduced-motion: reduce) { .key { transition: none; } .key:active { transform: none; } }
+
+/* 擺用品卡片：用品鈕在左、轉向鈕在右，同一列；窄螢幕自動換行 */
+.placeRow { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.placeRow > :first-child { flex: 1 1 260px; }

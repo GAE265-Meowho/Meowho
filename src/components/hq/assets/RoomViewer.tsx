@@ -10,10 +10,12 @@ import {
   cameraForward, clampInRoom, roomSplats, roomUnit, roomViews, sortCameras,
   type RoomCamera, type RoomLayout, type RoomScene, type RoomViewName,
 } from "@/lib/hq/rooms/demo";
+import { OVERVIEW, coverViewOffset, dragSideOffset, fitFov, sideAzimuth, sideCamera, type OverviewSide } from "@/lib/hq/rooms/overview";
 import { createRoomWorld, type RoomWorld } from "@/lib/hq/rooms/world";
 import { isPrivateRoomBase, keepRecentRoom, roomFile } from "@/lib/home-room-cache";
 import { getBrowserSupabase } from "@/lib/supabase/client";
 import { placeScanItems, type SceneItem } from "@/lib/play/scene-items";
+import { floorHit, footprintSize, screenStep, tryPlace, type Footprint, type ItemPose, type MoveDir } from "@/lib/play/scan-place";
 import { sceneCatCommand } from "@/lib/play/scene-cat";
 import type { CatAction } from "@/lib/play/stage";
 
@@ -70,8 +72,33 @@ export interface RoomWand { toy: SceneItem; onCatch: (caught: boolean) => void }
  * noCat：只看房間、不放貓（前台我的 3D 房間預覽；貓等進了領養任務才出現）
  * overlay：前台預覽版面：前／後／左／右／上五個固定視角疊在畫面上；電腦用 WASD 走、手機用左下角搖桿；
  *   每次開場先跳操作說明，按掉後縮成右下角的按鈕；滾輪還給網頁捲動（觸控板不會誤走）；右下角有全螢幕按鈕
+ * overview：俯視鏡頭（虛擬飼養「擺用品」用，#354）。給了哪一側（front／back／left／right）就從那一側牆邊高處斜往下看整個房間，
+ *   換一側時平順飛過去（prefers-reduced-motion 直接跳）；FOV 依房間大小與畫面比例自動放大，離開俯視時還原。
+ *   拖曳只做左右微調（有上限）；不能走動、不能縮放。null／不給＝原本的鏡頭（預設）；從有變成沒有時鏡頭直接回到原本的開場位置。
+ *   數值都在 lib/hq/rooms/overview.ts 的 SIDE_VIEW。
+ * place：擺用品時可以在房間裡自由擺（只在俯視時有效）：點地板＝把 active 那件放過去、拖曳用品＝移動它（拖用品時鏡頭不轉）；
+ *   place.api 會被填上 nudge（依目前鏡頭方向移一步）與 rotate（轉 90°），給外面的移動鈕用。位置夾在房間內、不和別的用品重疊（lib/play/scan-place）
+ * overviewCover：俯視時畫面下方被卡片蓋住的比例（0～1）；畫面中心會往上移到卡片上方可見區的中間
  */
-export default function RoomViewer({ base, cat, items, controls = true, story, wand, bubble, bubbleInset = 0, lookKey, follow = false, onFollowOff, noCat = false, overlay = false }: {
+/** 擺用品的自由擺放（見 RoomViewer 的 place 說明） */
+export interface RoomPlaceEdit {
+  /** 目前選的用品：點地板就把它放過去；null＝點地板不做事 */
+  active: string | null;
+  /** active 那件的寬、深（公尺；還沒放進房間時用來判斷放不放得下） */
+  activeSize?: [number, number];
+  onPlace: (id: string, pose: ItemPose) => void;
+  onSelect: (id: string) => void;
+  /** 放不下（會和 by 重疊） */
+  onBlocked: (id: string, by: string) => void;
+  api: { current: RoomPlaceApi | null };
+}
+export interface RoomPlaceApi {
+  /** 依目前鏡頭方向往畫面的上下左右移一步；放不下回 false */
+  nudge: (id: string, dir: MoveDir) => boolean;
+  rotate: (id: string) => boolean;
+}
+
+export default function RoomViewer({ base, cat, items, controls = true, story, wand, bubble, bubbleInset = 0, lookKey, follow = false, onFollowOff, noCat = false, overlay = false, overview = null, overviewCover = 0, place = null }: {
   base: string; cat?: { baseUrl: string; albedoUrl: string } | null; items?: readonly SceneItem[]; controls?: boolean; noCat?: boolean; overlay?: boolean;
   story?: { action: CatAction | null; at: number } | null; wand?: RoomWand | null;
   /** 貓頭頂的小對話框（SVG 圖示）；null＝不顯示 */
@@ -84,6 +111,9 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
   follow?: boolean;
   /** 玩家自己拖曳、轉動或移動鏡頭時呼叫（跟隨自動關掉） */
   onFollowOff?: () => void;
+  overview?: OverviewSide | null;
+  overviewCover?: number;
+  place?: RoomPlaceEdit | null;
 }) {
   const host = useRef<HTMLDivElement>(null);
   const goTo = useRef<(step: number) => void>(() => {});
@@ -131,6 +161,20 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
   const followOffRef = useRef(onFollowOff);
   followOffRef.current = onFollowOff;
   useEffect(() => { hasBubble.current = Boolean(bubble); }, [bubble]);
+  const overviewSide = useRef<OverviewSide | null>(overview);
+  overviewSide.current = overview;
+  const coverRef = useRef(overviewCover);
+  coverRef.current = overviewCover;
+  const setOverview = useRef<(side: OverviewSide | null) => void>(() => {});
+  const placeRef = useRef(place);
+  placeRef.current = place;
+  const apiRef = useRef<RoomPlaceApi | null>(null);
+  const itemsRef = useRef(items);
+  itemsRef.current = items;
+  // 外面的移動鈕每次 render 都拿到同一個 api（房間讀好後才有）
+  useEffect(() => { if (place) place.api.current = apiRef.current; });
+  // 目前房間裡每件用品的位置與包圍盒（換過清單就更新；移動鈕連按時先樂觀更新）
+  const poses = useRef<(Footprint & { id: string; rot: number; widthM: number; depthM: number })[]>([]);
   const onCatch = useRef<RoomWand["onCatch"] | null>(null);
   onCatch.current = wand?.onCatch ?? null;
 
@@ -178,15 +222,24 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
         const d = p.clone().sub(vorigin).divideScalar(layout.units_per_meter);
         return [d.dot(ve1), d.dot(vup), d.dot(ve2)];
       };
-      const views = roomViews(scene.room, floorOf(new THREE.Vector3(...cameras[0].position)), Math.sign(ve1.clone().cross(vup).dot(ve2)) || 1);
-      const fixedView = (name: RoomViewName) => {
-        const { pos: [x, y, z], dir: [dx, dy, dz] } = views[name];
+      const handed = Math.sign(ve1.clone().cross(vup).dot(ve2)) || 1;
+      const views = roomViews(scene.room, floorOf(new THREE.Vector3(...cameras[0].position)), handed);
+      // 地板座標（公尺）的位置與方向 → 檢視器座標的鏡頭
+      const floorView = ({ pos: [x, y, z], dir: [dx, dy, dz] }: { pos: number[]; dir: number[] }) => {
         const pos = vorigin.clone().addScaledVector(ve1, x * layout.units_per_meter)
           .addScaledVector(vup, y * layout.units_per_meter).addScaledVector(ve2, z * layout.units_per_meter);
         const dir = ve1.clone().multiplyScalar(dx).addScaledVector(vup, dy).addScaledVector(ve2, dz).normalize();
         return { pos, look: pos.clone().addScaledVector(dir, unit * 0.01) };
       };
-      const first = overlay ? fixedView("front") : view(cameras[index]);
+      const fixedView = (name: RoomViewName) => floorView(views[name]);
+      // 俯視鏡頭（擺用品）：角度只存在這裡，位置每次由 overviewCamera 算出來
+      let side: OverviewSide = overviewSide.current ?? "front";
+      let dragOff = 0;  // 拖曳微調的方位角（換一側時歸零）
+      let overviewOn = Boolean(overviewSide.current);
+      const sideCam = () => sideCamera(scene.room, sideAzimuth(views.front.dir, side, handed) + dragOff);
+      const overviewView = () => floorView(sideCam());
+      const homeView = () => (overlay ? fixedView("front") : view(cameras[index]));
+      const first = overviewOn ? overviewView() : homeView();
       const threeScene = new THREE.Scene();  // 貓畫在這，高斯點會依深度蓋在它前面
       const movable = scene.assets.room_cut && scene.objects.some(o => o.splat);
       viewer = new GS.Viewer({
@@ -246,11 +299,53 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
       controls.maxPolarAngle = Math.PI - 0.02;
       controls.keys = { LEFT: "", UP: "", RIGHT: "", BOTTOM: "" };  // 內建 WASD 是平移
 
-      let tween: { from: { pos: THREE.Vector3; look: THREE.Vector3 }; to: ReturnType<typeof view>; start: number } | null = null;
+      let tween: { from: { pos: THREE.Vector3; look: THREE.Vector3 }; to: ReturnType<typeof view>; start: number; ms?: number; lens?: [[number, number], [number, number]] } | null = null;
       const tweenTo = (to: ReturnType<typeof view>) => {
         tween = { from: { pos: active.camera.position.clone(), look: controls.target.clone() }, to, start: performance.now() };
       };
       orbit.current = controls as unknown as { enabled: boolean };
+      const jumpTo = (to: ReturnType<typeof view>) => {
+        tween = null;
+        active.camera.position.copy(to.pos);
+        controls.target.copy(to.look);
+        active.forceRenderNextFrame();
+      };
+      // 俯視時的鏡頭「鏡片」：FOV 與往上移的畫面中心（view offset）。離開俯視時還原
+      const baseFov = active.camera.fov;
+      let lensNow: [number, number] = [baseFov, 0];
+      let lensKey = "";
+      const setLens = ([fov, off]: [number, number], on: boolean) => {
+        const cam = active.camera, w = el.clientWidth || 1, h = el.clientHeight || 1;
+        lensNow = [fov, off];
+        cam.fov = fov;
+        if (on) cam.setViewOffset(w, h, 0, off, w, h); else cam.clearViewOffset();
+        cam.updateProjectionMatrix();
+        active.forceRenderNextFrame();
+      };
+      const lensTarget = (): [number, number] => {
+        const w = el.clientWidth || 1, h = el.clientHeight || 1;
+        return [fitFov(scene.room, sideCam(), w / h, coverRef.current), coverViewOffset(h, coverRef.current)];
+      };
+      const flyOver = () => {
+        lensKey = "";
+        if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) { jumpTo(overviewView()); setLens(lensTarget(), true); return; }
+        tween = { from: { pos: active.camera.position.clone(), look: controls.target.clone() }, to: overviewView(), start: performance.now(), ms: OVERVIEW.flyMs, lens: [lensNow, lensTarget()] };
+      };
+      if (overviewOn) { orbit.current.enabled = false; setLens(lensTarget(), true); }  // 內建的拖曳轉頭、平移都關掉，改由下面的拖曳微調
+      setOverview.current = next => {
+        if (next === (overviewOn ? side : null)) return;
+        const was = overviewOn;
+        overviewOn = Boolean(next);
+        if (orbit.current) orbit.current.enabled = !overviewOn && !wandOn.current;
+        if (next) {
+          side = next;
+          dragOff = 0;
+          flyOver();
+        } else if (was) {
+          jumpTo(homeView());  // 直接回原本的開場位置：接下來的「轉向貓」是從鏡頭當下的位置算的，不能還在半空中
+          setLens([baseFov, 0], false);
+        }
+      };
       goTo.current = step => {
         index = (index + step + cameras.length) % cameras.length;
         setSpot({ index, total: cameras.length });
@@ -274,8 +369,118 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
       if (roomWorld) setActions({ cat: true, bed: roomWorld.hasBed, cup: roomWorld.hasCup });
       let downAt: [number, number] | null = null;
       el.addEventListener("pointerdown", e => { downAt = [e.clientX, e.clientY]; }, { signal: abort.signal });
+      // 擺用品：點地板放用品、拖曳用品移動（只在俯視時）
+      const upm = layout.units_per_meter;
+      const ray = new THREE.Raycaster();
+      const ndcOf = (e: PointerEvent) => {
+        const r = el.getBoundingClientRect();
+        return new THREE.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+      };
+      const toFloorDir = (v: THREE.Vector3): [number, number, number] => [v.dot(fe1), v.dot(fup), v.dot(fe2)];
+      const floorAt = (e: PointerEvent) => {
+        ray.setFromCamera(ndcOf(e), active.camera);
+        const o = ray.ray.origin.clone().sub(forigin).divideScalar(upm);
+        return floorHit(toFloorDir(o), toFloorDir(ray.ray.direction));
+      };
+      const itemAt = (e: PointerEvent): string | null => {
+        const st = itemStage.current;
+        if (!st) return null;
+        ray.setFromCamera(ndcOf(e), active.camera);
+        const hit = ray.intersectObjects(st.frame.children, true)[0];
+        let o: THREE.Object3D | null = hit?.object ?? null;
+        while (o && !o.userData.itemId) o = o.parent;
+        return (o?.userData.itemId as string | undefined) ?? null;
+      };
+      const groupOf = (id: string) => itemStage.current?.frame.children.find(g => g.userData.itemId === id) ?? null;
+      const others = (id: string) => poses.current.filter(p => p.id !== id);
+      const commit = (id: string, x: number, z: number, rot: number) => {
+        const p = poses.current.find(q => q.id === id);
+        if (p) Object.assign(p, { x, z, rot, ...(([w, d]) => ({ w, d }))(footprintSize(p.widthM, p.depthM, rot)) });
+        placeRef.current?.onPlace(id, { x, z, rot });
+      };
+      const placeOn = () => overviewOn && Boolean(placeRef.current);
+      const api: RoomPlaceApi = {
+        nudge(id, dir) {
+          const p = poses.current.find(q => q.id === id);
+          if (!p || !placeOn()) return false;
+          const look = controls.target.clone().sub(active.camera.position);
+          const [dx, dz] = screenStep(dir, toFloorDir(look), handed, scene.room.yaw ?? 0);
+          const res = tryPlace(scene.room, p, p.x + dx, p.z + dz, others(id));
+          if ("blockedBy" in res) { placeRef.current?.onBlocked(id, res.blockedBy); return false; }
+          commit(id, res.x, res.z, p.rot);
+          return true;
+        },
+        rotate(id) {
+          const p = poses.current.find(q => q.id === id);
+          if (!p || !placeOn()) return false;
+          const rot = (p.rot + 1) % 4;
+          const [w, d] = footprintSize(p.widthM, p.depthM, rot);
+          const res = tryPlace(scene.room, { w, d }, p.x, p.z, others(id));
+          if ("blockedBy" in res) { placeRef.current?.onBlocked(id, res.blockedBy); return false; }
+          commit(id, res.x, res.z, rot);
+          return true;
+        },
+      };
+      apiRef.current = api;
+      if (placeRef.current) placeRef.current.api.current = api;
+      let itemDrag: { id: string; pointerId: number; at: [number, number]; moved: boolean; pos: [number, number] | null } | null = null;
+      el.addEventListener("pointerdown", e => {
+        if (!placeOn() || itemDrag) return;
+        const id = itemAt(e);
+        if (!id) return;
+        placeRef.current?.onSelect(id);
+        itemDrag = { id, pointerId: e.pointerId, at: [e.clientX, e.clientY], moved: false, pos: null };
+      }, { signal: abort.signal });
+      addEventListener("pointermove", e => {
+        if (!itemDrag || e.pointerId !== itemDrag.pointerId) return;
+        if (!itemDrag.moved && Math.hypot(e.clientX - itemDrag.at[0], e.clientY - itemDrag.at[1]) < 6) return;
+        itemDrag.moved = true;
+        const hit = floorAt(e), p = poses.current.find(q => q.id === itemDrag!.id), g = groupOf(itemDrag.id);
+        if (!hit || !p || !g) return;
+        const res = tryPlace(scene.room, p, hit[0], hit[1], others(p.id));
+        if ("blockedBy" in res) return;  // 壓到別的用品：停在上一個能放的位置
+        itemDrag.pos = [res.x, res.z];
+        g.position.set(res.x * upm, 0, res.z * upm);
+        active.forceRenderNextFrame();
+      }, { signal: abort.signal });
+      for (const type of ["pointerup", "pointercancel"] as const) addEventListener(type, e => {
+        if (!itemDrag || e.pointerId !== itemDrag.pointerId) return;
+        const { id, pos } = itemDrag;
+        itemDrag = null;
+        const p = poses.current.find(q => q.id === id);
+        if (pos && p) commit(id, pos[0], pos[1], p.rot);
+      }, { signal: abort.signal });
+      // 點地板（沒拖曳、沒點到用品）＝把選好的用品放過去
+      let tapAt: [number, number] | null = null;
+      el.addEventListener("pointerdown", e => { tapAt = placeOn() && !itemDrag ? [e.clientX, e.clientY] : null; }, { signal: abort.signal });
+      el.addEventListener("pointerup", e => {
+        const pe = placeRef.current;
+        if (!tapAt || !pe?.active || !placeOn() || Math.hypot(e.clientX - tapAt[0], e.clientY - tapAt[1]) > 6) return;
+        tapAt = null;
+        const hit = floorAt(e), it = itemsRef.current?.find(i => i.id === pe.active) ?? null;
+        const p = poses.current.find(q => q.id === pe.active);
+        if (!hit) return;
+        const rot = p?.rot ?? 0;
+        const [w, d] = p ? [p.w, p.d] : it ? footprintSize(it.widthM, it.depthM, rot) : pe.activeSize ?? [0.4, 0.4];
+        const res = tryPlace(scene.room, { w, d }, hit[0], hit[1], others(pe.active));
+        if ("blockedBy" in res) { pe.onBlocked(pe.active, res.blockedBy); return; }
+        if (p) commit(pe.active, res.x, res.z, rot);
+        else pe.onPlace(pe.active, { x: res.x, z: res.z, rot });
+      }, { signal: abort.signal });
+      // 俯視鏡頭：拖曳＝左右微調視角（一次只認一根手指；拖用品時不轉）
+      let dragId: number | null = null, dragAt: [number, number] = [0, 0];
+      el.addEventListener("pointerdown", e => { if (overviewOn && dragId === null && !itemDrag) { dragId = e.pointerId; dragAt = [e.clientX, e.clientY]; } }, { signal: abort.signal });
+      addEventListener("pointermove", e => {
+        if (!overviewOn || e.pointerId !== dragId) return;
+        if (tween) return;
+        dragOff = dragSideOffset(dragOff, e.clientX - dragAt[0], handed);
+        dragAt = [e.clientX, e.clientY];
+        jumpTo(overviewView());
+      }, { signal: abort.signal });
+      for (const type of ["pointerup", "pointercancel"] as const) addEventListener(type, e => { if (e.pointerId === dragId) dragId = null; }, { signal: abort.signal });
       el.addEventListener("pointerup", e => {
         if (wandOn.current) return;  // 逗貓時玩具跟著手指，不用點地板叫貓
+        if (placeOn()) return;  // 擺用品：點地板是放用品
         if (!downAt || Math.hypot(e.clientX - downAt[0], e.clientY - downAt[1]) > 6) return;  // 拖曳是轉頭
         const r = el.getBoundingClientRect();
         roomWorld?.walkTo(new THREE.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1));
@@ -304,7 +509,7 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
         if (inside.distanceToSquared(active.camera.position) > 1e-12) move(inside.sub(active.camera.position));
       };
       el.addEventListener("wheel", e => {
-        if (overlay) return;  // 前台：觸控板兩指滑常誤觸，滾輪還給網頁捲動
+        if (overlay || overviewOn) return;  // 前台：觸控板兩指滑常誤觸，滾輪還給網頁捲動；俯視鏡頭不能前後走
         e.preventDefault();
         move(directions().fwd.multiplyScalar(-Math.sign(e.deltaY) * unit * 0.03));
       }, { passive: false, signal: abort.signal });
@@ -341,12 +546,20 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
           } else be.style.display = "none";
         }
         if (tween) {
-          const t = Math.min(1, (now - tween.start) / TWEEN_MS);
+          const t = Math.min(1, (now - tween.start) / (tween.ms ?? TWEEN_MS));
           active.camera.position.lerpVectors(tween.from.pos, tween.to.pos, t);
           controls.target.lerpVectors(tween.from.look, tween.to.look, t);
+          if (tween.lens) {
+            const [[f0, o0], [f1, o1]] = tween.lens;
+            setLens([f0 + (f1 - f0) * t, o0 + (o1 - o0) * t], true);
+          }
           active.forceRenderNextFrame();
           if (t === 1) tween = null;
           followOff = null;  // 劇情鏡頭結束後，用新的角度接著跟
+        } else if (overviewOn) {
+          // 俯視時不能用 WASD 走動；畫面大小或卡片高度變了就重算 FOV 與畫面中心
+          const key = `${el.clientWidth}x${el.clientHeight}|${coverRef.current.toFixed(3)}|${side}|${dragOff.toFixed(3)}`;
+          if (key !== lensKey) { lensKey = key; setLens(lensTarget(), true); }
         } else if (followRef.current && !wandOn.current && roomWorld?.catHead(catAt)) {
           if (held.size || stick.current.x || stick.current.y) userMoved();
           // 檢視器的 orbit 目標貼在鏡頭前 LOOK_AT 處，所以距離與角度要用「鏡頭相對貓」記
@@ -385,7 +598,12 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
     const typing = (e: KeyboardEvent) => e.target instanceof HTMLElement && ["INPUT", "TEXTAREA", "SELECT"].includes(e.target.tagName);
     // 檢視器的內建控制在 window 攔截 WASD 和快捷鍵，在輸入框打字時要先擋下來，否則字打不出來
     addEventListener("keydown", e => { if (typing(e)) e.stopImmediatePropagation(); }, { capture: true, signal: abort.signal });
-    addEventListener("keydown", e => { if (!typing(e)) held.add(e.code); }, { signal: abort.signal });
+    addEventListener("keydown", e => {
+      if (typing(e)) return;
+      held.add(e.code);
+      // 俯視鏡頭：焦點不在任何控制項上時，方向鍵是轉視角，不要捲動網頁
+      if (overviewSide.current && e.code.startsWith("Arrow") && e.target === document.body) e.preventDefault();
+    }, { signal: abort.signal });
     addEventListener("keyup", e => held.delete(e.code), { signal: abort.signal });
     addEventListener("blur", () => held.clear(), { signal: abort.signal });
 
@@ -400,6 +618,8 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
       cancelAnimationFrame(frame);
       goTo.current = () => {};
       goView.current = () => {};
+      setOverview.current = () => {};
+      apiRef.current = null;
       world.current = null;
       orbit.current = null;
       setWorldReady(false);
@@ -418,9 +638,13 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
     let stale = false;
     const list = items ?? [];
     const spots = placeScanItems(st.scene, st.layout, list);
+    poses.current = list.map((it, i) => {
+      const rot = it.rot ?? 0, [w, d] = footprintSize(it.widthM, it.depthM, rot);
+      return { id: it.id, x: spots[i].x, z: spots[i].z, w, d, rot, widthM: it.widthM, depthM: it.depthM };
+    });
     // 貓不能穿過任何用品；只有劇情叫牠躲進外出籠（第 1 天）時，外出籠才讓牠進去
     const hideInCarrier = story?.action === "carrier";
-    world.current?.setItems(list.flatMap((it, i) => (hideInCarrier && it.id === "carrier" ? [] : [{ x: spots[i].x, z: spots[i].z, widthM: it.widthM, depthM: it.depthM }])));
+    world.current?.setItems(list.flatMap((it, i) => (hideInCarrier && it.id === "carrier" ? [] : [{ x: spots[i].x, z: spots[i].z, widthM: poses.current[i].w, depthM: poses.current[i].d }])));
     Promise.all(list.map(itemObject)).then(objs => {
       if (stale || itemStage.current !== st) return;
       st.frame.clear();
@@ -429,6 +653,8 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
         const g = new THREE.Group();
         g.scale.setScalar(upm);
         g.position.set(spots[i].x * upm, 0, spots[i].z * upm);
+        g.rotation.y = ((list[i].rot ?? 0) * Math.PI) / 2;
+        g.userData.itemId = list[i].id;
         g.add(o);
         st.frame.add(g);
       });
@@ -437,6 +663,9 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
     return () => { stale = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [items, itemsReady, worldReady, story?.action, story?.at]);
+
+  // 俯視鏡頭開關（要排在「鏡頭轉向貓」前面：離開俯視時先回到原本的位置，再轉向貓）
+  useEffect(() => { if (status === "ready") setOverview.current(overview); }, [overview, status]);
 
   // 鏡頭轉向貓：貓頭頂的對話框才看得到
   useEffect(() => { if (lookKey && worldReady) world.current?.lookAtCat(); }, [lookKey, worldReady]);
