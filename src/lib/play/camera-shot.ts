@@ -21,13 +21,13 @@ type Shot = Omit<CameraShot, "key">;
 
 const SHOTS: Partial<Record<NodeId, Partial<Record<CatPose, Shot>>>> = {
   // 貓鑽進外出籠：靠近、壓低，看得到籠口
-  day1: { carrier: { id: "carrier", dist: 1.0, height: 0.25, ms: 1400, delayMs: 1500 } },
+  day1: { carrier: { id: "carrier", dist: 1.9, height: 0.7, ms: 1400, delayMs: 1500 } },
   // 半夜跑酷：拉遠、拉高，整段衝刺都在畫面裡
   day30: { zoom: { id: "zoom", dist: 2.4, height: 1.1, ms: 1200, delayMs: 300 } },
   // 結尾：先中景，最後一幕（睡著）很慢地推近
   farewell: {
     frail: { id: "farewell", dist: 1.6, height: 0.6, ms: 2400, delayMs: 800 },
-    bed: { id: "farewell-bed", dist: 0.9, height: 0.35, ms: 4500, delayMs: 600 },
+    bed: { id: "farewell-bed", dist: 1.4, height: 0.55, ms: 4500, delayMs: 600 },
   },
 };
 
