@@ -13,6 +13,7 @@ import { DEMO_DOLLHOUSE } from "@/lib/play/room";
 import type { SceneItem } from "@/lib/play/scene-items";
 import type { RoomWand } from "@/components/hq/assets/RoomViewer";
 import type { CatAction } from "@/lib/play/stage";
+import type { SceneLight } from "@/lib/play/scene-light";
 import s from "./play.module.css";
 import p from "./place.module.css";
 
@@ -66,7 +67,7 @@ function ViewPad({ onHold }: { onHold: (v: { x: number; y: number }) => void }) 
   );
 }
 
-export function PlayStage({ kind, scanBase, placeView = false, look, tag, bubble, bubbleInset, lookKey, placed, scanItems, story, wand, goal, clip, speed, onDrop, onItemError, children }: {
+export function PlayStage({ kind, scanBase, placeView = false, look, tag, bubble, bubbleInset, lookKey, placed, scanItems, story, wand, goal, clip, speed, light, onDrop, onItemError, children }: {
   kind: "scan" | "dollhouse";
   scanBase: string | null;
   /** 擺用品：掃描房間改成俯視鏡頭，畫面上多四顆轉動視角的方向鍵（娃娃屋不變） */
@@ -91,6 +92,8 @@ export function PlayStage({ kind, scanBase, placeView = false, look, tag, bubble
   goal: (RoomClick & { at: number }) | null;
   clip: string | null;
   speed: number;
+  /** 白天／夜晚光（lib/play/scene-light.ts 的 lightFor）；兩種房間吃同一組 */
+  light?: SceneLight | null;
   onDrop?: (itemId: string, at: PlaceAt) => void;
   onItemError?: (key: string) => void;
   children?: ReactNode;
@@ -102,11 +105,11 @@ export function PlayStage({ kind, scanBase, placeView = false, look, tag, bubble
     <section className={overview ? `${s.stage} ${p.stage}` : s.stage} aria-label="3D 房間">
       {tag && <span className={s.stageTag}>{tag}</span>}
       {kind === "scan" && scanBase
-        ? <RoomViewer base={scanBase} items={scanItems} controls={false} story={story} wand={wand} bubble={bubble ? <CareIcon id={bubble} /> : null} bubbleInset={bubbleInset} lookKey={lookKey} overview={overview ? hold : null} />
+        ? <RoomViewer base={scanBase} items={scanItems} controls={false} story={story} wand={wand} bubble={bubble ? <CareIcon id={bubble} /> : null} bubbleInset={bubbleInset} lookKey={lookKey} overview={overview ? hold : null} light={light?.scan ?? null} />
         : (
           <FloorplanViewer rooms={ROOMS} selected={ROOMS[0].id} onPick={noop}
             cat={look} placedItems={placed} interactMode="point"
-            catGoal={goal} catClip={clip} catSpeed={speed}
+            catGoal={goal} catClip={clip} catSpeed={speed} light={light?.house ?? null}
             onFloorDrop={onDrop} onItemError={onItemError} />
         )}
       {kind !== "scan" && bubble && <span className={s.bubbleFixed} aria-hidden="true"><CareIcon id={bubble} /></span>}

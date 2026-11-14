@@ -40,3 +40,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+
+# 合成的測試掃描房間（scripts/make-test-splat.mjs 產生，不提交）
+/public/_test-room/
