@@ -49,6 +49,8 @@ import e from "./play-entry.module.css";
 import { RunGateCard } from "./RunGateCard";
 import { notifyRunChanged, useActiveRun, useRunProgress } from "./useActiveRun";
 import { ShopStep } from "./ShopStep";
+import { DayEndDialog } from "./DayEndDialog";
+import { dayEnd, type DayEnd, endsDay } from "@/lib/play/day-end";
 import { useHouseholdExtras, usePlayHouseholds } from "./usePlayData";
 import s from "./play.module.css";
 
@@ -391,6 +393,12 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
   const bubble = state.step === "node" ? catBubble({ storyBub: cur?.kind === "home" ? null : state.bub, home: cur?.kind === "home", busy: careAct !== null, done: state.homeDone, canPlay: kind === "scan" }) : null;
   // 有對話框時把鏡頭轉向貓，不然框只能貼在畫面邊緣
   const lookKey = state.step === "node" && bubble && !careAct ? `${state.nodeIndex}:${cur?.kind}:${bubble}:${state.life.care.rounds}` : null;
+  // 每天結束的儀式（#354）：這次「下一步」會進下一個節點時，先跳中途的視窗（結尾前不跳）
+  const [dayEndShown, setDayEndShown] = useState<DayEnd | null>(null);
+  const nextOrDayEnd = () => {
+    const d = endsDay({ step: state.step, nodeIndex: state.nodeIndex, abandoned: state.life.abandoned, cur: cur?.kind ?? null }) ? dayEnd(state.nodeIndex, catName) : null;
+    if (d) setDayEndShown(d); else dispatch({ type: "next" });
+  };
   const canPeek = state.step === "place" || (state.step === "node" && cur?.kind !== "mini" && !careAct);
   useEffect(() => { setPeek(false); }, [state.step, state.nodeIndex, cur]);
   // 背景音樂依步驟、節點、場景切換（第 6 份）
@@ -526,7 +534,7 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
 
       {state.step === "node" && (
         <NodeStep state={state} personal={personal}
-          onNext={() => dispatch({ type: "next" })} onChoose={i => dispatch({ type: "choose", index: i })} />
+          onNext={nextOrDayEnd} onChoose={i => dispatch({ type: "choose", index: i })} />
       )}
       {relocateMode === "apart" && (
         <section className={s.card} aria-labelledby="relocate-title">
@@ -537,8 +545,10 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
           </div>
         </section>
       )}
+      {/* 每天結束的儀式（#354）：中途說今天是第幾天、接下來做什麼，按「開始」才進下一天 */}
+      {dayEndShown && <DayEndDialog day={dayEndShown} onStart={() => { setDayEndShown(null); dispatch({ type: "next" }); }} />}
       {state.step === "node" && cur?.kind === "home" && !careAct && (
-        <HomeStep onFinish={() => dispatch({ type: "next" })} />
+        <HomeStep onFinish={nextOrDayEnd} />
       )}
       {playMini && scanWand && (
         <ScanWand key={`story:wand:${state.nodeIndex}`} catName={catName} catches={catches}
