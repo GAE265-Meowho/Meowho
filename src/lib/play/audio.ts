@@ -30,6 +30,7 @@ export const SOUNDS = {
   bgm_daily: { kind: "bgm", label: "日常", usedIn: "開場、採買、擺用品、在家的時光、白天與傍晚的節點、試養報告", part: [6], ready: true },
   bgm_night: { kind: "bgm", label: "半夜", usedIn: "夜晚：第 30 天跑酷、半年後噴尿或發情大叫、第 1 天硬拉那晚", part: [6], ready: true },
   bgm_vet: { kind: "bgm", label: "醫院", usedIn: "診間：半年後、五年後、十年後看獸醫", part: [6], ready: true },
+  bgm_accident: { kind: "bgm", label: "出事了", usedIn: "五年後那天半夜出事（取代半夜跑酷的音樂；音檔上傳前先用半夜）", part: [6], ready: false },
   bgm_farewell: { kind: "bgm", label: "升天", usedIn: "結尾 15 歲（只播一次）", part: [6], ready: true },
   // 貓的聲音
   sfx_meow: { kind: "cat", label: "一般喵", usedIn: "貓回應、需求氣泡出現", part: [3, 4], ready: false },
@@ -140,16 +141,19 @@ export interface BgmInput {
 /**
  * 現在該播哪首背景音樂（總表「目前遊戲的節點」那張表）：
  * 開場、採買、擺用品、試養報告、在家的時光＝日常；診間＝醫院；結尾＝升天；
- * 第 1 天＝剛到家（硬拉那晚是半夜）；其他節點的夜晚＝半夜，白天、傍晚＝日常。
+ * 第 1 天＝剛到家（硬拉那晚是半夜）；五年後的半夜＝出事了；其他節點的夜晚＝半夜，白天、傍晚＝日常。
  */
 export function bgmFor({ step, nodeId, scene, home }: BgmInput): BgmId {
   if (step !== "node" || home) return "bgm_daily";
   if (nodeId === "farewell") return "bgm_farewell";
   if (scene.bg === "vet") return "bgm_vet";
-  if (scene.time === "night") return "bgm_night";
+  if (scene.time === "night") return nodeId === "year5" ? "bgm_accident" : "bgm_night";
   if (nodeId === "day1") return "bgm_arrive";
   return "bgm_daily";
 }
+
+/** 音檔還沒上傳時改播哪首（2026-11-14 渝茜：出事了的音樂之後才會上傳） */
+export const BGM_FALLBACK: Partial<Record<BgmId, BgmId>> = { bgm_accident: "bgm_night" };
 
 export const MUTE_KEY = "meowho.play.muted";
 

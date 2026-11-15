@@ -1,0 +1,12 @@
+### 14:52｜渝茜（發起）× Claude Code
+- Issue：#354 虛擬飼養畫面改版（擺用品視角）
+- 分支／PR：feat/354-play-place-view｜（主 agent 統一開）
+- 模組：readiness
+- 做了什麼：
+  - 新增 `src/lib/hq/rooms/overview.ts`（俯視鏡頭的純函式與常數 `OVERVIEW`）與 11 個測試
+  - `RoomViewer` 新增 `overview` 屬性（預設關，後台與飼養中的鏡頭不變）：俯視、拖曳繞房間中心轉、不能走動與縮放
+  - `PlayStage` 新增 `placeView` 與四顆方向鍵（`place.module.css`）；`PlayGame` 只多傳 `placeView={state.step === "place"}`
+  - 接手補：鍵盤方向鍵（焦點不在輸入框時）也能轉視角，`holdFromKeys` 合併畫面按鈕與鍵盤，補 1 個測試
+- 決策：鏡頭固定在 2.1 公尺高、看房間中心的地板，俯仰角 15°～60°；碰到牆就停在牆邊（方位不變）。離開擺用品時鏡頭直接跳回原本的開場位置，不用飛的（之後的「轉向貓」從鏡頭當下位置算）
+- 未完成／下一步：娃娃屋（FloorplanViewer）沒有加方向鍵；實機調 `OVERVIEW` 的高度與俯仰角
+- 風險／地雷：沙盒沒有掃描房間，俯視畫面與方向鍵沒實際看過；掃描房間從上方看可能有破洞
