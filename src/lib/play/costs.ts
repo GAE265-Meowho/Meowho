@@ -6,7 +6,11 @@
 // 3D 房間裡的餐碗組、貓砂盆模型（items.ts）只是外觀，花費以這裡的砂盆、碗選項為準。
 import { canVirtuallyBuy, FOOD_PRODUCTS, getFoodProduct, type FoodPrice, type FoodProduct } from "@/lib/hq/food/catalog";
 
-export type Stage = "kitten" | "adult";
+/** 飼料的年齡階段：用目錄 ages 實際有的值（products.json：kitten／adult／mature／ageing；另有 baby、advanced ageing 不單獨成階段） */
+export const FOOD_STAGES = ["kitten", "adult", "mature", "ageing"] as const;
+export type Stage = (typeof FOOD_STAGES)[number];
+/** 每個階段從幾個月開始：幼貓未滿 12 個月、成貓、熟齡約 7 歲起、老齡約 11 歲起 */
+const STAGE_FROM_MONTHS: Record<Stage, number> = { kitten: 0, adult: 12, mature: 84, ageing: 132 };
 
 export interface PlayFood { product: FoodProduct; canBuy: boolean }
 
@@ -16,6 +20,32 @@ export function playFoods(stage: Stage | null): PlayFood[] {
     .filter(p => p.brand === "royalcanin" && !p.requiresVetDiagnosis && (p.category === "dry" || p.category === "wet"))
     .filter(p => !stage || p.ages.includes(stage))
     .map(product => ({ product, canBuy: canVirtuallyBuy(product, false) }));
+}
+
+/**
+ * 月齡 → 飼料階段。months 是 null（沒填生日、估計月齡）時照劇本當 2 個月。
+ * 目錄裡沒有那個階段的飼料（has 回 false）就退到最接近的階段，同距離往年輕的退；都沒有就維持原階段。
+ */
+export function foodStage(months: number | null, has: (s: Stage) => boolean = s => playFoods(s).some(f => f.canBuy)): Stage {
+  const m = months ?? 2;
+  const i = FOOD_STAGES.reduce((at, s, k) => (m >= STAGE_FROM_MONTHS[s] ? k : at), 0);
+  const near = FOOD_STAGES.map((s, k) => ({ s, k })).filter(x => has(x.s))
+    .sort((a, b) => Math.abs(a.k - i) - Math.abs(b.k - i) || a.k - b.k)[0];
+  return near?.s ?? FOOD_STAGES[i];
+}
+
+export interface ShopFood extends PlayFood { /** 適合這隻貓的年齡階段：畫面掛「推薦」標 */ recommended: boolean }
+/** 採買畫面的飼料清單：預設只列這個階段；showAll 列全部年齡，推薦的排前面（各自維持目錄順序） */
+export function shopFoods(stage: Stage, showAll: boolean): ShopFood[] {
+  const list = playFoods(showAll ? null : stage).map(f => ({ ...f, recommended: f.product.ages.includes(stage) }));
+  return [...list.filter(f => f.recommended), ...list.filter(f => !f.recommended)];
+}
+
+/** 預算條：每月花費佔預算幾 %（bar 是條的長度，最多 100）、有沒有超過、還剩多少；沒填預算回 null */
+export function budgetUse(month: number, budget: number): { percent: number; bar: number; over: boolean; left: number } | null {
+  if (!(budget > 0)) return null;
+  const percent = Math.round((month / budget) * 100);
+  return { percent, bar: Math.min(100, Math.max(0, percent)), over: month > budget, left: budget - month };
 }
 
 export type Opt = readonly [string, number];
@@ -54,8 +84,8 @@ export const flagPrice = (k: ShopFlagKey, shop?: PlayShop): number => shop?.flag
 /** 採買項目的選項：後台有就用後台，沒有就用原版 */
 export const shopOpts = (k: ShopItemKey, shop?: PlayShop): readonly Opt[] => shop?.opts[k] ?? SHOP_ITEMS[k].opts;
 
-/** 每天的份量（公克）：估算值，實際以包裝建議與獸醫說明為準。乾糧加濕食時各一半 */
-const DAILY_GRAMS: Record<"dry" | "wet", Record<Stage, number>> = {
+/** 每天的份量（公克）：估算值，實際以包裝建議與獸醫說明為準。乾糧加濕食時各一半。熟齡、老齡沿用成貓的克數（沒有另外的數字） */
+const DAILY_GRAMS: Record<"dry" | "wet", Record<"kitten" | "adult", number>> = {
   dry: { kitten: 50, adult: 60 },
   wet: { kitten: 200, adult: 250 },
 };
@@ -73,7 +103,7 @@ export function packGrams(pack: string): number | null {
 export function foodMonthly(price: Pick<FoodPrice, "amount" | "pack">, category: "dry" | "wet", stage: Stage, share = 1): number | null {
   const g = packGrams(price.pack);
   if (!g || !(price.amount > 0)) return null;
-  return Math.round((price.amount / g) * DAILY_GRAMS[category][stage] * share * 30);
+  return Math.round((price.amount / g) * DAILY_GRAMS[category][stage === "kitten" ? "kitten" : "adult"] * share * 30);
 }
 
 export interface ShopPick {

@@ -1,0 +1,61 @@
+/* 試養報告的圖像零件（#354）：領養人的結算畫面與中途看到的摘要共用。顏色、圓角只用 v2 token；字級變數帶 fallback。 */
+.scales { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
+.scale {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; padding: 10px 16px; border-radius: 22px;
+  background: var(--paper); min-width: 0;
+}
+.scaleLabel { font-weight: 700; color: var(--ink); font-size: var(--play-fs-sub, 15px); }
+.scaleIcons { display: inline-flex; gap: 2px; }
+.scaleIcons svg { width: 26px; height: 26px; fill: var(--line); stroke: none; }
+.scaleIcons[data-tone="heart"] svg[data-on="true"] { fill: var(--pink); }
+.scaleIcons[data-tone="flame"] svg[data-on="true"] { fill: var(--orange); }
+.scaleWord { color: var(--ink); font-size: var(--play-fs-sub, 15px); }
+
+.cost { display: grid; gap: 12px; }
+.costTotal {
+  margin: 0; display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 12px;
+  padding: 14px 18px; border-radius: 24px; background: var(--yellow-soft); color: var(--ink); font-size: var(--play-fs-sub, 15px);
+}
+.costTotal strong { font-size: var(--play-fs-title, 24px); font-family: var(--font-quicksand), var(--font); }
+.costBar { display: flex; height: 14px; border-radius: 999px; overflow: hidden; background: var(--line); gap: 2px; }
+.costBar span { min-width: 6px; }
+.costBar span[data-k="once"], .costRows i[data-k="once"] { background: var(--caramel); }
+.costBar span[data-k="month"], .costRows i[data-k="month"] { background: var(--orange); }
+.costBar span[data-k="med"], .costRows i[data-k="med"] { background: var(--pink); }
+.costBar span[data-k="acc"], .costRows i[data-k="acc"] { background: var(--yellow-deep); }
+.costBar span[data-k="other"], .costRows i[data-k="other"] { background: var(--mint); }
+.costRows { margin: 0; display: grid; gap: 6px; }
+.costRows > div {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 12px; align-items: center;
+  padding: 8px 14px; border-radius: 16px; background: var(--paper);
+}
+.costRows dt { display: flex; align-items: center; gap: 8px; color: var(--ink-soft); font-size: var(--play-fs-sub, 15px); line-height: 1.5; }
+.costRows dd { margin: 0; font-weight: 700; color: var(--ink); text-align: right; font-family: var(--font-quicksand), var(--font); font-size: var(--play-fs-body, 17px); }
+.costRows i { flex: none; width: 12px; height: 12px; border-radius: 50%; }
+
+.zone { display: grid; gap: 10px; padding: 14px 16px; border-radius: 24px; background: var(--paper); }
+.zone[data-tone="good"] { background: var(--mint-soft); }
+.zone[data-tone="think"] { background: var(--pink-soft); }
+.zoneTitle { display: flex; align-items: center; gap: 8px; margin: 0; font-size: var(--play-fs-body, 17px); color: var(--ink); }
+.zoneIcon { display: inline-grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: var(--card); color: var(--ink); flex: none; }
+.zone[data-tone="good"] .zoneIcon { color: #2f6b3f; }
+.zone[data-tone="think"] .zoneIcon { color: #9b2c22; }
+.zoneCount { margin-left: auto; font-size: var(--play-fs-tag, 14px); color: var(--ink-soft); font-weight: 400; }
+.zoneList { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+.zoneList li { padding: 8px 14px; border-radius: 16px; background: var(--card); color: var(--ink); line-height: var(--play-lh, 1.7); font-size: var(--play-fs-sub, 15px); overflow-wrap: anywhere; }
+
+.hero { display: grid; gap: 12px; }
+.heroNum { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin: 0; }
+.heroNum > div { padding: 10px 14px; border-radius: 20px; background: var(--paper); min-width: 0; }
+.heroNum dt { color: var(--ink-soft); font-size: var(--play-fs-tag, 14px); font-weight: 700; }
+.heroNum dd { margin: 2px 0 0; color: var(--ink); font-size: var(--play-fs-body, 17px); font-weight: 700; overflow-wrap: anywhere; }
+.over { margin: 0; padding: 8px 14px; border-radius: 16px; background: var(--pink-soft); color: #9b2c22; font-weight: 700; font-size: var(--play-fs-sub, 15px); }
+
+.actions { display: flex; flex-wrap: wrap; gap: 12px 16px; align-items: center; }
+.actionsMain { display: grid; gap: 10px; padding: 14px 16px; border-radius: 24px; background: var(--yellow-soft); }
+
+/* 做得好／可以再想想：手機直排、電腦並排 */
+.zones { display: grid; gap: 12px; }
+@media (min-width: 900px) {
+  .zones { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; align-items: start; }
+}

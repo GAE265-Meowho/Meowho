@@ -1,0 +1,21 @@
+/* 每天結束的儀式（#354）：置中的小卡，不捲動；v2 token，字級用 --play-fs-*（帶 fallback） */
+.dialog {
+  width: min(520px, calc(100vw - 32px)); max-height: none; overflow: visible; margin: auto; padding: 22px 24px 20px;
+  border: 2px solid var(--line); border-radius: var(--radius-lg); background: var(--card); color: var(--ink);
+  box-shadow: var(--shadow-lift); font-size: var(--play-fs-body, 17px); line-height: var(--play-lh, 1.7);
+}
+.dialog[open] { display: flex; flex-direction: column; gap: 14px; animation: dayIn 0.25s ease-out; }
+.dialog::backdrop { background: color-mix(in srgb, var(--ink) 40%, transparent); }
+.today { margin: 0; font-size: var(--play-fs-title, 24px); font-weight: 800; line-height: 1.35; letter-spacing: 0.04em; }
+.say { display: flex; flex-direction: column; gap: 8px; }
+.who { margin: 0; display: flex; align-items: center; gap: 10px; }
+.name { padding: 2px 14px; border-radius: 999px; background: var(--yellow); font-size: var(--play-fs-sub, 15px); font-weight: 700; line-height: 1.6; }
+.lines { display: grid; gap: 4px; }
+.lines p { margin: 0; overflow-wrap: anywhere; }
+.foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding-top: 4px; }
+.next {
+  display: inline-flex; align-items: center; padding: 4px 14px; border-radius: 999px; background: var(--yellow-soft);
+  font-size: var(--play-fs-sub, 15px); font-weight: 700;
+}
+@keyframes dayIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .dialog[open] { animation: none; } }

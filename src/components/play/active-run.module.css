@@ -9,7 +9,7 @@
 .btn:focus-visible { outline: 3px solid var(--caramel, #d99a4e); outline-offset: 2px; }
 .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--caramel, #d99a4e); flex: none; }
 .text { display: grid; line-height: 1.2; min-width: 0; }
-.text b { font-size: .95rem; }
-.text span { font-size: .8rem; opacity: .9; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.text b { font-size: var(--play-fs-sub, 15px); }
+.text span { font-size: var(--play-fs-tag, 14px); opacity: .9; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 @media (min-width: 900px) { .btn { bottom: 24px; right: 24px; } }
 @media (prefers-reduced-motion: no-preference) { .btn { transition: filter .15s; } }

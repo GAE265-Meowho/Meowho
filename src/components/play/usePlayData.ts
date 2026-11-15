@@ -80,3 +80,22 @@ export function useHouseholdExtras(householdId: string | null): HouseholdExtras 
   }, [householdId]);
   return state && state.id === householdId ? state.v : undefined;
 }
+
+/**
+ * 這一輪開始時定格的居家安全報告（meow_task_runs.env_report_id，由 meow_start_play_run 寫入；續玩也讀同一份）。
+ * 五年後居家危險彈窗只讀這份，不讀最新報告。undefined＝還在讀；null＝沒有紀錄或沒有定格報告。
+ */
+export function useRunReportId(runId: string | null): string | null | undefined {
+  const [state, setState] = useState<{ id: string; v: string | null } | null>(null);
+  useEffect(() => {
+    const sb = getBrowserSupabase();
+    if (!sb || !runId) return;
+    let alive = true;
+    sb.from("meow_task_runs").select("env_report_id").eq("id", runId).maybeSingle()
+      .then(({ data }) => { if (alive) setState({ id: runId, v: (data?.env_report_id as string | null | undefined) ?? null }); },
+        () => { if (alive) setState({ id: runId, v: null }); });
+    return () => { alive = false; };
+  }, [runId]);
+  if (!runId) return null;
+  return state && state.id === runId ? state.v : undefined;
+}
