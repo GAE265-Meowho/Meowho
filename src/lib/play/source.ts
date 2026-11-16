@@ -5,9 +5,11 @@
 import { albedoSrc } from "@/lib/cat-publish";
 import type { BodyType } from "@/lib/hq/cat-models/types";
 import { getBrowserSupabase } from "@/lib/supabase/client";
-import { SUPABASE_URL } from "@/lib/supabase/config";
+import { catPagePhotos } from "@/lib/cat-profile/new-cat";
+import { photoSrc, SUPABASE_URL } from "@/lib/supabase/config";
 import { catLookFor, PLAY_CAT, playCatLook, type PlayCatLook } from "./cats";
-import { ageMonths, ageText, BASE_MOOD, bodyOfStage, startMood, touchFavOf, type KeeperNotes, type StartMood } from "./player-data";
+import { ageMonths, ageText, BASE_MOOD, startMood, touchFavOf, type KeeperNotes, type StartMood } from "./player-data";
+import { startBody } from "./cat-body";
 
 export interface PlayCatSource {
   /** 網址上的貓咪 id（/cats/[id]/play） */
@@ -34,12 +36,18 @@ export interface PlayCatSource {
   demo: boolean;
   /** 這隻貓現在是否待領養（領養任務開始前的檢查用）；DEMO 不檢查 */
   adoptable: boolean;
+  /** 中途是否開放認養問卷（meow_adoption_forms.is_open，同貓咪頁）；沒開放時認養彈窗不放「填認養問卷」。DEMO＝true（只示範版面，按鈕是 data-login） */
+  formOpen: boolean;
+  /** 這隻貓在平台上的照片（封面排第一張，同貓咪頁）；沒有照片、DEMO＝null。結局後的認養彈窗用 */
+  photo: string | null;
+  /** 中途寫的介紹（intro，沒有用 description），結案後的領養資訊用；沒寫、DEMO＝null */
+  intro: string | null;
   /** 各體型（幼貓／成貓）要用的 3D 母體與貼圖 */
   look: (body: BodyType) => PlayCatLook;
 }
 
 export function demoPlayCat(catId: string): PlayCatSource {
-  return { catId, name: PLAY_CAT.name, coat: PLAY_CAT.coat, sex: "unknown", neutered: null, mood: { ...BASE_MOOD, reasons: [] }, touchFav: null, ageText: "", months: null, body: "kitten", tabby: true, demo: true, adoptable: true, look: playCatLook };
+  return { catId, name: PLAY_CAT.name, coat: PLAY_CAT.coat, sex: "unknown", neutered: null, mood: { ...BASE_MOOD, reasons: [] }, touchFav: null, ageText: "", months: null, body: "kitten", tabby: true, demo: true, adoptable: true, formOpen: true, photo: null, intro: null, look: playCatLook };
 }
 
 /** 讀這隻貓；任何一步失敗都回 DEMO，不擋遊戲 */
@@ -47,8 +55,9 @@ export async function loadPlayCat(catId: string): Promise<PlayCatSource> {
   const sb = getBrowserSupabase();
   if (!sb) return demoPlayCat(catId);
   try {
-    const [{ data: c }, { data: model }] = await Promise.all([
-      sb.from("meow_cats").select("name, status, coat, sex, neutered, life_stage, birthday, est_age_months, personality_scale, personality_tags, personality_notes, description, intro, care").eq("id", catId).maybeSingle(),
+    const [{ data: c }, { data: form }, { data: model }] = await Promise.all([
+      sb.from("meow_cats").select("name, status, coat, sex, neutered, life_stage, birthday, est_age_months, personality_scale, personality_tags, personality_notes, description, intro, care, cover, photo_angles, photo_paths").eq("id", catId).maybeSingle(),
+      sb.from("meow_adoption_forms").select("is_open").eq("cat_id", catId).maybeSingle(),
       sb.from("meow_cat_models").select("variants:meow_cat_model_variants(body_type, confirmed_albedo)").eq("cat_id", catId).maybeSingle(),
     ]);
     if (!c?.name) return demoPlayCat(catId);
@@ -70,10 +79,13 @@ export async function loadPlayCat(catId: string): Promise<PlayCatSource> {
       }),
       touchFav: touchFavOf((c.care as { touch?: Record<string, string> } | null)?.touch),
       ageText: ageText(months, c.life_stage as string | null),
-      body: bodyOfStage(c.life_stage as string | null),
+      body: startBody(months, c.life_stage as string | null),
       tabby: Boolean(coat?.includes("虎斑")),
       demo: false,
       adoptable: c.status === "adoptable",
+      formOpen: Boolean((form as { is_open?: boolean } | null)?.is_open),
+      photo: (() => { const p = catPagePhotos(c as Parameters<typeof catPagePhotos>[0])[0]; return p ? photoSrc(sb, p) : null; })(),
+      intro: (() => { const t = String(c.intro || c.description || "").trim(); return t ? t : null; })(),
       look: body => catLookFor(body, albedo),
     };
   } catch {

@@ -71,6 +71,11 @@
   --coat-tabby-deep: #8a5a32;
   --coat-silver: #d9d4cc;
   --coat-silver-deep: #8d8882;
+  /* 虛擬飼養剪指甲特寫（#354）：疊在貓掌照片上的指甲、血線、血 */
+  --claw: #fffdf8;
+  --claw-shade: #e4d9c6;
+  --claw-quick: #f29ca6;
+  --blood: #c2352b;
 
 
   --radius-sm: 12px;

@@ -30,22 +30,43 @@ import { homeWord } from "@/lib/play/furniture";
 import { ruleHazards, type Hazard } from "@/lib/play/hazards";
 import { resolvePlayItems, resolvePlayToy, type PlayItem } from "@/lib/play/items";
 import { nearLabel, type SceneItem } from "@/lib/play/scene-items";
+import { autoSpot, showMoveHint } from "@/lib/play/auto-place";
+import { litterApart } from "@/lib/play/litter-apart";
 import { parsePoses, type ItemPose } from "@/lib/play/scan-place";
 import type { RoomPlaceApi, RoomPlaceEdit } from "@/components/hq/assets/RoomViewer";
 import pm from "./place.module.css";
 import { LINES_TIMEOUT_MS, ruleLines, type Line } from "@/lib/play/lines";
 import { DEMO_DOLLHOUSE, inventoryFromPlan, inventoryFromScan, pickScanBase, type RoomInventory, type RoomKind } from "@/lib/play/room";
 import { goalFor, itemSpots, type CatAction } from "@/lib/play/stage";
-import { STORY, type CatPose, type NodeId } from "@/lib/play/story";
+import { farewellCaption, STORY, type CatPose, type NodeId } from "@/lib/play/story";
 import { CARE_ACTS, careGood, type CareAct } from "@/lib/play/care";
 import { CatgameMini } from "./catgame/CatgameMini";
+import type { BowlFill } from "@/components/hq/assets/bowlSlotsDetect";
+import { RestockDialog } from "./RestockDialog";
+import rs from "./restock.module.css";
+import { feedKindsAvailable, restockNote } from "@/lib/play/restock";
 import type { MiniCtx } from "./catgame/minis";
 import { CareBar, HomeStep } from "./HomeStep";
 import { NodeStep } from "./NodeStep";
-import { Glyph } from "./SpeakerAvatar";
 import { SoundToggle, usePlayBgm } from "./PlayAudio";
+import { PlayMenu } from "./PlayMenu";
 import { PlayStage } from "./PlayStage";
+import { lightFor, playLightTime, poseSpeed } from "@/lib/play/scene-light";
+import { reportScene, resetScene, sceneOf } from "@/lib/play/scene-change";
+import { shotFor } from "@/lib/play/camera-shot";
+import { showVet, vetTalkKey } from "@/lib/play/vet-room";
+import { stainsFor } from "@/lib/play/urine-stain";
+import { adoptFacts, CAPTURE_DELAY_MS, captureMoment, endingStarts, mergeShots, type EndingPhase, type ReviewShot } from "@/lib/play/ending";
+import { elderFor } from "@/lib/play/elder-cat";
+import { captureScene } from "@/lib/play/snapshot";
+import { loadReview, saveReview } from "@/lib/play/review-store";
+import { EndingOverlay } from "./EndingOverlay";
+import { AdoptDialog } from "./AdoptDialog";
+import endFx from "./ending.module.css";
+import { playSfx } from "@/lib/play/audio-player";
+import { TAP_VOLUME, bubbleSfx, careSfx, catchSfx, meterSfx, poseSfx } from "@/lib/play/sfx-cues";
 import { ScanWand } from "./ScanWand";
+import { MiniGuideGate, warmGuideVideos } from "./MiniGuide";
 import { ReportStep } from "./ReportStep";
 import { AbandonPanel } from "./AbandonPanel";
 import e from "./play-entry.module.css";
@@ -59,6 +80,8 @@ import { HazardDialog } from "./HazardDialog";
 import { canShowHazard, hazardReportTarget, loadReportHazard, year5HazardMoment, type ReportHazardItem } from "@/lib/play/year5-hazard";
 import s from "./play.module.css";
 import nav from "./setup-nav.module.css";
+import { playBody } from "@/lib/play/cat-body";
+import { adultFur } from "@/lib/play/cats";
 
 const STEP_LABELS = [["background", "你的家"], ["shop", "採買"], ["place", "擺用品"], ["node", "飼養"], ["report", "報告"]] as const;
 /** 掃描房間：用品是玩家在 3D 房間裡自己擺的（位置在 scanPose） */
@@ -70,7 +93,7 @@ const ROOM_SCENE = houseScene([DEMO_DOLLHOUSE])[0];
 const FURNITURE_NAMES = Object.fromEntries((DEMO_DOLLHOUSE.furniture ?? []).map((f, i) => [i, f.label]));
 /** 原版場景的貓姿勢 → 3D 貓的動作（none＝貓不在畫面） */
 const POSE_ACTION: Record<CatPose, CatAction | null> = {
-  sit: "idle", carrier: "carrier", underbed: "hide", hide: "hide", sofa: "sofa", zoom: "explore", frail: "sleep", bed: "sleep", table: "idle", none: null,
+  sit: "idle", carrier: "carrier", underbed: "hide", hide: "hide", sofa: "sofa", zoom: "zoom", frail: "sleep", bed: "sleep", table: "idle", none: null,
 };
 /** 原版 newGame：喜歡的玩具、玩的節奏開局隨機抽（玩家看不到）；DEMO 一開始只有羽毛逗貓棒 */
 
@@ -142,22 +165,41 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
   // 掃描房間：玩家在 3D 房間裡自己擺的位置與旋轉（有就優先於 scanSpots 的「某某旁」）
   const [scanPose, setScanPose] = useState<Partial<Record<PlayItem["id"], ItemPose>>>({});
   const [placeMsg, setPlaceMsg] = useState<string | null>(null);
+  // 「點選移動」提示框（渝茜 2026-11-16）：點用品自動放好後出現，點一下就關掉，這一輪不再出現
+  const [autoPlaced, setAutoPlaced] = useState(false);
+  const [hintClosed, setHintClosed] = useState(false);
   const placeApi = useRef<RoomPlaceApi | null>(null);
   const [lines, setLines] = useState<Partial<Record<NodeId, Line[]>>>({});
   const top = useRef<HTMLHeadingElement>(null);
   /** 在家的時光：正在玩哪一個動作的小遊戲 */
   const [careAct, setCareAct] = useState<CareAct | null>(null);
+  // 補貨視窗：採買之後又買飼料，更新 pick 並用 shopCost 重算每月花費（之後的節點照新的算）
+  const [restocking, setRestocking] = useState(false);
+  const restock = (next: ShopPick) => {
+    const note = restockNote(pick, next);
+    setPick(next);
+    if (note) {
+      const monthly = shopCost(next, foodStage(startMonths), backShop).month;
+      dispatch({ type: "restock", monthly, note });
+      setRestockMsg(`${note}，每月花費變成約 ${money(monthly)} 元`);
+      window.setTimeout(() => setRestockMsg(null), 5000);
+    }
+  };
+  const [restockMsg, setRestockMsg] = useState<string | null>(null);
+  const feedKinds = feedKindsAvailable(pick);
   // 這個節點裡餵過貓、換過水幾次：每做完一次貓就走到碗邊一次；換節點歸零
-  const [served, setServed] = useState(0);
-  useEffect(() => { setServed(0); }, [state.nodeIndex]);
-  /** 手機：把下方的劇情卡收起來，看整個 3D 房間 */
-  const [peek, setPeek] = useState(false);
+  const [served, setServed] = useState<{ act: "feed" | "water"; n: number } | null>(null);
+  useEffect(() => { setServed(null); }, [state.nodeIndex]);
+  // 餐碗組裡有沒有飼料、水：放進房間時是空碗，餵完、換完水才有；換節點（過了一段時間）又是空的
+  const [bowlFill, setBowlFill] = useState<BowlFill>({ food: false, water: false });
+  useEffect(() => { setBowlFill({ food: false, water: false }); }, [state.nodeIndex]);
 
   const catName = cat.name;
   // 這隻貓到家時的月齡：有生日／估計月齡用真實的，沒填用劇本原本的 2 個月；體型 12 個月以下用幼貓、以上用成貓
   const startMonths = cat.months ?? 2;
   const catTraits = useMemo(() => ({ coat: cat.coat, sex: cat.sex, neutered: cat.neutered }), [cat.coat, cat.sex, cat.neutered]);
-  const bodyAt = (months: number): "kitten" | "adult" => (months < 12 ? "kitten" : "adult");
+  // 劇情裡的年紀 → 幼貓／成貓（渝茜 2026-11-16：和後台同一條規則，6 個月以下幼貓；原本寫 12 個月）
+  const bodyAt = playBody;
   const labels = useMemo(() => room?.inventory.labels ?? [], [room]);
   const places = useMemo(() => ({ hide: homeWord("躲藏處", labels) ?? "角落", high: homeWord("高處", labels) ?? "", sofa: "沙發" }), [labels]);
   const node = STORY[state.nodeIndex];
@@ -254,11 +296,11 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
   // 小遊戲時：躲床底＝躲起來、鏟屎＝走到貓砂盆、陪玩＝在房間裡跑；其他照原版場景的貓姿勢
   const miniId = cur?.kind === "mini" ? cur.mini : null;
   // 餵貓、換水是彈窗裡的特寫：彈窗關掉（做完）之後貓才走到碗邊；吃、喝的動作由第 4 份做，先走過去
-  const careAction: CatAction | null = careAct === "scoop" ? "litter" : careAct === "play" ? "explore" : !careAct && served ? "eat" : null;
+  const careAction: CatAction | null = careAct === "scoop" ? "litter" : careAct === "play" ? "explore" : !careAct && served ? (served.act === "water" ? "drink" : "eat") : null;
   const action: CatAction | null = state.step !== "node" ? "idle"
     : careAction ? careAction
     : miniId === "scoop" ? "litter" : POSE_ACTION[state.scene.cat];
-  const sceneKey = state.step === "node" ? `${state.nodeIndex}:${state.scene.bg}:${state.scene.time}:${state.scene.cat}:${miniId}:${careAct}:${served}` : state.step;
+  const sceneKey = state.step === "node" ? `${state.nodeIndex}:${state.scene.bg}:${state.scene.time}:${state.scene.cat}:${miniId}:${careAct}:${served?.n}` : state.step;
   const goal = useMemo<(RoomClick & { at: number }) | null>(() => {
     if (state.step !== "node" || !action) return null;
     const g = goalFor(ROOM_SCENE, action, places, spots);
@@ -281,7 +323,10 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
   const wand = useMemo(() => (scanWand ? { toy, onCatch: (c: boolean) => { if (c) setCatches(n => n + 1); } } : null), [scanWand, toy]);
   useEffect(() => { if (scanWand) setCatches(0); }, [scanWand]);
   const clip = state.step === "node" && action === "sleep" ? "sleep" : null;
-  const look = action === null ? null : cat.look(state.step === "node" || state.step === "report" ? bodyAt(state.life.age) : cat.body);
+  const baseLook = action === null ? null : cat.look(state.step === "node" || state.step === "report" ? bodyAt(state.life.age) : cat.body);
+  // 老貓模型（第 4 份）進來後 elder-cat.ts 的 ELDER_CAT.look 填上就換掉（結尾才用）
+  const elderLook = elderFor(STORY[state.nodeIndex].id, state.step)?.look;
+  const look = baseLook && elderLook ? { ...baseLook, ...elderLook } : baseLook;
 
   // 續玩：進度讀回來就還原採買、擺放、喵戶、定格的房間，再回到快照那個節點的開頭
   const savedCp = useRef<unknown>(null);
@@ -374,7 +419,10 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
     if (pick.dryId && !pick.wetId) shopPicks.push({ t: "只準備了乾糧，貓喝水可能不夠", good: null });
     if (pick.fund) shopPicks.push({ t: "每月存醫療預備金", good: true });
     // 外出籠是中途送的，一定要擺、不計花費
-    dispatch({ type: "startNodes", catName, labels, once: shop.once, monthly: shop.month, shopPicks, startMonths, cat: catTraits, mood: cat.mood }); 
+    // 砂盆和碗已經分開放了：第 3 天不再叫玩家重擺（lib/play/litter-apart.ts）
+    const at = (id: string) => (kind === "scan" ? scanPose[id as PlayItem["id"]] : placed.find(p => p.key.startsWith(`${id}:`))) ?? null;
+    const apart = litterApart({ bowl: at("bowl"), litter: at("litter_box"), bowlSpot: scanSpots.bowl, litterSpot: scanSpots.litter_box, freeSpot: FREE_SPOT });
+    dispatch({ type: "startNodes", catName, labels, once: shop.once, monthly: shop.month, shopPicks, startMonths, cat: catTraits, mood: cat.mood, litterApart: apart });
   };
   // 網址加 ?quick=1：跳過背景、採買、擺用品，直接進第 1 個節點（試玩用）。房間用背景自動讀到的空間
   const quickDone = useRef(false);
@@ -407,6 +455,7 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
   const miniCtx: MiniCtx = {
     age: state.life.age,
     touchFav: cat.touchFav,
+    furUrl: adultFur(cat.look("adult")),
     // 刷牙訓練階段：每做一次升一階（原版從「碰碰嘴邊」開始，最後到牙刷全口）
     brushLevel: Math.min(4, state.life.care.log.brush ?? 0),
     cat: { body: 5, trust: state.life.trust, stress: state.life.stress, tabby: cat.tabby },
@@ -441,6 +490,7 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
       setScanPose(v => ({ ...v, [id]: pose }));
       setScanSpots(v => ({ ...v, [id]: FREE_SPOT }));
       setPlaceMsg(null);
+      setHintClosed(true);  // 已經會移動了，提示框收掉
     },
     onSelect: id => { if (playItems.some(i => i.id === id)) setPlacing(id as PlayItem["id"]); },
     onBlocked: (id, by) => setPlaceMsg(`${playItems.find(i => i.id === id)?.name ?? "用品"}會和${playItems.find(i => i.id === by)?.name ?? "別的用品"}重疊，換個位置試試。`),
@@ -452,14 +502,28 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
     const item = playItem(placing);
     return itemSpots(ROOM_SCENE, item, spots.filter(x => x.id !== placing), FURNITURE_NAMES);
   }, [kind, labels, placing, spots, playItem]);
-  const choose = (p: { x: number; z: number; label: string }) => {
-    if (kind !== "scan") { placeAt(placing, { x: p.x, z: p.z, y: 0, support: null }); return; }
-    setScanSpots(v => ({ ...v, [placing]: p.label }));
-    dropPose(placing);
-    setPlaceMsg(null);
-    const other = playItems.find(i => i.id !== placing && !scanSpots[i.id]);
-    if (other) setPlacing(other.id);
+  // 點用品：選它；還沒放過就自動放進房間（取代原本的「快速放」那一排），再跳「點選移動」提示
+  const pickItem = (id: PlayItem["id"]) => {
+    setPlacing(id);
+    if (placedIds.includes(id)) return;
+    if (kind === "scan") {
+      const label = autoSpot(spotList, playItems.filter(i => i.id !== id).map(i => scanSpots[i.id]));
+      if (!label) return;
+      setScanSpots(v => ({ ...v, [id]: label }));
+      dropPose(id);
+      setPlaceMsg(null);
+    } else {
+      const sp = itemSpots(ROOM_SCENE, playItem(id), spots.filter(x => x.id !== id), FURNITURE_NAMES)[0];
+      if (!sp) return;
+      const item = playItem(id);
+      setPlaced(list => [...list.filter(p => !p.key.startsWith(`${id}:`)), {
+        key: `${id}:${Date.now()}`, roomId: DEMO_DOLLHOUSE.id, url: item.url, name: item.name,
+        x: sp.x, z: sp.z, y: 0, support: null, widthM: item.widthM, depthM: item.depthM, heightM: item.heightM,
+      }]);
+    }
+    setAutoPlaced(true);
   };
+  const moveHint = state.step === "place" && showMoveHint({ autoPlaced, dismissed: hintClosed });
 
   // 第 3 天：砂盆和碗「放在一起／分開」是真的搬東西——放一起就自動搬到碗旁，分開就請玩家重選一個位置
   const bowlSpot = scanSpots.bowl ?? null;
@@ -500,10 +564,100 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
     const d = endsDay({ step: state.step, nodeIndex: state.nodeIndex, abandoned: state.life.abandoned, cur: cur?.kind ?? null }) ? dayEnd(state.nodeIndex, catName) : null;
     if (d) setDayEndShown(d); else dispatch({ type: "next" });
   };
-  const canPeek = state.step === "place" || (state.step === "node" && cur?.kind !== "mini" && !careAct);
-  useEffect(() => { setPeek(false); }, [state.step, state.nodeIndex, cur]);
   // 背景音樂依步驟、節點、場景切換（第 6 份）
-  usePlayBgm({ step: state.step, nodeId: state.step === "node" ? node.id : null, scene: state.scene, home: cur?.kind === "home" });
+  // 結局（#354 2026-11-14）：結尾的台詞演完就接暗幕 → 回顧 → 漸白 → 報告（lib/play/ending.ts）；這段期間藏起對話框
+  const endingOn = endingStarts({ step: state.step, nodeId: node.id, curKind: cur?.kind });
+  const [endPhase, setEndPhase] = useState<EndingPhase | null>(null);
+  const [endSlides, setEndSlides] = useState<ReviewShot[] | null>(null);
+  const [ended, setEnded] = useState(false);
+  // 飼養開始就在背景預載小遊戲示範影片
+  useEffect(() => { if (state.step === "node") warmGuideVideos(); }, [state.step]);
+  // 報告讀完才跳領養資訊；報告最後的按鈕可以再打開（AdoptDialog）
+  const [reportRead, setReportRead] = useState(false);
+  const [adoptOpen, setAdoptOpen] = useState(0);
+  usePlayBgm({ step: state.step, nodeId: state.step === "node" ? node.id : null, scene: state.scene, home: cur?.kind === "home", ending: endingOn ? endPhase ?? "dark" : null });
+  // 白天／夜晚光與「場景換了」事件（#354 第 5 份；傍晚歸白天，見 lib/play/scene-light.ts）
+  const lightTime = playLightTime({ step: state.step, time: state.scene.time, home: cur?.kind === "home" });
+  const light = useMemo(() => lightFor(lightTime), [lightTime]);
+  useEffect(() => { reportScene(sceneOf({ step: state.step, nodeId: node.id, scene: state.scene, home: cur?.kind === "home" })); }, [state.step, node.id, state.scene, cur?.kind]);
+  useEffect(() => resetScene, []);
+  // 診間與劇情鏡頭（#354 第 5 份）
+  // 半年後公貓亂噴尿：尿漬出現的同時播噴尿音效（sfx_spray 還沒有音檔時不出聲）；看醫生或劇情結束就消失。結局那一幕疊結局插圖
+  const stains = useMemo(() => stainsFor({ step: state.step, nodeId: node.id, bg: state.scene.bg, pose: state.scene.cat, life: state.life }),
+    [state.step, node.id, state.scene.bg, state.scene.cat, state.life]);
+  useEffect(() => { if (stains.length) playSfx("sfx_spray"); }, [stains.length]);
+  // 其他音效（渝茜 2026-11-16：把後台音樂庫的音效套上去）：什麼事件播哪個在 sfx-cues.ts，這裡只在事件發生那一刻呼叫
+  const lastBubble = useRef<string | null>(null);
+  useEffect(() => {
+    const id = bubbleSfx(lastBubble.current, bubble, { nodeId: node.id, female: cat.sex === "female" });
+    lastBubble.current = bubble;
+    if (id) playSfx(id);
+  }, [bubble, node.id, cat.sex]);
+  const lastPose = useRef<CatPose | null>(null);
+  useEffect(() => {
+    const pose = state.step === "node" ? state.scene.cat : null;
+    const id = pose ? poseSfx(lastPose.current, pose, node.id) : null;
+    lastPose.current = pose;
+    if (id) playSfx(id);
+  }, [state.step, state.scene.cat, node.id]);
+  const lastMeters = useRef<{ trust: number; stress: number } | null>(null);
+  useEffect(() => {
+    const now = { trust: state.life.trust, stress: state.life.stress };
+    const ids = state.step === "node" ? meterSfx(lastMeters.current, now) : [];
+    lastMeters.current = state.step === "node" ? now : null;
+    ids.forEach(id => playSfx(id));
+  }, [state.step, state.life.trust, state.life.stress]);
+  const lastCatches = useRef(0);
+  useEffect(() => {
+    const id = catchSfx(lastCatches.current, catches);
+    lastCatches.current = catches;
+    if (id) playSfx(id);
+  }, [catches]);
+  useEffect(() => { if (scanWand) playSfx("sfx_toy"); }, [scanWand]);
+  // 按鈕聲：整個遊戲畫面的按鈕都響（小聲）；拖曳用品、搖桿不算
+  useEffect(() => {
+    const onDown = (e: PointerEvent) => {
+      const t = e.target instanceof Element ? e.target.closest("button, a[href]") : null;
+      if (t && !t.closest(".hq-roomviewer-stick")) playSfx("sfx_tap", TAP_VOLUME);
+    };
+    document.addEventListener("pointerdown", onDown, true);
+    return () => document.removeEventListener("pointerdown", onDown, true);
+  }, []);
+  const elder = elderFor(node.id, state.step);
+  const vet = showVet({ step: state.step, bg: state.scene.bg, home: cur?.kind === "home" });
+  const shot = useMemo(() => (state.step === "node" && cur?.kind !== "home" ? shotFor(node.id, state.scene.cat) : null), [state.step, cur?.kind, node.id, state.scene.cat]);
+
+  // 結局回顧的自動截圖（#354）：幾個節點各截一張 3D 畫面，存記憶體＋瀏覽器（IndexedDB，key＝runId；示範模式只在記憶體）
+  const [shots, setShots] = useState<ReviewShot[]>([]);
+  useEffect(() => {
+    if (!runId) return;
+    loadReview(runId).then(list => { if (list?.length) setShots(v => list.reduce(mergeShots, v)); });
+  }, [runId]);
+  const captureKey = captureMoment({ step: state.step, nodeId: node.id, bg: state.scene.bg, pose: state.scene.cat, curKind: cur?.kind, busy: careAct !== null, taken: shots.map(x => x.key) });
+  useEffect(() => {
+    if (!captureKey) return;
+    const label = nodeLabel(node, state.startMonths);
+    const t = setTimeout(() => {
+      const src = captureScene();
+      if (!src) return;
+      setShots(v => {
+        const next = mergeShots(v, { key: captureKey, label, src });
+        if (runId && next !== v) void saveReview(runId, next);
+        return next;
+      });
+    }, CAPTURE_DELAY_MS);
+    return () => clearTimeout(t);
+    // 只看這一刻要截的節點（同一個 key 只截一次）
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [captureKey]);
+  // 暗幕開始時定好回顧照；一張都沒有（換裝置續玩、截圖失敗）就截當下的房間一張，再沒有就用備用插圖
+  useEffect(() => {
+    if (!endingOn) { setEndSlides(null); setEndPhase(null); return; }
+    const now = shots.length ? null : captureScene();
+    setEndSlides(shots.length ? shots : now ? [{ key: "farewell", label: "", src: now }] : []);
+    // 只在暗幕開始時決定一次
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [endingOn]);
 
   // 開始前被擋下（沒登入、沒喵戶、有別隻貓在進行、沒有房間或報告…）：只顯示說明，不進遊戲
   const hydrating = Boolean(resumeId && !hydrated.current);
@@ -530,10 +684,10 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
             {state.step === "node" && <StatusMeters trust={state.life.trust} stress={state.life.stress} />}
             {backBtn}
           </div>
+          {/* 聲音、放棄、離開收成一顆齒輪（渝茜 2026-11-14）；「跟著貓」在它左邊（PlayStage） */}
           <div className={s.hudEnd}>
-            <SoundToggle />
-            {runId && <button type="button" className={s.exit} onClick={() => setAbandoning(true)}>放棄</button>}
-            <a className={s.exit} href={catHref} onClick={ev => { if (!window.confirm(runId ? (state.step === "place" ? "要離開嗎？下次會回到擺用品這一步，選好的都會保留。" : "要離開嗎？下次會從這個節點的開頭接著玩。") : "要離開虛擬飼養嗎？目前的進度不會保留。")) ev.preventDefault(); }}>離開</a>
+            <PlayMenu exitHref={catHref} onAbandon={runId ? () => setAbandoning(true) : undefined}
+              exitNote={runId ? (state.step === "place" ? "離開後，下次會回到擺用品這一步，選好的都會保留。" : "離開後，下次會從這個節點的開頭接著玩。") : "離開虛擬飼養後，目前的進度不會保留。"} />
           </div>
         </div>
       ) : (
@@ -556,14 +710,20 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
         <div className={e.overlay}><AbandonPanel catName={catName} runId={runId} onCancel={() => setAbandoning(false)} onDone={() => { window.location.href = catHref; }} /></div>
       )}
 
-      {immersive && state.step === "node" && cur?.kind === "home" && !careAct && <CareBar state={state} canPlay={kind === "scan"} onAct={setCareAct} />}
+      {immersive && state.step === "node" && cur?.kind === "home" && !careAct && <CareBar state={state} canPlay={kind === "scan"} onAct={setCareAct} onRestock={() => setRestocking(true)} />}
 
       {showStage && (
-        <PlayStage kind={kind} scanBase={scanBase} placeView={state.step === "place"} place={placeEdit} look={look} bubble={bubble} bubbleInset={peek || (cur?.kind === "home" && !careAct) ? 0.08 : cur?.kind === "lines" || cur?.kind === "personal" ? 0.36 : 0.48} lookKey={lookKey} placed={placed} scanItems={scanItems} story={story} wand={wand}
-          goal={goal} clip={clip} speed={state.step === "node" ? node.speed : 1}
+        <PlayStage kind={kind} scanBase={scanBase} placeView={state.step === "place"} place={placeEdit} look={look} bubble={bubble} bubbleInset={(cur?.kind === "home" && !careAct) ? 0.08 : cur?.kind === "lines" || cur?.kind === "personal" ? 0.36 : 0.48} lookKey={lookKey} placed={placed} scanItems={scanItems} story={story} wand={wand} bowlFill={bowlFill}
+          goal={goal} clip={clip} speed={state.step === "node" ? poseSpeed(state.scene.cat, node.speed) : 1} light={light} vet={vet} vetTalk={vet ? vetTalkKey(cur) : null} shot={shot} stains={stains} elder={elder}
           onDrop={state.step === "place" && kind === "dollhouse"
             ? (id, at) => { if (playItems.some(i => i.id === id)) placeAt(id as PlayItem["id"], at); }
             : undefined}>
+          {moveHint && (
+            <button type="button" className={pm.moveHint} onClick={() => setHintClosed(true)} aria-label="點選移動：知道了">
+              <strong>點選移動</strong>
+              <span>{kind === "scan" ? `點地板就能把${playItem(placing).name}移過去，也可以直接拖曳` : `把${playItem(placing).name}從下面拖進房間就能換位置`}</span>
+            </button>
+          )}
         </PlayStage>
       )}
 
@@ -610,47 +770,43 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
         </>
       )}
 
-      {immersive && <div className={s.sheet} data-peek={peek ? "true" : undefined}>
-      {canPeek && <button type="button" className={s.peekBtn} aria-pressed={peek} onClick={() => setPeek(p => !p)}><Glyph id="eye" size={18} />{peek ? "回到劇情" : "看看房間"}</button>}
+      {immersive && <div className={s.sheet}>
       {state.step === "place" && (
-        <section className={s.card} aria-labelledby="place-title">
-          <h2 id="place-title">把外出籠、餐碗和貓砂盆放進房間</h2>
-          {kind === "scan" && <p className={s.lead}>選好用品，點房間地板放上去，放好的可以拖曳；右上角箭頭切換視角。</p>}
-          {/* 用品鈕和轉向鈕排在同一列，整張卡片不用捲動就看得完 */}
+        // 精簡版（渝茜 2026-11-16 再縮小，拿掉「快速放」）：標題＋說明一行、用品＋轉向一行、還缺＋帶回家一行
+        <section className={`${s.card} ${pm.placeCard}`} aria-labelledby="place-title">
+          <div className={pm.placeHead}>
+            <h2 id="place-title">擺用品</h2>
+            <span className={pm.placeHint}>{kind === "scan" ? "點用品就會放進房間，點地板或拖曳可以移動" : "點用品就會放進房間，也可以拖進房間換位置"}</span>
+          </div>
+          {/* 用品鈕和轉向鈕排在同一列 */}
           <div className={pm.placeRow}>
             <div className={s.chips} role="group" aria-label="要放的用品">
               {playItems.map(i => (
-                <button key={i.id} type="button" className={s.chipBtn} aria-pressed={placing === i.id}
+                <button key={i.id} type="button" className={`${s.chipBtn} ${pm.itemBtn}`} aria-pressed={placing === i.id}
                   draggable onDragStart={e => setItemDragData(e.dataTransfer, i.id)}
-                  onClick={() => setPlacing(i.id)}>
-                  {i.name}{placedIds.includes(i.id) ? "（已放）" : ""}
+                  onClick={() => pickItem(i.id)}>
+                  {i.name}{placedIds.includes(i.id) ? " ✓" : ""}
                 </button>
               ))}
             </div>
             {/* 用品用滑鼠拖曳移動（渝茜 2026-11-14：不要物件方向鍵）；只留轉向 */}
             {kind === "scan" && scanSpots[placing] && (
-              <button type="button" className={s.chipBtn} onClick={() => placeApi.current?.rotate(placing)}>
+              <button type="button" className={`${s.chipBtn} ${pm.itemBtn}`} onClick={() => placeApi.current?.rotate(placing)}>
                 {playItem(placing).name}轉向
               </button>
             )}
           </div>
           {placeMsg && <p className={s.missing} role="status">{placeMsg}</p>}
-          <p className={s.lead}>{kind === "scan" ? "或快速放在" : `選一個位置放${playItem(placing).name}`}{kind === "dollhouse" ? "，或用滑鼠把上面的用品拖進房間" : ""}：</p>
-          <div className={s.chips} role="group" aria-label="位置">
-            {spotList.map(p => (
-              <button key={p.label} type="button" className={s.chipBtn}
-                aria-pressed={kind === "scan" ? scanSpots[placing] === p.label : undefined}
-                onClick={() => choose(p)}>{p.label}</button>
-            ))}
-          </div>
-          {placedIds.length < playItems.length && <p className={s.missing}>還缺：{playItems.filter(i => !placedIds.includes(i.id)).map(i => i.name).join("、")}</p>}
-          <div className={s.actions}>
+          <div className={pm.placeFoot}>
+            {placedIds.length < playItems.length
+              ? <span className={s.missing}>還缺：{playItems.filter(i => !placedIds.includes(i.id)).map(i => i.name).join("、")}</span>
+              : <span />}
             <CatButton disabled={placedIds.length < playItems.length} onClick={startNodes}>帶{catName}回家</CatButton>
           </div>
         </section>
       )}
 
-      {state.step === "node" && (
+      {state.step === "node" && !endingOn && (
         <NodeStep state={state} personal={personal}
           onNext={nextOrDayEnd} onChoose={i => dispatch({ type: "choose", index: i })} />
       )}
@@ -669,35 +825,60 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
         <HomeStep onFinish={nextOrDayEnd} />
       )}
       {playMini && scanWand && (
-        <ScanWand key={`story:wand:${state.nodeIndex}`} catName={catName} catches={catches}
-          onDone={r => dispatch({ type: "miniDone", result: r })} />
+        <MiniGuideGate key={`story:wand:${state.nodeIndex}`} id="play" catName={catName} modal={{ title: `逗${catName}玩` }}>
+          <ScanWand catName={catName} catches={catches} onDone={r => dispatch({ type: "miniDone", result: r })} />
+        </MiniGuideGate>
       )}
       {state.step === "node" && cur?.kind === "mini" && cur.mini !== "play" && (
-        <CatgameMini key={`${state.nodeIndex}:${cur.mini}:${state.life.picks.length}`} id={cur.mini} ctx={miniCtx} catName={catName}
+        <CatgameMini key={`${state.nodeIndex}:${cur.mini}:${state.life.picks.length}`} id={cur.mini} ctx={miniCtx} catName={catName} feedKinds={feedKinds} onRestock={() => setRestocking(true)} day={state.today}
           // 外出籠：劇情只看成功與否（原版結果 { ok, forced, treats }）
-          onDone={r => dispatch({ type: "miniDone", result: cur.mini === "carrier" ? (r as { ok?: boolean } | null)?.ok === true : r })} />
+          onDone={r => {
+            if (r !== null && cur.mini === "feed") setBowlFill(f => ({ ...f, food: true }));
+            if (r !== null && cur.mini === "water") setBowlFill(f => ({ ...f, water: true }));
+            if (cur.mini !== "carrier") careSfx(cur.mini, r).forEach(id => playSfx(id));
+            dispatch({ type: "miniDone", result: cur.mini === "carrier" ? (r as { ok?: boolean } | null)?.ok === true : r });
+          }} />
       )}
       {state.step === "node" && cur?.kind === "home" && careAct === "play" && scanWand && (
-        <ScanWand key={`care:wand:${state.life.care.rounds}`} catName={catName} catches={catches}
-          onDone={r => { dispatch({ type: "care", act: "play", good: careGood("play", r) }); setCareAct(null); }} />
+        <MiniGuideGate key={`care:wand:${state.life.care.rounds}`} id="play" catName={catName} modal={{ title: `逗${catName}玩` }}>
+          <ScanWand catName={catName} catches={catches} onDone={r => { dispatch({ type: "care", act: "play", good: careGood("play", r), result: r }); careSfx("play", r).forEach(id => playSfx(id)); setCareAct(null); }} />
+        </MiniGuideGate>
       )}
       {state.step === "node" && cur?.kind === "home" && careAct && careAct !== "play" && (() => {
         const mini = CARE_ACTS.find(a => a.act === careAct)!.mini!;
         const done = (r: unknown) => {
           if (r === null) { setCareAct(null); return; }
-          dispatch({ type: "care", act: careAct, good: careGood(careAct, r) });
-          if (careAct === "feed" || careAct === "water") setServed(n => n + 1);
+          dispatch({ type: "care", act: careAct, good: careGood(careAct, r), result: r });
+          careSfx(careAct, r).forEach(id => playSfx(id));
+          if (careAct === "feed" || careAct === "water") { const act = careAct; setServed(s => ({ act, n: (s?.n ?? 0) + 1 })); }
+          if (careAct === "feed") setBowlFill(f => ({ ...f, food: true }));
+          if (careAct === "water") setBowlFill(f => ({ ...f, water: true }));
           setCareAct(null);
         };
-        return <CatgameMini key={`care:${careAct}:${state.life.care.rounds}`} id={mini} ctx={miniCtx} catName={catName} onDone={done} />;
+        return <CatgameMini key={`care:${careAct}:${state.life.care.rounds}`} id={mini} ctx={miniCtx} catName={catName} onDone={done} feedKinds={feedKinds} onRestock={() => setRestocking(true)} day={state.today} />;
       })()}
 
       </div>}
 
+      {endingOn && endSlides && (
+        <EndingOverlay slides={endSlides} caption={farewellCaption(state.life)} onPhase={setEndPhase}
+          onDone={() => { setEnded(true); dispatch({ type: "finish" }); }} />
+      )}
+      {state.step === "report" && ended && <div className={endFx.whiteOut} aria-hidden="true" />}
+      {state.step === "report" && (
+        <AdoptDialog catId={cat.catId} catName={catName} photo={cat.photo} shot={shots[shots.length - 1]?.src ?? null} runId={runId}
+          canAct={!isDemo && Boolean(user)} adoptable={cat.adoptable} formOpen={cat.formOpen} abandoned={state.life.abandoned}
+          facts={adoptFacts(cat)} intro={cat.intro} reachedEnd={reportRead} openKey={adoptOpen} />
+      )}
+
       {state.step === "report" && home && (
         <ReportStep state={state} pick={pick} monthly={shop.month} home={home} runId={runId} catHref={catHref}
-          onRestart={() => { dispatch({ type: "restart" }); hazardsAsked.current = false; hazardShown.current = false; setHazardItem(null); setPlaced([]); setScanSpots({}); setScanPose({}); setLines({}); setRunId(null); setFrozenRoom(null); savedCp.current = null; }} />
+          onReachEnd={() => setReportRead(true)} onAdoptInfo={!state.life.abandoned && cat.adoptable ? () => setAdoptOpen(n => n + 1) : undefined}
+          onRestart={() => { dispatch({ type: "restart" }); setEnded(false); setReportRead(false); setShots([]); hazardsAsked.current = false; hazardShown.current = false; setHazardItem(null); setPlaced([]); setScanSpots({}); setScanPose({}); setAutoPlaced(false); setHintClosed(false); setLines({}); setRunId(null); setFrozenRoom(null); savedCp.current = null; }} />
       )}
+
+      {restocking && state.step === "node" && <RestockDialog pick={pick} shop={backShop} stage={foodStage(startMonths)} catName={catName} onBuy={restock} onClose={() => setRestocking(false)} />}
+      {restockMsg && <p className={rs.notice} role="status">{restockMsg}</p>}
     </div>
   );
 }

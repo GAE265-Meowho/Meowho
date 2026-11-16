@@ -247,3 +247,35 @@ export function dragSideOffset(offset: number, dx: number, handed = 1): number {
   const max = SIDE_VIEW.dragMaxDeg * DEG;
   return Math.min(Math.max(offset + handed * dx * OVERVIEW.dragRadPerPx, -max), max);
 }
+
+/** 自由轉（渝茜 2026-11-16「畫面還是卡的」）：拖曳可以一直繞著房間轉（收在 0～2π），不再卡在 ±dragMaxDeg */
+export function dragSideFree(offset: number, dx: number, handed = 1): number {
+  return wrapAzimuth(offset + handed * dx * OVERVIEW.dragRadPerPx);
+}
+
+/** 擺用品的縮放（滾輪、兩指）：zoom 乘在入鏡的 FOV 上，越小越近 */
+export const FREE_VIEW = {
+  zoomMin: 0.45,
+  zoomMax: 1.15,
+  /** 滾輪每 1 單位 deltaY 改多少（指數，觸控板和滑鼠都順） */
+  wheelK: 0.0015,
+  /** 拉近後 FOV 至少幾度 */
+  fovMinDeg: 22,
+} as const;
+
+const clampZoom = (z: number) => Math.min(FREE_VIEW.zoomMax, Math.max(FREE_VIEW.zoomMin, z));
+/** 滾輪：往前滾（deltaY < 0）拉近 */
+export const wheelZoom = (zoom: number, deltaY: number) => clampZoom(zoom * Math.exp(deltaY * FREE_VIEW.wheelK));
+/** 兩指：從 from px 張到 to px，張開＝拉近 */
+export const pinchZoom = (zoom: number, from: number, to: number) => (from > 0 && to > 0 ? clampZoom(zoom * (from / to)) : zoom);
+/** 縮放後的 FOV（度） */
+export const zoomedFov = (fov: number, zoom: number) => Math.max(FREE_VIEW.fovMinDeg, fov * zoom);
+
+/**
+ * 虛擬飼養的一般鏡頭（#354，渝茜 2026-11-14）：用擺用品那種從房間一側高處往下看整間房（RoomViewer 的 playHome：sideCamera＋fitFov），
+ * 不用掃描影片的拍攝點（常貼著地板、靠窗，旁邊都是雜訊，虛擬飼養裡又只能原地轉頭走不開）。
+ */
+export const PLAY_VIEW = {
+  /** 視野上限（度）：再大邊緣會變形 */
+  maxFov: 80,
+} as const;

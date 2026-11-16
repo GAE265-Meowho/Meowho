@@ -26,6 +26,7 @@ describe("goalFor", () => {
     const g = goalFor(scene, "eat", places, [bowl]);
     expect(Math.hypot(g!.x - bowl.x, g!.z - bowl.z)).toBeLessThan(1);
     expect(goalFor(scene, "eat", places, [])).toBeNull();
+    expect(goalFor(scene, "drink", places, [bowl])).toEqual(goalFor(scene, "eat", places, [bowl]));
   });
   it("睡覺、待著：原地", () => {
     expect(goalFor(scene, "sleep", places, [])).toBeNull();
