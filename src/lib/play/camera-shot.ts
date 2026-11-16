@@ -26,10 +26,10 @@ const SHOTS: Partial<Record<NodeId, Partial<Record<CatPose, Shot>>>> = {
   day1: { carrier: { id: "carrier", dist: 2.5, height: 1.0, ms: 1400, delayMs: 1500 } },
   // 半夜跑酷：俯瞰整個房間，貓跑到哪都看得到（渝茜 2026-11-14）；dist、height 是沒有房間範圍時的備用
   day30: { zoom: { id: "zoom", dist: 3.0, height: 1.3, ms: 1200, delayMs: 300, overview: true } },
-  // 結尾：先中景，最後一幕（睡著）很慢地推近
+  // 結尾：拉近看牠躺著（渝茜 2026-11-16：貓快走了，要配合劇情；原本 1.6／0.6、1.4／0.55 太遠），最後一幕（睡著）很慢地再推近
   farewell: {
-    frail: { id: "farewell", dist: 1.6, height: 0.6, ms: 2400, delayMs: 800 },
-    bed: { id: "farewell-bed", dist: 1.4, height: 0.55, ms: 4500, delayMs: 600 },
+    frail: { id: "farewell", dist: 1.0, height: 0.45, ms: 2400, delayMs: 800 },
+    bed: { id: "farewell-bed", dist: 0.75, height: 0.38, ms: 4500, delayMs: 600 },
   },
 };
 
@@ -44,3 +44,11 @@ export function shotReach(shot: Pick<CameraShot, "dist" | "height">, aspect: num
   const k = Math.min(2.2, Math.max(1, 0.9 / Math.max(0.1, aspect)));
   return { dist: shot.dist * k, height: shot.height * k };
 }
+
+/**
+ * 瞄準點要往下壓多少（和 dist 同單位），貓才會落在劇情卡上面空白處的中間、不被卡片蓋住（渝茜 2026-11-16：結尾的貓被卡片擋住）。
+ * dist＝鏡頭到貓頭的距離、fovDeg＝垂直視角、inset＝卡片蓋住畫面下方的比例（0～1）。
+ * 沒蓋住的範圍是 NDC -1+2×inset～1，中間在 inset；鏡頭對準貓頭下方 drop 處，貓頭就在那裡。
+ */
+export const shotAimDrop = (dist: number, fovDeg: number, inset: number) =>
+  inset <= 0 ? 0 : dist * Math.tan((fovDeg * Math.PI) / 360) * inset;

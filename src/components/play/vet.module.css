@@ -4,7 +4,11 @@
   opacity: 0; pointer-events: none; transition: opacity .45s ease;
 }
 .vet[data-on="true"] { opacity: 1; pointer-events: auto; animation: vetIn .45s ease; }
+/* 隱藏時：畫布外層（react-three-fiber 行內寫 pointer-events: auto）也不能接收事件，不然診間看不見卻蓋在房間上，
+   房間拖不動、逗貓玩具不跟著滑鼠（渝茜 2026-11-16）。淡出完才 visibility: hidden */
+.vet:not([data-on="true"]) { visibility: hidden; transition: opacity .45s ease, visibility 0s linear .45s; }
+.vet:not([data-on="true"]) * { pointer-events: none !important; }
 /* 第一次出現（剛掛上去）transition 不會動，用 animation 補淡入 */
 @keyframes vetIn { from { opacity: 0; } to { opacity: 1; } }
 .vet canvas { display: block; }
-@media (prefers-reduced-motion: reduce) { .vet, .vet[data-on="true"] { transition: none; animation: none; } }
+@media (prefers-reduced-motion: reduce) { .vet, .vet[data-on="true"], .vet:not([data-on="true"]) { transition: none; animation: none; } }

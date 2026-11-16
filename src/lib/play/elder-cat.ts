@@ -14,6 +14,8 @@ export interface ElderCat {
   clip: string;
   /** 走路速度倍率（1＝原本速度） */
   walk: number;
+  /** 常常睡覺（掃描房間的貓閒晃時睡的機率、時間用 cat-moves.ts 的 NAP.elder） */
+  sleepy: boolean;
 }
 
 export const ELDER_CAT: ElderCat = {
@@ -23,6 +25,8 @@ export const ELDER_CAT: ElderCat = {
   clip: "sleep",
   // 2026-11-16 渝茜：老貓走路要慢很多，原本速度 × 0.15
   walk: 0.15,
+  // 2026-11-16 渝茜：15 歲之後要常常睡覺
+  sleepy: true,
 };
 
 /** 走路速度倍率：老貓用 ELDER_CAT.walk，不是老貓 1 */

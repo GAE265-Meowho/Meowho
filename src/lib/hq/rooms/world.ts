@@ -50,6 +50,10 @@ export interface RoomWorld {
   setCatLook(catUrl: string, albedoUrl?: string, heightM?: number): Promise<boolean>;
   /** 走路速度倍率（老貓 0.15）；1＝原本速度 */
   setCatSpeed(k: number): void;
+  /** 老貓：比較常睡、睡比較久 */
+  setCatSleepy(on: boolean): void;
+  /** 停下來就一直播這個動作（結尾的老貓躺著睡）；null＝照常閒晃 */
+  setCatRest(clip: string | null): void;
 }
 
 export async function createRoomWorld({ viewer, threeScene, scene, layout, cameras, catUrl, albedoUrl, catHeightM, unit, focus }: {
@@ -160,6 +164,8 @@ export async function createRoomWorld({ viewer, threeScene, scene, layout, camer
     catRoot: cat.cat,
     setCatLook: (url, albedo, heightM) => cat.setLook(url, albedo, heightM),
     setCatSpeed: k => { cat.speedK = k; },
+    setCatSleepy: on => { cat.sleepy = on; },
+    setCatRest: clip => { cat.rest = clip; },
     hasBed: Boolean(bed),
     hasCup: Boolean(cup),
 

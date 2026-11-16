@@ -577,7 +577,7 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
   const [adoptOpen, setAdoptOpen] = useState(0);
   usePlayBgm({ step: state.step, nodeId: state.step === "node" ? node.id : null, scene: state.scene, home: cur?.kind === "home", ending: endingOn ? endPhase ?? "dark" : null });
   // 白天／夜晚光與「場景換了」事件（#354 第 5 份；傍晚歸白天，見 lib/play/scene-light.ts）
-  const lightTime = playLightTime({ step: state.step, time: state.scene.time, home: cur?.kind === "home" });
+  const lightTime = playLightTime({ step: state.step, time: state.scene.time, home: cur?.kind === "home", bg: state.scene.bg });
   const light = useMemo(() => lightFor(lightTime), [lightTime]);
   useEffect(() => { reportScene(sceneOf({ step: state.step, nodeId: node.id, scene: state.scene, home: cur?.kind === "home" })); }, [state.step, node.id, state.scene, cur?.kind]);
   useEffect(() => resetScene, []);

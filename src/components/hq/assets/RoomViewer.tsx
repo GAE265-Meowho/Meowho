@@ -24,7 +24,7 @@ import { scanStainSpots, type Stain } from "@/lib/play/urine-stain";
 import { disposeStains, stainMesh } from "./stain-mesh";
 import { CAT_TINT_UNIFORM, TINT_UNIFORM, tintFragment } from "@/lib/hq/rooms/splat-tint";
 import { tintObject } from "@/lib/hq/rooms/tint-material";
-import { shotReach, type CameraShot } from "@/lib/play/camera-shot";
+import { shotAimDrop, shotReach, type CameraShot } from "@/lib/play/camera-shot";
 import { applyElderTint, elderWalk, type ElderCat } from "@/lib/play/elder-cat";
 import { registerSceneGrab } from "@/lib/play/snapshot";
 
@@ -441,6 +441,7 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
       if (captureRef.current) unGrab = registerSceneGrab(() => { drawable.render(); return drawable.renderer.domElement; });
       // 劇情鏡頭：從鏡頭當下看貓的水平方向退 dist 公尺、抬高 height 公尺（keepInRoom 會把鏡頭留在房間裡）
       // 俯瞰整個房間的劇情鏡頭（第 30 天半夜跑酷）：從鏡頭當下面向的那一側高處往下看，FOV 放大到裝得下整間房；結束後飛回開場位置
+      let inRoom = (p: THREE.Vector3) => p;  // 下面量好房間範圍後換成真的（劇情鏡頭要先夾進房間再對準貓）
       shotEnd.current = () => {
         if (!shotWide.current) return;
         shotWide.current = false;
@@ -470,8 +471,13 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
         if (back.lengthSq() < 1e-9) back.copy(ve2);
         back.normalize();
         const { dist, height } = shotReach(s, active.camera.aspect || 1);
-        const pos = head.clone().addScaledVector(back, dist * upm).addScaledVector(vup, height * upm);
-        const to = { pos, look: pos.clone().addScaledVector(head.clone().sub(pos).normalize(), unit * 0.01) };
+        // 先把鏡頭夾進房間、再從夾好的位置對準貓（渝茜 2026-11-16：貓靠牆時鏡頭算到牆外，事後被 keepInRoom 平移回來，
+        // 變成從貓頭上往前看，貓掉到畫面最下面被劇情卡擋住）
+        const pos = inRoom(head.clone().addScaledVector(back, dist * upm).addScaledVector(vup, height * upm));
+        // 瞄準貓頭下方一點：貓落在劇情卡上面空白處的中間（camera-shot.ts 的 shotAimDrop）
+        const fov = (active.camera as THREE.PerspectiveCamera).fov || 60;
+        const aim = head.clone().addScaledVector(vup, -shotAimDrop(head.distanceTo(pos), fov, insetRef.current));
+        const to = { pos, look: pos.clone().addScaledVector(aim.sub(pos).normalize(), unit * 0.01) };
         if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) jumpTo(to);
         else tween = { from: { pos: active.camera.position.clone(), look: controls.target.clone() }, to, start: performance.now(), ms: s.ms };
       };
@@ -632,10 +638,14 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
         const d = p.clone().sub(forigin).divideScalar(layout.units_per_meter);
         return [d.dot(fe1), d.dot(fup), d.dot(fe2)];
       };
-      const keepInRoom = () => {
-        const [x, y, z] = clampInRoom(toFloor(active.camera.position), scene.room);
-        const inside = forigin.clone().addScaledVector(fe1, x * layout.units_per_meter)
+      /** 一點夾進房間（牆內）後的位置 */
+      inRoom = (p: THREE.Vector3) => {
+        const [x, y, z] = clampInRoom(toFloor(p), scene.room);
+        return forigin.clone().addScaledVector(fe1, x * layout.units_per_meter)
           .addScaledVector(fup, y * layout.units_per_meter).addScaledVector(fe2, z * layout.units_per_meter);
+      };
+      const keepInRoom = () => {
+        const inside = inRoom(active.camera.position);
         if (inside.distanceToSquared(active.camera.position) > 1e-12) move(inside.sub(active.camera.position));
       };
       el.addEventListener("wheel", e => {
@@ -693,6 +703,8 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
           applyElderTint(roomWorld.catRoot, el);
           roomWorld.catRoot.scale.setScalar(el?.scale ?? 1);
           roomWorld.setCatSpeed(elderWalk(el));  // 老貓走路慢（渝茜 2026-11-16）
+          roomWorld.setCatSleepy(Boolean(el?.sleepy));  // 老貓常常睡覺
+          roomWorld.setCatRest(el?.clip ?? null);  // 結尾：一直躺著睡（娃娃屋原本就這樣）
           elderOn = Boolean(el);
         }
         if (!followRef.current) followOff = null;

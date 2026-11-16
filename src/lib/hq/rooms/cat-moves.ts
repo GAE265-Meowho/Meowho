@@ -82,6 +82,26 @@ export const clipRate = (speedMps: number, clipMps: number) =>
   clipMps > 0 ? Math.min(3, Math.max(0.3, speedMps / clipMps)) : 1;
 
 /**
+ * 睡覺（渝茜 2026-11-16：帶入睡覺動作，尤其 15 歲之後要常常睡覺）：閒晃停下來、要挑下一個地方時，
+ * 有 chance 的機率原地睡 seconds 秒（睡醒後下一次一定先起來走走，不會連續睡）。老貓（elder-cat.ts 的 ELDER_CAT.sleepy）用 elder。
+ */
+export const NAP = {
+  young: { chance: 0.15, seconds: [10, 20] },
+  elder: { chance: 0.7, seconds: [25, 45] },
+} as const;
+
+/** r1、r2 是 0～1 的亂數：要睡回傳睡幾秒，不睡回 null */
+export function napFor(r1: number, r2: number, elder: boolean): number | null {
+  const n = elder ? NAP.elder : NAP.young;
+  if (r1 >= n.chance) return null;
+  return n.seconds[0] + r2 * (n.seconds[1] - n.seconds[0]);
+}
+
+/** 結尾一直躺著睡（渝茜 2026-11-16）：有設定休息動作、模型也有那個動作才用；否則 null＝照常閒晃 */
+export const restingClip = (rest: string | null, clips: readonly string[]): string | null =>
+  rest && clips.includes(rest) ? rest : null;
+
+/**
  * 玩家（點地板、叫貓）能不能讓貓移動。劇情讓貓縮在外出籠裡（第 1 天躲著）時不行：只有劇情能讓牠出來
  * （渝茜 2026-11-16：第 1 天躲在外出籠，點一下畫面貓就跑出來）。
  */

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48">
+  <!-- 摸貓的虛擬手（張開）：熱點在中指指尖 (22,3) -->
+  <g fill="#f8d9bd" stroke="#6b4632" stroke-width="2" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M13 26 V12 a3 3 0 0 1 6 0 V22 V7 a3 3 0 0 1 6 0 V22 V9 a3 3 0 0 1 6 0 V23 V14 a3 3 0 0 1 6 0 V30 c0 9 -6 15 -14 15 c-6 0 -9 -3 -12 -8 l-6 -9 a3 3 0 0 1 5 -3 z"/>
+  </g>
+  <path d="M19 22 V30 M25 22 V30 M31 23 V31" stroke="#e7b996" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+</svg>

@@ -1,6 +1,6 @@
 // 貓的動作串接：起跳前轉身、跳躍動作選擇與時間點、走路配速。純函式。
 import { describe, expect, it } from "vitest";
-import { angleDiff, clipRate, playerCanMove, jumpClipFor, jumpHeading, jumpKind, jumpReady, jumpTiming, moveClip, turnStep } from "./cat-moves";
+import { NAP, angleDiff, restingClip, clipRate, napFor, playerCanMove, jumpClipFor, jumpHeading, jumpKind, jumpReady, jumpTiming, moveClip, turnStep } from "./cat-moves";
 
 describe("起跳前轉身", () => {
   it("角度差取最短的一邊", () => {
@@ -67,6 +67,33 @@ describe("走路配速", () => {
     expect(clipRate(0.7, 0.35)).toBe(2);
     expect(clipRate(5, 0.35)).toBe(3);
     expect(clipRate(0.01, 0.35)).toBe(0.3);
+  });
+});
+
+describe("睡覺（渝茜 2026-11-16：帶入睡覺動作，15 歲之後要常常睡覺）", () => {
+  it("閒晃停下來時有機會睡一下，睡的秒數在範圍內", () => {
+    const t = napFor(0, 0.5, false);
+    expect(t).not.toBeNull();
+    expect(t!).toBeGreaterThanOrEqual(NAP.young.seconds[0]);
+    expect(t!).toBeLessThanOrEqual(NAP.young.seconds[1]);
+    expect(napFor(0.99, 0.5, false)).toBeNull();
+  });
+  it("老貓比較常睡、睡比較久", () => {
+    expect(NAP.elder.chance).toBeGreaterThan(NAP.young.chance * 3);
+    expect(NAP.elder.seconds[0]).toBeGreaterThan(NAP.young.seconds[1]);
+    const r = (NAP.young.chance + NAP.elder.chance) / 2;  // 年輕貓不睡、老貓會睡的機率值
+    expect(napFor(r, 0, false)).toBeNull();
+    expect(napFor(r, 0, true)).toBe(NAP.elder.seconds[0]);
+  });
+});
+
+describe("結尾一直躺著睡（渝茜 2026-11-16：結尾貓快走了，要看牠躺著）", () => {
+  it("有設定休息動作、模型也有：一直播那個動作", () => {
+    expect(restingClip("sleep", ["idle", "walk", "sleep"])).toBe("sleep");
+  });
+  it("沒設定、或模型沒有那個動作：照常閒晃", () => {
+    expect(restingClip(null, ["idle", "sleep"])).toBeNull();
+    expect(restingClip("sleep", ["idle", "walk"])).toBeNull();
   });
 });
 

@@ -4,7 +4,7 @@ import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { mainRegion } from "./regions";
 import { carrierExit, fitCatInCarrier } from "../../play/carrier-fit";
 import { poseBounds, tuckClip } from "./pose-bounds";
-import { clipRate, jumpClipFor, jumpHeading, jumpKind, jumpReady, moveClip, playerCanMove, turnStep } from "./cat-moves";
+import { clipRate, jumpClipFor, jumpHeading, jumpKind, jumpReady, moveClip, napFor, playerCanMove, restingClip, turnStep } from "./cat-moves";
 import { clipJumpTiming, inPlaceClip, isJumpClip } from "./jump-clips";
 import { gallopClip } from "./gallop";
 import { playSfx } from "../../play/audio-player";
@@ -81,6 +81,9 @@ export class RoomCat {
     this.queued = null;   // 落地後才走的目的地
     this.stick = null;    // 搖桿輸入 { dir（本地 x,z，單位向量）, mag（0~1）}
     this.speedK = 1;      // 走路速度倍率（老貓 0.15，lib/play/elder-cat.ts）
+    this.sleepy = false;  // 老貓：比較常睡、睡比較久（cat-moves.ts 的 NAP）
+    this.napping = false; // 剛睡過：下一次先起來走走
+    this.rest = null;     // 結尾的老貓：停下來就一直播這個動作（躺著睡），不起來閒晃
     this.sprint = false;  // 追玩具、半夜跑酷時衝刺（跑步動作、較快的速度與轉身）
     this.roamFar = false; // 半夜跑酷：閒晃時衝得比較遠
     this.autoIn = AUTO_MIN;
@@ -216,6 +219,13 @@ export class RoomCat {
       this.heading = e.heading;
       this.cat.rotation.y = e.heading;
     } else this.cat.position.y = 0;
+    // 出口在牆裡、被別的用品或家具佔住（籠門朝牆、籠子轉過方向）：站到最近能走的地板上，
+    // 不然貓卡在籠子後面看不到、也走不出去（渝茜 2026-11-16：逗貓時沒有貓）
+    const p = this.cat.position;
+    if (!this.canStand(p.x, p.z)) {
+      const k = this.nearestFree(p.x, p.z, Math.ceil((1 * this.upm) / this.L.cell), true);
+      if (k >= 0) { const c = this.centerOf(k); p.set(c.x, 0, c.y); }
+    }
     this.tucked = null;
     this.setState("idle");
   }
@@ -802,6 +812,9 @@ export class RoomCat {
     }
 
     if (this.state === "idle") {
+      // 結尾的老貓一直躺著（玩家點地板叫牠還是會走過去，走到了又躺下）
+      const rest = this.sprint ? null : restingClip(this.rest, Object.keys(this.actions));
+      if (rest) { this.playClip(rest, false, 0.8); return; }
       this.autoIn -= dt;
       if (this.face) this.turnToward(this.face.clone().sub(new THREE.Vector2(this.cat.position.x, this.cat.position.z)), dt);
       this.timer -= dt;
@@ -812,6 +825,12 @@ export class RoomCat {
           this.autoIn = AUTO_MIN + Math.random() * (AUTO_MAX - AUTO_MIN);
           if (this.onBored?.()) return;
         }
+        // 睡一下（渝茜 2026-11-16）：閒晃時有機會原地睡，老貓常睡；跑酷、追玩具時不睡；睡醒先起來走走
+        if (!this.napping && !this.roamFar && !this.sprint && this.actions.sleep) {
+          const nap = napFor(Math.random(), Math.random(), this.sleepy);
+          if (nap !== null) { this.playClip("sleep", false, 0.6); this.timer = nap; this.napping = true; return; }
+        }
+        this.napping = false;
         // 閒晃：挑 0.6~3 公尺外的隨機格子；跑酷（roamFar）時衝到 1.2~4 公尺外
         const [near, far] = this.roamFar ? ZOOM_RUN_M : [0.6, 3];
         for (let tries = 0; tries < 20; tries++) {

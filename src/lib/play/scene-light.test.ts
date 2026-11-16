@@ -69,3 +69,11 @@ describe("場景換了的事件", () => {
     expect(sceneChanged(null, node("day"))).toBe(true);
   });
 });
+
+describe("診間一律亮燈（渝茜 2026-11-16：在醫院要是亮燈狀態）", () => {
+  it("晚上送醫：診間還是白天光；回到房間才是夜晚", () => {
+    expect(playLightTime({ step: "node", time: "night", home: false, bg: "vet" })).toBe("day");
+    expect(playLightTime({ step: "node", time: "night", home: false, bg: "room" })).toBe("night");
+    expect(playLightTime({ step: "node", time: "night", home: false })).toBe("night");
+  });
+});
