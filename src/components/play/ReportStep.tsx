@@ -27,9 +27,24 @@ const COST_LABELS = { once: "一次性花費（用品、第一次採買）", mon
 
 type Sent = { st: "idle" } | { st: "saving" } | { st: "saved"; runId: string } | { st: "sharing"; runId: string } | { st: "shared"; threadId: string } | { st: "error"; msg: string };
 
-export function ReportStep({ state, pick, monthly, home, runId, catHref, onRestart }: {
+export function ReportStep({ state, pick, monthly, home, runId, catHref, onRestart, onReachEnd, onAdoptInfo }: {
   state: PlayState; pick: ShopPick; monthly: number; home: PlayerHome; runId: string | null; catHref: string; onRestart: () => void;
+  /** 讀到報告最後一張卡（之後跳領養資訊） */
+  onReachEnd?: () => void;
+  /** 打開這隻貓的領養資訊；沒給就照舊連回貓咪頁 */
+  onAdoptInfo?: () => void;
 }) {
+  // 最後一張卡進到畫面裡一半就算讀完（2026-11-14 渝茜：先看報告，再跳領養資訊）
+  const endRef = useRef<HTMLElement>(null);
+  const reach = useRef(onReachEnd);
+  reach.current = onReachEnd;
+  useEffect(() => {
+    const el = endRef.current;
+    if (!el || typeof IntersectionObserver === "undefined") return;
+    const io = new IntersectionObserver(es => { if (es.some(e => e.isIntersecting)) { reach.current?.(); io.disconnect(); } }, { threshold: 0.5 });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
   const X = state.life, C = X.cost, total = costTotal(C);
   const years = Math.max(1 / 12, (X.age - state.startMonths) / 12);
   const labelOf = (id: string) => { const n = STORY.find(x => x.id === id); return n ? nodeLabel(n, state.startMonths) : ""; };
@@ -146,7 +161,7 @@ export function ReportStep({ state, pick, monthly, home, runId, catHref, onResta
         {tips ? <ul className={s.log}>{tips.map((t, i) => <li key={i}>{t}</li>)}</ul> : <p className={s.lead}>正在整理建議…</p>}
       </section>
 
-      <section className={s.card} aria-labelledby="checks-title">
+      <section ref={endRef} className={s.card} aria-labelledby="checks-title">
         <h2 id="checks-title">收養之前，問問自己</h2>
         <div className={s.list}>
           {EXP_CHECKS.map((t, i) => (
@@ -163,7 +178,9 @@ export function ReportStep({ state, pick, monthly, home, runId, catHref, onResta
           {sent.st === "shared"
             ? <CatButton href={`/me/adoptions?t=${sent.threadId}`}>已附上，到對話看看</CatButton>
             : (sent.st === "saved" || sent.st === "sharing") && <CatButton disabled={sent.st === "sharing"} onClick={share}>{sent.st === "sharing" ? "附上中…" : "把試養報告附給中途"}</CatButton>}
-          <CatButton href={catHref} arrow variant={sent.st === "saved" || sent.st === "sharing" || sent.st === "shared" ? "ghost" : undefined}>前往認養這隻貓</CatButton>
+          {onAdoptInfo
+            ? <CatButton arrow variant={sent.st === "saved" || sent.st === "sharing" || sent.st === "shared" ? "ghost" : undefined} onClick={onAdoptInfo}>看看{X.name}的領養資訊</CatButton>
+            : <CatButton href={catHref} arrow variant={sent.st === "saved" || sent.st === "sharing" || sent.st === "shared" ? "ghost" : undefined}>前往認養這隻貓</CatButton>}
           <CatButton variant="ghost" size="sm" onClick={onRestart}>再玩一次</CatButton>
         </div>
       </section>

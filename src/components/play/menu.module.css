@@ -1,0 +1,25 @@
+/* 虛擬飼養右上角的齒輪鈕與設定視窗（#354，渝茜 2026-11-14） */
+.gear {
+  display: inline-grid; place-items: center; width: 44px; height: 44px; flex: 0 0 auto; padding: 0; border-radius: 50%;
+  background: var(--card); color: var(--ink); border: 2px solid var(--line); cursor: pointer; box-shadow: 0 2px 0 var(--line);
+}
+.gear:focus-visible, .abandon:focus-visible, .switch:focus-visible { outline: 3px solid var(--orange); outline-offset: 2px; }
+.dialog {
+  width: min(400px, calc(100vw - 32px)); padding: 24px 24px 20px; border: 0; border-radius: var(--r-lg, 2rem);
+  background: var(--card); color: var(--ink); box-shadow: var(--sh-3);
+}
+/* 暗下去再跳視窗 */
+.dialog::backdrop { background: rgba(20, 12, 6, 0.55); animation: dim 0.25s ease both; }
+.dialog[open] { animation: pop 0.28s 0.12s cubic-bezier(0.2, 0.9, 0.3, 1.2) both; }
+.title { margin: 0 0 14px; font-size: var(--play-fs-h, 20px); }
+.row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 48px; font-size: var(--play-fs-body, 17px); font-weight: 700; border-bottom: 1px solid var(--line); }
+.switch { appearance: none; position: relative; width: 52px; height: 30px; border-radius: 999px; background: var(--line); cursor: pointer; transition: background 0.2s; }
+.switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3); transition: transform 0.2s; }
+.switch:checked { background: var(--caramel); }
+.switch:checked::after { transform: translateX(22px); }
+.note { margin: 14px 0 0; color: var(--ink-soft); font-size: var(--play-fs-sub, 15px); line-height: 1.6; }
+.actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 16px; }
+.abandon { margin-left: auto; min-height: 44px; padding: 0 4px; border: 0; background: none; color: var(--ink-soft); font: inherit; font-size: var(--play-fs-tag, 14px); text-decoration: underline; cursor: pointer; }
+@keyframes dim { from { opacity: 0; } to { opacity: 1; } }
+@keyframes pop { from { opacity: 0; transform: translateY(10px) scale(0.96); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .dialog[open], .dialog::backdrop { animation: none; } }
