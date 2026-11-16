@@ -7,6 +7,8 @@ import f from "@/components/onboarding/intake.module.css";
 import CatButton from "@/components/ui/CatButton";
 import Icon from "@/components/ui/Icon";
 import { parseContent } from "@/lib/adoption-tasks";
+import { CostCard, MoodScales, PickZone } from "@/components/play/ReportParts";
+import p from "@/components/play/report.module.css";
 import { money } from "@/lib/play/costs";
 import { parsePlayReport, type PlayReport } from "@/lib/play/report-payload";
 import { trustWord } from "@/lib/play/report";
@@ -21,16 +23,29 @@ interface Status {
 }
 const date = (iso: string) => new Date(iso).toLocaleDateString("zh-TW", { month: "numeric", day: "numeric" });
 
-/** 虛擬飼養的試養報告（0033）：選擇、花費、照顧紀錄；沒有家裡位置與裁切照 */
+const COST_LABELS = { once: "一次性花費", month: "每月花費累計", med: "醫療費", acc: "意外花費", other: "其他" } as const;
+
+/** 虛擬飼養的試養報告（0033）：信任壓力量表、花費摘要卡、做得好／可以再想想分區；沒有家裡位置、物件清單與裁切照 */
 function GameReport({ r }: { r: PlayReport }) {
+  const good = r.picks.filter(p => p.good === true), bad = r.picks.filter(p => p.good === false), plain = r.picks.filter(p => p.good === null);
+  const rounds = r.care.rounds ? `${r.care.rounds} 輪，共做了 ${Object.values(r.care.log).reduce((a, b) => a + b, 0)} 次照顧` : "沒有做在家的照顧";
   return (
-    <ul className={s.proofList}>
-      <li><b>試養了 {r.years} 年</b><span>{r.catName}對你：{trustWord(r.trust)}</span></li>
-      <li><b>花費</b><span>總共約 {money(r.cost.total)} 元（醫療 {money(r.cost.med)}、意外 {money(r.cost.acc)}）；每月固定約 {money(r.monthly)} 元{r.budget ? `，預算 ${money(r.budget)} 元${r.overBudget ? "，超出預算" : ""}` : ""}</span></li>
-      {r.events.length > 0 && <li><b>發生的事</b><span>{r.events.join("、")}</span></li>}
-      {r.picks.map((p, i) => <li key={i}><b>{p.good === true ? "做得好" : p.good === false ? "可以再想想" : "選擇"}</b><span>{p.t}</span></li>)}
-      <li><b>照顧紀錄</b><span>{r.care.rounds ? `${r.care.rounds} 輪，共做了 ${Object.values(r.care.log).reduce((a, b) => a + b, 0)} 次照顧` : "沒有做在家的照顧"}</span></li>
-    </ul>
+    <div className={p.hero}>
+      <h3 className={p.zoneTitle}>試養了 {r.years} 年，{r.catName}對你：{trustWord(r.trust)}</h3>
+      <MoodScales trust={r.trust} stress={r.stress} />
+      <CostCard title="花費總共約" total={r.cost.total} cost={r.cost} labels={COST_LABELS}>
+        <div><dt>每月固定約</dt><dd>{money(r.monthly)} 元</dd></div>
+        {r.budget > 0 && <div><dt>預算</dt><dd>{money(r.budget)} 元</dd></div>}
+      </CostCard>
+      {r.overBudget && <p className={p.over}>每月花費超出預算</p>}
+      {r.events.length > 0 && <PickZone tone="plain" title="發生的事" items={r.events} />}
+      <div className={p.zones}>
+        <PickZone tone="good" title="做得好" items={good.map(x => x.t)} />
+        <PickZone tone="think" title="可以再想想" items={bad.map(x => x.t)} />
+      </div>
+      <PickZone tone="plain" title="其他選擇" items={plain.map(x => x.t)} />
+      <PickZone tone="plain" title="照顧紀錄" items={[rounds]} />
+    </div>
   );
 }
 
