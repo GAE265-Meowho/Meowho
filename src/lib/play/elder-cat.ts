@@ -12,6 +12,8 @@ export interface ElderCat {
   tint: { dim: number; haze: string } | null;
   /** 躺著睡的動作（現有最接近的是 sleep） */
   clip: string;
+  /** 走路速度倍率（1＝原本速度） */
+  walk: number;
 }
 
 export const ELDER_CAT: ElderCat = {
@@ -19,7 +21,12 @@ export const ELDER_CAT: ElderCat = {
   scale: 0.9,
   tint: { dim: 0.72, haze: "#4a4744" },
   clip: "sleep",
+  // 2026-11-16 渝茜：老貓走路要慢很多，原本速度 × 0.15
+  walk: 0.15,
 };
+
+/** 走路速度倍率：老貓用 ELDER_CAT.walk，不是老貓 1 */
+export const elderWalk = (elder: ElderCat | null | undefined) => elder?.walk ?? 1;
 
 /** 哪個節點用老貓：只有結尾（15 歲） */
 export const elderFor = (nodeId: NodeId | string | null, step: string): ElderCat | null =>

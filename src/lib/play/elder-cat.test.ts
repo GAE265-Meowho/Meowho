@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import * as THREE from "three";
-import { applyElderTint, ELDER_CAT, elderFor } from "./elder-cat";
+import { applyElderTint, ELDER_CAT, elderFor, elderWalk } from "./elder-cat";
 
 describe("老貓（結局）", () => {
   it("只有結尾節點用老貓", () => {
@@ -12,6 +12,11 @@ describe("老貓（結局）", () => {
     expect(ELDER_CAT.look).toBeNull();
     expect(ELDER_CAT.scale).toBeLessThan(1);
     expect(ELDER_CAT.clip).toBe("sleep");
+  });
+  it("老貓走路速度是原本的 0.15 倍（渝茜 2026-11-16）；不是老貓不變", () => {
+    expect(ELDER_CAT.walk).toBe(0.15);
+    expect(elderWalk(ELDER_CAT)).toBe(0.15);
+    expect(elderWalk(null)).toBe(1);
   });
   it("毛色調淡偏灰，換回來時還原；重複套不會越來越暗", () => {
     const m = new THREE.MeshStandardMaterial({ color: 0xffffff });

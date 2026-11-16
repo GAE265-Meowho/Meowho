@@ -46,6 +46,8 @@ export interface RoomWorld {
   catRoot: THREE.Object3D;
   /** 原地換貓的樣子（幼貓長大換成貓體型、換一隻貓），房間不重載 */
   setCatLook(catUrl: string, albedoUrl?: string, heightM?: number): Promise<boolean>;
+  /** 走路速度倍率（老貓 0.15）；1＝原本速度 */
+  setCatSpeed(k: number): void;
 }
 
 export async function createRoomWorld({ viewer, threeScene, scene, layout, cameras, catUrl, albedoUrl, catHeightM, unit, focus }: {
@@ -141,6 +143,7 @@ export async function createRoomWorld({ viewer, threeScene, scene, layout, camer
     catHead,
     catRoot: cat.cat,
     setCatLook: (url, albedo, heightM) => cat.setLook(url, albedo, heightM),
+    setCatSpeed: k => { cat.speedK = k; },
     hasBed: Boolean(bed),
     hasCup: Boolean(cup),
 

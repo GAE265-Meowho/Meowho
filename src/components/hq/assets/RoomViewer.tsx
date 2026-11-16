@@ -25,7 +25,7 @@ import { disposeStains, stainMesh } from "./stain-mesh";
 import { CAT_TINT_UNIFORM, TINT_UNIFORM, tintFragment } from "@/lib/hq/rooms/splat-tint";
 import { tintObject } from "@/lib/hq/rooms/tint-material";
 import { shotReach, type CameraShot } from "@/lib/play/camera-shot";
-import { applyElderTint, type ElderCat } from "@/lib/play/elder-cat";
+import { applyElderTint, elderWalk, type ElderCat } from "@/lib/play/elder-cat";
 import { registerSceneGrab } from "@/lib/play/snapshot";
 
 const ALPHA_THRESHOLD = 5;  // 丟掉幾乎透明的高斯，手機比較順
@@ -692,6 +692,7 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
           const el = elderRef.current;
           applyElderTint(roomWorld.catRoot, el);
           roomWorld.catRoot.scale.setScalar(el?.scale ?? 1);
+          roomWorld.setCatSpeed(elderWalk(el));  // 老貓走路慢（渝茜 2026-11-16）
           elderOn = Boolean(el);
         }
         if (!followRef.current) followOff = null;
