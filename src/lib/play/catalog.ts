@@ -35,9 +35,11 @@ export function toPlayCatalog(rows: readonly Row[], publicUrl: (path: string) =>
 /** 後台類別名稱 → 遊戲裡的用途 */
 const FLAG_CATEGORY: Record<string, ShopFlagKey> = { 貓抓板: "scratcher", 逗貓棒: "toy" };
 const OPTS_CATEGORY: Record<string, Extract<ShopItemKey, "box" | "bowls">> = { 貓砂盆: "box", 餐碗水碗: "bowls" };
-const MODEL_CATEGORY: Record<string, PlayModelKey> = { 外出籠: "carrier", 餐碗水碗: "bowl", 貓砂盆: "litter_box", 逗貓棒: "toy" };
+const MODEL_CATEGORY: Record<string, PlayModelKey> = { 外出籠: "carrier", 餐碗水碗: "bowl", 貓砂盆: "litter_box", 貓抓板: "scratcher", 逗貓棒: "toy" };
 /** 最長邊至少要這麼長（公尺）才採用：後台尺寸填錯（例如貓砂盆 13 公分）時，房間裡會出現貓進不去的迷你用品 */
-const MIN_LONG_SIDE_M: Partial<Record<PlayModelKey, number>> = { carrier: 0.3, bowl: 0.15, litter_box: 0.3 };
+const MIN_LONG_SIDE_M: Partial<Record<PlayModelKey, number>> = { carrier: 0.3, bowl: 0.15, litter_box: 0.3, scratcher: 0.3 };
+/** 平放在地上的用品：高度要比長、寬都小。貓抓板是平放的（磨爪動作照平放的做，scripts/clips/scratch.mjs）；立著的模型不採用（#354） */
+const FLAT: ReadonlySet<PlayModelKey> = new Set(["scratcher"]);
 
 const toModel = (it: PlayCatalogItem): PlayModel | null =>
   it.modelUrl && it.widthM && it.depthM && it.heightM ? { url: it.modelUrl, widthM: it.widthM, depthM: it.depthM, heightM: it.heightM } : null;
@@ -57,7 +59,8 @@ export function playShop(items: readonly PlayCatalogItem[]): PlayShop {
     const m = MODEL_CATEGORY[it.categoryName];
     if (!m || shop.models![m]) continue;
     const model = toModel(it);
-    if (model && Math.max(model.widthM, model.depthM, model.heightM) >= (MIN_LONG_SIDE_M[m] ?? 0)) shop.models![m] = model;
+    if (model && Math.max(model.widthM, model.depthM, model.heightM) >= (MIN_LONG_SIDE_M[m] ?? 0)
+      && (!FLAT.has(m) || model.heightM < Math.min(model.widthM, model.depthM))) shop.models![m] = model;
   }
   return shop;
 }

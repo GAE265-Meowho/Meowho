@@ -8,6 +8,7 @@ import { clipRate, jumpClipFor, jumpHeading, jumpKind, jumpReady, moveClip, play
 import { clipJumpTiming, inPlaceClip, isJumpClip } from "./jump-clips";
 import { gallopClip } from "./gallop";
 import { playSfx } from "../../play/audio-player";
+import { SCRATCH_SECONDS } from "../../play/scratch";
 import { STEP_SFX, stepTick } from "../../play/sfx-cues";
 import { ZOOM_RUN_M } from "../../play/zoomies";
 
@@ -30,8 +31,8 @@ const AUTO_MAX = 60;
 const PLAY_NEAR_M = 0.12;   // 拍物品時離物品的距離範圍
 const PLAY_FAR_M = 0.4;
 const LAND_INSET_M = 0.3;   // 落點離家具邊緣多遠
-/** 走到碗邊後吃飯、喝水的動作播幾秒（同娃娃屋 story.ts） */
-const CLIP_SECONDS = { eat: 8, drink: 6 };
+/** 走到碗邊後吃飯、喝水的動作播幾秒（同娃娃屋 story.ts）；走到貓抓板旁磨爪（#354，lib/play/scratch.ts） */
+const CLIP_SECONDS = { eat: 8, drink: 6, scratch: SCRATCH_SECONDS };
 /** 身體半寬、鼻尖到身體中心的距離，各是站高的幾倍（母體站高 0.508 m 時量到 0.1、0.245 m） */
 const BODY_HALF_WIDTH = 0.2, BODY_NOSE = 0.48;
 const HUG_COST = 6;         // 找路時，貼著家具、用品的格子算幾倍遠
@@ -301,7 +302,7 @@ export class RoomCat {
     this.clip = null;
   }
 
-  /** 走不過去時直接出現在格子 k，面向 face 待一會（同走到後的樣子） @param {number} k @param {THREE.Vector2 | null} [face] @param {"eat" | "drink" | null} [clip] */
+  /** 走不過去時直接出現在格子 k，面向 face 待一會（同走到後的樣子） @param {number} k @param {THREE.Vector2 | null} [face] @param {"eat" | "drink" | "scratch" | null} [clip] */
   appearAt(k, face = null, clip = null) {
     this.jump = null;
     this.surface = null;
@@ -422,7 +423,7 @@ export class RoomCat {
     return k < 0 ? this.randomCell() : k;
   }
 
-  /** @param {number} k 目的地格子 @param {THREE.Vector2 | null} [face] 走到後要轉頭看的點（本地 x,z） @param {"eat" | "drink" | null} [clip] 走到後播的動作 */
+  /** @param {number} k 目的地格子 @param {THREE.Vector2 | null} [face] 走到後要轉頭看的點（本地 x,z） @param {"eat" | "drink" | "scratch" | null} [clip] 走到後播的動作 */
   goTo(k, face = null, clip = null) {
     this.untuck();
     if (this.jump || this.surface) {  // 先下來再走

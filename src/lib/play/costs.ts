@@ -69,7 +69,7 @@ export type ShopFlagKey = keyof typeof SHOP_FLAGS;
 export interface PlayModel { url: string; widthM: number; depthM: number; heightM: number }
 
 /** 後台有模型的用品：外出籠、餐碗、貓砂盆（擺進房間）、逗貓棒（3D 逗貓的玩具） */
-export type PlayModelKey = "carrier" | "bowl" | "litter_box" | "toy";
+export type PlayModelKey = "carrier" | "bowl" | "litter_box" | "scratcher" | "toy";
 
 /** 後台生活用品（catalog.ts 算出來）：後台有就用後台，沒有就沿用這個檔案與 items.ts 裡寫的 */
 export interface PlayShop {
