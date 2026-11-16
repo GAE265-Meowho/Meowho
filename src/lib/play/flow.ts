@@ -88,7 +88,7 @@ export type PlayAction =
   | { type: "setHazards"; hazards: Hazard[] }
   | { type: "toggleHandled"; key: string }
   /** 開始三個節點：labels＝房間物品清單；once／monthly＝採買公式算好的金額；shopPicks＝原版 fullBegin 依採買記下的紀錄 */
-  | { type: "startNodes"; catName: string; labels: string[]; once: number; monthly: number; shopPicks?: { t: string; good: boolean | null }[]; startMonths?: number; cat?: CatTraits; mood?: { trust: number; stress: number } }
+  | { type: "startNodes"; catName: string; labels: string[]; once: number; monthly: number; shopPicks?: { t: string; good: boolean | null }[]; startMonths?: number; cat?: CatTraits; mood?: { trust: number; stress: number }; /** 擺用品時貓砂盆已經離餐碗夠遠（第 3 天就不再叫玩家重擺） */ litterApart?: boolean }
   | { type: "choose"; index: number }
   | { type: "miniDone"; result: unknown }
   /** 貓砂盆重新擺好了 */
@@ -232,6 +232,7 @@ export function playReducer(s: PlayState, a: PlayAction): PlayState {
       const life = newLife(a.labels, a.catName, a.cat);
       life.cost.once = a.once;
       if (a.mood) { life.trust = a.mood.trust; life.stress = a.mood.stress; }
+      if (a.litterApart) life.flags.litterApart = true;
       (a.shopPicks ?? []).forEach(p => life.picks.push({ ...p, node: "day1" }));
       life.risk = topRisk(s.hazards);
       const begin: PlayState = { ...s, step: "node", life, monthly: a.monthly, startMonths: a.startMonths ?? 2, homeDone: [], homeTried: [], today: newDay(0) };

@@ -43,4 +43,9 @@ describe("劇情鏡頭 shotFor", () => {
     expect(shotReach(s, 0.45).height).toBeCloseTo(1);
     expect(shotReach(s, 0.1).dist).toBeCloseTo(2.2);
   });
+
+  it("半夜跑酷改成俯瞰整個房間，其他時刻不是", () => {
+    expect(shotFor("day30", "zoom")!.overview).toBe(true);
+    expect(shotFor("day1", "carrier")!.overview).toBeFalsy();
+  });
 });

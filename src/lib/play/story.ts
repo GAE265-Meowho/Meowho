@@ -100,6 +100,8 @@ export interface StoryNode {
 
 /** 這隻貓還是幼貓（不到 1 歲）：幼貓才講「小貓」「毛球」，大貓用比較中性的說法 */
 const young = (X: Life) => X.age < 12;
+/** 第 3 天中途說的餐數 */
+const meals = (X: Life) => (young(X) ? "小貓胃口小，一天要分 3 到 4 餐。" : "成貓一天分 2 到 3 餐，定時定量就好。");
 export const sc = (bg: string, time = "day", cat: CatPose = "sit"): Step => ({ k: "scene", bg, time, cat });
 export const XN = (t: string): Step => ({ k: "line", t });
 export const VT = (t: string): Step => ({ k: "line", who: "vet", t, health: true });
@@ -212,7 +214,8 @@ function monthSteps(X: Life): Step[] {
 
 export const STORY: readonly StoryNode[] = [
   {
-    id: "day1", label: "第 1 天", sub: "〈貓名〉・2 個月", age: 2, body: "kitten", speed: 1, home: true, personal: true,
+    // 2026-11-14 渝茜：第 1 天不要晚上的劇情；選項後的個人化台詞（「給牠一點時間」等）選了硬拉也會播，拿掉（personal: false）
+    id: "day1", label: "第 1 天", sub: "〈貓名〉・2 個月", age: 2, body: "kitten", speed: 1, home: true, personal: false,
     steps: [
       sc("room", "day", "carrier"),
       FN(X => [XN(young(X)
@@ -223,7 +226,7 @@ export const STORY: readonly StoryNode[] = [
         { l: "在旁邊等牠自己出來", fx: { trust: 10, stress: -10 }, pick: "到家第一天，等牠自己出來", good: true,
           then: [sc("room", "dusk"), BUB("heart"), XN("傍晚，〈貓名〉自己走出來，在你腳邊聞了聞，還蹭了一下你的褲管。")] },
         { l: "硬把牠拉出來", fx: { trust: -10, stress: 15 }, pick: "到家第一天，硬把牠拉出來", good: false,
-          then: [sc("room", "night", "carrier"), BUB("hiss"), XN("〈貓名〉抓了你一下，又縮回最裡面。那天晚上，牠一直沒有出來。")] },
+          then: [BUB("hiss"), XN("〈貓名〉抓了你一下，又縮回最裡面，一直不肯出來。")] },
       ]),
     ],
     page: { title: "到家的第一天", tip: "剛到新家，躲起來是正常的。給牠一個安靜、可以躲的地方，比抱牠更能建立信任。" },
@@ -232,18 +235,26 @@ export const STORY: readonly StoryNode[] = [
     id: "day3", label: "第 3 天", sub: "〈貓名〉・2 個月", age: 2.1, body: "kitten", speed: 1, home: true, personal: false,
     steps: [
       sc("room", "day"),
-      FN(X => [WHO("clerk", `${young(X) ? "小貓一天要吃 3 到 4 餐" : "成貓一天分 2 到 3 餐，定時定量"}。砂盆放在安靜的角落，水碗離飯碗遠一點，牠會比較願意喝水。`)]),
-      ASK("you", "（砂盆和碗要放哪裡？）", [
-        { l: "砂盆和碗分開放", fx: { trust: 3 }, pick: "砂盆和碗分開放", good: true, then: [{ k: "relocate", mode: "apart", then: [XN("你把貓砂盆搬到另一個安靜的角落。一切順利，〈貓名〉很快就知道哪裡是廁所、哪裡是餐廳。")] }] },
-        { l: "放在一起", fx: { stress: 8 }, pick: "砂盆和碗放在一起", good: false, then: [{ k: "relocate", mode: "together", then: [XN("你把貓砂盆搬到餐碗旁邊。〈貓名〉開始在別的地方上廁所。")] }] },
-      ]),
+      // 2026-11-14 渝茜：台詞改通順；擺用品時已經把砂盆和碗分開放（flags.litterApart，PlayGame 開始時算）就不再叫玩家重擺
+      FN(X => X.flags.litterApart
+        ? [
+          WHO("clerk", `${meals(X)}你把貓砂盆和碗分開放了，這樣很好，牠吃飯、上廁所都會比較安心。`),
+          REC({ fx: { trust: 3 }, pick: "砂盆和碗分開放", good: true }),
+        ]
+        : [
+          WHO("clerk", `${meals(X)}貓砂盆要放在安靜的角落，離吃飯的地方遠一點。`),
+          ASK("you", "（砂盆和碗要放哪裡？）", [
+            { l: "砂盆和碗分開放", fx: { trust: 3 }, pick: "砂盆和碗分開放", good: true, then: [{ k: "relocate", mode: "apart", then: [XN("你把貓砂盆搬到另一個安靜的角落。一切順利，〈貓名〉很快就知道哪裡是廁所、哪裡是餐廳。")] }] },
+            { l: "放在一起", fx: { stress: 8 }, pick: "砂盆和碗放在一起", good: false, then: [{ k: "relocate", mode: "together", then: [XN("你把貓砂盆搬到餐碗旁邊。〈貓名〉開始在別的地方上廁所。")] }] },
+          ]),
+        ]),
       REC({ note: "到家用品（砂盆、碗、飼料）已在採買算過", pick: "布置了基本用品。", good: null }),
       XN("你把〈貓名〉的第一餐倒進碗裡。"),
       MINI("feed"),
       XN("接著把貓砂盆鏟乾淨，這是每天都要做的事。"),
       MINI("scoop"),
     ],
-    page: { title: "第一次清砂盆", tip: "每天清一到兩次砂盆，順便看尿塊和便便正不正常。（鏟屎在「在家的時光」做）" },
+    page: { title: "第一次清砂盆", tip: "每天清一到兩次砂盆，順便看尿塊和便便正不正常。之後每天都可以按畫面上方的鏟屎按鈕清砂盆。" },
   },
   {
     id: "day30", label: "第 30 天", sub: "〈貓名〉・3 個月", age: 3, body: "kitten", speed: 1, home: true, personal: false,

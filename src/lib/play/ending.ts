@@ -83,17 +83,30 @@ export function fitSize(w: number, h: number, max: number): { w: number; h: numb
 
 // ── 報告後的認養彈窗 ──
 
-/** 報告頁出現後多久跳認養彈窗（活潑音樂開始之後） */
-export const ADOPT_DELAY_MS = 1600;
+/** 讀到報告最後一張卡之後多久跳領養資訊（2026-11-14 渝茜：先看報告，再跳領養資訊） */
+export const ADOPT_DELAY_MS = 600;
 
 /** 要不要跳「認養貓咪」彈窗：陪伴到最後、貓還開放認養、這一輪還沒跳過 */
 export function shouldOfferAdopt(a: { adoptable: boolean; abandoned: boolean; seen: boolean }): boolean {
   return a.adoptable && !a.abandoned && !a.seen;
 }
 
-/** 彈窗裡有哪些按鈕（第一顆＝主按鈕樣式）：中途開放認養問卷（meow_adoption_forms.is_open，同貓咪頁）才有「填認養問卷」，「去跟中途談談」一直都有 */
-export function adoptActions({ formOpen }: { formOpen: boolean }): ("apply" | "message")[] {
-  return formOpen ? ["apply", "message"] : ["message"];
+/**
+ * 領養資訊下方的按鈕（第一顆＝主按鈕樣式；2026-11-14 渝茜：填寫領養問卷、聯絡中途、再看看其他貓咪）：
+ * 中途開放認養問卷（meow_adoption_forms.is_open，同貓咪頁）才有「填寫領養問卷」，另外兩顆一直都有
+ */
+export function adoptActions({ formOpen }: { formOpen: boolean }): ("apply" | "message" | "browse")[] {
+  return formOpen ? ["apply", "message", "browse"] : ["message", "browse"];
+}
+
+/** 領養資訊的幾行基本資料（沒有的欄位不列） */
+export function adoptFacts(c: { ageText: string; sex: "male" | "female" | "unknown"; neutered: boolean | null; coat: string | null }): [string, string][] {
+  const out: [string, string][] = [];
+  if (c.ageText) out.push(["年紀", c.ageText]);
+  if (c.sex !== "unknown") out.push(["性別", c.sex === "male" ? "公貓" : "母貓"]);
+  if (c.neutered !== null) out.push(["結紮", c.neutered ? "已結紮" : "還沒結紮"]);
+  if (c.coat) out.push(["花色", c.coat]);
+  return out;
 }
 
 /** 這一輪跳過彈窗的紀錄（sessionStorage 的 key） */

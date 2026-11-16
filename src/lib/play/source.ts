@@ -39,12 +39,14 @@ export interface PlayCatSource {
   formOpen: boolean;
   /** 這隻貓在平台上的照片（封面排第一張，同貓咪頁）；沒有照片、DEMO＝null。結局後的認養彈窗用 */
   photo: string | null;
+  /** 中途寫的介紹（intro，沒有用 description），結案後的領養資訊用；沒寫、DEMO＝null */
+  intro: string | null;
   /** 各體型（幼貓／成貓）要用的 3D 母體與貼圖 */
   look: (body: BodyType) => PlayCatLook;
 }
 
 export function demoPlayCat(catId: string): PlayCatSource {
-  return { catId, name: PLAY_CAT.name, coat: PLAY_CAT.coat, sex: "unknown", neutered: null, mood: { ...BASE_MOOD, reasons: [] }, touchFav: null, ageText: "", months: null, body: "kitten", tabby: true, demo: true, adoptable: true, formOpen: true, photo: null, look: playCatLook };
+  return { catId, name: PLAY_CAT.name, coat: PLAY_CAT.coat, sex: "unknown", neutered: null, mood: { ...BASE_MOOD, reasons: [] }, touchFav: null, ageText: "", months: null, body: "kitten", tabby: true, demo: true, adoptable: true, formOpen: true, photo: null, intro: null, look: playCatLook };
 }
 
 /** 讀這隻貓；任何一步失敗都回 DEMO，不擋遊戲 */
@@ -82,6 +84,7 @@ export async function loadPlayCat(catId: string): Promise<PlayCatSource> {
       adoptable: c.status === "adoptable",
       formOpen: Boolean((form as { is_open?: boolean } | null)?.is_open),
       photo: (() => { const p = catPagePhotos(c as Parameters<typeof catPagePhotos>[0])[0]; return p ? photoSrc(sb, p) : null; })(),
+      intro: (() => { const t = String(c.intro || c.description || "").trim(); return t ? t : null; })(),
       look: body => catLookFor(body, albedo),
     };
   } catch {

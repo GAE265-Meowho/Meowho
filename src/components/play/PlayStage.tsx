@@ -27,6 +27,8 @@ const loading = () => <div className={s.stageLoading}>3D 房間載入中…</div
 const FloorplanViewer = dynamic(() => import("@/components/hq/assets/FloorplanViewer"), { ssr: false, loading });
 const RoomViewer = dynamic(() => import("@/components/hq/assets/RoomViewer"), { ssr: false, loading });
 const VetRoom = dynamic(() => import("./VetRoom"), { ssr: false });
+/** 飼養開始後多久在背景先載診間 */
+const VET_WARM_MS = 5000;
 
 const ROOMS = [DEMO_DOLLHOUSE];
 const noop = () => {};
@@ -138,9 +140,15 @@ export function PlayStage({ kind, scanBase, placeView = false, place = null, loo
   const [side, setSide] = useState<OverviewSide>("front");
   const scan = kind === "scan" && Boolean(scanBase);
   const overview = scan && placeView;
-  // 診間第一次出現才載入，之後留著（淡出時還看得到；不在畫面時 VetRoom 自己停掉繪製）
+  // 診間：飼養開始（有劇情動作）幾秒後就先在背景載好（程式、貓模型與貼圖），看醫生時貓馬上出現（渝茜 2026-11-14：原本第一次看醫生才載，貓很慢才出來）；
+  // 之後留著（淡出時還看得到；不在畫面時 VetRoom 自己停掉繪製）。等房間先載完再暖，不搶頻寬
   const [vetUsed, setVetUsed] = useState(vet);
   useEffect(() => { if (vet) setVetUsed(true); }, [vet]);
+  useEffect(() => {
+    if (vetUsed || !story || !look) return;
+    const t = window.setTimeout(() => setVetUsed(true), VET_WARM_MS);
+    return () => window.clearTimeout(t);
+  }, [vetUsed, story, look]);
   const stageEl = useRef<HTMLElement>(null);
   const cover = useBottomCover(stageEl, overview);
   // 鍵盤方向鍵切換視角（焦點在輸入框時不攔）
@@ -176,11 +184,11 @@ export function PlayStage({ kind, scanBase, placeView = false, place = null, loo
       )}
       {kind !== "scan" && bubble && <span className={s.bubbleFixed} aria-hidden="true"><CareIcon id={bubble} /></span>}
       {story && look && (
-        <button type="button" className={f.follow} aria-pressed={follow} onClick={() => setFollow(v => !v)}>
+        <button type="button" className={f.follow} aria-pressed={follow} aria-label="跟隨貓咪" onClick={() => setFollow(v => !v)}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <circle cx="12" cy="12" r="3" /><path d="M12 2v4M12 18v4M2 12h4M18 12h4" /><circle cx="12" cy="12" r="8" />
           </svg>
-          跟著貓
+          <span>跟隨貓咪</span>
         </button>
       )}
       {overview && <ViewPad side={side} onSide={setSide} />}

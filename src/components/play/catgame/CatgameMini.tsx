@@ -3,6 +3,7 @@
 // 原版的小遊戲是蓋在畫面上的對話框（.scrim／.modal），這裡照樣以固定定位疊在 3D 畫面與劇情上面。
 import dynamic from "next/dynamic";
 import { Mini3DModal } from "../mini3d/Mini3DModal";
+import { MiniGuideGate } from "../MiniGuide";
 import { useEffect, useRef } from "react";
 import { feedPortion, type FeedKind } from "@/lib/play/mini3d/feed-rules";
 import type { CareDay } from "@/lib/play/care-day";
@@ -41,24 +42,28 @@ export function CatgameMini(props: Props) {
   // 已改成彈窗 3D 特寫的小遊戲；其他照舊用原版 2D（LegacyMini）
   if (id === "brush" || id === "pet") {
     return <Mini3DModal title={id === "brush" ? "幫" + catName + "刷牙" : "摸摸" + catName} onCancel={() => onDone(null)} quietCancel={id === "pet"}>
-      {id === "brush" ? <BrushGameRealistic ctx={ctx} onDone={onDone} /> : <PetGame3D ctx={ctx} onDone={onDone} />}
+      <MiniGuideGate id={id} catName={catName}>{id === "brush" ? <BrushGameRealistic ctx={ctx} onDone={onDone} /> : <PetGame3D ctx={ctx} onDone={onDone} />}</MiniGuideGate>
     </Mini3DModal>;
   }
   if (id === "water") {
     return <Mini3DModal title={"幫" + catName + "換水"} onCancel={() => onDone(null)}>
-      <WaterRefillGame3D onDone={onDone} initialFill={props.day?.water} />
+      <MiniGuideGate id="water" catName={catName}><WaterRefillGame3D onDone={onDone} initialFill={props.day?.water} /></MiniGuideGate>
     </Mini3DModal>;
   }
   if (id === "scoop") {
     // shortcut: 貓砂盆一律用開放式；採買選的款式（PlayGame 的 box）還沒帶進 MiniCtx，帶得到時傳給 box
     return <Mini3DModal title={"幫" + catName + "鏟屎"} onCancel={() => onDone(null)}>
-      <ScoopGame3D onDone={onDone} clumps={props.day?.litter} />
+      <MiniGuideGate id="scoop" catName={catName}><ScoopGame3D onDone={onDone} clumps={props.day?.litter} /></MiniGuideGate>
     </Mini3DModal>;
   }
   if (id === "feed") {
     return <Mini3DModal title={"餵" + catName + "吃飯"} onCancel={() => onDone(null)}>
-      <FeedGame3D portion={feedPortion(ctx)} onDone={onDone} kinds={props.feedKinds} onRestock={props.onRestock} initial={props.day?.feed} />
+      <MiniGuideGate id="feed" catName={catName}><FeedGame3D portion={feedPortion(ctx)} onDone={onDone} kinds={props.feedKinds} onRestock={props.onRestock} initial={props.day?.feed} /></MiniGuideGate>
     </Mini3DModal>;
+  }
+  // 原版 2D（剪指甲、外出籠）自己有對話框：示範先用彈窗顯示，按「開始」或關掉才開遊戲
+  if (id === "nail" || id === "carrier") {
+    return <MiniGuideGate id={id} catName={catName} modal={{ title: id === "nail" ? `幫${catName}剪指甲` : `讓${catName}進外出籠` }}><LegacyMini {...props} /></MiniGuideGate>;
   }
   return <LegacyMini {...props} />;
 }

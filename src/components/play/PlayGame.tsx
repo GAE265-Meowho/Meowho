@@ -30,6 +30,7 @@ import { homeWord } from "@/lib/play/furniture";
 import { ruleHazards, type Hazard } from "@/lib/play/hazards";
 import { resolvePlayItems, resolvePlayToy, type PlayItem } from "@/lib/play/items";
 import { nearLabel, type SceneItem } from "@/lib/play/scene-items";
+import { litterApart } from "@/lib/play/litter-apart";
 import { parsePoses, type ItemPose } from "@/lib/play/scan-place";
 import type { RoomPlaceApi, RoomPlaceEdit } from "@/components/hq/assets/RoomViewer";
 import pm from "./place.module.css";
@@ -45,15 +46,15 @@ import { feedKindsAvailable, restockNote } from "@/lib/play/restock";
 import type { MiniCtx } from "./catgame/minis";
 import { CareBar, HomeStep } from "./HomeStep";
 import { NodeStep } from "./NodeStep";
-import { Glyph } from "./SpeakerAvatar";
 import { SoundToggle, usePlayBgm } from "./PlayAudio";
+import { PlayMenu } from "./PlayMenu";
 import { PlayStage } from "./PlayStage";
 import { lightFor, playLightTime, poseSpeed } from "@/lib/play/scene-light";
 import { reportScene, resetScene, sceneOf } from "@/lib/play/scene-change";
 import { shotFor } from "@/lib/play/camera-shot";
 import { showVet, vetTalkKey } from "@/lib/play/vet-room";
 import { stainsFor } from "@/lib/play/urine-stain";
-import { CAPTURE_DELAY_MS, captureMoment, endingStarts, mergeShots, type EndingPhase, type ReviewShot } from "@/lib/play/ending";
+import { adoptFacts, CAPTURE_DELAY_MS, captureMoment, endingStarts, mergeShots, type EndingPhase, type ReviewShot } from "@/lib/play/ending";
 import { elderFor } from "@/lib/play/elder-cat";
 import { captureScene } from "@/lib/play/snapshot";
 import { loadReview, saveReview } from "@/lib/play/review-store";
@@ -62,6 +63,7 @@ import { AdoptDialog } from "./AdoptDialog";
 import endFx from "./ending.module.css";
 import { playSfx } from "@/lib/play/audio-player";
 import { ScanWand } from "./ScanWand";
+import { MiniGuideGate, warmGuideVideos } from "./MiniGuide";
 import { ReportStep } from "./ReportStep";
 import { AbandonPanel } from "./AbandonPanel";
 import e from "./play-entry.module.css";
@@ -180,8 +182,6 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
   // 這個節點裡餵過貓、換過水幾次：每做完一次貓就走到碗邊一次；換節點歸零
   const [served, setServed] = useState(0);
   useEffect(() => { setServed(0); }, [state.nodeIndex]);
-  /** 手機：把下方的劇情卡收起來，看整個 3D 房間 */
-  const [peek, setPeek] = useState(false);
 
   const catName = cat.name;
   // 這隻貓到家時的月齡：有生日／估計月齡用真實的，沒填用劇本原本的 2 個月；體型 12 個月以下用幼貓、以上用成貓
@@ -407,7 +407,10 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
     if (pick.dryId && !pick.wetId) shopPicks.push({ t: "只準備了乾糧，貓喝水可能不夠", good: null });
     if (pick.fund) shopPicks.push({ t: "每月存醫療預備金", good: true });
     // 外出籠是中途送的，一定要擺、不計花費
-    dispatch({ type: "startNodes", catName, labels, once: shop.once, monthly: shop.month, shopPicks, startMonths, cat: catTraits, mood: cat.mood }); 
+    // 砂盆和碗已經分開放了：第 3 天不再叫玩家重擺（lib/play/litter-apart.ts）
+    const at = (id: string) => (kind === "scan" ? scanPose[id as PlayItem["id"]] : placed.find(p => p.key.startsWith(`${id}:`))) ?? null;
+    const apart = litterApart({ bowl: at("bowl"), litter: at("litter_box"), bowlSpot: scanSpots.bowl, litterSpot: scanSpots.litter_box, freeSpot: FREE_SPOT });
+    dispatch({ type: "startNodes", catName, labels, once: shop.once, monthly: shop.month, shopPicks, startMonths, cat: catTraits, mood: cat.mood, litterApart: apart });
   };
   // 網址加 ?quick=1：跳過背景、採買、擺用品，直接進第 1 個節點（試玩用）。房間用背景自動讀到的空間
   const quickDone = useRef(false);
@@ -533,14 +536,17 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
     const d = endsDay({ step: state.step, nodeIndex: state.nodeIndex, abandoned: state.life.abandoned, cur: cur?.kind ?? null }) ? dayEnd(state.nodeIndex, catName) : null;
     if (d) setDayEndShown(d); else dispatch({ type: "next" });
   };
-  const canPeek = state.step === "place" || (state.step === "node" && cur?.kind !== "mini" && !careAct);
-  useEffect(() => { setPeek(false); }, [state.step, state.nodeIndex, cur]);
   // 背景音樂依步驟、節點、場景切換（第 6 份）
   // 結局（#354 2026-11-14）：結尾的台詞演完就接暗幕 → 回顧 → 漸白 → 報告（lib/play/ending.ts）；這段期間藏起對話框
   const endingOn = endingStarts({ step: state.step, nodeId: node.id, curKind: cur?.kind });
   const [endPhase, setEndPhase] = useState<EndingPhase | null>(null);
   const [endSlides, setEndSlides] = useState<ReviewShot[] | null>(null);
   const [ended, setEnded] = useState(false);
+  // 飼養開始就在背景預載小遊戲示範影片
+  useEffect(() => { if (state.step === "node") warmGuideVideos(); }, [state.step]);
+  // 報告讀完才跳領養資訊；報告最後的按鈕可以再打開（AdoptDialog）
+  const [reportRead, setReportRead] = useState(false);
+  const [adoptOpen, setAdoptOpen] = useState(0);
   usePlayBgm({ step: state.step, nodeId: state.step === "node" ? node.id : null, scene: state.scene, home: cur?.kind === "home", ending: endingOn ? endPhase ?? "dark" : null });
   // 白天／夜晚光與「場景換了」事件（#354 第 5 份；傍晚歸白天，見 lib/play/scene-light.ts）
   const lightTime = playLightTime({ step: state.step, time: state.scene.time, home: cur?.kind === "home" });
@@ -613,10 +619,10 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
             {state.step === "node" && <StatusMeters trust={state.life.trust} stress={state.life.stress} />}
             {backBtn}
           </div>
+          {/* 聲音、放棄、離開收成一顆齒輪（渝茜 2026-11-14）；「跟著貓」在它左邊（PlayStage） */}
           <div className={s.hudEnd}>
-            <SoundToggle />
-            {runId && <button type="button" className={s.exit} onClick={() => setAbandoning(true)}>放棄</button>}
-            <a className={s.exit} href={catHref} onClick={ev => { if (!window.confirm(runId ? (state.step === "place" ? "要離開嗎？下次會回到擺用品這一步，選好的都會保留。" : "要離開嗎？下次會從這個節點的開頭接著玩。") : "要離開虛擬飼養嗎？目前的進度不會保留。")) ev.preventDefault(); }}>離開</a>
+            <PlayMenu exitHref={catHref} onAbandon={runId ? () => setAbandoning(true) : undefined}
+              exitNote={runId ? (state.step === "place" ? "離開後，下次會回到擺用品這一步，選好的都會保留。" : "離開後，下次會從這個節點的開頭接著玩。") : "離開虛擬飼養後，目前的進度不會保留。"} />
           </div>
         </div>
       ) : (
@@ -642,7 +648,7 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
       {immersive && state.step === "node" && cur?.kind === "home" && !careAct && <CareBar state={state} canPlay={kind === "scan"} onAct={setCareAct} onRestock={() => setRestocking(true)} />}
 
       {showStage && (
-        <PlayStage kind={kind} scanBase={scanBase} placeView={state.step === "place"} place={placeEdit} look={look} bubble={bubble} bubbleInset={peek || (cur?.kind === "home" && !careAct) ? 0.08 : cur?.kind === "lines" || cur?.kind === "personal" ? 0.36 : 0.48} lookKey={lookKey} placed={placed} scanItems={scanItems} story={story} wand={wand}
+        <PlayStage kind={kind} scanBase={scanBase} placeView={state.step === "place"} place={placeEdit} look={look} bubble={bubble} bubbleInset={(cur?.kind === "home" && !careAct) ? 0.08 : cur?.kind === "lines" || cur?.kind === "personal" ? 0.36 : 0.48} lookKey={lookKey} placed={placed} scanItems={scanItems} story={story} wand={wand}
           goal={goal} clip={clip} speed={state.step === "node" ? poseSpeed(state.scene.cat, node.speed) : 1} light={light} vet={vet} vetTalk={vet ? vetTalkKey(cur) : null} shot={shot} stains={stains} elder={elder}
           onDrop={state.step === "place" && kind === "dollhouse"
             ? (id, at) => { if (playItems.some(i => i.id === id)) placeAt(id as PlayItem["id"], at); }
@@ -693,20 +699,22 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
         </>
       )}
 
-      {immersive && <div className={s.sheet} data-peek={peek ? "true" : undefined}>
-      {canPeek && <button type="button" className={s.peekBtn} aria-pressed={peek} onClick={() => setPeek(p => !p)}><Glyph id="eye" size={18} />{peek ? "回到劇情" : "看看房間"}</button>}
+      {immersive && <div className={s.sheet}>
       {state.step === "place" && (
-        <section className={s.card} aria-labelledby="place-title">
-          <h2 id="place-title">把外出籠、餐碗和貓砂盆放進房間</h2>
-          {kind === "scan" && <p className={s.lead}>選好用品，點房間地板放上去，放好的可以拖曳；右上角箭頭切換視角。</p>}
-          {/* 用品鈕和轉向鈕排在同一列，整張卡片不用捲動就看得完 */}
+        // 精簡版（渝茜 2026-11-14：原本太大）：標題＋說明一行、用品一行、快速放置一行、還缺＋帶回家一行
+        <section className={`${s.card} ${pm.placeCard}`} aria-labelledby="place-title">
+          <div className={pm.placeHead}>
+            <h2 id="place-title">擺用品</h2>
+            <span className={pm.placeHint}>{kind === "scan" ? "選用品後點地板放，放好的可以拖曳" : "選位置，或把用品拖進房間"}</span>
+          </div>
+          {/* 用品鈕和轉向鈕排在同一列 */}
           <div className={pm.placeRow}>
             <div className={s.chips} role="group" aria-label="要放的用品">
               {playItems.map(i => (
                 <button key={i.id} type="button" className={s.chipBtn} aria-pressed={placing === i.id}
                   draggable onDragStart={e => setItemDragData(e.dataTransfer, i.id)}
                   onClick={() => setPlacing(i.id)}>
-                  {i.name}{placedIds.includes(i.id) ? "（已放）" : ""}
+                  {i.name}{placedIds.includes(i.id) ? " ✓" : ""}
                 </button>
               ))}
             </div>
@@ -718,16 +726,18 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
             )}
           </div>
           {placeMsg && <p className={s.missing} role="status">{placeMsg}</p>}
-          <p className={s.lead}>{kind === "scan" ? "或快速放在" : `選一個位置放${playItem(placing).name}`}{kind === "dollhouse" ? "，或用滑鼠把上面的用品拖進房間" : ""}：</p>
-          <div className={s.chips} role="group" aria-label="位置">
+          <div className={pm.quick} role="group" aria-label={`快速放置${playItem(placing).name}`}>
+            <span className={pm.quickLabel}>快速放：</span>
             {spotList.map(p => (
-              <button key={p.label} type="button" className={s.chipBtn}
+              <button key={p.label} type="button" className={`${s.chipBtn} ${pm.quickBtn}`}
                 aria-pressed={kind === "scan" ? scanSpots[placing] === p.label : undefined}
                 onClick={() => choose(p)}>{p.label}</button>
             ))}
           </div>
-          {placedIds.length < playItems.length && <p className={s.missing}>還缺：{playItems.filter(i => !placedIds.includes(i.id)).map(i => i.name).join("、")}</p>}
-          <div className={s.actions}>
+          <div className={pm.placeFoot}>
+            {placedIds.length < playItems.length
+              ? <span className={s.missing}>還缺：{playItems.filter(i => !placedIds.includes(i.id)).map(i => i.name).join("、")}</span>
+              : <span />}
             <CatButton disabled={placedIds.length < playItems.length} onClick={startNodes}>帶{catName}回家</CatButton>
           </div>
         </section>
@@ -752,8 +762,9 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
         <HomeStep onFinish={nextOrDayEnd} />
       )}
       {playMini && scanWand && (
-        <ScanWand key={`story:wand:${state.nodeIndex}`} catName={catName} catches={catches}
-          onDone={r => dispatch({ type: "miniDone", result: r })} />
+        <MiniGuideGate key={`story:wand:${state.nodeIndex}`} id="play" catName={catName} modal={{ title: `逗${catName}玩` }}>
+          <ScanWand catName={catName} catches={catches} onDone={r => dispatch({ type: "miniDone", result: r })} />
+        </MiniGuideGate>
       )}
       {state.step === "node" && cur?.kind === "mini" && cur.mini !== "play" && (
         <CatgameMini key={`${state.nodeIndex}:${cur.mini}:${state.life.picks.length}`} id={cur.mini} ctx={miniCtx} catName={catName} feedKinds={feedKinds} onRestock={() => setRestocking(true)} day={state.today}
@@ -761,8 +772,9 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
           onDone={r => dispatch({ type: "miniDone", result: cur.mini === "carrier" ? (r as { ok?: boolean } | null)?.ok === true : r })} />
       )}
       {state.step === "node" && cur?.kind === "home" && careAct === "play" && scanWand && (
-        <ScanWand key={`care:wand:${state.life.care.rounds}`} catName={catName} catches={catches}
-          onDone={r => { dispatch({ type: "care", act: "play", good: careGood("play", r), result: r }); setCareAct(null); }} />
+        <MiniGuideGate key={`care:wand:${state.life.care.rounds}`} id="play" catName={catName} modal={{ title: `逗${catName}玩` }}>
+          <ScanWand catName={catName} catches={catches} onDone={r => { dispatch({ type: "care", act: "play", good: careGood("play", r), result: r }); setCareAct(null); }} />
+        </MiniGuideGate>
       )}
       {state.step === "node" && cur?.kind === "home" && careAct && careAct !== "play" && (() => {
         const mini = CARE_ACTS.find(a => a.act === careAct)!.mini!;
@@ -784,12 +796,14 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
       {state.step === "report" && ended && <div className={endFx.whiteOut} aria-hidden="true" />}
       {state.step === "report" && (
         <AdoptDialog catId={cat.catId} catName={catName} photo={cat.photo} shot={shots[shots.length - 1]?.src ?? null} runId={runId}
-          canAct={!isDemo && Boolean(user)} adoptable={cat.adoptable} formOpen={cat.formOpen} abandoned={state.life.abandoned} />
+          canAct={!isDemo && Boolean(user)} adoptable={cat.adoptable} formOpen={cat.formOpen} abandoned={state.life.abandoned}
+          facts={adoptFacts(cat)} intro={cat.intro} reachedEnd={reportRead} openKey={adoptOpen} />
       )}
 
       {state.step === "report" && home && (
         <ReportStep state={state} pick={pick} monthly={shop.month} home={home} runId={runId} catHref={catHref}
-          onRestart={() => { dispatch({ type: "restart" }); setEnded(false); setShots([]); hazardsAsked.current = false; hazardShown.current = false; setHazardItem(null); setPlaced([]); setScanSpots({}); setScanPose({}); setLines({}); setRunId(null); setFrozenRoom(null); savedCp.current = null; }} />
+          onReachEnd={() => setReportRead(true)} onAdoptInfo={!state.life.abandoned && cat.adoptable ? () => setAdoptOpen(n => n + 1) : undefined}
+          onRestart={() => { dispatch({ type: "restart" }); setEnded(false); setReportRead(false); setShots([]); hazardsAsked.current = false; hazardShown.current = false; setHazardItem(null); setPlaced([]); setScanSpots({}); setScanPose({}); setLines({}); setRunId(null); setFrozenRoom(null); savedCp.current = null; }} />
       )}
 
       {restocking && state.step === "node" && <RestockDialog pick={pick} shop={backShop} stage={foodStage(startMonths)} catName={catName} onBuy={restock} onClose={() => setRestocking(false)} />}
