@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48">
+  <!-- 摸貓的虛擬手（正在摸：手指彎下來貼著毛）：熱點同張開的手 (22,3) -->
+  <g fill="#f8d9bd" stroke="#6b4632" stroke-width="2" stroke-linejoin="round" stroke-linecap="round">
+    <path d="M12 28 c0 -6 1 -9 4 -10 c1 -5 4 -7 7 -6 c1 -4 5 -6 8 -4 c2 -2 6 -1 7 2 c2 2 2 6 1 10 V31 c0 8 -6 14 -14 14 c-6 0 -9 -3 -12 -8 l-5 -7 a3 3 0 0 1 4 -3 z"/>
+  </g>
+  <path d="M17 19 c2 2 2 5 1 8 M24 14 c2 3 2 7 1 11 M31 13 c2 3 2 7 1 11" stroke="#e7b996" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+  <path d="M8 6 l3 3 M22 1 v3 M36 6 l-3 3" stroke="#e98a58" stroke-width="2" stroke-linecap="round"/>
+</svg>

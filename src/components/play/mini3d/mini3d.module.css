@@ -28,6 +28,22 @@
   touch-action: none;
 }
 .scene canvas { touch-action: none; }
+/* 摸貓：右邊的旋轉方向鍵（渝茜 2026-11-16） */
+.petScene { position: relative; }
+.viewPad {
+  position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+  display: grid; grid-template: repeat(3, 40px) / repeat(3, 40px); gap: 2px;
+}
+.padBtn {
+  width: 40px; height: 40px; padding: 0; border-radius: 50%; border: 2px solid var(--line);
+  background: rgb(255 255 255 / 0.9); color: var(--ink); font-size: 15px; line-height: 1; cursor: pointer;
+  box-shadow: 0 2px 6px rgb(0 0 0 / 0.15); touch-action: none; user-select: none;
+}
+.padBtn:active { background: var(--caramel); color: #fff; }
+.padUp { grid-area: 1 / 2; }
+.padLeft { grid-area: 2 / 1; }
+.padRight { grid-area: 2 / 3; }
+.padDown { grid-area: 3 / 2; }
 .hint { margin: .5rem 0; }
 .meters { display: flex; flex-wrap: wrap; gap: .25rem 1rem; }
 .meters label { display: flex; align-items: center; gap: .35rem; }

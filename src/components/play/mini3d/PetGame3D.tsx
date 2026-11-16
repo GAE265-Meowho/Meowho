@@ -1,6 +1,6 @@
 import { OrbitControls, useGLTF } from "@react-three/drei";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { Suspense, useEffect, useMemo, useRef, useState, type ComponentRef } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState, type ComponentRef } from "react";
 import { SkinnedMesh, SRGBColorSpace, TextureLoader, Vector3, type Mesh, type MeshStandardMaterial } from "three";
 import { clone } from "three/addons/utils/SkeletonUtils.js";
 import { newPetState, petResult, petStroke, type PetZone } from "@/lib/play/mini3d/pet-rules";
@@ -8,6 +8,7 @@ import { createPetHitRegions } from "@/lib/play/mini3d/pet-hit-regions";
 import { newPetReaction, petReaction } from "@/lib/play/mini3d/pet-reactions";
 import { PET_LESSONS, petCue } from "@/lib/play/mini3d/pet-learning";
 import type { MiniCtx } from "../catgame/minis";
+import { PET_VIEW, petOrbit } from "@/lib/play/mini3d/pet-view";
 import { useScenePointer } from "./useScenePointer";
 import { createPetMotion } from "./pet-motion";
 import styles from "./mini3d.module.css";
@@ -16,6 +17,8 @@ const ZONE_LABELS = { head: "頭部", chin: "下巴", back: "背部", belly: "�
 const CAMERA_START: [number, number, number] = [0.92, 0.52, 0.57];
 const CAMERA_TARGET: [number, number, number] = [0, 0.24, -0.025];
 const MODEL = "/hq-cat-models/base/base_clips.glb";
+/** 游標是虛擬手（渝茜 2026-11-16）：平常張開、摸的時候彎下來；熱點在中指指尖 */
+const HAND = { open: "url(/play/pet/hand-open.svg) 22 3, pointer", pet: "url(/play/pet/hand-pet.svg) 22 3, grabbing" };
 
 function PetScene({ game, favorite, furUrl, onStroke, controls, onZone, onPose, onRelease }: {
   furUrl?: string | null;
@@ -101,11 +104,14 @@ function PetScene({ game, favorite, furUrl, onStroke, controls, onZone, onPose, 
   });
 
   function showZone(zone: PetZone) {
-    canvas.style.cursor = orbiting.current ? "grabbing" : zone ? "pointer" : "grab";
+    canvas.style.cursor = pointer.current ? HAND.pet : HAND.open;
     onZone(zone);
   }
 
-  useEffect(() => () => { canvas.style.removeProperty("cursor"); }, [canvas]);
+  useEffect(() => {
+    canvas.style.cursor = HAND.open;
+    return () => { canvas.style.removeProperty("cursor"); };
+  }, [canvas]);
 
   useScenePointer({
     claim(_event, ray) {
@@ -123,6 +129,7 @@ function PetScene({ game, favorite, furUrl, onStroke, controls, onZone, onPose, 
     down(event) {
       if (!game.current.ran && !pointer.current) {
         pointer.current = { id: event.pointerId, x: event.clientX, y: event.clientY, time: event.timeStamp };
+        canvas.style.cursor = HAND.pet;  // 按下去就是在摸：手彎下來
       }
     },
     move(event, ray) {
@@ -154,8 +161,9 @@ function PetScene({ game, favorite, furUrl, onStroke, controls, onZone, onPose, 
   });
 
   return <>
+    {/* 滑鼠只摸貓、不轉畫面（渝茜 2026-11-16）：轉視角用旁邊的方向鍵（petOrbit），這裡只留滾輪縮放 */}
     <OrbitControls ref={controls} domElement={canvas} target={CAMERA_TARGET}
-      enablePan={false} enableDamping={false} minDistance={0.85} maxDistance={1.55}
+      enableRotate={false} enablePan={false} enableDamping={false} minDistance={0.85} maxDistance={1.55}
       minPolarAngle={0.48} maxPolarAngle={Math.PI / 2 - 0.12}
       onStart={() => { orbiting.current = true; showZone(null); }}
       onEnd={() => { orbiting.current = false; showZone(null); }} />
@@ -188,7 +196,7 @@ export function PetGame3D({ ctx, onDone }: { ctx: MiniCtx; onDone: (r: unknown) 
 
   return <>
     <p className={styles.hint}>輕輕撫摸，觀察牠是否想繼續。</p>
-    <div className={styles.scene}>
+    <div className={`${styles.scene} ${styles.petScene}`}>
       <Canvas dpr={[1, 1.5]} camera={{ position: CAMERA_START, fov: 38, near: 0.02, far: 12 }}
         onCreated={({ camera }) => camera.lookAt(...CAMERA_TARGET)}
         fallback={<p role="alert">這個瀏覽器無法顯示 3D 場景。</p>}>
@@ -216,11 +224,12 @@ export function PetGame3D({ ctx, onDone }: { ctx: MiniCtx; onDone: (r: unknown) 
           }} />
         </Suspense>
       </Canvas>
+      <ViewPad controls={controls} />
     </div>
     <div className={styles.petControls}>
       <p className={styles.hint}>{zone
         ? ZONE_LABELS[zone] + " · " + (zone === favorite ? "這隻貓的偏好部位" : zone === "belly" || zone === "tail" ? "先避開" : "輕摸並觀察")
-        : "拖曳背景轉動視角。可先輕摸頭或下巴。"}</p>
+        : "用右邊的方向鍵（或鍵盤方向鍵）轉動視角。可先輕摸頭或下巴。"}</p>
       <button className="btn ghost" type="button" onClick={() => {
         const orbit = controls.current;
         if (!orbit?.enabled) return;
@@ -242,4 +251,46 @@ export function PetGame3D({ ctx, onDone }: { ctx: MiniCtx; onDone: (r: unknown) 
       onDone(interacted.current ? petResult(current.current) : null);
     }}>結束互動</button>
   </>;
+}
+
+/** 旁邊的方向鍵：按住連續轉（左右繞著貓、上下看高低）；鍵盤方向鍵也可以 */
+function ViewPad({ controls }: { controls: { current: ComponentRef<typeof OrbitControls> | null } }) {
+  const timer = useRef<number | null>(null);
+  const turn = useCallback((yaw: number, pitch: number) => {
+    const orbit = controls.current;
+    if (!orbit) return;
+    const p = orbit.object.position, t = orbit.target;
+    orbit.object.position.set(...petOrbit([p.x, p.y, p.z], [t.x, t.y, t.z], yaw, pitch));
+    orbit.update();
+  }, [controls]);
+  const stop = useCallback(() => { if (timer.current !== null) { clearInterval(timer.current); timer.current = null; } }, []);
+  const start = (yaw: number, pitch: number) => {
+    stop();
+    turn(yaw, pitch);
+    timer.current = window.setInterval(() => turn(yaw, pitch), PET_VIEW.repeatMs);
+  };
+  useEffect(() => {
+    const keys: Record<string, [number, number]> = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, 1], ArrowDown: [0, -1] };
+    const down = (e: KeyboardEvent) => {
+      const k = keys[e.code];
+      if (!k || e.target instanceof HTMLInputElement) return;
+      e.preventDefault();
+      turn(...k);
+    };
+    window.addEventListener("keydown", down);
+    return () => { window.removeEventListener("keydown", down); stop(); };
+  }, [turn, stop]);
+  const btn = (label: string, cls: string, yaw: number, pitch: number, glyph: string) => (
+    <button type="button" className={`${styles.padBtn} ${cls}`} aria-label={label}
+      onPointerDown={e => { e.currentTarget.setPointerCapture(e.pointerId); start(yaw, pitch); }}
+      onPointerUp={stop} onPointerCancel={stop} onPointerLeave={stop} onContextMenu={e => e.preventDefault()}>{glyph}</button>
+  );
+  return (
+    <div className={styles.viewPad} role="group" aria-label="轉動視角">
+      {btn("往上看", styles.padUp, 0, 1, "▲")}
+      {btn("往左轉", styles.padLeft, -1, 0, "◀")}
+      {btn("往右轉", styles.padRight, 1, 0, "▶")}
+      {btn("往下看", styles.padDown, 0, -1, "▼")}
+    </div>
+  );
 }

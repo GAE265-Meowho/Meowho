@@ -15,9 +15,12 @@ export type LightTime = "day" | "night";
 /** 劇本的時間 → 兩種光。傍晚歸白天（待渝茜確認）；不認得的一律白天 */
 export const lightTime = (time: string | null | undefined): LightTime => (time === "night" ? "night" : "day");
 
-/** 遊戲現在該用哪種光：只有劇情節點裡的夜晚場景是夜晚；開場、採買、擺用品、在家的時光、報告都是白天（和 bgmFor 的日常一致） */
-export function playLightTime({ step, time, home }: { step: string; time: string; home: boolean }): LightTime {
-  if (step !== "node" || home) return "day";
+/**
+ * 遊戲現在該用哪種光：只有劇情節點裡的夜晚場景是夜晚；開場、採買、擺用品、在家的時光、報告都是白天（和 bgmFor 的日常一致）。
+ * 診間（bg＝vet）一律亮燈：晚上送急診也是（渝茜 2026-11-16）。
+ */
+export function playLightTime({ step, time, home, bg }: { step: string; time: string; home: boolean; bg?: string }): LightTime {
+  if (step !== "node" || home || bg === "vet") return "day";
   return lightTime(time);
 }
 
