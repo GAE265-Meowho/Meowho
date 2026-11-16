@@ -46,7 +46,9 @@ export async function readPrivateReport({ id, reportId }: {
     if (!asset) {
       const back = '<nav aria-label="MeowHome"><a class="back-link" href="/homes/' + id
         + '/safety#records-title">返回居家安全檢測紀錄</a></nav>';
-      const page = html.replace("<body>", "<body>" + back);
+      const reportHeader = '<body><header><p class="kicker">WelfareLens × MeowHome</p><h1>貓咪居家環境健檢</h1>';
+      const brandedHeader = '<body><header><p class="kicker">MeowHome｜AI 居家環境安全檢測</p><h1>貓咪居家環境健檢報告</h1>';
+      const page = html.replace(reportHeader, brandedHeader).replace("<body>", "<body>" + back);
       return new Response(page, { headers: { ...headers, "Content-Type": "text/html; charset=utf-8" } });
     }
     if (!html.includes('src="html-assets/' + asset + '"')) return empty(404);

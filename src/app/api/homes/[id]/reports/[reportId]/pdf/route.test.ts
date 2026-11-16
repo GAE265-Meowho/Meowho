@@ -79,7 +79,7 @@ describe("owner-only PDF view / download redirects", () => {
     expect(response.status).toBe(307);
     expect(state.signed).toEqual([{
       path: PREFIX + "report.pdf", ttl: 600,
-      options: { contentDisposition: 'attachment; filename="WelfareLens-report.pdf"' },
+      options: { contentDisposition: 'attachment; filename="MeowHome-Home-Safety-Report.pdf"' },
     }]);
   });
 

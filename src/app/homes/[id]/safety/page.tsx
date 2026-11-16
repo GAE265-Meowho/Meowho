@@ -158,7 +158,8 @@ export default function SafetyPage() {
     <>
       <SiteHeader />
       <main className={s.page}>
-        <h1 className={f.title}>居家安全檢測</h1>
+        <h1 className={f.title}>AI 居家環境安全檢測</h1>
+        <p className={f.lead}>透過居家影片，了解可能影響貓咪的環境因素與改善建議</p>
         {!sb && <p className={f.warn}>示範模式：還沒連接資料庫，報告不會儲存。</p>}
         {body}
       </main>
