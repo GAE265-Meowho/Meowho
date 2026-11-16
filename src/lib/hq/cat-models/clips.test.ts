@@ -1,4 +1,6 @@
 // 貓咪動作庫（規格書 04 §2.6、§8-9）
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { buildClipItems, CLIP_LIBRARY, clipPupil, DEFAULT_PUPIL, resolveClip } from "./clips";
 
@@ -79,5 +81,14 @@ describe("clipPupil", () => {
   it("休息（四腳朝天）（#379）：成貓母體有 belly_up 時可點，幼貓沒有時灰色", () => {
     expect(buildClipItems(["idle", "belly_up"]).find(i => i.code === "belly_up")).toMatchObject({ label: "休息（四腳朝天）", available: true });
     expect(buildClipItems(["idle"]).find(i => i.code === "belly_up")).toMatchObject({ available: false, status: "ready" });
+  });
+  it("磨爪（#354）：成貓、幼貓母體都有 scratch，動作清單顯示「磨爪」可點", () => {
+    for (const f of ["base_clips.glb", "base_clips_kitten.glb"]) {
+      const b = readFileSync(join(process.cwd(), "public/hq-cat-models/base", f));
+      const gltf = JSON.parse(b.subarray(20, 20 + b.readUInt32LE(12)).toString("utf8")) as { animations: { name: string }[] };
+      const names = gltf.animations.map(a => a.name);
+      expect(names, f).toContain("scratch");
+      expect(buildClipItems(names).find(i => i.code === "scratch"), f).toMatchObject({ label: "磨爪", status: "ready", available: true });
+    }
   });
 });
