@@ -192,7 +192,7 @@ Worker 選用的 `report.html` 與 `html-assets/` 位於既有 attempt 前綴。
     - 後台「耐抓劍麻貓抓板」第一次上傳的模型是 Z 軸朝上，放進房間會立成 72 公分高的板子；Tina 在 MeowHQ 重新上傳平躺版（寬 0.48、深 0.72、高 0.05 m，`meow-items/14e4cdd1-…/model.glb`）。舊的那筆（`374c076d…`，直立）`catalog.ts` 不採用（貓抓板要高度比長、寬都小）。
     - 擺用品多一件「貓抓板」（`items.ts`），擺完四件才能帶貓回家；後台類別「貓抓板」的模型對應到 `scratcher`。
     - 貓無聊時大約一半走到板子旁、面向板子磨爪 5 秒（動作 `scratch`，#442）：規則在 `src/lib/play/scratch.ts`；掃描房間接在 `world.ts` 的 `onBored`（原本只會跳上床），娃娃屋接在 `FloorplanViewer` 的 `CatActor` 閒晃前。還沒在畫面上看過。
-  - 還沒做：真實 `/cats/[id]/play` 流程與實體手機實測；外出籠小遊戲（第 10 年）；貓抓板小遊戲（在抓板上晃逗貓棒，入口：劇情事件＋在家的時光）。細節見 `docs/daily/2026-11-13/1217-Tina-354.md`。
+  - 還沒做：真實 `/cats/[id]/play` 流程與實體手機實測；外出籠小遊戲（第 10 年）。貓抓板小遊戲（在抓板上晃逗貓棒）2026-11-16 Tina 決定取消。細節見 `docs/daily/2026-11-13/1217-Tina-354.md`。
 
 ## 資料表（Supabase）
 - ［已失效］`env_reports`、`virtual_sessions`、`virtual_tasks`（規劃名稱，改用下列 0017 的表）
