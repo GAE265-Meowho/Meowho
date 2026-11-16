@@ -43,8 +43,12 @@ export function meterSfx(prev: { trust: number; stress: number } | null, next: {
 /** 做好之後貓的反應 */
 const GOOD_AFTER: Partial<Record<CareAct, SfxId>> = { feed: "sfx_eat", water: "sfx_drink", pet: "sfx_purr", brush: "sfx_purr" };
 
+/** 小遊戲自己在過程中就會出結果音效的，結束時不再重播（剪指甲：NailGame2D 的喀、尖叫、哈氣、失敗、完成；Tina #404） */
+const SELF_VOICED: ReadonlySet<CareAct> = new Set(["nail"]);
+
 /** 小遊戲做完：成功／失敗，再加上貓的反應（剪到血線尖叫、被咬是哈氣）。中途關掉或什麼都沒做不出聲 */
 export function careSfx(act: CareAct, result: unknown): SfxId[] {
+  if (SELF_VOICED.has(act)) return [];
   const outcome = careOutcome(act, result);
   if (outcome === "none") return [];
   const r = (result && typeof result === "object" ? result : {}) as Record<string, unknown>;

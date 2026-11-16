@@ -37,8 +37,13 @@ describe("音效接點（渝茜 2026-11-16：把後台音樂庫的音效套上�
     expect(careSfx("water", { fill: 80 })).toEqual(["sfx_done", "sfx_drink"]);
     expect(careSfx("pet", { fun: 80 })).toEqual(["sfx_done", "sfx_purr"]);
     expect(careSfx("brush", { score: 90 })).toEqual(["sfx_done", "sfx_purr"]);
-    expect(careSfx("nail", { score: 20, bleed: true })).toEqual(["sfx_fail", "sfx_scream"]);
+    expect(careSfx("brush", { score: 20, ran: true })).toEqual(["sfx_fail", "sfx_hiss"]);
     expect(careSfx("brush", { score: 10, bitten: true })).toEqual(["sfx_fail", "sfx_hiss"]);
+  });
+  it("剪指甲自己會出聲（NailGame2D：喀、尖叫、哈氣、完成），結束時不再重播一次", () => {
+    expect(careSfx("nail", { score: 20, bleed: true })).toEqual([]);
+    expect(careSfx("nail", { score: 90 })).toEqual([]);
+    expect(careSfx("nail", { score: 10, bitten: true })).toEqual([]);
   });
   it("中途關掉、什麼都沒做：不出聲", () => {
     expect(careSfx("feed", null)).toEqual([]);

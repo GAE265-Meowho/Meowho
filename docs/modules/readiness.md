@@ -184,7 +184,11 @@ Worker 選用的 `report.html` 與 `html-assets/` 位於既有 attempt 前綴。
   - 規則：`lib/play/mini3d/nail-rules.ts`（`nailPress`、`nailClip`、`nailTick`、`nailResult`，有測試）；回傳 `{ score, bleed, bitten, ran }`。信任低、壓力高時不耐煩升得快（`nailDifficulty`），到 55 會抽腳，抽腳超過 3 次或不耐煩到 100 就咬人或跑掉。
   - 對位：`lib/play/mini3d/nail-paw.ts` 記四顆趾肉球、指甲根部與方向（viewBox 320×320）；**換照片要重量這張表**，同一張圖換解析度則照 `paw-tabby.license.txt` 的裁切比例就不用重量。
   - 目前只有虎斑一張，所有貓共用（Tina 2026-11-13 決定）。
-  - 還沒做：真實 `/cats/[id]/play` 流程與實體手機實測；外出籠、貓抓板、穿模修正。細節見 `docs/daily/2026-11-13/1217-Tina-354.md`。
+  - 穿模修正（2026-11-16，Tina × Claude Code，分支 `fix/354-cat-clipping`）：沒有開畫面，用模擬量貓的身體（鼻尖、肩、腰、臀，依母體站姿量）壓進家具、用品多深。
+    - 娃娃屋（示範房間「子哲的家」放餐碗、貓砂盆、外出籠、貓抓板）：原本碰撞半徑 0.2 m，但放大 1.2 倍後頭和屁股離中心約 0.3 m，會插進家具約 10 公分；`catwalk.ts` 的 `CAT_RADIUS_M` 改 0.3，剩 0.5 公分以內，劇情目標也更常走到。測試 `src/lib/hq/floorplans/cat-clip.test.ts`。
+    - 掃描房間：原本只看貓中心在不在能走的格子，身體會擦進去 6～10 公分。`cat.js` 改成身體兩側也要在能走的格子（`bodyFree`）、找路時貼著家具的格子算比較遠（`HUG_COST`）、閒晃終點挑四周空曠的格子（`roomy`），一邊轉一邊走會擦到時先原地轉；只剩一格寬的通道照樣走得過。測試 `src/lib/hq/rooms/cat-clip.test.ts`（用自訂的房間格子，不是真的掃描房間）。
+    - 第 1 天貓躲進外出籠是例外，渝茜在 #432 已處理。還沒在真的房間畫面上看過。
+  - 還沒做：真實 `/cats/[id]/play` 流程與實體手機實測；外出籠小遊戲（第 10 年）、貓抓板。細節見 `docs/daily/2026-11-13/1217-Tina-354.md`。
 
 ## 資料表（Supabase）
 - ［已失效］`env_reports`、`virtual_sessions`、`virtual_tasks`（規劃名稱，改用下列 0017 的表）
@@ -384,4 +388,5 @@ Worker 選用的 `report.html` 與 `html-assets/` 位於既有 attempt 前綴。
 - `catLookFor` 缺這個體型的貼圖時借另一個體型的母體＋貼圖；完全沒有才用示範虎斑。
 - 摸貓 3D 只換花色（`adultFur`），母體與鏡頭維持成貓。
 - 腳步聲：`cat.js` 每幀用 `stepTick`，衝刺且在播 run 時響 `sfx_step`。
+- 剪指甲（NailGame2D）自己出結果音效，`careSfx` 結束時跳過（`SELF_VOICED`）；之後小遊戲自己加結果音效也要列進去，不然會播兩次。
 - 老貓走路 × 0.15（`ELDER_CAT.walk`）：掃描房間經 `world.setCatSpeed` → `RoomCat.speedK`，娃娃屋乘在 speed 上。掃描房間沒有套 `node.speed`。
