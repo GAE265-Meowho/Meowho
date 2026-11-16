@@ -206,6 +206,21 @@ describe("sbStartViews（AI 三視角，#110）", () => {
     const done = calls.filter(c => c.op === "update").at(-1)!.args[0] as { profile: { generated: { errors: unknown } } };
     expect(done.profile.generated.errors).toEqual({ front: "讀不到原始照片" });
   });
+  it("三視角都好了：接著自動排紋理貼圖（MeowHQ 新增的貓也一樣，不用等開列表）", async () => {
+    modelRow = row({ status: "ready", profile: { ...READY } });
+    variantRows = [];
+    const r = await sbStartViews(ID, ["left"], { makeEdit: fake, analyze: async () => null, now: NOW, client: fakeClient() as never });
+    // 開始時三視角還沒好（left 產生中）；run 寫回後重新讀到三張都好了
+    calls.length = 0;
+    await (r as { run: () => Promise<void> }).run();
+    expect(calls.find(c => c.table === "meow_cat_model_jobs" && c.op === "insert")?.args[0]).toMatchObject({ model_id: ID, status: "queued", view: "left" });
+  });
+  it("三視角還沒好（有一張失敗）：不排紋理貼圖", async () => {
+    modelRow = row({ status: "ready", profile: { age_months: 3 } });
+    const r = await sbStartViews(ID, ["left"], { makeEdit: fake, analyze: async () => null, now: NOW, client: fakeClient() as never });
+    await (r as { run: () => Promise<void> }).run();
+    expect(calls.find(c => c.table === "meow_cat_model_jobs" && c.op === "insert")).toBeUndefined();
+  });
   it("產生中再按：busy", async () => {
     modelRow = row({ profile: { generated: { running: ["left"], started_at: NOW.toISOString() } } });
     expect(await sbStartViews(ID, ["left"], { makeEdit: fake, analyze: async () => null, now: NOW })).toEqual({ ok: false, code: "busy" });
@@ -262,6 +277,12 @@ describe("sbAutoPaint（前台上傳後自動排成貓／幼貓紋理）", () =>
     jobRows = [{ body_type: "adult", status: "done" }];
     expect(await sbAutoPaint(ID, sb())).toBe("kitten");
     expect(job()).toMatchObject({ body_type: "kitten", fill: "tabby" });
+  });
+  it("表單沒填年齡、AI 判斷是幼貓：先排幼貓", async () => {
+    modelRow = row({ status: "ready", profile: { generated: { views, age: { months: 3, isCat: true, source: "ai" } } } });
+    variantRows = [];
+    expect(await sbAutoPaint(ID, sb())).toBe("kitten");
+    expect(updateWith("meta")).toEqual({ meta: { auto_paint: ["adult"] } });
   });
   it("不排：三視角沒好、已有任務在跑、兩個體型都有貼圖", async () => {
     const cases: [Record<string, unknown>, Record<string, unknown>[] | null, Record<string, unknown>[] | null][] = [
