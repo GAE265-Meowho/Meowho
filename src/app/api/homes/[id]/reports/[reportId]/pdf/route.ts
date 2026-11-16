@@ -44,7 +44,7 @@ export async function GET(req: Request, { params }: Context) {
   const isDownload = new URL(req.url).searchParams.get("download") === "1";
   try {
     const url = await store.readUrl(report.pdf_path, REPORT_READ_TTL_SECONDS,
-      isDownload ? { contentDisposition: 'attachment; filename="WelfareLens-report.pdf"' } : undefined);
+      isDownload ? { contentDisposition: 'attachment; filename="MeowHome-Home-Safety-Report.pdf"' } : undefined);
     const response = NextResponse.redirect(url, { status: 307 });
     response.headers.set("Cache-Control", "private, no-store");
     response.headers.set("Referrer-Policy", "no-referrer");

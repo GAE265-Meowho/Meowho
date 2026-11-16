@@ -95,7 +95,7 @@ export function SafetyReportDetails({ householdId, reportId, summaryOnly = false
         </div>
       )}
       {!pdfUrl && !report.demo && <p className={k.source}>完整 PDF 只提供給喵戶本人；被分享者可查看風險摘要與裁切照。</p>}
-      {report.demo && <p className={k.source}>示範資料不含裁切照或 PDF。真實報告需由上傳影片後的 WelfareLens Worker 產生。</p>}
+      {report.demo && <p className={k.source}>示範資料不含裁切照或 PDF。真實報告需由上傳影片後的 AI 居家環境分析系統 產生。</p>}
       <p className={k.source}>本報告提供居家安全參考。AI 模擬圖片呈現建議做法，實際改善仍需現場確認。</p>
       {report.published && pdfUrl && (
         <section className={k.pdfActions} aria-label="完整 PDF">
