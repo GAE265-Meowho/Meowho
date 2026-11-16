@@ -65,7 +65,6 @@ const rec = { stop: async () => {
   frames.push({ ...frames.at(-1), t: frames.at(-1).t + 0.5 });
   const list = frames.slice(0, -1).map((f, i) => `file '${f.name}'\nduration ${(frames[i + 1].t - f.t).toFixed(4)}`).join("\n") + `\nfile '${frames.at(-1).name}'\n`;
   writeFileSync(`${FR}/list.txt`, list);
-  const c = { x: crop.x * 2, y: crop.y * 2, w: crop.width * 2, h: crop.height * 2 };
   execFileSync("ffmpeg", ["-v", "error", "-y", "-f", "concat", "-safe", "0", "-i", `${FR}/list.txt`, "-vf", "fps=30,scale=trunc(iw/2)*2:trunc(ih/2)*2", "-c:v", "libx264", "-crf", "16", "-pix_fmt", "yuv420p", `${OUT}/${game}.raw.mp4`]);
 } };
 const { default: run } = await import(`./play-${game}.mjs`);  // 每個小遊戲的操作路線
