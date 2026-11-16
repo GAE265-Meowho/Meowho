@@ -1,0 +1,12 @@
+### 22:30｜渝茜（發起）× Claude Code
+- Issue：#354 虛擬飼養改版（任務表第 5 份附帶：3D 尿漬、結局畫面）
+- 分支／PR：feat/354-play-stain-ending｜尚未開 PR
+- 模組：readiness
+- 做了什麼：
+  - 3D 尿漬：`lib/play/urine-stain.ts`（出現條件、3 灘、掃描房間／娃娃屋位置、不規則輪廓）＋測試；`RoomViewer`、`FloorplanViewer` 新 prop `stains`（預設 null，畫面不變）；貼片不吃燈光，夜晚看得到
+  - 半年後公貓（或性別不明）未結紮、噴尿那一幕（姿勢 zoom）出現，換到診間或後面的劇情就消失；出現時呼叫 `playSfx("sfx_spray")`（還沒有音檔，不出聲）
+  - 結局畫面：`FarewellScene`（SVG＋CSS）。睡著那一幕＝老貓在窗邊陽光裡睡著，貓離開那一幕＝陽光淡出成星空與貓掌印；`prefers-reduced-motion` 不做淡入淡出與閃爍
+  - 升天配樂：`bgmFor` 本來就在 farewell 回 `bgm_farewell`（只播一次），不用另外接
+- 決策：噴尿的貓動作（第 4 份）還沒有，沿用 zoom 的奔跑；尿漬只和場景姿勢綁，不綁動作
+- 未完成／下一步：`sfx_spray` 音檔（第 5 份，ready:false）；噴尿動作（第 4 份）做好後可把出現時機對齊動作
+- 風險／地雷：掃描房間的 Splat 不寫深度，貼片要 depthWrite 才不會被地板高斯蓋掉；真實掃描房間沒實際看過（只看過合成測試房間）

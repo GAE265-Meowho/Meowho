@@ -1,0 +1,68 @@
+/* 結局的鋪陳（#354）：暗幕 → 黑畫面 → 回顧 → 漸白。全螢幕疊層、CSS opacity 轉場；時間由 lib/play/ending.ts 的 ENDING_MS 經 CSS 變數傳進來。
+   電腦版（約 1280×800）為主：回顧照置中、最大 960px；手機直式時照片佔滿寬度。 */
+.overlay {
+  position: fixed; inset: 0; z-index: 60; overflow: hidden; cursor: pointer;
+  display: grid; place-items: center;
+  color: var(--cream);
+}
+.black, .white { position: absolute; inset: 0; pointer-events: none; }
+.black {
+  background: color-mix(in srgb, var(--ink) 30%, black);
+  animation: fadeIn var(--dark-ms) ease-in both;
+}
+.white { background: var(--cream); opacity: 0; }
+.overlay[data-phase="white"] .white, .overlay[data-phase="done"] .white { animation: fadeIn var(--white-ms) ease-in-out both; }
+
+.caption {
+  position: relative; margin: 0; padding: 0 24px; max-width: 34em; text-align: center;
+  font-size: var(--play-fs-h, 20px); line-height: var(--play-lh, 1.7); letter-spacing: 0.06em;
+  opacity: 0; transition: opacity 1.4s ease;
+}
+.overlay[data-phase="hush"] .caption { opacity: 1; }
+
+.slides { position: absolute; inset: 0; display: grid; place-items: center; padding: 48px 24px 88px; pointer-events: none; }
+.slide {
+  grid-area: 1 / 1; margin: 0; width: min(960px, 100%); display: flex; flex-direction: column; align-items: center; gap: 14px;
+  opacity: 0; transition: opacity var(--fade-ms) ease;
+}
+.slide[data-on="true"] { opacity: 1; }
+.frame {
+  position: relative; width: 100%; aspect-ratio: 16 / 10; overflow: hidden; border-radius: var(--r-md, 1.5rem);
+  background: color-mix(in srgb, var(--ink) 60%, black); box-shadow: 0 16px 48px rgba(0, 0, 0, 0.45);
+}
+.frame img { width: 100%; height: 100%; object-fit: cover; display: block; }
+/* 極輕微的 Ken Burns：停留時慢慢推近一點 */
+.slide[data-on="true"] .frame img { animation: kenburns var(--slide-ms) linear both; }
+.label { font-size: var(--play-fs-sub, 15px); letter-spacing: 0.08em; color: var(--cream); }
+/* 備用插圖（一張截圖都沒有時）：插圖原本的版面替劇情卡留了下方空間，這裡不用留 */
+.fallback { position: relative; width: 100%; height: 100%; }
+.fallback [data-phase] { padding: 6% 16px; }
+
+.skip {
+  position: absolute; right: 20px; bottom: 20px; z-index: 2; min-width: 88px; min-height: 44px; padding: 8px 18px;
+  border: 1px solid color-mix(in srgb, var(--cream) 45%, transparent); border-radius: 999px;
+  background: color-mix(in srgb, black 35%, transparent); color: var(--cream);
+  font: inherit; font-size: var(--play-fs-tag, 14px); letter-spacing: 0.08em; cursor: pointer; opacity: 0.75;
+}
+.skip:hover, .skip:focus-visible { opacity: 1; }
+.skip:focus-visible { outline: 3px solid var(--yellow); outline-offset: 3px; }
+.overlay[data-phase="white"] .skip, .overlay[data-phase="done"] .skip { color: var(--ink); background: color-mix(in srgb, var(--cream) 70%, transparent); border-color: var(--line); }
+
+/* 報告頁出現時：白色慢慢退掉 */
+.whiteOut { position: fixed; inset: 0; z-index: 60; background: var(--cream); pointer-events: none; animation: fadeOut 1.4s ease-out both; }
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes fadeOut { from { opacity: 1; } to { opacity: 0; } }
+@keyframes kenburns { from { transform: scale(1); } to { transform: scale(1.06) translate(-1%, -0.5%); } }
+
+@media (max-width: 600px) {
+  .slides { padding: 40px 12px 84px; }
+  .frame { aspect-ratio: 4 / 5; }
+  .skip { right: 12px; bottom: 12px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .slide { transition: none; }
+  .slide[data-on="true"] .frame img { animation: none; }
+  .caption { transition: none; }
+  .whiteOut { animation-duration: 0.01s; }
+}

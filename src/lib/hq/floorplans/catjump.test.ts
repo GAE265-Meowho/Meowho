@@ -2,6 +2,7 @@
 import { describe, expect, it } from "vitest";
 import { normalizeReading } from "./read";
 import { blocked, obstacles } from "./catwalk";
+import { jumpReady } from "@/lib/hq/rooms/cat-moves";
 import { clampTop, goalForBox, idleAction, justLanded, MAX_JUMP_M, onTop, stepActor, worldOf, type Actor, type Goal, type World } from "./catjump";
 import { houseScene } from "./scene";
 import type { PlanRoom } from "./types";
@@ -103,6 +104,25 @@ describe("跳上去、在上面走、跳下來", () => {
     expect(blocked(a.x, a.z, w.scene, w.obs)).toBe(false);
     expect(Math.hypot(a.x - 2.0, a.z - 2.7)).toBeLessThan(0.1);
   });
+  it("起跳前先原地轉身面向落點，騰空時朝向固定（不會側身往上跳）", () => {
+    const w = world();
+    const bed = w.tops.findIndex(s => s.kind === "bed");
+    const start: Actor = { ...floor(0, 0), ...clampTop(w.tops[bed], 1.6, 1.5), y: 0.5, on: bed, heading: Math.PI };
+    let a = start;
+    const times = { crouch: 0.4, air: 0.6, land: 0.3 };
+    const seen: string[] = [];
+    for (let i = 0; i < 900; i++) {
+      const before = a;
+      a = stepActor(a, { x: 2.0, z: 2.7, surface: null }, w, 1 / 30, times).actor;
+      const j = a.jump;
+      if (!j) { if (seen.length) break; continue; }
+      if (seen.at(-1) !== j.phase) seen.push(j.phase!);
+      if (j.phase === "turn" || j.phase === "crouch") expect([a.x, a.z, a.y]).toEqual([before.x, before.z, before.y]);  // 原地
+      if (j.phase === "air") expect(jumpReady(a.heading, j.heading!)).toBe(true);
+    }
+    expect(seen).toEqual(["turn", "crouch", "air", "land"]);
+    expect(a.on).toBeNull();
+  });
   it("從床跳到沙發：先跳到地板、再跳上沙發", () => {
     const w = world();
     const bed = w.tops.findIndex(s => s.kind === "bed"), sofa = w.tops.findIndex(s => s.kind === "sofa");
@@ -155,5 +175,21 @@ describe("落地（#354 sfx_land）", () => {
     expect(down.a.on).toBeNull();
     expect(down.lands).toBe(1);
     expect(count(floor(1.6, 2.8), { x: 1.2, z: 2.9, surface: null }).lands).toBe(0);
+  });
+
+  it("有蹲下、落地緩衝時，碰到落點那一格算一次（不等緩衝播完）", () => {
+    const w = world();
+    const bed = boxOf(w, "bed"), box = w.scene.boxes[bed];
+    const times = { crouch: 0.2, air: 0.4, land: 0.3 };
+    let a = floor(1.6, 2.8), lands = 0, landPhase = false;
+    for (let i = 0; i < 900; i++) {
+      const r = stepActor(a, goalForBox(w, bed, box.x, box.z)!, w, 1 / 30, times);
+      if (justLanded(a, r.actor)) { lands++; landPhase = r.actor.jump?.phase === "land"; }
+      a = r.actor;
+      if (r.done) break;
+    }
+    expect(a.on).not.toBeNull();
+    expect(lands).toBe(1);
+    expect(landPhase).toBe(true);
   });
 });

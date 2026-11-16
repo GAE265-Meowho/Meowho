@@ -1,6 +1,6 @@
 // 虛擬飼養 DEMO（#237）：newgame 版主線劇情（6 個節點＋結尾）。設計稿在團隊專題的 newgame/story.md、nodes.md（v0.5）。
-//   開場：玩家一定要先在家裡擺一個外出籠（PlayGame 的擺放步驟）；節點 1、6 都用同一個。
-//   節點 1 第 1 天（2 個月）貓躲進外出籠　2 第 3 天（砂盆、碗）　3 第 30 天（半夜跑酷、練刷牙）　4 半年後（結紮）
+//   開場：玩家一定要先選好外出籠擺在家裡哪裡（PlayGame 的擺放步驟；外出籠是中途裝著貓帶來交給你的）；節點 1、6 都用同一個。
+//   節點 1 第 1 天（2 個月）貓縮在中途帶來的外出籠裡　2 第 3 天（砂盆、碗）　3 第 30 天（半夜跑酷、練刷牙）　4 半年後（結紮）
 //   節點 5 五年後（5 歲）居家意外：資料來自居家安全清單（之後換世安的報告），沒有玩家選擇；電線、線繩、植物、窗戶送獸醫，其餘虛驚一場
 //   節點 6 十年後（10 歲）熟齡健檢：牙齒、體態、飲水三個累積值決定獸醫怎麼說　結尾 15 歲：寵物升天，沒有選擇
 //   每個節點（結尾除外）結束後有一次「在家的時光」（flow.ts、care.ts）：逗貓、餵貓、換水、鏟屎、剪指甲、刷牙。
@@ -13,7 +13,7 @@ import { ageText } from "./player-data";
 export type NodeId = "day1" | "day3" | "day30" | "month8" | "year5" | "year10" | "farewell";
 /** scoop、pet、feed、water、nail、brush、carrier 是小遊戲（catgame/minis.ts）；逗貓是 3D（ScanWand，掃描房間） */
 export type MiniId = "scoop" | "pet" | "feed" | "water" | "nail" | "brush" | "carrier" | "play";
-/** 貓的姿勢：carrier 躲進外出籠（外出籠旁）、sit 坐著、none 不在畫面… */
+/** 貓的姿勢：carrier 整隻縮在外出籠裡、sit 坐著、none 不在畫面… */
 export type CatPose = "sit" | "underbed" | "hide" | "sofa" | "zoom" | "frail" | "bed" | "table" | "none" | "carrier";
 export type Speaker = "you" | "clerk" | "vet" | "partner" | string;
 
@@ -100,6 +100,8 @@ export interface StoryNode {
 
 /** 這隻貓還是幼貓（不到 1 歲）：幼貓才講「小貓」「毛球」，大貓用比較中性的說法 */
 const young = (X: Life) => X.age < 12;
+/** 第 3 天中途說的餐數 */
+const meals = (X: Life) => (young(X) ? "小貓胃口小，一天要分 3 到 4 餐。" : "成貓一天分 2 到 3 餐，定時定量就好。");
 export const sc = (bg: string, time = "day", cat: CatPose = "sit"): Step => ({ k: "scene", bg, time, cat });
 export const XN = (t: string): Step => ({ k: "line", t });
 export const VT = (t: string): Step => ({ k: "line", who: "vet", t, health: true });
@@ -212,18 +214,19 @@ function monthSteps(X: Life): Step[] {
 
 export const STORY: readonly StoryNode[] = [
   {
-    id: "day1", label: "第 1 天", sub: "〈貓名〉・2 個月", age: 2, body: "kitten", speed: 1, home: true, personal: true,
+    // 2026-11-14 渝茜：第 1 天不要晚上的劇情；選項後的個人化台詞（「給牠一點時間」等）選了硬拉也會播，拿掉（personal: false）
+    id: "day1", label: "第 1 天", sub: "〈貓名〉・2 個月", age: 2, body: "kitten", speed: 1, home: true, personal: false,
     steps: [
       sc("room", "day", "carrier"),
       FN(X => [XN(young(X)
-        ? `中途把提籃交給你。籃子一打開，一隻小小的${coatNoun(X.cat.coat)}就咻地鑽進你擺好的外出籠，縮在最裡面。`
-        : "中途把提籃交給你。籃子一打開，〈貓名〉小心翼翼地走進你擺好的外出籠，縮在最裡面。")]),
+        ? `中途把外出籠交給你，你把它放在先前選好的位置。一隻小小的${coatNoun(X.cat.coat)}一直縮在外出籠最裡面。`
+        : "中途把外出籠交給你，你把它放在先前選好的位置。〈貓名〉一直縮在外出籠最裡面，小心翼翼地看著外面。")]),
       WHO("clerk", "剛到新家的貓都會躲起來，這很正常。前幾天先別硬抓牠，讓牠自己決定什麼時候出來。"),
       ASK("you", "（外出籠裡只看得到兩顆發亮的眼睛……）", [
         { l: "在旁邊等牠自己出來", fx: { trust: 10, stress: -10 }, pick: "到家第一天，等牠自己出來", good: true,
           then: [sc("room", "dusk"), BUB("heart"), XN("傍晚，〈貓名〉自己走出來，在你腳邊聞了聞，還蹭了一下你的褲管。")] },
         { l: "硬把牠拉出來", fx: { trust: -10, stress: 15 }, pick: "到家第一天，硬把牠拉出來", good: false,
-          then: [sc("room", "night", "carrier"), BUB("hiss"), XN("〈貓名〉抓了你一下，又縮回最裡面。那天晚上，牠一直沒有出來。")] },
+          then: [BUB("hiss"), XN("〈貓名〉抓了你一下，又縮回最裡面，一直不肯出來。")] },
       ]),
     ],
     page: { title: "到家的第一天", tip: "剛到新家，躲起來是正常的。給牠一個安靜、可以躲的地方，比抱牠更能建立信任。" },
@@ -232,18 +235,27 @@ export const STORY: readonly StoryNode[] = [
     id: "day3", label: "第 3 天", sub: "〈貓名〉・2 個月", age: 2.1, body: "kitten", speed: 1, home: true, personal: false,
     steps: [
       sc("room", "day"),
-      FN(X => [WHO("clerk", `${young(X) ? "小貓一天要吃 3 到 4 餐" : "成貓一天分 2 到 3 餐，定時定量"}。砂盆放在安靜的角落，水碗離飯碗遠一點，牠會比較願意喝水。`)]),
-      ASK("you", "（砂盆和碗要放哪裡？）", [
-        { l: "砂盆和碗分開放", fx: { trust: 3 }, pick: "砂盆和碗分開放", good: true, then: [{ k: "relocate", mode: "apart", then: [XN("你把貓砂盆搬到另一個安靜的角落。一切順利，〈貓名〉很快就知道哪裡是廁所、哪裡是餐廳。")] }] },
-        { l: "放在一起", fx: { stress: 8 }, pick: "砂盆和碗放在一起", good: false, then: [{ k: "relocate", mode: "together", then: [XN("你把貓砂盆搬到餐碗旁邊。〈貓名〉開始在別的地方上廁所。")] }] },
-      ]),
+      // 2026-11-14 渝茜：台詞改通順；擺用品時已經把砂盆和碗分開放（flags.litterApart，PlayGame 開始時算）就不再叫玩家重擺
+      FN(X => X.flags.litterApart
+        ? [
+          WHO("clerk", `${meals(X)}你把貓砂盆和碗分開放了，這樣很好，牠吃飯、上廁所都會比較安心。`),
+          REC({ fx: { trust: 3 }, pick: "砂盆和碗分開放", good: true }),
+        ]
+        : [
+          WHO("clerk", `${meals(X)}貓砂盆要放在安靜的角落，離吃飯的地方遠一點。`),
+          ASK("you", "（砂盆和碗要放哪裡？）", [
+            { l: "砂盆和碗分開放", fx: { trust: 3 }, pick: "砂盆和碗分開放", good: true, then: [{ k: "relocate", mode: "apart", then: [XN("你把貓砂盆搬到另一個安靜的角落。一切順利，〈貓名〉很快就知道哪裡是廁所、哪裡是餐廳。")] }] },
+            { l: "放在一起", fx: { stress: 8 }, pick: "砂盆和碗放在一起", good: false, then: [{ k: "relocate", mode: "together", then: [XN("你把貓砂盆搬到餐碗旁邊。〈貓名〉開始在別的地方上廁所。")] }] },
+          ]),
+        ]),
       REC({ note: "到家用品（砂盆、碗、飼料）已在採買算過", pick: "布置了基本用品。", good: null }),
-      XN("你把〈貓名〉的第一餐倒進碗裡。"),
-      MINI("feed"),
-      XN("接著把貓砂盆鏟乾淨，這是每天都要做的事。"),
+      // 2026-11-16 渝茜：開場連續餵了兩次（第 1 天在家的時光餵過、第 3 天一開始又叫你餵）。已經餵過就不再餵，直接鏟屎
+      FN(X => ((X.care.log.feed ?? 0) > 0
+        ? [XN("今天先把貓砂盆鏟乾淨，這是每天都要做的事。")]
+        : [XN("你把〈貓名〉的第一餐倒進碗裡。"), MINI("feed"), XN("接著把貓砂盆鏟乾淨，這是每天都要做的事。")])),
       MINI("scoop"),
     ],
-    page: { title: "第一次清砂盆", tip: "每天清一到兩次砂盆，順便看尿塊和便便正不正常。（鏟屎在「在家的時光」做）" },
+    page: { title: "第一次清砂盆", tip: "每天清一到兩次砂盆，順便看尿塊和便便正不正常。之後每天都可以按畫面上方的鏟屎按鈕清砂盆。" },
   },
   {
     id: "day30", label: "第 30 天", sub: "〈貓名〉・3 個月", age: 3, body: "kitten", speed: 1, home: true, personal: false,
@@ -251,7 +263,7 @@ export const STORY: readonly StoryNode[] = [
       sc("room", "night", "zoom"),
       XN("凌晨三點，客廳傳來跑來跑去的聲音。〈貓名〉精神好得很。"),
       ASK("you", "（牠完全沒有要睡的意思……）", [
-        { l: "睡前陪牠玩到累，再餵一小餐", fx: { trust: 3, minutes: 15 }, pick: "為半夜跑酷調整了作息", good: true, then: [XN("你拿出逗貓棒，陪〈貓名〉玩了一陣子。"), MINI("play"), XN("連續幾天後，〈貓名〉開始一覺睡到天亮。")] },
+        { l: "睡前陪牠玩到累，再餵一小餐", fx: { trust: 3, minutes: 15 }, pick: "為半夜跑酷調整了作息", good: true, then: [MINI("play"), XN("你陪〈貓名〉玩了一陣子。"), XN("連續幾天後，〈貓名〉開始一覺睡到天亮。")] },
         { l: "把牠關在房門外", fx: { stress: 10, trust: -3 }, pick: "把貓關在房門外", good: false, then: [XN("〈貓名〉在門外叫了一整夜。")] },
       ]),
       REC({ fx: { spent: 1800, kind: "med" }, note: "預防針、驅蟲" }),
@@ -286,17 +298,23 @@ export const STORY: readonly StoryNode[] = [
     page: { title: "熟齡健康檢查", tip: "7 歲以後建議每年健康檢查。很多慢性病早期沒有症狀，及早發現，才有機會及早調整照護。" },
   },
   {
-    id: "farewell", label: "結尾", sub: "〈貓名〉・15 歲", age: 180, body: "adult", speed: 0.55, home: false, personal: true,
+    // 結局的鋪陳（渝茜 2026-11-14）：前一天（白天，老貓在家裡躺著睡）→ 個人化台詞 → 隔天（傍晚，在睡夢中離去）。
+    // 台詞演完輪到飼養紀錄時，畫面接暗幕、回顧、漸白、結案報告（lib/play/ending.ts）；「享年」那句在暗幕裡顯示（farewellCaption）。
+    // 個人化台詞放在前一天之後（personal: false，步驟裡自己放），才不會排在牠離開之後。
+    id: "farewell", label: "結尾", sub: "〈貓名〉・15 歲", age: 180, body: "adult", speed: 0.55, home: false, personal: false,
     steps: [
-      sc("room", "dusk", "frail"),
-      XN("又過了幾年，〈貓名〉的腳步慢了，睡覺的時間變長了。牠還是會在你下班回家時，慢慢走到門口。"),
+      sc("room", "day", "frail"),
+      XN("又過了幾年。最近〈貓名〉好像沒什麼活力，常常黏在你身邊睡覺。"),
+      { k: "personal" },
       sc("room", "dusk", "bed"),
-      XN("一個安靜的下午，〈貓名〉窩在你身邊，輕輕地睡著了，就沒有再醒來。"),
-      sc("room", "dusk", "none"),
-      FN(X => [XN(`${X.name}享年 ${Math.floor(X.age / 12)} 歲。牠在你家度過了一生。`), REC({ pick: "陪伴到最後。", good: null })]),
+      XN("隔天，〈貓名〉窩在你身邊，在睡夢中安靜地離去了。"),
+      REC({ pick: "陪伴到最後。", good: null }),
     ],
     page: null,
   },
 ];
+
+/** 結局暗幕裡的那句：「麻糬享年 15 歲。牠在你家度過了一生。」 */
+export const farewellCaption = (X: Pick<Life, "name" | "age">) => `${X.name}享年 ${Math.floor(X.age / 12)} 歲。牠在你家度過了一生。`;
 
 export const nodeById = (id: NodeId) => STORY.find(n => n.id === id)!;

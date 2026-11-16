@@ -1,0 +1,10 @@
+/* 診間層（#354）：疊在 3D 房間上面，淡入淡出；房間留在底下不卸載 */
+.vet {
+  position: absolute; inset: 0; z-index: 3; background: var(--paper);  /* 蓋過掃描房間貓頭頂的對話框（同 z-index、DOM 在後） */
+  opacity: 0; pointer-events: none; transition: opacity .45s ease;
+}
+.vet[data-on="true"] { opacity: 1; pointer-events: auto; animation: vetIn .45s ease; }
+/* 第一次出現（剛掛上去）transition 不會動，用 animation 補淡入 */
+@keyframes vetIn { from { opacity: 0; } to { opacity: 1; } }
+.vet canvas { display: block; }
+@media (prefers-reduced-motion: reduce) { .vet, .vet[data-on="true"] { transition: none; animation: none; } }
