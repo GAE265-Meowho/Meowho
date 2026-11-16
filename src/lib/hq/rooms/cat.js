@@ -1,6 +1,7 @@
 // 房間裡會走動的貓：讀 room_layout.py 輸出的地板網格，閒晃、繞開障礙、走到點擊位置
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { mainRegion } from "./regions";
 import { carrierExit, fitCatInCarrier } from "../../play/carrier-fit";
 import { poseBounds, tuckClip } from "./pose-bounds";
 import { clipRate, jumpClipFor, jumpHeading, jumpKind, jumpReady, moveClip, turnStep } from "./cat-moves";
@@ -28,6 +29,8 @@ const AUTO_MAX = 60;
 const PLAY_NEAR_M = 0.12;   // 拍物品時離物品的距離範圍
 const PLAY_FAR_M = 0.4;
 const LAND_INSET_M = 0.3;   // 落點離家具邊緣多遠
+/** 走到碗邊後吃飯、喝水的動作播幾秒（同娃娃屋 story.ts） */
+const CLIP_SECONDS = { eat: 8, drink: 6 };
 const MODEL_YAW = 0;        // 模型本身面向 +Z；若走路方向不對再調這個
 
 export class RoomCat {
@@ -38,7 +41,7 @@ export class RoomCat {
     // 上方沒被桌面擋住的格子；舊版 layout 沒有這欄就當全部開放
     this.open = layout.open ? Uint8Array.from(layout.open, (c) => c === "1") : this.walkable;
     this.topM = layout.top_cm ? layout.top_cm.map((c) => c / 100) : null;  // 每格東西頂端高度
-    this.cells = [...this.walkable.keys()].filter((k) => this.walkable[k]);
+    this.cells = mainRegion(this.walkable, this.L.nx);  // 只在最大那塊相連地板出生、閒晃
     this.main = null;  // 最大一塊連通的地板，用到時再算（mainRegion）
 
     // 本地座標系：x 沿 e1、y 沿上方向、z 沿 e2，原點在地板網格角落
@@ -231,6 +234,27 @@ export class RoomCat {
     this.cat.position.set(p.x, 0, p.y);
   }
 
+  /** 走到了：停下、面向物品多待一會；有 clip 就播吃飯／喝水 */
+  arrived() {
+    this.setState("idle");
+    if (this.face) this.timer = 6;  // 在物品旁多待一會
+    if (this.clip && this.actions[this.clip]) { this.playClip(this.clip, false, 0.3); this.timer = CLIP_SECONDS[this.clip]; }
+    this.clip = null;
+  }
+
+  /** 走不過去時直接出現在格子 k，面向 face 待一會（同走到後的樣子） @param {number} k @param {THREE.Vector2 | null} [face] @param {"eat" | "drink" | null} [clip] */
+  appearAt(k, face = null, clip = null) {
+    this.jump = null;
+    this.surface = null;
+    this.path = [];
+    this.arrive = this.queued = null;
+    this.place(k);
+    this.dest = this.centerOf(k);
+    this.face = face;
+    this.clip = clip;
+    this.arrived();
+  }
+
   // BFS（8 方向、不切牆角）找路，再用視線檢查把鋸齒路徑拉直
   findPath(from, to) {
     const { nx } = this.L;
@@ -290,10 +314,11 @@ export class RoomCat {
     return k < 0 ? this.randomCell() : k;
   }
 
-  goTo(k, face = null) {
+  /** @param {number} k 目的地格子 @param {THREE.Vector2 | null} [face] 走到後要轉頭看的點（本地 x,z） @param {"eat" | "drink" | null} [clip] 走到後播的動作 */
+  goTo(k, face = null, clip = null) {
     this.untuck();
     if (this.jump || this.surface) {  // 先下來再走
-      this.queued = () => this.goTo(k, face);
+      this.queued = () => this.goTo(k, face, clip);
       if (!this.jump) this.jumpDown();
       return true;
     }
@@ -303,6 +328,7 @@ export class RoomCat {
     this.path = path;
     this.dest = this.centerOf(k);
     this.face = face;  // 走到後要轉頭看的點（本地 x,z），沒有就照常閒晃
+    this.clip = clip;
     this.setState("walk");
     return true;
   }
@@ -323,7 +349,7 @@ export class RoomCat {
             else this.walkable[this.idx(i, j)] = 0;
           }
     }
-    this.cells = [...this.walkable.keys()].filter((k) => this.walkable[k]);
+    this.cells = mainRegion(this.walkable, this.L.nx);  // 只在最大那塊相連地板出生、閒晃
     this.main = null;  // 最大一塊連通的地板，用到時再算（mainRegion）
   }
 
@@ -332,7 +358,7 @@ export class RoomCat {
     this.baseWalkable ??= Uint8Array.from(this.walkable);
     this.walkable.set(this.baseWalkable);
     for (const k of indices) this.walkable[k] = 0;
-    this.cells = [...this.walkable.keys()].filter((k) => this.walkable[k]);
+    this.cells = mainRegion(this.walkable, this.L.nx);  // 只在最大那塊相連地板出生、閒晃
     this.main = null;  // 最大一塊連通的地板，用到時再算（mainRegion）
   }
 
@@ -687,8 +713,7 @@ export class RoomCat {
     if (dist < 0.05 * this.upm) {
       this.path.shift();
       if (!this.path.length) {
-        this.setState("idle");
-        if (this.face) this.timer = 6;  // 在物品旁多待一會
+        this.arrived();
         const go = this.arrive;
         this.arrive = null;
         go?.();
