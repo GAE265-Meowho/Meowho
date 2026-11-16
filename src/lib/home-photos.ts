@@ -24,9 +24,9 @@ export const photos = {
     page: page("tabby-cat-touching-persons-palm-xulIYVIbYIc"),
   },
   home: {
-    src: u("1555590684-90fdbf46b657"),
-    alt: "在客廳裡抱著貓的人",
-    page: page("woman-carrying-cat-inside-living-room-Fst4SmneRU4"),
+    src: u("1786833404999-6b0ee2696f5e"),
+    alt: "在客廳沙發上放鬆躺著的虎斑白貓",
+    page: page("tabby-cat-sleeping-on-yellow-sofa-XmNTo1XRbsI"),
   },
   naicha: {
     src: u("1503777119540-ce54b422baff", 700),
