@@ -4,7 +4,7 @@ import { careEffect, CARE_ACTS, skipEffect } from "./care";
 import { initialPlay, playReducer, prevSetupStep, STEPS, type PlayAction, type PlayState } from "./flow";
 import { ruleHazards, type Hazard } from "./hazards";
 import { DEMO_DOLLHOUSE, inventoryFromPlan } from "./room";
-import { STORY, topRisk, VET_RISKS, type CatTraits } from "./story";
+import { farewellCaption, STORY, topRisk, VET_RISKS, type CatTraits } from "./story";
 
 const labels = inventoryFromPlan(DEMO_DOLLHOUSE).labels;
 const hazards: Hazard[] = ruleHazards({ labels, hasWindow: true });
@@ -68,10 +68,12 @@ describe("流程（newgame v0.5）", () => {
     expect(s.life.care.rounds).toBe(6);
   });
 
-  it("節點 1：貓躲進外出籠；台詞裡沒有床底", () => {
+  it("節點 1：中途把外出籠交給你，貓一直縮在籠裡；台詞裡沒有床底", () => {
     const { seen } = playThrough();
     const all = seen.join("");
-    expect(all).toContain("鑽進你擺好的外出籠");
+    expect(all).toContain("中途把外出籠交給你");
+    expect(all).toContain("一直縮在外出籠最裡面");
+    expect(all).not.toContain("提籃");
     expect(all).not.toContain("床底");
   });
 
@@ -162,9 +164,24 @@ describe("節點 6：熟齡健檢看累積數值", () => {
 });
 
 describe("結尾與花費", () => {
-  it("結尾：享年 15 歲，沒有選擇", () => {
-    const { seen } = playThrough();
-    expect(seen.join("\n")).toContain("麻糬享年 15 歲");
+  it("結尾：前一天沒什麼活力、隔天在睡夢中離去，沒有選擇；享年那句在暗幕裡（farewellCaption）", () => {
+    const { seen, s } = playThrough();
+    const all = seen.join("\n");
+    expect(all).toContain("沒什麼活力");
+    expect(all).toContain("在睡夢中");
+    expect(all.indexOf("沒什麼活力")).toBeLessThan(all.indexOf("在睡夢中"));
+    expect(farewellCaption(s.life)).toBe("麻糬享年 15 歲。牠在你家度過了一生。");
+    expect(s.life.picks.some(p => p.t === "陪伴到最後。")).toBe(true);
+  });
+
+  it("結局的暗幕跳到報告（finish）：剩下的台詞、紀錄一次走完，停在報告；選項、小遊戲不會被跳過", () => {
+    let s = playReducer(initialPlay(), { type: "startNodes", catName: "麻糬", labels: [], once: 0, monthly: 0 });
+    s = playReducer({ ...s, cur: { kind: "lines", lines: [] }, queue: [], nodeIndex: STORY.length - 1 }, { type: "finish" });
+    expect(s.step).toBe("report");
+    const asking = playReducer(initialPlay(), { type: "startNodes", catName: "麻糬", labels: [], once: 0, monthly: 0 });
+    let a = asking;
+    for (let i = 0; i < 20 && a.cur?.kind !== "ask" && a.cur?.kind !== "mini"; i++) a = playReducer(a, { type: "next" });
+    expect(playReducer(a, { type: "finish" })).toBe(a);
   });
 
   it("每月花費依月齡累計，不寫死", () => {
@@ -185,14 +202,14 @@ describe("年紀大的貓", () => {
     const r = playThrough({ startMonths: 168 });
     expect(r.s.life.age).toBeLessThanOrEqual(240);
     expect(r.s.life.age).toBeGreaterThan(168);
-    expect(texts(r)).toContain("享年 20 歲");
+    expect(farewellCaption(r.s.life)).toContain("享年 20 歲");
     expect(texts(r)).not.toContain("毛球就咻地鑽進");
     expect(texts(r)).not.toContain("小貓");
     expect(texts(r)).not.toContain("十歲了");
   });
   it("2 個月的小貓：照原本劇本，結尾 15 歲", () => {
     const r = playThrough();
-    expect(texts(r)).toContain("享年 15 歲");
+    expect(farewellCaption(r.s.life)).toContain("享年 15 歲");
     expect(texts(r)).toContain("10 歲了");
     expect(texts(r)).toContain("小貓");
   });

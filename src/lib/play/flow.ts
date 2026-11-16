@@ -6,7 +6,9 @@
 //   依序執行劇本步驟——場景、氣泡、花費紀錄、fn 直接處理；連續的台詞合成一段顯示；遇到選項、小遊戲就停下來等玩家；
 //   選了選項把 then 插到最前面；小遊戲結束把 then(結果) 插到最前面；{ end } 是送養結局，直接進報告。
 //   每段開始依月齡差累計每月花費（原版 X.monthly × months）；順序：主線 → 居家意外（只有節點 2）→ 個人化台詞（DEMO）→ 小叮嚀 → 飼養紀錄。
-import { addCare, careEffect, CARE_ACTS, skipEffect, type CareAct } from "./care";
+import { addCare, careEffect, careOutcome, CARE_ACTS, skipEffect, type CareAct } from "./care";
+import { dayAfter, newDay, parseDay, type CareDay } from "./care-day";
+import { scoopOutcome } from "./mini3d/scoop-rules";
 import { fullTx } from "./furniture";
 import type { Hazard } from "./hazards";
 import { money } from "./costs";
@@ -35,7 +37,9 @@ export type Cur =
   | { kind: "home" };
 
 /** 節點開始前的快照：存進 meow_task_runs.progress，續玩時從這個節點的開頭重新開始（queue、cur 裡有函式，不能整包存） */
-export interface Checkpoint { v: 1; nodeIndex: number; life: Life; hazards: Hazard[]; handled: string[]; monthly: number; startMonths: number }
+export interface Checkpoint { v: 1; nodeIndex: number; life: Life; hazards: Hazard[]; handled: string[]; monthly: number; startMonths: number;
+  /** 今日照顧狀態（選填，舊存檔沒有＝新的一天）；快照在節點開頭拍，所以存的是那一天剛開始的樣子 */
+  today?: CareDay }
 
 export interface PlayState {
   step: Step_;
@@ -60,6 +64,8 @@ export interface PlayState {
   startMonths: number;
   /** 最近一個節點開始前的快照（每過一個節點更新一次，畫面拿去存進度）；還沒開始＝null */
   checkpoint: Checkpoint | null;
+  /** 今日照顧狀態：碗裡的飼料、水、砂盆剩幾坨、今天做好了哪些（lib/play/care-day.ts）；進下一個節點＝隔天，清空 */
+  today: CareDay;
 }
 
 export const newLife = (labels: string[] = [], name = "牠", cat: CatTraits = NO_TRAITS): Life => ({
@@ -71,7 +77,7 @@ export const newLife = (labels: string[] = [], name = "牠", cat: CatTraits = NO
 export const initialPlay = (): PlayState => ({
   step: "background", nodeIndex: 0, queue: [], cur: null, pageShown: false,
   scene: { bg: "room", time: "day", cat: "sit" }, bub: null, life: newLife(),
-  hazards: [], handled: [], homeDone: [], homeTried: [], monthly: 0, startMonths: 2, checkpoint: null,
+  hazards: [], handled: [], homeDone: [], homeTried: [], monthly: 0, startMonths: 2, checkpoint: null, today: newDay(0),
 });
 
 export type PlayAction =
@@ -87,10 +93,14 @@ export type PlayAction =
   | { type: "miniDone"; result: unknown }
   /** 貓砂盆重新擺好了 */
   | { type: "relocated" }
-  /** 在家的時光：做完一個動作（good＝小遊戲成功） */
-  | { type: "care"; act: CareAct; good: boolean }
+  /** 補貨：採買之後又買了飼料；monthly＝用 shopCost 重算的每月花費（之後的節點照新的算），note＝飼養紀錄 */
+  | { type: "restock"; monthly: number; note: string }
+  /** 在家的時光：做完一個動作（good＝小遊戲成功）。result＝小遊戲的實際結果：有給就照實判斷（沒做＝不算、只做一部分、今天已經做過＝不再給獎勵），並更新今日照顧狀態 */
+  | { type: "care"; act: CareAct; good: boolean; result?: unknown }
   /** 續玩：從存好的快照回到那個節點的開頭 */
   | { type: "resume"; cp: Checkpoint }
+  /** 結局的暗幕播完（或玩家略過）：剩下的台詞、紀錄一次走完，進報告；遇到選項、小遊戲就停（不替玩家選） */
+  | { type: "finish" }
   | { type: "restart" };
 
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
@@ -163,7 +173,8 @@ function run(prev: PlayState): PlayState {
 
 /** 進入節點：累計每月花費、組這一段要演的步驟（主線 → 居家意外 → 個人化台詞） */
 function enterNode(prev: PlayState, nodeIndex: number): PlayState {
-  const s: PlayState = { ...prev, life: cloneLife(prev.life), nodeIndex, pageShown: false, bub: null };
+  // 換節點＝隔天：碗清空、水要換、砂盆又有新的砂團
+  const s: PlayState = { ...prev, life: cloneLife(prev.life), nodeIndex, pageShown: false, bub: null, today: prev.today.node === nodeIndex ? prev.today : newDay(nodeIndex) };
   const node = STORY[nodeIndex], X = s.life;
   const prevAge = nodeIndex > 0 ? STORY[nodeIndex - 1].age : node.age;
   // 每月花費依真實經過的月數累計（年紀大的貓，後半段時間軸會壓縮，見 timeline.ts）
@@ -193,7 +204,7 @@ function endHome(s: PlayState): PlayState {
 
 /** 進入第 nodeIndex 個節點之前的快照 */
 const checkpointOf = (s: PlayState, nodeIndex: number): Checkpoint => ({
-  v: 1, nodeIndex, life: cloneLife(s.life), hazards: s.hazards, handled: [...s.handled], monthly: s.monthly, startMonths: s.startMonths,
+  v: 1, nodeIndex, life: cloneLife(s.life), hazards: s.hazards, handled: [...s.handled], monthly: s.monthly, startMonths: s.startMonths, today: newDay(nodeIndex),
 });
 
 function advance(s: PlayState): PlayState {
@@ -203,6 +214,15 @@ function advance(s: PlayState): PlayState {
 export function playReducer(s: PlayState, a: PlayAction): PlayState {
   switch (a.type) {
     case "restart": return initialPlay();
+    case "finish": {
+      let n = s;
+      for (let i = 0; i < 50 && n.step === "node"; i++) {
+        const next = playReducer(n, { type: "next" });
+        if (next === n) break;
+        n = next;
+      }
+      return n;
+    }
     case "goto": return { ...s, step: a.step };
     case "back": { const prev = prevSetupStep(s.step); return prev ? { ...s, step: prev } : s; }
     case "setHazards": return { ...s, hazards: a.hazards, handled: s.handled.filter(k => a.hazards.some(h => h.key === k)) };
@@ -214,13 +234,13 @@ export function playReducer(s: PlayState, a: PlayAction): PlayState {
       if (a.mood) { life.trust = a.mood.trust; life.stress = a.mood.stress; }
       (a.shopPicks ?? []).forEach(p => life.picks.push({ ...p, node: "day1" }));
       life.risk = topRisk(s.hazards);
-      const begin: PlayState = { ...s, step: "node", life, monthly: a.monthly, startMonths: a.startMonths ?? 2, homeDone: [], homeTried: [] };
+      const begin: PlayState = { ...s, step: "node", life, monthly: a.monthly, startMonths: a.startMonths ?? 2, homeDone: [], homeTried: [], today: newDay(0) };
       return enterNode({ ...begin, checkpoint: checkpointOf(begin, 0) }, 0);
     }
     case "resume": {
       const { cp } = a;
       const life = cloneLife(cp.life);
-      return enterNode({ ...initialPlay(), step: "node", life, hazards: cp.hazards, handled: [...cp.handled], monthly: cp.monthly, startMonths: cp.startMonths, checkpoint: cp }, cp.nodeIndex);
+      return enterNode({ ...initialPlay(), step: "node", life, hazards: cp.hazards, handled: [...cp.handled], monthly: cp.monthly, startMonths: cp.startMonths, checkpoint: cp, today: parseDay(cp.today, cp.nodeIndex) }, cp.nodeIndex);
     }
     case "choose": {
       if (s.cur?.kind !== "ask") return s;
@@ -232,20 +252,46 @@ export function playReducer(s: PlayState, a: PlayAction): PlayState {
     }
     case "care": {
       if (s.cur?.kind !== "home") return s;
+      let today = s.today;
+      if (a.result !== undefined) {
+        // 今天已經做好了：只更新場景狀態（例如又多倒了一點），不再給獎勵、不再記一次
+        const already = today.done.includes(a.act);
+        const outcome = careOutcome(a.act, a.result);
+        today = dayAfter(today, a.act, a.result);
+        if (already || outcome === "none") return { ...s, today };
+      }
       const life = cloneLife(s.life);
-      const e = careEffect(a.act, a.good, Boolean(life.flags.brushDaily));
+      const e = careEffect(a.act, a.good, Boolean(life.flags.brushDaily), a.result);
       life.care = addCare(life.care, e.d);
       life.care.log[a.act] = (life.care.log[a.act] ?? 0) + 1;
       if (e.fx.trust) life.trust = clamp(life.trust + e.fx.trust, 0, 100);
       if (e.fx.stress) life.stress = clamp(life.stress + e.fx.stress, 0, 100);
+      // 鏟一部分：照實記下還有幾坨沒鏟
+      const left = a.act === "scoop" && !a.good ? scoopOutcome(a.result).left : null;
+      if (left) life.notes.push({ t: `鏟屎沒鏟完，還有 ${left} 坨沒鏟`, node: nodeId(s), spent: 0 });
       // 做好了才算完成（圖示變半透明、貓不再要）；做壞了只記下試過
       return a.good
-        ? { ...s, life, homeDone: s.homeDone.includes(a.act) ? s.homeDone : [...s.homeDone, a.act] }
-        : { ...s, life, homeTried: s.homeTried.includes(a.act) ? s.homeTried : [...s.homeTried, a.act] };
+        ? { ...s, life, today, homeDone: s.homeDone.includes(a.act) ? s.homeDone : [...s.homeDone, a.act] }
+        : { ...s, life, today, homeTried: s.homeTried.includes(a.act) ? s.homeTried : [...s.homeTried, a.act] };
+    }
+    case "restock": {
+      const life = cloneLife(s.life);
+      life.notes.push({ t: a.note, node: nodeId(s), spent: 0 });
+      return { ...s, life, monthly: a.monthly };
     }
     case "miniDone": {
       if (s.cur?.kind !== "mini") return s;
-      return run({ ...s, queue: [...s.cur.then(a.result ?? {}), ...s.queue] });
+      const mini = s.cur.mini, care = CARE_ACTS.find(c => c.mini === mini)?.act;
+      const n: PlayState = { ...s, today: care ? dayAfter(s.today, care, a.result) : s.today };
+      // 劇情裡的鏟屎：照實寫進這一段的飼養紀錄（關掉、沒鏟、鏟一部分都不算做好）
+      if (mini === "scoop") {
+        const o = scoopOutcome(a.result);
+        n.life = cloneLife(s.life);
+        n.life.picks.push(o.kind === "good" ? { t: "把貓砂盆鏟乾淨了", good: true, node: nodeId(s) }
+          : o.kind === "partial" ? { t: `鏟屎沒鏟完，還有 ${o.left} 坨沒鏟`, good: false, node: nodeId(s) }
+          : { t: "沒有鏟屎", good: false, node: nodeId(s) });
+      }
+      return run({ ...n, queue: [...s.cur.then(a.result ?? {}), ...s.queue] });
     }
     case "relocated": {
       if (s.cur?.kind !== "relocate") return s;
@@ -258,7 +304,8 @@ export function playReducer(s: PlayState, a: PlayAction): PlayState {
       }
       if (!s.cur) return run(s);
       if (s.cur.kind === "log") {
-        if (STORY[s.nodeIndex].home && !s.life.abandoned) return { ...s, cur: { kind: "home" }, homeDone: [], homeTried: [] };
+        // 劇情裡今天已經做好的照顧（例如第 3 天的餵貓），在家的時光一開始就算做過
+        if (STORY[s.nodeIndex].home && !s.life.abandoned) return { ...s, cur: { kind: "home" }, homeDone: s.today.done.filter(a => a !== "play"), homeTried: [] };
         return advance(s);
       }
       if (s.cur.kind === "home") return advance(endHome(s));

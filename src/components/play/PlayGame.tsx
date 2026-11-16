@@ -36,15 +36,31 @@ import pm from "./place.module.css";
 import { LINES_TIMEOUT_MS, ruleLines, type Line } from "@/lib/play/lines";
 import { DEMO_DOLLHOUSE, inventoryFromPlan, inventoryFromScan, pickScanBase, type RoomInventory, type RoomKind } from "@/lib/play/room";
 import { goalFor, itemSpots, type CatAction } from "@/lib/play/stage";
-import { STORY, type CatPose, type NodeId } from "@/lib/play/story";
+import { farewellCaption, STORY, type CatPose, type NodeId } from "@/lib/play/story";
 import { CARE_ACTS, careGood, type CareAct } from "@/lib/play/care";
 import { CatgameMini } from "./catgame/CatgameMini";
+import { RestockDialog } from "./RestockDialog";
+import rs from "./restock.module.css";
+import { feedKindsAvailable, restockNote } from "@/lib/play/restock";
 import type { MiniCtx } from "./catgame/minis";
 import { CareBar, HomeStep } from "./HomeStep";
 import { NodeStep } from "./NodeStep";
 import { Glyph } from "./SpeakerAvatar";
 import { SoundToggle, usePlayBgm } from "./PlayAudio";
 import { PlayStage } from "./PlayStage";
+import { lightFor, playLightTime, poseSpeed } from "@/lib/play/scene-light";
+import { reportScene, resetScene, sceneOf } from "@/lib/play/scene-change";
+import { shotFor } from "@/lib/play/camera-shot";
+import { showVet, vetTalkKey } from "@/lib/play/vet-room";
+import { stainsFor } from "@/lib/play/urine-stain";
+import { CAPTURE_DELAY_MS, captureMoment, endingStarts, mergeShots, type EndingPhase, type ReviewShot } from "@/lib/play/ending";
+import { elderFor } from "@/lib/play/elder-cat";
+import { captureScene } from "@/lib/play/snapshot";
+import { loadReview, saveReview } from "@/lib/play/review-store";
+import { EndingOverlay } from "./EndingOverlay";
+import { AdoptDialog } from "./AdoptDialog";
+import endFx from "./ending.module.css";
+import { playSfx } from "@/lib/play/audio-player";
 import { ScanWand } from "./ScanWand";
 import { ReportStep } from "./ReportStep";
 import { AbandonPanel } from "./AbandonPanel";
@@ -70,7 +86,7 @@ const ROOM_SCENE = houseScene([DEMO_DOLLHOUSE])[0];
 const FURNITURE_NAMES = Object.fromEntries((DEMO_DOLLHOUSE.furniture ?? []).map((f, i) => [i, f.label]));
 /** 原版場景的貓姿勢 → 3D 貓的動作（none＝貓不在畫面） */
 const POSE_ACTION: Record<CatPose, CatAction | null> = {
-  sit: "idle", carrier: "carrier", underbed: "hide", hide: "hide", sofa: "sofa", zoom: "explore", frail: "sleep", bed: "sleep", table: "idle", none: null,
+  sit: "idle", carrier: "carrier", underbed: "hide", hide: "hide", sofa: "sofa", zoom: "zoom", frail: "sleep", bed: "sleep", table: "idle", none: null,
 };
 /** 原版 newGame：喜歡的玩具、玩的節奏開局隨機抽（玩家看不到）；DEMO 一開始只有羽毛逗貓棒 */
 
@@ -147,6 +163,20 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
   const top = useRef<HTMLHeadingElement>(null);
   /** 在家的時光：正在玩哪一個動作的小遊戲 */
   const [careAct, setCareAct] = useState<CareAct | null>(null);
+  // 補貨視窗：採買之後又買飼料，更新 pick 並用 shopCost 重算每月花費（之後的節點照新的算）
+  const [restocking, setRestocking] = useState(false);
+  const restock = (next: ShopPick) => {
+    const note = restockNote(pick, next);
+    setPick(next);
+    if (note) {
+      const monthly = shopCost(next, foodStage(startMonths), backShop).month;
+      dispatch({ type: "restock", monthly, note });
+      setRestockMsg(`${note}，每月花費變成約 ${money(monthly)} 元`);
+      window.setTimeout(() => setRestockMsg(null), 5000);
+    }
+  };
+  const [restockMsg, setRestockMsg] = useState<string | null>(null);
+  const feedKinds = feedKindsAvailable(pick);
   // 這個節點裡餵過貓、換過水幾次：每做完一次貓就走到碗邊一次；換節點歸零
   const [served, setServed] = useState(0);
   useEffect(() => { setServed(0); }, [state.nodeIndex]);
@@ -281,7 +311,10 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
   const wand = useMemo(() => (scanWand ? { toy, onCatch: (c: boolean) => { if (c) setCatches(n => n + 1); } } : null), [scanWand, toy]);
   useEffect(() => { if (scanWand) setCatches(0); }, [scanWand]);
   const clip = state.step === "node" && action === "sleep" ? "sleep" : null;
-  const look = action === null ? null : cat.look(state.step === "node" || state.step === "report" ? bodyAt(state.life.age) : cat.body);
+  const baseLook = action === null ? null : cat.look(state.step === "node" || state.step === "report" ? bodyAt(state.life.age) : cat.body);
+  // 老貓模型（第 4 份）進來後 elder-cat.ts 的 ELDER_CAT.look 填上就換掉（結尾才用）
+  const elderLook = elderFor(STORY[state.nodeIndex].id, state.step)?.look;
+  const look = baseLook && elderLook ? { ...baseLook, ...elderLook } : baseLook;
 
   // 續玩：進度讀回來就還原採買、擺放、喵戶、定格的房間，再回到快照那個節點的開頭
   const savedCp = useRef<unknown>(null);
@@ -503,7 +536,57 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
   const canPeek = state.step === "place" || (state.step === "node" && cur?.kind !== "mini" && !careAct);
   useEffect(() => { setPeek(false); }, [state.step, state.nodeIndex, cur]);
   // 背景音樂依步驟、節點、場景切換（第 6 份）
-  usePlayBgm({ step: state.step, nodeId: state.step === "node" ? node.id : null, scene: state.scene, home: cur?.kind === "home" });
+  // 結局（#354 2026-11-14）：結尾的台詞演完就接暗幕 → 回顧 → 漸白 → 報告（lib/play/ending.ts）；這段期間藏起對話框
+  const endingOn = endingStarts({ step: state.step, nodeId: node.id, curKind: cur?.kind });
+  const [endPhase, setEndPhase] = useState<EndingPhase | null>(null);
+  const [endSlides, setEndSlides] = useState<ReviewShot[] | null>(null);
+  const [ended, setEnded] = useState(false);
+  usePlayBgm({ step: state.step, nodeId: state.step === "node" ? node.id : null, scene: state.scene, home: cur?.kind === "home", ending: endingOn ? endPhase ?? "dark" : null });
+  // 白天／夜晚光與「場景換了」事件（#354 第 5 份；傍晚歸白天，見 lib/play/scene-light.ts）
+  const lightTime = playLightTime({ step: state.step, time: state.scene.time, home: cur?.kind === "home" });
+  const light = useMemo(() => lightFor(lightTime), [lightTime]);
+  useEffect(() => { reportScene(sceneOf({ step: state.step, nodeId: node.id, scene: state.scene, home: cur?.kind === "home" })); }, [state.step, node.id, state.scene, cur?.kind]);
+  useEffect(() => resetScene, []);
+  // 診間與劇情鏡頭（#354 第 5 份）
+  // 半年後公貓亂噴尿：尿漬出現的同時播噴尿音效（sfx_spray 還沒有音檔時不出聲）；看醫生或劇情結束就消失。結局那一幕疊結局插圖
+  const stains = useMemo(() => stainsFor({ step: state.step, nodeId: node.id, bg: state.scene.bg, pose: state.scene.cat, life: state.life }),
+    [state.step, node.id, state.scene.bg, state.scene.cat, state.life]);
+  useEffect(() => { if (stains.length) playSfx("sfx_spray"); }, [stains.length]);
+  const elder = elderFor(node.id, state.step);
+  const vet = showVet({ step: state.step, bg: state.scene.bg, home: cur?.kind === "home" });
+  const shot = useMemo(() => (state.step === "node" && cur?.kind !== "home" ? shotFor(node.id, state.scene.cat) : null), [state.step, cur?.kind, node.id, state.scene.cat]);
+
+  // 結局回顧的自動截圖（#354）：幾個節點各截一張 3D 畫面，存記憶體＋瀏覽器（IndexedDB，key＝runId；示範模式只在記憶體）
+  const [shots, setShots] = useState<ReviewShot[]>([]);
+  useEffect(() => {
+    if (!runId) return;
+    loadReview(runId).then(list => { if (list?.length) setShots(v => list.reduce(mergeShots, v)); });
+  }, [runId]);
+  const captureKey = captureMoment({ step: state.step, nodeId: node.id, bg: state.scene.bg, pose: state.scene.cat, curKind: cur?.kind, busy: careAct !== null, taken: shots.map(x => x.key) });
+  useEffect(() => {
+    if (!captureKey) return;
+    const label = nodeLabel(node, state.startMonths);
+    const t = setTimeout(() => {
+      const src = captureScene();
+      if (!src) return;
+      setShots(v => {
+        const next = mergeShots(v, { key: captureKey, label, src });
+        if (runId && next !== v) void saveReview(runId, next);
+        return next;
+      });
+    }, CAPTURE_DELAY_MS);
+    return () => clearTimeout(t);
+    // 只看這一刻要截的節點（同一個 key 只截一次）
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [captureKey]);
+  // 暗幕開始時定好回顧照；一張都沒有（換裝置續玩、截圖失敗）就截當下的房間一張，再沒有就用備用插圖
+  useEffect(() => {
+    if (!endingOn) { setEndSlides(null); setEndPhase(null); return; }
+    const now = shots.length ? null : captureScene();
+    setEndSlides(shots.length ? shots : now ? [{ key: "farewell", label: "", src: now }] : []);
+    // 只在暗幕開始時決定一次
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [endingOn]);
 
   // 開始前被擋下（沒登入、沒喵戶、有別隻貓在進行、沒有房間或報告…）：只顯示說明，不進遊戲
   const hydrating = Boolean(resumeId && !hydrated.current);
@@ -556,11 +639,11 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
         <div className={e.overlay}><AbandonPanel catName={catName} runId={runId} onCancel={() => setAbandoning(false)} onDone={() => { window.location.href = catHref; }} /></div>
       )}
 
-      {immersive && state.step === "node" && cur?.kind === "home" && !careAct && <CareBar state={state} canPlay={kind === "scan"} onAct={setCareAct} />}
+      {immersive && state.step === "node" && cur?.kind === "home" && !careAct && <CareBar state={state} canPlay={kind === "scan"} onAct={setCareAct} onRestock={() => setRestocking(true)} />}
 
       {showStage && (
         <PlayStage kind={kind} scanBase={scanBase} placeView={state.step === "place"} place={placeEdit} look={look} bubble={bubble} bubbleInset={peek || (cur?.kind === "home" && !careAct) ? 0.08 : cur?.kind === "lines" || cur?.kind === "personal" ? 0.36 : 0.48} lookKey={lookKey} placed={placed} scanItems={scanItems} story={story} wand={wand}
-          goal={goal} clip={clip} speed={state.step === "node" ? node.speed : 1}
+          goal={goal} clip={clip} speed={state.step === "node" ? poseSpeed(state.scene.cat, node.speed) : 1} light={light} vet={vet} vetTalk={vet ? vetTalkKey(cur) : null} shot={shot} stains={stains} elder={elder}
           onDrop={state.step === "place" && kind === "dollhouse"
             ? (id, at) => { if (playItems.some(i => i.id === id)) placeAt(id as PlayItem["id"], at); }
             : undefined}>
@@ -650,7 +733,7 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
         </section>
       )}
 
-      {state.step === "node" && (
+      {state.step === "node" && !endingOn && (
         <NodeStep state={state} personal={personal}
           onNext={nextOrDayEnd} onChoose={i => dispatch({ type: "choose", index: i })} />
       )}
@@ -673,31 +756,44 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
           onDone={r => dispatch({ type: "miniDone", result: r })} />
       )}
       {state.step === "node" && cur?.kind === "mini" && cur.mini !== "play" && (
-        <CatgameMini key={`${state.nodeIndex}:${cur.mini}:${state.life.picks.length}`} id={cur.mini} ctx={miniCtx} catName={catName}
+        <CatgameMini key={`${state.nodeIndex}:${cur.mini}:${state.life.picks.length}`} id={cur.mini} ctx={miniCtx} catName={catName} feedKinds={feedKinds} onRestock={() => setRestocking(true)} day={state.today}
           // 外出籠：劇情只看成功與否（原版結果 { ok, forced, treats }）
           onDone={r => dispatch({ type: "miniDone", result: cur.mini === "carrier" ? (r as { ok?: boolean } | null)?.ok === true : r })} />
       )}
       {state.step === "node" && cur?.kind === "home" && careAct === "play" && scanWand && (
         <ScanWand key={`care:wand:${state.life.care.rounds}`} catName={catName} catches={catches}
-          onDone={r => { dispatch({ type: "care", act: "play", good: careGood("play", r) }); setCareAct(null); }} />
+          onDone={r => { dispatch({ type: "care", act: "play", good: careGood("play", r), result: r }); setCareAct(null); }} />
       )}
       {state.step === "node" && cur?.kind === "home" && careAct && careAct !== "play" && (() => {
         const mini = CARE_ACTS.find(a => a.act === careAct)!.mini!;
         const done = (r: unknown) => {
           if (r === null) { setCareAct(null); return; }
-          dispatch({ type: "care", act: careAct, good: careGood(careAct, r) });
+          dispatch({ type: "care", act: careAct, good: careGood(careAct, r), result: r });
           if (careAct === "feed" || careAct === "water") setServed(n => n + 1);
           setCareAct(null);
         };
-        return <CatgameMini key={`care:${careAct}:${state.life.care.rounds}`} id={mini} ctx={miniCtx} catName={catName} onDone={done} />;
+        return <CatgameMini key={`care:${careAct}:${state.life.care.rounds}`} id={mini} ctx={miniCtx} catName={catName} onDone={done} feedKinds={feedKinds} onRestock={() => setRestocking(true)} day={state.today} />;
       })()}
 
       </div>}
 
+      {endingOn && endSlides && (
+        <EndingOverlay slides={endSlides} caption={farewellCaption(state.life)} onPhase={setEndPhase}
+          onDone={() => { setEnded(true); dispatch({ type: "finish" }); }} />
+      )}
+      {state.step === "report" && ended && <div className={endFx.whiteOut} aria-hidden="true" />}
+      {state.step === "report" && (
+        <AdoptDialog catId={cat.catId} catName={catName} photo={cat.photo} shot={shots[shots.length - 1]?.src ?? null} runId={runId}
+          canAct={!isDemo && Boolean(user)} adoptable={cat.adoptable} formOpen={cat.formOpen} abandoned={state.life.abandoned} />
+      )}
+
       {state.step === "report" && home && (
         <ReportStep state={state} pick={pick} monthly={shop.month} home={home} runId={runId} catHref={catHref}
-          onRestart={() => { dispatch({ type: "restart" }); hazardsAsked.current = false; hazardShown.current = false; setHazardItem(null); setPlaced([]); setScanSpots({}); setScanPose({}); setLines({}); setRunId(null); setFrozenRoom(null); savedCp.current = null; }} />
+          onRestart={() => { dispatch({ type: "restart" }); setEnded(false); setShots([]); hazardsAsked.current = false; hazardShown.current = false; setHazardItem(null); setPlaced([]); setScanSpots({}); setScanPose({}); setLines({}); setRunId(null); setFrozenRoom(null); savedCp.current = null; }} />
       )}
+
+      {restocking && state.step === "node" && <RestockDialog pick={pick} shop={backShop} stage={foodStage(startMonths)} catName={catName} onBuy={restock} onClose={() => setRestocking(false)} />}
+      {restockMsg && <p className={rs.notice} role="status">{restockMsg}</p>}
     </div>
   );
 }

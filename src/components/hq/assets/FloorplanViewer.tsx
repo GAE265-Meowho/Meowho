@@ -8,17 +8,30 @@ import { Canvas, useFrame, useThree, type ThreeEvent } from "@react-three/fiber"
 import { Component, Suspense, useEffect, useMemo, useRef, useState, type DragEvent, type MutableRefObject, type ReactNode } from "react";
 import * as THREE from "three";
 import { FLOOR_TEXTURE, kitScale, kitUrl } from "@/lib/hq/floorplans/kit";
-import { goalForBox, idleAction, stepActor, worldOf, type Actor, type Goal } from "@/lib/hq/floorplans/catjump";
+import { DEFAULT_JUMP_TIMES, goalForBox, idleAction, stepActor, worldOf, type Actor, type Goal, type Jump, type JumpTimes } from "@/lib/hq/floorplans/catjump";
+import { jumpClipFor, jumpKind, type JumpTiming } from "@/lib/hq/rooms/cat-moves";
+import { clipJumpTiming, isJumpClip } from "@/lib/hq/rooms/jump-clips";
 import { blocked, CAT_SCALE, freeSpot, obstacles, type Obstacle } from "@/lib/hq/floorplans/catwalk";
 import { bowlObstacles, bubbleOf, dropTargetBowl, isBowlSet, passableItem, standOff, stepItems, stepSpot, stepStory, STORY_START, withoutItem, type NeedIcon, type Spot, type Story, type StoryState } from "@/lib/hq/floorplans/story";
 import { expandRemovedIndices, type FurnitureMove, type FurnitureSupport } from "@/lib/hq/floorplans/experience-furniture";
 import { boxToSolid, clampFurniturePose, rotatedHalfExtents, type SolidBody } from "@/lib/hq/floorplans/experience-physics";
 import { focusScenes, houseScene, sceneBounds, type RoomScene, type SceneBox } from "@/lib/hq/floorplans/scene";
 import type { BodyType } from "@/lib/hq/cat-models/types";
-import { CatModel } from "./CatPreview";
+import { CatModel, CROSSFADE_SECONDS } from "./CatPreview";
+import { carrierExit, fitCatInCarrier, type Bounds3, type CarrierBox } from "@/lib/play/carrier-fit";
+import { nearFree } from "@/lib/play/stage";
+import { poseBounds, tuckClip } from "@/lib/hq/rooms/pose-bounds";
 import { bowlSlotsOf, detectBowlSlots, setBowlSlots } from "./bowlSlotsDetect";
 import { readItemDragId } from "./itemDrag";
 import type { PlanRoom } from "@/lib/hq/floorplans/types";
+import type { SceneLight } from "@/lib/play/scene-light";
+import { houseStainSpots, STAIN, type Stain } from "@/lib/play/urine-stain";
+import { stainShape } from "./stain-mesh";
+import { shotReach, type CameraShot } from "@/lib/play/camera-shot";
+import { applyElderTint, type ElderCat } from "@/lib/play/elder-cat";
+import { registerSceneGrab } from "@/lib/play/snapshot";
+import { CAT_TINT_UNIFORM } from "@/lib/hq/rooms/splat-tint";
+import { tintObject } from "@/lib/hq/rooms/tint-material";
 
 /** 生活用品放在哪：null＝地板；有值＝家具頂面（PlanRoom.furniture 原始索引） */
 export type ItemSupport = { furnitureIndex: number; localX: number; localZ: number } | null;
@@ -580,15 +593,75 @@ function Room({ s, planFurniture, onClick, onRemoveFurniture, onRotateFurniture,
   );
 }
 
+/** 尿漬貼片（#354）：地板上的扁平淡黃半透明塊，不吃燈光（夜晚也看得到） */
+function StainDecals({ scene, stains }: { scene: RoomScene; stains: readonly Stain[] }) {
+  const spots = useMemo(() => houseStainSpots(scene, stains), [scene, stains]);
+  return (
+    <>
+      {spots.map(sp => (
+        <group key={sp.id} position={[sp.x, 0.012, sp.z]} rotation={[-Math.PI / 2, 0, 0]} renderOrder={5}>
+          <mesh>
+            <shapeGeometry args={[stainShape(sp.id, sp.r)]} />
+            <meshBasicMaterial color={STAIN.color} transparent opacity={STAIN.opacity} depthWrite={false} side={THREE.DoubleSide} polygonOffset polygonOffsetFactor={-2} polygonOffsetUnits={-2} />
+          </mesh>
+          <mesh position={[0, 0, 0.003]}>
+            <shapeGeometry args={[stainShape(`${sp.id}-core`, sp.r * 0.55)]} />
+            <meshBasicMaterial color={STAIN.core} transparent opacity={STAIN.opacity} depthWrite={false} side={THREE.DoubleSide} polygonOffset polygonOffsetFactor={-2} polygonOffsetUnits={-2} />
+          </mesh>
+        </group>
+      ))}
+    </>
+  );
+}
+
 export interface ViewerCat { baseUrl: string; albedoUrl: string; body: BodyType }
+
+const CAT_FUR = { inPlace: true, only: (m: THREE.Material) => m.name === "cat_fur" };
 
 /**
  * 虛擬體驗（#150）：貓在房間裡走、跳上家具。點地板＝走過去；點床、沙發、桌子＝走到旁邊跳上去；
- * 走路與跳躍播 walk（母體還沒有 jump 動作）、停下播 idle；閒置時在地板上逛、在床或沙發上睡覺。
+ * 走路播 walk；跳躍先轉身（walk）再播 jump_a／b／c（cat-moves.ts、原地播，位移由 catjump.ts 算），停下播 idle；閒置時在地板上逛、在床或沙發上睡覺。
  * 規則在 catwalk.ts、catjump.ts（純函式、可測）；貓放大 CAT_SCALE 倍（真實比例在整間房的鏡頭裡太小）。
  * pos：貓的世界座標，給鏡頭跟隨用。
  */
-function CatActor({ s, look, click, pos, extraObs, forceClip = null, speed = 1, story = null, items = [], onStory }: {
+/** 切換到躲藏動作後多久才顯示貓（要比 CatModel 的淡入淡出長） */
+const TUCK_FADE_S = CROSSFADE_SECONDS + 0.1;
+
+/** 量貓模型躲藏動作（趴姿）整段播放的包圍盒，給外出籠用（在 Suspense 裡，等模型讀好） */
+function TuckBounds({ url, onBounds }: { url: string; onBounds: (b: { clip: string; bounds: Bounds3 } | null) => void }) {
+  const gltf = useGLTF(url);
+  useEffect(() => {
+    const name = tuckClip(gltf.animations.map(a => a.name));
+    const clip = gltf.animations.find(a => a.name === name);
+    const bounds = clip ? poseBounds(gltf.scene, clip) : null;
+    onBounds(name && bounds ? { clip: name, bounds } : null);
+  }, [gltf, onBounds]);
+  return null;
+}
+
+/** 母體有哪些動作、各跳躍動作的離地／落地時間（給跳躍分段用） */
+interface ClipInfo { names: string[]; jumps: Record<string, JumpTiming | null> }
+function ClipInfoOf({ url, onInfo }: { url: string; onInfo: (i: ClipInfo) => void }) {
+  const gltf = useGLTF(url);
+  useEffect(() => {
+    onInfo({
+      names: gltf.animations.map(a => a.name),
+      jumps: Object.fromEntries(gltf.animations.filter(a => isJumpClip(a.name)).map(a => [a.name, clipJumpTiming(a)])),
+    });
+  }, [gltf, onInfo]);
+  return null;
+}
+
+/** 跳躍中的動作與各段秒數：轉身時踏步（walk），之後播對應的跳躍動作（cat-moves.ts 挑，沒有就用 walk） */
+function jumpPlan(j: Jump | null, info: ClipInfo | null): { clip: string; times: JumpTimes } {
+  if (!j) return { clip: "walk", times: DEFAULT_JUMP_TIMES };
+  const { clip } = jumpClipFor(jumpKind(j.fy, j.ty), info?.names ?? []);
+  const t = clip ? info?.jumps[clip] : null;
+  const times = t ? { crouch: t.takeoff, air: t.land - t.takeoff, land: t.duration - t.land } : DEFAULT_JUMP_TIMES;
+  return { clip: j.phase === "turn" || !clip ? "walk" : clip, times };
+}
+
+function CatActor({ s, look, click, pos, extraObs, forceClip = null, speed = 1, story = null, items = [], onStory, elder = null, tint = null, tuck = null }: {
   s: RoomScene; look: ViewerCat; click: (RoomClick & { at: number }) | null; pos: React.RefObject<THREE.Vector3>;
   extraObs: Obstacle[];
   /** 停下來時固定播這個動作（例如 sleep），不自己閒逛（#237 虛擬飼養劇情） */
@@ -601,7 +674,20 @@ function CatActor({ s, look, click, pos, extraObs, forceClip = null, speed = 1, 
   items?: PlacedHouseholdItem[];
   /** 故事線狀態改變時通知（畫面顯示進度） */
   onStory?: (st: StoryState) => void;
+  /** 老貓（#354 結局，lib/play/elder-cat.ts）：毛色調淡偏灰、縮小一點；null＝原本的樣子 */
+  elder?: ElderCat | null;
+  /** 虛擬飼養日夜（#354）：貓的材質輸出乘上這個向量；null＝不改材質 */
+  tint?: THREE.Vector3 | null;
+  /** 虛擬飼養第 1 天：貓整隻縮在這個外出籠裡（y＝籠底高度）；null＝照常走動 */
+  tuck?: (CarrierBox & { y?: number }) | null;
 }) {
+  // 模型是非同步載入的，所以每幀檢查一次（已套過的不重算）；換回 null 時還原一次就停
+  const tinted = useRef(false);
+  useFrame(() => {
+    if (!elder && !tinted.current) return;
+    applyElderTint(ref.current, elder);
+    tinted.current = Boolean(elder);
+  });
   const world = useMemo(() => worldOf(s, [...obstacles(s), ...extraObs]), [s, extraObs]);
   const start = useMemo(() => freeSpot(s, world.obs) ?? { x: s.size[0] / 2, z: s.size[1] / 2 }, [s, world]);
   const ref = useRef<THREE.Group>(null);
@@ -615,19 +701,57 @@ function CatActor({ s, look, click, pos, extraObs, forceClip = null, speed = 1, 
   const storyGoal = useRef(false);
   const [bubble, setBubble] = useState<NeedIcon | null>(null);
   const [bubbleLabel, setBubbleLabel] = useState("");
+  const [tuckPose, setTuckPose] = useState<{ clip: string; bounds: Bounds3 } | null>(null);
+  const [clipInfo, setClipInfo] = useState<ClipInfo | null>(null);
+  const fit = useMemo(() => {
+    const f = tuck && tuckPose ? fitCatInCarrier(tuck, tuckPose.bounds) : null;
+    return f?.fits ? f : null;
+  }, [tuck, tuckPose]);
+  const tuckT = useRef(0);
+  useEffect(() => { if (fit) goal.current = null; }, [fit]);
+  // 從外出籠出來：從籠門前的空地板開始走（籠子本身是障礙物，留在籠內會卡住）
+  const lastTuck = useRef<typeof tuck>(null);
+  useEffect(() => {
+    if (tuck) { lastTuck.current = tuck; return; }
+    const c = lastTuck.current, a = cat.current;
+    lastTuck.current = null;
+    // 籠門前面那塊地板（找不到就從貓現在的位置找最近的空地）
+    const t = c?.rotY ?? 0;
+    const door = c ? carrierExit(c) : a;  // 整隻貓站到籠門外（carrier-fit.ts）
+    const spot = nearFree(s, world.obs, door.x, door.z);
+    if (spot && (c || blocked(a.x, a.z, s, world.obs))) cat.current = { ...a, ...spot, heading: t };
+  }, [tuck, s, world]);
   useEffect(() => {
     if (!click) return;
     storyGoal.current = false;
     goal.current = (click.box !== null && goalForBox(world, click.box, click.x, click.z)) || { x: click.x, z: click.z, surface: null };
     idle.current = 0;
   }, [click, world]);
+  const tintSweep = useRef(0);
+  // 只改毛色：CatPreview 每隻貓自己複製一份 cat_fur（換貼圖還拿著它），直接改它；其他材質是快取共用的，不碰
   useFrame((_, delta) => {
+    // 貓模型（Suspense 載入、換年紀會換）的材質換成乘 tint 的複本；每 20 幀掃一次新材質
+    if (tint && ref.current && --tintSweep.current <= 0) { tintSweep.current = 20; tintObject(ref.current, CAT_TINT_UNIFORM, tint, CAT_FUR); }
     const dt = Math.min(delta, 0.1) * speed;
+    if (fit && tuck) {
+      // 縮在外出籠裡：固定趴姿、縮放到整隻放得下、面向門口，不走動
+      cat.current = { ...cat.current, x: fit.x, z: fit.z, heading: fit.heading, moving: false, on: null, jump: null };
+      ref.current?.position.set(fit.x, (tuck.y ?? 0) + fit.y, fit.z);
+      ref.current?.rotation.set(0, fit.heading, 0);
+      ref.current?.scale.setScalar(fit.scale);
+      ref.current?.getWorldPosition(pos.current);
+      if (clip !== tuckPose!.clip) { setClip(tuckPose!.clip); tuckT.current = 0; }
+      // 動作淡入時會混到站姿（頭會穿出籠頂），淡入完才顯示
+      tuckT.current += delta;
+      if (ref.current) ref.current.visible = tuckT.current > TUCK_FADE_S;
+      return;
+    }
+    if (ref.current) { ref.current.scale.setScalar(CAT_SCALE * (elder?.scale ?? 1)); ref.current.visible = true; }
     // 故事線（#318）：碗有自己的碰撞（餐碗組＝兩個碗），最後靠近時拿掉要吃的那個
     const bowls = story ? bowlObstacles(story, items, bowlSlotsOf) : [];
     if (story) storyStep(story, dt, bowls);
     const walkWorld = bowls.length ? { ...world, obs: [...world.obs, ...dropTargetBowl(bowls, spot.current, cat.current)] } : world;
-    const { actor, done } = stepActor(cat.current, goal.current, walkWorld, dt);
+    const { actor, done } = stepActor(cat.current, goal.current, walkWorld, dt, jumpPlan(cat.current.jump, clipInfo).times);
     let next = clip;
     if (done) goal.current = null;
     const doing = story && plot.current.phase === "doing" ? story.steps[plot.current.step] : null;
@@ -638,7 +762,8 @@ function CatActor({ s, look, click, pos, extraObs, forceClip = null, speed = 1, 
       actor.z += (spot.current.z - actor.z) * k;
       actor.heading = spot.current.heading;
     }
-    if (actor.moving || actor.jump) { idle.current = 0; next = "walk"; }
+    if (actor.jump) { idle.current = 0; next = jumpPlan(actor.jump, clipInfo).clip; }
+    else if (actor.moving) { idle.current = 0; next = "walk"; }
     else if (forceClip) next = forceClip;
     else if (doing) { idle.current = 0; next = doing.clip; }
     else {
@@ -698,9 +823,11 @@ function CatActor({ s, look, click, pos, extraObs, forceClip = null, speed = 1, 
   }
 
   return (
-    <group ref={ref} position={[start.x, 0, start.z]} scale={CAT_SCALE}>
+    <group ref={ref} position={[start.x, 0, start.z]} scale={CAT_SCALE * (elder?.scale ?? 1)}>
       <Suspense fallback={null}>
-        <CatModel baseUrl={look.baseUrl} albedoUrl={look.albedoUrl} clip={clip} follow={false} speed={speed} />
+        <CatModel baseUrl={look.baseUrl} albedoUrl={look.albedoUrl} clip={clip} follow={false} speed={speed} inPlaceJumps />
+        <ClipInfoOf url={look.baseUrl} onInfo={setClipInfo} />
+        {tuck && <TuckBounds url={look.baseUrl} onBounds={setTuckPose} />}
       </Suspense>
       {bubble && (
         <Html position={[0, look.body === "kitten" ? 0.42 : 0.62, 0]} center zIndexRange={[40, 30]} style={{ pointerEvents: "none" }}>
@@ -733,18 +860,70 @@ function NeedGlyph({ icon }: { icon: NeedIcon }) {
 }
 
 /** 虛擬體驗：鏡頭跟著貓（旋轉中心慢慢移到貓身上，鏡頭一起平移；管理員自己轉的角度、縮放保留） */
-function FollowCat({ pos }: { pos: React.RefObject<THREE.Vector3> }) {
+function FollowCat({ pos, on = true, onOff }: { pos: React.RefObject<THREE.Vector3>; on?: boolean; onOff?: () => void }) {
   const camera = useThree(st => st.camera);
-  const controls = useThree(st => st.controls) as unknown as { target: THREE.Vector3; update(): void } | null;
+  const controls = useThree(st => st.controls) as unknown as (THREE.EventDispatcher<{ start: object }> & { target: THREE.Vector3; update(): void }) | null;
   const want = useMemo(() => new THREE.Vector3(), []);
+  // 玩家自己拖曳、轉動鏡頭：跟隨關掉
+  useEffect(() => {
+    if (!controls || !on || !onOff) return;
+    const stop = () => onOff();
+    controls.addEventListener("start", stop);
+    return () => controls.removeEventListener("start", stop);
+  }, [controls, on, onOff]);
   useFrame((_, delta) => {
-    if (!controls || !pos.current) return;
+    if (!on || !controls || !pos.current) return;
     want.copy(pos.current).setY(pos.current.y + 0.25);
     const k = Math.min(1, delta * 3);
     const dx = (want.x - controls.target.x) * k, dy = (want.y - controls.target.y) * k, dz = (want.z - controls.target.z) * k;
     controls.target.set(controls.target.x + dx, controls.target.y + dy, controls.target.z + dz);
     camera.position.set(camera.position.x + dx, camera.position.y + dy, camera.position.z + dz);
     controls.update();
+  });
+  return null;
+}
+
+/** 結局回顧的截圖（#354）：登記「現在畫一幀、回傳畫布」，截圖在同一個工作裡讀，不用全域 preserveDrawingBuffer */
+function SceneGrab() {
+  const { gl, scene, camera } = useThree();
+  useEffect(() => registerSceneGrab(() => { gl.render(scene, camera); return gl.domElement; }), [gl, scene, camera]);
+  return null;
+}
+
+/** 虛擬飼養的劇情鏡頭（#354，lib/play/camera-shot.ts）：key 一變，等 delayMs，再花 ms 把鏡頭移到旋轉中心（貓）前 dist 公尺、
+ *  高 height 公尺；方向沿用鏡頭當下的水平方向。只改鏡頭相對旋轉中心的位置，FollowCat 照舊跟著貓平移 */
+function ShotRig({ shot }: { shot: CameraShot | null }) {
+  const camera = useThree(st => st.camera);
+  const controls = useThree(st => st.controls) as unknown as { target: THREE.Vector3; update(): void } | null;
+  const anim = useRef<{ from: THREE.Vector3; to: THREE.Vector3; start: number; ms: number } | null>(null);
+  const tmp = useMemo(() => new THREE.Vector3(), []);
+  const shotRef = useRef(shot);
+  shotRef.current = shot;
+  const key = shot?.key ?? null;
+  useEffect(() => {
+    const s = shotRef.current;
+    if (!s) return;
+    const t = window.setTimeout(() => {
+      if (!controls) return;
+      const from = camera.position.clone().sub(controls.target);
+      const flat = new THREE.Vector3(from.x, 0, from.z);
+      if (flat.lengthSq() < 1e-6) flat.set(0, 0, 1);
+      const size = (camera as THREE.PerspectiveCamera).aspect || 1;
+      const { dist, height } = shotReach(s, size);
+      const to = flat.normalize().multiplyScalar(dist).setY(height);
+      const still = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      anim.current = { from, to, start: performance.now(), ms: still ? 0 : s.ms };
+    }, s.delayMs);
+    return () => window.clearTimeout(t);
+  }, [key, camera, controls]);
+  useFrame(() => {
+    const a = anim.current;
+    if (!a || !controls) return;
+    const t = a.ms ? Math.min(1, (performance.now() - a.start) / a.ms) : 1;
+    const e = t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) ** 2 / 2;  // 慢進慢出
+    camera.position.copy(controls.target).add(tmp.lerpVectors(a.from, a.to, e));
+    controls.update();
+    if (t === 1) anim.current = null;
   });
   return null;
 }
@@ -781,7 +960,7 @@ export type PlaceAt = { roomId: string; x: number; z: number; y: number; support
 /** point＝點地板／床叫貓；hand＝拖移已放用品／落地家具（不叫貓） */
 export type InteractMode = "point" | "hand";
 
-export default function FloorplanViewer({ rooms, selected, onPick, cat, placedItems = [], interactMode = "point", removedFurniture, furnitureMoves, onMoveItem, onRotateItem, onRemoveItem, onRemoveFurniture, onMoveFurniture, onRotateFurniture, onFloorDrop, catGoal = null, catClip = null, catSpeed = 1, onItemError, story = null, onStory }: {
+export default function FloorplanViewer({ rooms, selected, onPick, cat, placedItems = [], interactMode = "point", removedFurniture, furnitureMoves, onMoveItem, onRotateItem, onRemoveItem, onRemoveFurniture, onMoveFurniture, onRotateFurniture, onFloorDrop, catGoal = null, catClip = null, catSpeed = 1, catTuck = null, catFollow = true, onCatFollowOff, onItemError, story = null, onStory, light = null, shot = null, stains = null, elder = null, capture = false }: {
   rooms: PlanRoom[]; selected: string | null; onPick: (id: string) => void;
   /** 虛擬體驗（#150）：放一隻貓進去；有貓時只顯示單間（沒有「全部」），點地板叫貓走過去 */
   cat?: ViewerCat | null;
@@ -813,12 +992,28 @@ export default function FloorplanViewer({ rooms, selected, onPick, cat, placedIt
   catClip?: string | null;
   /** 貓的動作速度倍率（#237） */
   catSpeed?: number;
+  /** 貓整隻縮在這個外出籠裡（虛擬飼養第 1 天）；null＝照常走動 */
+  catTuck?: (CarrierBox & { y?: number }) | null;
+  /** 鏡頭跟著貓（預設開；虛擬飼養由「跟著貓」按鈕控制） */
+  catFollow?: boolean;
+  /** 玩家自己拖曳鏡頭時呼叫（跟隨關掉） */
+  onCatFollowOff?: () => void;
   /** 生活用品模型載入失敗、已改成方塊（#237） */
   onItemError?: (key: string) => void;
   /** 故事線（#297，MeowHQ 虛擬體驗）：例如「貓咪的吃喝拉撒」；null＝自由活動 */
   story?: Story | null;
   /** 故事線進度改變 */
   onStory?: (st: StoryState) => void;
+  /** 虛擬飼養的白天／夜晚光（#354，lib/play/scene-light.ts 的 lightFor(time).house）；null／不給＝原本的燈光（MeowHQ） */
+  light?: SceneLight["house"] | null;
+  /** 尿漬（#354，lib/play/urine-stain.ts 的 stainsFor）；null／不給＝沒有（預設）。只畫在第一間房 */
+  stains?: readonly Stain[] | null;
+  /** 虛擬飼養的劇情鏡頭（#354，lib/play/camera-shot.ts 的 shotFor）；null／不給＝原本的鏡頭（預設） */
+  shot?: CameraShot | null;
+  /** 老貓的樣子（#354 結局，lib/play/elder-cat.ts）；null／不給＝原本的樣子 */
+  elder?: ElderCat | null;
+  /** 登記結局回顧的截圖（#354，lib/play/snapshot.ts）；只有虛擬飼養要 */
+  capture?: boolean;
 }) {
   const removedList = useMemo(
     () => (removedFurniture ? [...removedFurniture] : []),
@@ -832,6 +1027,10 @@ export default function FloorplanViewer({ rooms, selected, onPick, cat, placedIt
   const [click, setClick] = useState<(RoomClick & { at: number }) | null>(null);
   const catClick = catGoal && (!click || catGoal.at >= click.at) ? catGoal : click;
   const catPos = useRef(new THREE.Vector3());
+  // 夜晚貓的顏色乘數（#354）：只乘貓的材質，不加點光源（點光源會照亮旁邊的用品）；換日夜只改值
+  const catTint = useMemo(() => new THREE.Vector3(1, 1, 1), []);
+  const [tr, tg, tb] = light?.catTint ?? [1, 1, 1];
+  useEffect(() => { catTint.set(tr, tg, tb); }, [catTint, tr, tg, tb]);
   const floorRay = useRef<FloorRayApi | null>(null);
   const shown = useMemo(() => focusScenes(scenes, focus), [scenes, focus]);
   const { width, depth, height } = sceneBounds(shown);
@@ -870,11 +1069,11 @@ export default function FloorplanViewer({ rooms, selected, onPick, cat, placedIt
         onDrop={onFloorDrop ? acceptDrop : undefined}
       >
         <Canvas shadows={{ type: THREE.PCFSoftShadowMap }} camera={{ position: cam.position, fov: FOV, near: 0.1, far: 500 }}>
-          <color attach="background" args={["#F3EFE7"]} />
-          <hemisphereLight args={["#fffaf2", "#d8ccb8", 1.7]} />
-          <ambientLight intensity={0.35} />
+          <color attach="background" args={[light?.background ?? "#F3EFE7"]} />
+          <hemisphereLight args={[light?.hemi.sky ?? "#fffaf2", light?.hemi.ground ?? "#d8ccb8", light?.hemi.intensity ?? 1.7]} />
+          <ambientLight intensity={light?.ambient ?? 0.35} />
           {/* 顯示的房間移到原點附近：平行光的目標是原點，陰影範圍才會罩住所有房間 */}
-          <directionalLight position={[-4, 8, 5]} intensity={2.2} color="#fff6e8" castShadow
+          <directionalLight position={[-4, 8, 5]} intensity={light?.sun.intensity ?? 2.2} color={light?.sun.color ?? "#fff6e8"} castShadow
             shadow-mapSize={[2048, 2048]} shadow-bias={-0.0004}
             shadow-camera-left={-half} shadow-camera-right={half} shadow-camera-top={half} shadow-camera-bottom={-half} />
           <group position={[-width / 2, 0, -depth / 2]}>
@@ -896,6 +1095,7 @@ export default function FloorplanViewer({ rooms, selected, onPick, cat, placedIt
                     setClick({ ...c, at: Date.now() });
                   }}
                 >
+                  {stains?.length && s.id === shown[0]?.id ? <StainDecals scene={s} stains={stains} /> : null}
                   {roomItems.map(item => (
                     <ItemBoundary key={item.key} fallback={<ItemBox item={item} />} onError={() => onItemError?.(item.key)}>
                       <Suspense fallback={null}>
@@ -909,15 +1109,17 @@ export default function FloorplanViewer({ rooms, selected, onPick, cat, placedIt
                       </Suspense>
                     </ItemBoundary>
                   ))}
-                  {cat && <CatActor key={`${s.id}:${cat.albedoUrl}`} s={s} look={cat} click={catClick} pos={catPos} extraObs={itemObstacles(roomItems.filter(i => !passableItem(story, i.name)))} forceClip={catClip} speed={catSpeed} story={story} items={roomItems} onStory={onStory} />}
+                  {cat && <CatActor key={`${s.id}:${cat.albedoUrl}`} s={s} look={cat} click={catClick} pos={catPos} extraObs={itemObstacles(roomItems.filter(i => !passableItem(story, i.name)))} forceClip={catClip} speed={catSpeed} tuck={catTuck} story={story} items={roomItems} onStory={onStory} elder={elder} tint={light ? catTint : null} />}
                 </Room>
               );
             })}
           </group>
           <OrbitControls target={[0, 0, 0]} maxPolarAngle={Math.PI / 2.1} minDistance={cat ? 0.8 : 1.5} maxDistance={cat ? Math.max(cam.dist * 3, 12) : cam.dist * 2.5} makeDefault />
           <CameraRig position={cam.position} view={view} />
-          {cat && <FollowCat pos={catPos} />}
+          {cat && <FollowCat pos={catPos} on={catFollow} onOff={onCatFollowOff} />}
+          {cat && shot && <ShotRig shot={shot} />}
           {onFloorDrop && <FloorRayBridge api={floorRay} />}
+          {capture && <SceneGrab />}
         </Canvas>
       </div>
     </div>

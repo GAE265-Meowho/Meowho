@@ -40,8 +40,10 @@ export interface ScoopState {
 export type ScoopEvent = "pick" | "pickPoop" | "shake" | "sifted" | "tooFast" | "dropped" | "bagged" | "baggedSandy" | null;
 
 /** 砂盆髒的程度（0～100）決定有幾塊：每 12 一塊、1～8 塊，每三塊有一條大便；低於 5 就是乾淨的 */
-export function makeClumps(box: LitterBoxKind, dirt = 70, rand: () => number = Math.random): Clump[] {
-  const n = dirt < 5 ? 0 : Math.min(8, Math.max(1, Math.round(dirt / 12)));
+export const clumpCount = (dirt: number) => (dirt < 5 ? 0 : Math.min(8, Math.max(1, Math.round(dirt / 12))));
+/** count：同一天再進來時砂盆剩幾坨（見 lib/play/care-day.ts）；沒給就照髒的程度算 */
+export function makeClumps(box: LitterBoxKind, dirt = 70, rand: () => number = Math.random, count?: number): Clump[] {
+  const n = count ?? clumpCount(dirt);
   const { w, d } = LITTER_BOXES[box];
   return Array.from({ length: n }, (_, i) => {
     const poop = i % 3 === 2;
@@ -51,8 +53,8 @@ export function makeClumps(box: LitterBoxKind, dirt = 70, rand: () => number = M
     };
   });
 }
-export const newScoop = (box: LitterBoxKind, dirt = 70, rand: () => number = Math.random): ScoopState =>
-  ({ clumps: makeClumps(box, dirt, rand), bagged: 0, sand: 0, dir: 0, wasted: 0 });
+export const newScoop = (box: LitterBoxKind, dirt = 70, rand: () => number = Math.random, count?: number): ScoopState =>
+  ({ clumps: makeClumps(box, dirt, rand, count), bagged: 0, sand: 0, dir: 0, wasted: 0 });
 
 const within = (v: number, half: number) => Math.min(half, Math.max(-half, v));
 /** 鏟子上現在有哪幾塊（在 clumps 裡的位置） */
@@ -103,8 +105,21 @@ export function scoopStep(s: ScoopState, box: LitterBoxKind, input: { x: number;
 }
 
 export const scoopDone = (s: ScoopState) => s.bagged >= s.clumps.length;
-/** bagged／total／small 同 2D 版；sandy 是連砂一起丟掉的塊數。careGood("scoop") 不看內容 */
+/** bagged／total／small 同 2D 版；sandy 是連砂一起丟掉的塊數。careGood("scoop") 要 bagged ≥ total 而且 total > 0 */
 export const scoopResult = (s: ScoopState) => ({ bagged: s.bagged, total: s.clumps.length, small: false, sandy: s.wasted });
+
+/**
+ * 鏟屎的實際結果：每一坨都鏟起來丟進垃圾袋＝good；只丟了一部分＝partial（left 是還剩幾坨）；
+ * 一坨都沒丟（含按「放下鏟子」、時間到、中途關掉回傳 null、砂盆本來就乾淨）＝none。
+ */
+export function scoopOutcome(r: unknown): { kind: "good" | "partial" | "none"; left: number | null } {
+  const o = r && typeof r === "object" ? (r as Record<string, unknown>) : null;
+  const bagged = typeof o?.bagged === "number" ? o.bagged : 0;
+  const total = typeof o?.total === "number" ? o.total : null;
+  if (total === null) return { kind: "none", left: null };
+  const left = Math.max(0, total - bagged);
+  return { kind: total > 0 && left === 0 ? "good" : bagged > 0 ? "partial" : "none", left };
+}
 
 export const SCOOP_TEXT: Record<Exclude<ScoopEvent, null>, string> = {
   pick: "鏟起一塊結塊，上面都是砂，左右甩一甩。", pickPoop: "鏟起一條便便，上面都是砂，左右甩一甩。",

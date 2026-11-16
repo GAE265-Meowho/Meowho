@@ -1,0 +1,30 @@
+/* 結案報告後的「認養貓咪」彈窗（#354）。電腦版約 1280 為主：照片在左、文字與按鈕在右；手機直式上下排。 */
+.dialog {
+  width: min(760px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); padding: 0; overflow: auto;
+  border: 0; border-radius: var(--r-lg, 2rem); background: var(--card); color: var(--ink); box-shadow: var(--sh-3);
+}
+.dialog::backdrop { background: color-mix(in srgb, var(--ink) 45%, transparent); }
+.dialog[open] { animation: pop 0.32s cubic-bezier(0.2, 0.9, 0.3, 1.2) both; }
+.body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr); align-items: stretch; }
+.photo { position: relative; min-height: 300px; background: var(--yellow-soft); overflow: hidden; }
+.photo img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.photo svg { position: absolute; inset: 18%; width: 64%; height: 64%; color: var(--caramel); }
+.text { display: flex; flex-direction: column; justify-content: center; gap: 14px; padding: 40px 32px 32px; }
+.kicker { align-self: flex-start; padding: 4px 12px; border-radius: 999px; background: var(--yellow); color: var(--ink); font-weight: 700; font-size: var(--play-fs-tag, 14px); }
+.text h2 { margin: 0; font-size: var(--play-fs-title, 24px); line-height: 1.4; letter-spacing: 0.04em; color: var(--ink); }
+.text p { margin: 0; color: var(--ink-soft); font-size: var(--play-fs-body, 17px); line-height: var(--play-lh, 1.7); }
+.actions { display: flex; flex-wrap: wrap; gap: 14px 12px; margin-top: 8px; padding-top: 10px; }
+.actions > * { min-height: 44px; }
+.close {
+  position: absolute; top: 10px; right: 10px; z-index: 2; width: 44px; height: 44px; display: grid; place-items: center;
+  border: 0; border-radius: 999px; background: var(--card); color: var(--ink); cursor: pointer; box-shadow: var(--sh-1);
+}
+.close:focus-visible { outline: 3px solid var(--yellow); outline-offset: 2px; }
+.inner { position: relative; }
+@media (max-width: 640px) {
+  .body { grid-template-columns: 1fr; }
+  .photo { min-height: 0; aspect-ratio: 4 / 3; }
+  .text { padding: 22px 20px 24px; }
+}
+@keyframes pop { from { opacity: 0; transform: translateY(12px) scale(0.96); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .dialog[open] { animation: none; } }

@@ -18,6 +18,14 @@ import { placeScanItems, type SceneItem } from "@/lib/play/scene-items";
 import { floorHit, footprintSize, screenStep, tryPlace, type Footprint, type ItemPose, type MoveDir } from "@/lib/play/scan-place";
 import { sceneCatCommand } from "@/lib/play/scene-cat";
 import type { CatAction } from "@/lib/play/stage";
+import type { SceneLight } from "@/lib/play/scene-light";
+import { scanStainSpots, type Stain } from "@/lib/play/urine-stain";
+import { disposeStains, stainMesh } from "./stain-mesh";
+import { CAT_TINT_UNIFORM, TINT_UNIFORM, tintFragment } from "@/lib/hq/rooms/splat-tint";
+import { tintObject } from "@/lib/hq/rooms/tint-material";
+import { shotReach, type CameraShot } from "@/lib/play/camera-shot";
+import { applyElderTint, type ElderCat } from "@/lib/play/elder-cat";
+import { registerSceneGrab } from "@/lib/play/snapshot";
 
 const ALPHA_THRESHOLD = 5;  // 丟掉幾乎透明的高斯，手機比較順
 const WALK_SPEED = 0.15;    // 每秒走幾個房間單位
@@ -56,7 +64,7 @@ async function itemObject(it: SceneItem): Promise<THREE.Object3D> {
   return box;
 }
 
-interface ItemStage { scene: RoomScene; layout: RoomLayout; viewer: GS.Viewer; frame: THREE.Group; toyFrame: THREE.Group }
+interface ItemStage { scene: RoomScene; layout: RoomLayout; viewer: GS.Viewer; frame: THREE.Group; toyFrame: THREE.Group; stainFrame: THREE.Group }
 
 const TOY_SHOW = 6;  // 逗貓玩具在畫面上放大幾倍（真實的老鼠只有 5 公分，看不到）
 
@@ -79,6 +87,13 @@ export interface RoomWand { toy: SceneItem; onCatch: (caught: boolean) => void }
  * place：擺用品時可以在房間裡自由擺（只在俯視時有效）：點地板＝把 active 那件放過去、拖曳用品＝移動它（拖用品時鏡頭不轉）；
  *   place.api 會被填上 nudge（依目前鏡頭方向移一步）與 rotate（轉 90°），給外面的移動鈕用。位置夾在房間內、不和別的用品重疊（lib/play/scan-place）
  * overviewCover：俯視時畫面下方被卡片蓋住的比例（0～1）；畫面中心會往上移到卡片上方可見區的中間
+ * light：虛擬飼養的白天／夜晚光（#354，lib/play/scene-light.ts 的 lightFor(time).scan）。高斯點不吃燈光，所以
+ *   Splat 材質與虛擬物件（用品、玩具）材質的片段著色器最後都乘上同一個 uTint，貓乘 uCatTint（亮一點）
+ *   （lib/hq/rooms/splat-tint.ts；每個材質只編譯一次，之後換日夜只改 uniform 值）；燈光不動、不加燈、不加後製。
+ *   null／不給＝不改著色器（預設，MeowHQ 照舊）
+ * shot：虛擬飼養的劇情鏡頭（#354，lib/play/camera-shot.ts 的 shotFor）。key 一變，等 delayMs 讓貓走到定位，
+ *   再用 tweenTo（花 ms 毫秒）移到貓頭前 dist 公尺、高 height 公尺的位置看著貓；方向沿用鏡頭當下看貓的方向。
+ *   有劇情鏡頭時 lookKey 不再原地轉向（劇情鏡頭已經對著貓）。null／不給＝原本的鏡頭（預設）；俯視鏡頭時不套用
  */
 /** 擺用品的自由擺放（見 RoomViewer 的 place 說明） */
 export interface RoomPlaceEdit {
@@ -98,7 +113,7 @@ export interface RoomPlaceApi {
   rotate: (id: string) => boolean;
 }
 
-export default function RoomViewer({ base, cat, items, controls = true, story, wand, bubble, bubbleInset = 0, lookKey, noCat = false, overlay = false, overview = null, overviewCover = 0, place = null }: {
+export default function RoomViewer({ base, cat, items, controls = true, story, wand, bubble, bubbleInset = 0, lookKey, follow = false, onFollowOff, noCat = false, overlay = false, overview = null, overviewCover = 0, place = null, light = null, shot = null, stains = null, elder = null, capture = false }: {
   base: string; cat?: { baseUrl: string; albedoUrl: string } | null; items?: readonly SceneItem[]; controls?: boolean; noCat?: boolean; overlay?: boolean;
   story?: { action: CatAction | null; at: number } | null; wand?: RoomWand | null;
   /** 貓頭頂的小對話框（SVG 圖示）；null＝不顯示 */
@@ -107,11 +122,27 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
   bubbleInset?: number;
   /** 這個值一變，鏡頭就原地轉向貓（null／不變不轉） */
   lookKey?: string | null;
+  light?: SceneLight["scan"] | null;
+  /** 尿漬（#354，lib/play/urine-stain.ts 的 stainsFor）；null／不給＝沒有（預設） */
+  stains?: readonly Stain[] | null;
+  shot?: CameraShot | null;
+  /** 老貓的樣子（#354 結局，lib/play/elder-cat.ts）：毛色調淡偏灰、縮小一點；null／不給＝原本的樣子 */
+  elder?: ElderCat | null;
+  /** 登記結局回顧的截圖（#354，lib/play/snapshot.ts）；只有虛擬飼養要 */
+  capture?: boolean;
+  /** 跟隨貓：鏡頭保持開啟時的距離與角度，平順跟著貓移動；劇情鏡頭（轉向貓等）進行中暫停，結束後接著跟 */
+  follow?: boolean;
+  /** 玩家自己拖曳、轉動或移動鏡頭時呼叫（跟隨自動關掉） */
+  onFollowOff?: () => void;
   overview?: OverviewSide | null;
   overviewCover?: number;
   place?: RoomPlaceEdit | null;
 }) {
   const host = useRef<HTMLDivElement>(null);
+  const elderRef = useRef(elder);
+  elderRef.current = elder;
+  const captureRef = useRef(capture);
+  captureRef.current = capture;
   const goTo = useRef<(step: number) => void>(() => {});
   const goView = useRef<(name: RoomViewName) => void>(() => {});
   const stick = useRef({ x: 0, y: 0 });  // 手機搖桿：x 右、y 前，長度 0～1
@@ -152,6 +183,10 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
   const hasBubble = useRef(false);
   const insetRef = useRef(bubbleInset);
   insetRef.current = bubbleInset;
+  const followRef = useRef(follow);
+  followRef.current = follow;
+  const followOffRef = useRef(onFollowOff);
+  followOffRef.current = onFollowOff;
   useEffect(() => { hasBubble.current = Boolean(bubble); }, [bubble]);
   const overviewSide = useRef<OverviewSide | null>(overview);
   overviewSide.current = overview;
@@ -167,6 +202,13 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
   useEffect(() => { if (place) place.api.current = apiRef.current; });
   // 目前房間裡每件用品的位置與包圍盒（換過清單就更新；移動鈕連按時先樂觀更新）
   const poses = useRef<(Footprint & { id: string; rot: number; widthM: number; depthM: number })[]>([]);
+  const shotTo = useRef<(s: CameraShot) => void>(() => {});
+  // 白天／夜晚光（#354）：tint＝Splat 與用品的 uTint、catTint＝貓的 uCatTint（所有材質共用同一個向量，換日夜只改值）
+  const tint = useRef(new THREE.Vector3(1, 1, 1));
+  const catTint = useRef(new THREE.Vector3(1, 1, 1));
+  const retint = useRef<() => void>(() => {});
+  const lit = useRef(false);
+  lit.current = Boolean(light);
   const onCatch = useRef<RoomWand["onCatch"] | null>(null);
   onCatch.current = wand?.onCatch ?? null;
 
@@ -176,6 +218,7 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
     let cancelled = false;
     let viewer: GS.Viewer | null = null;
     let frame = 0;
+    let unGrab: (() => void) | null = null;
     const stage = document.createElement("div");
     stage.className = "hq-roomviewer-stage";
     el.append(stage);
@@ -283,7 +326,12 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
       toyFrame.matrix.copy(itemFrame.matrix);
       toyFrame.updateMatrixWorld(true);
       threeScene.add(toyFrame);
-      itemStage.current = { scene, layout, viewer: active, frame: itemFrame, toyFrame };
+      const stainFrame = new THREE.Group();
+      stainFrame.matrixAutoUpdate = false;
+      stainFrame.matrix.copy(itemFrame.matrix);
+      stainFrame.updateMatrixWorld(true);
+      threeScene.add(stainFrame);
+      itemStage.current = { scene, layout, viewer: active, frame: itemFrame, toyFrame, stainFrame };
       setItemsReady(true);
       const controls = active.controls;
       controls.enableZoom = false;  // 滾輪改成前後走
@@ -357,6 +405,26 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
       });
       if (cancelled) return;
       world.current = roomWorld;
+      // 結局回顧的截圖：畫一幀後同一個工作裡讀畫布（不用全域 preserveDrawingBuffer）
+      // （型別檔沒寫 render、renderer，函式庫實際有：gaussian-splats-3d Viewer.render）
+      const drawable = active as unknown as { render(): void; renderer: THREE.WebGLRenderer };
+      if (captureRef.current) unGrab = registerSceneGrab(() => { drawable.render(); return drawable.renderer.domElement; });
+      // 劇情鏡頭：從鏡頭當下看貓的水平方向退 dist 公尺、抬高 height 公尺（keepInRoom 會把鏡頭留在房間裡）
+      if (roomWorld) shotTo.current = s => {
+        if (overviewOn) return;
+        const head = new THREE.Vector3();
+        if (!roomWorld.catHead(head)) return;
+        const upm = layout.units_per_meter;
+        const back = active.camera.position.clone().sub(head);
+        back.addScaledVector(vup, -back.dot(vup));
+        if (back.lengthSq() < 1e-9) back.copy(ve2);
+        back.normalize();
+        const { dist, height } = shotReach(s, active.camera.aspect || 1);
+        const pos = head.clone().addScaledVector(back, dist * upm).addScaledVector(vup, height * upm);
+        const to = { pos, look: pos.clone().addScaledVector(head.clone().sub(pos).normalize(), unit * 0.01) };
+        if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) jumpTo(to);
+        else tween = { from: { pos: active.camera.position.clone(), look: controls.target.clone() }, to, start: performance.now(), ms: s.ms };
+      };
       setWorldReady(Boolean(roomWorld));
       if (roomWorld) setActions({ cat: true, bed: roomWorld.hasBed, cup: roomWorld.hasCup });
       let downAt: [number, number] | null = null;
@@ -506,12 +574,56 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
         move(directions().fwd.multiplyScalar(-Math.sign(e.deltaY) * unit * 0.03));
       }, { passive: false, signal: abort.signal });
 
-      const head = new THREE.Vector3();
+      // Splat 整體調色：函式庫建（或重建）材質後補一次著色器（多一個 uniform 乘法，只編譯一次）；之後換日夜只改 tint 的值
+      let tinted: object | null = null;
+      const tintSplats = (v: GS.Viewer) => {
+        const m = v.getSplatMesh()?.material;
+        if (!m || m === tinted) return;
+        tinted = m;
+        m.uniforms[TINT_UNIFORM] = { value: tint.current };
+        m.fragmentShader = tintFragment(m.fragmentShader);
+        m.needsUpdate = true;
+        v.forceRenderNextFrame();
+      };
+      // 虛擬物件：用品、玩具乘 uTint（和房間一樣暗），貓（其他掛在場景上的模型）乘 uCatTint。
+      // 材質換成複本再改（lib/hq/rooms/tint-material.ts），不動模型快取；每個材質只換一次、只重編一次。
+      // 場景很小（貓＋幾件用品），每 20 幀掃一次新出現的物件就好；用品、玩具換了會立刻掃（retint）
+      let sweep = 0;
+      retint.current = () => { sweep = 0; };  // 用品、玩具換了：下一幀就掃，不等 20 幀
+      const tintObjects = () => {
+        if (--sweep > 0) return;
+        sweep = 20;
+        for (const child of threeScene.children) {
+          const cat = child !== itemFrame && child !== toyFrame;
+          tintObject(child, cat ? CAT_TINT_UNIFORM : TINT_UNIFORM, cat ? catTint.current : tint.current);
+        }
+      };
+      // 玩家自己動鏡頭：跟隨關掉
+      let dragFrom: [number, number] | null = null;
+      const userMoved = () => { if (followRef.current) followOffRef.current?.(); };
+      el.addEventListener("pointerdown", e => { if (e.isPrimary) dragFrom = [e.clientX, e.clientY]; }, { signal: abort.signal });
+      el.addEventListener("pointermove", e => {
+        if (dragFrom && Math.hypot(e.clientX - dragFrom[0], e.clientY - dragFrom[1]) > 6) { dragFrom = null; userMoved(); }
+      }, { signal: abort.signal });
+      el.addEventListener("pointerup", () => { dragFrom = null; }, { signal: abort.signal });
+      el.addEventListener("wheel", userMoved, { signal: abort.signal });
+      const head = new THREE.Vector3(), catAt = new THREE.Vector3();
+      let followOff: THREE.Vector3 | null = null;  // 開啟跟隨時鏡頭相對貓的位置（保持距離與角度）
       let last = performance.now();
+      let elderOn = false;
       const tick = (now: number) => {
         const dt = Math.min(0.1, (now - last) / 1000);
         last = now;
         roomWorld?.update(dt);
+        if (lit.current) { tintSplats(active); tintObjects(); }
+        // 老貓：毛色與體型（換回來時還原一次）
+        if (roomWorld && (elderRef.current || elderOn)) {
+          const el = elderRef.current;
+          applyElderTint(roomWorld.catRoot, el);
+          roomWorld.catRoot.scale.setScalar(el?.scale ?? 1);
+          elderOn = Boolean(el);
+        }
+        if (!followRef.current) followOff = null;
         const be = bubbleEl.current;
         if (be) {
           if (hasBubble.current && roomWorld?.catHead(head)) {
@@ -536,11 +648,23 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
           }
           active.forceRenderNextFrame();
           if (t === 1) tween = null;
+          followOff = null;  // 劇情鏡頭結束後，用新的角度接著跟
         } else if (overviewOn) {
           // 俯視時不能用 WASD 走動；畫面大小或卡片高度變了就重算 FOV 與畫面中心
           const key = `${el.clientWidth}x${el.clientHeight}|${coverRef.current.toFixed(3)}|${side}|${dragOff.toFixed(3)}`;
           if (key !== lensKey) { lensKey = key; setLens(lensTarget(), true); }
+        } else if (followRef.current && !wandOn.current && roomWorld?.catHead(catAt)) {
+          if (held.size || stick.current.x || stick.current.y) userMoved();
+          // 檢視器的 orbit 目標貼在鏡頭前 LOOK_AT 處，所以距離與角度要用「鏡頭相對貓」記
+          followOff ??= active.camera.position.clone().sub(catAt);
+          const k = 1 - Math.exp(-dt * 4);  // 平順跟上
+          const reach = controls.target.distanceTo(active.camera.position);
+          active.camera.position.lerp(catAt.clone().add(followOff), k);
+          const look = catAt.clone().sub(active.camera.position).normalize();
+          controls.target.lerp(active.camera.position.clone().addScaledVector(look, reach), Math.max(k, 0.3));
+          active.forceRenderNextFrame();
         } else if (held.size || stick.current.x || stick.current.y) {
+          followOff = null;
           const { up, fwd, right } = directions();
           const d = new THREE.Vector3();
           // 搖桿推越遠走越快；和鍵盤同時用時合起來不超過全速
@@ -583,6 +707,7 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
 
     return () => {
       cancelled = true;
+      unGrab?.();
       abort.abort();
       cancelAnimationFrame(frame);
       goTo.current = () => {};
@@ -627,29 +752,69 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
         g.add(o);
         st.frame.add(g);
       });
+      retint.current();
       st.viewer.forceRenderNextFrame();
     });
     return () => { stale = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [items, itemsReady, worldReady, story?.action, story?.at]);
 
+  // 尿漬（#354，lib/play/urine-stain.ts）：地板上的扁平貼片，不吃燈光（夜晚也看得到）；清單變了就重畫，null／空＝全部拿掉
+  useEffect(() => {
+    const st = itemStage.current;
+    if (!itemsReady || !st) return;
+    disposeStains(st.stainFrame);
+    if (stains?.length) {
+      const spots = scanStainSpots(st.scene, st.layout, stains);
+      const upm = st.layout.units_per_meter;
+      for (const sp of spots) {
+        const g = stainMesh(sp.id, sp.r);
+        g.scale.setScalar(upm);
+        g.position.set(sp.x * upm, 0.04 * upm, sp.z * upm);
+        st.stainFrame.add(g);
+      }
+    }
+    st.viewer.forceRenderNextFrame();
+    return () => { disposeStains(st.stainFrame); };
+  }, [stains, itemsReady]);
+
   // 俯視鏡頭開關（要排在「鏡頭轉向貓」前面：離開俯視時先回到原本的位置，再轉向貓）
   useEffect(() => { if (status === "ready") setOverview.current(overview); }, [overview, status]);
 
+  // 白天／夜晚：只改 uTint／uCatTint 的值，不重新編譯
+  const [tr, tg, tb] = light?.tint ?? [1, 1, 1];
+  const [cr, cg, cb] = light?.catTint ?? [1, 1, 1];
+  useEffect(() => {
+    tint.current.set(tr, tg, tb);
+    catTint.current.set(cr, cg, cb);
+    itemStage.current?.viewer.forceRenderNextFrame();
+  }, [tr, tg, tb, cr, cg, cb, itemsReady]);
+
   // 鏡頭轉向貓：貓頭頂的對話框才看得到
-  useEffect(() => { if (lookKey && worldReady) world.current?.lookAtCat(); }, [lookKey, worldReady]);
+  const shotKey = shot?.key ?? null;
+  useEffect(() => { if (lookKey && worldReady && !shotKey) world.current?.lookAtCat(); }, [lookKey, worldReady, shotKey]);
+
+  // 劇情鏡頭（#354）：等貓走到定位再取景
+  const shotRef = useRef(shot);
+  shotRef.current = shot;
+  useEffect(() => {
+    const s = shotRef.current;
+    if (!s || !worldReady) return;
+    const t = window.setTimeout(() => shotTo.current(s), s.delayMs);
+    return () => window.clearTimeout(t);
+  }, [shotKey, worldReady]);
 
   // 劇情動作：貓躲起來、走到用品旁、跳上家具（逗貓時由玩具帶著貓跑，不套用）
   useEffect(() => {
     const st = itemStage.current;
     if (!worldReady || !story || wand || !st) return;
     const placed = placeScanItems(st.scene, st.layout, items ?? []);
-    world.current?.command(sceneCatCommand(story.action, st.scene.objects, placed));
+    world.current?.command(sceneCatCommand(story.action, st.scene.objects, placed, items ?? []));
     // items 變了不用重走；只在劇情動作換了（story.at）或房間讀好、逗貓結束時執行
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [story?.at, story?.action, worldReady, itemsReady, wand]);
 
-  // 3D 逗貓：玩具跟著指標在地板上移動，貓追著撲
+  // 3D 逗貓：玩具跟著指標在地板或家具檯面上移動，貓追著撲（玩具上了床，貓跟著跳上去）
   const wandUrl = wand?.toy.url ?? null;
   useEffect(() => {
     const st = itemStage.current, w = world.current, el = host.current;
@@ -661,21 +826,22 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
     group.scale.setScalar(upm);
     group.visible = false;
     st.toyFrame.add(group);
-    itemObject({ ...toy, widthM: toy.widthM * TOY_SHOW, depthM: toy.depthM * TOY_SHOW, heightM: toy.heightM * TOY_SHOW }).then(o => { if (!stale) group.add(o); });
+    itemObject({ ...toy, widthM: toy.widthM * TOY_SHOW, depthM: toy.depthM * TOY_SHOW, heightM: toy.heightM * TOY_SHOW }).then(o => { if (!stale) { group.add(o); retint.current(); } });
     wandOn.current = true;
     if (orbit.current) orbit.current.enabled = false;
     w.command({ kind: "roam" });  // 躲起來的貓也要出來玩
     w.play(caught => onCatch.current?.(caught));
-    const [minX, minZ] = st.scene.room.min, [maxX, maxZ] = st.scene.room.max;
     const move = (e: PointerEvent) => {
       if (!(e.target instanceof Node) || !el.contains(e.target)) return;
       const r = el.getBoundingClientRect();
-      const at = w.floorAt(new THREE.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1));
+      // 玩具先打到家具檯面（床等）就放在檯面上，貓會跳上去追；否則在地板上（world.ts 的 toyAt）
+      const at = w.toyAt(new THREE.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1));
       if (!at) return;
-      const x = Math.min(maxX - 0.1, Math.max(minX + 0.1, at[0])), z = Math.min(maxZ - 0.1, Math.max(minZ + 0.1, at[1]));
-      group.position.set(x * upm, 0, z * upm);
+      // 房間範圍是沿牆方向（轉 yaw 後）的座標，要轉過去再夾（clampInRoom）；不然斜的房間會把玩具夾到別處
+      const [x, , z] = clampInRoom([at.x, 1, at.z], st.scene.room, 0.1);
+      group.position.set(x * upm, at.y * upm, z * upm);
       group.visible = true;
-      w.setToy([x, z]);
+      w.setToy([x, z], at.on);
       st.viewer.forceRenderNextFrame();
     };
     // 檢視器的內建控制可能攔下事件，所以在 window 的捕獲階段接，再確認指標在房間畫面上

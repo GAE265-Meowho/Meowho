@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { careGood } from "@/lib/play/care";
-import { LITTER_BOXES, makeClumps, newScoop, SCOOP_MAX, SCOOP_TOO_FAST, scoopDone, scoopLoad, scoopResult, scoopStep, type ScoopState } from "./scoop-rules";
+import { LITTER_BOXES, makeClumps, clumpCount, scoopOutcome, newScoop, SCOOP_MAX, SCOOP_TOO_FAST, scoopDone, scoopLoad, scoopResult, scoopStep, type ScoopState } from "./scoop-rules";
 
 /** 固定的亂數，測試才不會時好時壞 */
 const seeded = () => { let n = 0; return () => ((n = (n * 9301 + 49297) % 233280) / 233280); };
@@ -102,5 +102,19 @@ describe("3D 鏟屎規則", () => {
     const a = scoopStep(s, "open", { x: 9, z: 9, down: true, speed: 0.6, vx: -0.6, overBag: false }).state;
     const out = scoopStep(a, "open", { x: 9, z: 9, down: true, speed: SCOOP_TOO_FAST + 1, vx: SCOOP_TOO_FAST + 1, overBag: false });
     expect(out.event).toBe("tooFast");
+  });
+});
+
+describe("同一天再進來：剩幾坨就幾坨", () => {
+  it("newScoop 可以指定剩下的坨數；0 坨＝已經鏟乾淨", () => {
+    expect(newScoop("open", 70, Math.random, 2).clumps).toHaveLength(2);
+    expect(newScoop("open", 70, Math.random, 0).clumps).toHaveLength(0);
+    expect(clumpCount(70)).toBe(6);
+  });
+  it("scoopOutcome：全鏟、鏟一部分、沒鏟", () => {
+    expect(scoopOutcome({ bagged: 6, total: 6 })).toEqual({ kind: "good", left: 0 });
+    expect(scoopOutcome({ bagged: 4, total: 6 })).toEqual({ kind: "partial", left: 2 });
+    expect(scoopOutcome({ bagged: 0, total: 6 })).toEqual({ kind: "none", left: 6 });
+    expect(scoopOutcome(null)).toEqual({ kind: "none", left: null });
   });
 });

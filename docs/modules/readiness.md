@@ -291,6 +291,24 @@ Worker 選用的 `report.html` 與 `html-assets/` 位於既有 attempt 前綴。
 - 翻唇拖動直接控制局部照片透明度；桌面可按住空白鍵並移動滑鼠，放手立即停止計分，照片逐步回到閉嘴。Lv.3–4 在固定全臉上方顯示約 2.36 倍口腔特寫，對準近似牙齦邊緣；五階段使用手指、牙膏手指、指套與軟毛牙刷。耐心、掙扎、咬人、跑掉與成功依原規則分別呈現。動作減量設定下，鍵盤開合省略過渡。視覺取捨與補件規格見 `docs/play-tasks/3-刷牙影像互動審查.md`。
 - 實體手機、正式動畫／音效及帶背景房間的裝置效能留待驗收。
 
+## 虛擬飼養第二批：光線、診間與鏡頭、尿漬與結局（#354，渝茜 × Claude Code，2026-11-13，PR #422、#423 與尿漬結局那張，疊在 #421 上）
+都在沙盒的示範娃娃屋與「合成掃描房間」看過，沒在真實掃描房間與手機上看過。
+- **白天／夜晚光**（`feat/354-play-light`）：集中在 `src/lib/play/scene-light.ts`。只做白天、夜晚，**傍晚歸白天（待渝茜確認）**；在家的時光與節點外一律白天（同 `bgmFor`）。`lightFor(time)` 回傳 `house`（娃娃屋）與 `scan`（掃描房間）兩組數值，白天＝元件原本的燈光。
+  - 娃娃屋 `FloorplanViewer` 的 `light` prop：換背景、半球、環境、平行光；夜晚貓身上暖色小點光 `CatGlow`（有 light 就常駐，白天強度 0，不重編 shader）。
+  - 掃描房間 `RoomViewer` 的 `light` prop：Splat 材質片段著色器最後乘 `uTint`（`src/lib/hq/rooms/splat-tint.ts`），`tick` 每幀比對 `getSplatMesh().material`，函式庫重建材質時補一次、只編譯一次；日夜只改 uniform；白天 (1,1,1)＝原畫面。半球光同步調暗，貓身上一盞小點光。不加後製、陰影、額外渲染；不傳 light＝不改著色器（MeowHQ 不變）。
+  - 半夜跑酷（day30，姿勢 zoom）：娃娃屋貓速度 ×2.2（`poseSpeed`；母體沒有 run 動作，先用走路加速）。掃描房間仍是一般閒晃（衝刺要改 `src/lib/hq/rooms/world.ts`，未做）。
+  - 場景事件 `src/lib/play/scene-change.ts`：`onSceneChange(fn)`，事件 `{bg, time(day/night), nodeId, step}`。背景音樂已由 `usePlayBgm` 依 scene 切換，事件給換場音效或轉場用。
+  - 沙盒測掃描房間：`node scripts/make-test-splat.mjs` 產生 `public/_test-room/`（gitignore，不提交），`NEXT_PUBLIC_ROOM_DEMO_BASE=http://localhost:<埠>/_test-room` 跑 dev。headless 截圖要多試幾個 `--virtual-time-budget`（15000～24000）。
+- **診間**（`feat/354-play-vet-camera`）：`scene.bg＝vet`（節點 4、5、6）且不在在家的時光時，`PlayStage` 把 `VetRoom`（`src/components/play/VetRoom.tsx`，低多邊形 22 個零件、不開陰影）疊在房間上淡入淡出；房間不卸載。零件、色票（對應 v2 token）、`TABLE_TOP`、`showVet`、`vetLight` 在 `src/lib/play/vet-room.ts`。貓在診療台播 idle（姿勢 table），吃 `lightFor(time).house`；不在畫面時 `frameloop="never"`。
+- **劇情鏡頭**：`src/lib/play/camera-shot.ts` 的 `shotFor(nodeId, pose)`（第 1 天外出籠、第 30 天跑酷、結尾 frail／bed），`shotReach` 手機直式退遠。`RoomViewer`／`FloorplanViewer` 的 `shot` prop（預設 null，不影響擺用品俯視）；有劇情鏡頭時 `lookKey` 不原地轉向。
+- **3D 尿漬**（`feat/354-play-stain-ending`）：`src/lib/play/urine-stain.ts`（`stainsFor` 決定何時、幾灘：month8、room、姿勢 zoom、非母貓、需結紮；`scanStainSpots`／`houseStainSpots` 決定位置）。`RoomViewer`／`FloorplanViewer` 的 `stains` prop 預設 null。換到診間或後面的劇情就消失。`sfx_spray` 是 `ready:false`，只留接口；第 4 份噴尿動作做好後把出現時機對齊動作。
+- **結局畫面**：`FarewellScene.tsx`（`src/lib/play/farewell.ts` 的 `farewellPhase`：bed＝老貓在窗邊睡著，none＝淡出成星空與貓掌印），有 reduced-motion 退路；結局文字沒改。`bgm_farewell` 由 `bgmFor` 自動播。
+
+### 地雷（第二批）
+- 掃描房間疊半透明的虛擬物件要 `depthWrite:true` 並抬高幾公分，Splat 不寫深度，否則會被地板高斯蓋掉。
+- 診間顯示時底下的房間仍在繪製；手機效能不夠就讓 Viewer 在診間顯示時暫停繪製。
+- 外出籠鏡頭沿用當下方向，可能從貓背後拍；要正面拍需要外出籠位置資料。
+
 ## 領養任務進行中、續玩、放棄、重玩（#354，渝茜 × Claude Code，2026-11-13，分支 `feat/354-play-run-state`）
 照 `docs/play-tasks/7-進行中續玩放棄重玩.md` 實作；`/run` 併進 `/play`，規則只留一套。
 - **資料庫 `0035_meow_play_run_state.sql`（⚠ 執行前須子哲審、確認）**：`meow_task_runs.status` 多 `closed`（貓被領養／下架、或換貓而結束；不寫放棄標籤）；多 `env_report_id`（開始時定格安全報告）。新函式 `meow_start_play_run(貓, 房間)`（個人喵戶、自己建好的房間、這間房間有 ready 的報告；同一隻回傳原本那筆、別隻 `run_in_progress`；錯誤 `household_required`／`run_room_not_ready`／`run_room_pending`／`run_report_missing`／`run_report_pending`）、`meow_complete_play_run(紀錄, 報告)`（取代 `meow_save_play_report` 另外插一筆，舊函式留著不再呼叫）、`meow_switch_task_run(紀錄)`（換貓結束、中途看不到）；trigger `meow_cats_close_runs`：貓離開待領養時進行中的任務自動 `closed` 並通知領養人（type `task`）；`meow_thread_task_status` 多回 `completed_count`。測試：`node supabase/tests/run-pglite-0035.mjs`（19 項，單獨跑；整包 `run-pglite.mjs` 在本機會記憶體不足，非本次造成）。
@@ -315,3 +333,14 @@ Worker 選用的 `report.html` 與 `html-assets/` 位於既有 attempt 前綴。
 - `.sheet` 的 `--sheet-max` 被 `node.module.css` 拿來算長卡片高度；對話框高度改了 `bubbleInset` 要跟著調。一般台詞卡不要設 `overflow`（貓形按鈕的尾巴會超出，會多出捲軸）。
 - 改花費項目時要同步改 `CostCard` 的五個 key。
 - 審稿找到的程式問題（沒改）：`accidentSteps` 沒有風險清單時仍送獸醫並扣 2,500 元，與註解「在家觀察」不符；`report.ts` 的 `flags.scolded` 沒有地方設定；`lines.ts` 寫死「五年」與幼貓語氣。
+
+## 貓動作串接、跟著貓、第 30 天半夜跑酷（#354 第 5 份，渝茜 × Claude Code，2026-11-14，PR #432、#433）
+- **第 1 天外出籠（#432）**：台詞改「中途把外出籠交給你」；`src/lib/play/carrier-fit.ts` 把貓縮放到外出籠裡、貼最裡面、面向門口（掃描房間 `RoomCat.tuck`、娃娃屋 `CatActor`）。出籠時 `carrierExit` 讓整隻貓（含屁股、尾巴）站到籠門外、面向外面（#433 修：之前半身卡在籠裡）。
+- **動作串接（#433）**：`src/lib/hq/rooms/cat-moves.ts`（純函式）走路／跑步播放速度配合實際速度；跳躍依高低差挑 `jump_a`（上）、`jump_c`（下）、`jump_b`（平），起跳前先原地轉身面向落點。`jump-clips.ts` 拿掉跳躍動作的根骨頭位移、從動作讀離地／落地時間，讓程式的拋物線對上動作。
+- **跟著貓按鈕**：`PlayStage` 左下（手機左上），娃娃屋預設開、掃描房間預設關；玩家自己拖曳或移動鏡頭就關掉。
+- **第 30 天半夜跑酷**：故事的 `zoom` 姿勢對應新的 `CatAction` `zoom`；掃描房間給 `zoomies` 指令（`scene-cat.ts`），`world.ts` 讓貓衝刺（跑步動作）到 1.2～4 公尺外、35% 機率跳上有檯面的家具（落點用 `topSpot` 挑在檯面內）、在家具上待 0.6～1.4 秒就跳下來（`src/lib/play/zoomies.ts`）。移動方向＝頭的方向（RoomCat 沿 heading 前進）。娃娃屋照舊走到房間另一頭。
+- **陪牠玩**：選「睡前陪牠玩到累」先開逗貓小遊戲，玩完才出「你陪〈貓名〉玩了一陣子」。
+- **逗貓玩具上家具**：`world.toyAt` 用鏡頭射線先打檯面（`rayHit`）再打地板，玩具放在檯面高度；玩具在床上時貓跳上去（落點＝玩具位置），在檯面上衝過去撲；玩具回地板貓跳下來。玩具位置改用 `clampInRoom` 夾在房間內（原本把沿牆座標當地板座標夾，斜的房間玩具會被夾到別處）。
+- **驗證**：在渝茜的真實掃描房間（1280×800，Vercel 預覽）看過第 1 天貓在籠內、第 3 天出籠、第 30 天跑酷跳上床再跳下。夜晚光在 #422，這個分支沒有。
+- **斜放的床與連通地板**：`RoomCat.jumpOn` 的起跳點、落點與在床上走動的範圍都照 `surfaces[0]` 的中心、大小、轉角算；從家具跳下來、追地板上的玩具都只挑最大一塊連通地板（`RoomCat.mainRegion`），不會落進家具和用品之間走不出去的小角落。玩具若放在那種小角落，貓會走到最近的地方等。
+- **還沒做／待確認**：#422（夜晚光、跑酷音效）合併時 `world.ts`、`RoomViewer.tsx`、`PlayStage.tsx` 會衝突，兩邊保留；3D 畫面在背景分頁（桌面版視窗縮小）時會整個暫停，驗證時要讓瀏覽器在前景。
