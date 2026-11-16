@@ -23,10 +23,12 @@
 5. 操作路線在 `play-<小遊戲>.mjs`（滑鼠座標以 900×760 視窗為準）；遊戲版面改了座標要跟著調。錄完用 `ffmpeg -i x.mp4 -vf fps=1,tile=4x2 sheet.png` 看一下有沒有照正確玩法做完。
 
 ## 首頁版（只有遊戲畫面，2026-11-16 子哲）
-首頁「先跟牠的虛擬分身同居 7 天」區塊（`src/components/home/trial/Trial.tsx`）用三顆按鈕切換餵飯、鏟屎、摸摸的示範影片，訪客在首頁不能玩。影片放 `public/home/trial/<小遊戲>.mp4`：**只有 3D 遊戲畫面**（不含標題、說明、計量條），960×720、4:3，三段合計約 1 MB。開場示範（上表）不變。
+首頁「先跟牠的虛擬分身在你家同居」區塊（`src/components/home/trial/Trial.tsx`）用三顆按鈕切換餵飯、鏟屎、摸摸的示範影片，訪客在首頁不能玩。影片放 `public/home/trial/<小遊戲>.mp4`：**只有 3D 遊戲畫面＋滑鼠**（不含標題、說明、計量條、摸貓的視角按鈕），1280×960、4:3，三段合計約 3.2 MB。開場示範（上表）不變。
+
+為什麼這樣錄：小遊戲的 3D 畫布最多只畫 1.5 倍解析度（`<Canvas dpr={[1, 1.5]}>`），截圖再放大一定會糊。`rec-home.mjs` 錄影時把彈窗放大到 1900px、畫布約 1850×1333（長寬比照原本，鏡頭構圖不變），讓遊戲直接畫高解析度；每格把畫布疊到場景底色上（畫布透明處直接錄會變黑）、畫上滑鼠，再用 `canvas.captureStream` 錄成 webm。`play-*.mjs` 寫死的座標會自動換算到放大後的畫布。
 
 重錄：
 1. 同上第 1、2 步（另外把 `rec-home.mjs`、`play-feed.mjs`、`play-scoop.mjs`、`play-pet.mjs` 複製到暫存資料夾）。
-2. `BASE=http://localhost:3000 CHROME=<Chrome 路徑> OUT=/tmp/play-guide-rec node rec-home.mjs feed`（scoop、pet 同理）。用截圖迴圈以 2 倍解析度截畫布（puppeteer 的 screencast 只給 CSS 像素，所以不用它）；畫布位置每格重抓，因為選完飼料後上方會多一行字、畫布會往上移。
-3. 回 repo 根目錄：`OUT=/tmp/play-guide-rec bash scripts/play-guide-rec/encode-home.sh`。
+2. `BASE=http://localhost:3000 CHROME=<Chrome 路徑> OUT=/tmp/play-guide-rec node rec-home.mjs feed`（scoop、pet 同理）。
+3. 回 repo 根目錄：`OUT=/tmp/play-guide-rec bash scripts/play-guide-rec/encode-home.sh`（裁切用畫布比例，畫布大小改了不用重算）。
 4. 本機 `.env.local` 若有 `CAT_STUDIO_ROOT` 指向不存在的資料夾，摸貓與首頁 3D 貓會載不到母體（`/api/hq/cat-models/base` 404）；錄影時把它清空再 `npm run dev`。
