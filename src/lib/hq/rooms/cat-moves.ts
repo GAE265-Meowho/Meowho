@@ -96,3 +96,7 @@ export function napFor(r1: number, r2: number, elder: boolean): number | null {
   if (r1 >= n.chance) return null;
   return n.seconds[0] + r2 * (n.seconds[1] - n.seconds[0]);
 }
+
+/** 結尾一直躺著睡（渝茜 2026-11-16）：有設定休息動作、模型也有那個動作才用；否則 null＝照常閒晃 */
+export const restingClip = (rest: string | null, clips: readonly string[]): string | null =>
+  rest && clips.includes(rest) ? rest : null;

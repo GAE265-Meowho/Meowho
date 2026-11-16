@@ -1,6 +1,6 @@
 // 貓的動作串接：起跳前轉身、跳躍動作選擇與時間點、走路配速。純函式。
 import { describe, expect, it } from "vitest";
-import { NAP, angleDiff, clipRate, napFor, jumpClipFor, jumpHeading, jumpKind, jumpReady, jumpTiming, moveClip, turnStep } from "./cat-moves";
+import { NAP, angleDiff, restingClip, clipRate, napFor, jumpClipFor, jumpHeading, jumpKind, jumpReady, jumpTiming, moveClip, turnStep } from "./cat-moves";
 
 describe("起跳前轉身", () => {
   it("角度差取最短的一邊", () => {
@@ -84,5 +84,15 @@ describe("睡覺（渝茜 2026-11-16：帶入睡覺動作，15 歲之後要常�
     const r = (NAP.young.chance + NAP.elder.chance) / 2;  // 年輕貓不睡、老貓會睡的機率值
     expect(napFor(r, 0, false)).toBeNull();
     expect(napFor(r, 0, true)).toBe(NAP.elder.seconds[0]);
+  });
+});
+
+describe("結尾一直躺著睡（渝茜 2026-11-16：結尾貓快走了，要看牠躺著）", () => {
+  it("有設定休息動作、模型也有：一直播那個動作", () => {
+    expect(restingClip("sleep", ["idle", "walk", "sleep"])).toBe("sleep");
+  });
+  it("沒設定、或模型沒有那個動作：照常閒晃", () => {
+    expect(restingClip(null, ["idle", "sleep"])).toBeNull();
+    expect(restingClip("sleep", ["idle", "walk"])).toBeNull();
   });
 });

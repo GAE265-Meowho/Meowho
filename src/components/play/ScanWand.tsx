@@ -12,13 +12,15 @@ export function ScanWand({ catName, catches, onDone }: { catName: string; catche
   const done = useRef(false);
   const finish = () => { if (!done.current) { done.current = true; onDone(catchResult(latest.current)); } };
   const fun = funFromCatches(catches);
+  // 渝茜 2026-11-16：文字框太大，至少縮小一半讓房間畫面大一點 → 改成一條：短說明、開心度、抓到幾次、按鈕排一列（完整玩法在示範裡）
   return (
-    <section className={s.card} aria-label="逗貓">
-      <h2>逗{catName}</h2>
-      <p className={s.lead}>在上面的房間裡移動滑鼠（手機用手指滑），讓玩具在地板上跑，也可以跑到床上，{catName}會衝過去追，真的碰到才算抓到。玩夠了再按「先到這裡」。</p>
-      <div className={s.meter} role="progressbar" aria-label="開心度" aria-valuenow={fun} aria-valuemin={0} aria-valuemax={100}><span style={{ width: `${fun}%` }} /></div>
-      <p className={s.lead}>抓到 {catches} 次</p>
-      <div className={s.actions}><CatButton onClick={finish}>先到這裡</CatButton></div>
+    <section className={`${s.card} ${s.wandBar}`} aria-label="逗貓">
+      <p className={s.wandTip}><b>逗{catName}</b>　移動滑鼠（手機用手指滑）帶玩具跑，碰到才算抓到</p>
+      <div className={s.wandRow}>
+        <div className={s.meter} role="progressbar" aria-label="開心度" aria-valuenow={fun} aria-valuemin={0} aria-valuemax={100}><span style={{ width: `${fun}%` }} /></div>
+        <span className={s.wandCount}>抓到 {catches} 次</span>
+        <CatButton size="sm" onClick={finish}>先到這裡</CatButton>
+      </div>
     </section>
   );
 }

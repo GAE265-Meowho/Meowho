@@ -38,6 +38,13 @@
 .card h3 { margin: 0; font-size: var(--play-fs-body); color: var(--ink); }
 .lead { margin: 0; color: var(--ink-soft); font-size: var(--play-fs-sub); line-height: var(--play-lh); }
 .actions { display: flex; flex-wrap: wrap; gap: 14px 20px; align-items: center; padding-top: 10px; }
+/* 逗貓：一條就好，房間畫面才大（渝茜 2026-11-16：原本的卡片太大） */
+.card.wandBar { padding: 8px 14px; gap: 6px; border-radius: 20px; }
+.wandTip { margin: 0; color: var(--ink-soft); font-size: var(--play-fs-sub); line-height: 1.4; }
+.wandTip b { color: var(--ink); }
+.wandRow { display: flex; align-items: center; gap: 12px; }
+.wandRow > :first-child { flex: 1; min-width: 60px; }
+.wandCount { color: var(--ink); font-weight: 700; white-space: nowrap; font-size: var(--play-fs-sub); }
 
 .kicker {
   align-self: flex-start; display: inline-flex; align-items: center; gap: 6px;

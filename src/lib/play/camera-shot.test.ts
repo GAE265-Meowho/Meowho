@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { shotFor, shotReach } from "./camera-shot";
+import { shotAimDrop, shotFor, shotReach } from "./camera-shot";
 
 describe("劇情鏡頭 shotFor", () => {
   it("第 1 天貓躲進外出籠：等貓走到籠子邊，再取景（比跑酷近）", () => {
@@ -47,5 +47,20 @@ describe("劇情鏡頭 shotFor", () => {
   it("半夜跑酷改成俯瞰整個房間，其他時刻不是", () => {
     expect(shotFor("day30", "zoom")!.overview).toBe(true);
     expect(shotFor("day1", "carrier")!.overview).toBeFalsy();
+  });
+});
+
+describe("結尾拉近看牠躺著（渝茜 2026-11-16）", () => {
+  it("結尾的鏡頭比較近：躺著的貓看得清楚", () => {
+    expect(shotFor("farewell", "frail")!.dist).toBeLessThanOrEqual(1.1);
+    expect(shotFor("farewell", "bed")!.dist).toBeLessThan(shotFor("farewell", "frail")!.dist);
+  });
+  it("瞄準點往下壓：貓落在對話卡上面的空白處，不被卡片蓋住", () => {
+    // 卡片蓋住下面 40%：沒蓋住的範圍是 NDC -0.2～1，中間在 0.4
+    const d = 1.5, fov = 60;
+    const drop = shotAimDrop(d, fov, 0.4);
+    const ndcY = drop / (d * Math.tan((fov * Math.PI) / 360));
+    expect(ndcY).toBeCloseTo(0.4, 5);
+    expect(shotAimDrop(d, fov, 0)).toBe(0);
   });
 });

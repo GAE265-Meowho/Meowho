@@ -392,3 +392,4 @@ Worker 選用的 `report.html` 與 `html-assets/` 位於既有 attempt 前綴。
 - 老貓走路 × 0.15（`ELDER_CAT.walk`）：掃描房間經 `world.setCatSpeed` → `RoomCat.speedK`，娃娃屋乘在 speed 上。掃描房間沒有套 `node.speed`。
 - 診間一律亮燈（`playLightTime` 的 `bg`）。摸貓：滑鼠只摸，轉視角用右邊方向鍵（`petOrbit`），游標是虛擬手。
 - 睡覺：閒晃停下來有機會原地睡（`NAP`），老貓（`ELDER_CAT.sleepy`）常睡、睡得久；跑酷、追玩具不睡。
+- 出外出籠站不住（牆裡、被佔住）就移到最近能走的地板；結尾老貓 `rest` 一直躺著、劇情鏡頭先夾進房間再瞄準（`shotAimDrop`，貓在卡片上方）；逗貓框改成一條。
