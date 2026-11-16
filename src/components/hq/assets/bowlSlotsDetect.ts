@@ -70,3 +70,20 @@ export function detectBowlSlots(source: THREE.Object3D, scale: [number, number, 
   const size = box.getSize(new THREE.Vector3());
   return bowlSlotsFromSamples(samples, [center.x * scale[0], center.z * scale[2]], [size.x * scale[0], size.z * scale[2]]);
 }
+
+/** 餐碗組裡有沒有飼料、水（虛擬飼養：一開始是空碗，餵完、換完水才出現） */
+export interface BowlFill { food: boolean; water: boolean }
+
+/**
+ * 依材質名稱開關餐碗組裡的飼料和水（模型單位，不影響碗的大小；detectBowlSlots 用射線取色，看不見的網格照樣打得到）。
+ * shortcut: 認的是目前餐碗組模型（test_bowls）的材質名稱 brown（飼料）、water（水）；後台換成別的碗模型、材質名不同就不會變，到時再改成看顏色
+ */
+export function fillBowl(model: THREE.Object3D, fill: BowlFill) {
+  model.traverse(o => {
+    const mat = (o as THREE.Mesh).material as THREE.Material | THREE.Material[] | undefined;
+    const name = (Array.isArray(mat) ? mat[0] : mat)?.name;
+    if (name === "brown") o.visible = fill.food;
+    if (name === "water") o.visible = fill.water;
+  });
+}
+

@@ -17,6 +17,7 @@ import { getBrowserSupabase } from "@/lib/supabase/client";
 import { placeScanItems, type SceneItem } from "@/lib/play/scene-items";
 import { floorHit, footprintSize, screenStep, tryPlace, type Footprint, type ItemPose, type MoveDir } from "@/lib/play/scan-place";
 import { sceneCatCommand } from "@/lib/play/scene-cat";
+import { fillBowl, type BowlFill } from "./bowlSlotsDetect";
 import type { CatAction } from "@/lib/play/stage";
 import type { SceneLight } from "@/lib/play/scene-light";
 import { scanStainSpots, type Stain } from "@/lib/play/urine-stain";
@@ -114,8 +115,10 @@ export interface RoomPlaceApi {
   rotate: (id: string) => boolean;
 }
 
-export default function RoomViewer({ base, cat, items, controls = true, story, wand, bubble, bubbleInset = 0, lookKey, follow = false, onFollowOff, noCat = false, overlay = false, overview = null, overviewCover = 0, place = null, light = null, shot = null, stains = null, elder = null, capture = false }: {
+export default function RoomViewer({ base, cat, items, controls = true, story, wand, bubble, bubbleInset = 0, lookKey, follow = false, onFollowOff, noCat = false, overlay = false, overview = null, overviewCover = 0, place = null, light = null, shot = null, stains = null, elder = null, capture = false, bowlFill }: {
   base: string; cat?: { baseUrl: string; albedoUrl: string; /** 站著時頭頂離地幾公尺（幼貓小一點）；沒給是成貓 */ heightM?: number } | null; items?: readonly SceneItem[]; controls?: boolean; noCat?: boolean; overlay?: boolean;
+  /** 虛擬飼養：餐碗組裡有沒有飼料、水；不給＝照模型原樣 */
+  bowlFill?: BowlFill;
   story?: { action: CatAction | null; at: number } | null; wand?: RoomWand | null;
   /** 貓頭頂的小對話框（SVG 圖示）；null＝不顯示 */
   bubble?: React.ReactNode;
@@ -180,6 +183,8 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
   const [spot, setSpot] = useState({ index: 0, total: 0 });
   const [actions, setActions] = useState({ cat: false, bed: false, cup: false });
   const itemStage = useRef<ItemStage | null>(null);
+  /** 房間裡那個餐碗組（換飼料、換水時開關裡面的東西） */
+  const bowlObj = useRef<THREE.Object3D | null>(null);
   const [itemsReady, setItemsReady] = useState(false);
   const [worldReady, setWorldReady] = useState(false);
   const orbit = useRef<{ enabled: boolean } | null>(null);
@@ -827,6 +832,9 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
         g.add(o);
         st.frame.add(g);
       });
+      const bi = list.findIndex(it => it.id === "bowl");
+      bowlObj.current = bi >= 0 ? objs[bi] : null;
+      if (bowlObj.current && bowlFillRef.current) fillBowl(bowlObj.current, bowlFillRef.current);
       retint.current();
       st.viewer.forceRenderNextFrame();
     });
@@ -834,6 +842,14 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [items, itemsReady, worldReady, story?.action, story?.at]);
 
+  // 餐碗組裡的飼料、水：讀好用品時套一次（上面），之後變了再套
+  const bowlFillRef = useRef(bowlFill);
+  bowlFillRef.current = bowlFill;
+  useEffect(() => {
+    if (!bowlFill || !bowlObj.current) return;
+    fillBowl(bowlObj.current, bowlFill);
+    itemStage.current?.viewer.forceRenderNextFrame();
+  }, [bowlFill]);
   // 尿漬（#354，lib/play/urine-stain.ts）：地板上的扁平貼片，不吃燈光（夜晚也看得到）；清單變了就重畫，null／空＝全部拿掉
   useEffect(() => {
     const st = itemStage.current;

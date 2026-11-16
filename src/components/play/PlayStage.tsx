@@ -14,6 +14,7 @@ import { DEMO_DOLLHOUSE } from "@/lib/play/room";
 import type { SceneItem } from "@/lib/play/scene-items";
 import type { RoomPlaceEdit, RoomWand } from "@/components/hq/assets/RoomViewer";
 import type { CatAction } from "@/lib/play/stage";
+import type { BowlFill } from "@/components/hq/assets/bowlSlotsDetect";
 import type { SceneLight } from "@/lib/play/scene-light";
 import type { CameraShot } from "@/lib/play/camera-shot";
 import type { Stain } from "@/lib/play/urine-stain";
@@ -86,7 +87,7 @@ function useBottomCover(stage: React.RefObject<HTMLElement | null>, on: boolean)
   return cover;
 }
 
-export function PlayStage({ kind, scanBase, placeView = false, place = null, look, tag, bubble, bubbleInset, lookKey, placed, scanItems, story, wand, goal, clip, speed, light, vet = false, vetTalk = null, shot = null, stains = null, elder = null, onDrop, onItemError, children }: {
+export function PlayStage({ kind, scanBase, placeView = false, place = null, look, tag, bubble, bubbleInset, lookKey, placed, scanItems, story, wand, goal, clip, speed, light, vet = false, vetTalk = null, shot = null, stains = null, elder = null, onDrop, onItemError, bowlFill, children }: {
   kind: "scan" | "dollhouse";
   scanBase: string | null;
   /** 擺用品：掃描房間改成從某一側俯視整個房間，畫面上多四顆切換視角的鈕（娃娃屋不變） */
@@ -127,6 +128,8 @@ export function PlayStage({ kind, scanBase, placeView = false, place = null, loo
   elder?: ElderCat | null;
   onDrop?: (itemId: string, at: PlaceAt) => void;
   onItemError?: (key: string) => void;
+  /** 餐碗組裡有沒有飼料、水 */
+  bowlFill?: BowlFill;
   children?: ReactNode;
 }) {
   // 第 1 天（劇情叫貓躲外出籠）：娃娃屋的貓整隻縮在擺好的外出籠裡
@@ -172,13 +175,13 @@ export function PlayStage({ kind, scanBase, placeView = false, place = null, loo
     <section ref={stageEl} className={overview ? `${s.stage} ${p.stage}` : s.stage} aria-label="3D 房間">
       {tag && <span className={s.stageTag}>{tag}</span>}
       {kind === "scan" && scanBase
-        ? <RoomViewer base={scanBase} cat={roomCat} items={scanItems} controls={false} story={story} wand={wand} bubble={bubble ? <CareIcon id={bubble} /> : null} bubbleInset={bubbleInset} lookKey={lookKey} follow={follow} onFollowOff={followOff} overview={overview ? side : null} overviewCover={cover} place={overview ? place : null} light={light?.scan ?? null} shot={shot} stains={stains} elder={elder} capture />
+        ? <RoomViewer base={scanBase} cat={roomCat} items={scanItems} controls={false} story={story} wand={wand} bubble={bubble ? <CareIcon id={bubble} /> : null} bubbleInset={bubbleInset} lookKey={lookKey} follow={follow} onFollowOff={followOff} overview={overview ? side : null} overviewCover={cover} place={overview ? place : null} light={light?.scan ?? null} shot={shot} stains={stains} elder={elder} capture bowlFill={bowlFill} />
         : (
           <FloorplanViewer rooms={ROOMS} selected={ROOMS[0].id} onPick={noop}
             cat={look} placedItems={placed} interactMode="point"
             catGoal={goal} catClip={clip} catSpeed={speed} catTuck={tuck} catFollow={follow} onCatFollowOff={followOff}
             light={light?.house ?? null} shot={shot} stains={stains} elder={elder} capture
-            onFloorDrop={onDrop} onItemError={onItemError} />
+            onFloorDrop={onDrop} onItemError={onItemError} bowlFill={bowlFill} />
         )}
       {vetUsed && (
         <div className={v.vet} data-on={vet ? "true" : "false"} aria-label={vet ? "動物醫院診間" : undefined} role={vet ? "img" : undefined}>
