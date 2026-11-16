@@ -35,6 +35,8 @@ export type RefillFrame = {
   leftReach: number;
   /** 水龍頭開的程度 0～1 */
   open: number;
+  /** 洗碗（遊戲才有）：sponge 是拿菜瓜布的左手伸進來的程度、x／z 是菜瓜布在碗裡的位置（公尺）、dirt 水垢、foam 泡泡（都是 0～1） */
+  wash?: { sponge: number; x: number; z: number; dirt: number; foam: number };
 };
 
 const clamp01 = (x: number) => Math.min(1, Math.max(0, x));

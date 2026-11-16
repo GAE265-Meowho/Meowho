@@ -1,0 +1,11 @@
+### 17:10｜渝茜（發起）× Claude Code
+- Issue：#354 虛擬飼養第 5 份任務表
+- 分支／PR：feat/354-play-place-view｜#417
+- 模組：readiness
+- 做了什麼：
+  - 找到建置失敗原因：Vercel Build Logs 是 `next/font` 讀 Google Fonts 出錯（`Cannot read properties of null (reading '1')`），不是這張 PR 的程式；把 main 合進來後重新建置成功
+  - 合 main 解衝突：`save.ts` 同時保留開場設定階段存檔（#416）與自由擺放 `scanPose`；開場設定階段的存檔也帶 `scanPose`；`PlayGame.tsx` 兩邊保留（五年後危險彈窗、重玩時清 `scanPose`）
+  - 渝茜：用品只用滑鼠拖曳，拿掉卡片裡的物件方向鍵（`PlaceMovePad.tsx` 刪除，鍵盤方向鍵移動、R 旋轉一起拿掉），只留「〈用品〉轉向」鈕；右上角切換視角的箭頭保留
+  - 卡片的說明縮成一行、用品鈕和轉向鈕同一列，1280×800 不用捲動
+- 驗證：在渝茜的真實掃描房間（Vercel 預覽）點地板放外出籠成功、俯視四側箭頭在右上；`typecheck`、相關測試通過
+- 未完成／下一步：等子哲審
