@@ -32,6 +32,10 @@ const PLAY_FAR_M = 0.4;
 const LAND_INSET_M = 0.3;   // 落點離家具邊緣多遠
 /** 走到碗邊後吃飯、喝水的動作播幾秒（同娃娃屋 story.ts） */
 const CLIP_SECONDS = { eat: 8, drink: 6 };
+/** 身體半寬、鼻尖到身體中心的距離，各是站高的幾倍（母體站高 0.508 m 時量到 0.1、0.245 m） */
+const BODY_HALF_WIDTH = 0.2, BODY_NOSE = 0.48;
+const HUG_COST = 6;         // 找路時，貼著家具、用品的格子算幾倍遠
+const ALIGNED_RAD = 0.08;   // 和要走的方向差這麼少就算對準
 const MODEL_YAW = 0;        // 模型本身面向 +Z；若走路方向不對再調這個
 
 /** 載入母體與貼圖（貼圖載入失敗就用母體預設花色） */
@@ -54,6 +58,7 @@ export class RoomCat {
     this.topM = layout.top_cm ? layout.top_cm.map((c) => c / 100) : null;  // 每格東西頂端高度
     this.cells = mainRegion(this.walkable, this.L.nx);  // 只在最大那塊相連地板出生、閒晃
     this.main = null;  // 最大一塊連通的地板，用到時再算（mainRegion）
+    this.clear = null; // 四周一圈都能走的格子，用到時再算（clearCells）
 
     // 本地座標系：x 沿 e1、y 沿上方向、z 沿 e2，原點在地板網格角落
     const [e1, up, e2, o] = ["e1", "up", "e2", "origin"].map((k) => new THREE.Vector3(...layout[k]));
@@ -230,6 +235,23 @@ export class RoomCat {
   }
   randomCell() { return this.cells[Math.floor(Math.random() * this.cells.length)]; }
 
+  /** 身體半寬（模型單位）：站高的 BODY_HALF_WIDTH 倍，幼貓比較窄 */
+  get halfWidth() { return BODY_HALF_WIDTH * (this.heightM ?? CAT_HEIGHT_M) * this.upm; }
+
+  /** 貓站在 (x, z)、面向 heading 時，身體中心和左右兩側都在能走的格子裡（只看中心會讓身體擦進旁邊的家具、用品） */
+  bodyFree(x, z, heading) {
+    const w = this.halfWidth, sx = Math.cos(heading) * w, sz = -Math.sin(heading) * w;
+    return this.isFree(...this.cellOf(x, z)) && this.isFree(...this.cellOf(x + sx, z + sz)) && this.isFree(...this.cellOf(x - sx, z - sz));
+  }
+
+  /** 格子 k 朝任何方向都放得下鼻尖：周圍 reach 格內都能走。閒晃的終點挑這種，停下來才不會把臉埋進家具 */
+  roomy(k) {
+    const { nx } = this.L, i = k % nx, j = (k - i) / nx;
+    const reach = Math.ceil((BODY_NOSE * (this.heightM ?? CAT_HEIGHT_M) * this.upm) / this.L.cell);
+    for (let dj = -reach; dj <= reach; dj++) for (let di = -reach; di <= reach; di++) if (!this.isFree(i + di, j + dj)) return false;
+    return true;
+  }
+
   nearestFree(x, z, maxR = 6, mainOnly = false) {
     const [ci, cj] = this.cellOf(x, z);
     const main = mainOnly ? this.mainRegion() : null;
@@ -291,19 +313,66 @@ export class RoomCat {
     this.arrived();
   }
 
-  // BFS（8 方向、不切牆角）找路，再用視線檢查把鋸齒路徑拉直
+  /** 四周一圈都能走的格子（1＝是）。貓在這種格子轉彎，肩膀和屁股才不會掃進旁邊的家具、用品 */
+  clearCells() {
+    if (this.clear) return this.clear;
+    const { nx, ny } = this.L;
+    this.clear = new Uint8Array(nx * ny);
+    for (let j = 0; j < ny; j++) for (let i = 0; i < nx; i++) {
+      let ok = true;
+      for (let dj = -1; dj <= 1 && ok; dj++) for (let di = -1; di <= 1; di++) if (!this.isFree(i + di, j + dj)) { ok = false; break; }
+      this.clear[this.idx(i, j)] = ok ? 1 : 0;
+    }
+    this.anyClear = this.cells.some((k) => this.clear[k]);  // 貓活動的那塊地板上有沒有這種格子
+    return this.clear;
+  }
+
+  // 找路（8 方向、不切牆角），再用視線檢查把鋸齒路徑拉直。
+  // 貼著家具、用品的格子算比較遠（HUG_COST 倍）：有寬的路就走中間，轉彎時肩膀和屁股不會掃進去；只有窄路才貼著走
   findPath(from, to) {
-    const { nx } = this.L;
+    const { nx } = this.L, clear = this.clearCells();
     const prev = new Int32Array(this.walkable.length).fill(-1);
+    const cost = new Float64Array(this.walkable.length).fill(Infinity);
+    cost[from] = 0;
     prev[from] = from;
-    const q = [from];
-    for (let h = 0; h < q.length && prev[to] < 0; h++) {
-      const k = q[h], i = k % nx, j = (k - i) / nx;
+    // 小型二元堆積（[距離, 格子]）
+    const heap = [[0, from]];
+    const pop = () => {
+      const top = heap[0], last = heap.pop();
+      if (heap.length) {
+        heap[0] = last;
+        for (let n = 0; ;) {
+          const l = 2 * n + 1, r = l + 1;
+          let m = n;
+          if (l < heap.length && heap[l][0] < heap[m][0]) m = l;
+          if (r < heap.length && heap[r][0] < heap[m][0]) m = r;
+          if (m === n) break;
+          [heap[n], heap[m]] = [heap[m], heap[n]];
+          n = m;
+        }
+      }
+      return top;
+    };
+    const push = (item) => {
+      heap.push(item);
+      for (let n = heap.length - 1; n > 0;) {
+        const up = (n - 1) >> 1;
+        if (heap[up][0] <= heap[n][0]) break;
+        [heap[n], heap[up]] = [heap[up], heap[n]];
+        n = up;
+      }
+    };
+    while (heap.length) {
+      const [d, k] = pop();
+      if (k === to) break;
+      if (d > cost[k]) continue;
+      const i = k % nx, j = (k - i) / nx;
       for (const [di, dj] of [[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]]) {
         const a = i + di, b = j + dj;
         if (!this.isFree(a, b) || (di && dj && !(this.isFree(i + di, j) && this.isFree(i, j + dj)))) continue;
         const n = this.idx(a, b);
-        if (prev[n] < 0) { prev[n] = k; q.push(n); }
+        const nd = d + (di && dj ? Math.SQRT2 : 1) * (clear[n] || n === to ? 1 : HUG_COST);
+        if (nd < cost[n]) { cost[n] = nd; prev[n] = k; push([nd, n]); }
       }
     }
     if (prev[to] < 0) return null;
@@ -320,9 +389,11 @@ export class RoomCat {
 
   lineOfSight(a, b) {
     const steps = Math.ceil(a.distanceTo(b) / (this.L.cell / 3));
+    // 拉直路徑時身體兩側也要過得去，不然抄近路會擦過家具、用品的角
+    const heading = Math.atan2(b.x - a.x, b.y - a.y);
     for (let s = 1; s < steps; s++) {
       const p = a.clone().lerp(b, s / steps);
-      if (!this.isFree(...this.cellOf(p.x, p.y))) return false;
+      if (!this.bodyFree(p.x, p.y, heading)) return false;
     }
     return true;
   }
@@ -387,6 +458,7 @@ export class RoomCat {
     }
     this.cells = mainRegion(this.walkable, this.L.nx);  // 只在最大那塊相連地板出生、閒晃
     this.main = null;  // 最大一塊連通的地板，用到時再算（mainRegion）
+    this.clear = null; // 四周一圈都能走的格子，用到時再算（clearCells）
   }
 
   // 虛擬用品（外出籠、碗、貓砂盆）佔的格子（j * nx + i）設成不能走；換清單時先還原成房間原本的樣子
@@ -396,6 +468,7 @@ export class RoomCat {
     for (const k of indices) this.walkable[k] = 0;
     this.cells = mainRegion(this.walkable, this.L.nx);  // 只在最大那塊相連地板出生、閒晃
     this.main = null;  // 最大一塊連通的地板，用到時再算（mainRegion）
+    this.clear = null; // 四周一圈都能走的格子，用到時再算（clearCells）
   }
 
   // 可走的格子裡，依 dist（到物品的距離）挑 lo~hi 之間的，鏡頭看得到的優先，其次離貓近
@@ -740,7 +813,10 @@ export class RoomCat {
         for (let tries = 0; tries < 20; tries++) {
           const k = this.randomCell();
           const d = this.centerOf(k).distanceTo(new THREE.Vector2(this.cat.position.x, this.cat.position.z)) / this.upm;
-          if (d > near && d < far && this.goTo(k)) return;
+          // 先挑四周空曠的格子（停下來鼻尖不會頂進家具），再來是至少離家具一格的；整間都沒有這種格子才不挑
+          const clear = this.clearCells();
+          const spacious = tries < 10 ? this.roomy(k) : clear[k] || !this.anyClear;
+          if (d > near && d < far && spacious && this.goTo(k)) return;
         }
         this.timer = 1;
       }
@@ -768,8 +844,12 @@ export class RoomCat {
     const base = this.sprint ? SPRINT_SPEED_M : WALK_SPEED_M;
     const speed = base * this.upm * Math.max(0.15, Math.cos(Math.min(Math.abs(diff), Math.PI / 2)));
     const step = Math.min(dist, speed * dt);
-    this.cat.position.x += Math.sin(this.heading) * step;
-    this.cat.position.z += Math.cos(this.heading) * step;
+    const p = this.cat.position;
+    const nx = p.x + Math.sin(this.heading) * step, nz = p.z + Math.cos(this.heading) * step;
+    // 一邊轉一邊走會偏離規劃好的直線，身體擦進旁邊的家具、用品（穿模）：
+    // 下一步身體會壓到不能走的格子，就先原地轉；對準了還是被擋（很窄的通道、剛好站在用品裡）才照規劃的直線走，不會卡住
+    if (this.bodyFree(nx, nz, this.heading)) { p.x = nx; p.z = nz; }
+    else if (Math.abs(diff) < ALIGNED_RAD) { p.x += (to.x / dist) * step; p.z += (to.y / dist) * step; }
     // 走路或衝刺：播走路／跑步，速度配合實際移動（母體沒有 run 時用加快的走路）
     this.playMove(speed / this.upm);
   }
