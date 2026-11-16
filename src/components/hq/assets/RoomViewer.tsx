@@ -693,6 +693,7 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
           applyElderTint(roomWorld.catRoot, el);
           roomWorld.catRoot.scale.setScalar(el?.scale ?? 1);
           roomWorld.setCatSpeed(elderWalk(el));  // 老貓走路慢（渝茜 2026-11-16）
+          roomWorld.setCatSleepy(Boolean(el?.sleepy));  // 老貓常常睡覺
           elderOn = Boolean(el);
         }
         if (!followRef.current) followOff = null;

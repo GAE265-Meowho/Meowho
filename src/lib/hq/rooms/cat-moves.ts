@@ -80,3 +80,19 @@ export function moveClip(speedMps: number, available: readonly string[], runAt =
 /** 動作播放速度：實際移動速度 ÷ 動作原本的步伐速度，避免滑步（限制在 0.3～3 倍） */
 export const clipRate = (speedMps: number, clipMps: number) =>
   clipMps > 0 ? Math.min(3, Math.max(0.3, speedMps / clipMps)) : 1;
+
+/**
+ * 睡覺（渝茜 2026-11-16：帶入睡覺動作，尤其 15 歲之後要常常睡覺）：閒晃停下來、要挑下一個地方時，
+ * 有 chance 的機率原地睡 seconds 秒（睡醒後下一次一定先起來走走，不會連續睡）。老貓（elder-cat.ts 的 ELDER_CAT.sleepy）用 elder。
+ */
+export const NAP = {
+  young: { chance: 0.15, seconds: [10, 20] },
+  elder: { chance: 0.7, seconds: [25, 45] },
+} as const;
+
+/** r1、r2 是 0～1 的亂數：要睡回傳睡幾秒，不睡回 null */
+export function napFor(r1: number, r2: number, elder: boolean): number | null {
+  const n = elder ? NAP.elder : NAP.young;
+  if (r1 >= n.chance) return null;
+  return n.seconds[0] + r2 * (n.seconds[1] - n.seconds[0]);
+}

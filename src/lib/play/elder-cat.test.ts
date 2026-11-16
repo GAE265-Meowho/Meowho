@@ -18,6 +18,9 @@ describe("老貓（結局）", () => {
     expect(elderWalk(ELDER_CAT)).toBe(0.15);
     expect(elderWalk(null)).toBe(1);
   });
+  it("老貓常常睡覺（渝茜 2026-11-16）", () => {
+    expect(ELDER_CAT.sleepy).toBe(true);
+  });
   it("毛色調淡偏灰，換回來時還原；重複套不會越來越暗", () => {
     const m = new THREE.MeshStandardMaterial({ color: 0xffffff });
     const root = new THREE.Group().add(new THREE.Mesh(new THREE.BoxGeometry(), m));
