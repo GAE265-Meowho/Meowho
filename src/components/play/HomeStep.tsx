@@ -14,7 +14,7 @@ export function HomeStep({ onFinish }: { onFinish: () => void }) {
 }
 
 /** 在家的時光：上方一排圖示，還沒做的是白底不透明，做過的半透明（還是可以再做） */
-export function CareBar({ state, canPlay, onAct }: { state: PlayState; canPlay: boolean; onAct: (act: CareAct) => void }) {
+export function CareBar({ state, canPlay, onAct, onRestock }: { state: PlayState; canPlay: boolean; onAct: (act: CareAct) => void; onRestock?: () => void }) {
   return (
     <div className={s.careBar} role="group" aria-label="在家的時光">
       {NEEDS.filter(n => canPlay || n.act !== "play").map(n => {
@@ -22,6 +22,9 @@ export function CareBar({ state, canPlay, onAct }: { state: PlayState; canPlay: 
         const label = CARE_ACTS.find(a => a.act === n.act)?.label ?? n.label;
         return <button key={n.act} type="button" className={s.careIcon} data-done={done ? "true" : undefined} aria-label={`${label}${done ? "（已做，可再做）" : ""}`} title={label} onClick={() => onAct(n.act)}><CareIcon id={n.act} /></button>;
       })}
+      {onRestock && <button type="button" className={s.careIcon} aria-label="補貨" title="補貨" onClick={onRestock}>
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false"><path d="M3 4h2l2.4 11h10.2L20 7H6.2" /><circle cx="9" cy="19" r="1.5" /><circle cx="17" cy="19" r="1.5" /></svg>
+      </button>}
     </div>
   );
 }

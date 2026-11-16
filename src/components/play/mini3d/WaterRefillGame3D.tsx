@@ -22,7 +22,8 @@ const HINT: Record<Exclude<Phase, "fill">, string> = {
 };
 const smooth = (k: number) => { const t = Math.min(1, Math.max(0, k)); return t * t * (3 - 2 * t); };
 
-export function WaterRefillGame3D({ onDone }: { onDone: (r: unknown) => void }) {
+/** initialFill＝今天已經換好的水量（lib/play/care-day.ts）；換過（70 以上）就不再倒掉重接，只提示今天換過了 */
+export function WaterRefillGame3D({ onDone, initialFill = 0 }: { onDone: (r: unknown) => void; initialFill?: number }) {
   const [phase, setPhase] = useState<Phase>("intro");
   const at = useRef({ phase: "intro" as Phase, t: 0 });
   const scrub = useRef({ x: 0, z: 0, down: false }), scrubbed = useRef(newScrub());
@@ -83,6 +84,11 @@ export function WaterRefillGame3D({ onDone }: { onDone: (r: unknown) => void }) 
   }
   const press = (on: boolean) => { holding.current = on && (at.current.phase === "rinse" || at.current.phase === "fill"); };
   const finish = () => onDone({ ...waterResult(fill.current), washed: scrubClean(scrubbed.current) >= 1 });
+
+  if (initialFill >= 70) return <>
+    <p className={styles.hint}>今天已經換過水了，碗裡的水還是乾淨的（水量 {Math.round(initialFill)}）。</p>
+    <button className="btn" type="button" onClick={() => onDone(null)}>好</button>
+  </>;
 
   return <>
     <p className={styles.hint}>{phase === "fill" ? "按住「開水龍頭」接新水，七分滿就放開。" : HINT[phase]}</p>
