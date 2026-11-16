@@ -188,7 +188,7 @@ export function TalkStep({ form, set, status, setStatus, sending, onSend }: {
         </Field>
         <Field label="其他身體狀況（自己填）" htmlFor="f-body">
           <input id="f-body" className={s.input} maxLength={120} placeholder="例如：右後腳以前受過傷，跳不高" value={m.history} onChange={e => setMed({ history: e.target.value })} />
-          <span className={s.muted}>上面沒有的寫在這裡。試養時會請 AI 照這段安排照顧的劇情，不會寫成診斷。</span>
+          <span className={s.muted}>上面沒有的寫在這裡。領養任務會請 AI 照這段安排照顧的劇情，不會寫成診斷。</span>
         </Field>
         <Field label="慢性病、正在吃的藥" htmlFor="f-med" tag={tag("medication")}>
           <input id="f-med" className={s.input} maxLength={200} placeholder="例如：腎病，每天吃一次藥" value={m.medication} onChange={e => setMed({ medication: e.target.value })} />

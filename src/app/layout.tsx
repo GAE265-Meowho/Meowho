@@ -12,7 +12,7 @@ const notoTC = Noto_Sans_TC({ variable: "--font-noto-tc", weight: ["400", "500",
 
 export const metadata: Metadata = {
   title: "Meowho喵戶",
-  description: "讓每一隻貓從中途到新家立足：一句話 AI 配對、7 天虛擬飼養，再帶牠回家。",
+  description: "讓每一隻貓從中途到新家立足：一句話 AI 配對、領養任務，再帶牠回家。",
 };
 
 export const viewport: Viewport = {

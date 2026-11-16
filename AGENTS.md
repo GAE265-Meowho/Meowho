@@ -116,7 +116,7 @@
 | [ai-media-weekly.md](docs/modules/ai-media-weekly.md) | M05 多媒體理解與週報 | E／D |
 | [social.md](docs/modules/social.md) | M06 動態牆、M10 私訊、M11 站內通知 | C、B |
 | [matching.md](docs/modules/matching.md) | M07 AI 配對、M17 首頁 | E、B |
-| [readiness.md](docs/modules/readiness.md) | M08 環境報告、AR、7 天虛擬飼養 | F、D |
+| [readiness.md](docs/modules/readiness.md) | M08 環境報告、AR、領養任務 | F、D |
 | [adoption.md](docs/modules/adoption.md) | M09 領養流程、M14 評分 | C／A |
 | [knowledge-commerce.md](docs/modules/knowledge-commerce.md) | M12 知識與飼料、M13 導購 | D、A |
 | [admin-moderation.md](docs/modules/admin-moderation.md) | M15 後台、M16 內容審核 | C、E |
@@ -226,4 +226,4 @@
 
 > 後台權限、帳號處置、中途徽章、虛擬體驗元件等正式名詞見根目錄 `GLOSSARY.md`。
 
-貓戶（household）＝一位會員的貓咪之家｜貓戶長＝貓戶擁有者（飼主或中途）｜領養人＝想領養的會員｜7 天虛擬飼養＝綁定某隻待領養貓的 7 天模擬｜環境報告＝居家影片的 AI 風險報告｜週報＝AI 每週摘要｜移轉＝領養成功後貓咪所有權換到新貓戶
+貓戶（household）＝一位會員的貓咪之家｜貓戶長＝貓戶擁有者（飼主或中途）｜領養人＝想領養的會員｜領養任務＝綁定某隻待領養貓的模擬飼養（舊稱 7 天虛擬飼養，前台不再用）｜環境報告＝居家影片的 AI 風險報告｜週報＝AI 每週摘要｜移轉＝領養成功後貓咪所有權換到新貓戶
