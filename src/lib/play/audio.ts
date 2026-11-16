@@ -30,7 +30,9 @@ export const SOUNDS = {
   bgm_arrive: { kind: "bgm", label: "剛到家", usedIn: "第 1 天，貓躲在外出籠、等牠出來", part: [6], ready: true },
   bgm_daily: { kind: "bgm", label: "日常", usedIn: "開場、採買、擺用品、在家的時光、白天與傍晚的節點（含結尾的前一天、隔天）；結案報告沒有專用音樂時也用這首", part: [6], ready: true },
   bgm_night: { kind: "bgm", label: "半夜", usedIn: "夜晚：第 30 天跑酷、半年後噴尿或發情大叫", part: [6], ready: true },
-  bgm_vet: { kind: "bgm", label: "醫院", usedIn: "診間：半年後、五年後、十年後看獸醫", part: [6], ready: true },
+  bgm_vet: { kind: "bgm", label: "醫院", usedIn: "診間：五年後那天半夜出事去看獸醫；快樂版還沒上傳時，白天看獸醫也用這首", part: [6], ready: true },
+  // 子哲 2026-11-16：白天的例行看診（結紮、熟齡健檢）不是壞事，改用比較快樂的版本
+  bgm_vet_happy: { kind: "bgm", label: "醫院（快樂版）", usedIn: "診間白天：半年後結紮、十年後熟齡健檢（音檔上傳前先用醫院）", part: [6], ready: false },
   bgm_accident: { kind: "bgm", label: "出事了", usedIn: "五年後那天半夜出事（取代半夜跑酷的音樂；音檔上傳前先用半夜）", part: [6], ready: false },
   bgm_farewell: { kind: "bgm", label: "升天", usedIn: "結尾 15 歲：暗幕全黑後才進來、回顧時播、漸白時淡出（只播一次）", part: [6], ready: true },
   bgm_report: { kind: "bgm", label: "結案報告", usedIn: "結案報告（比較活潑；還沒音檔時退回日常）", part: [6], ready: false },
@@ -144,21 +146,22 @@ export interface BgmInput {
 
 /**
  * 現在該播哪首背景音樂（總表「目前遊戲的節點」那張表）：
- * 開場、採買、擺用品、在家的時光＝日常；結案報告＝報告音樂（沒音檔退回日常，見 playableBgm）；診間＝醫院；
+ * 開場、採買、擺用品、在家的時光＝日常；結案報告＝報告音樂（沒音檔退回日常，見 playableBgm）；
+ * 診間白天（結紮、熟齡健檢）＝醫院快樂版（沒音檔退回醫院），診間半夜（五年後出事）＝醫院；
  * 結尾：前一天、隔天照一般規則，暗幕全黑之後才是升天；第 1 天＝剛到家（硬拉那晚是半夜）；五年後的半夜＝出事了；其他節點的夜晚＝半夜，白天、傍晚＝日常。
  */
 export function bgmFor({ step, nodeId, scene, home, ending = null }: BgmInput): BgmId {
   if (step === "report") return "bgm_report";
   if (step !== "node" || home) return "bgm_daily";
   if (nodeId === "farewell" && ending && ending !== "dark") return "bgm_farewell";
-  if (scene.bg === "vet") return "bgm_vet";
+  if (scene.bg === "vet") return scene.time === "night" ? "bgm_vet" : "bgm_vet_happy";
   if (scene.time === "night") return nodeId === "year5" ? "bgm_accident" : "bgm_night";
   if (nodeId === "day1") return "bgm_arrive";
   return "bgm_daily";
 }
 
 /** 還沒有音檔時改播哪首（第 6 份補上音檔就自動換；2026-11-14 渝茜：出事了的音樂之後才會上傳） */
-export const BGM_FALLBACK: Partial<Record<BgmId, BgmId>> = { bgm_report: "bgm_daily", bgm_accident: "bgm_night" };
+export const BGM_FALLBACK: Partial<Record<BgmId, BgmId>> = { bgm_report: "bgm_daily", bgm_accident: "bgm_night", bgm_vet_happy: "bgm_vet" };
 
 /** 實際要播的那首：沒有音檔又有備用的，改播備用 */
 export const playableBgm = (id: BgmId, index: SoundIndex | null): BgmId => (!hasSound(id, index) && BGM_FALLBACK[id]) || id;

@@ -20,8 +20,7 @@ describe("背景音樂依場景切換", () => {
 
   it("夜晚是半夜，診間是醫院，白天傍晚是日常", () => {
     expect(bgmFor(at({ nodeId: "day30", scene: { bg: "room", time: "night" } }))).toBe("bgm_night");
-    expect(bgmFor(at({ nodeId: "month8", scene: { bg: "vet", time: "night" } }))).toBe("bgm_vet");
-    expect(bgmFor(at({ nodeId: "year5", scene: { bg: "vet", time: "day" } }))).toBe("bgm_vet");
+    expect(bgmFor(at({ nodeId: "year5", scene: { bg: "vet", time: "night" } }))).toBe("bgm_vet");
     expect(bgmFor(at({ nodeId: "year10", scene: { bg: "room", time: "dusk" } }))).toBe("bgm_daily");
   });
 
@@ -32,8 +31,20 @@ describe("背景音樂依場景切換", () => {
     expect(bgmFor(at({ nodeId: "day30", scene: { bg: "room", time: "night" }, home: true }))).toBe("bgm_daily");
   });
 
+  it("白天看醫生（半年後結紮、十年後熟齡健檢）播快樂版醫院，五年後半夜意外照舊醫院（子哲 2026-11-16）", () => {
+    expect(bgmFor(at({ nodeId: "month8", scene: { bg: "vet", time: "day" } }))).toBe("bgm_vet_happy");
+    expect(bgmFor(at({ nodeId: "year10", scene: { bg: "vet", time: "day" } }))).toBe("bgm_vet_happy");
+    expect(bgmFor(at({ nodeId: "year5", scene: { bg: "vet", time: "night" } }))).toBe("bgm_vet");
+  });
+
+  it("快樂版醫院還沒上傳時退回原本的醫院", () => {
+    expect(SOUNDS.bgm_vet_happy.ready).toBe(false);
+    expect(playableBgm("bgm_vet_happy", {})).toBe("bgm_vet");
+    expect(playableBgm("bgm_vet_happy", { bgm_vet_happy: "1" })).toBe("bgm_vet_happy");
+  });
+
   it("升天不循環，其他都循環", () => {
-    expect(BGM_IDS.filter(bgmLoops)).toEqual(["bgm_arrive", "bgm_daily", "bgm_night", "bgm_vet", "bgm_accident", "bgm_report"]);
+    expect(BGM_IDS.filter(bgmLoops)).toEqual(["bgm_arrive", "bgm_daily", "bgm_night", "bgm_vet", "bgm_vet_happy", "bgm_accident", "bgm_report"]);
   });
 });
 
@@ -44,9 +55,9 @@ describe("聲音對照表與網址", () => {
       expect(s.usedIn, id).not.toBe("");
       expect(s.part.length, id).toBeGreaterThan(0);
     }
-    expect(BGM_IDS).toHaveLength(7);
-    // 出事了（bgm_accident）還沒上傳、結案報告（bgm_report）等第 6 份補音檔，其他背景音樂都有音檔
-    expect(BGM_IDS.filter(id => !SOUNDS[id].ready)).toEqual(["bgm_accident", "bgm_report"]);
+    expect(BGM_IDS).toHaveLength(8);
+    // 醫院快樂版（bgm_vet_happy）、出事了（bgm_accident）、結案報告（bgm_report）等第 6 份補音檔，其他背景音樂都有音檔
+    expect(BGM_IDS.filter(id => !SOUNDS[id].ready)).toEqual(["bgm_vet_happy", "bgm_accident", "bgm_report"]);
   });
 
   it("背景音樂放 bgm/、音效放 sfx/，網址是 Supabase 公開網址", () => {
