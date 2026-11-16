@@ -7,8 +7,8 @@ import { colliders, type RoomScene, type SceneBox } from "./scene";
  * 虛擬體驗裡貓放大的倍數（Tina 2026-11-03：真實比例在整間房的鏡頭裡看起來太小；成貓母體約長 0.58、高 0.51 m）
  */
 export const CAT_SCALE = 1.2;
-/** 貓的碰撞半徑（放大後的半個身寬加一點餘裕） */
-export const CAT_RADIUS_M = 0.2;
+/** 貓的碰撞半徑：放大後鼻尖、屁股離身體中心約 0.30 m（母體 0.245、0.25 × CAT_SCALE），用圓蓋住整個身體，原地轉身也不會掃進家具（#354 穿模；原本 0.2，頭和屁股會插進家具約 10 公分） */
+export const CAT_RADIUS_M = 0.3;
 /** 走路速度（公尺／秒） */
 export const CAT_SPEED = 0.55;
 /** 轉身速度（弧度／秒） */
