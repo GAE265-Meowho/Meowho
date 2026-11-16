@@ -384,3 +384,4 @@ Worker 選用的 `report.html` 與 `html-assets/` 位於既有 attempt 前綴。
 - `catLookFor` 缺這個體型的貼圖時借另一個體型的母體＋貼圖；完全沒有才用示範虎斑。
 - 摸貓 3D 只換花色（`adultFur`），母體與鏡頭維持成貓。
 - 腳步聲：`cat.js` 每幀用 `stepTick`，衝刺且在播 run 時響 `sfx_step`。
+- 老貓走路 × 0.15（`ELDER_CAT.walk`）：掃描房間經 `world.setCatSpeed` → `RoomCat.speedK`，娃娃屋乘在 speed 上。掃描房間沒有套 `node.speed`。

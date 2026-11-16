@@ -57,7 +57,7 @@ import { shotFor } from "@/lib/play/camera-shot";
 import { showVet, vetTalkKey } from "@/lib/play/vet-room";
 import { stainsFor } from "@/lib/play/urine-stain";
 import { adoptFacts, CAPTURE_DELAY_MS, captureMoment, endingStarts, mergeShots, type EndingPhase, type ReviewShot } from "@/lib/play/ending";
-import { elderFor } from "@/lib/play/elder-cat";
+import { elderFor, elderWalk } from "@/lib/play/elder-cat";
 import { captureScene } from "@/lib/play/snapshot";
 import { loadReview, saveReview } from "@/lib/play/review-store";
 import { EndingOverlay } from "./EndingOverlay";
@@ -714,7 +714,7 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
 
       {showStage && (
         <PlayStage kind={kind} scanBase={scanBase} placeView={state.step === "place"} place={placeEdit} look={look} bubble={bubble} bubbleInset={(cur?.kind === "home" && !careAct) ? 0.08 : cur?.kind === "lines" || cur?.kind === "personal" ? 0.36 : 0.48} lookKey={lookKey} placed={placed} scanItems={scanItems} story={story} wand={wand} bowlFill={bowlFill}
-          goal={goal} clip={clip} speed={state.step === "node" ? poseSpeed(state.scene.cat, node.speed) : 1} light={light} vet={vet} vetTalk={vet ? vetTalkKey(cur) : null} shot={shot} stains={stains} elder={elder}
+          goal={goal} clip={clip} speed={state.step === "node" ? poseSpeed(state.scene.cat, node.speed) * elderWalk(elder) : 1} light={light} vet={vet} vetTalk={vet ? vetTalkKey(cur) : null} shot={shot} stains={stains} elder={elder}
           onDrop={state.step === "place" && kind === "dollhouse"
             ? (id, at) => { if (playItems.some(i => i.id === id)) placeAt(id as PlayItem["id"], at); }
             : undefined}>

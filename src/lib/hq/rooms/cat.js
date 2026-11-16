@@ -74,6 +74,7 @@ export class RoomCat {
     this.arrive = null;   // 走到目的地後要做的事
     this.queued = null;   // 落地後才走的目的地
     this.stick = null;    // 搖桿輸入 { dir（本地 x,z，單位向量）, mag（0~1）}
+    this.speedK = 1;      // 走路速度倍率（老貓 0.15，lib/play/elder-cat.ts）
     this.sprint = false;  // 追玩具、半夜跑酷時衝刺（跑步動作、較快的速度與轉身）
     this.roamFar = false; // 半夜跑酷：閒晃時衝得比較遠
     this.autoIn = AUTO_MIN;
@@ -490,7 +491,7 @@ export class RoomCat {
     const { dir, mag } = this.stick;
     this.turnToward(dir, dt);
     const run = mag > RUN_AT;
-    const speedM = (run ? RUN_SPEED_M : WALK_SPEED_M) * mag;
+    const speedM = (run ? RUN_SPEED_M : WALK_SPEED_M) * mag * this.speedK;
     this.playMove(speedM);
     const step = speedM * this.upm * dt;
     const p = this.cat.position;
@@ -765,7 +766,7 @@ export class RoomCat {
     // 先轉向再走：角度差大時放慢，像貓在原地轉身
     const diff = this.turnToward(to, dt);
 
-    const base = this.sprint ? SPRINT_SPEED_M : WALK_SPEED_M;
+    const base = (this.sprint ? SPRINT_SPEED_M : WALK_SPEED_M) * this.speedK;
     const speed = base * this.upm * Math.max(0.15, Math.cos(Math.min(Math.abs(diff), Math.PI / 2)));
     const step = Math.min(dist, speed * dt);
     this.cat.position.x += Math.sin(this.heading) * step;
