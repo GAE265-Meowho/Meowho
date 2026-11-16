@@ -35,6 +35,8 @@ const PetGame3D = dynamic(() => import("../mini3d/PetGame3D").then(m => m.PetGam
 const ScoopGame3D = dynamic(() => import("../mini3d/ScoopGame3D").then(m => m.ScoopGame3D), { ssr: false, loading });
 // 餵貓：第一視角倒乾飼料、開主食罐和湯罐
 const FeedGame3D = dynamic(() => import("../mini3d/FeedGame3D").then(m => m.FeedGame3D), { ssr: false, loading });
+// 剪指甲：2D 貓掌特寫，雙手操作
+const NailGame2D = dynamic(() => import("../mini3d/NailGame2D").then(m => m.NailGame2D), { ssr: false, loading: () => <p role="status">剪指甲遊戲載入中…</p> });
 const WaterRefillGame3D = dynamic(() => import("../mini3d/WaterRefillGame3D").then(m => m.WaterRefillGame3D), { ssr: false, loading });
 
 export function CatgameMini(props: Props) {
@@ -61,9 +63,14 @@ export function CatgameMini(props: Props) {
       <MiniGuideGate id="feed" catName={catName}><FeedGame3D portion={feedPortion(ctx)} onDone={onDone} kinds={props.feedKinds} onRestock={props.onRestock} initial={props.day?.feed} /></MiniGuideGate>
     </Mini3DModal>;
   }
-  // 原版 2D（剪指甲、外出籠）自己有對話框：示範先用彈窗顯示，按「開始」或關掉才開遊戲
-  if (id === "nail" || id === "carrier") {
-    return <MiniGuideGate id={id} catName={catName} modal={{ title: id === "nail" ? `幫${catName}剪指甲` : `讓${catName}進外出籠` }}><LegacyMini {...props} /></MiniGuideGate>;
+  if (id === "nail") {
+    return <Mini3DModal title={"幫" + catName + "剪指甲"} onCancel={() => onDone(null)}>
+      <MiniGuideGate id="nail" catName={catName}><NailGame2D ctx={ctx} onDone={onDone} /></MiniGuideGate>
+    </Mini3DModal>;
+  }
+  // 原版 2D（外出籠）自己有對話框：示範先用彈窗顯示，按「開始」或關掉才開遊戲
+  if (id === "carrier") {
+    return <MiniGuideGate id="carrier" catName={catName} modal={{ title: `讓${catName}進外出籠` }}><LegacyMini {...props} /></MiniGuideGate>;
   }
   return <LegacyMini {...props} />;
 }
