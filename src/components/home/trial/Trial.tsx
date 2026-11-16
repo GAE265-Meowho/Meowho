@@ -1,7 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import CatPerch from "@/components/journey/CatPerch";
+import { useState, useSyncExternalStore } from "react";
 import CatButton from "@/components/ui/CatButton";
 import { EarTop } from "@/components/ui/Edges";
 import Icon, { type IconName } from "@/components/ui/Icon";
@@ -9,45 +8,43 @@ import SectionHead from "../SectionHead";
 import shared from "../section.module.css";
 import styles from "./trial.module.css";
 
-type Choice = { text: string; good: boolean; feedback: string };
-type Task = { id: string; time: string; icon: IconName; title: string; note: string; choices?: Choice[] };
+// 首頁只放三個小遊戲的示範影片（子哲 2026-11-16）：按鈕切換餵飯、鏟屎、摸摸，不讓訪客在首頁玩。
+// 影片在 public/home/trial/<id>.mp4：只有 3D 遊戲畫面（不含標題、說明、計量條），2 倍解析度錄、960×720。
+// 錄法同小遊戲示範（docs/play-tasks/guide-videos.md），差別是只截 3D 畫布、隱藏摸貓的視角按鈕；小遊戲開場示範仍用 public/play/guide/。
+type Demo = { id: "feed" | "scoop" | "pet"; icon: IconName; title: string; note: string };
 
-// Tasks are written from 橘子's real diary and weekly report (see 帶我回家 card).
-const tasks: Task[] = [
-  { id: "feed", time: "08:00", icon: "bowl", title: "準時餵早餐", note: "橘子只吃濕食，記得先退冰 10 分鐘。" },
-  { id: "litter", time: "10:30", icon: "check", title: "清理貓砂盆", note: "牠很愛乾淨，砂盆髒了會坐在旁邊抗議。" },
-  {
-    id: "parkour",
-    time: "03:00",
-    icon: "moon",
-    title: "凌晨跑酷事件",
-    note: "橘子開始在走廊衝刺、抓門，你會怎麼做？",
-    choices: [
-      { text: "起床陪牠玩 10 分鐘逗貓棒", good: true, feedback: "中途日記寫過：睡前陪玩兩回合逗貓棒，牠就會一覺到天亮。明天睡前試試看！" },
-      { text: "把牠關在房門外", good: false, feedback: "橘子會抓門抗議更久。中途建議睡前先陪牠玩，把精力消耗掉。" },
-    ],
-  },
-  {
-    id: "hairball",
-    time: "14:00",
-    icon: "cat",
-    title: "突發狀況：吐毛球",
-    note: "週三吐了一次毛球，要怎麼判斷需不需要看醫生？",
-    choices: [
-      { text: "先觀察精神和食慾，並記錄下來", good: true, feedback: "偶爾吐毛球很常見。如果一天吐好幾次、不吃東西或沒精神，請帶牠去看醫生。" },
-      { text: "餵牠吃人用的腸胃藥", good: false, feedback: "請不要自行餵人用藥物。有任何疑慮，請帶牠去看醫生。" },
-    ],
-  },
+const demos: Demo[] = [
+  { id: "feed", icon: "bowl", title: "餵飯", note: "選一種飼料，倒出剛好的一餐。" },
+  { id: "scoop", icon: "check", title: "鏟屎", note: "連砂鏟起、甩三下，倒進垃圾袋。" },
+  { id: "pet", icon: "heart", title: "摸摸", note: "找到牠喜歡被摸的地方，慢慢來。" },
 ];
 
-const days = [1, 2, 3, 4, 5, 6, 7];
+const REDUCE = "(prefers-reduced-motion: reduce)";
+function useReducedMotion() {
+  return useSyncExternalStore(
+    (cb) => {
+      const mq = window.matchMedia?.(REDUCE);
+      mq?.addEventListener("change", cb);
+      return () => mq?.removeEventListener("change", cb);
+    },
+    () => Boolean(window.matchMedia?.(REDUCE).matches),
+    () => false,
+  );
+}
+
+/** CTA：回到上方 Hero 的搜尋列（TypeSearch 的 #match），並把游標放進輸入框 */
+function backToSearch() {
+  const form = document.getElementById("match");
+  const reduce = window.matchMedia?.(REDUCE).matches;
+  form?.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "center" });
+  document.getElementById("match-input")?.focus({ preventScroll: true });
+}
 
 export default function Trial() {
-  const [done, setDone] = useState<Record<string, boolean>>({ feed: true, litter: true });
-  const [picked, setPicked] = useState<Record<string, number>>({});
-
-  const count = tasks.filter((t) => done[t.id]).length;
-  const allDone = count === tasks.length;
+  const [current, setCurrent] = useState<Demo["id"]>("feed");
+  const still = useReducedMotion();
+  const demo = demos.find((d) => d.id === current)!;
+  const video = `/home/trial/${current}.mp4`;
 
   return (
     <section id="trial" className={shared.section} aria-labelledby="trial-title">
@@ -62,7 +59,7 @@ export default function Trial() {
               <span>同居 7 天</span>
             </>
           }
-          lead="任務來自中途寫下的真實日記。點點看，陪橘子的分身過第 3 天。"
+          lead="點點看，每天的餵飯、鏟屎、摸摸都要你親手來。"
         />
       </div>
 
@@ -70,98 +67,52 @@ export default function Trial() {
       <div className={styles.panel}>
         <div className={`wrap ${styles.grid}`}>
           <div className={styles.tasks}>
-            <div className={styles.days} aria-label="7 天進度">
-              {days.map((d) => (
-                <span key={d} className={d < 3 ? styles.dayDone : d === 3 ? styles.dayNow : undefined}>
-                  {d < 3 ? <Icon name="check" size={14} /> : `D${d}`}
-                </span>
-              ))}
-            </div>
-
-            <div className={styles.taskHead}>
-              <h3>橘子的分身・第 3 天</h3>
-              <span className={styles.progress}>
-                今日 {count}/{tasks.length}
-                <i style={{ width: `${(count / tasks.length) * 100}%` }} />
-              </span>
-            </div>
-
             <ul className={styles.list}>
-              {tasks.map((t) => {
-                const choice = picked[t.id];
+              {demos.map((d) => {
+                const on = d.id === current;
                 return (
-                  <li key={t.id} className={`${styles.task} ${done[t.id] ? styles.taskDone : ""}`}>
-                    <span className={styles.taskIcon}>
-                      <Icon name={done[t.id] ? "check" : t.icon} size={20} />
-                    </span>
-                    <div className={styles.taskBody}>
-                      <p className={styles.taskTitle}>
-                        <time>{t.time}</time>
-                        {t.title}
-                      </p>
-                      <p className={styles.note}>{t.note}</p>
-
-                      {t.choices && (
-                        <div className={styles.choices}>
-                          {t.choices.map((c, i) => (
-                            <button
-                              key={c.text}
-                              type="button"
-                              aria-pressed={choice === i}
-                              className={choice === i ? (c.good ? styles.good : styles.bad) : undefined}
-                              onClick={() => {
-                                setPicked((p) => ({ ...p, [t.id]: i }));
-                                if (c.good) setDone((d) => ({ ...d, [t.id]: true }));
-                              }}
-                            >
-                              {c.text}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                      {choice !== undefined && t.choices && (
-                        <p className={styles.feedback} role="status">
-                          {t.choices[choice].feedback}
-                        </p>
-                      )}
-                    </div>
-                    {!t.choices && (
-                      <button type="button" className={styles.toggle} aria-pressed={!!done[t.id]} onClick={() => setDone((d) => ({ ...d, [t.id]: !d[t.id] }))}>
-                        {done[t.id] ? "已完成" : "完成"}
-                      </button>
-                    )}
+                  <li key={d.id}>
+                    <button
+                      type="button"
+                      className={`${styles.task} ${on ? styles.taskOn : ""}`}
+                      aria-pressed={on}
+                      aria-controls="trial-video"
+                      onClick={() => setCurrent(d.id)}
+                    >
+                      <span className={styles.taskIcon}>
+                        <Icon name={d.icon} size={20} />
+                      </span>
+                      <span className={styles.taskBody}>
+                        <span className={styles.taskTitle}>{d.title}</span>
+                        <span className={styles.note}>{d.note}</span>
+                      </span>
+                    </button>
                   </li>
                 );
               })}
             </ul>
 
-            {allDone && (
-              <p className={styles.cleared} role="status">
-                <Icon name="badge" size={18} />
-                第 3 天完成！再 4 天就能拿到虛擬飼養完成徽章。
-              </p>
-            )}
-
             <div className={styles.cta}>
-              <CatButton href="/me" arrow>
+              <CatButton onClick={backToSearch} arrow>
                 開始我的 7 天虛擬飼養
               </CatButton>
             </div>
           </div>
 
-          {/* The stage 橘子 eats breakfast in */}
-          <div className={styles.stage} aria-hidden>
-            <svg className={styles.stageArt} viewBox="0 0 400 300" preserveAspectRatio="xMidYMax slice">
-              <rect width="400" height="300" fill="#fff6e4" />
-              <path d="M250 40h110v140H250Z" fill="#fff" />
-              <path d="M258 48h94v124h-94Z" fill="#fde9c0" />
-              <path d="M305 48v124M258 110h94" stroke="#fff" strokeWidth="6" />
-              <rect x="0" y="210" width="400" height="90" fill="#f3d9b2" />
-              <rect x="0" y="206" width="400" height="8" fill="#efcd9e" />
-              <ellipse cx="200" cy="246" rx="120" ry="22" fill="#f6c3b8" />
-            </svg>
-            {/* Demo 時可開加速模式（1 天＝5 分鐘），由後台設定，不在前台顯示。 */}
-            <CatPerch action="eat" label="虛擬飼養第 3 天：吃早餐" className={styles.perch} />
+          <div className={styles.stage}>
+            <video
+              id="trial-video"
+              key={video}
+              className={styles.video}
+              src={video}
+              aria-label={`${demo.title}示範影片`}
+              muted
+              loop
+              playsInline
+              autoPlay={!still}
+              controls={still}
+              preload="metadata"
+            />
           </div>
         </div>
       </div>
