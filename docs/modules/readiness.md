@@ -363,3 +363,10 @@ Worker 選用的 `report.html` 與 `html-assets/` 位於既有 attempt 前綴。
   - 醫院貓很慢才出現：診間原本第一次看醫生才載入；改成飼養開始 5 秒後在背景先載（`PlayStage` 的 `VET_WARM_MS`）。
   - 示範：說明縮短成約 1/3（每步 4～12 字），放在錄影下面一排；錄影裡的滑鼠改成白色箭頭＋按下時橘色波紋（全部重錄）；飼養開始就把七段影片抓進記憶體（`warmGuideVideos`），打開示範馬上播。
 - **23:48 渝茜：畫面還是卡住**（在她房間的預覽上看過：鏡頭開場位置旁邊就是窗簾的雜訊，虛擬飼養裡只能原地轉頭、走不開）：一般鏡頭不再用掃描影片的拍攝點（也拿掉 23:15 的「往後退、離牆」做法），改成擺用品那種從房間一側高處往下看整間房（`RoomViewer` 的 `playHome`＝`sideCamera`，方向和拍攝方向一樣；FOV 用 `fitFov` 裝得下整間房，上限 `PLAY_VIEW.maxFov` 80°）。劇情鏡頭（外出籠、結尾）、轉向貓、跟著貓都從這個位置開始。
+
+## 實機回饋修正（#354 第 5 份，渝茜 × Claude Code，2026-11-16，分支 `fix/354-play-feedback-1116`）
+- **擺用品**：拿掉「快速放」。點用品就自動放進房間（`src/lib/play/auto-place.ts`：掃描房間挑第一個沒被別的用品佔走的「某家具旁」，都被佔就放房間角落；娃娃屋放 `itemSpots` 第一個），放好跳半透明「點選移動」提示框（`place.module.css` 的 `.moveHint`），點一下或第一次自己移動就關掉。卡片再縮小（max-width 520px）。
+- **自由移動**：擺用品俯視拖曳改 `dragSideFree`（一直繞房間轉），滾輪與兩指縮放（`overview.ts` 的 `FREE_VIEW`、`wheelZoom`、`pinchZoom`、`zoomedFov`）。飼養中畫面左側有搖桿（`RoomViewer` 的 `Stick`，擺用品、逗貓時不顯示）。
+- **第 3 天不再重複餵**：第 1 天在家的時光已經餵過（`care.log.feed > 0`），第 3 天直接鏟屎。
+- **跑步動作**：母體只有 walk。`src/lib/hq/rooms/gallop.ts` 用走路重組奔跑（四條腿各用自己的軌道，只錯開相位、放大擺動），`cat.js` 載入時沒有 run 就補上；衝刺（跑酷、追玩具）速度超過 `RUN_AT` 就切 run。
+- **音效**：`src/lib/play/sfx-cues.ts` 是「事件 → 音效 ID」的對照（純函式、有測試）。接點：`PlayGame`（氣泡、姿勢、信任壓力、小遊戲結果、逗貓、按鈕）、`FeedGame3D`（倒飼料、開罐頭）、`WaterRefillGame3D`（倒水）、`ScoopGame3D`（鏟砂、垃圾袋）、`cat.js`（跳上家具落地）。還沒接：腳步、撥貓砂、磨爪、剪指甲喀、刷牙刷刷、居家意外。
