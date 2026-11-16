@@ -22,7 +22,7 @@ function room() {
 describe("出外出籠", () => {
   it("籠門朝著牆（出口算到牆裡）：出來後站在最近能走的地板上，不卡在牆裡或籠子後面", async () => {
     const gltf = await load("public/hq-cat-models/base/base_clips_kitten.glb");
-    const cat = new RoomCat(room()) as unknown as RoomCat & Record<string, any>;
+    const cat = new RoomCat(room());
     cat.useModel({ gltf, albedo: null }, 0.2);
     cat.place(cat.randomCell());
     // 外出籠貼著 z＝3.8 那面牆，門朝 +z（朝牆）：出口在牆外
