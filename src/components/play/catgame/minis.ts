@@ -13,15 +13,15 @@ export interface MiniCtx {
   /** 幾個月大 */
   age: number;
   cat: { body: number; trust: number; stress: number; /** 虎斑才畫條紋；沒給＝畫 */ tabby?: boolean };
-  /** 以下選填，沒給就用原版預設：結紮、刷牙訓練階段（0~5）、牙齒狀況、指甲長度（0~100）、剪指甲訓練階段、外出籠訓練階段 */
+  /** 以下選填，沒給就用原版預設：結紮、刷牙訓練階段（0~5）、牙齒狀況、指甲長度（0~100）、剪指甲訓練階段 */
   touchFav?: "head" | "chin" | "back" | null;
   /** 這隻貓的成貓花色貼圖（摸貓 3D 用；沒有就用母體預設花色） */
   furUrl?: string | null;
-  neutered?: boolean; brushLevel?: number; dental?: number; nails?: number; nailLevel?: number; carrierLevel?: number;
+  neutered?: boolean; brushLevel?: number; dental?: number; nails?: number; nailLevel?: number;
 }
 
 /** 小遊戲。逗貓在掃描房間是 3D（ScanWand），不在這裡 */
-export type MiniId = "scoop" | "pet" | "feed" | "water" | "nail" | "brush" | "carrier";
+export type MiniId = "scoop" | "pet" | "feed" | "water" | "nail" | "brush";
 
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 
@@ -179,7 +179,7 @@ function startScoop(m: Mini, S: MiniCtx, dirt = 70) {
   });
 }
 
-// ---------- 搬自原版：放飯（20-mini-feed）、換水（21-mini-water）、剪指甲（22-mini-nail）、刷牙（13-mini-brush）、外出籠（16-mini-carrier） ----------
+// ---------- 搬自原版：放飯（20-mini-feed）、換水（21-mini-water）、剪指甲（22-mini-nail）、刷牙（13-mini-brush） ----------
 /* eslint-disable @typescript-eslint/no-explicit-any -- 原版小遊戲的狀態 st 欄位很多、隨玩法變化，沿用 vanilla 寫法 */
 type St = Ptr & Record<string, any>;
 interface Part { x: number; y: number; vy: number }
@@ -516,81 +516,6 @@ function startBrush(m: Mini, S: MiniCtx) {
     });
   }, () => finish(false));
 }
-
-function startCarrier(m: Mini, S: MiniCtx) {
-  const C = S.cat, A = { practice: false, name: "外出籠" };
-  const k = 0.6 * catScale(S);
-  const st: St = { px: 0, py: 0, down: false, cx: 60, dir: 1, tx: 60, R: clamp(170 - (S.carrierLevel ?? 0) * 30 - (C.trust - 50) * 0.6 + (C.stress > 60 ? 40 : 0), 20, 230),
-    treat: null, fear: 0, t: 0, T: 30, last: 0, act: "sit", actT: 0, treats: 0, inside: false, say: "", sayT: 0, k };
-  const DOOR = 262;
-  const svg = `<svg id="csvg" class="arena" viewBox="0 0 360 220">
-    <rect x="0" y="0" width="360" height="140" fill="var(--wall)"/><rect x="0" y="140" width="360" height="80" fill="var(--floor)"/><rect x="0" y="136" width="360" height="5" fill="var(--wood)"/>
-    <g><path d="M284,120 C284,94 330,94 330,120" fill="none" stroke="var(--cat-line)" stroke-width="6" stroke-linecap="round"/>
-      <rect x="262" y="118" width="92" height="82" rx="14" fill="var(--sofa)" stroke="var(--cat-line)" stroke-width="2.2"/>
-      <path d="M262,156 H354" stroke="var(--cat-line)" stroke-width="1.5" opacity=".45"/>
-      ${[0, 1, 2].map(i => `<rect x="${296 + i * 18}" y="132" width="10" height="16" rx="5" fill="var(--cat-line)" opacity=".35"/>`).join("")}
-      <rect x="262" y="128" width="9" height="64" fill="var(--mouth)"/>
-      <g id="cdoor"><path d="M262,128 L232,138 L232,186 L262,192 Z" fill="#dfe5e8" stroke="var(--cat-line)" stroke-width="1.8"/>
-        ${[0, 1, 2, 3].map(i => `<path d="M${238 + i * 6},${136 - i * 2} V${187 + i * 1.3}" stroke="var(--muted)" stroke-width="1.6"/>`).join("")}<path d="M232,162 L262,160" stroke="var(--muted)" stroke-width="1.4"/></g></g>
-    <g id="ctreat"></g>
-    <g id="ccat" transform="translate(60,200)"><g id="ccatin" class="${catMood(S)}" transform="scale(${k},${k})">${catParts(S)}</g></g>
-    <circle id="cring" cx="${DOOR}" cy="200" r="${st.R}" fill="none" stroke="var(--bad)" stroke-dasharray="3 5" opacity=".35"/>
-    <text id="csay" x="60" y="130" font-size="13" fill="var(--paw)" text-anchor="middle" font-weight="700"></text>
-  </svg>`;
-  m.root.innerHTML = miniFrame(A.practice ? "外出籠練習" : `出門前：${A.name}`, A.practice ? "單次行動" : "要先讓麻糬進外出籠",
-    "點地板放一顆零食。放在麻糬覺得安全的距離，牠吃了之後會比較不怕外出籠，再一顆一顆往籠子裡放。放得太靠近，牠會不敢過去。紅色虛線是麻糬覺得危險的範圍。",
-    svg, miniMeter("緊張", "cfl", "cf", "low", "0") + miniMeter("時間", "ctl", "ct", "", "30 秒", 100),
-    "");
-  const el = m.root.querySelector<SVGSVGElement>("#csvg")!;
-  const say = (t: string) => { st.say = t; st.sayT = 1.3; };
-  el.addEventListener("pointerdown", (e: PointerEvent) => {
-    if (!m.running || st.inside) return;
-    const p = svgPt(el, e); if (p.y < 140) return;
-    st.treat = { x: clamp(p.x, 20, 340) };
-    st.act = "sit"; st.actT = 0;
-  });
-  const done = (ok: boolean, forced: boolean) => end(m, { ok, forced, treats: st.treats, practice: !!A.practice });
-  bindMiniButtons(m, () => {
-    setText(m, "mmsg", "先在離籠子遠一點的地方放零食。");
-    loopWith(m, dt => {
-      st.t += dt; st.sayT -= dt;
-      const sp = 70;
-      if (st.treat && !st.inside) {
-        const dT = st.treat.x >= DOOR + 6 ? 0 : DOOR - st.treat.x;
-        const stopX = Math.min(st.treat.x, DOOR - st.R);
-        const allowed = dT >= st.R - 8 || st.R <= 10;
-        const goal = allowed ? st.treat.x - 18 : stopX - 18;
-        const dx = goal - st.cx;
-        if (Math.abs(dx) > 2) { st.dir = dx > 0 ? 1 : -1; st.cx += Math.sign(dx) * Math.min(Math.abs(dx), sp * dt); }
-        else if (allowed) {
-          st.actT += dt;
-          if (st.actT > 0.7) {
-            st.treats++; st.R = Math.max(0, st.R - 32); st.fear = Math.max(0, st.fear - 8);
-            if (st.treat.x >= DOOR + 6) { st.inside = true; say("（走進去了）"); }
-            else say("（喀滋喀滋）");
-            st.treat = null; st.actT = 0;
-          }
-        } else {
-          st.actT += dt;
-          if (st.actT > 0.9) { st.fear += 14; say("不要……"); st.cx -= 30; st.actT = 0; }
-        }
-      } else if (st.inside) {
-        const dx = DOOR + 40 - st.cx; if (Math.abs(dx) > 2) st.cx += Math.sign(dx) * Math.min(Math.abs(dx), sp * dt);
-        else { byId(m, "cdoor")!.innerHTML = `<rect x="256" y="128" width="12" height="64" rx="2" fill="#dfe5e8" stroke="var(--cat-line)" stroke-width="1.8"/>${[0, 1, 2, 3, 4, 5, 6].map(i => `<path d="M256,${136 + i * 8} H268" stroke="var(--muted)" stroke-width="1.5"/>`).join("")}`; done(true, false); return false; }
-      }
-      byId(m, "ccat")!.setAttribute("transform", `translate(${st.cx.toFixed(1)},200)`);
-      byId(m, "ccatin")!.setAttribute("transform", `scale(${(st.dir * st.k).toFixed(3)},${st.k.toFixed(3)})`);
-      byId(m, "ccatin")!.setAttribute("class", st.fear > 50 ? "flat wide" : st.treats >= 2 ? "purr" : "");
-      byId(m, "ctreat")!.innerHTML = st.treat ? `<g transform="translate(${st.treat.x},196)"><ellipse rx="6" ry="4" fill="var(--warn)" stroke="var(--cat-line)" stroke-width="1"/></g>` : "";
-      byId(m, "cring")!.setAttribute("r", st.R.toFixed(1));
-      const cs = byId(m, "csay")!; cs.setAttribute("x", st.cx.toFixed(1)); cs.setAttribute("y", (200 - 140 * st.k - 8).toFixed(1)); cs.textContent = st.sayT > 0 ? st.say : "";
-      setBar(m, "cfl", st.fear); setText(m, "cf", String(Math.round(st.fear)));
-      setBar(m, "ctl", (1 - st.t / st.T) * 100); setText(m, "ct", Math.max(0, Math.ceil(st.T - st.t)) + " 秒");
-      if (st.fear >= 100) { setText(m, "mmsg", "麻糬躲到沙發下了……"); done(false, true); return false; }
-      if (st.t >= st.T) { done(false, true); return false; }
-    });
-  }, () => done(false, true), A.practice ? "今天先練到這裡" : "直接抓進去");
-}
 /* eslint-enable @typescript-eslint/no-explicit-any */
 
 // ---------- 摸貓：按住貓咪慢慢滑動。頭頂、下巴、背是喜歡的地方（其中一個最愛），肚子和尾巴會讓牠不高興 ----------
@@ -656,12 +581,12 @@ function startPet(m: Mini, S: MiniCtx) {
 }
 
 const STARTERS: Record<MiniId, (m: Mini, S: MiniCtx) => void> = {
-  scoop: startScoop, pet: startPet, feed: startFeed, water: startWater, nail: startNail, brush: startBrush, carrier: startCarrier,
+  scoop: startScoop, pet: startPet, feed: startFeed, water: startWater, nail: startNail, brush: startBrush,
 };
 
 /** 在 root 裡開一個小遊戲；回傳停止函式（元件卸載時呼叫，不會回傳結果） */
 export function startMini(id: MiniId, root: HTMLElement, ctx: MiniCtx, onDone: (r: unknown) => void): () => void {
-  const m: Mini = { root, raf: 0, running: !["pet", "nail", "brush", "carrier"].includes(id), closed: false, done: onDone, last: 0 };
+  const m: Mini = { root, raf: 0, running: !["pet", "nail", "brush"].includes(id), closed: false, done: onDone, last: 0 };
   STARTERS[id](m, ctx);
   return () => { if (!m.closed) { m.closed = true; cancelAnimationFrame(m.raf); root.innerHTML = ""; } };
 }

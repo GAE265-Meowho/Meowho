@@ -8,7 +8,7 @@ const memory = () => {
 
 describe("小遊戲開始前的示範", () => {
   it("每個小遊戲都有 2～4 張示範圖，每張都有說明", () => {
-    const ids: GuideId[] = ["feed", "water", "scoop", "pet", "brush", "nail", "carrier", "play"];
+    const ids: GuideId[] = ["feed", "water", "scoop", "pet", "brush", "nail", "play"];
     for (const id of ids) {
       const g = MINI_GUIDES[id];
       expect(g.steps.length, id).toBeGreaterThanOrEqual(2);

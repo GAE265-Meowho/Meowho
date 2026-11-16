@@ -10,7 +10,7 @@ import s from "@/components/play/play.module.css";
 export function GuideRec() {
   const [g, setG] = useState<MiniId | null>(null);
   useEffect(() => {
-    if (!new URLSearchParams(location.search).get("guide")) for (const id of ["feed", "water", "scoop", "pet", "brush", "nail", "carrier", "play"]) localStorage.setItem(guideKey(id as never), "1");
+    if (!new URLSearchParams(location.search).get("guide")) for (const id of ["feed", "water", "scoop", "pet", "brush", "nail", "play"]) localStorage.setItem(guideKey(id as never), "1");
     setG(new URLSearchParams(location.search).get("g") as MiniId);
   }, []);
   const ctx = { age: 4, touchFav: "chin" as const, brushLevel: 0, cat: { body: 5, trust: 70, stress: 20, tabby: true } };

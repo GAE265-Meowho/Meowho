@@ -3,11 +3,11 @@
 // 2026-11-14 渝茜：示範要用真正的遊戲畫面。逗貓以外都有錄影（docs/play-tasks/guide-videos.md 寫怎麼重錄）；逗貓要在掃描房間裡玩，還沒錄，先用動畫示範圖。
 // 2026-11-14 渝茜：說明縮短成約原本的 1/3，放在錄影下面一排。文字照各小遊戲畫面上的提示寫（FeedGame3D、WaterRefillGame3D、ScoopGame3D、PetGame3D、BrushGameRealistic、NailGame2D、minis.ts 的外出籠、ScanWand）。
 
-export type GuideId = "feed" | "water" | "scoop" | "pet" | "brush" | "nail" | "carrier" | "play";
+export type GuideId = "feed" | "water" | "scoop" | "pet" | "brush" | "nail" | "play";
 /** 示範圖裡的手勢：hold 按住、tap 點、circle 畫圈、drag 拖過去、shake 左右甩、stroke 來回順摸、scrub 小幅來回刷、follow 帶著玩具跑、rest 手停著（提醒） */
 export type Gesture = "hold" | "tap" | "circle" | "drag" | "shake" | "stroke" | "scrub" | "follow" | "rest";
 /** 示範圖畫什麼 */
-export type GuideProp = "bowl" | "dirtyBowl" | "tap" | "litter" | "bag" | "cat" | "mouth" | "paw" | "carrier" | "toy";
+export type GuideProp = "bowl" | "dirtyBowl" | "tap" | "litter" | "bag" | "cat" | "mouth" | "paw" | "toy";
 
 export interface GuideStep { text: string; prop: GuideProp; gesture: Gesture; /** 圖上要按的鈕（手會按在它上面） */ button?: string }
 export interface MiniGuide {
@@ -48,11 +48,6 @@ export const MINI_GUIDES: Record<GuideId, MiniGuide> = {
     { prop: "paw", gesture: "hold", text: "按住肉球推出指甲" },
     { prop: "paw", gesture: "drag", text: "指甲刀拖到尖端放開" },
     { prop: "paw", gesture: "rest", text: "避開粉紅色血線" },
-  ] },
-  carrier: { title: "進外出籠", video: "/play/guide/carrier.mp4", steps: [
-    { prop: "carrier", gesture: "tap", text: "在遠處放零食" },
-    { prop: "carrier", gesture: "tap", text: "一顆一顆往籠子放" },
-    { prop: "carrier", gesture: "rest", text: "太近牠會不敢過去" },
   ] },
   // 2026-11-16 渝茜：用她掃描房間裡實際逗貓的錄影（之前沒有錄影，用動畫示範圖）
   play: { title: "逗貓", video: "/play/guide/play.mp4", steps: [

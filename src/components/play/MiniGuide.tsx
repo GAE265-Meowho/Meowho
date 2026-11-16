@@ -62,13 +62,6 @@ function Prop({ id }: { id: GuideProp }) {
         <ellipse cx="100" cy="98" rx="16" ry="12" fill="#f1a7b2" />
         {[72, 92, 112, 130].map(x => <g key={x}><circle cx={x} cy="66" r="8" fill="#f1a7b2" /><path d={`M${x} 58l-3-14h6z`} fill="#fff" stroke="#e9b9c0" /></g>)}
       </g>;
-    case "carrier":
-      return <g>
-        <rect x="132" y="56" width="80" height="58" rx="8" fill="#f2e6d6" stroke="var(--line)" strokeWidth="3" />
-        <path d="M132 70v34" stroke="var(--caramel)" strokeWidth="4" />
-        <circle cx="172" cy="85" r="34" fill="none" stroke="#e05a4f" strokeWidth="2" strokeDasharray="5 4" opacity=".7" />
-        {[40, 72, 104].map(x => <circle key={x} cx={x} cy="110" r="5" fill="#c98b4a" className={g.treat} />)}
-      </g>;
     case "toy":
       return <g>
         <rect x="10" y="102" width="220" height="30" rx="6" fill="#e9dcc6" />
@@ -97,7 +90,6 @@ function handAt(step: GuideStep): [number, number] {
     case "cat": return [80, 86];
     case "mouth": return [96, 84];
     case "paw": return [100, 96];
-    case "carrier": return [60, 110];
     case "tap": return [214, 128];
     case "toy": return [60, 70];
   }

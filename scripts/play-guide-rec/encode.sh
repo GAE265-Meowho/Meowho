@@ -18,4 +18,3 @@ enc scoop 2.4 39 90
 enc pet 1.5 26 74
 enc brush 1.2 17 112
 enc nail 1 14 140  # 照片特寫版（#404）：裁掉標題與上方說明，從照片開始
-enc carrier 1.4 23 72

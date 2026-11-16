@@ -11,9 +11,9 @@ import type { Hazard } from "./hazards";
 import { ageText } from "./player-data";
 
 export type NodeId = "day1" | "day3" | "day30" | "month8" | "year5" | "year10" | "farewell";
-/** scoop、pet、feed、water、nail、brush、carrier 是小遊戲（catgame/minis.ts）；逗貓是 3D（ScanWand，掃描房間） */
-export type MiniId = "scoop" | "pet" | "feed" | "water" | "nail" | "brush" | "carrier" | "play";
-/** 貓的姿勢：carrier 整隻縮在外出籠裡、sit 坐著、none 不在畫面… */
+/** scoop、pet、feed、water、nail、brush 是小遊戲（catgame/minis.ts）；逗貓是 3D（ScanWand，掃描房間） */
+export type MiniId = "scoop" | "pet" | "feed" | "water" | "nail" | "brush" | "play";
+/** 貓的姿勢：carrier 整隻縮在外出籠裡（第 1 天）、sit 坐著、none 不在畫面… */
 export type CatPose = "sit" | "underbed" | "hide" | "sofa" | "zoom" | "frail" | "bed" | "table" | "none" | "carrier";
 export type Speaker = "you" | "clerk" | "vet" | "partner" | string;
 
@@ -150,13 +150,13 @@ export function accidentSteps(X: Life): Step[] {
 }
 
 /** 節點 6：牙齒、體態、飲水三個值決定獸醫說什麼；用語只寫「指標偏高、建議追蹤」，不下診斷 */
-export function checkupSteps(X: Life, carrierOk: boolean): Step[] {
+export function checkupSteps(X: Life): Step[] {
   const c = X.care, out: Step[] = [];
   const teethBad = c.teeth < 60;
   out.push(sc("vet", "day", "table"));
   out.push(VT(teethBad ? "牙結石很多，牙齦發炎，建議安排洗牙。熟齡貓麻醉前要先做檢查。" : "牙齒保養得很好，牙齦也很健康。"));
   if (c.weight >= 65) out.push(VT("體重偏重，要開始定時定量、多陪牠動一動。"));
-  out.push(REC({ fx: { spent: teethBad ? 7500 : 4500, kind: "med", ...(carrierOk ? {} : { stress: 5 }) }, note: teethBad ? "熟齡健康檢查與洗牙" : "熟齡健康檢查", pick: "安排了熟齡健檢。", good: true }));
+  out.push(REC({ fx: { spent: teethBad ? 7500 : 4500, kind: "med" }, note: teethBad ? "熟齡健康檢查與洗牙" : "熟齡健康檢查", pick: "安排了熟齡健檢。", good: true }));
   if (c.water < 50) {
     out.push(VT("有一項指標偏高，現在沒有症狀，建議追蹤。"));
     out.push(ASK("vet", "接下來你想怎麼做？", [
@@ -169,9 +169,8 @@ export function checkupSteps(X: Life, carrierOk: boolean): Step[] {
   return out;
 }
 
-const OK = (r: unknown) => r === true;
 /** 劇情裡的小遊戲（跳出彈窗）：做成功信任 +2，沒做好只是照顧得普通，不扣分 */
-const MINI = (id: Exclude<MiniId, "carrier">): Step => ({ k: "mini", mini: id, then: r => (careGood(id, r) ? [REC({ fx: { trust: 2 } })] : []) });
+const MINI = (id: MiniId): Step => ({ k: "mini", mini: id, then: r => (careGood(id, r) ? [REC({ fx: { trust: 2 } })] : []) });
 
 /** 節點 4 要不要演結紮：幼貓（到這一段還不到 1.5 歲）而且資料上還沒結紮。成貓或已經結紮的貓演「平凡的一天」 */
 export const needsSpay = (X: Life) => !X.cat.neutered && X.age < 18;
@@ -293,7 +292,7 @@ export const STORY: readonly StoryNode[] = [
       sc("room", "day"),
       FN(X => [VT(`${ageText(Math.round(X.age))}了。熟齡貓很多慢性病一開始看不出來，所以建議每年做一次健康檢查。`)]),
       XN("要出門了。你把〈貓名〉請進當年那個外出籠。"),
-      { k: "mini", mini: "carrier", then: r => [FN(X => checkupSteps(X, OK(r)))] },
+      FN(checkupSteps),
     ],
     page: { title: "熟齡健康檢查", tip: "7 歲以後建議每年健康檢查。很多慢性病早期沒有症狀，及早發現，才有機會及早調整照護。" },
   },

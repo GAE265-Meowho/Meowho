@@ -77,6 +77,14 @@ describe("流程（newgame v0.5）", () => {
     expect(all).not.toContain("床底");
   });
 
+  it("節點 6 十年後：沒有外出籠小遊戲，直接去看醫生（渝茜 2026-11-16 刪掉）", () => {
+    const year10 = STORY.find(n => n.id === "year10")!;
+    expect(year10.steps.some(st => st.k === "mini")).toBe(false);
+    const { seen } = playThrough();
+    expect(seen.join("")).toContain("要出門了");
+    expect(seen.join("")).toContain("牙齒");
+  });
+
   it("每個動作每輪可以重複做（渝茜 2026-11-07：想重複就重複），數值有上限", () => {
     let s = initialPlay();
     s = { ...s, cur: { kind: "home" }, homeDone: [] };

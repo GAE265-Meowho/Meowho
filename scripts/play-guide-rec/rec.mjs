@@ -1,4 +1,4 @@
-// 錄一段小遊戲示範：node rec.mjs <feed|water|scoop|pet|brush|nail|carrier>（先 npm run dev；步驟見 docs/play-tasks/guide-videos.md）
+// 錄一段小遊戲示範：node rec.mjs <feed|water|scoop|pet|brush|nail>（先 npm run dev；步驟見 docs/play-tasks/guide-videos.md）
 // 開真正的小遊戲（/dev/play-guide-rec），照 play-<小遊戲>.mjs 的路線用滑鼠操作，邊做邊錄成 $OUT/<小遊戲>.webm。亂數固定，砂團等位置每次一樣。
 import { mkdirSync } from "node:fs";
 import puppeteer from "puppeteer-core";
