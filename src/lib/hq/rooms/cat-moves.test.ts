@@ -1,6 +1,6 @@
 // 貓的動作串接：起跳前轉身、跳躍動作選擇與時間點、走路配速。純函式。
 import { describe, expect, it } from "vitest";
-import { angleDiff, clipRate, jumpClipFor, jumpHeading, jumpKind, jumpReady, jumpTiming, moveClip, turnStep } from "./cat-moves";
+import { angleDiff, clipRate, playerCanMove, jumpClipFor, jumpHeading, jumpKind, jumpReady, jumpTiming, moveClip, turnStep } from "./cat-moves";
 
 describe("起跳前轉身", () => {
   it("角度差取最短的一邊", () => {
@@ -67,5 +67,14 @@ describe("走路配速", () => {
     expect(clipRate(0.7, 0.35)).toBe(2);
     expect(clipRate(5, 0.35)).toBe(3);
     expect(clipRate(0.01, 0.35)).toBe(0.3);
+  });
+});
+
+describe("縮在外出籠時玩家叫不出來（渝茜 2026-11-16：第 1 天躲在外出籠，貓還是會跑出來）", () => {
+  it("劇情讓貓縮在籠裡：點地板、叫貓都不理；只有劇情能讓牠出來", () => {
+    expect(playerCanMove("tuck")).toBe(false);
+  });
+  it("其他時候照常可以點地板叫貓", () => {
+    for (const s of ["idle", "walk", "jump", "paw", "sit"]) expect(playerCanMove(s)).toBe(true);
   });
 });

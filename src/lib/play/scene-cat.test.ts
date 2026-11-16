@@ -23,7 +23,16 @@ describe("sceneCatCommand", () => {
     expect(sceneCatCommand("carrier", objects, placed)).toEqual({ kind: "go", x: 1, z: 1 });
     // 有外出籠尺寸：整隻縮進籠子裡（第 1 天）
     expect(sceneCatCommand("carrier", objects, placed, [{ id: "carrier", widthM: 0.33, depthM: 0.51, heightM: 0.31 }]))
-      .toEqual({ kind: "tuck", carrier: { x: 1, z: 1, widthM: 0.33, depthM: 0.51, heightM: 0.31 } });
+      .toEqual({ kind: "tuck", carrier: { x: 1, z: 1, widthM: 0.33, depthM: 0.51, heightM: 0.31, rotY: 0 } });
+  });
+  it("外出籠轉過方向：貓也照轉過的方向縮進去（渝茜 2026-11-16：第 1 天貓跑到籠子外面）", () => {
+    const it1 = [{ id: "carrier", widthM: 0.33, depthM: 0.51, heightM: 0.31, rot: 1 }];
+    const cmd = sceneCatCommand("carrier", objects, placed, it1);
+    expect(cmd.kind).toBe("tuck");
+    if (cmd.kind === "tuck") expect(cmd.carrier.rotY).toBeCloseTo(Math.PI / 2);
+    const it3 = [{ id: "carrier", widthM: 0.33, depthM: 0.51, heightM: 0.31, rot: 3 }];
+    const cmd3 = sceneCatCommand("carrier", objects, placed, it3);
+    if (cmd3.kind === "tuck") expect(cmd3.carrier.rotY).toBeCloseTo((3 * Math.PI) / 2);
   });
   it("吃飯去碗、上廁所去貓砂盆；沒擺就隨便逛", () => {
     expect(sceneCatCommand("eat", objects, placed)).toEqual({ kind: "go", x: 1.5, z: 3, look: true, clip: "eat" });

@@ -4,7 +4,7 @@ import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { mainRegion } from "./regions";
 import { carrierExit, fitCatInCarrier } from "../../play/carrier-fit";
 import { poseBounds, tuckClip } from "./pose-bounds";
-import { clipRate, jumpClipFor, jumpHeading, jumpKind, jumpReady, moveClip, turnStep } from "./cat-moves";
+import { clipRate, jumpClipFor, jumpHeading, jumpKind, jumpReady, moveClip, playerCanMove, turnStep } from "./cat-moves";
 import { clipJumpTiming, inPlaceClip, isJumpClip } from "./jump-clips";
 import { gallopClip } from "./gallop";
 import { playSfx } from "../../play/audio-player";
@@ -676,6 +676,7 @@ export class RoomCat {
 
   // 點擊畫面：射線打到地板平面就走過去
   walkToScreen(ndc, camera) {
+    if (!playerCanMove(this.state)) return false;  // 劇情讓牠躲在外出籠裡：點地板叫不出來
     const ray = new THREE.Raycaster();
     ray.setFromCamera(ndc, camera);
     const hit = ray.ray.intersectPlane(this.floor, new THREE.Vector3());
@@ -687,6 +688,7 @@ export class RoomCat {
 
   // 叫到看得到的地板上：在可走的格子裡挑「落在畫面中下方、0.6~3.5 公尺內、上方沒有桌子」最理想的一格
   comeTo(camera) {
+    if (!playerCanMove(this.state)) return false;
     const v = new THREE.Vector3();
     const eye = this.frame.worldToLocal(camera.position.clone());
     let best = -1, bestScore = Infinity;
