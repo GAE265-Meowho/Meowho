@@ -224,16 +224,6 @@
   box-shadow: var(--shadow);
 }
 
-/* 橘子 naps on the card's top edge, to the right of the ears */
-.statsPerch {
-  position: absolute;
-  right: 14%;
-  top: 0;
-  width: 2px;
-  height: 2px;
-  transform: translateY(-100%);
-}
-
 .stats ul {
   list-style: none;
   margin: 0;
@@ -363,9 +353,6 @@
     border-left: 2px dashed var(--line);
   }
 
-  .statsPerch {
-    right: 10%;
-  }
 
   .statsFoot {
     flex-direction: column-reverse;
