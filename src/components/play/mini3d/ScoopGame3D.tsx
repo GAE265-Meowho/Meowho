@@ -8,6 +8,8 @@ import { useEffect, useRef, useState } from "react";
 import { newScoop, SCOOP_TEXT, scoopDone, scoopResult, type LitterBoxKind, type ScoopEvent, type ScoopState } from "@/lib/play/mini3d/scoop-rules";
 import { ScoopScene } from "./ScoopScene";
 import styles from "./mini3d.module.css";
+import { playSfx } from "@/lib/play/audio-player";
+import { SCOOP_SFX } from "@/lib/play/sfx-cues";
 
 /** box：採買選的貓砂盆款式；dirt：砂盆髒的程度（0～100） */
 export function ScoopGame3D({ box = "open", dirt = 70, clumps = null, onDone }: { box?: LitterBoxKind; dirt?: number; clumps?: number | null; onDone: (r: unknown) => void }) {
@@ -16,8 +18,13 @@ export function ScoopGame3D({ box = "open", dirt = 70, clumps = null, onDone }: 
   const [ui, setUi] = useState({ bagged: 0, message: "" });
   const total = start.clumps.length, clean = ui.bagged >= total;
 
-  // 音效（第 6 份）：鏟起（pick／pickPoop）時播 sfx_scoop_litter，甩（shake／sifted）時播 sfx_sift_litter，丟進袋子（bagged／baggedSandy）時播 sfx_bag_drop
-  const onEvent = (e: Exclude<ScoopEvent, null>) => setUi({ bagged: state.current.bagged, message: scoopDone(state.current) ? (e === "baggedSandy" ? "清乾淨了！不過最後那鏟帶了很多砂。" : "清乾淨了！") : SCOOP_TEXT[e] });
+  // 音效：鏟起是鏟砂聲、丟進袋子是垃圾袋聲（sfx-cues.ts 的 SCOOP_SFX）
+  const onEvent = (e: Exclude<ScoopEvent, null>) => {
+    const sfx = SCOOP_SFX[e];
+    if (sfx) playSfx(sfx);
+    onScoopText(e);
+  };
+  const onScoopText = (e: Exclude<ScoopEvent, null>) => setUi({ bagged: state.current.bagged, message: scoopDone(state.current) ? (e === "baggedSandy" ? "清乾淨了！不過最後那鏟帶了很多砂。" : "清乾淨了！") : SCOOP_TEXT[e] });
   // 全部清掉後停一下再關
   useEffect(() => {
     if (!clean || total === 0) return;

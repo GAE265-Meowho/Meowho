@@ -30,6 +30,7 @@ import { homeWord } from "@/lib/play/furniture";
 import { ruleHazards, type Hazard } from "@/lib/play/hazards";
 import { resolvePlayItems, resolvePlayToy, type PlayItem } from "@/lib/play/items";
 import { nearLabel, type SceneItem } from "@/lib/play/scene-items";
+import { autoSpot, showMoveHint } from "@/lib/play/auto-place";
 import { litterApart } from "@/lib/play/litter-apart";
 import { parsePoses, type ItemPose } from "@/lib/play/scan-place";
 import type { RoomPlaceApi, RoomPlaceEdit } from "@/components/hq/assets/RoomViewer";
@@ -62,6 +63,7 @@ import { EndingOverlay } from "./EndingOverlay";
 import { AdoptDialog } from "./AdoptDialog";
 import endFx from "./ending.module.css";
 import { playSfx } from "@/lib/play/audio-player";
+import { TAP_VOLUME, bubbleSfx, careSfx, catchSfx, meterSfx, poseSfx } from "@/lib/play/sfx-cues";
 import { ScanWand } from "./ScanWand";
 import { MiniGuideGate, warmGuideVideos } from "./MiniGuide";
 import { ReportStep } from "./ReportStep";
@@ -160,6 +162,9 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
   // 掃描房間：玩家在 3D 房間裡自己擺的位置與旋轉（有就優先於 scanSpots 的「某某旁」）
   const [scanPose, setScanPose] = useState<Partial<Record<PlayItem["id"], ItemPose>>>({});
   const [placeMsg, setPlaceMsg] = useState<string | null>(null);
+  // 「點選移動」提示框（渝茜 2026-11-16）：點用品自動放好後出現，點一下就關掉，這一輪不再出現
+  const [autoPlaced, setAutoPlaced] = useState(false);
+  const [hintClosed, setHintClosed] = useState(false);
   const placeApi = useRef<RoomPlaceApi | null>(null);
   const [lines, setLines] = useState<Partial<Record<NodeId, Line[]>>>({});
   const top = useRef<HTMLHeadingElement>(null);
@@ -477,6 +482,7 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
       setScanPose(v => ({ ...v, [id]: pose }));
       setScanSpots(v => ({ ...v, [id]: FREE_SPOT }));
       setPlaceMsg(null);
+      setHintClosed(true);  // 已經會移動了，提示框收掉
     },
     onSelect: id => { if (playItems.some(i => i.id === id)) setPlacing(id as PlayItem["id"]); },
     onBlocked: (id, by) => setPlaceMsg(`${playItems.find(i => i.id === id)?.name ?? "用品"}會和${playItems.find(i => i.id === by)?.name ?? "別的用品"}重疊，換個位置試試。`),
@@ -488,14 +494,28 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
     const item = playItem(placing);
     return itemSpots(ROOM_SCENE, item, spots.filter(x => x.id !== placing), FURNITURE_NAMES);
   }, [kind, labels, placing, spots, playItem]);
-  const choose = (p: { x: number; z: number; label: string }) => {
-    if (kind !== "scan") { placeAt(placing, { x: p.x, z: p.z, y: 0, support: null }); return; }
-    setScanSpots(v => ({ ...v, [placing]: p.label }));
-    dropPose(placing);
-    setPlaceMsg(null);
-    const other = playItems.find(i => i.id !== placing && !scanSpots[i.id]);
-    if (other) setPlacing(other.id);
+  // 點用品：選它；還沒放過就自動放進房間（取代原本的「快速放」那一排），再跳「點選移動」提示
+  const pickItem = (id: PlayItem["id"]) => {
+    setPlacing(id);
+    if (placedIds.includes(id)) return;
+    if (kind === "scan") {
+      const label = autoSpot(spotList, playItems.filter(i => i.id !== id).map(i => scanSpots[i.id]));
+      if (!label) return;
+      setScanSpots(v => ({ ...v, [id]: label }));
+      dropPose(id);
+      setPlaceMsg(null);
+    } else {
+      const sp = itemSpots(ROOM_SCENE, playItem(id), spots.filter(x => x.id !== id), FURNITURE_NAMES)[0];
+      if (!sp) return;
+      const item = playItem(id);
+      setPlaced(list => [...list.filter(p => !p.key.startsWith(`${id}:`)), {
+        key: `${id}:${Date.now()}`, roomId: DEMO_DOLLHOUSE.id, url: item.url, name: item.name,
+        x: sp.x, z: sp.z, y: 0, support: null, widthM: item.widthM, depthM: item.depthM, heightM: item.heightM,
+      }]);
+    }
+    setAutoPlaced(true);
   };
+  const moveHint = state.step === "place" && showMoveHint({ autoPlaced, dismissed: hintClosed });
 
   // 第 3 天：砂盆和碗「放在一起／分開」是真的搬東西——放一起就自動搬到碗旁，分開就請玩家重選一個位置
   const bowlSpot = scanSpots.bowl ?? null;
@@ -558,6 +578,43 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
   const stains = useMemo(() => stainsFor({ step: state.step, nodeId: node.id, bg: state.scene.bg, pose: state.scene.cat, life: state.life }),
     [state.step, node.id, state.scene.bg, state.scene.cat, state.life]);
   useEffect(() => { if (stains.length) playSfx("sfx_spray"); }, [stains.length]);
+  // 其他音效（渝茜 2026-11-16：把後台音樂庫的音效套上去）：什麼事件播哪個在 sfx-cues.ts，這裡只在事件發生那一刻呼叫
+  const lastBubble = useRef<string | null>(null);
+  useEffect(() => {
+    const id = bubbleSfx(lastBubble.current, bubble, { nodeId: node.id, female: cat.sex === "female" });
+    lastBubble.current = bubble;
+    if (id) playSfx(id);
+  }, [bubble, node.id, cat.sex]);
+  const lastPose = useRef<CatPose | null>(null);
+  useEffect(() => {
+    const pose = state.step === "node" ? state.scene.cat : null;
+    const id = pose ? poseSfx(lastPose.current, pose, node.id) : null;
+    lastPose.current = pose;
+    if (id) playSfx(id);
+  }, [state.step, state.scene.cat, node.id]);
+  const lastMeters = useRef<{ trust: number; stress: number } | null>(null);
+  useEffect(() => {
+    const now = { trust: state.life.trust, stress: state.life.stress };
+    const ids = state.step === "node" ? meterSfx(lastMeters.current, now) : [];
+    lastMeters.current = state.step === "node" ? now : null;
+    ids.forEach(id => playSfx(id));
+  }, [state.step, state.life.trust, state.life.stress]);
+  const lastCatches = useRef(0);
+  useEffect(() => {
+    const id = catchSfx(lastCatches.current, catches);
+    lastCatches.current = catches;
+    if (id) playSfx(id);
+  }, [catches]);
+  useEffect(() => { if (scanWand) playSfx("sfx_toy"); }, [scanWand]);
+  // 按鈕聲：整個遊戲畫面的按鈕都響（小聲）；拖曳用品、搖桿不算
+  useEffect(() => {
+    const onDown = (e: PointerEvent) => {
+      const t = e.target instanceof Element ? e.target.closest("button, a[href]") : null;
+      if (t && !t.closest(".hq-roomviewer-stick")) playSfx("sfx_tap", TAP_VOLUME);
+    };
+    document.addEventListener("pointerdown", onDown, true);
+    return () => document.removeEventListener("pointerdown", onDown, true);
+  }, []);
   const elder = elderFor(node.id, state.step);
   const vet = showVet({ step: state.step, bg: state.scene.bg, home: cur?.kind === "home" });
   const shot = useMemo(() => (state.step === "node" && cur?.kind !== "home" ? shotFor(node.id, state.scene.cat) : null), [state.step, cur?.kind, node.id, state.scene.cat]);
@@ -653,6 +710,12 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
           onDrop={state.step === "place" && kind === "dollhouse"
             ? (id, at) => { if (playItems.some(i => i.id === id)) placeAt(id as PlayItem["id"], at); }
             : undefined}>
+          {moveHint && (
+            <button type="button" className={pm.moveHint} onClick={() => setHintClosed(true)} aria-label="點選移動：知道了">
+              <strong>點選移動</strong>
+              <span>{kind === "scan" ? `點地板就能把${playItem(placing).name}移過去，也可以直接拖曳` : `把${playItem(placing).name}從下面拖進房間就能換位置`}</span>
+            </button>
+          )}
         </PlayStage>
       )}
 
@@ -701,39 +764,31 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
 
       {immersive && <div className={s.sheet}>
       {state.step === "place" && (
-        // 精簡版（渝茜 2026-11-14：原本太大）：標題＋說明一行、用品一行、快速放置一行、還缺＋帶回家一行
+        // 精簡版（渝茜 2026-11-16 再縮小，拿掉「快速放」）：標題＋說明一行、用品＋轉向一行、還缺＋帶回家一行
         <section className={`${s.card} ${pm.placeCard}`} aria-labelledby="place-title">
           <div className={pm.placeHead}>
             <h2 id="place-title">擺用品</h2>
-            <span className={pm.placeHint}>{kind === "scan" ? "選用品後點地板放，放好的可以拖曳" : "選位置，或把用品拖進房間"}</span>
+            <span className={pm.placeHint}>{kind === "scan" ? "點用品就會放進房間，點地板或拖曳可以移動" : "點用品就會放進房間，也可以拖進房間換位置"}</span>
           </div>
           {/* 用品鈕和轉向鈕排在同一列 */}
           <div className={pm.placeRow}>
             <div className={s.chips} role="group" aria-label="要放的用品">
               {playItems.map(i => (
-                <button key={i.id} type="button" className={s.chipBtn} aria-pressed={placing === i.id}
+                <button key={i.id} type="button" className={`${s.chipBtn} ${pm.itemBtn}`} aria-pressed={placing === i.id}
                   draggable onDragStart={e => setItemDragData(e.dataTransfer, i.id)}
-                  onClick={() => setPlacing(i.id)}>
+                  onClick={() => pickItem(i.id)}>
                   {i.name}{placedIds.includes(i.id) ? " ✓" : ""}
                 </button>
               ))}
             </div>
             {/* 用品用滑鼠拖曳移動（渝茜 2026-11-14：不要物件方向鍵）；只留轉向 */}
             {kind === "scan" && scanSpots[placing] && (
-              <button type="button" className={s.chipBtn} onClick={() => placeApi.current?.rotate(placing)}>
+              <button type="button" className={`${s.chipBtn} ${pm.itemBtn}`} onClick={() => placeApi.current?.rotate(placing)}>
                 {playItem(placing).name}轉向
               </button>
             )}
           </div>
           {placeMsg && <p className={s.missing} role="status">{placeMsg}</p>}
-          <div className={pm.quick} role="group" aria-label={`快速放置${playItem(placing).name}`}>
-            <span className={pm.quickLabel}>快速放：</span>
-            {spotList.map(p => (
-              <button key={p.label} type="button" className={`${s.chipBtn} ${pm.quickBtn}`}
-                aria-pressed={kind === "scan" ? scanSpots[placing] === p.label : undefined}
-                onClick={() => choose(p)}>{p.label}</button>
-            ))}
-          </div>
           <div className={pm.placeFoot}>
             {placedIds.length < playItems.length
               ? <span className={s.missing}>還缺：{playItems.filter(i => !placedIds.includes(i.id)).map(i => i.name).join("、")}</span>
@@ -769,11 +824,14 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
       {state.step === "node" && cur?.kind === "mini" && cur.mini !== "play" && (
         <CatgameMini key={`${state.nodeIndex}:${cur.mini}:${state.life.picks.length}`} id={cur.mini} ctx={miniCtx} catName={catName} feedKinds={feedKinds} onRestock={() => setRestocking(true)} day={state.today}
           // 外出籠：劇情只看成功與否（原版結果 { ok, forced, treats }）
-          onDone={r => dispatch({ type: "miniDone", result: cur.mini === "carrier" ? (r as { ok?: boolean } | null)?.ok === true : r })} />
+          onDone={r => {
+            if (cur.mini !== "carrier") careSfx(cur.mini, r).forEach(id => playSfx(id));
+            dispatch({ type: "miniDone", result: cur.mini === "carrier" ? (r as { ok?: boolean } | null)?.ok === true : r });
+          }} />
       )}
       {state.step === "node" && cur?.kind === "home" && careAct === "play" && scanWand && (
         <MiniGuideGate key={`care:wand:${state.life.care.rounds}`} id="play" catName={catName} modal={{ title: `逗${catName}玩` }}>
-          <ScanWand catName={catName} catches={catches} onDone={r => { dispatch({ type: "care", act: "play", good: careGood("play", r), result: r }); setCareAct(null); }} />
+          <ScanWand catName={catName} catches={catches} onDone={r => { dispatch({ type: "care", act: "play", good: careGood("play", r), result: r }); careSfx("play", r).forEach(id => playSfx(id)); setCareAct(null); }} />
         </MiniGuideGate>
       )}
       {state.step === "node" && cur?.kind === "home" && careAct && careAct !== "play" && (() => {
@@ -781,6 +839,7 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
         const done = (r: unknown) => {
           if (r === null) { setCareAct(null); return; }
           dispatch({ type: "care", act: careAct, good: careGood(careAct, r), result: r });
+          careSfx(careAct, r).forEach(id => playSfx(id));
           if (careAct === "feed" || careAct === "water") setServed(n => n + 1);
           setCareAct(null);
         };
@@ -803,7 +862,7 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
       {state.step === "report" && home && (
         <ReportStep state={state} pick={pick} monthly={shop.month} home={home} runId={runId} catHref={catHref}
           onReachEnd={() => setReportRead(true)} onAdoptInfo={!state.life.abandoned && cat.adoptable ? () => setAdoptOpen(n => n + 1) : undefined}
-          onRestart={() => { dispatch({ type: "restart" }); setEnded(false); setReportRead(false); setShots([]); hazardsAsked.current = false; hazardShown.current = false; setHazardItem(null); setPlaced([]); setScanSpots({}); setScanPose({}); setLines({}); setRunId(null); setFrozenRoom(null); savedCp.current = null; }} />
+          onRestart={() => { dispatch({ type: "restart" }); setEnded(false); setReportRead(false); setShots([]); hazardsAsked.current = false; hazardShown.current = false; setHazardItem(null); setPlaced([]); setScanSpots({}); setScanPose({}); setAutoPlaced(false); setHintClosed(false); setLines({}); setRunId(null); setFrozenRoom(null); savedCp.current = null; }} />
       )}
 
       {restocking && state.step === "node" && <RestockDialog pick={pick} shop={backShop} stage={foodStage(startMonths)} catName={catName} onBuy={restock} onClose={() => setRestocking(false)} />}

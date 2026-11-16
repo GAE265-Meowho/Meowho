@@ -264,6 +264,26 @@ describe("第 3 天：砂盆搬家", () => {
   });
 });
 
+describe("第 3 天的餵貓（渝茜 2026-11-16：開場連續餵兩次）", () => {
+  const minisOfDay3 = (feedOnDay1: boolean) => {
+    let s = playReducer(initialPlay(), { type: "startNodes", catName: "小花", labels: [], once: 0, monthly: 0 });
+    const minis: string[] = [];
+    for (let guard = 0; guard < 200 && s.nodeIndex <= 1 && s.step === "node"; guard++) {
+      const c = s.cur!;
+      if (c.kind === "home" && s.nodeIndex === 0 && feedOnDay1) s = playReducer(s, { type: "care", act: "feed", good: true });
+      if (c.kind === "mini" && s.nodeIndex === 1) minis.push(c.mini);
+      s = playReducer(s, c.kind === "ask" ? { type: "choose", index: 0 } : c.kind === "mini" ? { type: "miniDone", result: true } : c.kind === "relocate" ? { type: "relocated" } : { type: "next" });
+    }
+    return minis;
+  };
+  it("第 1 天在家已經餵過：第 3 天不再叫你餵一次，直接鏟屎", () => {
+    expect(minisOfDay3(true)).toEqual(["scoop"]);
+  });
+  it("第 1 天沒餵：第 3 天照樣教你餵第一餐", () => {
+    expect(minisOfDay3(false)).toEqual(["feed", "scoop"]);
+  });
+});
+
 describe("在家的時光：做好才算完成", () => {
   it("做壞只記下試過，不算完成；結束時不再重複扣沒做的分", () => {
     let s = playReducer(initialPlay(), { type: "startNodes", catName: "小花", labels: [], once: 0, monthly: 0 });
