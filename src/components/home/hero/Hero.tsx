@@ -73,7 +73,7 @@ export default function Hero() {
         <div className={`wrap ${styles.content}`}>
           <div className={styles.copy}>
             <p className={styles.eyebrow}>
-              領養前，先跟牠的虛擬分身同居 7 天 <span className="chip">領養任務</span>
+              領養前，先跟牠的虛擬分身在你家同居 <span className="chip">領養任務</span>
             </p>
             <h1 id="hero-title">
               <span>讓貓貓找到你，</span>

@@ -56,7 +56,7 @@ export default function Trial() {
           title={
             <>
               <span>先跟牠的虛擬分身</span>
-              <span>同居 7 天</span>
+              <span>在你家同居</span>
             </>
           }
           lead="點點看，每天的餵飯、鏟屎、摸摸都要你親手來。"
