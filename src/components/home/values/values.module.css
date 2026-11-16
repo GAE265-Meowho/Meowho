@@ -41,9 +41,10 @@
   letter-spacing: 0.04em;
 }
 
+/* 貓坐在這塊空地上：電腦、平板的貓最高 240px（CatJourney 的 targetPx），加名牌要留 280px，才不會壓到上面的內文 */
 .perchZone {
   position: relative;
-  height: 170px;
+  height: 280px;
 }
 
 .introPerch {
@@ -223,16 +224,6 @@
   box-shadow: var(--shadow);
 }
 
-/* 橘子 naps on the card's top edge, to the right of the ears */
-.statsPerch {
-  position: absolute;
-  right: 14%;
-  top: 0;
-  width: 2px;
-  height: 2px;
-  transform: translateY(-100%);
-}
-
 .stats ul {
   list-style: none;
   margin: 0;
@@ -362,9 +353,6 @@
     border-left: 2px dashed var(--line);
   }
 
-  .statsPerch {
-    right: 10%;
-  }
 
   .statsFoot {
     flex-direction: column-reverse;

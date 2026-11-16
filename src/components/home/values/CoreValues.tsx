@@ -131,7 +131,6 @@ export default function CoreValues() {
       <div className={`wrap ${styles.statsWrap}`}>
         <EarTop color="var(--card)" className={styles.statsEars} />
         <div className={styles.stats}>
-          <CatPerch action="sleep" label="在這裡等一個家" className={styles.statsPerch} />
           <ul>
             {stats.map((s) => (
               <li key={s.label}>

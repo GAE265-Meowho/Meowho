@@ -9,8 +9,8 @@ import { type CatRig, useShadowTexture } from "./CatModel";
 /** 畫出來的橘子高約 2.2 單位、成貓母體高約 0.5 公尺：放大成同樣大小，CatJourney 的尺寸、名牌位置都不用改 */
 const TO_JOURNEY = { adult: 2.2 / 0.5, kitten: 2.2 / 0.25 } as const;
 
-export default function GlbCat({ rig, look, clip, onPet, children }: {
-  rig: CatRig; look: CatLook; clip: string; onPet: () => void; children?: React.ReactNode;
+export default function GlbCat({ rig, look, clip, speed = 1, onPet, children }: {
+  rig: CatRig; look: CatLook; clip: string; /** 動作播放倍速 */ speed?: number; onPet: () => void; children?: React.ReactNode;
 }) {
   const shadow = useShadowTexture();
   return (
@@ -26,7 +26,7 @@ export default function GlbCat({ rig, look, clip, onPet, children }: {
       </mesh>
       <group scale={TO_JOURNEY[look.body]}>
         <Suspense fallback={null}>
-          <CatModel baseUrl={look.base} albedoUrl={look.albedo} body={look.body} clip={clip} />
+          <CatModel baseUrl={look.base} albedoUrl={look.albedo} body={look.body} clip={clip} speed={speed} />
         </Suspense>
       </group>
       <group ref={(g) => void (rig.tag = g)} position={[0, 2.3, 0]}>
