@@ -17,5 +17,5 @@ enc water 1.6 26 58
 enc scoop 2.4 39 90
 enc pet 1.5 26 74
 enc brush 1.2 17 112
-enc nail 1 12 100
+enc nail 1 13 148
 enc carrier 1.4 23 72
