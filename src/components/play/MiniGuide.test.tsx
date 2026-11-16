@@ -30,10 +30,9 @@ describe("小遊戲開始前的示範", () => {
     expect(screen.getByText("遊戲本體")).toBeInTheDocument();
   });
 
-  it("沒有錄影的（逗貓）用動畫示範圖，可以點圓點換步驟", () => {
+  it("逗貓也用真正的遊戲錄影（渝茜 2026-11-16 在掃描房間錄的）", () => {
     render(<MiniGuideGate id="play" catName="灰寶"><p>遊戲本體</p></MiniGuideGate>);
-    expect(screen.queryByLabelText("逗貓的遊戲畫面示範")).toBeNull();
-    fireEvent.click(screen.getByRole("tab", { name: "第 2 步" }));
+    expect(screen.getByLabelText("逗貓的遊戲畫面示範")).toBeInTheDocument();
     expect(screen.getByText("灰寶碰到才算抓到")).toBeInTheDocument();
   });
 });

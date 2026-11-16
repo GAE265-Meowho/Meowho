@@ -54,7 +54,8 @@ export const MINI_GUIDES: Record<GuideId, MiniGuide> = {
     { prop: "carrier", gesture: "tap", text: "一顆一顆往籠子放" },
     { prop: "carrier", gesture: "rest", text: "太近牠會不敢過去" },
   ] },
-  play: { title: "逗貓", steps: [
+  // 2026-11-16 渝茜：用她掃描房間裡實際逗貓的錄影（之前沒有錄影，用動畫示範圖）
+  play: { title: "逗貓", video: "/play/guide/play.mp4", steps: [
     { prop: "toy", gesture: "follow", text: "移動滑鼠帶玩具跑" },
     { prop: "toy", gesture: "follow", text: `${C}碰到才算抓到` },
     { prop: "toy", gesture: "tap", button: "先到這裡", text: "玩夠按「先到這裡」" },

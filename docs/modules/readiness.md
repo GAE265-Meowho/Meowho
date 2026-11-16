@@ -393,3 +393,4 @@ Worker 選用的 `report.html` 與 `html-assets/` 位於既有 attempt 前綴。
 - 診間一律亮燈（`playLightTime` 的 `bg`）。摸貓：滑鼠只摸，轉視角用右邊方向鍵（`petOrbit`），游標是虛擬手。
 - 睡覺：閒晃停下來有機會原地睡（`NAP`），老貓（`ELDER_CAT.sleepy`）常睡、睡得久；跑酷、追玩具不睡。
 - 出外出籠站不住（牆裡、被佔住）就移到最近能走的地板；結尾老貓 `rest` 一直躺著、劇情鏡頭先夾進房間再瞄準（`shotAimDrop`，貓在卡片上方）；逗貓框改成一條。
+- 診間層隱藏時 `visibility: hidden`＋裡面 `pointer-events: none !important`（r3f 畫布外層行內 auto 會蓋過），不然看過獸醫後房間拖不動、逗貓玩具不跟滑鼠。逗貓示範影片 `play.mp4`。
