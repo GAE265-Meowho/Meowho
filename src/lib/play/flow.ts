@@ -16,6 +16,10 @@ import { newCare } from "./care";
 
 export const STEPS = ["background", "shop", "place", "node", "report"] as const;
 export type Step_ = (typeof STEPS)[number];
+/** 開場的基礎設定（還沒帶貓回家）：只有這三步可以存「目前在哪一步」、可以按上一步 */
+export type SetupStep = "background" | "shop" | "place";
+/** 「上一步」會回到哪：擺用品 → 採買 → 你的家；你的家、飼養（帶牠回家之後）、報告沒有上一步 */
+export const prevSetupStep = (step: Step_): SetupStep | null => (step === "place" ? "shop" : step === "shop" ? "background" : null);
 
 export interface Line { who?: Speaker; t: string; health?: boolean }
 
@@ -72,6 +76,8 @@ export const initialPlay = (): PlayState => ({
 
 export type PlayAction =
   | { type: "next" }
+  /** 開場設定的上一步：只換步驟，其他狀態（居家危險、勾選…）原樣保留；沒有上一步就不動 */
+  | { type: "back" }
   | { type: "goto"; step: Exclude<Step_, "node"> }
   | { type: "setHazards"; hazards: Hazard[] }
   | { type: "toggleHandled"; key: string }
@@ -198,6 +204,7 @@ export function playReducer(s: PlayState, a: PlayAction): PlayState {
   switch (a.type) {
     case "restart": return initialPlay();
     case "goto": return { ...s, step: a.step };
+    case "back": { const prev = prevSetupStep(s.step); return prev ? { ...s, step: prev } : s; }
     case "setHazards": return { ...s, hazards: a.hazards, handled: s.handled.filter(k => a.hazards.some(h => h.key === k)) };
     case "toggleHandled":
       return { ...s, handled: s.handled.includes(a.key) ? s.handled.filter(k => k !== a.key) : [...s.handled, a.key] };

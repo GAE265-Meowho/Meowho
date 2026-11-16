@@ -16,6 +16,10 @@ const regions = [
 ] as const;
 
 export function createPetHitRegions(model: Object3D) {
+  const surfaces: Mesh[] = [];
+  model.traverse(object => {
+    if (object instanceof Mesh && object.visible && object.name !== "whiskers") surfaces.push(object);
+  });
   const geometry = new SphereGeometry(1, 12, 8);
   const material = new MeshBasicMaterial();
   model.updateWorldMatrix(true, true);
@@ -32,14 +36,19 @@ export function createPetHitRegions(model: Object3D) {
   });
 
   return {
-    hit(ray: Raycaster): PetZone {
+    hit(ray: Raycaster, visibleOnly = false): PetZone {
       // 更新代理的祖先與自身，取當下姿勢；不必遍歷整個渲染場景。
       for (const proxy of proxies) proxy.updateWorldMatrix(true, false);
       const hits = ray.intersectObjects(proxies, false);
       const nearest = hits[0];
       if (!nearest) return null;
+      if (visibleOnly) {
+        model.updateWorldMatrix(true, true);
+        const surface = ray.intersectObjects(surfaces, false)[0];
+        if (!surface || Math.abs(surface.distance - nearest.distance) > 0.055) return null;
+      }
       // 兩個代理表面幾乎同深度時，以較窄的尾根為準；前方的軀幹仍會遮住尾巴。
-      if (nearest.object.userData.zone === "back" && hits.some(hit =>
+      if (!visibleOnly && nearest.object.userData.zone === "back" && hits.some(hit =>
         hit.object.userData.zone === "tail" && hit.distance - nearest.distance <= 0.018
       )) return "tail";
       return nearest.object.userData.zone;
