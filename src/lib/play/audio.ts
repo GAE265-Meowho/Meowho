@@ -42,7 +42,7 @@ export const SOUNDS = {
   sfx_scream: { kind: "cat", label: "尖叫", usedIn: "剪指甲剪太深", part: [2], ready: true },
   sfx_yowl: { kind: "cat", label: "半夜發情大叫", usedIn: "半年後，母貓未結紮半夜發情", part: [5], ready: true },
   // 貓的動作
-  sfx_step: { kind: "move", label: "腳步（木地板）", usedIn: "貓在房間裡走動", part: [4], ready: false },
+  sfx_step: { kind: "move", label: "腳步（木地板）", usedIn: "貓跑步時（半夜跑酷、追玩具衝刺）", part: [4], ready: false },
   sfx_dash: { kind: "move", label: "跑酷衝刺", usedIn: "第 30 天半夜跑酷", part: [5], ready: false },
   sfx_land: { kind: "move", label: "跳上家具落地", usedIn: "貓跳上、跳下家具", part: [4, 5], ready: false },
   sfx_eat: { kind: "move", label: "吃飯（咀嚼）", usedIn: "餵貓後貓吃飯", part: [1], ready: false },

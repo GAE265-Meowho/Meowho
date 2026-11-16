@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { SOUNDS } from "./audio";
-import { SCOOP_SFX, TAP_VOLUME, bubbleSfx, careSfx, catchSfx, meterSfx, poseSfx, rising } from "./sfx-cues";
+import { SCOOP_SFX, TAP_VOLUME, bubbleSfx, careSfx, catchSfx, meterSfx, poseSfx, rising, stepTick } from "./sfx-cues";
 
 describe("音效接點（渝茜 2026-11-16：把後台音樂庫的音效套上去）", () => {
   it("貓的氣泡：哈氣、撒嬌；半年後母貓是發情大叫；照顧需求是一般喵", () => {
@@ -75,5 +75,18 @@ describe("音效接點（渝茜 2026-11-16：把後台音樂庫的音效套上�
       "sfx_trust_up", "sfx_stress_up", "sfx_done", "sfx_fail", "sfx_eat", "sfx_drink", "sfx_purr", "sfx_scream", "sfx_pounce",
     ];
     for (const id of used) expect(SOUNDS).toHaveProperty(id);
+  });
+});
+
+describe("跑酷腳步聲（渝茜 2026-11-16）", () => {
+  it("跑步時每隔一段時間響一次，不會每幀都響", () => {
+    let acc = 0, n = 0;
+    for (let i = 0; i < 60; i++) { const r = stepTick(acc, 1 / 60, true); acc = r.acc; if (r.fire) n++; }  // 跑 1 秒
+    expect(n).toBeGreaterThanOrEqual(2);
+    expect(n).toBeLessThanOrEqual(5);
+  });
+  it("一開始跑就先響一聲；停下來歸零", () => {
+    expect(stepTick(0, 1 / 60, true).fire).toBe(true);
+    expect(stepTick(0.2, 1 / 60, false)).toEqual({ acc: 0, fire: false });
   });
 });

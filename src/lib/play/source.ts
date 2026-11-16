@@ -8,7 +8,8 @@ import { getBrowserSupabase } from "@/lib/supabase/client";
 import { catPagePhotos } from "@/lib/cat-profile/new-cat";
 import { photoSrc, SUPABASE_URL } from "@/lib/supabase/config";
 import { catLookFor, PLAY_CAT, playCatLook, type PlayCatLook } from "./cats";
-import { ageMonths, ageText, BASE_MOOD, bodyOfStage, startMood, touchFavOf, type KeeperNotes, type StartMood } from "./player-data";
+import { ageMonths, ageText, BASE_MOOD, startMood, touchFavOf, type KeeperNotes, type StartMood } from "./player-data";
+import { startBody } from "./cat-body";
 
 export interface PlayCatSource {
   /** 網址上的貓咪 id（/cats/[id]/play） */
@@ -78,7 +79,7 @@ export async function loadPlayCat(catId: string): Promise<PlayCatSource> {
       }),
       touchFav: touchFavOf((c.care as { touch?: Record<string, string> } | null)?.touch),
       ageText: ageText(months, c.life_stage as string | null),
-      body: bodyOfStage(c.life_stage as string | null),
+      body: startBody(months, c.life_stage as string | null),
       tabby: Boolean(coat?.includes("虎斑")),
       demo: false,
       adoptable: c.status === "adoptable",

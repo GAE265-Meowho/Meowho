@@ -44,9 +44,11 @@ export interface RoomWorld {
   lookAtCat(): void;
   /** 貓的節點（移動、轉向用的那層）：虛擬飼養結局把貓換成老貓的毛色與體型（lib/play/elder-cat.ts） */
   catRoot: THREE.Object3D;
+  /** 原地換貓的樣子（幼貓長大換成貓體型、換一隻貓），房間不重載 */
+  setCatLook(catUrl: string, albedoUrl?: string, heightM?: number): Promise<boolean>;
 }
 
-export async function createRoomWorld({ viewer, threeScene, scene, layout, cameras, catUrl, albedoUrl, unit, focus }: {
+export async function createRoomWorld({ viewer, threeScene, scene, layout, cameras, catUrl, albedoUrl, catHeightM, unit, focus }: {
   viewer: Viewer;
   threeScene: THREE.Scene;
   scene: RoomScene;
@@ -54,6 +56,8 @@ export async function createRoomWorld({ viewer, threeScene, scene, layout, camer
   cameras: RoomCamera[];
   catUrl: string;
   albedoUrl?: string;
+  /** 站著時頭頂離地幾公尺（幼貓比較小，lib/play/cat-body.ts）；沒給是成貓 0.3 */
+  catHeightM?: number;
   unit: number;
   focus: (view: View) => void;
 }): Promise<RoomWorld> {
@@ -63,7 +67,7 @@ export async function createRoomWorld({ viewer, threeScene, scene, layout, camer
   const toWorld = (x: number, y: number, z: number) =>
     origin.clone().addScaledVector(e1, x * upm).addScaledVector(up, y * upm).addScaledVector(e2, z * upm);
 
-  const cat = await new RoomCat(layout).load(catUrl, albedoUrl);
+  const cat = await new RoomCat(layout).load(catUrl, albedoUrl, catHeightM);
   cat.addTo(threeScene);
   cat.addObstacles(objects);
   cat.room = scene.room;
@@ -129,13 +133,14 @@ export async function createRoomWorld({ viewer, threeScene, scene, layout, camer
   const catHead = (out: THREE.Vector3) => {
     if (!cat.visible) return false;
     cat.cat.getWorldPosition(out);
-    out.addScaledVector(up, 0.3 * upm);
+    out.addScaledVector(up, (cat.heightM ?? 0.3) * upm);
     return true;
   };
 
   return {
     catHead,
     catRoot: cat.cat,
+    setCatLook: (url, albedo, heightM) => cat.setLook(url, albedo, heightM),
     hasBed: Boolean(bed),
     hasCup: Boolean(cup),
 

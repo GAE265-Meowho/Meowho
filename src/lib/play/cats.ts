@@ -21,12 +21,20 @@ export function playCatLook(body: BodyType): PlayCatLook {
   return { body, baseUrl: `/hq-cat-models/base/${baseFileName(body)}`, albedoUrl: `/hq-cat-models/cats/${id}/${body === "kitten" ? "paint_albedo_kitten" : "paint_albedo"}.png` };
 }
 
+const ownBase = (body: BodyType) => (body === "kitten" ? "/api/hq/cat-models/base?body=kitten" : "/api/hq/cat-models/base");
+
 /**
- * 遊戲用的 3D 貓外觀：這隻貓有確認過的貼圖就用牠自己的（母體同 run 頁：/api/hq/cat-models/base，貼圖是照這個母體畫的）；
- * 沒有就退回示範虎斑。
+ * 遊戲用的 3D 貓外觀：這隻貓有確認過的貼圖就用牠自己的（母體同 run 頁：/api/hq/cat-models/base，貼圖是照這個母體畫的）。
+ * 只有另一個體型的貼圖時借那一套（貼圖只能套回畫它的母體），花色才是這隻貓的；body 仍是劇情要的體型，房間裡照 body 縮放
+ * （渝茜 2026-11-16：原本只要缺一個體型就退回示範虎斑，看起來每隻貓都一樣）。完全沒有自己的貼圖才退回示範虎斑。
  */
 export function catLookFor(body: BodyType, own?: Partial<Record<BodyType, string>> | null): PlayCatLook {
-  const albedoUrl = own?.[body];
-  if (!albedoUrl) return playCatLook(body);
-  return { body, baseUrl: body === "kitten" ? "/api/hq/cat-models/base?body=kitten" : "/api/hq/cat-models/base", albedoUrl };
+  const use = own?.[body] ? body : own?.[body === "kitten" ? "adult" : "kitten"] ? (body === "kitten" ? "adult" : "kitten") : null;
+  if (!use) return playCatLook(body);
+  return { body, baseUrl: ownBase(use), albedoUrl: own![use]! };
 }
+
+/**
+ * 摸貓小遊戲（成貓母體、鏡頭照成貓調好）要套的花色：這隻貓的成貓貼圖；借的是幼貓母體（貼圖套不上成貓）就回 null，用母體預設花色。
+ */
+export const adultFur = (look: PlayCatLook): string | null => (look.baseUrl.includes("body=kitten") || look.baseUrl.includes("_kitten") ? null : look.albedoUrl);

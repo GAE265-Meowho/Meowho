@@ -376,3 +376,10 @@ Worker 選用的 `report.html` 與 `html-assets/` 位於既有 attempt 前綴。
 - **第 3 天不再重複餵**：第 1 天在家的時光已經餵過（`care.log.feed > 0`），第 3 天直接鏟屎。
 - **跑步動作**：母體只有 walk。`src/lib/hq/rooms/gallop.ts` 用走路重組奔跑（四條腿各用自己的軌道，只錯開相位、放大擺動），`cat.js` 載入時沒有 run 就補上；衝刺（跑酷、追玩具）速度超過 `RUN_AT` 就切 run。
 - **音效**：`src/lib/play/sfx-cues.ts` 是「事件 → 音效 ID」的對照（純函式、有測試）。接點：`PlayGame`（氣泡、姿勢、信任壓力、小遊戲結果、逗貓、按鈕）、`FeedGame3D`（倒飼料、開罐頭）、`WaterRefillGame3D`（倒水）、`ScoopGame3D`（鏟砂、垃圾袋）、`cat.js`（跳上家具落地）。還沒接：腳步、撥貓砂、磨爪、剪指甲喀、刷牙刷刷、居家意外。
+
+## 每隻貓的模型與依年紀換體型（#354 第 5 份，渝茜 × Claude Code，2026-11-16，分支 `fix/354-play-cat-model`）
+- 掃描房間 `RoomViewer` 現在收 `cat`（`PlayStage` 的 `roomCat`：母體、貼圖、`heightM`）。房間載入時用當下的貓；之後 `cat` 變了只呼叫 `world.setCatLook` → `RoomCat.setLook` 原地換模型（位置、方向不變，縮在外出籠裡會重新縮回去），不重載點雲。
+- 體型規則 `src/lib/play/cat-body.ts`：`playBody(月齡)` 6 個月以下幼貓（同 `KITTEN_MAX_MONTHS`）；`startBody` 開場顯示用；`CAT_HEIGHT_M` 幼貓 0.2 m、成貓 0.3 m。
+- `catLookFor` 缺這個體型的貼圖時借另一個體型的母體＋貼圖；完全沒有才用示範虎斑。
+- 摸貓 3D 只換花色（`adultFur`），母體與鏡頭維持成貓。
+- 腳步聲：`cat.js` 每幀用 `stepTick`，衝刺且在播 run 時響 `sfx_step`。
