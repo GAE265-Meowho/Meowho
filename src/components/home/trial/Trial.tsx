@@ -9,8 +9,8 @@ import shared from "../section.module.css";
 import styles from "./trial.module.css";
 
 // 首頁只放三個小遊戲的示範影片（子哲 2026-11-16）：按鈕切換餵飯、鏟屎、摸摸，不讓訪客在首頁玩。
-// 影片在 public/home/trial/<id>.mp4：只有 3D 遊戲畫面（不含標題、說明、計量條），2 倍解析度錄、960×720。
-// 錄法同小遊戲示範（docs/play-tasks/guide-videos.md），差別是只截 3D 畫布、隱藏摸貓的視角按鈕；小遊戲開場示範仍用 public/play/guide/。
+// 影片在 public/home/trial/<id>.mp4：只有 3D 遊戲畫面＋滑鼠（不含標題、說明、計量條），1280×960。
+// 錄法見 docs/play-tasks/guide-videos.md「首頁版」（scripts/play-guide-rec/rec-home.mjs）；小遊戲開場示範仍用 public/play/guide/。
 type Demo = { id: "feed" | "scoop" | "pet"; icon: IconName; title: string; note: string };
 
 const demos: Demo[] = [
