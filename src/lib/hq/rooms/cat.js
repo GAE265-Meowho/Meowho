@@ -7,6 +7,7 @@ import { clipRate, jumpClipFor, jumpHeading, jumpKind, jumpReady, moveClip, turn
 import { clipJumpTiming, inPlaceClip, isJumpClip } from "./jump-clips";
 import { gallopClip } from "./gallop";
 import { playSfx } from "../../play/audio-player";
+import { STEP_SFX, stepTick } from "../../play/sfx-cues";
 import { ZOOM_RUN_M } from "../../play/zoomies";
 
 const CAT_HEIGHT_M = 0.3;   // 站著時頭頂離地的高度
@@ -29,6 +30,16 @@ const PLAY_NEAR_M = 0.12;   // 拍物品時離物品的距離範圍
 const PLAY_FAR_M = 0.4;
 const LAND_INSET_M = 0.3;   // 落點離家具邊緣多遠
 const MODEL_YAW = 0;        // 模型本身面向 +Z；若走路方向不對再調這個
+
+/** 載入母體與貼圖（貼圖載入失敗就用母體預設花色） */
+async function fetchCat(url, albedoUrl) {
+  const [gltf, albedo] = await Promise.all([
+    new GLTFLoader().loadAsync(url),
+    albedoUrl ? new THREE.TextureLoader().loadAsync(albedoUrl).catch(() => null) : null,
+  ]);
+  if (albedo) { albedo.flipY = false; albedo.colorSpace = THREE.SRGBColorSpace; }  // 同 CatPreview
+  return { gltf, albedo };
+}
 
 export class RoomCat {
   constructor(layout) {
@@ -74,12 +85,40 @@ export class RoomCat {
   }
 
   // albedoUrl：這隻貓已確認的貼圖（虛擬體驗選的貓）；沒給或載入失敗就用母體預設花色
-  async load(url, albedoUrl) {
-    const [gltf, albedo] = await Promise.all([
-      new GLTFLoader().loadAsync(url),
-      albedoUrl ? new THREE.TextureLoader().loadAsync(albedoUrl).catch(() => null) : null,
-    ]);
-    if (albedo) { albedo.flipY = false; albedo.colorSpace = THREE.SRGBColorSpace; }  // 同 CatPreview
+  // heightM：站著時頭頂離地幾公尺（幼貓比成貓小，lib/play/cat-body.ts 的 CAT_HEIGHT_M）
+  async load(url, albedoUrl, heightM = CAT_HEIGHT_M) {
+    this.useModel(await fetchCat(url, albedoUrl), heightM);
+    this.place(this.randomCell());
+    return this;
+  }
+
+  /**
+   * 原地換一隻貓的樣子（渝茜 2026-11-16：虛擬飼養長大時幼貓換成貓體型），房間不重載、位置與方向不變。
+   * 連續呼叫只套最後一次；回傳有沒有換。
+   */
+  async setLook(url, albedoUrl, heightM = CAT_HEIGHT_M) {
+    const token = (this.lookToken = (this.lookToken ?? 0) + 1);
+    const next = await fetchCat(url, albedoUrl).catch(() => null);
+    if (!next || token !== this.lookToken) return false;
+    const tucked = this.state === "tuck" ? this.tucked : null;
+    if (tucked) this.untuck();
+    this.jump = null;
+    this.mixer?.stopAllAction();
+    if (this.model) {
+      this.cat.remove(this.model);
+      this.model.traverse((o) => { if (o.isSkinnedMesh) o.skeleton.dispose(); });
+    }
+    this.actions = {};
+    this.tuckBounds = null;
+    this.useModel(next, heightM);
+    this.state = "idle";
+    if (tucked) this.tuck(tucked);
+    return true;
+  }
+
+  /** 把載好的模型掛上去：材質、動作、比例 */
+  useModel({ gltf, albedo }, heightM) {
+    this.heightM = heightM;
     const model = gltf.scene;
     model.traverse((o) => {
       if (!o.isMesh) return;
@@ -119,12 +158,9 @@ export class RoomCat {
     const ys = [];
     model.traverse((o) => { if (o.isBone && !/tail/.test(o.name)) ys.push(model.worldToLocal(o.getWorldPosition(new THREE.Vector3())).y); });
     const top = Math.max(...ys), feet = Math.min(...ys);
-    const s = (CAT_HEIGHT_M * this.upm) / (top - feet);
+    const s = (heightM * this.upm) / (top - feet);
     model.scale.setScalar(s);
     model.position.y = -feet * s;
-
-    this.place(this.randomCell());
-    return this;
   }
 
   // ---------- 縮在外出籠裡（虛擬飼養第 1 天） ----------
@@ -641,6 +677,11 @@ export class RoomCat {
   update(dt) {
     if (!this.mixer || !this.visible) return;
     this.mixer.update(dt);
+    // 跑酷、追玩具衝刺時配腳步聲（渝茜 2026-11-16）；跳在空中、縮在籠裡不響
+    const running = this.sprint && this.current === this.actions.run && this.state !== "jump" && this.state !== "tuck";
+    const foot = stepTick(this.stepAcc ?? 0, dt, running);
+    this.stepAcc = foot.acc;
+    if (foot.fire) playSfx("sfx_step", STEP_SFX.volume);
 
     if (this.state === "tuck") return;  // 縮在外出籠裡：只播動作、不移動
     if (this.state === "jump") { this.updateJump(dt); return; }

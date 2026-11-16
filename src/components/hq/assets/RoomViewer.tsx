@@ -32,6 +32,7 @@ const WALK_SPEED = 0.15;    // 每秒走幾個房間單位
 const RUN_FACTOR = 3;
 const TWEEN_MS = 700;
 const CAT_MODEL = "/hq-cat-models/base/base_clips.glb";  // 全站共用的成貓母體
+const catKey = (c: { baseUrl: string; albedoUrl: string; heightM?: number } | null | undefined) => (c ? `${c.baseUrl}|${c.albedoUrl}|${c.heightM ?? ""}` : "");
 
 async function readJson<T>(url: string): Promise<T> {
   const res = await fetch(url);
@@ -114,7 +115,7 @@ export interface RoomPlaceApi {
 }
 
 export default function RoomViewer({ base, cat, items, controls = true, story, wand, bubble, bubbleInset = 0, lookKey, follow = false, onFollowOff, noCat = false, overlay = false, overview = null, overviewCover = 0, place = null, light = null, shot = null, stains = null, elder = null, capture = false }: {
-  base: string; cat?: { baseUrl: string; albedoUrl: string } | null; items?: readonly SceneItem[]; controls?: boolean; noCat?: boolean; overlay?: boolean;
+  base: string; cat?: { baseUrl: string; albedoUrl: string; /** 站著時頭頂離地幾公尺（幼貓小一點）；沒給是成貓 */ heightM?: number } | null; items?: readonly SceneItem[]; controls?: boolean; noCat?: boolean; overlay?: boolean;
   story?: { action: CatAction | null; at: number } | null; wand?: RoomWand | null;
   /** 貓頭頂的小對話框（SVG 圖示）；null＝不顯示 */
   bubble?: React.ReactNode;
@@ -141,6 +142,10 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
   const host = useRef<HTMLDivElement>(null);
   const elderRef = useRef(elder);
   elderRef.current = elder;
+  // 貓的樣子：載入房間時用當下這隻；之後換（幼貓長大、換一隻貓）只換貓，不重載房間（渝茜 2026-11-16）
+  const catRef = useRef(cat);
+  catRef.current = cat;
+  const catShown = useRef("");
   const captureRef = useRef(capture);
   captureRef.current = capture;
   const goTo = useRef<(step: number) => void>(() => {});
@@ -415,8 +420,10 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
       if (overlay) setHelp(true);
 
       // 貓和物理載入失敗時，房間照常可以看
+      const firstCat = catRef.current;
+      catShown.current = catKey(firstCat);
       const roomWorld = noCat ? null : await createRoomWorld({
-        viewer: active, threeScene, scene, layout, cameras, catUrl: cat?.baseUrl ?? CAT_MODEL, albedoUrl: cat?.albedoUrl, unit, focus: tweenTo,
+        viewer: active, threeScene, scene, layout, cameras, catUrl: firstCat?.baseUrl ?? CAT_MODEL, albedoUrl: firstCat?.albedoUrl, catHeightM: firstCat?.heightM, unit, focus: tweenTo,
       }).catch(e => {
         console.error("貓咪互動載入失敗", e);
         return null;
@@ -782,7 +789,16 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
       viewer?.dispose().catch(() => {}).finally(() => stage.remove());
       if (!viewer) stage.remove();
     };
-  }, [base, cat?.baseUrl, cat?.albedoUrl, noCat, overlay]);
+  }, [base, noCat, overlay]);
+
+  // 換貓的樣子（幼貓→成貓、換一隻貓）：房間已經載好就只換貓
+  const wantCat = catKey(cat);
+  useEffect(() => {
+    const w = world.current, c = catRef.current;
+    if (!worldReady || !w || wantCat === catShown.current) return;
+    catShown.current = wantCat;
+    void w.setCatLook(c?.baseUrl ?? CAT_MODEL, c?.albedoUrl, c?.heightM);
+  }, [wantCat, worldReady]);
 
   // 虛擬用品清單變了就重擺（讀完房間後才做）
   useEffect(() => {

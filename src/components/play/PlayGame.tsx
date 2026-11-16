@@ -79,6 +79,8 @@ import { HazardDialog } from "./HazardDialog";
 import { canShowHazard, hazardReportTarget, loadReportHazard, year5HazardMoment, type ReportHazardItem } from "@/lib/play/year5-hazard";
 import s from "./play.module.css";
 import nav from "./setup-nav.module.css";
+import { playBody } from "@/lib/play/cat-body";
+import { adultFur } from "@/lib/play/cats";
 
 const STEP_LABELS = [["background", "你的家"], ["shop", "採買"], ["place", "擺用品"], ["node", "飼養"], ["report", "報告"]] as const;
 /** 掃描房間：用品是玩家在 3D 房間裡自己擺的（位置在 scanPose） */
@@ -192,7 +194,8 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
   // 這隻貓到家時的月齡：有生日／估計月齡用真實的，沒填用劇本原本的 2 個月；體型 12 個月以下用幼貓、以上用成貓
   const startMonths = cat.months ?? 2;
   const catTraits = useMemo(() => ({ coat: cat.coat, sex: cat.sex, neutered: cat.neutered }), [cat.coat, cat.sex, cat.neutered]);
-  const bodyAt = (months: number): "kitten" | "adult" => (months < 12 ? "kitten" : "adult");
+  // 劇情裡的年紀 → 幼貓／成貓（渝茜 2026-11-16：和後台同一條規則，6 個月以下幼貓；原本寫 12 個月）
+  const bodyAt = playBody;
   const labels = useMemo(() => room?.inventory.labels ?? [], [room]);
   const places = useMemo(() => ({ hide: homeWord("躲藏處", labels) ?? "角落", high: homeWord("高處", labels) ?? "", sofa: "沙發" }), [labels]);
   const node = STORY[state.nodeIndex];
@@ -448,6 +451,7 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
   const miniCtx: MiniCtx = {
     age: state.life.age,
     touchFav: cat.touchFav,
+    furUrl: adultFur(cat.look("adult")),
     // 刷牙訓練階段：每做一次升一階（原版從「碰碰嘴邊」開始，最後到牙刷全口）
     brushLevel: Math.min(4, state.life.care.log.brush ?? 0),
     cat: { body: 5, trust: state.life.trust, stress: state.life.stress, tabby: cat.tabby },
