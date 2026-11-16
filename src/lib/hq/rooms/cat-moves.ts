@@ -80,3 +80,9 @@ export function moveClip(speedMps: number, available: readonly string[], runAt =
 /** 動作播放速度：實際移動速度 ÷ 動作原本的步伐速度，避免滑步（限制在 0.3～3 倍） */
 export const clipRate = (speedMps: number, clipMps: number) =>
   clipMps > 0 ? Math.min(3, Math.max(0.3, speedMps / clipMps)) : 1;
+
+/**
+ * 玩家（點地板、叫貓）能不能讓貓移動。劇情讓貓縮在外出籠裡（第 1 天躲著）時不行：只有劇情能讓牠出來
+ * （渝茜 2026-11-16：第 1 天躲在外出籠，點一下畫面貓就跑出來）。
+ */
+export const playerCanMove = (state: string) => state !== "tuck";
