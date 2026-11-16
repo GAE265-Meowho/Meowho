@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { OVERVIEW_SIDES, SIDE_VIEW, coverViewOffset, dragSideOffset, fitFov, roomCorners, sideAzimuth, sideCamera, sideFromKey } from "./overview";
+import { FREE_VIEW, OVERVIEW_SIDES, SIDE_VIEW, coverViewOffset, dragSideOffset, dragSideFree, pinchZoom, wheelZoom, zoomedFov, fitFov, roomCorners, sideAzimuth, sideCamera, sideFromKey } from "./overview";
 import { clampInRoom, type RoomScene } from "./demo";
 
 const rooms: RoomScene["room"][] = [
@@ -92,5 +92,28 @@ describe("擺用品的四側俯視視點", () => {
     expect(sideFromKey("KeyW")).toBeNull();
     expect(dragSideOffset(0, 1e6)).toBeCloseTo(SIDE_VIEW.dragMaxDeg * DEG);
     expect(dragSideOffset(0, -1e6)).toBeCloseTo(-SIDE_VIEW.dragMaxDeg * DEG);
+  });
+
+  it("自由轉（渝茜 2026-11-16）：拖曳可以一直繞房間轉，不再卡在 ±25°", () => {
+    const quarter = (Math.PI / 2) / (0.3 * DEG);  // 拖多少 px 轉 90°
+    expect(dragSideFree(0, quarter)).toBeCloseTo(Math.PI / 2);
+    expect(dragSideFree(0, quarter * 5)).toBeCloseTo(Math.PI / 2);  // 轉一圈多，收回 0～2π
+    expect(dragSideFree(0, -quarter)).toBeCloseTo(Math.PI * 1.5);
+    expect(dragSideFree(0, quarter, -1)).toBeCloseTo(Math.PI * 1.5);
+  });
+
+  it("滾輪、兩指縮放：有上下限", () => {
+    expect(wheelZoom(1, -100)).toBeLessThan(1);  // 往前滾＝拉近（FOV 變小）
+    expect(wheelZoom(1, 100)).toBeGreaterThan(1);
+    expect(wheelZoom(1, -1e6)).toBe(FREE_VIEW.zoomMin);
+    expect(wheelZoom(1, 1e6)).toBe(FREE_VIEW.zoomMax);
+    expect(pinchZoom(1, 100, 200)).toBeCloseTo(0.5);  // 兩指張開一倍＝拉近一半
+    expect(pinchZoom(1, 200, 100)).toBe(FREE_VIEW.zoomMax);
+    expect(pinchZoom(1, 0, 100)).toBe(1);
+  });
+
+  it("縮放後的 FOV 不會小到看不清楚", () => {
+    expect(zoomedFov(80, 0.5)).toBeCloseTo(40);
+    expect(zoomedFov(40, 0.45)).toBe(FREE_VIEW.fovMinDeg);
   });
 });

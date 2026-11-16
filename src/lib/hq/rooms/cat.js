@@ -6,6 +6,8 @@ import { carrierExit, fitCatInCarrier } from "../../play/carrier-fit";
 import { poseBounds, tuckClip } from "./pose-bounds";
 import { clipRate, jumpClipFor, jumpHeading, jumpKind, jumpReady, moveClip, turnStep } from "./cat-moves";
 import { clipJumpTiming, inPlaceClip, isJumpClip } from "./jump-clips";
+import { gallopClip } from "./gallop";
+import { playSfx } from "../../play/audio-player";
 import { ZOOM_RUN_M } from "../../play/zoomies";
 
 const CAT_HEIGHT_M = 0.3;   // 站著時頭頂離地的高度
@@ -104,6 +106,11 @@ export class RoomCat {
       }
       this.actions[name] = this.mixer.clipAction(clip);
       this.clips[name] = clip;
+    }
+    // 成貓、幼貓母體沒有跑步動作：用走路重組出奔跑（gallop.ts），跑酷、追玩具衝刺時才不會像快走
+    if (!this.actions.run && this.clips.walk) {
+      const run = gallopClip(this.clips.walk);
+      if (run) { this.actions.run = this.mixer.clipAction(run); this.clips.run = run; }
     }
     this.model = model;
     this.actions.idle?.play();
@@ -646,7 +653,7 @@ export class RoomCat {
       const s = Math.min(j.t / j.air, 1);
       this.cat.position.lerpVectors(j.from, j.to, s);
       this.cat.position.y += 4 * s * (1 - s) * JUMP_ARC_M * this.upm;
-      if (s === 1) { j.phase = "land"; j.t = 0; if (!j.clip) this.playClip("jump_end", true, 0.08); }
+      if (s === 1) { j.phase = "land"; j.t = 0; playSfx("sfx_land", 0.5); if (!j.clip) this.playClip("jump_end", true, 0.08); }  // 落地聲：虛擬飼養解鎖聲音後才會響（後台檢視器不出聲）
     } else if (j.t >= j.land) {
       this.jump = null;
       this.setState("idle");

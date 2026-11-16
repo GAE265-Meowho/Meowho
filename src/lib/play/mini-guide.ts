@@ -1,7 +1,7 @@
 // 小遊戲開始前的示範（#354，渝茜 2026-11-14）：每個小遊戲先放幾張會動的示範圖（手勢動畫＋一句說明），
 // 看完按「開始」才進遊戲；勾「下次不再顯示」就記在這台裝置（localStorage），之後直接開始。純資料＋讀寫函式。
 // 2026-11-14 渝茜：示範要用真正的遊戲畫面。逗貓以外都有錄影（docs/play-tasks/guide-videos.md 寫怎麼重錄）；逗貓要在掃描房間裡玩，還沒錄，先用動畫示範圖。
-// 2026-11-14 渝茜：說明縮短成約原本的 1/3，放在錄影下面一排。文字照各小遊戲畫面上的提示寫（FeedGame3D、WaterRefillGame3D、ScoopGame3D、PetGame3D、BrushGameRealistic、minis.ts 的剪指甲與外出籠、ScanWand）。
+// 2026-11-14 渝茜：說明縮短成約原本的 1/3，放在錄影下面一排。文字照各小遊戲畫面上的提示寫（FeedGame3D、WaterRefillGame3D、ScoopGame3D、PetGame3D、BrushGameRealistic、NailGame2D、minis.ts 的外出籠、ScanWand）。
 
 export type GuideId = "feed" | "water" | "scoop" | "pet" | "brush" | "nail" | "carrier" | "play";
 /** 示範圖裡的手勢：hold 按住、tap 點、circle 畫圈、drag 拖過去、shake 左右甩、stroke 來回順摸、scrub 小幅來回刷、follow 帶著玩具跑、rest 手停著（提醒） */
@@ -45,8 +45,8 @@ export const MINI_GUIDES: Record<GuideId, MiniGuide> = {
     { prop: "mouth", gesture: "rest", text: "牠不耐煩就先停" },
   ] },
   nail: { title: "剪指甲", video: "/play/guide/nail.mp4", steps: [
-    { prop: "paw", gesture: "tap", text: "點肉球推出指甲" },
-    { prop: "paw", gesture: "tap", text: "對準白色尖端剪" },
+    { prop: "paw", gesture: "hold", text: "按住肉球推出指甲" },
+    { prop: "paw", gesture: "drag", text: "指甲刀拖到尖端放開" },
     { prop: "paw", gesture: "rest", text: "避開粉紅色血線" },
   ] },
   carrier: { title: "進外出籠", video: "/play/guide/carrier.mp4", steps: [
