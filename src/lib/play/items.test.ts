@@ -14,6 +14,16 @@ describe("resolvePlayItems", () => {
   });
 });
 
+describe("貓抓板（#354）", () => {
+  it("擺用品多一件貓抓板（平放在地上：高度比長、寬都小），後台有平放的模型就換", () => {
+    const s = PLAY_ITEMS.find(i => i.id === "scratcher")!;
+    expect(s).toMatchObject({ name: "貓抓板" });
+    expect(s.heightM).toBeLessThan(Math.min(s.widthM, s.depthM));
+    const m = { url: "https://x.test/s.glb", widthM: 0.5, depthM: 0.7, heightM: 0.04 };
+    expect(resolvePlayItems({ flags: {}, opts: {}, models: { scratcher: m } }).find(i => i.id === "scratcher")).toMatchObject(m);
+  });
+});
+
 describe("resolvePlayToy", () => {
   it("後台有逗貓棒模型就用後台的，沒有用內建的老鼠", () => {
     expect(resolvePlayToy().url).toContain("87c99fc9");

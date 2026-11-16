@@ -6,6 +6,7 @@ import { RoomCat } from "./cat";
 import { cameraForward, dropTarget, placeObjects, type PlacedObject, type RoomCamera, type RoomLayout, type RoomScene } from "./demo";
 import { RoomPhysics } from "./physics";
 import { footprintCells } from "@/lib/play/scene-items";
+import { boredChoice, scratchStand } from "@/lib/play/scratch";
 import { CATCH_M, isCaught, type SceneCatCommand } from "@/lib/play/scene-cat";
 import { nextZoom, rayHit, topSpot, topUnder, zoomRest, type Top } from "@/lib/play/zoomies";
 
@@ -37,7 +38,8 @@ export interface RoomWorld {
   /** on＝玩具在哪個家具檯面上（RoomObject.id，地板＝null），貓會跳上去追 */
   setToy(at: [number, number] | null, on?: string | null): void;
   /** 虛擬用品（地板座標，公尺）：貓繞過去、不會穿過 */
-  setItems(items: { x: number; z: number; widthM: number; depthM: number }[]): void;
+  /** 虛擬用品（id 用來認出貓抓板：無聊時會去磨爪） */
+  setItems(items: { id?: string; x: number; z: number; widthM: number; depthM: number }[]): void;
   /** 貓頭頂上方的世界座標（給畫面上的對話框定位）；貓不在畫面時回 false */
   catHead(out: THREE.Vector3): boolean;
   /** 鏡頭原地轉向貓（貓不在場就不動），讓頭頂的對話框和貓一起在畫面裡 */
@@ -105,7 +107,21 @@ export async function createRoomWorld({ viewer, threeScene, scene, layout, camer
   };
 
   const bed = objects.find(o => o.affordance.jump_on && !o.affordance.hide_under && o.surfaces);
-  cat.onBored = () => (bed ? cat.jumpOn(bed, bed.surfaces![0].top_y) : false);
+  // 擺了貓抓板（#354）：無聊時大約一半走過去、面向板子磨爪（scratch），其他照舊跳上床
+  let scratcher: { x: number; z: number; widthM: number; depthM: number } | null = null;
+  const goScratch = () => {
+    if (!scratcher) return false;
+    const p = cat.cat.position;
+    // 站在板邊外半個身長：鼻尖剛好到板邊，伸出去的前爪搭在板上
+    const s = scratchStand(scratcher, { x: p.x / upm, z: p.z / upm }, (cat.heightM ?? 0.3) * 0.5);
+    const k = cat.nearestFree(s.x * upm, s.z * upm, 4);
+    return k >= 0 && cat.goTo(k, new THREE.Vector2(scratcher.x * upm, scratcher.z * upm), "scratch");
+  };
+  cat.onBored = () => {
+    const what = boredChoice(Math.random, { scratcher: Boolean(scratcher), bed: Boolean(bed) });
+    if (what === "scratch" && goScratch()) return true;
+    return bed && what !== null ? cat.jumpOn(bed, bed.surfaces![0].top_y) : false;
+  };
   const cup = movable.find(m => m.ob.label === "cup");
 
   // 3D 逗貓：貓閒下來就追玩具，撲的瞬間玩具還在附近才算抓到
@@ -333,6 +349,7 @@ export async function createRoomWorld({ viewer, threeScene, scene, layout, camer
 
     setItems(list) {
       cat.blockCells(list.flatMap(it => footprintCells(layout, it)));
+      scratcher = list.find(it => it.id === "scratcher") ?? null;
     },
 
     resetItems() {

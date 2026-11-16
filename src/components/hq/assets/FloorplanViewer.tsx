@@ -11,7 +11,8 @@ import { FLOOR_TEXTURE, kitScale, kitUrl } from "@/lib/hq/floorplans/kit";
 import { DEFAULT_JUMP_TIMES, goalForBox, idleAction, stepActor, worldOf, type Actor, type Goal, type Jump, type JumpTimes } from "@/lib/hq/floorplans/catjump";
 import { jumpClipFor, jumpKind, type JumpTiming } from "@/lib/hq/rooms/cat-moves";
 import { clipJumpTiming, isJumpClip } from "@/lib/hq/rooms/jump-clips";
-import { blocked, CAT_SCALE, freeSpot, obstacles, type Obstacle } from "@/lib/hq/floorplans/catwalk";
+import { blocked, CAT_RADIUS_M, CAT_SCALE, freeSpot, obstacles, type Obstacle } from "@/lib/hq/floorplans/catwalk";
+import { boredChoice, isScratcher, SCRATCH_SECONDS, scratchStand } from "@/lib/play/scratch";
 import { bowlObstacles, bubbleOf, dropTargetBowl, isBowlSet, passableItem, standOff, stepItems, stepSpot, stepStory, STORY_START, withoutItem, type NeedIcon, type Spot, type Story, type StoryState } from "@/lib/hq/floorplans/story";
 import { expandRemovedIndices, type FurnitureMove, type FurnitureSupport } from "@/lib/hq/floorplans/experience-furniture";
 import { boxToSolid, clampFurniturePose, rotatedHalfExtents, type SolidBody } from "@/lib/hq/floorplans/experience-physics";
@@ -697,6 +698,9 @@ function CatActor({ s, look, click, pos, extraObs, forceClip = null, speed = 1, 
   const cat = useRef<Actor>({ ...start, y: 0, heading: 0, moving: false, on: null, jump: null });
   const goal = useRef<Goal | null>(null);
   const idle = useRef(0);
+  // 磨爪（#354）：走去貓抓板時記下到了要面向哪；到了就播 scratch 幾秒
+  const toScratch = useRef<number | null>(null);
+  const scratching = useRef<{ left: number; heading: number } | null>(null);
   const [clip, setClip] = useState("idle");
   const plot = useRef<StoryState>(STORY_START);
   const spot = useRef<Spot | null>(null);
@@ -727,6 +731,7 @@ function CatActor({ s, look, click, pos, extraObs, forceClip = null, speed = 1, 
   useEffect(() => {
     if (!click) return;
     storyGoal.current = false;
+    toScratch.current = null; scratching.current = null;
     goal.current = (click.box !== null && goalForBox(world, click.box, click.x, click.z)) || { x: click.x, z: click.z, surface: null };
     idle.current = 0;
   }, [click, world]);
@@ -756,7 +761,10 @@ function CatActor({ s, look, click, pos, extraObs, forceClip = null, speed = 1, 
     const walkWorld = bowls.length ? { ...world, obs: [...world.obs, ...dropTargetBowl(bowls, spot.current, cat.current)] } : world;
     const { actor, done } = stepActor(cat.current, goal.current, walkWorld, dt, jumpPlan(cat.current.jump, clipInfo).times);
     let next = clip;
-    if (done) goal.current = null;
+    if (done) {
+      goal.current = null;
+      if (toScratch.current !== null) { scratching.current = { left: SCRATCH_SECONDS, heading: toScratch.current }; toScratch.current = null; }
+    }
     const doing = story && plot.current.phase === "doing" ? story.steps[plot.current.step] : null;
     if (doing && spot.current) {
       // 做動作時慢慢貼到站位上（走路停下時可能差幾公分），頭才會剛好在碗上方
@@ -769,13 +777,27 @@ function CatActor({ s, look, click, pos, extraObs, forceClip = null, speed = 1, 
     else if (actor.moving) { idle.current = 0; next = "walk"; }
     else if (forceClip) next = forceClip;
     else if (doing) { idle.current = 0; next = doing.clip; }
+    else if (scratching.current) {
+      idle.current = 0; next = "scratch"; actor.heading = scratching.current.heading;
+      if ((scratching.current.left -= dt) <= 0) scratching.current = null;
+    }
     else {
       idle.current += dt;
-      if (next === "walk" || next === "eat" || next === "drink" || next === "toilet") next = "idle";
+      if (next === "walk" || next === "eat" || next === "drink" || next === "toilet" || next === "scratch") next = "idle";
       if (idle.current > 6 && next !== "sleep") {
-        const what = idleAction(actor, world);
-        if (what.sleep) next = "sleep";
-        else if (what.wander) { goal.current = what.wander; idle.current = 0; }
+        const board = actor.on === null ? items.find(i => !i.support && isScratcher(i.name)) : undefined;
+        const turned = board && Math.round((board.rotY ?? 0) / 90) % 2 !== 0;
+        const stand = board && boredChoice(Math.random, { scratcher: true, bed: false }) === "scratch"
+          ? scratchStand({ x: board.x, z: board.z, widthM: turned ? board.depthM : board.widthM, depthM: turned ? board.widthM : board.depthM }, actor, CAT_RADIUS_M + 0.02)
+          : null;
+        if (stand && !blocked(stand.x, stand.z, s, world.obs)) {
+          // 無聊時偶爾去貓抓板磨爪（lib/play/scratch.ts）
+          goal.current = { x: stand.x, z: stand.z, surface: null }; toScratch.current = stand.heading; idle.current = 0;
+        } else {
+          const what = idleAction(actor, world);
+          if (what.sleep) next = "sleep";
+          else if (what.wander) { goal.current = what.wander; idle.current = 0; }
+        }
       }
     }
     cat.current = actor;

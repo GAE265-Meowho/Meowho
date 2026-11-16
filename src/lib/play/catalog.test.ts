@@ -69,4 +69,14 @@ describe("playShop（後台有就用後台）", () => {
     // 逗貓棒本來就小，不受限
     expect(playShop(toPlayCatalog([row("老鼠", "逗貓棒", 15, "mouse/model.glb", [0.054, 0.024, 0.028])], url)).models?.toy?.widthM).toBe(0.054);
   });
+
+  it("貓抓板（#354）：平放在地上的抓板有網址與尺寸就採用；高度比長、寬都高的（立著的）不採用，沿用程式裡寫的平放版", () => {
+    const flat = row("耐抓劍麻貓抓板", "貓抓板", 224, "flat/model.glb", [0.48, 0.72, 0.05]);
+    expect(playShop(toPlayCatalog([flat], url)).models?.scratcher).toEqual({ url: "https://x.test/flat/model.glb", widthM: 0.48, depthM: 0.72, heightM: 0.05 });
+    // 2026-11-16 後台第一次上傳的那筆：模型 Z 軸朝上，放進房間會立成 72 公分高的板子
+    const upright = row("耐抓劍麻貓抓板", "貓抓板", 224, "up/model.glb", [0.48, 0.05, 0.72]);
+    expect(playShop(toPlayCatalog([upright], url)).models?.scratcher).toBeUndefined();
+    // 兩筆都在（新的還沒刪舊的）：用平放的那筆
+    expect(playShop(toPlayCatalog([upright, flat], url)).models?.scratcher?.url).toBe("https://x.test/flat/model.glb");
+  });
 });

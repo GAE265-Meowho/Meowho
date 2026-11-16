@@ -1,4 +1,4 @@
-// 虛擬飼養 DEMO（#237）：要擺進 3D 房間的生活用品（餐碗組、貓砂盆）。
+// 虛擬飼養 DEMO（#237）：要擺進 3D 房間的生活用品（外出籠、餐碗組、貓砂盆、貓抓板）。
 // ⚠ 暫時直接寫在這裡：後台「生活用品」的 meow_items 目前只有管理員讀得到，DEMO 先用模型在公開 bucket `meow-items` 的網址，
 //   尺寸（公尺）與價格（新台幣）照後台資料抄過來。等 meow_items／meow_item_categories 開放公開讀取（#237 已提醒子哲），
 //   改成從後台讀用品清單，刪掉這份設定。餐碗組的路徑是 test_bowls_…（看起來是測試上傳），正式版換掉時這裡也要改。
@@ -8,7 +8,7 @@
 import type { PlayShop } from "./costs";
 
 export interface PlayItem {
-  id: "carrier" | "bowl" | "litter_box";
+  id: "carrier" | "bowl" | "litter_box" | "scratcher";
   name: string;
   url: string;
   widthM: number;
@@ -19,6 +19,8 @@ export interface PlayItem {
 }
 
 const BUCKET = "https://onebpkbkrnnwamwsoelo.supabase.co/storage/v1/object/public/meow-items";
+/** 平放版的耐抓劍麻貓抓板（2026-11-16 Tina 在 MeowHQ 重新上傳，模型轉成 Y 軸朝上） */
+const SCRATCHER_URL = `${BUCKET}/14e4cdd1-7824-4c07-90c3-1d3106713c39/model.glb`;
 
 export const PLAY_ITEMS: readonly PlayItem[] = [
   // 外出籠：開場一定要擺（節點 1 貓躲進去、節點 6 出門看醫生）。模型 Cat Carrier by afiey.lab（CC-BY-4.0，見 public/play/cat_carrier.license.txt），
@@ -26,6 +28,8 @@ export const PLAY_ITEMS: readonly PlayItem[] = [
   { id: "carrier", name: "外出籠", url: "/play/cat_carrier.glb", widthM: 0.33, depthM: 0.51, heightM: 0.31, price: 800 },
   { id: "bowl", name: "餐碗組", url: `${BUCKET}/test_bowls_20261104231928/model.glb`, widthM: 0.52, depthM: 0.339, heightM: 0.087, price: 399 },
   { id: "litter_box", name: "貓砂盆", url: `${BUCKET}/1b7e00eb-076b-4e85-ad4a-69e7a4e66d16/model.glb`, widthM: 0.341, depthM: 0.506, heightM: 0.379, price: 1127 },
+  // 貓抓板（#354 第 2 份）：後台「耐抓劍麻貓抓板」平放在地上，貓站在旁邊、前腳搭上去磨爪（動作 scratch）。後台沒有平放的模型時用這份
+  { id: "scratcher", name: "貓抓板", url: SCRATCHER_URL, widthM: 0.48, depthM: 0.72, heightM: 0.05, price: 224 },
 ];
 
 /** 後台有模型（網址＋公尺尺寸）就換掉，沒有的沿用上面寫的；後台之後補上傳會自動抓到 */
