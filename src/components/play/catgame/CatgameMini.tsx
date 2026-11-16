@@ -68,10 +68,6 @@ export function CatgameMini(props: Props) {
       <MiniGuideGate id="nail" catName={catName}><NailGame2D ctx={ctx} onDone={onDone} /></MiniGuideGate>
     </Mini3DModal>;
   }
-  // 原版 2D（外出籠）自己有對話框：示範先用彈窗顯示，按「開始」或關掉才開遊戲
-  if (id === "carrier") {
-    return <MiniGuideGate id="carrier" catName={catName} modal={{ title: `讓${catName}進外出籠` }}><LegacyMini {...props} /></MiniGuideGate>;
-  }
   return <LegacyMini {...props} />;
 }
 

@@ -4,6 +4,7 @@
 > 最後更新：2026-11-16｜渝茜 × Claude Code（虛擬飼養實機回饋第二輪）
 
 ## 目前狀態
+- **外出籠小遊戲移除（#354，渝茜 × Claude Code，2026-11-16，分支 `feat/354-remove-carrier-game`）**：刪掉「讓貓進外出籠」小遊戲、示範影片與第 10 年的對應步驟（第 10 年直接去看醫生，不再 `stress +5`）；第 1 天外出籠劇情、3D 外出籠用品不動。之後想加回來：還原這張 PR。細節見 `docs/modules/readiness.md` 最後一節。
 - **虛擬飼養實機回饋第二輪（#354，渝茜 × Claude Code，2026-11-16）**：分支 `fix/354-play-feedback-1116`，base main（#432、#434、#435 都已合併）。擺用品點了就自動放＋「點選移動」提示框、拿掉快速放；俯視可以一直轉＋縮放、飼養中有搖桿；第 3 天不重複餵；跑酷用走路重組的奔跑動作（`gallop.ts`）；後台音效庫接上（`sfx-cues.ts`）。下一步：請渝茜在這張的 Vercel 預覽、她的真實房間走一輪。細節見 `docs/modules/readiness.md` 最後一節。
 - **虛擬飼養第 5 份（#354，渝茜 × Claude Code，2026-11-14）**：PR #432（第 1 天貓縮在外出籠，base main）→ PR #433（`feat/354-play-cat-motion`：貓走路跳躍動作串接、起跳前轉身、跟著貓按鈕、出籠站到籠門外、第 30 天半夜跑酷、逗貓玩具上床）。#433 要等 #432 合併後把 base 改回 main。細節見 `docs/modules/readiness.md` 最後一節。地雷：掃描房間的床常斜放（`surfaces[0].yaw`），檯面範圍要轉過去算（`zoomies.ts` 的 `toTop`）；房間範圍 `room.min/max` 是沿牆座標，夾位置要用 `clampInRoom`。
 - **虛擬飼養剪指甲改照片特寫（#354 第 2 份，Tina × Claude Code，分支 `feat/354-care-nail`，審查中）**：彈窗 `src/components/play/mini3d/NailGame2D.tsx`（底圖是 AI 合成的小貓腳掌照片 `public/play/nail/paw-tabby.webp`，指甲與指甲刀疊在上面；雙手：按住肉球＋拖指甲刀放開剪），規則 `src/lib/play/mini3d/nail-rules.ts`、對位座標 `nail-paw.ts`。只在無頭 Chrome 用暫時頁面玩過（滑鼠、空白鍵、兩指觸控），**還沒走真實 `/cats/[id]/play`、沒測實體手機**。第 2 份還剩外出籠小遊戲、貓抓板、穿模修正，各自另開 PR。細節見 `docs/modules/readiness.md`「B. 小遊戲改 3D」與 `docs/daily/2026-11-13/1217-Tina-354.md`。

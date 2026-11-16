@@ -192,7 +192,7 @@ Worker 選用的 `report.html` 與 `html-assets/` 位於既有 attempt 前綴。
     - 後台「耐抓劍麻貓抓板」第一次上傳的模型是 Z 軸朝上，放進房間會立成 72 公分高的板子；Tina 在 MeowHQ 重新上傳平躺版（寬 0.48、深 0.72、高 0.05 m，`meow-items/14e4cdd1-…/model.glb`）。舊的那筆（`374c076d…`，直立）`catalog.ts` 不採用（貓抓板要高度比長、寬都小）。
     - 擺用品多一件「貓抓板」（`items.ts`），擺完四件才能帶貓回家；後台類別「貓抓板」的模型對應到 `scratcher`。
     - 貓無聊時大約一半走到板子旁、面向板子磨爪 5 秒（動作 `scratch`，#442）：規則在 `src/lib/play/scratch.ts`；掃描房間接在 `world.ts` 的 `onBored`（原本只會跳上床），娃娃屋接在 `FloorplanViewer` 的 `CatActor` 閒晃前。還沒在畫面上看過。
-  - 還沒做：真實 `/cats/[id]/play` 流程與實體手機實測；外出籠小遊戲（第 10 年）；貓抓板小遊戲（在抓板上晃逗貓棒，入口：劇情事件＋在家的時光）。細節見 `docs/daily/2026-11-13/1217-Tina-354.md`。
+  - 還沒做：真實 `/cats/[id]/play` 流程與實體手機實測；貓抓板小遊戲（外出籠小遊戲已於 2026-11-16 移除）（在抓板上晃逗貓棒，入口：劇情事件＋在家的時光）。細節見 `docs/daily/2026-11-13/1217-Tina-354.md`。
 
 ## 資料表（Supabase）
 - ［已失效］`env_reports`、`virtual_sessions`、`virtual_tasks`（規劃名稱，改用下列 0017 的表）
@@ -367,7 +367,7 @@ Worker 選用的 `report.html` 與 `html-assets/` 位於既有 attempt 前綴。
 - **一般鏡頭**：離開俯視後原本跳回掃描影片的拍攝點（手機常拿很低往下拍，畫面貼地板）。改成 `overview.ts` 的 `playView`：往後退 0.8 m、抬到至少 1.45 m，仍看著原本畫面中間那點；視野放大 30%（`playFov`，上限 80°）。只在虛擬飼養（RoomViewer `controls={false}` 且不是前台預覽）。23:11 渝茜回報鏡頭卡在窗簾那片霧裡（拍攝點靠牆，往後退就退到牆邊）：`playView` 加房間範圍，往後退最多退到離牆 0.6 m，拍攝點本來就靠牆先往房間中心移。劇情鏡頭第 1 天外出籠 1.9／0.7 → 2.5／1.0、第 30 天跑酷 2.4／1.1 → 3.0／1.3（跑酷仍比外出籠遠）。
 - **第 1 天硬拉**：選完不再馬上變半夜，先在白天演完「抓了你一下、縮回去」，再暗下來接「到了晚上，牠還是一直縮在外出籠裡」（`story.ts`）。選「等牠」是傍晚，光線歸白天。
 - **台詞**：第 3 天中途改成「小貓胃口小，一天要分 3 到 4 餐。」＋砂盆要離吃飯的地方遠一點；擺用品時已經分開放（`litter-apart.ts`：有位置看距離 ≥1.2 m，快速位置看是不是同一處；判斷不出來照舊問）就不問、不叫玩家重擺，直接記「砂盆和碗分開放」（`flow.ts` 的 `startNodes.litterApart` → `life.flags.litterApart`）。小叮嚀「第一次清砂盆」改成「之後每天都可以按畫面上方的鏟屎按鈕清砂盆」。
-- **小遊戲示範**（`lib/play/mini-guide.ts`、`MiniGuide.tsx`、`guide.module.css`）：每個小遊戲（餵飯、換水、鏟屎、摸摸、刷牙、剪指甲、外出籠、逗貓）開始前先看三張會動的示範圖（插圖＋手勢動畫＋一句說明，3.2 秒換一張、可點圓點），「下次不再顯示」記在這台裝置（localStorage `meowho.play.guide.v1.<id>`）。3D 彈窗的放在彈窗裡；剪指甲、外出籠（原版 2D）、逗貓先用 `Mini3DModal` 顯示示範。**22:47 渝茜要真正的遊戲畫面**：逗貓以外七款改放錄影（`public/play/guide/*.mp4`，旁邊列出全部步驟），錄法與重錄步驟見 `docs/play-tasks/guide-videos.md`（開發模式錄影頁 `/dev/play-guide-rec`、腳本 `scripts/play-guide-rec/`）。逗貓要掃描房間，還是 SVG 動畫示範圖。
+- **小遊戲示範**（`lib/play/mini-guide.ts`、`MiniGuide.tsx`、`guide.module.css`）：每個小遊戲（餵飯、換水、鏟屎、摸摸、刷牙、剪指甲、逗貓；外出籠已移除）開始前先看三張會動的示範圖（插圖＋手勢動畫＋一句說明，3.2 秒換一張、可點圓點），「下次不再顯示」記在這台裝置（localStorage `meowho.play.guide.v1.<id>`）。3D 彈窗的放在彈窗裡；剪指甲、外出籠（原版 2D）、逗貓先用 `Mini3DModal` 顯示示範。**22:47 渝茜要真正的遊戲畫面**：逗貓以外七款改放錄影（`public/play/guide/*.mp4`，旁邊列出全部步驟），錄法與重錄步驟見 `docs/play-tasks/guide-videos.md`（開發模式錄影頁 `/dev/play-guide-rec`、腳本 `scripts/play-guide-rec/`）。逗貓要掃描房間，還是 SVG 動畫示範圖。
 - **結局流程**：報告讀到最後一張卡（「收養之前，問問自己」進到畫面一半）約 0.6 秒後跳「〈貓名〉的領養資訊」（`AdoptDialog.tsx`）：照片、基本資料（`ending.ts` 的 `adoptFacts`：年紀、性別、結紮、花色）、中途的介紹（`source.ts` 新增 `intro`），下方三顆按鈕「填寫領養問卷」（中途沒開放問卷時不顯示）、「聯絡中途」、「再看看其他貓咪」（`/find`）。原本報告出現 1.6 秒就跳、會蓋住報告。報告最後的「前往認養這隻貓」改成「看看〈貓名〉的領養資訊」。
 - **照顧狀態**：劇情裡做過的照顧算當天做過、碗／水／砂盆維持當天樣子、換節點歸零，#434（原 #426～#430）已經做了，這張沒改。
 - **待確認**：領養資訊是「讀完報告才跳」還是「報告出現就跳」（目前讀完才跳）；逗貓的示範錄影（要在掃描房間錄）；以上都還沒在渝茜的真實房間看過。
@@ -400,3 +400,10 @@ Worker 選用的 `report.html` 與 `html-assets/` 位於既有 attempt 前綴。
 - 診間層隱藏時 `visibility: hidden`＋裡面 `pointer-events: none !important`（r3f 畫布外層行內 auto 會蓋過），不然看過獸醫後房間拖不動、逗貓玩具不跟滑鼠。逗貓示範影片 `play.mp4`。
 - 第 1 天縮在外出籠：玩家點地板／叫貓不理（`playerCanMove`）；`tuck` 的籠子帶 `rotY = rot × 90°`。
 - 音量超過 1（目前只有腳步聲 1.8）：`playSfx` 把元素開到 1，再接 Web Audio 放大器（`splitVolume`，最多 4 倍）；元素要先設 `crossOrigin` 再設網址。剪指甲示範影片 11-16 依照片特寫玩法重錄。
+
+## 外出籠小遊戲移除（#354 第 2 份，渝茜 × Claude Code，2026-11-16，分支 `feat/354-remove-carrier-game`）
+- 渝茜決定先刪掉「讓貓進外出籠」小遊戲與任務，**第 1 天劇情不動**，之後不確定會不會加回來。
+- 刪掉的：`minis.ts` 的 `startCarrier`、`MiniId`／`carrierLevel`；`CatgameMini.tsx` 的 carrier 分支；`PlayGame.tsx` 的 carrier 結果轉換；`mini-guide.ts`／`MiniGuide.tsx` 的 carrier 示範與圖；`public/play/guide/carrier.mp4`；錄影腳本與示範頁的 carrier；`story.ts` 的 `MiniId` 少了 `carrier`。
+- 第 10 年（`year10`）：旁白「要出門了。你把〈貓名〉請進當年那個外出籠。」保留，接著直接 `checkupSteps(X)`。**健檢費用不變；原本沒進成外出籠會 `stress +5`，這項跟著拿掉。**
+- 沒動：第 1 天貓縮在外出籠（`carrier-fit.ts`、`tuck`、`CatPose` 的 `carrier`）、3D 外出籠用品（`items.ts` 的 `carrier`、`catalog.ts`）、外出籠門音效 `sfx_carrier_door`（第 1 天用）、貓咪資料的 `CARE_ITEMS`「進外出籠」（領養資料欄位，跟遊戲無關）。
+- 加回來：還原這張 PR，或從 main `e8d9a32` 取回上面列的檔案（任務表 `docs/play-tasks/2-剪指甲外出籠貓抓板.md` 也有寫）。

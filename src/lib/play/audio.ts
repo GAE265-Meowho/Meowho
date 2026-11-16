@@ -58,7 +58,7 @@ export const SOUNDS = {
   sfx_bag: { kind: "care", label: "垃圾袋", usedIn: "鏟屎小遊戲倒進垃圾袋", part: [1], ready: false },
   sfx_clip: { kind: "care", label: "剪指甲「喀」", usedIn: "剪指甲小遊戲", part: [2], ready: false },
   sfx_brush: { kind: "care", label: "刷牙「刷刷」", usedIn: "刷牙小遊戲", part: [3], ready: false },
-  sfx_carrier_door: { kind: "care", label: "外出籠門開關", usedIn: "外出籠（第 1 天、十年後出門）", part: [2], ready: false },
+  sfx_carrier_door: { kind: "care", label: "外出籠門開關", usedIn: "外出籠（第 1 天）", part: [2], ready: false },
   // 逗貓
   sfx_toy: { kind: "toy", label: "玩具在地板上跑", usedIn: "3D 逗貓", part: [1, 5], ready: false },
   sfx_pounce: { kind: "toy", label: "貓撲上去", usedIn: "3D 逗貓", part: [1, 5], ready: false },

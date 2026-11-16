@@ -831,12 +831,11 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
       )}
       {state.step === "node" && cur?.kind === "mini" && cur.mini !== "play" && (
         <CatgameMini key={`${state.nodeIndex}:${cur.mini}:${state.life.picks.length}`} id={cur.mini} ctx={miniCtx} catName={catName} feedKinds={feedKinds} onRestock={() => setRestocking(true)} day={state.today}
-          // 外出籠：劇情只看成功與否（原版結果 { ok, forced, treats }）
           onDone={r => {
             if (r !== null && cur.mini === "feed") setBowlFill(f => ({ ...f, food: true }));
             if (r !== null && cur.mini === "water") setBowlFill(f => ({ ...f, water: true }));
-            if (cur.mini !== "carrier") careSfx(cur.mini, r).forEach(id => playSfx(id));
-            dispatch({ type: "miniDone", result: cur.mini === "carrier" ? (r as { ok?: boolean } | null)?.ok === true : r });
+            careSfx(cur.mini, r).forEach(id => playSfx(id));
+            dispatch({ type: "miniDone", result: r });
           }} />
       )}
       {state.step === "node" && cur?.kind === "home" && careAct === "play" && scanWand && (
