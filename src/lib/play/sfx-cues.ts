@@ -67,8 +67,9 @@ export const SCOOP_SFX: Partial<Record<Exclude<ScoopEvent, null>, SfxId>> = {
 /** 逗貓：抓到的次數變多就是撲上去 */
 export const catchSfx = (prev: number, next: number): SfxId | null => (next > prev ? "sfx_pounce" : null);
 
-/** 跑酷腳步聲（渝茜 2026-11-16）：跑步時每 everyS 秒響一次（約一圈奔跑一下）；音量小一點，不蓋過背景音樂 */
-export const STEP_SFX = { everyS: 0.32, volume: 0.45 } as const;
+/** 跑酷腳步聲（渝茜 2026-11-16）：跑步時每 everyS 秒響一次（約一圈奔跑一下）。
+ *  音量：原本 0.45 渝茜說太小，改成 1.8（超過 1 由 audio-player 用放大器補，見 audio.ts 的 splitVolume）；要再調就改這個數字 */
+export const STEP_SFX = { everyS: 0.32, volume: 1.8 } as const;
 
 /** 每幀呼叫：running 時累加時間，到了就 fire（一開始跑先響一聲）；停下來歸零 */
 export function stepTick(acc: number, dt: number, running: boolean, every: number = STEP_SFX.everyS): { acc: number; fire: boolean } {

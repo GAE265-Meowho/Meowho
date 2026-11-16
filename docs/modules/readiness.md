@@ -390,3 +390,4 @@ Worker 選用的 `report.html` 與 `html-assets/` 位於既有 attempt 前綴。
 - 腳步聲：`cat.js` 每幀用 `stepTick`，衝刺且在播 run 時響 `sfx_step`。
 - 剪指甲（NailGame2D）自己出結果音效，`careSfx` 結束時跳過（`SELF_VOICED`）；之後小遊戲自己加結果音效也要列進去，不然會播兩次。
 - 老貓走路 × 0.15（`ELDER_CAT.walk`）：掃描房間經 `world.setCatSpeed` → `RoomCat.speedK`，娃娃屋乘在 speed 上。掃描房間沒有套 `node.speed`。
+- 音量超過 1（目前只有腳步聲 1.8）：`playSfx` 把元素開到 1，再接 Web Audio 放大器（`splitVolume`，最多 4 倍）；元素要先設 `crossOrigin` 再設網址。剪指甲示範影片 11-16 依照片特寫玩法重錄。

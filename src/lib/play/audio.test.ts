@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
-import { BGM_FALLBACK, AUTO_CALLER, CALLER_OPTIONS, callersOf, BGM_IDS, SFX_IDS, SFX_READY, SOUNDS, audioPath, audioSrc, soundsFor, bgmFor, bgmLoops, playableBgm, fadeVolume, MUTE_KEY, readMuted, writeMuted, type BgmInput } from "./audio";
+import { BGM_FALLBACK, AUTO_CALLER, CALLER_OPTIONS, callersOf, BGM_IDS, SFX_IDS, SFX_READY, SOUNDS, audioPath, audioSrc, soundsFor, bgmFor, bgmLoops, playableBgm, fadeVolume, splitVolume, MUTE_KEY, readMuted, writeMuted, type BgmInput } from "./audio";
 
 const at = (over: Partial<BgmInput>): BgmInput => ({ step: "node", nodeId: "day3", scene: { bg: "room", time: "day" }, home: false, ...over });
 
@@ -133,5 +133,19 @@ describe("五年後半夜（2026-11-14）", () => {
   it("出事了還沒上傳時退回半夜", () => {
     expect(BGM_FALLBACK.bgm_accident).toBe("bgm_night");
     expect(SOUNDS.bgm_accident.ready).toBe(false);
+  });
+});
+
+describe("音量超過 1（渝茜 2026-11-16：跑酷腳步聲太小）", () => {
+  it("1 以內直接設在音效上，不放大", () => {
+    expect(splitVolume(0.8)).toEqual({ element: 0.8, boost: null });
+    expect(splitVolume(1)).toEqual({ element: 1, boost: null });
+  });
+  it("超過 1：音效開到最大，剩下的用放大器補", () => {
+    expect(splitVolume(1.8)).toEqual({ element: 1, boost: 1.8 });
+  });
+  it("負數當 0，太大的最多放大 4 倍（避免破音）", () => {
+    expect(splitVolume(-1)).toEqual({ element: 0, boost: null });
+    expect(splitVolume(9)).toEqual({ element: 1, boost: 4 });
   });
 });
