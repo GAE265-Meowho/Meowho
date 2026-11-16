@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { SOUNDS } from "./audio";
-import { SCOOP_SFX, TAP_VOLUME, bubbleSfx, careSfx, catchSfx, meterSfx, poseSfx, rising, stepTick } from "./sfx-cues";
+import { SCOOP_SFX, TAP_VOLUME, bubbleSfx, careSfx, catchSfx, meterSfx, poseSfx, rising, STEP_SFX, stepTick } from "./sfx-cues";
 
 describe("音效接點（渝茜 2026-11-16：把後台音樂庫的音效套上去）", () => {
   it("貓的氣泡：哈氣、撒嬌；半年後母貓是發情大叫；照顧需求是一般喵", () => {
@@ -89,6 +89,9 @@ describe("跑酷腳步聲（渝茜 2026-11-16）", () => {
     for (let i = 0; i < 60; i++) { const r = stepTick(acc, 1 / 60, true); acc = r.acc; if (r.fire) n++; }  // 跑 1 秒
     expect(n).toBeGreaterThanOrEqual(2);
     expect(n).toBeLessThanOrEqual(5);
+  });
+  it("腳步聲要夠大聲：比一般音效（0.8）大，會用放大器", () => {
+    expect(STEP_SFX.volume).toBeGreaterThan(1);
   });
   it("一開始跑就先響一聲；停下來歸零", () => {
     expect(stepTick(0, 1 / 60, true).fire).toBe(true);

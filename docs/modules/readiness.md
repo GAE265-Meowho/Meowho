@@ -188,7 +188,11 @@ Worker 選用的 `report.html` 與 `html-assets/` 位於既有 attempt 前綴。
     - 娃娃屋（示範房間「子哲的家」放餐碗、貓砂盆、外出籠、貓抓板）：原本碰撞半徑 0.2 m，但放大 1.2 倍後頭和屁股離中心約 0.3 m，會插進家具約 10 公分；`catwalk.ts` 的 `CAT_RADIUS_M` 改 0.3，剩 0.5 公分以內，劇情目標也更常走到。測試 `src/lib/hq/floorplans/cat-clip.test.ts`。
     - 掃描房間：原本只看貓中心在不在能走的格子，身體會擦進去 6～10 公分。`cat.js` 改成身體兩側也要在能走的格子（`bodyFree`）、找路時貼著家具的格子算比較遠（`HUG_COST`）、閒晃終點挑四周空曠的格子（`roomy`），一邊轉一邊走會擦到時先原地轉；只剩一格寬的通道照樣走得過。測試 `src/lib/hq/rooms/cat-clip.test.ts`（用自訂的房間格子，不是真的掃描房間）。
     - 第 1 天貓躲進外出籠是例外，渝茜在 #432 已處理。還沒在真的房間畫面上看過。
-  - 還沒做：真實 `/cats/[id]/play` 流程與實體手機實測；外出籠小遊戲（第 10 年）、貓抓板。細節見 `docs/daily/2026-11-13/1217-Tina-354.md`。
+  - 貓抓板（2026-11-16，Tina × Claude Code，分支 `feat/354-scratcher-room`）：
+    - 後台「耐抓劍麻貓抓板」第一次上傳的模型是 Z 軸朝上，放進房間會立成 72 公分高的板子；Tina 在 MeowHQ 重新上傳平躺版（寬 0.48、深 0.72、高 0.05 m，`meow-items/14e4cdd1-…/model.glb`）。舊的那筆（`374c076d…`，直立）`catalog.ts` 不採用（貓抓板要高度比長、寬都小）。
+    - 擺用品多一件「貓抓板」（`items.ts`），擺完四件才能帶貓回家；後台類別「貓抓板」的模型對應到 `scratcher`。
+    - 貓無聊時大約一半走到板子旁、面向板子磨爪 5 秒（動作 `scratch`，#442）：規則在 `src/lib/play/scratch.ts`；掃描房間接在 `world.ts` 的 `onBored`（原本只會跳上床），娃娃屋接在 `FloorplanViewer` 的 `CatActor` 閒晃前。還沒在畫面上看過。
+  - 還沒做：真實 `/cats/[id]/play` 流程與實體手機實測；外出籠小遊戲（第 10 年）；貓抓板小遊戲（在抓板上晃逗貓棒，入口：劇情事件＋在家的時光）。細節見 `docs/daily/2026-11-13/1217-Tina-354.md`。
 
 ## 資料表（Supabase）
 - ［已失效］`env_reports`、`virtual_sessions`、`virtual_tasks`（規劃名稱，改用下列 0017 的表）
@@ -394,3 +398,5 @@ Worker 選用的 `report.html` 與 `html-assets/` 位於既有 attempt 前綴。
 - 睡覺：閒晃停下來有機會原地睡（`NAP`），老貓（`ELDER_CAT.sleepy`）常睡、睡得久；跑酷、追玩具不睡。
 - 出外出籠站不住（牆裡、被佔住）就移到最近能走的地板；結尾老貓 `rest` 一直躺著、劇情鏡頭先夾進房間再瞄準（`shotAimDrop`，貓在卡片上方）；逗貓框改成一條。
 - 診間層隱藏時 `visibility: hidden`＋裡面 `pointer-events: none !important`（r3f 畫布外層行內 auto 會蓋過），不然看過獸醫後房間拖不動、逗貓玩具不跟滑鼠。逗貓示範影片 `play.mp4`。
+- 第 1 天縮在外出籠：玩家點地板／叫貓不理（`playerCanMove`）；`tuck` 的籠子帶 `rotY = rot × 90°`。
+- 音量超過 1（目前只有腳步聲 1.8）：`playSfx` 把元素開到 1，再接 Web Audio 放大器（`splitVolume`，最多 4 倍）；元素要先設 `crossOrigin` 再設網址。剪指甲示範影片 11-16 依照片特寫玩法重錄。

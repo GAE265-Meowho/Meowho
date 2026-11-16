@@ -100,3 +100,9 @@ export function napFor(r1: number, r2: number, elder: boolean): number | null {
 /** 結尾一直躺著睡（渝茜 2026-11-16）：有設定休息動作、模型也有那個動作才用；否則 null＝照常閒晃 */
 export const restingClip = (rest: string | null, clips: readonly string[]): string | null =>
   rest && clips.includes(rest) ? rest : null;
+
+/**
+ * 玩家（點地板、叫貓）能不能讓貓移動。劇情讓貓縮在外出籠裡（第 1 天躲著）時不行：只有劇情能讓牠出來
+ * （渝茜 2026-11-16：第 1 天躲在外出籠，點一下畫面貓就跑出來）。
+ */
+export const playerCanMove = (state: string) => state !== "tuck";

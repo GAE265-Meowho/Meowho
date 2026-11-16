@@ -4,10 +4,11 @@ import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { mainRegion } from "./regions";
 import { carrierExit, fitCatInCarrier } from "../../play/carrier-fit";
 import { poseBounds, tuckClip } from "./pose-bounds";
-import { clipRate, jumpClipFor, jumpHeading, jumpKind, jumpReady, moveClip, napFor, restingClip, turnStep } from "./cat-moves";
+import { clipRate, jumpClipFor, jumpHeading, jumpKind, jumpReady, moveClip, napFor, playerCanMove, restingClip, turnStep } from "./cat-moves";
 import { clipJumpTiming, inPlaceClip, isJumpClip } from "./jump-clips";
 import { gallopClip } from "./gallop";
 import { playSfx } from "../../play/audio-player";
+import { SCRATCH_SECONDS } from "../../play/scratch";
 import { STEP_SFX, stepTick } from "../../play/sfx-cues";
 import { ZOOM_RUN_M } from "../../play/zoomies";
 
@@ -30,8 +31,8 @@ const AUTO_MAX = 60;
 const PLAY_NEAR_M = 0.12;   // 拍物品時離物品的距離範圍
 const PLAY_FAR_M = 0.4;
 const LAND_INSET_M = 0.3;   // 落點離家具邊緣多遠
-/** 走到碗邊後吃飯、喝水的動作播幾秒（同娃娃屋 story.ts） */
-const CLIP_SECONDS = { eat: 8, drink: 6 };
+/** 走到碗邊後吃飯、喝水的動作播幾秒（同娃娃屋 story.ts）；走到貓抓板旁磨爪（#354，lib/play/scratch.ts） */
+const CLIP_SECONDS = { eat: 8, drink: 6, scratch: SCRATCH_SECONDS };
 /** 身體半寬、鼻尖到身體中心的距離，各是站高的幾倍（母體站高 0.508 m 時量到 0.1、0.245 m） */
 const BODY_HALF_WIDTH = 0.2, BODY_NOSE = 0.48;
 const HUG_COST = 6;         // 找路時，貼著家具、用品的格子算幾倍遠
@@ -311,7 +312,7 @@ export class RoomCat {
     this.clip = null;
   }
 
-  /** 走不過去時直接出現在格子 k，面向 face 待一會（同走到後的樣子） @param {number} k @param {THREE.Vector2 | null} [face] @param {"eat" | "drink" | null} [clip] */
+  /** 走不過去時直接出現在格子 k，面向 face 待一會（同走到後的樣子） @param {number} k @param {THREE.Vector2 | null} [face] @param {"eat" | "drink" | "scratch" | null} [clip] */
   appearAt(k, face = null, clip = null) {
     this.jump = null;
     this.surface = null;
@@ -432,7 +433,7 @@ export class RoomCat {
     return k < 0 ? this.randomCell() : k;
   }
 
-  /** @param {number} k 目的地格子 @param {THREE.Vector2 | null} [face] 走到後要轉頭看的點（本地 x,z） @param {"eat" | "drink" | null} [clip] 走到後播的動作 */
+  /** @param {number} k 目的地格子 @param {THREE.Vector2 | null} [face] 走到後要轉頭看的點（本地 x,z） @param {"eat" | "drink" | "scratch" | null} [clip] 走到後播的動作 */
   goTo(k, face = null, clip = null) {
     this.untuck();
     if (this.jump || this.surface) {  // 先下來再走
@@ -686,6 +687,7 @@ export class RoomCat {
 
   // 點擊畫面：射線打到地板平面就走過去
   walkToScreen(ndc, camera) {
+    if (!playerCanMove(this.state)) return false;  // 劇情讓牠躲在外出籠裡：點地板叫不出來
     const ray = new THREE.Raycaster();
     ray.setFromCamera(ndc, camera);
     const hit = ray.ray.intersectPlane(this.floor, new THREE.Vector3());
@@ -697,6 +699,7 @@ export class RoomCat {
 
   // 叫到看得到的地板上：在可走的格子裡挑「落在畫面中下方、0.6~3.5 公尺內、上方沒有桌子」最理想的一格
   comeTo(camera) {
+    if (!playerCanMove(this.state)) return false;
     const v = new THREE.Vector3();
     const eye = this.frame.worldToLocal(camera.position.clone());
     let best = -1, bestScore = Infinity;

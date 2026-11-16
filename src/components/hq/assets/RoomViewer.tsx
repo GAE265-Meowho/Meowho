@@ -831,7 +831,7 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
     });
     // 貓不能穿過任何用品；只有劇情叫牠躲進外出籠（第 1 天）時，外出籠才讓牠進去
     const hideInCarrier = story?.action === "carrier";
-    world.current?.setItems(list.flatMap((it, i) => (hideInCarrier && it.id === "carrier" ? [] : [{ x: spots[i].x, z: spots[i].z, widthM: poses.current[i].w, depthM: poses.current[i].d }])));
+    world.current?.setItems(list.flatMap((it, i) => (hideInCarrier && it.id === "carrier" ? [] : [{ id: it.id, x: spots[i].x, z: spots[i].z, widthM: poses.current[i].w, depthM: poses.current[i].d }])));
     Promise.all(list.map(itemObject)).then(objs => {
       if (stale || itemStage.current !== st) return;
       st.frame.clear();

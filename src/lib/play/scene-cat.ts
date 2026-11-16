@@ -19,7 +19,7 @@ const tallest = (list: RoomObject[]) => [...list].sort((a, b) => b.box.size[1] -
 
 /** items：用品尺寸（公尺），外出籠要用來算籠內空間；沒給就照舊走到外出籠旁 */
 export function sceneCatCommand(action: CatAction | null, objects: readonly RoomObject[], placed: readonly { id: string; x: number; z: number }[],
-  items: readonly { id: string; widthM: number; depthM: number; heightM: number }[] = []): SceneCatCommand {
+  items: readonly { id: string; widthM: number; depthM: number; heightM: number; rot?: number }[] = []): SceneCatCommand {
   const at = (id: string, clip?: "eat" | "drink"): SceneCatCommand => {
     const p = placed.find(x => x.id === id);
     return p ? { kind: "go", x: p.x, z: p.z, ...(clip && { look: true, clip }) } : { kind: "roam" };
@@ -30,7 +30,8 @@ export function sceneCatCommand(action: CatAction | null, objects: readonly Room
     case null: return { kind: "hidden" };
     case "carrier": {
       const p = placed.find(x => x.id === "carrier"), it = items.find(x => x.id === "carrier");
-      return p && it ? { kind: "tuck", carrier: { x: p.x, z: p.z, widthM: it.widthM, depthM: it.depthM, heightM: it.heightM } } : at("carrier");
+      // rotY：玩家按過「外出籠轉向」（rot＝轉了幾個 90°，模型轉 rot × 90°）；沒帶的話貓會照沒轉的方向塞，跑到籠子外面
+      return p && it ? { kind: "tuck", carrier: { x: p.x, z: p.z, widthM: it.widthM, depthM: it.depthM, heightM: it.heightM, rotY: ((it.rot ?? 0) * Math.PI) / 2 } } : at("carrier");
     }
     // 餵完、換完水才叫貓去碗邊：鏡頭轉過去，到了播吃飯／喝水的動作
     case "eat": return at("bowl", "eat");
