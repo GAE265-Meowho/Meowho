@@ -41,9 +41,10 @@
   letter-spacing: 0.04em;
 }
 
+/* 貓坐在這塊空地上：電腦、平板的貓最高 240px（CatJourney 的 targetPx），加名牌要留 280px，才不會壓到上面的內文 */
 .perchZone {
   position: relative;
-  height: 170px;
+  height: 280px;
 }
 
 .introPerch {

@@ -26,6 +26,9 @@ const roamLabels: Record<RoamMode, string> = {
 
 /** Height of the cat model, in model units, used to size it in pixels. */
 const CAT_HEIGHT = 2.2;
+/** 換站時走路的速度（貓的單位／秒）；母體 walk 動作原速約 1.54（0.35 公尺／秒 × 4.4 倍放大） */
+const TRAVEL_SPEED = 3.6;
+const WALK_CLIP_SPEED = 1.54;
 
 function readPerches(): Perch[] {
   return [...document.querySelectorAll<HTMLElement>("[data-cat-perch]")]
@@ -40,11 +43,6 @@ function readPerches(): Perch[] {
 
 function angleDelta(from: number, to: number) {
   return Math.atan2(Math.sin(to - from), Math.cos(to - from));
-}
-
-function smoothstep(a: number, b: number, x: number) {
-  const t = THREE.MathUtils.clamp((x - a) / (b - a), 0, 1);
-  return t * t * (3 - 2 * t);
 }
 
 /** Pointer position across the whole window, normalised to -1..1. */
@@ -82,8 +80,10 @@ type Brain = {
   ballOff: number;
   ballVel: number;
   ballShow: number;
-  leg: number;
-  legX: number;
+  /** 貓現在屬於哪一站（-1＝在畫面外等） */
+  home: number;
+  /** 貓在畫面上的 x（px）；null＝還沒放過 */
+  x: number | null;
   label: string;
 };
 
@@ -107,6 +107,9 @@ function Journey({ onLabel, label, reducedMotion, look, name }: {
   // 真的貓模型用動作庫的動作；只在換動作時更新 state
   const [clip, setClip] = useState("idle");
   const clipRef = useRef("idle");
+  // walk 動作的播放倍速跟著實際移動速度，腳才不會滑；取到 0.2 一格，避免每格都更新 state
+  const [clipSpeed, setClipSpeed] = useState(1);
+  const clipSpeedRef = useRef(1);
 
   const tmp = useMemo(
     () => ({ ndc: new THREE.Vector3(), dir: new THREE.Vector3(), a: new THREE.Vector3(), b: new THREE.Vector3(), base: new THREE.Vector3(), roam: new THREE.Vector3(), axis: new THREE.Vector3() }),
@@ -134,8 +137,8 @@ function Journey({ onLabel, label, reducedMotion, look, name }: {
     ballOff: 1.6,
     ballVel: 0,
     ballShow: 1,
-    leg: -1,
-    legX: 0,
+    home: -1,
+    x: null,
     label: "",
   });
 
@@ -181,7 +184,9 @@ function Journey({ onLabel, label, reducedMotion, look, name }: {
     const persp = camera as THREE.PerspectiveCamera;
     const dist = camera.position.length();
     const pxPerUnit = size.height / (2 * dist * Math.tan(THREE.MathUtils.degToRad(persp.fov / 2)));
-    const targetPx = size.width < 768 ? 92 : THREE.MathUtils.clamp(size.height * 0.19, 110, 160);
+    // 手機 92px；平板、電腦依畫面高度放大（2026-11-16 子哲：電腦、平板上太小），窄的平板用寬度封頂
+    // 斷點用視窗寬度（和 CSS 的 767px 斷點一致）；畫布寬度不含捲軸，768 的平板會被當成手機
+    const targetPx = window.innerWidth < 768 ? 92 : THREE.MathUtils.clamp(Math.min(size.height * 0.27, size.width * 0.26), 170, 240);
     const s = targetPx / (pxPerUnit * CAT_HEIGHT);
     const pxToCat = 1 / (pxPerUnit * s);
 
@@ -201,53 +206,60 @@ function Journey({ onLabel, label, reducedMotion, look, name }: {
     while (i < anchors.length - 1 && anchors[i + 1].y <= arrive) i++;
     const j = Math.min(i + 1, list.length - 1);
 
-    // Split the scroll between i arriving and j arriving into: stay at i → walk
-    // out through the nearest edge → wait off-screen (long stretches such as the
-    // pinned 三步通關) → walk in from the edge as j comes up. Works for any gap.
-    let q = 0;
-    if (j > i && anchors[i].y <= arrive) {
-      const gap = Math.max(anchors[j].y - anchors[i].y, 1);
-      const p = arrive - anchors[i].y;
-      const stay = Math.min(size.height * 0.45, gap * 0.35);
-      const out = Math.min(size.height * 0.3, gap * 0.3);
-      const into = Math.min(size.height * 0.25, gap * 0.35);
-      if (p <= stay) q = 0;
-      else if (p <= stay + out) q = (0.5 * (p - stay)) / out;
-      else if (p < gap - into) q = 0.5;
-      else q = 0.5 + (0.5 * (p - (gap - into))) / into;
-      q = THREE.MathUtils.clamp(q, 0, 1);
-      if (reducedMotion) q = q < 0.75 ? 0 : 1;
-    }
-    const t2 = q;
+    // 捲動只決定「貓該在哪一站」，不直接拖著貓走（2026-11-16 子哲：原本位置綁捲動量，停下捲動貓就卡在半路、
+    // 進場時浮在畫面底部蓋住內容）。站點在畫面上看得到才算數；兩站之間沒有站點時貓在畫面外等。
+    // 換站時貓用自己的速度從最近的邊走出去，再從新站那一側走進來，腳永遠踩在站點的高度上。
+    const minY = (size.width < 768 ? 56 : 68) + targetPx * 0.7;
+    const maxY = size.height - (size.width < 768 ? 84 : 16);
+    const vis = (k: number) => anchors[k].y >= minY && anchors[k].y <= maxY;
+    const desired = vis(i) ? i : j > i && vis(j) ? j : -1;
     const offPx = targetPx * 1.3;
     const edgeFor = (x: number) => (x < size.width / 2 ? -offPx : size.width + offPx);
-    const leaving = t2 < 0.5;
-    const from = leaving ? anchors[i].x : edgeFor(anchors[j].x);
-    const to = leaving ? edgeFor(anchors[i].x) : anchors[j].x;
-    // Ease each leg so the cat sets off and arrives gently.
-    const u = smoothstep(0, 1, leaving ? t2 / 0.5 : (t2 - 0.5) / 0.5);
-    const sx = THREE.MathUtils.lerp(from, to, u);
-    // Keep both legs on screen: the walk out and the walk in happen where the
-    // visitor can see them, even if the perch row itself has scrolled away.
-    const minY = (size.width < 768 ? 56 : 68) + targetPx + 28;
-    const maxY = size.height - (size.width < 768 ? 84 : 16);
-    const sy = THREE.MathUtils.clamp(leaving ? anchors[i].y : anchors[j].y, minY, maxY);
+    if (b.home >= list.length) { b.home = -1; b.x = null; }
+    if (b.x === null || reducedMotion) {
+      b.home = desired;
+      b.x = desired >= 0 ? anchors[desired].x : 0;
+    }
+    // 原本那一站已經整個捲出畫面：不用演走出去，直接到畫面外
+    if (b.home >= 0 && b.home !== desired && (anchors[b.home].y < 0 || anchors[b.home].y - targetPx > size.height)) b.home = -1;
+    // 在畫面外等的時候，新站一出現就站到它那一側的邊上
+    if (b.home < 0 && desired >= 0) {
+      b.home = desired;
+      b.x = edgeFor(anchors[desired].x);
+    }
+    let vx = 0;
+    let legDir = 1;
+    if (b.home >= 0) {
+      const ax = anchors[b.home].x;
+      const goal = b.home === desired ? ax : edgeFor(ax);
+      const d = goal - b.x;
+      legDir = Math.sign(d) || 1;
+      // 走路速度（貓的單位／秒）：遠的時候小跑步，快到站時放慢
+      const unitPx = 1 / pxToCat;
+      const speedPx = Math.min(TRAVEL_SPEED * unitPx, Math.max(0.6 * unitPx, Math.abs(d) * 3));
+      const step = Math.sign(d) * Math.min(Math.abs(d), speedPx * dt);
+      b.x += step;
+      if (dt > 0) vx = (step / dt) * pxToCat;
+      // 走出畫面了：下一格改到新站那一側（或留在畫面外等）
+      if (b.home !== desired && Math.abs(goal - b.x) < 1) b.home = -1;
+    }
+    const home = b.home;
+    root.visible = home >= 0;
+    if (home < 0) {
+      if (b.label !== "") { b.label = ""; onLabel(""); }
+      ball.current?.scale.setScalar(0);
+      return;
+    }
+    const sx = b.x;
+    const sy = anchors[home].y;
     toWorld(sx, sy, tmp.base);
 
-    const traveling = t2 > 0.002 && t2 < 0.998;
-    const current = leaving ? i : j;
+    const traveling = home !== desired || Math.abs(sx - anchors[home].x) > 1;
+    const current = home;
     const perch = list[current];
     // Ranges are authored for desktop; never wander more than ~30% of the screen width.
     const rangePx = (p: Perch) => Math.min(p.range, size.width * 0.3);
     const range = rangePx(perch) * pxToCat;
-
-    // Walking speed along the exit/entry leg, in cat units (page scroll itself is ignored).
-    const leg = i * 2 + (leaving ? 0 : 1);
-    let vx = 0;
-    if (b.leg === leg && dt > 0) vx = ((sx - b.legX) / dt) * pxToCat;
-    b.leg = leg;
-    b.legX = sx;
-    const legDir = Math.sign(to - from) || 1;
 
     // ---- Petting ----
     if (petCount !== b.lastPet) {
@@ -476,6 +488,8 @@ function Journey({ onLabel, label, reducedMotion, look, name }: {
     if (look) {
       const want = journeyClip({ moving: b.speed > 0.15, sleep: wantSleep > 0, sit: wantSit > 0, eat: wantEat > 0 });
       if (want !== clipRef.current) { clipRef.current = want; setClip(want); }
+      const rate = want === "walk" ? Math.round(THREE.MathUtils.clamp(b.speed / WALK_CLIP_SPEED, 0.7, 2.6) * 5) / 5 : 1;
+      if (rate !== clipSpeedRef.current) { clipSpeedRef.current = rate; setClipSpeed(rate); }
     }
 
     // ---- Name tag ----
@@ -494,7 +508,7 @@ function Journey({ onLabel, label, reducedMotion, look, name }: {
   return (
     <>
       {look
-        ? <GlbCat rig={rig} look={look} clip={clip} onPet={() => setPetCount((n) => n + 1)}>{tag}</GlbCat>
+        ? <GlbCat rig={rig} look={look} clip={clip} speed={clipSpeed} onPet={() => setPetCount((n) => n + 1)}>{tag}</GlbCat>
         : <CatModel rig={rig} onPet={() => setPetCount((n) => n + 1)}>{tag}</CatModel>}
       <group ref={ball} scale={0}>
         <mesh>
