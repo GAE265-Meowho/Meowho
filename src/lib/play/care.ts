@@ -1,6 +1,7 @@
 // 虛擬飼養 DEMO（#237）：「在家的時光」。每個節點結束後回到房間，7 個動作每輪各最多做一次，累積 6 個數值。
 // 設計稿：newgame/nodes.md「在家的時光」。數字是暫定值（沿用 catgame 原型），上線前要和組員確認。純函式。
 // 不做房間物品互動：動作都是按鈕加小遊戲，貓在背景。這些動作不花錢（花費只來自劇情裡的明確支出）。
+import { scoopOutcome } from "./mini3d/scoop-rules";
 import type { Care, Fx } from "./story";
 
 export type CareAct = "play" | "pet" | "feed" | "water" | "scoop" | "nail" | "brush";
@@ -20,14 +21,22 @@ export const newCare = (): Care => ({ weight: 50, water: 50, hygiene: 50, teeth:
 
 const clamp = (v: number) => Math.max(0, Math.min(100, v));
 
-/** 做完一個動作的效果。good＝小遊戲成功；brushDaily＝節點 3 選了「每天練刷牙」（牙齒值加成） */
-export function careEffect(act: CareAct, good: boolean, brushDaily: boolean): { d: Partial<Pick<Care, "weight" | "water" | "hygiene" | "teeth">>; fx: Fx } {
+/**
+ * 做完一個動作的效果。good＝小遊戲成功；brushDaily＝節點 3 選了「每天練刷牙」（牙齒值加成）。
+ * result＝小遊戲的實際結果（有給才看）：餵貓沒做好時只有「倒太多」才加體重（倒太少不算吃胖）；鏟屎只鏟一部分，衛生照比例加、壓力不降。
+ */
+export function careEffect(act: CareAct, good: boolean, brushDaily: boolean, result?: unknown): { d: Partial<Pick<Care, "weight" | "water" | "hygiene" | "teeth">>; fx: Fx } {
+  const r = result && typeof result === "object" ? (result as Record<string, unknown>) : null;
   switch (act) {
     case "play": return { d: {}, fx: good ? { trust: 4, stress: -5 } : { trust: 1 } };
     case "pet": return { d: {}, fx: good ? { trust: 5, stress: -6 } : { trust: 1 } };
-    case "feed": return { d: good ? {} : { weight: 8 }, fx: {} };
+    case "feed": return { d: good || (r && r.over !== true) ? {} : { weight: 8 }, fx: {} };
     case "water": return { d: { water: good ? 10 : 3 }, fx: {} };
-    case "scoop": return { d: { hygiene: 10 }, fx: { stress: -2 } };
+    case "scoop": {
+      if (good || !r) return { d: { hygiene: 10 }, fx: { stress: -2 } };
+      const total = num(r, "total");
+      return { d: { hygiene: total > 0 ? Math.round(10 * Math.min(1, num(r, "bagged") / total)) : 0 }, fx: {} };
+    }
     case "nail": return { d: {}, fx: { trust: good ? 2 : -3 } };
     case "brush": return { d: { teeth: good ? 10 + (brushDaily ? 5 : 0) : 3 }, fx: {} };
   }
@@ -56,18 +65,38 @@ export function addCare(c: Care, d: Partial<Pick<Care, "weight" | "water" | "hyg
 type Result = Record<string, unknown> | null;
 const num = (r: Result, k: string) => (r && typeof r[k] === "number" ? (r[k] as number) : 0);
 
-/** 小遊戲結果（原版 catgame 的格式）→ 成功與否。play：開心分數 50 以上；scoop：一律算做了；
- *  feed：倒到建議份量附近（15 以上）、沒倒太多、灑出去不到 1.5 秒；water：水裝到 70 以上；
+/** 小遊戲結果（原版 catgame 的格式）→ 成功與否。play：開心分數 50 以上；scoop：每一坨都鏟起來丟進垃圾袋（bagged ≥ total > 0）；
+ *  feed：這次有倒、碗裡總量到建議份量附近（15 以上）、沒倒太多、灑出去不到 1.5 秒（total 沒給就看 added）；water：水裝到 70 以上；
  *  nail：沒剪到血線、沒被咬、沒跑掉、剪好 60 分以上；brush：沒被咬、沒跑掉、完成度 60 分以上；中途取消（null）都算沒做好 */
 export function careGood(act: CareAct, result: unknown): boolean {
   const r: Result = result && typeof result === "object" ? (result as Record<string, unknown>) : null;
   switch (act) {
     case "play": return num(r, "fun") >= 50;
     case "pet": return Boolean(r) && !r!.ran && num(r, "fun") >= 50;
-    case "scoop": return true;
-    case "feed": return Boolean(r) && r!.over !== true && num(r, "added") >= 15 && num(r, "spill") < 1.5;
+    case "scoop": return scoopOutcome(r).kind === "good";
+    case "feed": return Boolean(r) && r!.over !== true && num(r, "added") > 0 && (typeof r!.total === "number" ? num(r, "total") : num(r, "added")) >= 15 && num(r, "spill") < 1.5;
     case "water": return num(r, "fill") >= 70;
     case "nail": return Boolean(r) && !r!.bleed && !r!.bitten && !r!.ran && num(r, "score") >= 60;
     case "brush": return Boolean(r) && !r!.bitten && !r!.ran && num(r, "score") >= 60;
+  }
+}
+
+/**
+ * 小遊戲的實際結果分三種（再加上成功）：good＝做好了；partial＝鏟屎只鏟一部分；bad＝有做但沒做好（倒太多、被咬、剪到血線…）；
+ * none＝什麼都沒做（中途關掉回傳 null、一坨都沒鏟、沒倒飼料、沒摸到、沒刷到、沒剪到）。none 不算做過、不記紀錄、不給獎勵也不算試過。
+ */
+export type CareOutcome = "good" | "partial" | "bad" | "none";
+export function careOutcome(act: CareAct, result: unknown): CareOutcome {
+  const r: Result = result && typeof result === "object" ? (result as Record<string, unknown>) : null;
+  if (careGood(act, result)) return "good";
+  if (!r) return "none";
+  const hurt = Boolean(r.bitten || r.ran || r.bleed);
+  switch (act) {
+    case "scoop": return scoopOutcome(r).kind === "partial" ? "partial" : "none";
+    case "feed": return num(r, "added") > 0 ? "bad" : "none";
+    case "water": return num(r, "fill") > 0 ? "bad" : "none";
+    case "play": return num(r, "fun") > 0 ? "bad" : "none";
+    case "pet": return num(r, "fun") > 0 || hurt ? "bad" : "none";
+    case "nail": case "brush": return num(r, "score") > 0 || hurt ? "bad" : "none";
   }
 }

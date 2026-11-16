@@ -6,7 +6,7 @@
 // 3D 元件一律 next/dynamic（ssr: false）。
 import { CareIcon, type CareIconId } from "./CareIcon";
 import dynamic from "next/dynamic";
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { sideFromKey, type OverviewSide } from "@/lib/hq/rooms/overview";
 import type { PlaceAt, PlacedHouseholdItem, RoomClick } from "@/components/hq/assets/FloorplanViewer";
 import type { PlayCatLook } from "@/lib/play/cats";
@@ -15,12 +15,21 @@ import type { SceneItem } from "@/lib/play/scene-items";
 import type { RoomPlaceEdit, RoomWand } from "@/components/hq/assets/RoomViewer";
 import type { CatAction } from "@/lib/play/stage";
 import type { BowlFill } from "@/components/hq/assets/bowlSlotsDetect";
+import type { SceneLight } from "@/lib/play/scene-light";
+import type { CameraShot } from "@/lib/play/camera-shot";
+import type { Stain } from "@/lib/play/urine-stain";
+import type { ElderCat } from "@/lib/play/elder-cat";
+import v from "./vet.module.css";
 import s from "./play.module.css";
+import f from "./PlayFollow.module.css";
 import p from "./place.module.css";
 
 const loading = () => <div className={s.stageLoading}>3D 房間載入中…</div>;
 const FloorplanViewer = dynamic(() => import("@/components/hq/assets/FloorplanViewer"), { ssr: false, loading });
 const RoomViewer = dynamic(() => import("@/components/hq/assets/RoomViewer"), { ssr: false, loading });
+const VetRoom = dynamic(() => import("./VetRoom"), { ssr: false });
+/** 飼養開始後多久在背景先載診間 */
+const VET_WARM_MS = 5000;
 
 const ROOMS = [DEMO_DOLLHOUSE];
 const noop = () => {};
@@ -77,7 +86,7 @@ function useBottomCover(stage: React.RefObject<HTMLElement | null>, on: boolean)
   return cover;
 }
 
-export function PlayStage({ kind, scanBase, placeView = false, place = null, look, tag, bubble, bubbleInset, lookKey, placed, scanItems, story, wand, goal, clip, speed, onDrop, onItemError, bowlFill, children }: {
+export function PlayStage({ kind, scanBase, placeView = false, place = null, look, tag, bubble, bubbleInset, lookKey, placed, scanItems, story, wand, goal, clip, speed, light, vet = false, vetTalk = null, shot = null, stains = null, elder = null, onDrop, onItemError, bowlFill, children }: {
   kind: "scan" | "dollhouse";
   scanBase: string | null;
   /** 擺用品：掃描房間改成從某一側俯視整個房間，畫面上多四顆切換視角的鈕（娃娃屋不變） */
@@ -104,15 +113,45 @@ export function PlayStage({ kind, scanBase, placeView = false, place = null, loo
   goal: (RoomClick & { at: number }) | null;
   clip: string | null;
   speed: number;
+  /** 白天／夜晚光（lib/play/scene-light.ts 的 lightFor）；兩種房間吃同一組 */
+  light?: SceneLight | null;
+  /** 看獸醫：診間疊在房間上面（房間不卸載，換回來不重新載入）；lib/play/vet-room.ts 的 showVet */
+  vet?: boolean;
+  /** 診間裡獸醫在說話的卡片 key（vetTalkKey）；一換獸醫就點頭 */
+  vetTalk?: string | null;
+  /** 劇情鏡頭（lib/play/camera-shot.ts 的 shotFor）；null＝原本的鏡頭 */
+  shot?: CameraShot | null;
+  /** 尿漬（lib/play/urine-stain.ts 的 stainsFor）；空／null＝沒有 */
+  stains?: readonly Stain[] | null;
+  /** 老貓的樣子（結局，lib/play/elder-cat.ts 的 elderFor）；null＝原本的樣子 */
+  elder?: ElderCat | null;
   onDrop?: (itemId: string, at: PlaceAt) => void;
   onItemError?: (key: string) => void;
   /** 餐碗組裡有沒有飼料、水 */
   bowlFill?: BowlFill;
   children?: ReactNode;
 }) {
+  // 第 1 天（劇情叫貓躲外出籠）：娃娃屋的貓整隻縮在擺好的外出籠裡
+  const carrier = story?.action === "carrier" ? placed.find(p => p.key.startsWith("carrier:")) : undefined;
+  const tuck = useMemo(() => (carrier
+    ? { x: carrier.x, y: carrier.y, z: carrier.z, widthM: carrier.widthM, depthM: carrier.depthM, heightM: carrier.heightM, rotY: ((carrier.rotY ?? 0) * Math.PI) / 180 }
+    : null), [carrier]);
+  // 跟著貓：飼養中（有劇情動作）才有按鈕；娃娃屋原本就一直跟，預設開；掃描房間預設關
+  const [follow, setFollow] = useState(kind === "dollhouse");
+  useEffect(() => { setFollow(kind === "dollhouse"); }, [kind]);
+  const followOff = useCallback(() => setFollow(false), []);
   const [side, setSide] = useState<OverviewSide>("front");
   const scan = kind === "scan" && Boolean(scanBase);
   const overview = scan && placeView;
+  // 診間：飼養開始（有劇情動作）幾秒後就先在背景載好（程式、貓模型與貼圖），看醫生時貓馬上出現（渝茜 2026-11-14：原本第一次看醫生才載，貓很慢才出來）；
+  // 之後留著（淡出時還看得到；不在畫面時 VetRoom 自己停掉繪製）。等房間先載完再暖，不搶頻寬
+  const [vetUsed, setVetUsed] = useState(vet);
+  useEffect(() => { if (vet) setVetUsed(true); }, [vet]);
+  useEffect(() => {
+    if (vetUsed || !story || !look) return;
+    const t = window.setTimeout(() => setVetUsed(true), VET_WARM_MS);
+    return () => window.clearTimeout(t);
+  }, [vetUsed, story, look]);
   const stageEl = useRef<HTMLElement>(null);
   const cover = useBottomCover(stageEl, overview);
   // 鍵盤方向鍵切換視角（焦點在輸入框時不攔）
@@ -133,14 +172,28 @@ export function PlayStage({ kind, scanBase, placeView = false, place = null, loo
     <section ref={stageEl} className={overview ? `${s.stage} ${p.stage}` : s.stage} aria-label="3D 房間">
       {tag && <span className={s.stageTag}>{tag}</span>}
       {kind === "scan" && scanBase
-        ? <RoomViewer base={scanBase} items={scanItems} controls={false} story={story} wand={wand} bubble={bubble ? <CareIcon id={bubble} /> : null} bubbleInset={bubbleInset} lookKey={lookKey} overview={overview ? side : null} overviewCover={cover} place={overview ? place : null} bowlFill={bowlFill} />
+        ? <RoomViewer base={scanBase} items={scanItems} controls={false} story={story} wand={wand} bubble={bubble ? <CareIcon id={bubble} /> : null} bubbleInset={bubbleInset} lookKey={lookKey} follow={follow} onFollowOff={followOff} overview={overview ? side : null} overviewCover={cover} place={overview ? place : null} light={light?.scan ?? null} shot={shot} stains={stains} elder={elder} capture bowlFill={bowlFill} />
         : (
           <FloorplanViewer rooms={ROOMS} selected={ROOMS[0].id} onPick={noop}
             cat={look} placedItems={placed} interactMode="point"
-            catGoal={goal} catClip={clip} catSpeed={speed}
+            catGoal={goal} catClip={clip} catSpeed={speed} catTuck={tuck} catFollow={follow} onCatFollowOff={followOff}
+            light={light?.house ?? null} shot={shot} stains={stains} elder={elder} capture
             onFloorDrop={onDrop} onItemError={onItemError} bowlFill={bowlFill} />
         )}
+      {vetUsed && (
+        <div className={v.vet} data-on={vet ? "true" : "false"} aria-label={vet ? "動物醫院診間" : undefined} role={vet ? "img" : undefined}>
+          <VetRoom look={look} light={light?.house ?? null} active={vet} talk={vet ? vetTalk : null} />
+        </div>
+      )}
       {kind !== "scan" && bubble && <span className={s.bubbleFixed} aria-hidden="true"><CareIcon id={bubble} /></span>}
+      {story && look && (
+        <button type="button" className={f.follow} aria-pressed={follow} aria-label="跟隨貓咪" onClick={() => setFollow(v => !v)}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="3" /><path d="M12 2v4M12 18v4M2 12h4M18 12h4" /><circle cx="12" cy="12" r="8" />
+          </svg>
+          <span>跟隨貓咪</span>
+        </button>
+      )}
       {overview && <ViewPad side={side} onSide={setSide} />}
       {children}
     </section>

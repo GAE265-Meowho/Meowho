@@ -1,0 +1,13 @@
+### 08:41｜渝茜（發起）× Claude Code
+- Issue：#354 虛擬飼養第 5 份任務表
+- 分支／PR：fix/354-play-day1-carrier｜（開 PR 後補）
+- 模組：readiness
+- 做了什麼：
+  - 第 1 天開場台詞改成「中途把外出籠交給你，你把它放在先前選好的位置。〈貓名〉一直縮在外出籠最裡面」（`src/lib/play/story.ts`）
+  - 新增 `src/lib/play/carrier-fit.ts`（純函式＋8 項測試）：依外出籠量好的籠內空間，把貓整段躲藏動作的包圍盒縮放到放得下、貼最裡面、面向門口
+  - 新增 `src/lib/hq/rooms/pose-bounds.ts`：在複製的模型上取樣整段動作量包圍盒（含尾巴、耳朵）
+  - 掃描房間：`sceneCatCommand` 給 `tuck` 指令，`RoomCat.tuck` 固定趴姿、縮放、不移動；其他指令或走動時恢復
+  - 示範娃娃屋：`PlayStage` 依劇情外出籠位置讓 `CatActor` 縮在籠內，淡入完才顯示
+- 驗證：`npm test` 1513 項通過、`typecheck` 通過、`lint` 0 錯誤（沙盒連不到 Google Fonts，`build` 交給 Vercel 預覽）
+- 未完成／下一步：在渝茜的真實掃描房間看第 1 天外出籠；貓動作串接與「跟隨貓咪」按鈕在 `feat/354-play-cat-motion-wip` 接續
+- 風險／地雷：外出籠模型換掉時要重新量籠內空間，否則貓可能露出籠外

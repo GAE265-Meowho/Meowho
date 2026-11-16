@@ -226,7 +226,7 @@
   display: inline-flex; align-items: center; justify-content: center; min-height: 44px; min-width: 44px; padding: 0 16px; border-radius: 999px;
   background: var(--card); color: var(--ink); border: 2px solid var(--line); font-weight: 700; font-size: var(--play-fs-tag); text-decoration: none; flex: 0 0 auto;
 }
-.exit:focus-visible, .sound:focus-visible, .peekBtn:focus-visible { outline: 3px solid var(--orange); outline-offset: 2px; }
+.exit:focus-visible, .sound:focus-visible { outline: 3px solid var(--orange); outline-offset: 2px; }
 /* 音量／靜音按鈕（第 6 份） */
 .hudEnd { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
 .stepsRow { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
@@ -251,12 +251,6 @@
 .sheet .lead { font-size: 14px; line-height: 1.6; }
 .sheet .chips { gap: 6px; }
 .sheet .option { min-height: 48px; }
-.peekBtn {
-  align-self: flex-end; width: auto; min-height: 44px; padding: 0 16px; border-radius: 999px; border: 2px solid var(--line);
-  display: inline-flex; align-items: center; gap: 6px; flex: 0 0 auto;
-  background: var(--card); color: var(--ink); font: inherit; font-size: var(--play-fs-tag, 14px); font-weight: 700; cursor: pointer; box-shadow: 0 2px 0 var(--line);
-}
-.sheet[data-peek="true"] > :not(.peekBtn) { display: none; }
 @media (min-width: 900px) {
   .sheet { --sheet-max: 56dvh; padding-bottom: 20px; }
   .sheet > * { max-width: 720px; }
@@ -320,11 +314,13 @@
 @media (prefers-reduced-motion: reduce) { .stage :global(.hq-roomviewer-bubble) { animation: none; } }
 
 /* 在家的時光：畫面上方一排圖示（沒做＝白底不透明，做過＝半透明）；右下角只放「結束今天，繼續故事」 */
-.careBar { position: absolute; z-index: 5; top: calc(max(10px, env(safe-area-inset-top)) + 92px); left: 0; right: 0; display: flex; justify-content: center; gap: 8px; padding: 0 10px; pointer-events: none; }
+/* 2026-11-14 渝茜：電腦版放在最上面那一列（左邊狀態、右邊跟著貓與齒輪的中間）；手機版寬度不夠，放在狀態列下面 */
+.careBar { position: absolute; z-index: 6; top: max(10px, env(safe-area-inset-top)); left: 0; right: 0; display: flex; justify-content: center; gap: 8px; padding: 0 10px; pointer-events: none; }
 .careIcon {
   pointer-events: auto; width: 44px; height: 44px; padding: 0; border-radius: 50%; border: 2px solid var(--line); background: #fff; font-size: 22px; line-height: 1;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2); cursor: pointer; transition: opacity 0.2s;
 }
 .careIcon[data-done="true"] { opacity: 0.4; background: rgba(255, 255, 255, 0.5); }
+@media (max-width: 899px) { .careBar { top: calc(max(10px, env(safe-area-inset-top)) + 92px); } }
 .careIcon:focus-visible { outline: 3px solid var(--orange); outline-offset: 2px; }
 .sheet .homeFinish { display: flex; justify-content: flex-end; width: 100%; max-width: none; }

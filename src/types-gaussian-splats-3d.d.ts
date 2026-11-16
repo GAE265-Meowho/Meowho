@@ -1,6 +1,6 @@
 // @mkkellogg/gaussian-splats-3d 沒有附型別，這裡只宣告用到的部分
 declare module "@mkkellogg/gaussian-splats-3d" {
-  import type { Object3D, PerspectiveCamera, Vector3 } from "three";
+  import type { Object3D, PerspectiveCamera, ShaderMaterial, Vector3 } from "three";
 
   export const SceneFormat: { Splat: number };
   export const SceneRevealMode: { Instant: number };
@@ -26,6 +26,8 @@ declare module "@mkkellogg/gaussian-splats-3d" {
     start(): void;
     forceRenderNextFrame(): void;
     getSplatScene(index: number): Object3D;
+    /** 房間的 SplatMesh；material 是 ShaderMaterial，函式庫加場景時可能重建（#354 調色用） */
+    getSplatMesh(): (Object3D & { material: ShaderMaterial | null }) | null;
     dispose(): Promise<void>;
   }
 }

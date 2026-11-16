@@ -247,3 +247,12 @@ export function dragSideOffset(offset: number, dx: number, handed = 1): number {
   const max = SIDE_VIEW.dragMaxDeg * DEG;
   return Math.min(Math.max(offset + handed * dx * OVERVIEW.dragRadPerPx, -max), max);
 }
+
+/**
+ * 虛擬飼養的一般鏡頭（#354，渝茜 2026-11-14）：用擺用品那種從房間一側高處往下看整間房（RoomViewer 的 playHome：sideCamera＋fitFov），
+ * 不用掃描影片的拍攝點（常貼著地板、靠窗，旁邊都是雜訊，虛擬飼養裡又只能原地轉頭走不開）。
+ */
+export const PLAY_VIEW = {
+  /** 視野上限（度）：再大邊緣會變形 */
+  maxFov: 80,
+} as const;
