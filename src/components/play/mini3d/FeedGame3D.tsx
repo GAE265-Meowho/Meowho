@@ -4,10 +4,11 @@
 // 回傳 { added, total, over, wet, soup, spill, bowl }，careGood("feed") 看這次有倒、碗裡總量 ≥ 15、沒過量、沒灑太多。
 // initial＝今天碗裡原本有的（lib/play/care-day.ts）：同一天再進來，碗維持倒過的樣子，並提示今天已經倒過。
 import { Canvas } from "@react-three/fiber";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { addCan, CAN_LANDS, CAN_SECONDS, canFits, canFrame, feedAmount, feedHint, feedResult, newFeed, pourDry, type FeedKind, type FeedState } from "@/lib/play/mini3d/feed-rules";
 import { FeedScene, type FeedFrame } from "./FeedScene";
 import styles from "./mini3d.module.css";
+import { playSfx } from "@/lib/play/audio-player";
 
 /** 一開始右手拿著飼料袋進來要幾秒；按住後袋子多久傾斜到底 */
 const INTRO_SECONDS = 0.9, TILT_SECONDS = 0.25;
@@ -41,7 +42,7 @@ export function FeedGame3D({ portion, onDone, kinds = KINDS, onRestock, initial 
     if (kind === "dry") {
       tilt.current = Math.min(1, Math.max(0, tilt.current + (holding.current && ready ? 1 : -1) * dt / TILT_SECONDS));
       const pouring = tilt.current > 0.6;  // 袋子傾斜過一半顆粒才掉出來
-      // 音效（第 6 份）：pouring 由 false 變 true 時播 sfx_pour_kibble，變回 false 時停；開罐頭時播 sfx_open_can
+      // 音效：pouring 由 false 變 true 時播倒飼料（下面的 useEffect）；開罐頭時播拉環
       if (pouring) feed.current = pourDry(feed.current, dt);
       frame = { ...IDLE, bagHand: reach, bagTilt: tilt.current, pouring };
     } else if (can.current) {
@@ -57,6 +58,9 @@ export function FeedGame3D({ portion, onDone, kinds = KINDS, onRestock, initial 
     setUi(v => (Object.keys(next) as (keyof typeof next)[]).every(k => v[k] === next[k]) ? v : next);
     return { ...frame, dry: s.dry, wet: s.wet > 0, soup: s.soup > 0 };
   }
+  // 音效（渝茜 2026-11-16 套上後台音效）：開始倒、開始開罐頭那一下各響一次
+  useEffect(() => { if (ui.pouring) playSfx("sfx_pour_food"); }, [ui.pouring]);
+  useEffect(() => { if (ui.opening) playSfx("sfx_can_open"); }, [ui.opening]);
   const press = (on: boolean) => { holding.current = on && ui.ready; };
   const open = () => { if (kind && kind !== "dry" && ui.ready && !can.current && canFits(feed.current, kind)) can.current = { k: 0, landed: false }; };
 

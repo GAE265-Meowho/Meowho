@@ -23,6 +23,7 @@ import v from "./vet.module.css";
 import s from "./play.module.css";
 import f from "./PlayFollow.module.css";
 import p from "./place.module.css";
+import { catHeightM } from "@/lib/play/cat-body";
 
 const loading = () => <div className={s.stageLoading}>3D 房間載入中…</div>;
 const FloorplanViewer = dynamic(() => import("@/components/hq/assets/FloorplanViewer"), { ssr: false, loading });
@@ -168,11 +169,13 @@ export function PlayStage({ kind, scanBase, placeView = false, place = null, loo
     addEventListener("keydown", onKey);
     return () => removeEventListener("keydown", onKey);
   }, [overview]);
+  // 掃描房間也用這隻貓自己的模型與年紀的體型（渝茜 2026-11-16：原本沒傳，一律是預設的成貓虎斑）
+  const roomCat = useMemo(() => (look ? { baseUrl: look.baseUrl, albedoUrl: look.albedoUrl, heightM: catHeightM(look.body) } : null), [look]);
   return (
     <section ref={stageEl} className={overview ? `${s.stage} ${p.stage}` : s.stage} aria-label="3D 房間">
       {tag && <span className={s.stageTag}>{tag}</span>}
       {kind === "scan" && scanBase
-        ? <RoomViewer base={scanBase} items={scanItems} controls={false} story={story} wand={wand} bubble={bubble ? <CareIcon id={bubble} /> : null} bubbleInset={bubbleInset} lookKey={lookKey} follow={follow} onFollowOff={followOff} overview={overview ? side : null} overviewCover={cover} place={overview ? place : null} light={light?.scan ?? null} shot={shot} stains={stains} elder={elder} capture bowlFill={bowlFill} />
+        ? <RoomViewer base={scanBase} cat={roomCat} items={scanItems} controls={false} story={story} wand={wand} bubble={bubble ? <CareIcon id={bubble} /> : null} bubbleInset={bubbleInset} lookKey={lookKey} follow={follow} onFollowOff={followOff} overview={overview ? side : null} overviewCover={cover} place={overview ? place : null} light={light?.scan ?? null} shot={shot} stains={stains} elder={elder} capture bowlFill={bowlFill} />
         : (
           <FloorplanViewer rooms={ROOMS} selected={ROOMS[0].id} onPick={noop}
             cat={look} placedItems={placed} interactMode="point"

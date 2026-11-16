@@ -1,10 +1,14 @@
 // 房間裡會走動的貓：讀 room_layout.py 輸出的地板網格，閒晃、繞開障礙、走到點擊位置
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { mainRegion } from "./regions";
 import { carrierExit, fitCatInCarrier } from "../../play/carrier-fit";
 import { poseBounds, tuckClip } from "./pose-bounds";
 import { clipRate, jumpClipFor, jumpHeading, jumpKind, jumpReady, moveClip, turnStep } from "./cat-moves";
 import { clipJumpTiming, inPlaceClip, isJumpClip } from "./jump-clips";
+import { gallopClip } from "./gallop";
+import { playSfx } from "../../play/audio-player";
+import { STEP_SFX, stepTick } from "../../play/sfx-cues";
 import { ZOOM_RUN_M } from "../../play/zoomies";
 
 const CAT_HEIGHT_M = 0.3;   // 站著時頭頂離地的高度
@@ -26,7 +30,19 @@ const AUTO_MAX = 60;
 const PLAY_NEAR_M = 0.12;   // 拍物品時離物品的距離範圍
 const PLAY_FAR_M = 0.4;
 const LAND_INSET_M = 0.3;   // 落點離家具邊緣多遠
+/** 走到碗邊後吃飯、喝水的動作播幾秒（同娃娃屋 story.ts） */
+const CLIP_SECONDS = { eat: 8, drink: 6 };
 const MODEL_YAW = 0;        // 模型本身面向 +Z；若走路方向不對再調這個
+
+/** 載入母體與貼圖（貼圖載入失敗就用母體預設花色） */
+async function fetchCat(url, albedoUrl) {
+  const [gltf, albedo] = await Promise.all([
+    new GLTFLoader().loadAsync(url),
+    albedoUrl ? new THREE.TextureLoader().loadAsync(albedoUrl).catch(() => null) : null,
+  ]);
+  if (albedo) { albedo.flipY = false; albedo.colorSpace = THREE.SRGBColorSpace; }  // 同 CatPreview
+  return { gltf, albedo };
+}
 
 export class RoomCat {
   constructor(layout) {
@@ -36,7 +52,7 @@ export class RoomCat {
     // 上方沒被桌面擋住的格子；舊版 layout 沒有這欄就當全部開放
     this.open = layout.open ? Uint8Array.from(layout.open, (c) => c === "1") : this.walkable;
     this.topM = layout.top_cm ? layout.top_cm.map((c) => c / 100) : null;  // 每格東西頂端高度
-    this.cells = [...this.walkable.keys()].filter((k) => this.walkable[k]);
+    this.cells = mainRegion(this.walkable, this.L.nx);  // 只在最大那塊相連地板出生、閒晃
     this.main = null;  // 最大一塊連通的地板，用到時再算（mainRegion）
 
     // 本地座標系：x 沿 e1、y 沿上方向、z 沿 e2，原點在地板網格角落
@@ -72,12 +88,40 @@ export class RoomCat {
   }
 
   // albedoUrl：這隻貓已確認的貼圖（虛擬體驗選的貓）；沒給或載入失敗就用母體預設花色
-  async load(url, albedoUrl) {
-    const [gltf, albedo] = await Promise.all([
-      new GLTFLoader().loadAsync(url),
-      albedoUrl ? new THREE.TextureLoader().loadAsync(albedoUrl).catch(() => null) : null,
-    ]);
-    if (albedo) { albedo.flipY = false; albedo.colorSpace = THREE.SRGBColorSpace; }  // 同 CatPreview
+  // heightM：站著時頭頂離地幾公尺（幼貓比成貓小，lib/play/cat-body.ts 的 CAT_HEIGHT_M）
+  async load(url, albedoUrl, heightM = CAT_HEIGHT_M) {
+    this.useModel(await fetchCat(url, albedoUrl), heightM);
+    this.place(this.randomCell());
+    return this;
+  }
+
+  /**
+   * 原地換一隻貓的樣子（渝茜 2026-11-16：虛擬飼養長大時幼貓換成貓體型），房間不重載、位置與方向不變。
+   * 連續呼叫只套最後一次；回傳有沒有換。
+   */
+  async setLook(url, albedoUrl, heightM = CAT_HEIGHT_M) {
+    const token = (this.lookToken = (this.lookToken ?? 0) + 1);
+    const next = await fetchCat(url, albedoUrl).catch(() => null);
+    if (!next || token !== this.lookToken) return false;
+    const tucked = this.state === "tuck" ? this.tucked : null;
+    if (tucked) this.untuck();
+    this.jump = null;
+    this.mixer?.stopAllAction();
+    if (this.model) {
+      this.cat.remove(this.model);
+      this.model.traverse((o) => { if (o.isSkinnedMesh) o.skeleton.dispose(); });
+    }
+    this.actions = {};
+    this.tuckBounds = null;
+    this.useModel(next, heightM);
+    this.state = "idle";
+    if (tucked) this.tuck(tucked);
+    return true;
+  }
+
+  /** 把載好的模型掛上去：材質、動作、比例 */
+  useModel({ gltf, albedo }, heightM) {
+    this.heightM = heightM;
     const model = gltf.scene;
     model.traverse((o) => {
       if (!o.isMesh) return;
@@ -102,6 +146,11 @@ export class RoomCat {
       this.actions[name] = this.mixer.clipAction(clip);
       this.clips[name] = clip;
     }
+    // 成貓、幼貓母體沒有跑步動作：用走路重組出奔跑（gallop.ts），跑酷、追玩具衝刺時才不會像快走
+    if (!this.actions.run && this.clips.walk) {
+      const run = gallopClip(this.clips.walk);
+      if (run) { this.actions.run = this.mixer.clipAction(run); this.clips.run = run; }
+    }
     this.model = model;
     this.actions.idle?.play();
     this.current = this.actions.idle;
@@ -112,12 +161,9 @@ export class RoomCat {
     const ys = [];
     model.traverse((o) => { if (o.isBone && !/tail/.test(o.name)) ys.push(model.worldToLocal(o.getWorldPosition(new THREE.Vector3())).y); });
     const top = Math.max(...ys), feet = Math.min(...ys);
-    const s = (CAT_HEIGHT_M * this.upm) / (top - feet);
+    const s = (heightM * this.upm) / (top - feet);
     model.scale.setScalar(s);
     model.position.y = -feet * s;
-
-    this.place(this.randomCell());
-    return this;
   }
 
   // ---------- 縮在外出籠裡（虛擬飼養第 1 天） ----------
@@ -224,6 +270,27 @@ export class RoomCat {
     this.cat.position.set(p.x, 0, p.y);
   }
 
+  /** 走到了：停下、面向物品多待一會；有 clip 就播吃飯／喝水 */
+  arrived() {
+    this.setState("idle");
+    if (this.face) this.timer = 6;  // 在物品旁多待一會
+    if (this.clip && this.actions[this.clip]) { this.playClip(this.clip, false, 0.3); this.timer = CLIP_SECONDS[this.clip]; }
+    this.clip = null;
+  }
+
+  /** 走不過去時直接出現在格子 k，面向 face 待一會（同走到後的樣子） @param {number} k @param {THREE.Vector2 | null} [face] @param {"eat" | "drink" | null} [clip] */
+  appearAt(k, face = null, clip = null) {
+    this.jump = null;
+    this.surface = null;
+    this.path = [];
+    this.arrive = this.queued = null;
+    this.place(k);
+    this.dest = this.centerOf(k);
+    this.face = face;
+    this.clip = clip;
+    this.arrived();
+  }
+
   // BFS（8 方向、不切牆角）找路，再用視線檢查把鋸齒路徑拉直
   findPath(from, to) {
     const { nx } = this.L;
@@ -283,10 +350,11 @@ export class RoomCat {
     return k < 0 ? this.randomCell() : k;
   }
 
-  goTo(k, face = null) {
+  /** @param {number} k 目的地格子 @param {THREE.Vector2 | null} [face] 走到後要轉頭看的點（本地 x,z） @param {"eat" | "drink" | null} [clip] 走到後播的動作 */
+  goTo(k, face = null, clip = null) {
     this.untuck();
     if (this.jump || this.surface) {  // 先下來再走
-      this.queued = () => this.goTo(k, face);
+      this.queued = () => this.goTo(k, face, clip);
       if (!this.jump) this.jumpDown();
       return true;
     }
@@ -296,6 +364,7 @@ export class RoomCat {
     this.path = path;
     this.dest = this.centerOf(k);
     this.face = face;  // 走到後要轉頭看的點（本地 x,z），沒有就照常閒晃
+    this.clip = clip;
     this.setState("walk");
     return true;
   }
@@ -316,7 +385,7 @@ export class RoomCat {
             else this.walkable[this.idx(i, j)] = 0;
           }
     }
-    this.cells = [...this.walkable.keys()].filter((k) => this.walkable[k]);
+    this.cells = mainRegion(this.walkable, this.L.nx);  // 只在最大那塊相連地板出生、閒晃
     this.main = null;  // 最大一塊連通的地板，用到時再算（mainRegion）
   }
 
@@ -325,7 +394,7 @@ export class RoomCat {
     this.baseWalkable ??= Uint8Array.from(this.walkable);
     this.walkable.set(this.baseWalkable);
     for (const k of indices) this.walkable[k] = 0;
-    this.cells = [...this.walkable.keys()].filter((k) => this.walkable[k]);
+    this.cells = mainRegion(this.walkable, this.L.nx);  // 只在最大那塊相連地板出生、閒晃
     this.main = null;  // 最大一塊連通的地板，用到時再算（mainRegion）
   }
 
@@ -620,7 +689,7 @@ export class RoomCat {
       const s = Math.min(j.t / j.air, 1);
       this.cat.position.lerpVectors(j.from, j.to, s);
       this.cat.position.y += 4 * s * (1 - s) * JUMP_ARC_M * this.upm;
-      if (s === 1) { j.phase = "land"; j.t = 0; if (!j.clip) this.playClip("jump_end", true, 0.08); }
+      if (s === 1) { j.phase = "land"; j.t = 0; playSfx("sfx_land", 0.5); if (!j.clip) this.playClip("jump_end", true, 0.08); }  // 落地聲：虛擬飼養解鎖聲音後才會響（後台檢視器不出聲）
     } else if (j.t >= j.land) {
       this.jump = null;
       this.setState("idle");
@@ -634,6 +703,11 @@ export class RoomCat {
   update(dt) {
     if (!this.mixer || !this.visible) return;
     this.mixer.update(dt);
+    // 跑酷、追玩具衝刺時配腳步聲（渝茜 2026-11-16）；跳在空中、縮在籠裡不響
+    const running = this.sprint && this.current === this.actions.run && this.state !== "jump" && this.state !== "tuck";
+    const foot = stepTick(this.stepAcc ?? 0, dt, running);
+    this.stepAcc = foot.acc;
+    if (foot.fire) playSfx("sfx_step", STEP_SFX.volume);
 
     if (this.state === "tuck") return;  // 縮在外出籠裡：只播動作、不移動
     if (this.state === "jump") { this.updateJump(dt); return; }
@@ -680,8 +754,7 @@ export class RoomCat {
     if (dist < 0.05 * this.upm) {
       this.path.shift();
       if (!this.path.length) {
-        this.setState("idle");
-        if (this.face) this.timer = 6;  // 在物品旁多待一會
+        this.arrived();
         const go = this.arrive;
         this.arrive = null;
         go?.();

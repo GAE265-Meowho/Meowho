@@ -1,7 +1,7 @@
 import { OrbitControls, useGLTF } from "@react-three/drei";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Suspense, useEffect, useMemo, useRef, useState, type ComponentRef } from "react";
-import { SkinnedMesh, Vector3 } from "three";
+import { SkinnedMesh, SRGBColorSpace, TextureLoader, Vector3, type Mesh, type MeshStandardMaterial } from "three";
 import { clone } from "three/addons/utils/SkeletonUtils.js";
 import { newPetState, petResult, petStroke, type PetZone } from "@/lib/play/mini3d/pet-rules";
 import { createPetHitRegions } from "@/lib/play/mini3d/pet-hit-regions";
@@ -17,7 +17,8 @@ const CAMERA_START: [number, number, number] = [0.92, 0.52, 0.57];
 const CAMERA_TARGET: [number, number, number] = [0, 0.24, -0.025];
 const MODEL = "/hq-cat-models/base/base_clips.glb";
 
-function PetScene({ game, favorite, onStroke, controls, onZone, onPose, onRelease }: {
+function PetScene({ game, favorite, furUrl, onStroke, controls, onZone, onPose, onRelease }: {
+  furUrl?: string | null;
   game: { current: ReturnType<typeof newPetState> };
   favorite: NonNullable<MiniCtx["touchFav"]>;
   controls: { current: ComponentRef<typeof OrbitControls> | null };
@@ -31,6 +32,25 @@ function PetScene({ game, favorite, onStroke, controls, onZone, onPose, onReleas
   const lastPose = useRef(newPetReaction().pose);
   const { scene, animations } = useGLTF(MODEL);
   const cat = useMemo(() => clone(scene), [scene]);
+  // 這隻貓自己的花色（渝茜 2026-11-16：原本每隻貓都是同一隻虎斑）；材質先複製，不動到快取裡的母體
+  useEffect(() => {
+    if (!furUrl) return;
+    let alive = true;
+    new TextureLoader().loadAsync(furUrl).then(tex => {
+      if (!alive) return;
+      tex.flipY = false;
+      tex.colorSpace = SRGBColorSpace;
+      cat.traverse(o => {
+        const m = o as Mesh;
+        if (!m.isMesh || Array.isArray(m.material) || m.material.name !== "cat_fur") return;
+        const mat = (m.material as MeshStandardMaterial).clone();
+        mat.map = tex;
+        mat.needsUpdate = true;
+        m.material = mat;
+      });
+    }).catch(() => {});
+    return () => { alive = false; };
+  }, [cat, furUrl]);
   const hitRegions = useRef<ReturnType<typeof createPetHitRegions> | null>(null);
   const motion = useRef<ReturnType<typeof createPetMotion> | null>(null);
   const reaction = useRef(newPetReaction());
@@ -175,7 +195,7 @@ export function PetGame3D({ ctx, onDone }: { ctx: MiniCtx; onDone: (r: unknown) 
         <hemisphereLight intensity={1.45} color={0xffffff} groundColor={0xd8c0a0} />
         <directionalLight position={[1, 2, 3]} intensity={1.65} />
         <Suspense fallback={null}>
-          <PetScene game={current} favorite={favorite} controls={controls} onZone={setZone} onPose={setPose}
+          <PetScene game={current} favorite={favorite} furUrl={ctx.furUrl} controls={controls} onZone={setZone} onPose={setPose}
             onRelease={() => {
               setPaused(seconds.current >= 3 || current.current.annoyance >= 28);
               seconds.current = 0;

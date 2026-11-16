@@ -3,12 +3,13 @@
 // 玩家：左手拿菜瓜布在碗裡搓（畫圈、來回都算）洗碗 → 碗移到出水口下 → 按住開水沖掉泡泡 → 倒掉沖碗的水 → 按住開水接新水。
 // 規則在 lib/play/mini3d/water-rules.ts（水量）、wash-rules.ts（洗碗、沖碗），回傳 { fill, washed }，careGood("water") 只看 fill ≥ 70。
 import { Canvas } from "@react-three/fiber";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { REFILL_STEPS, refillAt, refillHold, refillPlayFrame, type RefillFrame } from "@/lib/play/mini3d/refill-timeline";
 import { pourWater, waterHint, waterResult } from "@/lib/play/mini3d/water-rules";
 import { DUMP_SECONDS, dumpFrame, newScrub, rinseStep, scrubClean, scrubStep } from "@/lib/play/mini3d/wash-rules";
 import { WaterRefillScene } from "./WaterRefillScene";
 import styles from "./mini3d.module.css";
+import { playSfx } from "@/lib/play/audio-player";
 
 type Phase = "intro" | "wash" | "toTap" | "rinse" | "dump" | "fill";
 /** 自動播的前兩格（拿碗、倒舊水）共幾秒；拿菜瓜布的手伸進來、碗移到出水口下各幾秒 */
@@ -77,11 +78,12 @@ export function WaterRefillGame3D({ onDone, initialFill = 0 }: { onDone: (r: unk
         break;
       }
     }
-    // 音效（第 6 份）：開水（open 過一半）時播 sfx_pour_water，關掉時停；搓碗（scrub.down 且在動）時播 sfx_scrub
+    // 音效：開水（open 過一半）那一下播倒水（下面的 useEffect）
     const next = { clean: Math.round(clean * 100), foam: Math.round(rinse.current.foam * 100), fill: Math.round(fill.current), pouring: hold.current.open > 0.5 };
     setUi(v => (Object.keys(next) as (keyof typeof next)[]).every(k => v[k] === next[k]) ? v : next);
     return f;
   }
+  useEffect(() => { if (ui.pouring) playSfx("sfx_pour_water"); }, [ui.pouring]);
   const press = (on: boolean) => { holding.current = on && (at.current.phase === "rinse" || at.current.phase === "fill"); };
   const finish = () => onDone({ ...waterResult(fill.current), washed: scrubClean(scrubbed.current) >= 1 });
 

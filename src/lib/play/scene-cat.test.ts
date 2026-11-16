@@ -26,7 +26,8 @@ describe("sceneCatCommand", () => {
       .toEqual({ kind: "tuck", carrier: { x: 1, z: 1, widthM: 0.33, depthM: 0.51, heightM: 0.31 } });
   });
   it("吃飯去碗、上廁所去貓砂盆；沒擺就隨便逛", () => {
-    expect(sceneCatCommand("eat", objects, placed)).toMatchObject({ kind: "go", x: 1.5, z: 3 });
+    expect(sceneCatCommand("eat", objects, placed)).toEqual({ kind: "go", x: 1.5, z: 3, look: true, clip: "eat" });
+    expect(sceneCatCommand("drink", objects, placed)).toEqual({ kind: "go", x: 1.5, z: 3, look: true, clip: "drink" });
     expect(sceneCatCommand("litter", objects, placed)).toMatchObject({ kind: "go", x: 3.5, z: 0.5 });
     expect(sceneCatCommand("eat", objects, [])).toEqual({ kind: "roam" });
   });
