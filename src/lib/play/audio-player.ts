@@ -2,7 +2,7 @@
 // 手機瀏覽器規定使用者點過畫面才能出聲：還沒點過時只記下要播哪首，第一次點擊（unlockAudio）再開始播。
 // 第 1～5 份要出聲時呼叫 playSfx(<ID>)；還沒有音檔的音效呼叫了也不會出聲、不會報錯。
 // 有哪些音檔：第一次用到時讀 /api/play/sounds（Storage 實際的檔案），讀不到就照 SOUNDS 的 ready。
-import { audioSrc, bgmLoops, fadeVolume, hasSound, playableBgm, readMuted, writeMuted, type BgmId, type SfxId, type SoundId, type SoundIndex } from "./audio";
+import { audioSrc, bgmLoops, fadeVolume, hasSound, splitVolume, playableBgm, readMuted, writeMuted, type BgmId, type SfxId, type SoundId, type SoundIndex } from "./audio";
 
 // 2026-11-14 渝茜：背景音樂調降 40%（原 0.45）
 const BGM_VOLUME = 0.27;
@@ -99,6 +99,24 @@ export function setBgm(id: BgmId | null) {
   startWanted();
 }
 
+let ctx: AudioContext | null = null;
+
+/**
+ * 音量超過 1：元素已經開到最大，再接 Web Audio 的放大器。音檔在 Supabase Storage（別的網域），元素要先設 crossOrigin（playSfx 裡）才能接進去；
+ * 瀏覽器不支援就照原本音量播。
+ */
+function boost(el: HTMLAudioElement, gain: number) {
+  const AC = typeof window === "undefined" ? undefined : (window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext);
+  if (!AC) return;
+  try {
+    ctx ??= new AC();
+    if (ctx.state === "suspended") void ctx.resume();
+    const amp = ctx.createGain();
+    amp.gain.value = gain;
+    ctx.createMediaElementSource(el).connect(amp).connect(ctx.destination);
+  } catch { /* 接不上就照原本音量 */ }
+}
+
 /** 使用者第一次點畫面：之後才可以出聲 */
 export function unlockAudio() {
   if (unlocked) return;
@@ -119,8 +137,13 @@ export function playSfx(id: SfxId, volume = SFX_VOLUME) {
   if (!unlocked || isMuted() || typeof Audio === "undefined") return;
   const url = hasSound(id, index) ? src(id) : "";
   if (!url) return;
-  const el = new Audio(url);
-  el.volume = volume;
+  const vol = splitVolume(volume);
+  const el = new Audio();
+  // 要放大時 crossOrigin 得在設網址之前（之後才設，接進放大器會變成沒聲音）
+  if (vol.boost !== null) el.crossOrigin = "anonymous";
+  el.src = url;
+  el.volume = vol.element;
+  if (vol.boost !== null) boost(el, vol.boost);
   let stopped = false;
   const stop = () => {
     if (stopped) return;

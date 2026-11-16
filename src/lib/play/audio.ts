@@ -180,3 +180,15 @@ export function fadeVolume(from: number, to: number, t: number, duration: number
   if (t <= 0) return from;
   return from + (to - from) * (t / duration);
 }
+
+/** 放大器最多放大幾倍（太大會破音） */
+export const MAX_BOOST = 4;
+
+/**
+ * 音量拆成「音效元素的音量（上限 1）」與「放大器倍數」（渝茜 2026-11-16：跑酷腳步聲太小，元素音量開到 1 還不夠）。
+ * 1 以內不用放大器；超過 1 時元素開到最大，再用 Web Audio 放大到指定倍數（最多 MAX_BOOST）。
+ */
+export function splitVolume(volume: number): { element: number; boost: number | null } {
+  const v = Math.max(0, volume);
+  return v <= 1 ? { element: v, boost: null } : { element: 1, boost: Math.min(MAX_BOOST, v) };
+}
