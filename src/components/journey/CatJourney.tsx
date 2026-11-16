@@ -27,7 +27,7 @@ const roamLabels: Record<RoamMode, string> = {
 /** Height of the cat model, in model units, used to size it in pixels. */
 const CAT_HEIGHT = 2.2;
 /** 換站時走路的速度（貓的單位／秒）；母體 walk 動作原速約 1.54（0.35 公尺／秒 × 4.4 倍放大） */
-const TRAVEL_SPEED = 3.6;
+const TRAVEL_SPEED = 4.2;
 const WALK_CLIP_SPEED = 1.54;
 
 function readPerches(): Perch[] {
@@ -199,7 +199,8 @@ function Journey({ onLabel, label, reducedMotion, look, name }: {
     const nearEnd = THREE.MathUtils.clamp((window.scrollY + size.height - (docH - size.height * 0.6)) / (size.height * 0.6), 0, 1);
     // A perch "arrives" when it rises to this line (pushed down near the page end
     // so the footer's perch can still arrive).
-    const arrive = THREE.MathUtils.lerp(size.height * 0.8, size.height * 0.98, nearEnd);
+    // 0.92：下一站一露出畫面下緣沒多久貓就過去（原本 0.8，子哲 2026-11-16：下一站的貓出來得太慢）
+    const arrive = THREE.MathUtils.lerp(size.height * 0.92, size.height * 0.98, nearEnd);
 
     // i = the last perch that has arrived, j = the next one.
     let i = 0;
@@ -210,18 +211,19 @@ function Journey({ onLabel, label, reducedMotion, look, name }: {
     // 進場時浮在畫面底部蓋住內容）。站點在畫面上看得到才算數；兩站之間沒有站點時貓在畫面外等。
     // 換站時貓用自己的速度從最近的邊走出去，再從新站那一側走進來，腳永遠踩在站點的高度上。
     const minY = (size.width < 768 ? 56 : 68) + targetPx * 0.7;
-    const maxY = size.height - (size.width < 768 ? 84 : 16);
+    // 下緣多算一隻貓的高度：下一站還在畫面下方一點點時貓就先走過去站好，捲到時牠已經在那裡（2026-11-16 子哲：這一站的貓出來得慢）
+    const maxY = size.height + targetPx;
     const vis = (k: number) => anchors[k].y >= minY && anchors[k].y <= maxY;
     const desired = vis(i) ? i : j > i && vis(j) ? j : -1;
-    const offPx = targetPx * 1.3;
+    const offPx = targetPx * 0.85;  // 剛好整隻在畫面外（身長約 1.3 倍身高，站點在身體中間）
     const edgeFor = (x: number) => (x < size.width / 2 ? -offPx : size.width + offPx);
     if (b.home >= list.length) { b.home = -1; b.x = null; }
     if (b.x === null || reducedMotion) {
       b.home = desired;
       b.x = desired >= 0 ? anchors[desired].x : 0;
     }
-    // 原本那一站已經整個捲出畫面：不用演走出去，直接到畫面外
-    if (b.home >= 0 && b.home !== desired && (anchors[b.home].y < 0 || anchors[b.home].y - targetPx > size.height)) b.home = -1;
+    // 原本那一站已經捲到頁首底下（或整個在畫面下方）：不用演走出去，直接到畫面外
+    if (b.home >= 0 && b.home !== desired && (anchors[b.home].y < minY || anchors[b.home].y - targetPx > size.height)) b.home = -1;
     // 在畫面外等的時候，新站一出現就站到它那一側的邊上
     if (b.home < 0 && desired >= 0) {
       b.home = desired;
@@ -236,7 +238,10 @@ function Journey({ onLabel, label, reducedMotion, look, name }: {
       legDir = Math.sign(d) || 1;
       // 走路速度（貓的單位／秒）：遠的時候小跑步，快到站時放慢
       const unitPx = 1 / pxToCat;
-      const speedPx = Math.min(TRAVEL_SPEED * unitPx, Math.max(0.6 * unitPx, Math.abs(d) * 3));
+      // 有下一站在等、或離站點還遠的時候用跑的，才不會讓下一站空著
+      const hurry = (b.home !== desired && desired >= 0) || Math.abs(d) > targetPx * 2;
+      const top = TRAVEL_SPEED * (hurry ? 1.7 : 1);
+      const speedPx = Math.min(top * unitPx, Math.max(1.0 * unitPx, Math.abs(d) * 8));
       const step = Math.sign(d) * Math.min(Math.abs(d), speedPx * dt);
       b.x += step;
       if (dt > 0) vx = (step / dt) * pxToCat;
@@ -299,7 +304,7 @@ function Journey({ onLabel, label, reducedMotion, look, name }: {
       // Face the way it is walking; scrolling back up makes it walk back.
       const dir = Math.abs(vx) > 0.05 ? Math.sign(vx) : legDir;
       desiredHeading = (dir * Math.PI) / 2;
-      moveSpeed = Math.min(Math.abs(vx), 4);
+      moveSpeed = Math.min(Math.abs(vx), 8);
       gallop = Math.abs(vx) > 2.6;
     } else if (!reducedMotion) {
       switch (perch.action) {
