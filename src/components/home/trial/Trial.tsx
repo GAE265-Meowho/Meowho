@@ -52,7 +52,7 @@ export default function Trial() {
         <SectionHead
           id="trial-title"
           icon="yarn"
-          kicker="3D 養貓中心｜7 天虛擬飼養"
+          kicker="3D 養貓中心｜領養任務"
           title={
             <>
               <span>先跟牠的虛擬分身</span>
@@ -94,7 +94,7 @@ export default function Trial() {
 
             <div className={styles.cta}>
               <CatButton onClick={backToSearch} arrow>
-                開始我的 7 天虛擬飼養
+                開始我的領養任務
               </CatButton>
             </div>
           </div>

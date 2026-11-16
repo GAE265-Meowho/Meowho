@@ -126,7 +126,7 @@ export function SettingsTab() {
         <div className="hq-box">
           <label className="hq-check">
             <input type="checkbox" checked={demoDraft} disabled={demo === null} onChange={e => setDemoDraft(e.target.checked)} />
-            開啟後，展示時可縮短等待（例如虛擬試養的天數）
+            開啟後，展示時可縮短等待（例如領養任務的天數）
           </label>
           {demo !== null && demoDraft !== demo && (
             <>

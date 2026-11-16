@@ -665,7 +665,7 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
     const g = hydrating || gate.kind === "resume" || gate.kind === "demo" || gate.kind === "start" ? ({ kind: "loading" } as const) : gate;
     return (
       <div className={s.page}>
-        <h1 className={s.title}><span>{catName}的</span><span>虛擬飼養</span></h1>
+        <h1 className={s.title}><span>{catName}的</span><span>領養任務</span></h1>
         <RunGateCard gate={g} catName={catName} catHref={catHref} householdId={households?.[0]?.id ?? null} here={here} onGuide={() => toGuide(here)} />
       </div>
     );
@@ -673,7 +673,7 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
 
   return (
     <div className={s.page} data-immersive={immersive ? "true" : undefined}>
-      <h1 className={immersive ? s.srOnly : s.title} ref={top}><span>{catName}的</span><span>虛擬飼養</span></h1>
+      <h1 className={immersive ? s.srOnly : s.title} ref={top}><span>{catName}的</span><span>領養任務</span></h1>
       {immersive ? (
         <div className={s.hud}>
           <div className={s.hudInfo}>
@@ -687,7 +687,7 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
           {/* 聲音、放棄、離開收成一顆齒輪（渝茜 2026-11-14）；「跟著貓」在它左邊（PlayStage） */}
           <div className={s.hudEnd}>
             <PlayMenu exitHref={catHref} onAbandon={runId ? () => setAbandoning(true) : undefined}
-              exitNote={runId ? (state.step === "place" ? "離開後，下次會回到擺用品這一步，選好的都會保留。" : "離開後，下次會從這個節點的開頭接著玩。") : "離開虛擬飼養後，目前的進度不會保留。"} />
+              exitNote={runId ? (state.step === "place" ? "離開後，下次會回到擺用品這一步，選好的都會保留。" : "離開後，下次會從這個節點的開頭接著玩。") : "離開領養任務後，目前的進度不會保留。"} />
           </div>
         </div>
       ) : (

@@ -227,7 +227,7 @@ export function ReviewStep({ form, set, previews, home, onMotto, onJump }: {
 
       <label className={s.consent}>
         <input type="checkbox" checked={form.consent} onChange={e => set(f => ({ ...f, consent: e.target.checked }))} />
-        <span>我同意把{n}的照片和資料放上平台，給領養人看，也用在試養體驗裡<Required /></span>
+        <span>我同意把{n}的照片和資料放上平台，給領養人看，也用在領養任務裡<Required /></span>
       </label>
     </>
   );
@@ -254,7 +254,7 @@ export function DoneStep({ form, catId, coverSrc, demo, onAnother }: {
           <text x="36" y="42" textAnchor="middle" fontSize="17" fontWeight="700" fill="var(--ink)">{pct}%</text>
         </svg>
         <div className={s.stack} style={{ gap: 4 }}>
-          <h2 id="fill" className={s.h2} style={{ fontSize: 16 }}>{skipped.length ? `再補 ${skipped.length} 項，試養會更像${n}` : "資料很完整，試養會很像牠"}</h2>
+          <h2 id="fill" className={s.h2} style={{ fontSize: 16 }}>{skipped.length ? `再補 ${skipped.length} 項，領養任務裡會更像${n}` : "資料很完整，領養任務裡會很像牠"}</h2>
           {skipped.length > 0 && <span className={s.muted} style={{ fontSize: 14 }}>還沒填：{skipped.join("、")}</span>}
         </div>
       </section>

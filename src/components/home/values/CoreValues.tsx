@@ -29,7 +29,7 @@ const pillars: { no: string; tag: string; icon: IconName; title: string; body: s
     tag: "終養｜負責任的相遇",
     icon: "house",
     title: "先準備好，再一起回家",
-    body: "AR 環境報告或 7 天虛擬飼養、依年紀估算的首年花費；移轉後，紀錄跟著牠搬進新家，中途也能看見牠過得好不好。",
+    body: "AR 環境報告或領養任務、依年紀估算的首年花費；移轉後，紀錄跟著牠搬進新家，中途也能看見牠過得好不好。",
     photo: photos.home,
   },
 ];
@@ -38,7 +38,7 @@ const stats: { icon: IconName; value: number; unit: string; label: string }[] = 
   { icon: "cat", value: 128, unit: "隻", label: "貓咪正在等家" },
   { icon: "house", value: 36, unit: "隻", label: "本月移轉到新家" },
   { icon: "diary", value: 52, unit: "戶", label: "喵戶天天記錄" },
-  { icon: "badge", value: 214, unit: "位", label: "完成 7 天虛擬飼養" },
+  { icon: "badge", value: 214, unit: "位", label: "完成領養任務" },
 ];
 
 /** Yellow cat head held by two hands, after the hand-drawn mark on ほごねこクリニック. */

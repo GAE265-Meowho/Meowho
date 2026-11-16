@@ -12,7 +12,7 @@ import s from "./newcat.module.css";
 type Set = (fn: (f: NewCatForm) => NewCatForm) => void;
 
 export const QUICK_PAGES = [
-  { key: "traits", title: "牠是什麼個性？", why: "每一條拉到最像牠的位置，中間是普通。試養時牠會照這個反應，例如膽小的貓，有客人來會躲一整晚。" },
+  { key: "traits", title: "牠是什麼個性？", why: "每一條拉到最像牠的位置，中間是普通。領養任務裡牠會照這個反應，例如膽小的貓，有客人來會躲一整晚。" },
   { key: "care", title: "日常照護的配合度", why: "" },
   { key: "habits", title: "平常的習慣", why: "有的就點，沒有的不用管。講過的已經幫你選好了。" },
   { key: "behavior", title: "貓咪的小小壞習慣", why: "選「沒有」也很有用，領養人看了會比較放心。選偶爾或常常的，可以補一句是什麼情況。" },
