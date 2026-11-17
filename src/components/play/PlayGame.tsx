@@ -65,7 +65,7 @@ import { AdoptDialog } from "./AdoptDialog";
 import endFx from "./ending.module.css";
 import { roomStory } from "@/lib/play/scene-cat";
 import { playSfx } from "@/lib/play/audio-player";
-import { DIG_SFX, TAP_VOLUME, accidentNow, bubbleSfx, careSfx, catchSfx, digOn, meterSfx, poseSfx } from "@/lib/play/sfx-cues";
+import { DIG_SFX, TAP_VOLUME, accidentNow, bubbleSfx, careSfx, catchSfx, digOn, meterSfx, poseSfx, TOY_SFX, toyMoved, toyStill } from "@/lib/play/sfx-cues";
 import { ScanWand } from "./ScanWand";
 import { MiniGuideGate, warmGuideVideos } from "./MiniGuide";
 import { ReportStep } from "./ReportStep";
@@ -323,7 +323,23 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
   const scanWand = kind === "scan" && state.step === "node" && (careAct === "play" || playMini);
   const [catches, setCatches] = useState(0);
   const toy = useMemo(() => ({ id: "toy", near: null, ...resolvePlayToy(backShop) }), [backShop]);
-  const wand = useMemo(() => (scanWand ? { toy, onCatch: (c: boolean) => { if (c) setCatches(n => n + 1); } } : null), [scanWand, toy]);
+  // 逗貓的老鼠聲：玩具在動才有聲音（循環播），停下來就停（#456 渝茜）
+  const toySfx = useRef<{ at: [number, number] | null; movedAt: number; stop: (() => void) | null }>({ at: null, movedAt: 0, stop: null });
+  const onToyMove = useCallback((x: number, z: number) => {
+    const t = toySfx.current;
+    if (!toyMoved(t.at, [x, z])) return;
+    t.at = [x, z];
+    t.movedAt = Date.now();
+    if (!t.stop) t.stop = playSfx("sfx_toy", TOY_SFX.volume, { loop: true }) ?? null;
+  }, []);
+  const wand = useMemo(() => (scanWand ? { toy, onCatch: (c: boolean) => { if (c) setCatches(n => n + 1); }, onMove: onToyMove } : null), [scanWand, toy, onToyMove]);
+  useEffect(() => {
+    if (!scanWand) return;
+    const t = toySfx.current;
+    const quiet = () => { t.stop?.(); t.stop = null; };
+    const timer = setInterval(() => { if (t.stop && toyStill(t.movedAt, Date.now())) { quiet(); t.at = null; } }, 100);
+    return () => { clearInterval(timer); quiet(); t.at = null; };
+  }, [scanWand]);
   useEffect(() => { if (scanWand) setCatches(0); }, [scanWand]);
   const clip = state.step === "node" && action === "sleep" ? "sleep" : null;
   const baseLook = action === null ? null : cat.look(state.step === "node" || state.step === "report" ? bodyAt(state.life.age) : cat.body);
@@ -622,7 +638,6 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
     lastCatches.current = catches;
     if (id) playSfx(id);
   }, [catches]);
-  useEffect(() => { if (scanWand) playSfx("sfx_toy"); }, [scanWand]);
   // #456：居家意外（五年後半夜出事的瞬間）、貓走去砂盆撥貓砂
   const lastAccident = useRef(false);
   useEffect(() => {

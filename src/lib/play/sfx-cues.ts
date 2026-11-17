@@ -80,6 +80,13 @@ export const SCOOP_SFX: Partial<Record<Exclude<ScoopEvent, null>, SfxId>> = {
  *  甩乾淨砂子（sifted）也補一聲，鏟起、甩乾淨、丟進袋子每個動作都有聲音。要再調就改這個數字 */
 export const SCOOP_VOLUME = 1.6;
 
+/** 逗貓的老鼠聲（#456 渝茜：「滑鼠有動就要有聲音，沒動不要有聲音」）：玩具在地板上動就循環播 sfx_toy，停下超過 idleMs 就停；
+ *  moveM：玩具位置（公尺）移動超過這個距離才算有動（手抖不算）。要調靈敏度改這裡 */
+export const TOY_SFX = { moveM: 0.03, idleMs: 250, volume: 0.8 } as const;
+export const toyMoved = (prev: readonly [number, number] | null, next: readonly [number, number]): boolean =>
+  prev === null || Math.hypot(next[0] - prev[0], next[1] - prev[1]) >= TOY_SFX.moveM;
+export const toyStill = (movedAt: number, now: number): boolean => now - movedAt >= TOY_SFX.idleMs;
+
 /** 逗貓：抓到的次數變多就是撲上去 */
 export const catchSfx = (prev: number, next: number): SfxId | null => (next > prev ? "sfx_pounce" : null);
 
