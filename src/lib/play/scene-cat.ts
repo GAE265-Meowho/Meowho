@@ -68,3 +68,10 @@ export function catchResult(catches: number) {
   const fun = funFromCatches(catches);
   return { fun, toy: "mouse" as const, match: fun >= 50, rhythmOk: fun >= 50 };
 }
+
+/** 傳給掃描房間的劇情動作：只有進了劇情（node）貓才出現；開場的背景、採買、擺用品還沒有貓
+ *  （第 1 天貓縮在外出籠裡，等劇情對話走完才出來）。action＝null 就是躲起來。#456 渝茜 */
+export function roomStory(step: string, action: CatAction | null, at: number): { action: CatAction | null; at: number } | null {
+  if (step === "background" || step === "shop" || step === "place") return { action: null, at };
+  return step === "node" ? { action, at } : null;
+}

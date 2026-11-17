@@ -1,7 +1,7 @@
 // 虛擬飼養：掃描房間裡的貓怎麼配合劇情動作（躲外出籠、吃飯、睡床…）與 3D 逗貓的判定。純函式。
 import { describe, expect, it } from "vitest";
 import type { RoomObject } from "@/lib/hq/rooms/demo";
-import { CATCH_M, catchResult, funFromCatches, isCaught, reachableToy, sceneCatCommand } from "./scene-cat";
+import { CATCH_M, catchResult, funFromCatches, isCaught, reachableToy, roomStory, sceneCatCommand } from "./scene-cat";
 
 const obj = (id: string, name_zh: string, c: [number, number, number], size: [number, number, number], aff: Partial<RoomObject["affordance"]> = {}): RoomObject => ({
   id, label: id, name_zh, box: { center: c, size, yaw: 0 },
@@ -87,5 +87,20 @@ describe("reachableToy", () => {
     expect(x).toBeGreaterThan(1);
     expect(isCaught([1, 1], [x, z])).toBe(true);
     expect(Math.hypot(x - 1, z - 1)).toBeLessThan(CATCH_M);
+  });
+});
+
+describe("roomStory（#456：擺用品前不該看到貓）", () => {
+  it("背景、採買、擺用品：貓躲起來（action null → hidden）", () => {
+    for (const step of ["background", "shop", "place"]) {
+      expect(roomStory(step, "idle", 1)).toEqual({ action: null, at: 1 });
+      expect(sceneCatCommand(roomStory(step, "idle", 1)!.action, [], [])).toEqual({ kind: "hidden" });
+    }
+  });
+  it("進了劇情才照劇情動作（第 1 天縮在外出籠）", () => {
+    expect(roomStory("node", "carrier", 2)).toEqual({ action: "carrier", at: 2 });
+  });
+  it("報告頁不下指令", () => {
+    expect(roomStory("report", "idle", 3)).toBeNull();
   });
 });

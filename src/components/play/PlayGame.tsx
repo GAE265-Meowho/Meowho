@@ -63,6 +63,7 @@ import { loadReview, saveReview } from "@/lib/play/review-store";
 import { EndingOverlay } from "./EndingOverlay";
 import { AdoptDialog } from "./AdoptDialog";
 import endFx from "./ending.module.css";
+import { roomStory } from "@/lib/play/scene-cat";
 import { playSfx } from "@/lib/play/audio-player";
 import { DIG_SFX, TAP_VOLUME, accidentNow, bubbleSfx, careSfx, catchSfx, digOn, meterSfx, poseSfx } from "@/lib/play/sfx-cues";
 import { ScanWand } from "./ScanWand";
@@ -312,7 +313,7 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
   }, [sceneKey, places, spots]);
   const kind = room?.kind ?? "dollhouse";
   // 掃描房間的貓配合劇情動作（和娃娃屋的 goal 同一套 action；只在場景換了才重算）
-  const story = useMemo<{ action: CatAction | null; at: number } | null>(() => (state.step === "node" ? { action, at: Date.now() } : null),
+  const story = useMemo<{ action: CatAction | null; at: number } | null>(() => roomStory(state.step, action, Date.now()),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [sceneKey]);
   // 3D 逗貓（掃描房間）：在家的時光按「逗貓」或節點裡的逗貓小遊戲
