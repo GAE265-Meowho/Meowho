@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { SOUNDS } from "./audio";
-import { BRUSH_SFX, SCOOP_SFX, SCOOP_VOLUME, TAP_VOLUME, accidentNow, brushTick, bubbleSfx, careSfx, catchSfx, digOn, meterSfx, poseSfx, rising, STEP_SFX, stepTick } from "./sfx-cues";
+import { BRUSH_SFX, SCOOP_SFX, SCOOP_VOLUME, TAP_VOLUME, accidentNow, brushTick, bubbleSfx, careSfx, catchSfx, digOn, meterSfx, poseSfx, rising, STEP_SFX, TOY_SFX, stepTick, toyMoved, toyStill } from "./sfx-cues";
 
 describe("音效接點（渝茜 2026-11-16：把後台音樂庫的音效套上去）", () => {
   it("貓的氣泡：哈氣、撒嬌；半年後母貓是發情大叫；照顧需求是一般喵", () => {
@@ -124,5 +124,17 @@ describe("#456 新接的音效", () => {
     expect(digOn(null, "litter")).toBe(true);
     expect(digOn("litter", "litter")).toBe(false);
     expect(digOn("litter", "idle")).toBe(false);
+  });
+});
+
+describe("逗貓老鼠聲：玩具有動才響（#456 渝茜）", () => {
+  it("第一次位置、移動超過門檻才算有動；原地小抖動不算", () => {
+    expect(toyMoved(null, [1, 1])).toBe(true);
+    expect(toyMoved([1, 1], [1.1, 1])).toBe(true);
+    expect(toyMoved([1, 1], [1.005, 1.005])).toBe(false);
+  });
+  it("停下超過 idleMs 就該停聲", () => {
+    expect(toyStill(1000, 1000 + TOY_SFX.idleMs - 1)).toBe(false);
+    expect(toyStill(1000, 1000 + TOY_SFX.idleMs)).toBe(true);
   });
 });

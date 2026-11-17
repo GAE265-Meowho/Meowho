@@ -157,7 +157,7 @@ export function setMuted(next: boolean) {
 }
 
 /** 第 1～5 份在對的時機呼叫，例如 playSfx("sfx_pour_water") */
-export function playSfx(id: SfxId, volume = SFX_VOLUME) {
+export function playSfx(id: SfxId, volume = SFX_VOLUME, opts?: { loop?: boolean }) {
   if (!unlocked || isMuted() || typeof Audio === "undefined") return;
   const url = hasSound(id, index) ? src(id) : "";
   if (!url) return;
@@ -167,6 +167,8 @@ export function playSfx(id: SfxId, volume = SFX_VOLUME) {
   if (vol.boost !== null) el.crossOrigin = "anonymous";
   el.src = url;
   el.volume = vol.element;
+  // loop：一直響到呼叫回傳的 stop（逗貓時玩具在動才有聲音）
+  if (opts?.loop) el.loop = true;
   if (vol.boost !== null) boost(el, vol.boost);
   let stopped = false;
   const stop = () => {

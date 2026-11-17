@@ -70,7 +70,7 @@ interface ItemStage { scene: RoomScene; layout: RoomLayout; viewer: GS.Viewer; f
 
 const TOY_SHOW = 6;  // 逗貓玩具在畫面上放大幾倍（真實的老鼠只有 5 公分，看不到）
 
-export interface RoomWand { toy: SceneItem; onCatch: (caught: boolean) => void }
+export interface RoomWand { toy: SceneItem; onCatch: (caught: boolean) => void; /** 玩具位置（地板座標，公尺）每次更新就呼叫，給玩具移動音效用 */ onMove?: (x: number, z: number) => void }
 
 /**
  * cat：虛擬體驗選的貓（母體＋貼圖）；不給就用成貓母體預設花色
@@ -227,6 +227,8 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
   lit.current = Boolean(light);
   const onCatch = useRef<RoomWand["onCatch"] | null>(null);
   onCatch.current = wand?.onCatch ?? null;
+  const onToyMove = useRef<RoomWand["onMove"] | null>(null);
+  onToyMove.current = wand?.onMove ?? null;
 
   useEffect(() => {
     const el = host.current;
@@ -947,6 +949,7 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
       group.position.set(x * upm, at.y * upm, z * upm);
       group.visible = true;
       w.setToy([x, z], at.on);
+      onToyMove.current?.(x, z);
       st.viewer.forceRenderNextFrame();
     };
     // 檢視器的內建控制可能攔下事件，所以在 window 的捕獲階段接，再確認指標在房間畫面上
