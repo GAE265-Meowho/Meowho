@@ -30,7 +30,7 @@ const has = (xs: string[], word: string) => xs.some(x => x.includes(word));
 /** 規則產生的個人化台詞 */
 export function ruleLines(ctx: LinesContext): Line[] {
   const { catName: c, home } = ctx;
-  const places = { hide: homeWord("躲藏處", ctx.labels) ?? "角落", sofa: homeWord("高處", ctx.labels) ?? "窗台" };
+  const places = { hide: homeWord("躲藏處", ctx.labels) ?? "角落", sofa: homeWord("高處", ctx.labels) ?? "家裡最高的地方" };
   const fam = home.family;
   const out: Line[] = [];
   if (ctx.nodeId === "day1") {

@@ -64,7 +64,7 @@ import { EndingOverlay } from "./EndingOverlay";
 import { AdoptDialog } from "./AdoptDialog";
 import endFx from "./ending.module.css";
 import { playSfx } from "@/lib/play/audio-player";
-import { TAP_VOLUME, bubbleSfx, careSfx, catchSfx, meterSfx, poseSfx } from "@/lib/play/sfx-cues";
+import { DIG_SFX, TAP_VOLUME, accidentNow, bubbleSfx, careSfx, catchSfx, digOn, meterSfx, poseSfx } from "@/lib/play/sfx-cues";
 import { ScanWand } from "./ScanWand";
 import { MiniGuideGate, warmGuideVideos } from "./MiniGuide";
 import { ReportStep } from "./ReportStep";
@@ -614,6 +614,21 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
     if (id) playSfx(id);
   }, [catches]);
   useEffect(() => { if (scanWand) playSfx("sfx_toy"); }, [scanWand]);
+  // #456：居家意外（五年後半夜出事的瞬間）、貓走去砂盆撥貓砂
+  const lastAccident = useRef(false);
+  useEffect(() => {
+    const now = accidentNow(state.step, node.id, state.scene.time);
+    if (now && !lastAccident.current) playSfx("sfx_accident");
+    lastAccident.current = now;
+  }, [state.step, node.id, state.scene.time]);
+  const lastAction = useRef<CatAction | null>(null);
+  useEffect(() => {
+    const go = digOn(lastAction.current, action);
+    lastAction.current = action;
+    if (!go) return;
+    const t = setTimeout(() => playSfx("sfx_dig", DIG_SFX.volume), DIG_SFX.delayMs);
+    return () => clearTimeout(t);
+  }, [action]);
   // 按鈕聲：整個遊戲畫面的按鈕都響（小聲）；拖曳用品、搖桿不算
   useEffect(() => {
     const onDown = (e: PointerEvent) => {

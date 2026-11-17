@@ -4,6 +4,7 @@
 import { careOutcome, type CareAct } from "./care";
 import type { SfxId } from "./audio";
 import type { ScoopEvent } from "./mini3d/scoop-rules";
+import type { CatAction } from "./stage";
 import type { CatPose } from "./story";
 
 /** 按鈕聲的音量（其他音效 0.8）：每個按鈕都會響，要小聲一點 */
@@ -78,3 +79,17 @@ export function stepTick(acc: number, dt: number, running: boolean, every: numbe
   const next = acc + dt;
   return next >= every ? { acc: next - every + 1e-9, fire: true } : { acc: next, fire: false };
 }
+
+/** 刷牙「刷刷」（#456，sfx_brush）：真的在牙齒上來回刷的時候，每 everyS 秒響一次；停手、被甩開就歸零 */
+export const BRUSH_SFX = { everyS: 0.3, volume: 0.7 } as const;
+export const brushTick = (acc: number, dt: number, brushing: boolean) => stepTick(acc, dt, brushing, BRUSH_SFX.everyS);
+
+/** 磨爪（#456，sfx_scratch）：貓走到貓抓板旁開始磨爪動作的那一刻響一次；音檔比動作短就只響一次 */
+export const SCRATCH_SFX = { volume: 0.8 } as const;
+
+/** 居家意外（#456，sfx_accident）：五年後半夜出事那一幕剛開始的瞬間響一次（和 bgm_accident 同一個條件：year5＋夜晚） */
+export const accidentNow = (step: string, nodeId: string | null, time: string): boolean => step === "node" && nodeId === "year5" && time === "night";
+
+/** 撥貓砂（#456，sfx_dig）：貓剛被叫去砂盆時，過 delayMs 毫秒（走到砂盆的時間）再響 */
+export const DIG_SFX = { delayMs: 1500, volume: 0.6 } as const;
+export const digOn = (prev: CatAction | null, next: CatAction | null): boolean => next === "litter" && prev !== "litter";

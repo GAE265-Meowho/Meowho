@@ -9,6 +9,8 @@ import styles from "./mini3d.module.css";
 import { BrushPhotoTool } from "./BrushPhotoTool";
 import { BrushReactionVideo } from "./BrushReactionVideo";
 import photo from "./brush-photo.module.css";
+import { playSfx } from "@/lib/play/audio-player";
+import { BRUSH_SFX, brushTick } from "@/lib/play/sfx-cues";
 
 const instructions = {
   touch: ["碰嘴角", "按住嘴角標記。"],
@@ -79,6 +81,7 @@ export function BrushGameRealistic({
     let heldLip: number | null = null;
     let heldSpace = false;
     let forceStruggle = false;
+    let brushAcc = 0;  // 刷刷聲的計時（sfx-cues.ts brushTick）
     const requestStruggle = () => { forceStruggle = true; };
     const motion = window.matchMedia?.("(prefers-reduced-motion: reduce)");
     let animation: number;
@@ -134,6 +137,9 @@ export function BrushGameRealistic({
       const nearPaste = !!current.tool && inPhotoZone(current.tool, pasteZone);
       if (started.current) {
         const target = holding && !wasStruggling && current.tool ? photoTarget(current.tool, config.teeth) : null;
+        const rub = brushTick(brushAcc, dt, target !== null && current.travel > 0);
+        brushAcc = rub.acc;
+        if (rub.fire) playSfx("sfx_brush", BRUSH_SFX.volume);
         game = brushStep(game, config, {
           dt,
           holding,
