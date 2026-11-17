@@ -42,7 +42,11 @@ export function meterSfx(prev: { trust: number; stress: number } | null, next: {
 }
 
 /** 做好之後貓的反應 */
-const GOOD_AFTER: Partial<Record<Exclude<CareAct, "feed">, SfxId>> = { water: "sfx_drink", pet: "sfx_purr", brush: "sfx_purr" };
+const GOOD_AFTER: Partial<Record<Exclude<CareAct, "feed">, SfxId>> = { water: "sfx_drink" };
+
+/** 呼嚕聲（#456 渝茜：音檔很長，沒有持續摸就不要播；刷牙做完不呼嚕）：摸貓時手持續摸著貓喜歡的部位才循環播，
+ *  超過 idleMs 沒再摸到就停。做好之後不再補一聲（過程中已經響過了） */
+export const PURR_SFX = { idleMs: 400, volume: 0.8 } as const;
 
 /** 小遊戲自己在過程中就會出結果音效的，結束時不再重播（剪指甲：NailGame2D 的喀、尖叫、哈氣、失敗、完成；Tina #404） */
 const SELF_VOICED: ReadonlySet<CareAct> = new Set(["nail"]);
