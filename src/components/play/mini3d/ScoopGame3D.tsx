@@ -6,6 +6,8 @@
 import { Canvas } from "@react-three/fiber";
 import { useEffect, useRef, useState } from "react";
 import { newScoop, SCOOP_TEXT, scoopDone, scoopResult, type LitterBoxKind, type ScoopEvent, type ScoopState } from "@/lib/play/mini3d/scoop-rules";
+import { CONTROL_TEXT, controlText } from "@/lib/play/control-text";
+import { useTouch } from "../useTouch";
 import { ScoopScene } from "./ScoopScene";
 import styles from "./mini3d.module.css";
 import { playSfx } from "@/lib/play/audio-player";
@@ -13,6 +15,7 @@ import { SCOOP_SFX, SCOOP_VOLUME } from "@/lib/play/sfx-cues";
 
 /** box：採買選的貓砂盆款式；dirt：砂盆髒的程度（0～100） */
 export function ScoopGame3D({ box = "open", dirt = 70, clumps = null, onDone }: { box?: LitterBoxKind; dirt?: number; clumps?: number | null; onDone: (r: unknown) => void }) {
+  const touch = useTouch();
   const [start] = useState<ScoopState>(() => newScoop(box, dirt, Math.random, clumps ?? undefined));
   const state = useRef(start);
   const [ui, setUi] = useState({ bagged: 0, message: "" });
@@ -33,7 +36,7 @@ export function ScoopGame3D({ box = "open", dirt = 70, clumps = null, onDone }: 
   }, [clean, total, onDone]);
 
   return <>
-    <p className={styles.hint}>{total ? "按住畫面拖曳貓砂鏟，慢慢鏟起大便和結塊，左右甩一甩把砂子甩掉，再拿到左邊的垃圾袋上方放開。動作太大會掉回去。" : clumps === 0 ? "今天已經鏟乾淨了，砂盆還很乾淨。" : "砂盆很乾淨，今天還不用鏟。"}</p>
+    <p className={styles.hint}>{total ? controlText(CONTROL_TEXT.scoop, touch) : clumps === 0 ? "今天已經鏟乾淨了，砂盆還很乾淨。" : "砂盆很乾淨，今天還不用鏟。"}</p>
     <div className={styles.scene}>
       <Canvas dpr={[1, 1.5]} camera={{ fov: 45, near: 0.01, far: 12 }} fallback={<p role="alert">這個瀏覽器無法顯示 3D 場景。</p>}>
         <ScoopScene box={box} state={state} onEvent={onEvent} />

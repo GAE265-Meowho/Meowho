@@ -1,3 +1,5 @@
+import { CONTROL_TEXT, controlText } from "@/lib/play/control-text";
+import { useTouch } from "../useTouch";
 import { OrbitControls, useGLTF } from "@react-three/drei";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState, type ComponentRef, type PointerEvent as ReactPointerEvent } from "react";
@@ -180,6 +182,7 @@ function PetScene({ game, favorite, furUrl, onStroke, controls, onZone, onPose, 
 }
 
 export function PetGame3D({ ctx, onDone }: { ctx: MiniCtx; onDone: (r: unknown) => void }) {
+  const touch = useTouch();
   const current = useRef(newPetState());
   const [state, setState] = useState(current.current);
   const controls = useRef<ComponentRef<typeof OrbitControls>>(null);
@@ -195,7 +198,7 @@ export function PetGame3D({ ctx, onDone }: { ctx: MiniCtx; onDone: (r: unknown) 
   const lesson = PET_LESSONS[cue];
 
   return <>
-    <p className={styles.hint}>輕輕撫摸，觀察牠是否想繼續。</p>
+    <p className={styles.hint}>{controlText(CONTROL_TEXT.petIntro, touch)}</p>
     <div className={`${styles.scene} ${styles.petScene}`}>
       <Canvas dpr={[1, 1.5]} camera={{ position: CAMERA_START, fov: 38, near: 0.02, far: 12 }}
         onCreated={({ camera }) => camera.lookAt(...CAMERA_TARGET)}
@@ -229,7 +232,7 @@ export function PetGame3D({ ctx, onDone }: { ctx: MiniCtx; onDone: (r: unknown) 
     <div className={styles.petControls}>
       <p className={styles.hint}>{zone
         ? ZONE_LABELS[zone] + " · " + (zone === favorite ? "這隻貓的偏好部位" : zone === "belly" || zone === "tail" ? "先避開" : "輕摸並觀察")
-        : "用左下角的搖桿（或鍵盤方向鍵）轉動視角。可先輕摸頭或下巴。"}</p>
+        : controlText(CONTROL_TEXT.petView, touch)}</p>
       <button className="btn ghost" type="button" onClick={() => {
         const orbit = controls.current;
         if (!orbit?.enabled) return;
