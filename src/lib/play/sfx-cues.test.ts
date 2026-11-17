@@ -34,6 +34,10 @@ describe("音效接點（渝茜 2026-11-16：把後台音樂庫的音效套上�
 
   it("小遊戲做完：成功／失敗，再加上貓的反應", () => {
     expect(careSfx("feed", { added: 30, total: 30, spill: 0 })).toEqual(["sfx_done", "sfx_eat"]);
+    // 罐頭（主食罐、湯罐）是吃罐頭的聲音，乾濕混著餵兩個都響
+    expect(careSfx("feed", { added: 30, total: 30, spill: 0, wet: true, bowl: { dry: 0, wet: 1, soup: 0 } })).toEqual(["sfx_done", "sfx_eat_wet"]);
+    expect(careSfx("feed", { added: 30, total: 30, spill: 0, soup: true, bowl: { dry: 0, wet: 0, soup: 3 } })).toEqual(["sfx_done", "sfx_eat_wet"]);
+    expect(careSfx("feed", { added: 40, total: 40, spill: 0, wet: true, bowl: { dry: 10, wet: 1, soup: 0 } })).toEqual(["sfx_done", "sfx_eat", "sfx_eat_wet"]);
     expect(careSfx("water", { fill: 80 })).toEqual(["sfx_done", "sfx_drink"]);
     expect(careSfx("pet", { fun: 80 })).toEqual(["sfx_done", "sfx_purr"]);
     expect(careSfx("brush", { score: 90 })).toEqual(["sfx_done", "sfx_purr"]);
@@ -79,7 +83,7 @@ describe("音效接點（渝茜 2026-11-16：把後台音樂庫的音效套上�
   it("用到的 ID 都在後台的音效清單裡", () => {
     const used = [
       ...Object.values(SCOOP_SFX), "sfx_hiss", "sfx_yowl", "sfx_meow_cute", "sfx_meow", "sfx_dash", "sfx_carrier_door",
-      "sfx_trust_up", "sfx_stress_up", "sfx_done", "sfx_fail", "sfx_eat", "sfx_drink", "sfx_purr", "sfx_scream", "sfx_pounce",
+      "sfx_trust_up", "sfx_stress_up", "sfx_done", "sfx_fail", "sfx_eat", "sfx_eat_wet", "sfx_drink", "sfx_purr", "sfx_scream", "sfx_pounce",
     ];
     for (const id of used) expect(SOUNDS).toHaveProperty(id);
   });
