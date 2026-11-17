@@ -63,7 +63,7 @@ export const SOUNDS = {
   sfx_brush: { kind: "care", label: "刷牙「刷刷」", usedIn: "刷牙小遊戲", part: [3], ready: false },
   sfx_carrier_door: { kind: "care", label: "外出籠門開關", usedIn: "外出籠（第 1 天）", part: [2], ready: false },
   // 逗貓
-  sfx_toy: { kind: "toy", label: "玩具在地板上跑", usedIn: "3D 逗貓", part: [1, 5], ready: false },
+  sfx_toy: { kind: "toy", label: "玩具在地板上跑", usedIn: "3D 逗貓（玩具在動才響，停下就停）", part: [1, 5], ready: false },
   sfx_pounce: { kind: "toy", label: "貓撲上去", usedIn: "3D 逗貓", part: [1, 5], ready: false },
   // 介面
   sfx_tap: { kind: "ui", label: "按鈕", usedIn: "全部畫面的按鈕", part: [5], ready: false },
