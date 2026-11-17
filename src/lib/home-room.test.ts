@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import * as homeRoom from "./home-room";
-import { checkHomeVideo, homeTools, homeVideoPath, isHomeVideoPath, MAX_HOME_VIDEO_BYTES, MAX_HOME_VIDEO_SEC, safetyBusyLabel, safetyRecords, UPLOAD_PRIVACY, demoReportRow } from "./home-room";
+import { checkHomeVideo, homeTools, homeVideoPath, isHomeVideoPath, MAX_HOME_VIDEO_BYTES, MAX_HOME_VIDEO_SEC, safetyBusyLabel, safetyRecords, UPLOAD_PRIVACY, demoReportRow, envShareOptions } from "./home-room";
 
 const room = (status: string, completed_at: string | null = null) => ({ status, completed_at });
 const report = (status: string, room_model_id: string | null = null, created_at = "2026-11-04T00:00:00Z", items: unknown[] = []) =>
@@ -136,5 +136,26 @@ describe("影片限制（#243：mp4／mov、300 MB、180 秒）", () => {
     expect(checkHomeVideo({ ...ok, durationSec: MAX_HOME_VIDEO_SEC + 0.5 })).toBe("too_long");
     expect(checkHomeVideo({ ...ok, durationSec: 0 })).toBe("invalid_duration");
     expect(checkHomeVideo({ ...ok, durationSec: "111" })).toBe("invalid_duration");
+  });
+});
+
+describe("envShareOptions（私訊分享居家安全報告的選項）", () => {
+  const row = (id: string, created_at: string, status = "ready", room_model_id: string | null = null) =>
+    ({ id, household_id: "h1", status, room_model_id, created_at, items: [] });
+
+  it("只列產生好的報告，最新在前，並標出已分享到這個對話串的", () => {
+    const list = envShareOptions([
+      row("old", "2026-11-10T00:00:00Z"),
+      row("busy", "2026-11-16T00:00:00Z", "running"),
+      row("new", "2026-11-15T00:00:00Z", "ready", "room-1"),
+    ], ["old"]);
+    expect(list.map(x => [x.id, x.shared, x.source])).toEqual([
+      ["new", false, "建立 3D 房間時"],
+      ["old", true, "單獨檢測"],
+    ]);
+  });
+
+  it("沒有產生好的報告就回空陣列", () => {
+    expect(envShareOptions([row("busy", "2026-11-16T00:00:00Z", "queued")], [])).toEqual([]);
   });
 });

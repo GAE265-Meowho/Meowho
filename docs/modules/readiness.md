@@ -219,6 +219,7 @@ Worker 選用的 `report.html` 與 `html-assets/` 位於既有 attempt 前綴。
 
 ## 主要檔案
 - 安全報告：`src/app/api/homes/[id]/reports/[reportId]/route.ts`、`pdf/route.ts`、`crops/[key]/route.ts`、`src/app/homes/[id]/safety/SafetyReportDetails.tsx`、`src/lib/home-safety/report-access.ts`
+- 私訊分享居家安全報告：`src/components/desk/EnvReportShare.tsx`（領養人選報告並呼叫 `meow_share_env_report`；中途展開 `SafetyReportDetails` 摘要模式，不含 PDF）、`src/lib/home-room.ts` 的 `envShareOptions`
 - `src/components/Sections.tsx`（`TrialBoard`、`Steps`）
 - 虛擬飼養 DEMO（#237）：`src/app/cats/[id]/play/page.tsx`、`src/components/play/`（`PlayGame` 流程、`PlayStage` 3D、`ShopStep`、`NodeStep`、`ReportStep`、`catgame/` 原版小遊戲）、`src/lib/play/`（`flow.ts` 狀態機、`story.ts` 劇情、`events.ts` 意外、`furniture.ts` 通稱、`hazards.ts`、`costs.ts`、`room.ts`、`stage.ts`、`background.ts`、`lines.ts`、`report.ts`、`items.ts`、`cats.ts`、`api.ts`、`handlers.ts`）、`src/app/api/play/{hazards,lines,advice}/route.ts`、`src/lib/ai/play.ts`、`src/lib/prompts/play.ts`
 - `requirement/catsafe_ar_README.md`（團隊 AR 模組草稿，未放入 repo）
@@ -270,6 +271,7 @@ Worker 選用的 `report.html` 與 `html-assets/` 位於既有 attempt 前綴。
 | 2026-11-13 | 珮瑜 × Claude Code | 驗收修正：餵貓一餐只餵一種（先選再倒、選完手先伸進來、罐頭可連開）；後台用品模型尺寸太小的不採用（貓砂盆 13 公分那筆） | （見 PR） |
 | 2026-11-13 | 珮瑜 × Claude Code | 換水加洗碗：菜瓜布搓碗、沖碗倒掉、再接新水（`wash-rules.ts`、`WaterRefillGame3D.tsx`） | （見 PR） |
 | 2026-11-13 | 珮瑜 × Claude Code | 餐碗組放進房間時是空碗，餵完、換完水才出現飼料和水（`fillBowl`、`bowlFill`） | （見 PR） |
+| 2026-11-17 | 子哲 × Claude Code | 私訊加「分享居家安全報告」：領養人預設分享最新一份、可改選檢測紀錄；中途在對話串展開看摘要、風險項目與裁切照（沿用 0017 的分享函式與 RLS，不需新 migration；PDF 仍只給本人） | （見 PR） |
 
 ## 虛擬飼養讀真實資料與試養報告給中途（/cats/[id]/play）
 - 貓咪：`lib/play/source.ts` 的 `loadPlayCat(id)` 讀 `meow_cats`（名字、花色、生活階段、生日／估計月齡）＋ `meow_cat_model_variants.confirmed_albedo`（3D 貼圖）；讀不到才用 DEMO 麻糬。劇本裡的名字用 `〈貓名〉`（`furniture.ts` 的 `fullTx`）替換，小遊戲原版寫死的「麻糬」由 `CatgameMini` 畫完後換成貓名；非虎斑花色不畫條紋。
