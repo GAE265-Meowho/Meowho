@@ -3,11 +3,11 @@ import type { Viewer } from "@mkkellogg/gaussian-splats-3d";
 import * as THREE from "three";
 import { Impacts } from "./audio";
 import { RoomCat } from "./cat";
-import { cameraForward, dropTarget, placeObjects, type PlacedObject, type RoomCamera, type RoomLayout, type RoomScene } from "./demo";
+import { cameraForward, clampInRoom, dropTarget, placeObjects, type PlacedObject, type RoomCamera, type RoomLayout, type RoomScene } from "./demo";
 import { RoomPhysics } from "./physics";
 import { footprintCells } from "@/lib/play/scene-items";
 import { boredChoice, scratchStand } from "@/lib/play/scratch";
-import { CATCH_M, isCaught, type SceneCatCommand } from "@/lib/play/scene-cat";
+import { CATCH_M, isCaught, reachableToy, type SceneCatCommand } from "@/lib/play/scene-cat";
 import { nextZoom, rayHit, topSpot, topUnder, zoomRest, type Top } from "@/lib/play/zoomies";
 
 const PUSH_IMPULSE = 0.48;  // 牛頓秒，貓撥杯子的力道；0.34 時杯子會停在桌緣
@@ -31,7 +31,8 @@ export interface RoomWorld {
   command(cmd: SceneCatCommand): void;
   /** 畫面上的點 → 地板座標（公尺）；沒打到地板回 null */
   floorAt(ndc: THREE.Vector2): [number, number] | null;
-  /** 逗貓：畫面上的點 → 玩具落點（地板座標，公尺），先打到家具檯面就放在檯面上（y＝檯面高度）；沒打到回 null */
+  /** 逗貓：畫面上的點 → 玩具落點（地板座標，公尺），先打到家具檯面就放在檯面上（y＝檯面高度）；
+   *  地板上的點夾在房間內、貓走得到的地方；沒打到回 null */
   toyAt(ndc: THREE.Vector2): { x: number; y: number; z: number; on: string | null } | null;
   /** 3D 逗貓：貓追著玩具跑、撲；撲到玩具時呼叫 onCatch(是否抓到)。toy 為 null 表示玩具不在場 */
   play(on: ((caught: boolean) => void) | null): void;
@@ -350,7 +351,12 @@ export async function createRoomWorld({ viewer, threeScene, scene, layout, camer
       const h = rayHit([o.x / upm, o.y / upm, o.z / upm], [d.x, d.y, d.z], tops);
       if (!h) return null;
       // 太靠檯面邊緣、站不上去的點當作地板
-      return h.on && !topUnder(h.x, h.z, [h.on]) ? { x: h.x, y: 0, z: h.z, on: null } : { x: h.x, y: h.y, z: h.z, on: h.on?.id ?? null };
+      if (h.on && topUnder(h.x, h.z, [h.on])) return { x: h.x, y: h.y, z: h.z, on: h.on.id };
+      // 地板：先夾進房間（房間範圍沿牆方向，斜的房間也對），再把貓走不到的地方（家具佔住）拉回最近的空地旁
+      const [cx, , cz] = clampInRoom([h.x, 1, h.z], scene.room, 0.1);
+      const k = cat.nearestFree(cx * upm, cz * upm, 30, true), f = k >= 0 ? cat.centerOf(k) : null;
+      const [x, z] = reachableToy([cx, cz], f && [f.x / upm, f.y / upm]);
+      return { x, y: 0, z, on: null };
     },
 
     setItems(list) {

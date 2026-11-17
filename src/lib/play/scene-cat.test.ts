@@ -1,7 +1,7 @@
 // 虛擬飼養：掃描房間裡的貓怎麼配合劇情動作（躲外出籠、吃飯、睡床…）與 3D 逗貓的判定。純函式。
 import { describe, expect, it } from "vitest";
 import type { RoomObject } from "@/lib/hq/rooms/demo";
-import { catchResult, funFromCatches, isCaught, sceneCatCommand } from "./scene-cat";
+import { CATCH_M, catchResult, funFromCatches, isCaught, reachableToy, sceneCatCommand } from "./scene-cat";
 
 const obj = (id: string, name_zh: string, c: [number, number, number], size: [number, number, number], aff: Partial<RoomObject["affordance"]> = {}): RoomObject => ({
   id, label: id, name_zh, box: { center: c, size, yaw: 0 },
@@ -73,5 +73,19 @@ describe("3D 逗貓判定", () => {
     expect(r.fun).toBe(funFromCatches(4));
     expect(r.fun >= 50).toBe(true);
     expect(catchResult(0).fun).toBe(0);
+  });
+});
+
+describe("reachableToy", () => {
+  it("玩具在走得到的地板上：不動", () => {
+    expect(reachableToy([1, 1], [1.05, 1])).toEqual([1, 1]);
+    expect(reachableToy([1, 1], null)).toEqual([1, 1]);
+  });
+  it("玩具在家具佔住的地板上：拉回空地旁，貓走到空地就撲得到（#456）", () => {
+    const [x, z] = reachableToy([3, 1], [1, 1]);
+    expect(z).toBe(1);
+    expect(x).toBeGreaterThan(1);
+    expect(isCaught([1, 1], [x, z])).toBe(true);
+    expect(Math.hypot(x - 1, z - 1)).toBeLessThan(CATCH_M);
   });
 });

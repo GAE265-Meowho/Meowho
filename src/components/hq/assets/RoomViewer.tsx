@@ -943,8 +943,7 @@ export default function RoomViewer({ base, cat, items, controls = true, story, w
       // 玩具先打到家具檯面（床等）就放在檯面上，貓會跳上去追；否則在地板上（world.ts 的 toyAt）
       const at = w.toyAt(new THREE.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1));
       if (!at) return;
-      // 房間範圍是沿牆方向（轉 yaw 後）的座標，要轉過去再夾（clampInRoom）；不然斜的房間會把玩具夾到別處
-      const [x, , z] = clampInRoom([at.x, 1, at.z], st.scene.room, 0.1);
+      const { x, z } = at;  // 已夾在房間內、貓走得到的地方（world.ts 的 toyAt）
       group.position.set(x * upm, at.y * upm, z * upm);
       group.visible = true;
       w.setToy([x, z], at.on);
