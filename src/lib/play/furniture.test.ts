@@ -15,6 +15,10 @@ describe("homeWord", () => {
     expect(homeWord("門口", demo)).toBe("房門");
     expect(homeWord("門口", [...demo, "門"])).toBe("大門");
   });
+  it("高處只會是房間裡真有的家具：只有椅子、沒有沙發床櫃窗時不寫椅子（#456）", () => {
+    expect(homeWord("高處", ["書桌", "辦公椅"])).toBeNull();
+    expect(homeWord("高處", ["辦公椅", "矮收納櫃"])).toBe("櫃子");
+  });
   it("清單裡的 \"\" 代表一定有；都沒有回 null", () => {
     expect(homeWord("躲藏處", [])).toBe("角落");
     expect(homeWord("可關門的房間", demo)).toBeNull();

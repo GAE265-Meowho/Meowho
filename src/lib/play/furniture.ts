@@ -12,7 +12,8 @@ const FURN_MATCH: Record<string, RegExp> = {
 /** 通稱 → 照順序挑家裡第一個有的家具；值是 [家具 id, 寫進句子裡的說法]（原版 FURN_WORD） */
 export const FURN_WORD: Record<string, [string, string][]> = {
   "躲藏處": [["bed", "床底"], ["sofa", "沙發底下"], ["cabinet", "櫃子後面"], ["box", "紙箱裡"], ["", "角落"]],
-  "高處": [["sofa", "沙發"], ["bed", "床"], ["chair", "椅子"], ["window", "窗台"], ["cabinet", "櫃子"]],
+  // #456：貓跳上去的是掃描房間裡真有的家具（scene-cat.ts 挑最高的可跳物件），台詞不再寫死椅子；都沒有時由呼叫端用中性說法
+  "高處": [["sofa", "沙發"], ["bed", "床"], ["window", "窗台"], ["cabinet", "櫃子"]],
   "布料家具": [["sofa", "沙發"], ["bed", "床邊"], ["rug", "地毯"], ["chair", "椅子"], ["", "門框"], ["box", "紙箱"]],
   "桌面": [["desk", "書桌"], ["dining", "餐桌"], ["cabinet", "櫃子"]],
   "休息處": [["window", "有陽光的窗邊"], ["sofa", "沙發"], ["bed", "床"], ["", "貓窩"]],

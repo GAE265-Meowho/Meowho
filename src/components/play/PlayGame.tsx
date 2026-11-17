@@ -64,7 +64,7 @@ import { EndingOverlay } from "./EndingOverlay";
 import { AdoptDialog } from "./AdoptDialog";
 import endFx from "./ending.module.css";
 import { playSfx } from "@/lib/play/audio-player";
-import { TAP_VOLUME, bubbleSfx, careSfx, catchSfx, meterSfx, poseSfx } from "@/lib/play/sfx-cues";
+import { DIG_SFX, TAP_VOLUME, accidentNow, bubbleSfx, careSfx, catchSfx, digOn, meterSfx, poseSfx } from "@/lib/play/sfx-cues";
 import { ScanWand } from "./ScanWand";
 import { MiniGuideGate, warmGuideVideos } from "./MiniGuide";
 import { ReportStep } from "./ReportStep";
@@ -74,6 +74,8 @@ import { RunGateCard } from "./RunGateCard";
 import { notifyRunChanged, useActiveRun, useRunProgress } from "./useActiveRun";
 import { ShopStep } from "./ShopStep";
 import { DayEndDialog } from "./DayEndDialog";
+import { SkipTipDialog } from "./SkipTipDialog";
+import { skipTips, skippedActs, type SkipTips } from "@/lib/play/skip-tips";
 import { dayEnd, type DayEnd, endsDay } from "@/lib/play/day-end";
 import { useHouseholdExtras, usePlayHouseholds, useRunReportId } from "./usePlayData";
 import { HazardDialog } from "./HazardDialog";
@@ -560,9 +562,15 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
   const lookKey = state.step === "node" && bubble && !careAct ? `${state.nodeIndex}:${cur?.kind}:${bubble}:${state.life.care.rounds}` : null;
   // 每天結束的儀式（#354）：這次「下一步」會進下一個節點時，先跳中途的視窗（結尾前不跳）
   const [dayEndShown, setDayEndShown] = useState<DayEnd | null>(null);
-  const nextOrDayEnd = () => {
+  // #456：在家的時光按「結束今天」時，還有沒做的動作先跳提示（說長期不做可能引發什麼問題），按「知道了」才繼續
+  const [skipShown, setSkipShown] = useState<SkipTips | null>(null);
+  const proceedOrDayEnd = () => {
     const d = endsDay({ step: state.step, nodeIndex: state.nodeIndex, abandoned: state.life.abandoned, cur: cur?.kind ?? null }) ? dayEnd(state.nodeIndex, catName) : null;
     if (d) setDayEndShown(d); else dispatch({ type: "next" });
+  };
+  const nextOrDayEnd = () => {
+    const tips = cur?.kind === "home" ? skipTips(skippedActs(state.homeDone, state.homeTried)) : null;
+    if (tips) setSkipShown(tips); else proceedOrDayEnd();
   };
   // 背景音樂依步驟、節點、場景切換（第 6 份）
   // 結局（#354 2026-11-14）：結尾的台詞演完就接暗幕 → 回顧 → 漸白 → 報告（lib/play/ending.ts）；這段期間藏起對話框
@@ -570,8 +578,8 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
   const [endPhase, setEndPhase] = useState<EndingPhase | null>(null);
   const [endSlides, setEndSlides] = useState<ReviewShot[] | null>(null);
   const [ended, setEnded] = useState(false);
-  // 飼養開始就在背景預載小遊戲示範影片
-  useEffect(() => { if (state.step === "node") warmGuideVideos(); }, [state.step]);
+  // #456：進遊戲就開始抓（原本等到飼養才抓，採買、擺用品那段時間都浪費了）
+  useEffect(() => { warmGuideVideos(); }, []);
   // 報告讀完才跳領養資訊；報告最後的按鈕可以再打開（AdoptDialog）
   const [reportRead, setReportRead] = useState(false);
   const [adoptOpen, setAdoptOpen] = useState(0);
@@ -614,6 +622,21 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
     if (id) playSfx(id);
   }, [catches]);
   useEffect(() => { if (scanWand) playSfx("sfx_toy"); }, [scanWand]);
+  // #456：居家意外（五年後半夜出事的瞬間）、貓走去砂盆撥貓砂
+  const lastAccident = useRef(false);
+  useEffect(() => {
+    const now = accidentNow(state.step, node.id, state.scene.time);
+    if (now && !lastAccident.current) playSfx("sfx_accident");
+    lastAccident.current = now;
+  }, [state.step, node.id, state.scene.time]);
+  const lastAction = useRef<CatAction | null>(null);
+  useEffect(() => {
+    const go = digOn(lastAction.current, action);
+    lastAction.current = action;
+    if (!go) return;
+    const t = setTimeout(() => playSfx("sfx_dig", DIG_SFX.volume), DIG_SFX.delayMs);
+    return () => clearTimeout(t);
+  }, [action]);
   // 按鈕聲：整個遊戲畫面的按鈕都響（小聲）；拖曳用品、搖桿不算
   useEffect(() => {
     const onDown = (e: PointerEvent) => {
@@ -820,6 +843,7 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
         </section>
       )}
       {/* 每天結束的儀式（#354）：中途說今天是第幾天、接下來做什麼，按「開始」才進下一天 */}
+      {skipShown && <SkipTipDialog tips={skipShown} onContinue={() => { setSkipShown(null); proceedOrDayEnd(); }} />}
       {dayEndShown && <DayEndDialog day={dayEndShown} onStart={() => { setDayEndShown(null); dispatch({ type: "next" }); }} />}
       {state.step === "node" && cur?.kind === "home" && !careAct && (
         <HomeStep onFinish={nextOrDayEnd} />

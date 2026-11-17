@@ -9,7 +9,7 @@ import { clipJumpTiming, inPlaceClip, isJumpClip } from "./jump-clips";
 import { gallopClip } from "./gallop";
 import { playSfx } from "../../play/audio-player";
 import { SCRATCH_SECONDS } from "../../play/scratch";
-import { STEP_SFX, stepTick } from "../../play/sfx-cues";
+import { SCRATCH_SFX, STEP_SFX, stepTick } from "../../play/sfx-cues";
 import { ZOOM_RUN_M } from "../../play/zoomies";
 
 const CAT_HEIGHT_M = 0.3;   // 站著時頭頂離地的高度
@@ -308,7 +308,10 @@ export class RoomCat {
   arrived() {
     this.setState("idle");
     if (this.face) this.timer = 6;  // 在物品旁多待一會
-    if (this.clip && this.actions[this.clip]) { this.playClip(this.clip, false, 0.3); this.timer = CLIP_SECONDS[this.clip]; }
+    if (this.clip && this.actions[this.clip]) {
+      this.playClip(this.clip, false, 0.3); this.timer = CLIP_SECONDS[this.clip];
+      if (this.clip === "scratch") playSfx("sfx_scratch", SCRATCH_SFX.volume);  // #456 磨爪聲：貓開始磨爪那一刻
+    }
     this.clip = null;
   }
 

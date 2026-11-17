@@ -2,6 +2,8 @@
 // 虛擬飼養第 1 份：3D 換水（第一視角）。自動播：右手拿舊水碗到水槽、倒掉舊水；
 // 玩家：左手拿菜瓜布在碗裡搓（畫圈、來回都算）洗碗 → 碗移到出水口下 → 按住開水沖掉泡泡 → 倒掉沖碗的水 → 按住開水接新水。
 // 規則在 lib/play/mini3d/water-rules.ts（水量）、wash-rules.ts（洗碗、沖碗），回傳 { fill, washed }，careGood("water") 只看 fill ≥ 70。
+import { CONTROL_TEXT, controlText } from "@/lib/play/control-text";
+import { useTouch } from "../useTouch";
 import { Canvas } from "@react-three/fiber";
 import { useEffect, useRef, useState } from "react";
 import { REFILL_STEPS, refillAt, refillHold, refillPlayFrame, type RefillFrame } from "@/lib/play/mini3d/refill-timeline";
@@ -25,6 +27,7 @@ const smooth = (k: number) => { const t = Math.min(1, Math.max(0, k)); return t 
 
 /** initialFill＝今天已經換好的水量（lib/play/care-day.ts）；換過（70 以上）就不再倒掉重接，只提示今天換過了 */
 export function WaterRefillGame3D({ onDone, initialFill = 0 }: { onDone: (r: unknown) => void; initialFill?: number }) {
+  const touch = useTouch();
   const [phase, setPhase] = useState<Phase>("intro");
   const at = useRef({ phase: "intro" as Phase, t: 0 });
   const scrub = useRef({ x: 0, z: 0, down: false }), scrubbed = useRef(newScrub());
@@ -93,7 +96,7 @@ export function WaterRefillGame3D({ onDone, initialFill = 0 }: { onDone: (r: unk
   </>;
 
   return <>
-    <p className={styles.hint}>{phase === "fill" ? "按住「開水龍頭」接新水，七分滿就放開。" : HINT[phase]}</p>
+    <p className={styles.hint}>{phase === "fill" ? `${controlText(CONTROL_TEXT.waterTap, touch)}接新水，七分滿就放開。` : phase === "wash" ? controlText(CONTROL_TEXT.waterWash, touch) : phase === "rinse" ? `${controlText(CONTROL_TEXT.waterTap, touch)}把泡泡沖乾淨。` : HINT[phase]}</p>
     <div className={styles.scene}>
       <Canvas dpr={[1, 1.5]} camera={{ fov: 45, near: 0.01, far: 12 }} fallback={<p role="alert">這個瀏覽器無法顯示 3D 場景。</p>}>
         <WaterRefillScene drive={drive} scrub={scrub} />

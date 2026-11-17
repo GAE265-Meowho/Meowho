@@ -7,7 +7,7 @@
 // MiniGuideGate：示範看完才顯示 children（小遊戲本體）；modal＝自己包一層 Mini3DModal（原版 2D 小遊戲、3D 逗貓用）。
 import { useEffect, useId, useState, type ReactNode } from "react";
 import CatButton from "@/components/ui/CatButton";
-import { GUIDE_STEP_MS, GUIDE_VIDEOS, MINI_GUIDES, guideSkipped, guideText, setGuideSkipped, type GuideId, type GuideProp, type GuideStep } from "@/lib/play/mini-guide";
+import { BRUSH_PRELOAD, GUIDE_STEP_MS, GUIDE_VIDEOS, MINI_GUIDES, guideSkipped, guideText, setGuideSkipped, type GuideId, type GuideProp, type GuideStep } from "@/lib/play/mini-guide";
 import { Mini3DModal } from "./mini3d/Mini3DModal";
 import g from "./guide.module.css";
 
@@ -156,10 +156,12 @@ function GuideCard({ id, catName, onStart }: { id: GuideId; catName: string; onS
 /** 預載好的示範影片（網址 → blob 網址）：打開示範時直接從記憶體播，不用等下載（2026-11-14 渝茜：錄影很慢才出現） */
 const warmed = new Map<string, string>();
 let warming = false;
-/** 飼養開始時呼叫一次：在背景把全部示範影片（約 570KB）抓進記憶體 */
+/** 遊戲一開始（進到採買、擺用品之前就）呼叫一次：在背景把全部示範影片（約 570KB）抓進記憶體，刷牙的大圖與轉頭影片也先抓（#456：原本到飼養才開始抓，第一個小遊戲還在等） */
 export function warmGuideVideos() {
   if (warming || typeof window === "undefined" || typeof URL.createObjectURL !== "function") return;
   warming = true;
+  for (const url of BRUSH_PRELOAD.images) { const img = new Image(); img.decoding = "async"; img.src = url; }
+  for (const url of BRUSH_PRELOAD.videos) fetch(url).catch(() => { /* 抓不到就等開始刷牙時再載 */ });
   for (const src of GUIDE_VIDEOS) {
     fetch(src).then(r => (r.ok ? r.blob() : null)).then(b => { if (b) warmed.set(src, URL.createObjectURL(b)); }).catch(() => { /* 抓不到就照原本的網址播 */ });
   }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { SOUNDS } from "./audio";
-import { SCOOP_SFX, TAP_VOLUME, bubbleSfx, careSfx, catchSfx, meterSfx, poseSfx, rising, STEP_SFX, stepTick } from "./sfx-cues";
+import { BRUSH_SFX, SCOOP_SFX, SCOOP_VOLUME, TAP_VOLUME, accidentNow, brushTick, bubbleSfx, careSfx, catchSfx, digOn, meterSfx, poseSfx, rising, STEP_SFX, stepTick } from "./sfx-cues";
 
 describe("音效接點（渝茜 2026-11-16：把後台音樂庫的音效套上去）", () => {
   it("貓的氣泡：哈氣、撒嬌；半年後母貓是發情大叫；照顧需求是一般喵", () => {
@@ -54,6 +54,8 @@ describe("音效接點（渝茜 2026-11-16：把後台音樂庫的音效套上�
     expect(SCOOP_SFX.pick).toBe("sfx_scoop");
     expect(SCOOP_SFX.pickPoop).toBe("sfx_scoop");
     expect(SCOOP_SFX.bagged).toBe("sfx_bag");
+    expect(SCOOP_SFX.sifted).toBe("sfx_scoop");
+    expect(SCOOP_VOLUME).toBeGreaterThan(1);
     expect(SCOOP_SFX.baggedSandy).toBe("sfx_bag");
     expect(SCOOP_SFX.tooFast).toBeUndefined();
   });
@@ -96,5 +98,27 @@ describe("跑酷腳步聲（渝茜 2026-11-16）", () => {
   it("一開始跑就先響一聲；停下來歸零", () => {
     expect(stepTick(0, 1 / 60, true).fire).toBe(true);
     expect(stepTick(0.2, 1 / 60, false)).toEqual({ acc: 0, fire: false });
+  });
+});
+
+describe("#456 新接的音效", () => {
+  it("刷牙：開始刷先響一聲，之後每 0.3 秒一聲，停手歸零", () => {
+    expect(brushTick(0, 0.016, true).fire).toBe(true);
+    let acc = brushTick(0, 0.016, true).acc, fires = 0;
+    for (let i = 0; i < 60; i++) { const r = brushTick(acc, 0.016, true); acc = r.acc; if (r.fire) fires++; }
+    expect(fires).toBe(Math.floor(60 * 0.016 / BRUSH_SFX.everyS));
+    expect(brushTick(acc, 0.016, false)).toEqual({ acc: 0, fire: false });
+  });
+  it("居家意外：只有五年後的夜晚那一幕", () => {
+    expect(accidentNow("node", "year5", "night")).toBe(true);
+    expect(accidentNow("node", "year5", "day")).toBe(false);
+    expect(accidentNow("node", "day30", "night")).toBe(false);
+    expect(accidentNow("shop", "year5", "night")).toBe(false);
+  });
+  it("撥貓砂：從別的動作換成去砂盆才響，已經在砂盆不重複", () => {
+    expect(digOn("idle", "litter")).toBe(true);
+    expect(digOn(null, "litter")).toBe(true);
+    expect(digOn("litter", "litter")).toBe(false);
+    expect(digOn("litter", "idle")).toBe(false);
   });
 });

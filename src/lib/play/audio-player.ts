@@ -2,7 +2,7 @@
 // 手機瀏覽器規定使用者點過畫面才能出聲：還沒點過時只記下要播哪首，第一次點擊（unlockAudio）再開始播。
 // 第 1～5 份要出聲時呼叫 playSfx(<ID>)；還沒有音檔的音效呼叫了也不會出聲、不會報錯。
 // 有哪些音檔：第一次用到時讀 /api/play/sounds（Storage 實際的檔案），讀不到就照 SOUNDS 的 ready。
-import { audioSrc, bgmLoops, fadeVolume, hasSound, splitVolume, playableBgm, readMuted, writeMuted, type BgmId, type SfxId, type SoundId, type SoundIndex } from "./audio";
+import { audioSrc, bgmLoops, fadeVolume, hasSound, splitVolume, playableBgm, readMuted, readVolume, writeMuted, writeVolume, type BgmId, type SfxId, type SoundId, type SoundIndex } from "./audio";
 
 // 2026-11-14 渝茜：背景音樂調降 40%（原 0.45）
 const BGM_VOLUME = 0.27;
@@ -10,6 +10,9 @@ const SFX_VOLUME = 0.8;
 const FADE_MS = 900;
 
 let muted: boolean | null = null;
+/** 玩家在設定裡調的背景音樂、音效音量（0～1，#456）；null＝還沒讀 */
+let volBgm: number | null = null;
+let volSfx: number | null = null;
 let unlocked = false;
 let wanted: BgmId | null = null;
 /** 背景音樂的音量比例（0～1）：結局的暗幕、漸白時淡出（setBgmLevel） */
@@ -38,6 +41,27 @@ const emit = () => listeners.forEach(l => l());
 export function isMuted(): boolean {
   if (muted === null) muted = readMuted(store());
   return muted;
+}
+
+export function getBgmVolume(): number {
+  if (volBgm === null) volBgm = readVolume(store(), "bgm");
+  return volBgm;
+}
+export function getSfxVolume(): number {
+  if (volSfx === null) volSfx = readVolume(store(), "sfx");
+  return volSfx;
+}
+/** 背景音樂音量：馬上套到正在播的那首 */
+export function setBgmVolume(v: number) {
+  volBgm = Math.min(1, Math.max(0, v));
+  writeVolume(store(), "bgm", volBgm);
+  if (current && !current.el.paused && !isMuted()) current.el.volume = Math.min(1, BGM_VOLUME * level * volBgm);
+  emit();
+}
+export function setSfxVolume(v: number) {
+  volSfx = Math.min(1, Math.max(0, v));
+  writeVolume(store(), "sfx", volSfx);
+  emit();
 }
 
 export function subscribeMuted(fn: () => void): () => void {
@@ -72,7 +96,7 @@ function startWanted() {
   // 還沒有音檔的（例如結案報告）改播備用的那首；和現在播的一樣就接著播
   const id = playableBgm(wanted, index);
   if (current?.id === id) {
-    if (current.el.paused) { current.el.play().then(() => fade(current!.el, BGM_VOLUME * level)).catch(() => {}); }
+    if (current.el.paused) { current.el.play().then(() => fade(current!.el, BGM_VOLUME * level * getBgmVolume())).catch(() => {}); }
     return;
   }
   if (current) fadeOutAndStop(current.el);
@@ -83,13 +107,13 @@ function startWanted() {
   el.volume = 0;
   el.preload = "auto";
   current = { id, el };
-  el.play().then(() => fade(el, BGM_VOLUME * level)).catch(() => {});
+  el.play().then(() => fade(el, BGM_VOLUME * level * getBgmVolume())).catch(() => {});
 }
 
 /** 背景音樂的音量比例（0～1），花 ms 毫秒慢慢變過去（結局的暗幕、漸白） */
 export function setBgmLevel(next: number, ms = FADE_MS) {
   level = Math.min(1, Math.max(0, next));
-  if (current && !current.el.paused && !isMuted()) fade(current.el, BGM_VOLUME * level, undefined, ms);
+  if (current && !current.el.paused && !isMuted()) fade(current.el, BGM_VOLUME * level * getBgmVolume(), undefined, ms);
 }
 
 /** 換背景音樂（同一首就不動）；null＝停掉 */
@@ -137,7 +161,7 @@ export function playSfx(id: SfxId, volume = SFX_VOLUME) {
   if (!unlocked || isMuted() || typeof Audio === "undefined") return;
   const url = hasSound(id, index) ? src(id) : "";
   if (!url) return;
-  const vol = splitVolume(volume);
+  const vol = splitVolume(volume * getSfxVolume());
   const el = new Audio();
   // 要放大時 crossOrigin 得在設網址之前（之後才設，接進放大器會變成沒聲音）
   if (vol.boost !== null) el.crossOrigin = "anonymous";

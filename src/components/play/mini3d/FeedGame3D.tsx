@@ -3,6 +3,8 @@
 // 彈窗只負責把飼料放進碗；按「放好了」結束，關掉後貓才走到碗邊（PlayGame）。規則在 lib/play/mini3d/feed-rules.ts，
 // 回傳 { added, total, over, wet, soup, spill, bowl }，careGood("feed") 看這次有倒、碗裡總量 ≥ 15、沒過量、沒灑太多。
 // initial＝今天碗裡原本有的（lib/play/care-day.ts）：同一天再進來，碗維持倒過的樣子，並提示今天已經倒過。
+import { CONTROL_TEXT, controlText } from "@/lib/play/control-text";
+import { useTouch } from "../useTouch";
 import { Canvas } from "@react-three/fiber";
 import { useEffect, useRef, useState } from "react";
 import { addCan, CAN_LANDS, CAN_SECONDS, canFits, canFrame, feedAmount, feedHint, feedResult, newFeed, pourDry, type FeedKind, type FeedState } from "@/lib/play/mini3d/feed-rules";
@@ -19,6 +21,7 @@ const IDLE = { bagHand: 0, bagTilt: 0, pouring: false, can: null, canIn: 0, tabH
 
 /** kinds＝家裡有的飼料種類（lib/play/restock.ts）；沒買的顯示成鎖住，onRestock 開補貨視窗。沒傳 kinds 就三種都能選 */
 export function FeedGame3D({ portion, onDone, kinds = KINDS, onRestock, initial }: { portion: number; onDone: (r: unknown) => void; kinds?: FeedKind[]; onRestock?: () => void; initial?: Omit<FeedState, "spill"> }) {
+  const touch = useTouch();
   const [start] = useState<FeedState>(() => ({ ...newFeed(), ...initial, spill: 0 }));
   const startAmount = Math.round(feedAmount(start));
   // 這一餐餵哪一種；還沒選就先問。碗裡已經有的（同一天倒過）就接著同一種
@@ -67,8 +70,8 @@ export function FeedGame3D({ portion, onDone, kinds = KINDS, onRestock, initial 
   return <>
     <p className={styles.hint}>
       {!kind ? (kinds.length === 0 ? "家裡沒有飼料了，先去補貨。" : startAmount > 0 ? "碗裡還有飼料，今天已經餵過了。要再加的話選一種。" : "這一餐要餵哪一種？一次只餵一種。")
-        : kind === "dry" ? `按住「倒乾飼料」，倒到建議份量（${portion}）就放開。`
-        : ui.opening ? `打開${KIND_NAME[kind]}，倒進碗裡…` : `按「開一罐${KIND_NAME[kind]}」倒進碗裡，不夠可以再開一罐（建議份量 ${portion}）。`}
+        : kind === "dry" ? `${controlText(CONTROL_TEXT.feedDry, touch)}（建議份量 ${portion}）`
+        : ui.opening ? `打開${KIND_NAME[kind]}，倒進碗裡…` : `${controlText(CONTROL_TEXT.feedWet, touch)}（${KIND_NAME[kind]}，建議份量 ${portion}）`}
     </p>
     <div className={styles.scene}>
       <Canvas dpr={[1, 1.5]} camera={{ fov: 45, near: 0.01, far: 12 }} fallback={<p role="alert">這個瀏覽器無法顯示 3D 場景。</p>}>

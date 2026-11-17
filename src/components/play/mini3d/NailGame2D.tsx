@@ -4,6 +4,8 @@
 // 雙手操作：一根手指按住肉球（指甲才伸出來），另一根手指拖指甲刀，放開就剪。
 // 電腦：點一下肉球固定（再點一下放開）或按住空白鍵，移動滑鼠對準後按一下。
 // 規則在 lib/play/mini3d/nail-rules.ts，回傳 { score, bleed, bitten, ran }。
+import { CONTROL_TEXT, controlText } from "@/lib/play/control-text";
+import { useTouch } from "../useTouch";
 import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { playSfx } from "@/lib/play/audio-player";
 import { aimAt, CLAW_LEN as LEN, PAW_PHOTO, PAW_TOES } from "@/lib/play/mini3d/nail-paw";
@@ -46,7 +48,7 @@ export function NailGame2D({ ctx, onDone }: { ctx: MiniCtx; onDone: (r: unknown)
   const [message, setMessage] = useState("");
   const [clipper, setClipper] = useState({ x: 262, y: 44 });
   const [hissing, setHissing] = useState(false);
-  const [touch] = useState(() => typeof window !== "undefined" && window.matchMedia?.("(pointer: coarse)").matches);
+  const touch = useTouch();
   const svg = useRef<SVGSVGElement>(null);
   /** 哪一根手指在按腳趾、哪一根在拿指甲刀；滑鼠點肉球是固定住（locked），不用一直按著 */
   const hands = useRef<{ hold: number | null; clip: number | null; locked: boolean }>({ hold: null, clip: null, locked: false });
@@ -147,9 +149,7 @@ export function NailGame2D({ ctx, onDone }: { ctx: MiniCtx; onDone: (r: unknown)
   const aim = aimAt(clipper.x, clipper.y);
 
   return <>
-    <p className={styles.hint}>{touch
-      ? "一根手指按住肉球，指甲才會伸出來；另一根手指把指甲刀拖到白色尖端，放開就剪。粉紅色是血線，剪到會流血。"
-      : "點一下肉球固定（或按住空白鍵），指甲才會伸出來；滑鼠移到白色尖端按一下就剪。粉紅色是血線，剪到會流血。"}</p>
+    <p className={styles.hint}>{controlText(CONTROL_TEXT.nail, touch)}</p>
     <svg ref={svg} className={art.arena} viewBox={`0 0 ${PAW_PHOTO.size} ${PAW_PHOTO.size}`} role="img" aria-label="小貓腳掌特寫（AI 合成影像）"
       onPointerDown={onDown} onPointerMove={onMove} onPointerUp={onUp} onPointerCancel={onUp} onContextMenu={e => e.preventDefault()}>
       <defs>
