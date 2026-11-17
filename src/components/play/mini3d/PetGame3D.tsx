@@ -1,6 +1,6 @@
 import { OrbitControls, useGLTF } from "@react-three/drei";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { Suspense, useCallback, useEffect, useMemo, useRef, useState, type ComponentRef } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState, type ComponentRef, type PointerEvent as ReactPointerEvent } from "react";
 import { SkinnedMesh, SRGBColorSpace, TextureLoader, Vector3, type Mesh, type MeshStandardMaterial } from "three";
 import { clone } from "three/addons/utils/SkeletonUtils.js";
 import { newPetState, petResult, petStroke, type PetZone } from "@/lib/play/mini3d/pet-rules";
@@ -8,7 +8,7 @@ import { createPetHitRegions } from "@/lib/play/mini3d/pet-hit-regions";
 import { newPetReaction, petReaction } from "@/lib/play/mini3d/pet-reactions";
 import { PET_LESSONS, petCue } from "@/lib/play/mini3d/pet-learning";
 import type { MiniCtx } from "../catgame/minis";
-import { PET_VIEW, petOrbit } from "@/lib/play/mini3d/pet-view";
+import { PET_VIEW, petOrbit, stickTurn } from "@/lib/play/mini3d/pet-view";
 import { useScenePointer } from "./useScenePointer";
 import { createPetMotion } from "./pet-motion";
 import styles from "./mini3d.module.css";
@@ -161,7 +161,7 @@ function PetScene({ game, favorite, furUrl, onStroke, controls, onZone, onPose, 
   });
 
   return <>
-    {/* 滑鼠只摸貓、不轉畫面（渝茜 2026-11-16）：轉視角用旁邊的方向鍵（petOrbit），這裡只留滾輪縮放 */}
+    {/* 滑鼠只摸貓、不轉畫面（渝茜 2026-11-16）：轉視角用左下角的搖桿（petOrbit），這裡只留滾輪縮放 */}
     <OrbitControls ref={controls} domElement={canvas} target={CAMERA_TARGET}
       enableRotate={false} enablePan={false} enableDamping={false} minDistance={0.85} maxDistance={1.55}
       minPolarAngle={0.48} maxPolarAngle={Math.PI / 2 - 0.12}
@@ -224,12 +224,12 @@ export function PetGame3D({ ctx, onDone }: { ctx: MiniCtx; onDone: (r: unknown) 
           }} />
         </Suspense>
       </Canvas>
-      <ViewPad controls={controls} />
+      <ViewStick controls={controls} />
     </div>
     <div className={styles.petControls}>
       <p className={styles.hint}>{zone
         ? ZONE_LABELS[zone] + " · " + (zone === favorite ? "這隻貓的偏好部位" : zone === "belly" || zone === "tail" ? "先避開" : "輕摸並觀察")
-        : "用右邊的方向鍵（或鍵盤方向鍵）轉動視角。可先輕摸頭或下巴。"}</p>
+        : "用左下角的搖桿（或鍵盤方向鍵）轉動視角。可先輕摸頭或下巴。"}</p>
       <button className="btn ghost" type="button" onClick={() => {
         const orbit = controls.current;
         if (!orbit?.enabled) return;
@@ -253,9 +253,13 @@ export function PetGame3D({ ctx, onDone }: { ctx: MiniCtx; onDone: (r: unknown) 
   </>;
 }
 
-/** 旁邊的方向鍵：按住連續轉（左右繞著貓、上下看高低）；鍵盤方向鍵也可以 */
-function ViewPad({ controls }: { controls: { current: ComponentRef<typeof OrbitControls> | null } }) {
+/** 左下角的搖桿（#456，渝茜：原本右邊的方向鍵換成搖桿）：按住旋鈕往想看的方向推，貓就跟著轉；推越遠轉越快。鍵盤方向鍵也可以 */
+const STICK_SIZE = 104, KNOB_SIZE = 44;
+function ViewStick({ controls }: { controls: { current: ComponentRef<typeof OrbitControls> | null } }) {
+  const base = useRef<HTMLDivElement>(null);
+  const knob = useRef<HTMLSpanElement>(null);
   const timer = useRef<number | null>(null);
+  const vec = useRef({ yaw: 0, pitch: 0 });
   const turn = useCallback((yaw: number, pitch: number) => {
     const orbit = controls.current;
     if (!orbit) return;
@@ -263,11 +267,18 @@ function ViewPad({ controls }: { controls: { current: ComponentRef<typeof OrbitC
     orbit.object.position.set(...petOrbit([p.x, p.y, p.z], [t.x, t.y, t.z], yaw, pitch));
     orbit.update();
   }, [controls]);
-  const stop = useCallback(() => { if (timer.current !== null) { clearInterval(timer.current); timer.current = null; } }, []);
-  const start = (yaw: number, pitch: number) => {
-    stop();
-    turn(yaw, pitch);
-    timer.current = window.setInterval(() => turn(yaw, pitch), PET_VIEW.repeatMs);
+  const stop = useCallback(() => {
+    if (timer.current !== null) { clearInterval(timer.current); timer.current = null; }
+    vec.current = { yaw: 0, pitch: 0 };
+    if (knob.current) knob.current.style.transform = "translate(0, 0)";
+  }, []);
+  const move = (e: ReactPointerEvent<HTMLDivElement>) => {
+    const box = base.current?.getBoundingClientRect();
+    if (!box) return;
+    const radius = (STICK_SIZE - KNOB_SIZE) / 2;
+    const s = stickTurn(e.clientX - (box.left + box.width / 2), e.clientY - (box.top + box.height / 2), radius);
+    vec.current = { yaw: s.yaw, pitch: s.pitch };
+    if (knob.current) knob.current.style.transform = `translate(${s.x * radius}px, ${s.y * radius}px)`;
   };
   useEffect(() => {
     const keys: Record<string, [number, number]> = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, 1], ArrowDown: [0, -1] };
@@ -280,17 +291,17 @@ function ViewPad({ controls }: { controls: { current: ComponentRef<typeof OrbitC
     window.addEventListener("keydown", down);
     return () => { window.removeEventListener("keydown", down); stop(); };
   }, [turn, stop]);
-  const btn = (label: string, cls: string, yaw: number, pitch: number, glyph: string) => (
-    <button type="button" className={`${styles.padBtn} ${cls}`} aria-label={label}
-      onPointerDown={e => { e.currentTarget.setPointerCapture(e.pointerId); start(yaw, pitch); }}
-      onPointerUp={stop} onPointerCancel={stop} onPointerLeave={stop} onContextMenu={e => e.preventDefault()}>{glyph}</button>
-  );
   return (
-    <div className={styles.viewPad} role="group" aria-label="轉動視角">
-      {btn("往上看", styles.padUp, 0, 1, "▲")}
-      {btn("往左轉", styles.padLeft, -1, 0, "◀")}
-      {btn("往右轉", styles.padRight, 1, 0, "▶")}
-      {btn("往下看", styles.padDown, 0, -1, "▼")}
+    <div ref={base} className={styles.viewStick} role="application" aria-label="搖桿：往想看的方向推，轉動視角"
+      onPointerDown={e => {
+        e.currentTarget.setPointerCapture(e.pointerId);
+        stop();
+        move(e);
+        timer.current = window.setInterval(() => { const v = vec.current; if (v.yaw || v.pitch) turn(v.yaw, v.pitch); }, PET_VIEW.repeatMs);
+      }}
+      onPointerMove={e => { if (timer.current !== null) move(e); }}
+      onPointerUp={stop} onPointerCancel={stop} onContextMenu={e => e.preventDefault()}>
+      <span ref={knob} className={styles.stickKnob} />
     </div>
   );
 }

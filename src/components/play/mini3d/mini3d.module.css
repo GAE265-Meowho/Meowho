@@ -30,20 +30,13 @@
 .scene canvas { touch-action: none; }
 /* 摸貓：右邊的旋轉方向鍵（渝茜 2026-11-16） */
 .petScene { position: relative; }
-.viewPad {
-  position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
-  display: grid; grid-template: repeat(3, 40px) / repeat(3, 40px); gap: 2px;
+/* 摸貓的視角搖桿（#456）：左下角，貓在畫面中間所以不會擋到；半透明底＋白色旋鈕，同飼養中的搖桿 */
+.viewStick {
+  position: absolute; left: 10px; bottom: 10px; width: 104px; height: 104px; border-radius: 50%;
+  display: grid; place-items: center; background: rgb(255 255 255 / 0.32); border: 2px solid rgb(255 255 255 / 0.75);
+  backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); touch-action: none; user-select: none; -webkit-user-select: none; cursor: grab;
 }
-.padBtn {
-  width: 40px; height: 40px; padding: 0; border-radius: 50%; border: 2px solid var(--line);
-  background: rgb(255 255 255 / 0.9); color: var(--ink); font-size: 15px; line-height: 1; cursor: pointer;
-  box-shadow: 0 2px 6px rgb(0 0 0 / 0.15); touch-action: none; user-select: none;
-}
-.padBtn:active { background: var(--caramel); color: #fff; }
-.padUp { grid-area: 1 / 2; }
-.padLeft { grid-area: 2 / 1; }
-.padRight { grid-area: 2 / 3; }
-.padDown { grid-area: 3 / 2; }
+.stickKnob { width: 44px; height: 44px; border-radius: 50%; background: rgb(255 255 255 / 0.92); box-shadow: 0 2px 8px rgb(0 0 0 / 0.2); pointer-events: none; }
 .hint { margin: .5rem 0; }
 .meters { display: flex; flex-wrap: wrap; gap: .25rem 1rem; }
 .meters label { display: flex; align-items: center; gap: .35rem; }

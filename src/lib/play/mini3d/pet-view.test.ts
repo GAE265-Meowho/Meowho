@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { PET_VIEW, petOrbit } from "./pet-view";
+import { PET_VIEW, petOrbit, STICK_DEADZONE, stickTurn } from "./pet-view";
 
 const target: [number, number, number] = [0, 0.24, -0.025];
 const start: [number, number, number] = [0.92, 0.52, 0.57];
@@ -26,5 +26,24 @@ describe("摸貓：旁邊的方向鍵轉視角（渝茜 2026-11-16：滑鼠只�
     expect(polar(up)).toBeCloseTo(PET_VIEW.minPolar, 4);
     expect(polar(down)).toBeCloseTo(PET_VIEW.maxPolar, 4);
     expect(dist(up)).toBeCloseTo(dist(start), 6);
+  });
+});
+
+describe("stickTurn：搖桿換成轉視角（#456）", () => {
+  it("往右推＝往右轉、往上推＝往上看（螢幕 y 往下為正）", () => {
+    expect(stickTurn(40, 0, 40)).toMatchObject({ yaw: 1, pitch: -0 });
+    expect(stickTurn(0, -40, 40)).toMatchObject({ yaw: 0, pitch: 1 });
+    expect(stickTurn(-40, 0, 40).yaw).toBe(-1);
+    expect(stickTurn(0, 40, 40).pitch).toBe(-1);
+  });
+  it("推得越遠轉越快，超過半徑算推到底、旋鈕只拉到邊緣", () => {
+    expect(stickTurn(20, 0, 40).yaw).toBeCloseTo(0.5);
+    const far = stickTurn(400, 0, 40);
+    expect(far.yaw).toBe(1);
+    expect(far.x).toBe(1);
+  });
+  it("死區內不轉；半徑 0 不報錯", () => {
+    expect(stickTurn(STICK_DEADZONE * 40 * 0.5, 0, 40)).toMatchObject({ yaw: 0, pitch: 0 });
+    expect(stickTurn(5, 5, 0)).toEqual({ yaw: 0, pitch: 0, x: 0, y: 0 });
   });
 });
