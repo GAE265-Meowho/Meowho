@@ -19,6 +19,10 @@ const nextConfig: NextConfig = {
     NEXT_PUBLIC_HQ_VERSION: hqVersion,
     NEXT_PUBLIC_HQ_UPDATED_BY: hqUpdatedBy,
   },
+  // #456：虛擬飼養的示範影片、刷牙圖放 public/play，預設每次都要回去問一次有沒有更新；改成瀏覽器先留一小時、過期後先用舊的再背景更新（換檔後最慢一天內生效）
+  async headers() {
+    return [{ source: "/play/:path*", headers: [{ key: "Cache-Control", value: "public, max-age=3600, stale-while-revalidate=86400" }] }];
+  },
   images: {
     // 首頁照片（Unsplash License）直接用 Unsplash CDN，清單在 src/lib/home-photos.ts
     remotePatterns: [{ protocol: "https", hostname: "images.unsplash.com" }],

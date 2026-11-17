@@ -578,8 +578,8 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
   const [endPhase, setEndPhase] = useState<EndingPhase | null>(null);
   const [endSlides, setEndSlides] = useState<ReviewShot[] | null>(null);
   const [ended, setEnded] = useState(false);
-  // 飼養開始就在背景預載小遊戲示範影片
-  useEffect(() => { if (state.step === "node") warmGuideVideos(); }, [state.step]);
+  // #456：進遊戲就開始抓（原本等到飼養才抓，採買、擺用品那段時間都浪費了）
+  useEffect(() => { warmGuideVideos(); }, []);
   // 報告讀完才跳領養資訊；報告最後的按鈕可以再打開（AdoptDialog）
   const [reportRead, setReportRead] = useState(false);
   const [adoptOpen, setAdoptOpen] = useState(0);

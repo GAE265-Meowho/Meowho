@@ -40,3 +40,16 @@ describe("小遊戲開始前的示範", () => {
     expect(guideText(MINI_GUIDES.play.steps[1].text, "灰寶")).toContain("灰寶");
   });
 });
+
+describe("預載清單（#456）", () => {
+  it("刷牙預載的檔案都真的放在 public/play/brush", async () => {
+    const { existsSync } = await import("node:fs");
+    const { BRUSH_PRELOAD } = await import("./mini-guide");
+    for (const url of [...BRUSH_PRELOAD.images, ...BRUSH_PRELOAD.videos]) expect(existsSync(`public${url}`), url).toBe(true);
+  });
+  it("每個示範影片也都存在", async () => {
+    const { existsSync } = await import("node:fs");
+    const { GUIDE_VIDEOS } = await import("./mini-guide");
+    for (const url of GUIDE_VIDEOS) expect(existsSync(`public${url}`), url).toBe(true);
+  });
+});

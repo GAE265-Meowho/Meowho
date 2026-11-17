@@ -78,4 +78,10 @@ export function setGuideSkipped(id: GuideId, skip: boolean, s: Store = storage()
 export const guideText = (t: string, catName: string) => t.split(C).join(catName);
 
 /** 有錄影的示範影片網址（飼養開始時先預載，打開示範就能馬上播） */
+/** 刷牙小遊戲用到的大圖與轉頭影片（約 1.4MB）：飼養一開始就在背景抓，開始刷牙時瀏覽器已經有了（#456，渝茜：載入慢） */
+export const BRUSH_PRELOAD = {
+  images: ["/play/brush/brush-closed.webp", "/play/brush/brush-lift.webp", "/play/brush/brush-teeth.webp"],
+  videos: ["/play/brush/brush-turn-away.mp4"],
+} as const;
+
 export const GUIDE_VIDEOS: string[] = Object.values(MINI_GUIDES).flatMap(g => (g.video ? [g.video] : []));
