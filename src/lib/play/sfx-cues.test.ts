@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { SOUNDS } from "./audio";
-import { BRUSH_SFX, SCOOP_SFX, TAP_VOLUME, accidentNow, brushTick, bubbleSfx, careSfx, catchSfx, digOn, meterSfx, poseSfx, rising, STEP_SFX, stepTick } from "./sfx-cues";
+import { BRUSH_SFX, SCOOP_SFX, SCOOP_VOLUME, TAP_VOLUME, accidentNow, brushTick, bubbleSfx, careSfx, catchSfx, digOn, meterSfx, poseSfx, rising, STEP_SFX, stepTick } from "./sfx-cues";
 
 describe("音效接點（渝茜 2026-11-16：把後台音樂庫的音效套上去）", () => {
   it("貓的氣泡：哈氣、撒嬌；半年後母貓是發情大叫；照顧需求是一般喵", () => {
@@ -54,6 +54,8 @@ describe("音效接點（渝茜 2026-11-16：把後台音樂庫的音效套上�
     expect(SCOOP_SFX.pick).toBe("sfx_scoop");
     expect(SCOOP_SFX.pickPoop).toBe("sfx_scoop");
     expect(SCOOP_SFX.bagged).toBe("sfx_bag");
+    expect(SCOOP_SFX.sifted).toBe("sfx_scoop");
+    expect(SCOOP_VOLUME).toBeGreaterThan(1);
     expect(SCOOP_SFX.baggedSandy).toBe("sfx_bag");
     expect(SCOOP_SFX.tooFast).toBeUndefined();
   });

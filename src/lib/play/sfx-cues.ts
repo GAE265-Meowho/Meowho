@@ -62,8 +62,12 @@ export function careSfx(act: CareAct, result: unknown): SfxId[] {
 
 /** 鏟屎：鏟起來是鏟砂聲，丟進袋子是垃圾袋聲 */
 export const SCOOP_SFX: Partial<Record<Exclude<ScoopEvent, null>, SfxId>> = {
-  pick: "sfx_scoop", pickPoop: "sfx_scoop", bagged: "sfx_bag", baggedSandy: "sfx_bag",
+  pick: "sfx_scoop", pickPoop: "sfx_scoop", sifted: "sfx_scoop", bagged: "sfx_bag", baggedSandy: "sfx_bag",
 };
+
+/** 鏟砂聲音量（#456，渝茜：音檔有上傳也接了，但聽不到）：原本 0.8 蓋不過小遊戲裡的其他聲音，改 1.6（超過 1 由 audio-player 用放大器補，同跑酷腳步聲）；
+ *  甩乾淨砂子（sifted）也補一聲，鏟起、甩乾淨、丟進袋子每個動作都有聲音。要再調就改這個數字 */
+export const SCOOP_VOLUME = 1.6;
 
 /** 逗貓：抓到的次數變多就是撲上去 */
 export const catchSfx = (prev: number, next: number): SfxId | null => (next > prev ? "sfx_pounce" : null);

@@ -133,6 +133,14 @@ button {
   cursor: pointer;
 }
 
+/* #456：手機長按按鈕不要選到字、跳出複製選單（按鈕本來就不是要讓人選取的文字） */
+button,
+[role="button"] {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
 :focus-visible {
   outline: 3px solid var(--orange);
   outline-offset: 2px;
