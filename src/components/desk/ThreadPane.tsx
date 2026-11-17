@@ -12,6 +12,7 @@ import Icon from "@/components/ui/Icon";
 import { STATUS_LABEL, replyStatus, roleOf, type DeskThread } from "@/lib/adoption-desk";
 import type { Answers, Question } from "@/lib/adoption-form/questionnaire";
 import { getBrowserSupabase } from "@/lib/supabase/client";
+import { EnvReportShare } from "./EnvReportShare";
 import { TaskProof } from "./TaskProof";
 import { DeclinePanel, ReturnBanner, ReturnPanel, TransferBanner, TransferPanel, type PendingReturn, type PendingTransfer } from "./ThreadActions";
 import s from "./desk.module.css";
@@ -43,6 +44,9 @@ const ERRORS: Record<string, string> = {
   return_reason_required: "請說明退養原因。",
   return_not_pending: "這筆退養請求已經處理過了，請重新整理。",
   meow_cat_returns_one_pending: "已經有一筆處理中的退養請求。",
+  report_not_owner: "只能分享自己的居家安全報告。",
+  report_not_ready: "這份居家安全報告還沒產生好。",
+  thread_not_member: "找不到這段對話，請重新整理。",
 };
 const errText = (m: string) => Object.entries(ERRORS).find(([k]) => m.includes(k))?.[1] ?? `操作失敗：${m}`;
 const when = (iso: string) => new Date(iso).toLocaleString("zh-TW", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: false });
@@ -215,6 +219,8 @@ export function ThreadPane({ thread, userId, onChanged, onBack }: {
         <TaskProof threadId={id} catId={thread.cat_id} catName={thread.cat_name} isKeeper={role === "keeper"}
           showHint={!thread.homed_at && !thread.declined_at} refresh={msgs?.length ?? 0}
           onShared={async () => { await loadMsgs(); onChanged(); }} />
+        <EnvReportShare threadId={id} userId={userId} isKeeper={role === "keeper"} refresh={msgs?.length ?? 0}
+          onShared={async () => { await loadMsgs(); onChanged(); }} onError={m => setError(errText(m))} />
         {applied && (
           <div className={s.about}>
             {role === "keeper" && applied && (

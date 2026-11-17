@@ -91,6 +91,13 @@ export function safetyRecords<T extends ReportRow>(reports: T[]): SafetyRecord<T
     .map(r => ({ ...r, source: r.room_model_id ? "建立 3D 房間時" : "單獨檢測", riskCount: Array.isArray(r.items) ? r.items.length : 0 }));
 }
 
+/** 私訊「分享居家安全報告」的選項（規格 09 §7.2、決策 007）：產生好的報告，最新在前，標出已分享到這個對話串的。
+ *  每一份都要領養人主動分享，中途才看得到；預設選最新一份。 */
+export function envShareOptions<T extends ReportRow>(reports: T[], sharedIds: string[]): (SafetyRecord<T> & { shared: boolean })[] {
+  const shared = new Set(sharedIds);
+  return safetyRecords(reports).map(r => ({ ...r, shared: shared.has(r.id) }));
+}
+
 // ---------- 示範報告（AI 環境安全檢查接上前先用） ----------
 // ⚠ 單獨檢測、建立 3D 房間時的報告目前都是這份固定內容，由 /api/homes/[id]/safety 與 /api/homes/[id]/room 寫入 meow_env_reports。
 //   接上 AI 風險偵測後，改成建 status = 'queued' 的報告、背景產生 items 與風險裁切照（meow-home-risk-crops），再刪掉這段。

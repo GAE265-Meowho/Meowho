@@ -154,3 +154,8 @@
 .proofList { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
 .proofList li { display: grid; gap: 2px; padding: 8px 12px; border-radius: 14px; background: var(--card); }
 .proofList span { color: var(--ink-soft); }
+
+/* 分享的居家安全報告（規格 09 §7.2、決策 007） */
+.envShared { display: flex; flex-direction: column; gap: 8px; }
+.envShare { display: flex; flex-direction: column; gap: 10px; }
+.envShare select { max-width: 100%; }
