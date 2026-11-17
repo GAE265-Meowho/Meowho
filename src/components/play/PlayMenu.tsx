@@ -4,7 +4,7 @@
 // 視窗本身就是確認，離開不再跳瀏覽器的 confirm。Esc、點暗處、「繼續玩」都會關掉。
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import CatButton from "@/components/ui/CatButton";
-import { isMuted, setMuted, subscribeMuted, unlockAudio } from "@/lib/play/audio-player";
+import { getBgmVolume, getSfxVolume, isMuted, playSfx, setBgmVolume, setMuted, setSfxVolume, subscribeMuted, unlockAudio } from "@/lib/play/audio-player";
 import m from "./menu.module.css";
 
 const Gear = () => (
@@ -25,6 +25,9 @@ export function PlayMenu({ exitHref, exitNote, onAbandon }: {
   const ref = useRef<HTMLDialogElement>(null);
   const btn = useRef<HTMLButtonElement>(null);
   const muted = useSyncExternalStore(subscribeMuted, isMuted, () => false);
+  // #456：背景音樂、音效各自一條音量
+  const bgmVol = useSyncExternalStore(subscribeMuted, getBgmVolume, () => 1);
+  const sfxVol = useSyncExternalStore(subscribeMuted, getSfxVolume, () => 1);
 
   useEffect(() => {
     const d = ref.current;
@@ -45,6 +48,17 @@ export function PlayMenu({ exitHref, exitNote, onAbandon }: {
             <span>聲音</span>
             <input type="checkbox" role="switch" className={m.switch} checked={!muted}
               onChange={ev => { unlockAudio(); setMuted(!ev.target.checked); }} />
+          </label>
+          <label className={m.row}>
+            <span>背景音樂</span>
+            <input type="range" className={m.slider} min={0} max={100} step={5} value={Math.round(bgmVol * 100)} aria-label="背景音樂音量" disabled={muted}
+              onChange={ev => { unlockAudio(); setBgmVolume(Number(ev.target.value) / 100); }} />
+          </label>
+          <label className={m.row}>
+            <span>音效</span>
+            <input type="range" className={m.slider} min={0} max={100} step={5} value={Math.round(sfxVol * 100)} aria-label="音效音量" disabled={muted}
+              onChange={ev => { unlockAudio(); setSfxVolume(Number(ev.target.value) / 100); }}
+              onPointerUp={() => playSfx("sfx_done")} onKeyUp={() => playSfx("sfx_done")} />
           </label>
           <p className={m.note}>{exitNote}</p>
           <div className={m.actions}>

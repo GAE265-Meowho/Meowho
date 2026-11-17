@@ -173,6 +173,22 @@ export function readMuted(store: Pick<Storage, "getItem"> | null | undefined): b
   try { return store?.getItem(MUTE_KEY) === "1"; } catch { return false; }
 }
 
+/** 背景音樂、音效各自的音量（#456，渝茜：齒輪設定裡分開調）：0～1，預設 1；讀不到、壞掉的值當 1 */
+export const VOLUME_KEYS = { bgm: "meowho.play.volume.bgm", sfx: "meowho.play.volume.sfx" } as const;
+
+export function readVolume(store: Pick<Storage, "getItem"> | null | undefined, which: keyof typeof VOLUME_KEYS): number {
+  try {
+    const raw = store?.getItem(VOLUME_KEYS[which]);
+    if (raw == null) return 1;
+    const v = Number(raw);
+    return Number.isFinite(v) ? Math.min(1, Math.max(0, v)) : 1;
+  } catch { return 1; }
+}
+
+export function writeVolume(store: Pick<Storage, "setItem"> | null | undefined, which: keyof typeof VOLUME_KEYS, volume: number): void {
+  try { store?.setItem(VOLUME_KEYS[which], String(Math.min(1, Math.max(0, volume)))); } catch { /* 存不了就只在這次有效 */ }
+}
+
 export function writeMuted(store: Pick<Storage, "setItem"> | null | undefined, muted: boolean): void {
   try { store?.setItem(MUTE_KEY, muted ? "1" : "0"); } catch { /* 存不了就只在這次有效 */ }
 }

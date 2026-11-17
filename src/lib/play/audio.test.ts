@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
-import { BGM_FALLBACK, AUTO_CALLER, CALLER_OPTIONS, callersOf, BGM_IDS, SFX_IDS, SFX_READY, SOUNDS, audioPath, audioSrc, soundsFor, bgmFor, bgmLoops, playableBgm, fadeVolume, splitVolume, MUTE_KEY, readMuted, writeMuted, type BgmInput } from "./audio";
+import { BGM_FALLBACK, AUTO_CALLER, CALLER_OPTIONS, callersOf, BGM_IDS, SFX_IDS, SFX_READY, SOUNDS, audioPath, audioSrc, soundsFor, bgmFor, bgmLoops, playableBgm, fadeVolume, splitVolume, MUTE_KEY, readVolume, writeVolume, readMuted, writeMuted, type BgmInput } from "./audio";
 
 const at = (over: Partial<BgmInput>): BgmInput => ({ step: "node", nodeId: "day3", scene: { bg: "room", time: "day" }, home: false, ...over });
 
@@ -158,5 +158,28 @@ describe("音量超過 1（渝茜 2026-11-16：跑酷腳步聲太小）", () => 
   it("負數當 0，太大的最多放大 4 倍（避免破音）", () => {
     expect(splitVolume(-1)).toEqual({ element: 0, boost: null });
     expect(splitVolume(9)).toEqual({ element: 1, boost: 4 });
+  });
+});
+
+describe("背景音樂、音效各自的音量（#456）", () => {
+  const mem = () => { const m = new Map<string, string>(); return { getItem: (k: string) => m.get(k) ?? null, setItem: (k: string, v: string) => { m.set(k, v); } }; };
+  it("沒存過＝全開；存了就各存各的", () => {
+    const store = mem();
+    expect(readVolume(store, "bgm")).toBe(1);
+    writeVolume(store, "bgm", 0.3);
+    writeVolume(store, "sfx", 0.8);
+    expect(readVolume(store, "bgm")).toBe(0.3);
+    expect(readVolume(store, "sfx")).toBe(0.8);
+  });
+  it("超出範圍夾回 0～1，壞掉的值或存不了不報錯", () => {
+    const store = mem();
+    writeVolume(store, "sfx", 5);
+    expect(readVolume(store, "sfx")).toBe(1);
+    writeVolume(store, "sfx", -2);
+    expect(readVolume(store, "sfx")).toBe(0);
+    store.setItem("meowho.play.volume.bgm", "abc");
+    expect(readVolume(store, "bgm")).toBe(1);
+    expect(readVolume(null, "bgm")).toBe(1);
+    expect(() => writeVolume({ setItem: () => { throw new Error("x"); } }, "bgm", 0.5)).not.toThrow();
   });
 });
