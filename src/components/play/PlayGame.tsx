@@ -74,6 +74,8 @@ import { RunGateCard } from "./RunGateCard";
 import { notifyRunChanged, useActiveRun, useRunProgress } from "./useActiveRun";
 import { ShopStep } from "./ShopStep";
 import { DayEndDialog } from "./DayEndDialog";
+import { SkipTipDialog } from "./SkipTipDialog";
+import { skipTips, skippedActs, type SkipTips } from "@/lib/play/skip-tips";
 import { dayEnd, type DayEnd, endsDay } from "@/lib/play/day-end";
 import { useHouseholdExtras, usePlayHouseholds, useRunReportId } from "./usePlayData";
 import { HazardDialog } from "./HazardDialog";
@@ -560,9 +562,15 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
   const lookKey = state.step === "node" && bubble && !careAct ? `${state.nodeIndex}:${cur?.kind}:${bubble}:${state.life.care.rounds}` : null;
   // 每天結束的儀式（#354）：這次「下一步」會進下一個節點時，先跳中途的視窗（結尾前不跳）
   const [dayEndShown, setDayEndShown] = useState<DayEnd | null>(null);
-  const nextOrDayEnd = () => {
+  // #456：在家的時光按「結束今天」時，還有沒做的動作先跳提示（說長期不做可能引發什麼問題），按「知道了」才繼續
+  const [skipShown, setSkipShown] = useState<SkipTips | null>(null);
+  const proceedOrDayEnd = () => {
     const d = endsDay({ step: state.step, nodeIndex: state.nodeIndex, abandoned: state.life.abandoned, cur: cur?.kind ?? null }) ? dayEnd(state.nodeIndex, catName) : null;
     if (d) setDayEndShown(d); else dispatch({ type: "next" });
+  };
+  const nextOrDayEnd = () => {
+    const tips = cur?.kind === "home" ? skipTips(skippedActs(state.homeDone, state.homeTried)) : null;
+    if (tips) setSkipShown(tips); else proceedOrDayEnd();
   };
   // 背景音樂依步驟、節點、場景切換（第 6 份）
   // 結局（#354 2026-11-14）：結尾的台詞演完就接暗幕 → 回顧 → 漸白 → 報告（lib/play/ending.ts）；這段期間藏起對話框
@@ -835,6 +843,7 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
         </section>
       )}
       {/* 每天結束的儀式（#354）：中途說今天是第幾天、接下來做什麼，按「開始」才進下一天 */}
+      {skipShown && <SkipTipDialog tips={skipShown} onContinue={() => { setSkipShown(null); proceedOrDayEnd(); }} />}
       {dayEndShown && <DayEndDialog day={dayEndShown} onStart={() => { setDayEndShown(null); dispatch({ type: "next" }); }} />}
       {state.step === "node" && cur?.kind === "home" && !careAct && (
         <HomeStep onFinish={nextOrDayEnd} />
