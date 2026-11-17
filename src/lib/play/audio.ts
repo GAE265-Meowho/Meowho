@@ -39,7 +39,7 @@ export const SOUNDS = {
   // 貓的聲音
   sfx_meow: { kind: "cat", label: "一般喵", usedIn: "貓回應、需求氣泡出現", part: [3, 4], ready: false },
   sfx_meow_cute: { kind: "cat", label: "撒嬌喵", usedIn: "摸貓摸得好、信任上升", part: [3], ready: false },
-  sfx_purr: { kind: "cat", label: "呼嚕", usedIn: "摸貓、刷牙做得好", part: [3], ready: false },
+  sfx_purr: { kind: "cat", label: "呼嚕", usedIn: "摸貓時手持續摸著貓喜歡的地方（停手就停）", part: [3], ready: false },
   sfx_hiss: { kind: "cat", label: "哈氣", usedIn: "第 1 天硬拉、剪指甲剪太深、摸錯地方", part: [2, 3, 5], ready: true },
   sfx_scream: { kind: "cat", label: "尖叫", usedIn: "剪指甲剪太深", part: [2], ready: true },
   sfx_yowl: { kind: "cat", label: "半夜發情大叫", usedIn: "半年後，母貓未結紮半夜發情", part: [5], ready: true },

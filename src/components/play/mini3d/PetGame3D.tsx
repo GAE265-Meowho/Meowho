@@ -1,4 +1,6 @@
 import { CONTROL_TEXT, controlText } from "@/lib/play/control-text";
+import { useHoldSfx } from "../useHoldSfx";
+import { PURR_SFX } from "@/lib/play/sfx-cues";
 import { useTouch } from "../useTouch";
 import { OrbitControls, useGLTF } from "@react-three/drei";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
@@ -22,13 +24,15 @@ const MODEL = "/hq-cat-models/base/base_clips.glb";
 /** 游標是虛擬手（渝茜 2026-11-16）：平常張開、摸的時候彎下來；熱點在中指指尖 */
 const HAND = { open: "url(/play/pet/hand-open.svg) 22 3, pointer", pet: "url(/play/pet/hand-pet.svg) 22 3, grabbing" };
 
-function PetScene({ game, favorite, furUrl, onStroke, controls, onZone, onPose, onRelease }: {
+function PetScene({ game, favorite, furUrl, onStroke, onFavorite, controls, onZone, onPose, onRelease }: {
   furUrl?: string | null;
   game: { current: ReturnType<typeof newPetState> };
   favorite: NonNullable<MiniCtx["touchFav"]>;
   controls: { current: ComponentRef<typeof OrbitControls> | null };
   onZone: (zone: PetZone) => void;
   onRelease: () => void;
+  /** 手正在摸貓喜歡的地方（輕柔摸），給呼嚕聲用 */
+  onFavorite: () => void;
   onPose: (pose: ReturnType<typeof newPetReaction>["pose"]) => void;
   onStroke: (zone: PetZone, distance: number, dt: number, touching: boolean) => boolean;
 }) {
@@ -145,6 +149,7 @@ function PetScene({ game, favorite, furUrl, onStroke, controls, onZone, onPose, 
       const gentle = onStroke(zone, distance, dt, true);
       if (zone === favorite && gentle) {
         reaction.current = petReaction(reaction.current, { dt, annoyance: game.current.annoyance, favoriteStroke: true });
+        onFavorite();
       }
       pointer.current = { id: event.pointerId, x: event.clientX, y: event.clientY, time: event.timeStamp };
     },
@@ -183,6 +188,8 @@ function PetScene({ game, favorite, furUrl, onStroke, controls, onZone, onPose, 
 
 export function PetGame3D({ ctx, onDone }: { ctx: MiniCtx; onDone: (r: unknown) => void }) {
   const touch = useTouch();
+  // 呼嚕聲：手持續摸著貓喜歡的地方才響（音檔很長，停手、換地方、放開就停）
+  const purr = useHoldSfx("sfx_purr", PURR_SFX.volume, PURR_SFX.idleMs);
   const current = useRef(newPetState());
   const [state, setState] = useState(current.current);
   const controls = useRef<ComponentRef<typeof OrbitControls>>(null);
@@ -206,8 +213,9 @@ export function PetGame3D({ ctx, onDone }: { ctx: MiniCtx; onDone: (r: unknown) 
         <hemisphereLight intensity={1.45} color={0xffffff} groundColor={0xd8c0a0} />
         <directionalLight position={[1, 2, 3]} intensity={1.65} />
         <Suspense fallback={null}>
-          <PetScene game={current} favorite={favorite} furUrl={ctx.furUrl} controls={controls} onZone={setZone} onPose={setPose}
+          <PetScene game={current} favorite={favorite} furUrl={ctx.furUrl} controls={controls} onZone={setZone} onPose={setPose} onFavorite={purr.poke}
             onRelease={() => {
+              purr.stop();
               setPaused(seconds.current >= 3 || current.current.annoyance >= 28);
               seconds.current = 0;
               setPauseDue(false);

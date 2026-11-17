@@ -39,8 +39,9 @@ describe("音效接點（渝茜 2026-11-16：把後台音樂庫的音效套上�
     expect(careSfx("feed", { added: 30, total: 30, spill: 0, soup: true, bowl: { dry: 0, wet: 0, soup: 3 } })).toEqual(["sfx_done", "sfx_eat_wet"]);
     expect(careSfx("feed", { added: 40, total: 40, spill: 0, wet: true, bowl: { dry: 10, wet: 1, soup: 0 } })).toEqual(["sfx_done", "sfx_eat", "sfx_eat_wet"]);
     expect(careSfx("water", { fill: 80 })).toEqual(["sfx_done", "sfx_drink"]);
-    expect(careSfx("pet", { fun: 80 })).toEqual(["sfx_done", "sfx_purr"]);
-    expect(careSfx("brush", { score: 90 })).toEqual(["sfx_done", "sfx_purr"]);
+    // 呼嚕聲只在摸的過程中響（PURR_SFX），做完不補
+    expect(careSfx("pet", { fun: 80 })).toEqual(["sfx_done"]);
+    expect(careSfx("brush", { score: 90 })).toEqual(["sfx_done"]);
     expect(careSfx("brush", { score: 20, ran: true })).toEqual(["sfx_fail", "sfx_hiss"]);
     expect(careSfx("brush", { score: 10, bitten: true })).toEqual(["sfx_fail", "sfx_hiss"]);
   });
