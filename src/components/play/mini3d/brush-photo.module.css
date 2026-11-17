@@ -122,3 +122,5 @@
   .stage[data-feedback]::after,
   .feedback[data-feedback] { animation: none; }
 }
+
+.stage[data-brush-cursor='true'] { cursor: none; }

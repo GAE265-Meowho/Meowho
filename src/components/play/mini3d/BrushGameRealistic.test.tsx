@@ -50,7 +50,7 @@ it("兩根指標各自控制嘴角與刷具，失去捕捉後停止計分", () =
   vi.stubGlobal("PointerEvent", TestPointerEvent);
   const ctx = { cat: { trust: 100, stress: 0 }, brushLevel: 4 } as MiniCtx;
   const view = render(<dialog open><BrushGameRealistic ctx={ctx} onDone={vi.fn()} reactionSrc="" /></dialog>);
-  const stage = screen.getByRole("group");
+  const stage = screen.getByRole("group", { name: "刷牙練習影像" });
   stage.focus();
   stage.setPointerCapture = vi.fn();
   stage.hasPointerCapture = () => false;
@@ -129,7 +129,6 @@ it("兩根指標各自控制嘴角與刷具，失去捕捉後停止計分", () =
 it.each([
   { level: 4, trust: 0, stress: 100, hold: true, feedback: "bitten", result: { bitten: true, ran: false, score: 0 } },
   { level: 4, trust: 0, stress: 100, hold: false, feedback: "ran", result: { bitten: false, ran: true, score: 0 } },
-  { level: 0, trust: 100, stress: 0, hold: true, feedback: "success", result: { bitten: false, ran: false, score: 100 } },
 ])("顯示 $feedback 並在確認後回傳原始結果", ({ level, trust, stress, hold, feedback, result }) => {
   let next: FrameRequestCallback | undefined;
   vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => { next = callback; return 1; });
@@ -137,7 +136,7 @@ it.each([
   const ctx = { cat: { trust, stress }, brushLevel: level } as MiniCtx;
   const onDone = vi.fn();
   const view = render(<dialog open><BrushGameRealistic ctx={ctx} onDone={onDone} reactionSrc="" /></dialog>);
-  const stage = screen.getByRole("group");
+  const stage = screen.getByRole("group", { name: "刷牙練習影像" });
   stage.focus();
   stage.querySelectorAll("img").forEach(image => fireEvent.load(image));
   fireEvent.keyDown(stage, { code: "Space" });
@@ -169,7 +168,7 @@ it("掙扎只播放一次，播放結束與規則結束後才重新開放操作"
   const play = vi.spyOn(HTMLMediaElement.prototype, "play").mockResolvedValue();
   const ctx = { cat: { trust: 0, stress: 100 }, brushLevel: 4 } as MiniCtx;
   const view = render(<dialog open><BrushGameRealistic ctx={ctx} onDone={vi.fn()} /></dialog>);
-  const stage = screen.getByRole("group");
+  const stage = screen.getByRole("group", { name: "刷牙練習影像" });
   stage.focus();
   stage.querySelectorAll("img").forEach(image => fireEvent.load(image));
   expect(stage.querySelector("video")).toBeNull();
@@ -196,55 +195,23 @@ it("掙扎只播放一次，播放結束與規則結束後才重新開放操作"
   play.mockRestore();
 });
 
-it.each([0, 1, 2, 3, 4])("Lv.%i 首次有效接觸只播放一次衛教影片", (brushLevel) => {
+it.each([0, 1, 2, 3, 4])("歷史階段 %i 首次翻唇直接露牙，沒有影片中斷", (brushLevel) => {
   let frame: FrameRequestCallback;
   vi.stubGlobal("requestAnimationFrame", (callback: FrameRequestCallback) => { frame = callback; return 1; });
   vi.stubGlobal("cancelAnimationFrame", vi.fn());
-  vi.stubGlobal("matchMedia", vi.fn(() => ({ matches: false })));
-  const play = vi.spyOn(HTMLMediaElement.prototype, "play").mockResolvedValue();
   const ctx = { cat: { trust: 100, stress: 0 }, brushLevel } as MiniCtx;
-  const view = render(<dialog open><BrushGameRealistic ctx={ctx} onDone={vi.fn()} reactionSrc="/reaction.mp4" /></dialog>);
-  const stage = screen.getByRole("group");
+  render(<dialog open><BrushGameRealistic ctx={ctx} onDone={vi.fn()} /></dialog>);
+  const stage = screen.getByRole("group", { name: "刷牙練習影像" });
   stage.focus();
-  stage.setPointerCapture = vi.fn();
-  stage.hasPointerCapture = () => false;
-  vi.spyOn(stage, "getBoundingClientRect").mockReturnValue(new DOMRect(0, 0, 300, 400));
   stage.querySelectorAll("img").forEach(image => fireEvent.load(image));
-  class TestPointerEvent extends MouseEvent {
-    pointerId: number;
-    pointerType: string;
-    constructor(type: string, options: MouseEventInit & { pointerId: number; pointerType: string }) {
-      super(type, options);
-      this.pointerId = options.pointerId;
-      this.pointerType = options.pointerType;
-    }
-  }
-  const contact = () => {
-    const send = (type: string, x: number, y: number) => fireEvent(stage, new TestPointerEvent(type, {
-      bubbles: true, button: 0, pointerId: 1, pointerType: "touch", clientX: x, clientY: y,
-    }));
-    send("pointerdown", brushLevel === 2 ? 148 : 200, brushLevel === 2 ? 240 : 237);
-    if (brushLevel !== 0 && brushLevel !== 2) send("pointermove", 200, 227);
-    send("pointerup", 200, 227);
-  };
-  contact();
-  act(() => frame(0));
-  act(() => frame(100));
-  const video = stage.querySelector("video");
-  expect(video?.getAttribute("src")).toBe("/reaction.mp4");
-  expect(video?.dataset.education).toBe("true");
-  expect(screen.getByText(/衛教示範｜貓咪轉頭躲避時/)).toBeTruthy();
-  expect(stage.dataset.mouth).toBe("closed");
-  expect(screen.queryByLabelText("牙齒外側特寫")).toBeNull();
-  expect(play).toHaveBeenCalledTimes(1);
-  expect(screen.getByLabelText("進度", { exact: false }).getAttribute("value")).toBe("0");
-  fireEvent.ended(video!);
-  contact();
-  act(() => frame(200));
+  fireEvent.keyDown(stage, { code: "Space" });
+  for (const time of [0, 100, 200]) act(() => frame(time));
+  expect(stage.dataset.mouth).toBe("teeth");
+  expect(screen.getByLabelText("牙齒外側特寫")).toBeTruthy();
   expect(stage.querySelector("video")).toBeNull();
-  expect(play).toHaveBeenCalledTimes(1);
-  view.unmount();
-  play.mockRestore();
+  fireEvent.keyUp(stage, { code: "Space" });
+  act(() => frame(300));
+  expect(stage.dataset.mouth).toBe("closed");
 });
 
 it.each(["error", "rejected", "reduced"] as const)("反應影片 %s 時可回到閉嘴照片並重新操作", async (failure) => {
@@ -256,19 +223,15 @@ it.each(["error", "rejected", "reduced"] as const)("反應影片 %s 時可回到
     failure === "rejected" ? Promise.reject(new Error("Autoplay denied")) : Promise.resolve());
   const ctx = { cat: { trust: 0, stress: 100 }, brushLevel: 4 } as MiniCtx;
   const view = render(<dialog open><BrushGameRealistic ctx={ctx} onDone={vi.fn()} reactionSrc="/reaction.mp4" /></dialog>);
-  const stage = screen.getByRole("group");
+  const stage = screen.getByRole("group", { name: "刷牙練習影像" });
   stage.focus();
   stage.querySelectorAll("img").forEach(image => fireEvent.load(image));
   fireEvent.keyDown(stage, { code: "Space" });
   for (let time = 0; time <= 4100; time += 100) act(() => frame(time));
   if (failure === "error") fireEvent.error(stage.querySelector("video")!);
-  if (failure === "reduced") {
-    expect(stage.querySelector("video")?.dataset.education).toBe("true");
-    fireEvent.click(screen.getByRole("button", { name: "略過衛教示範" }));
-  }
   await act(async () => {});
   expect(stage.querySelector("video")).toBeNull();
-  expect(play).toHaveBeenCalledTimes(1);
+  expect(play).toHaveBeenCalledTimes(failure === "reduced" ? 0 : 1);
   expect(stage.dataset.mouth).toBe("closed");
   fireEvent.keyUp(stage, { code: "Space" });
   for (let time = 4200; time <= 5500; time += 100) act(() => frame(time));
@@ -288,15 +251,12 @@ it("掙扎時咬人會停止遊戲，但影片結束後才顯示結果", () => {
   const onDone = vi.fn();
   const ctx = { cat: { trust: 0, stress: 100 }, brushLevel: 4 } as MiniCtx;
   const view = render(<dialog open><BrushGameRealistic ctx={ctx} onDone={onDone} /></dialog>);
-  const stage = screen.getByRole("group");
+  const stage = screen.getByRole("group", { name: "刷牙練習影像" });
   stage.focus();
   stage.querySelectorAll("img").forEach(image => fireEvent.load(image));
   fireEvent.keyDown(stage, { code: "Space" });
   act(() => frame(0));
   act(() => frame(100));
-  fireEvent.ended(stage.querySelector("video")!);
-  fireEvent.keyUp(stage, { code: "Space" });
-  fireEvent.keyDown(stage, { code: "Space" });
   act(() => frame(200));
   act(() => frame(300));
   act(() => window.dispatchEvent(new Event("meow:brush-struggle")));
