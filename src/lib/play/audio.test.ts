@@ -87,9 +87,9 @@ describe("聲音對照表與網址", () => {
 });
 
 describe("音效名稱清單", () => {
-  it("和總表一樣 30 個、不重複、都以 sfx_ 開頭", () => {
-    expect(SFX_IDS).toHaveLength(30);
-    expect(new Set(SFX_IDS).size).toBe(30);
+  it("和總表一樣 31 個、不重複、都以 sfx_ 開頭", () => {
+    expect(SFX_IDS).toHaveLength(31);
+    expect(new Set(SFX_IDS).size).toBe(31);
     expect(SFX_IDS.every(id => /^sfx_[a-z_]+$/.test(id))).toBe(true);
   });
 });

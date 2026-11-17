@@ -42,10 +42,18 @@ export function meterSfx(prev: { trust: number; stress: number } | null, next: {
 }
 
 /** 做好之後貓的反應 */
-const GOOD_AFTER: Partial<Record<CareAct, SfxId>> = { feed: "sfx_eat", water: "sfx_drink", pet: "sfx_purr", brush: "sfx_purr" };
+const GOOD_AFTER: Partial<Record<Exclude<CareAct, "feed">, SfxId>> = { water: "sfx_drink", pet: "sfx_purr", brush: "sfx_purr" };
 
 /** 小遊戲自己在過程中就會出結果音效的，結束時不再重播（剪指甲：NailGame2D 的喀、尖叫、哈氣、失敗、完成；Tina #404） */
 const SELF_VOICED: ReadonlySet<CareAct> = new Set(["nail"]);
+
+/** 餵貓後貓吃的聲音：乾飼料是咀嚼、罐頭（主食罐、湯罐）是吃罐頭；乾濕混著餵兩個都響（#456 珮瑜）。結果沒標罐頭就當乾飼料 */
+function eatSfx(r: Record<string, unknown>): SfxId[] {
+  const can = r.wet === true || r.soup === true;
+  const bowl = (r.bowl && typeof r.bowl === "object" ? r.bowl : {}) as Record<string, unknown>;
+  const dry = !can || (typeof bowl.dry === "number" && bowl.dry > 0);
+  return [...(dry ? ["sfx_eat" as const] : []), ...(can ? ["sfx_eat_wet" as const] : [])];
+}
 
 /** 小遊戲做完：成功／失敗，再加上貓的反應（剪到血線尖叫、被咬是哈氣）。中途關掉或什麼都沒做不出聲 */
 export function careSfx(act: CareAct, result: unknown): SfxId[] {
@@ -53,7 +61,10 @@ export function careSfx(act: CareAct, result: unknown): SfxId[] {
   const outcome = careOutcome(act, result);
   if (outcome === "none") return [];
   const r = (result && typeof result === "object" ? result : {}) as Record<string, unknown>;
-  if (outcome === "good") return GOOD_AFTER[act] ? ["sfx_done", GOOD_AFTER[act]!] : ["sfx_done"];
+  if (outcome === "good") {
+    if (act === "feed") return ["sfx_done", ...eatSfx(r)];
+    return GOOD_AFTER[act] ? ["sfx_done", GOOD_AFTER[act]!] : ["sfx_done"];
+  }
   if (outcome === "partial") return [];
   if (r.bleed) return ["sfx_fail", "sfx_scream"];
   if (r.bitten || r.ran) return ["sfx_fail", "sfx_hiss"];
