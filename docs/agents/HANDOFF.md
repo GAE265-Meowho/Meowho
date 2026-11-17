@@ -4,7 +4,7 @@
 > 最後更新：2026-11-16｜渝茜 × Claude Code（虛擬飼養實機回饋第二輪）
 
 ## 目前狀態
-- **#456 渝茜那一份（渝茜 × Claude Code，分支 `fix/456-yuchien-fixes`，一個 PR）**：已接 `sfx_brush`／`scratch`／`dig`／`accident`、設定裡音樂與音效分開調音量、鏟砂聲加大、高處台詞不寫死椅子、按鈕不可選取、結束今天跳沒做任務的疾病提示。還沒做：左下搖桿、操作說明分手機／電腦、示範影片載入、圖示（問子哲）。細節見 `docs/daily/2026-11-17/1339-渝茜-456.md`。
+- **#456 渝茜那一份（渝茜 × Claude Code，分支 `fix/456-yuchien-fixes`，一個 PR）**：已接 `sfx_brush`／`scratch`／`dig`／`accident`、設定裡音樂與音效分開調音量、鏟砂聲加大、高處台詞不寫死椅子、按鈕不可選取、結束今天跳沒做任務的疾病提示。圖示列改 emoji（`CareIcon.tsx`，餵貓是🥣疊🐟，要實機看大小）。還沒做：左下搖桿、操作說明分手機／電腦、示範影片載入。細節見 `docs/daily/2026-11-17/1339-渝茜-456.md`。
 - **外出籠小遊戲移除（#354，渝茜 × Claude Code，2026-11-16，分支 `feat/354-remove-carrier-game`）**：刪掉「讓貓進外出籠」小遊戲、示範影片與第 10 年的對應步驟（第 10 年直接去看醫生，不再 `stress +5`）；第 1 天外出籠劇情、3D 外出籠用品不動。之後想加回來：還原這張 PR。細節見 `docs/modules/readiness.md` 最後一節。
 - **虛擬飼養實機回饋第二輪（#354，渝茜 × Claude Code，2026-11-16）**：分支 `fix/354-play-feedback-1116`，base main（#432、#434、#435 都已合併）。擺用品點了就自動放＋「點選移動」提示框、拿掉快速放；俯視可以一直轉＋縮放、飼養中有搖桿；第 3 天不重複餵；跑酷用走路重組的奔跑動作（`gallop.ts`）；後台音效庫接上（`sfx-cues.ts`）。下一步：請渝茜在這張的 Vercel 預覽、她的真實房間走一輪。細節見 `docs/modules/readiness.md` 最後一節。
 - **虛擬飼養第 5 份（#354，渝茜 × Claude Code，2026-11-14）**：PR #432（第 1 天貓縮在外出籠，base main）→ PR #433（`feat/354-play-cat-motion`：貓走路跳躍動作串接、起跳前轉身、跟著貓按鈕、出籠站到籠門外、第 30 天半夜跑酷、逗貓玩具上床）。#433 要等 #432 合併後把 base 改回 main。細節見 `docs/modules/readiness.md` 最後一節。地雷：掃描房間的床常斜放（`surfaces[0].yaw`），檯面範圍要轉過去算（`zoomies.ts` 的 `toTop`）；房間範圍 `room.min/max` 是沿牆座標，夾位置要用 `clampInRoom`。
