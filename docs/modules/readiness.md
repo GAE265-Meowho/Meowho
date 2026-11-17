@@ -399,6 +399,7 @@ Worker 選用的 `report.html` 與 `html-assets/` 位於既有 attempt 前綴。
 - 診間一律亮燈（`playLightTime` 的 `bg`）。摸貓：滑鼠只摸，轉視角用右邊方向鍵（`petOrbit`），游標是虛擬手。
 - 睡覺：閒晃停下來有機會原地睡（`NAP`），老貓（`ELDER_CAT.sleepy`）常睡、睡得久；跑酷、追玩具不睡。
 - 出外出籠站不住（牆裡、被佔住）就移到最近能走的地板；結尾老貓 `rest` 一直躺著、劇情鏡頭先夾進房間再瞄準（`shotAimDrop`，貓在卡片上方）；逗貓框改成一條。
+- 逗貓玩具落在家具佔住的地板（貓走不到）時，`world.toyAt` 先夾進房間，再用 `reachableToy` 拉回最近空地旁、貓撲得到的距離內；原本貓走到空地就停住不動（#456）。
 - 診間層隱藏時 `visibility: hidden`＋裡面 `pointer-events: none !important`（r3f 畫布外層行內 auto 會蓋過），不然看過獸醫後房間拖不動、逗貓玩具不跟滑鼠。逗貓示範影片 `play.mp4`。
 - 第 1 天縮在外出籠：玩家點地板／叫貓不理（`playerCanMove`）；`tuck` 的籠子帶 `rotY = rot × 90°`。
 - 音量超過 1（目前只有腳步聲 1.8）：`playSfx` 把元素開到 1，再接 Web Audio 放大器（`splitVolume`，最多 4 倍）；元素要先設 `crossOrigin` 再設網址。剪指甲示範影片 11-16 依照片特寫玩法重錄。

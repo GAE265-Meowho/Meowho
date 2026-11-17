@@ -53,6 +53,14 @@ export function sceneCatCommand(action: CatAction | null, objects: readonly Room
 export const isCaught = (cat: readonly [number, number], toy: readonly [number, number]) =>
   Math.hypot(cat[0] - toy[0], cat[1] - toy[1]) <= CATCH_M;
 
+/** 玩具落在貓走不到的地板（家具佔住的地方）時，拉回最近走得到的地板（floor）旁、貓撲得到的距離內；
+ *  不然貓走到最近的空地就停著，離玩具太遠撲不到（#456：逗貓時貓有時不動）。floor＝null（整間都走不到）就不動 */
+export function reachableToy(toy: readonly [number, number], floor: readonly [number, number] | null): [number, number] {
+  if (!floor) return [toy[0], toy[1]];
+  const dx = toy[0] - floor[0], dz = toy[1] - floor[1], d = Math.hypot(dx, dz), r = CATCH_M * 0.8;
+  return d <= r ? [toy[0], toy[1]] : [floor[0] + (dx / d) * r, floor[1] + (dz / d) * r];
+}
+
 export const funFromCatches = (n: number) => Math.min(100, Math.max(0, n) * FUN_PER_CATCH);
 
 /** 結束時回給劇情的結果，格式和原本 2D 逗貓（catgame startPlay）相同 */
