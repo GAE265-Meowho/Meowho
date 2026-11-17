@@ -268,7 +268,7 @@ export const STORY: readonly StoryNode[] = [
       REC({ fx: { spent: 1800, kind: "med" }, note: "預防針、驅蟲" }),
       FN(X => [WHO("clerk", young(X) ? "2 到 4 個月是學東西最快的時候。刷牙、剪指甲，趁現在開始練最容易。" : "貓長大了也學得會。刷牙、剪指甲，越早開始練越容易，慢慢來就好。")]),
       ASK("you", "（要開始練刷牙嗎？）", [
-        { l: "之後每天睡前練 3 分鐘", set: "brushDaily", pick: "開始練刷牙", good: true, then: [XN("你從碰碰嘴角開始。"), MINI("brush"), XN("〈貓名〉慢慢習慣了。")] },
+        { l: "之後每天睡前練 3 分鐘", set: "brushDaily", pick: "開始練刷牙", good: true, then: [XN("你輕輕翻開嘴唇，沿著牙齒外側小幅輕刷。"), MINI("brush"), XN("〈貓名〉慢慢習慣了。")] },
         { l: "等牠大一點再說", pick: "沒有從幼貓期練刷牙", good: false },
       ]),
     ],

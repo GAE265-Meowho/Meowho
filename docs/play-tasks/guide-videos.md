@@ -31,3 +31,7 @@
 2. `BASE=http://localhost:3000 CHROME=<Chrome 路徑> OUT=/tmp/play-guide-rec node rec-home.mjs feed`（scoop、pet 同理）。
 3. 回 repo 根目錄：`OUT=/tmp/play-guide-rec bash scripts/play-guide-rec/encode-home.sh`（裁切用畫布比例，畫布大小改了不用重算）。
 4. 本機 `.env.local` 若有 `CAT_STUDIO_ROOT` 指向不存在的資料夾，摸貓與首頁 3D 貓會載不到母體（`/api/hq/cat-models/base` 404）；錄影時把它清空再 `npm run dev`。
+
+### #456 刷牙
+
+桌面錄影腳本按住 Space 翻唇，以渲染後的 SVG 牙齒中心定位滑鼠，讀取進度後放開 Space。只編碼 brush 的輸出，勿批次覆寫其他示範。

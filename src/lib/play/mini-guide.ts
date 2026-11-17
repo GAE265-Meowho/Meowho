@@ -40,9 +40,9 @@ export const MINI_GUIDES: Record<GuideId, MiniGuide> = {
     { prop: "cat", gesture: "rest", text: "牠甩尾巴就停手" },
   ] },
   brush: { title: "刷牙", video: "/play/guide/brush.mp4", steps: [
-    { prop: "mouth", gesture: "tap", text: "按住嘴角標記" },
-    { prop: "mouth", gesture: "scrub", text: "沿著牙齒輕輕刷" },
-    { prop: "mouth", gesture: "rest", text: "牠不耐煩就先停" },
+    { prop: "mouth", gesture: "tap", text: "一指按嘴角向上翻唇" },
+    { prop: "mouth", gesture: "scrub", text: "另一指輕刷牙齒外側" },
+    { prop: "mouth", gesture: "rest", text: "牠抗拒就放手休息" },
   ] },
   nail: { title: "剪指甲", video: "/play/guide/nail.mp4", steps: [
     { prop: "paw", gesture: "hold", text: "按住肉球推出指甲" },
