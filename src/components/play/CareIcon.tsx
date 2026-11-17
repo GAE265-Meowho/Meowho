@@ -8,7 +8,7 @@ export const CARE_EMOJI: Record<CareIconId, string> = {
   feed: "🥣",
   water: "💧",
   scoop: "💩",
-  play: "🧶",
+  play: "🐭",
   pet: "✋",
   brush: "🪥",
   nail: "🐾",  // 實際畫面用上面自畫的貓掌（NailIcon）；這個只是備用文字
