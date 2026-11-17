@@ -10,6 +10,7 @@ import { gallopClip } from "./gallop";
 import { playSfx } from "../../play/audio-player";
 import { SCRATCH_SECONDS } from "../../play/scratch";
 import { SCRATCH_SFX, STEP_SFX, stepTick } from "../../play/sfx-cues";
+import { isNightSfx } from "../../play/night-gate";
 import { ZOOM_RUN_M } from "../../play/zoomies";
 
 const CAT_HEIGHT_M = 0.3;   // 站著時頭頂離地的高度
@@ -794,10 +795,12 @@ export class RoomCat {
     if (!this.mixer || !this.visible) return;
     this.mixer.update(dt);
     // 跑酷、追玩具衝刺時配腳步聲（渝茜 2026-11-16）；跳在空中、縮在籠裡不響
-    const running = this.sprint && this.current === this.actions.run && this.state !== "jump" && this.state !== "tuck";
+    // 腳步聲只在晚上響（渝茜：白天不要腳步聲）；停下來、天亮、換場就把還在響的那一聲切斷（#456）
+    const running = this.sprint && this.current === this.actions.run && this.state !== "jump" && this.state !== "tuck" && isNightSfx();
     const foot = stepTick(this.stepAcc ?? 0, dt, running);
     this.stepAcc = foot.acc;
-    if (foot.fire) playSfx("sfx_step", STEP_SFX.volume);
+    if (!running && this.footStop) { this.footStop(); this.footStop = null; }
+    if (foot.fire) { this.footStop?.(); this.footStop = playSfx("sfx_step", STEP_SFX.volume) ?? null; }
 
     if (this.state === "tuck") return;  // 縮在外出籠裡：只播動作、不移動
     if (this.state === "jump") { this.updateJump(dt); return; }

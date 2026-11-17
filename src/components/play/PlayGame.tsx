@@ -63,6 +63,7 @@ import { loadReview, saveReview } from "@/lib/play/review-store";
 import { EndingOverlay } from "./EndingOverlay";
 import { AdoptDialog } from "./AdoptDialog";
 import endFx from "./ending.module.css";
+import { dashStillOn, setNightSfx } from "@/lib/play/night-gate";
 import { roomStory } from "@/lib/play/scene-cat";
 import { playSfx } from "@/lib/play/audio-player";
 import { DIG_SFX, TAP_VOLUME, accidentNow, bubbleSfx, careSfx, catchSfx, digOn, meterSfx, poseSfx, TOY_SFX, toyMoved, toyStill } from "@/lib/play/sfx-cues";
@@ -606,6 +607,9 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
   const light = useMemo(() => lightFor(lightTime), [lightTime]);
   useEffect(() => { reportScene(sceneOf({ step: state.step, nodeId: node.id, scene: state.scene, home: cur?.kind === "home" })); }, [state.step, node.id, state.scene, cur?.kind]);
   useEffect(() => resetScene, []);
+  // 腳步聲、衝刺聲只在晚上（night-gate.ts）：現在是不是晚上告訴 3D 貓；離開畫面歸零
+  useEffect(() => { setNightSfx(lightTime === "night"); }, [lightTime]);
+  useEffect(() => () => setNightSfx(false), []);
   // 診間與劇情鏡頭（#354 第 5 份）
   // 半年後公貓亂噴尿：尿漬出現的同時播噴尿音效（sfx_spray 還沒有音檔時不出聲）；看醫生或劇情結束就消失。結局那一幕疊結局插圖
   const stains = useMemo(() => stainsFor({ step: state.step, nodeId: node.id, bg: state.scene.bg, pose: state.scene.cat, life: state.life }),
@@ -619,12 +623,18 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
     if (id) playSfx(id);
   }, [bubble, node.id, cat.sex]);
   const lastPose = useRef<CatPose | null>(null);
+  const dashStop = useRef<(() => void) | null>(null);
   useEffect(() => {
     const pose = state.step === "node" ? state.scene.cat : null;
     const id = pose ? poseSfx(lastPose.current, pose, node.id) : null;
     lastPose.current = pose;
-    if (id) playSfx(id);
+    if (id) { const stop = playSfx(id); if (id === "sfx_dash") dashStop.current = stop ?? null; }
   }, [state.step, state.scene.cat, node.id]);
+  // 衝刺聲不能一直響：換場、天亮、離開節點就切斷（#456 渝茜）
+  useEffect(() => {
+    if (!dashStillOn(state.step, state.step === "node" ? state.scene.cat : null, lightTime === "night")) { dashStop.current?.(); dashStop.current = null; }
+  }, [state.step, state.scene.cat, lightTime]);
+  useEffect(() => () => { dashStop.current?.(); dashStop.current = null; }, []);
   const lastMeters = useRef<{ trust: number; stress: number } | null>(null);
   useEffect(() => {
     const now = { trust: state.life.trust, stress: state.life.stress };
