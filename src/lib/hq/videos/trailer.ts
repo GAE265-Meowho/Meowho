@@ -76,6 +76,9 @@ export const VIDEO_TABS = [
 ] as const;
 export type VideoTab = (typeof VIDEO_TABS)[number]["value"];
 
+/** 下載最新腳本時的檔名，和 Tina 電腦裡的檔名一致（#498） */
+export const TRAILER_MD_FILENAME = "Meowho喵戶 前導影片分鏡腳本《小橘的第二個家》v3 交叉敘事.md";
+
 export const TRAILER_TITLE = "Meowho喵戶 前導影片《小橘的第二個家》v3 交叉敘事";
 export const TRAILER_SUMMARY =
   "5 分鐘故事短片，兩條線交叉剪接：中途貓小橘怕再被送回來，想領養的小傑怕自己做不好。最後兩條線匯聚到「他們要怎麼相遇」，再帶出產品。核心訊息：領養不是終點，終養才是。";
@@ -99,9 +102,9 @@ export const LINE_LOOK: { aspect: string; cat: string; human: string; merged: st
 export const CHARACTERS: RefSlot[] = [
   {
     id: "char-xiaoju", kind: "character", name: "小橘",
-    setting: "1 歲左右的橘色虎斑貓，琥珀色眼睛，白胸口，左耳尖有一個小缺口（每一幕都要在）",
-    prompt: "Character reference sheet of a young orange tabby cat, about 1 year old, amber eyes, white chest patch, small notch on the tip of the left ear, slim build. Front view, side view, back view, and three expressions: scared, curious, relaxed. Plain light gray background, soft natural lighting, photorealistic, consistent design.",
-    en: "Xiaoju, the young orange tabby cat (amber eyes, white chest patch, small notch on the left ear tip)",
+    setting: "1 歲左右的橘色虎斑貓，琥珀色眼睛，白胸口（每一幕都要在）",
+    prompt: "Character reference sheet of a young orange tabby cat, about 1 year old, amber eyes, white chest patch, slim build. Front view, side view, back view, and three expressions: scared, curious, relaxed. Plain light gray background, soft natural lighting, photorealistic, consistent design.",
+    en: "Xiaoju, the young orange tabby cat (amber eyes, white chest patch)",
   },
   {
     id: "char-xiaojie", kind: "character", name: "小傑",

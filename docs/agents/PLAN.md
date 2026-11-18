@@ -1,6 +1,6 @@
 # PLAN — 計畫與任務管理
 
-- 前導影片產生影片 tab＋每段 (P) 生成紀錄＋v3 修訂（Tina × Claude Code，#493、#494、#497）：分支 `feat/494-trailer-gen-log`，審查中；0038 待 Tina 確認後執行。
+- 前導影片產生影片 tab＋每段 (P) 生成紀錄＋v3 修訂（Tina × Claude Code，#493、#494、#497、#498）：分支 `feat/494-trailer-gen-log`，審查中；0038 已由 Tina 執行。
 
 - AI 居家安全報告首屏與圖片載入（Jerry0808 × Codex）：分支 `codex/home-safety-report-ux`，審查中。沿用 #273 報告授權；待驗收 Preview 的真實 Owner 登入及 Azure 延遲。
 
