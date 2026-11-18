@@ -27,7 +27,8 @@ export function HouseholdForm({ userId, existingNames, onDemoCreated, onCreated,
   userId: string | null;
   /** 這個帳號其他喵戶的名稱；名稱不能重複 */
   existingNames: string[];
-  onDemoCreated?: (name: string, role: Form["role"]) => void;
+  /** 示範模式（沒有資料庫）建好喵戶：帶回名稱、身分、送養條件與交接物品 */
+  onDemoCreated?: (name: string, role: Form["role"], terms: Form["terms"]) => void;
   /** 建好後不回「我的喵戶」，改由呼叫的頁面決定下一步 */
   onCreated?: (home: { id: string; name: string; role: Form["role"] }) => void;
   /** 修改既有的喵戶 */
@@ -64,7 +65,7 @@ export function HouseholdForm({ userId, existingNames, onDemoCreated, onCreated,
     setError(null); setSaving(true);
     const row = toHouseholdRow(f);
     const sb = getBrowserSupabase();
-    if (!sb || !userId) { setSaving(false); onDemoCreated?.(row.name, f.role); return; }
+    if (!sb || !userId) { setSaving(false); onDemoCreated?.(row.name, f.role, row.adoption_terms); return; }
     if (editing) {
       const { error: err } = await sb.from("meow_households").update({ ...toHouseholdUpdate(f), avatar_path: avatar }).eq("id", editing.id);
       if (err) {

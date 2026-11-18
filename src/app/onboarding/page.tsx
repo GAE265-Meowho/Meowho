@@ -138,7 +138,7 @@ export default function OnboardingPage() {
     // 示範模式沒有「我的喵戶」可以回去，建好後直接在這裡新增貓
     body = <HouseholdForm userId={user?.id ?? null} existingNames={homes.map(h => h.name)}
       onCreated={h => { if (next || h.role === "cat_owner") setCreated(h); else window.location.href = "/me"; }}
-      onDemoCreated={(name, role) => { setHome({ id: "demo", name, city: null, district: null, role: role ?? "personal_foster", terms: null }); setPhase("cat"); }} />;
+      onDemoCreated={(name, role, terms) => { setHome({ id: "demo", name, city: null, district: null, role: role ?? "personal_foster", terms }); setPhase("cat"); }} />;
   }
 
   return (

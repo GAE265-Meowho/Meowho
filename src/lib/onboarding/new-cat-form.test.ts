@@ -213,3 +213,11 @@ describe("口語的簡短介紹", () => {
     expect(unfilledKeys(form)).not.toContain("name");
   });
 });
+
+describe("新貓的交接物品預設帶喵戶的設定", () => {
+  it("喵戶有設定就帶入，沒有就空的", async () => {
+    const { formForHome } = await import("./new-cat-form");
+    expect(formForHome({ items: [], note: "", handover: ["慣用飼料"] }).handover).toEqual(["慣用飼料"]);
+    expect(formForHome(null).handover).toEqual([]);
+  });
+});

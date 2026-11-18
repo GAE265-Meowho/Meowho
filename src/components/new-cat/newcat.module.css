@@ -193,3 +193,8 @@
 .galleryItem img { width: 100%; aspect-ratio: 1 / 1; object-fit: cover; border-radius: 18px; border: 3px solid transparent; background: var(--orange-soft); }
 .galleryItem[aria-pressed="true"] img { border-color: var(--caramel); }
 .galleryItem[aria-pressed="true"] span { color: var(--orange-deep); }
+/* 說說牠之後的口說補充：還要講的事 */
+.guideList { margin: 0; padding-left: 22px; display: grid; gap: 10px; }
+.guideList li { font-size: 15px; line-height: 1.6; }
+.guideList li b { display: block; color: var(--ink); }
+.guideList li span { display: block; color: var(--ink-soft); font-size: 14px; }

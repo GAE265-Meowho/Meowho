@@ -32,3 +32,13 @@ describe("醫療細項", () => {
     expect(healthTagsFromMedical({ ...emptyMedical(), medication: "腎貓處方飼料、每天吃藥" })).toEqual(["每天吃藥"]);
   });
 });
+
+describe("喵戶預設的交接物品（存在 adoption_terms.handover）", () => {
+  it("舊資料沒有 handover 也讀得到", () => {
+    expect(AdoptionTermsSchema.safeParse({ items: [], note: "" }).success).toBe(true);
+  });
+  it("只收清單裡的物品", () => {
+    expect(AdoptionTermsSchema.parse({ items: [], note: "", handover: ["慣用飼料", "外出籠"] }).handover).toEqual(["慣用飼料", "外出籠"]);
+    expect(AdoptionTermsSchema.safeParse({ items: [], note: "", handover: ["一台車"] }).success).toBe(false);
+  });
+});

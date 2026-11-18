@@ -4,7 +4,7 @@
 //   LLM 沒有的欄位（個性量表、小小壞習慣、適應速度、最愛的東西）由 storyExtras 用規則補。填到的欄位標「你說過」，中途可以直接改。
 import {
   ARRIVAL_ITEMS, BEHAVIOR_ITEMS, BehaviorSchema, CARE_ITEMS, COMPAT_KEYS, CareSchema, CompatSchema, HABITS, HANDOVER_ITEMS, MedicalSchema, bitesOf, emptyCompat, emptyMedical,
-  type Behavior, type BehaviorKey, type Care, type Compat, type Medical,
+  type AdoptionTerms, type Behavior, type BehaviorKey, type Care, type Compat, type Medical,
 } from "../cat-profile/adoption";
 import { lifeStageOf, type LifeStage } from "../cat-profile/life-stage";
 import { ANGLE_KEYS, MAX_LIFE_PHOTOS, coverPath, emptyAngles, type Cover, type PhotoAngles } from "../cat-profile/new-cat";
@@ -59,6 +59,10 @@ export const emptyForm = (): NewCatForm => ({
   behavior: {}, habits: [], compat: emptyCompat(), care: { handling: {}, arrival: {}, touch: {}, touchSigns: [] },
   intro: "", handover: [], consent: false, said: [], guessed: [],
 });
+
+/** 新增貓的空白表單：交接物品先帶喵戶的預設 */
+export const formForHome = (terms: AdoptionTerms | null): NewCatForm =>
+  ({ ...emptyForm(), handover: [...(terms?.handover ?? [])] });
 
 /** 大約年紀換成月齡；沒填或不合理回傳 null */
 export function ageMonthsOf(f: Pick<NewCatForm, "ageNum" | "ageUnit">): number | null {
