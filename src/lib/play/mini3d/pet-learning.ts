@@ -7,7 +7,7 @@ export const PET_LESSONS = {
   observe: { hint: "先輕摸頭或下巴附近，觀察牠的反應。", detail: "頭和臉頰附近可以先試。背部是否舒服，要看個別偏好與當下反應。先避開肚子和尾巴。", source: PROTECTION },
   relaxed: { hint: "牠看起來比較放鬆。停一下，看看牠是否想繼續。", detail: "合併觀察姿勢、接近或避開的動作。眨眼、呼嚕或尾巴動作都可能受情境影響。", source: HANDLING },
   warning: { hint: "牠開始轉頭了，先停下來觀察。", detail: "看向別處、耳朵轉向或尾巴急動時，可以先停手，留空間讓牠自己選擇。", source: CAT },
-  pause: { hint: "停手也是照顧。等牠自己選擇是否再次接近。", detail: "輕摸幾秒後放手觀察。牠沒有主動接近時，讓牠休息。", source: CAT },
+  pause: { hint: "先停一下，看下面的「煩躁」：太高牠會跑走。", detail: "輕摸幾秒後放手觀察。牠沒有主動接近時，讓牠休息。", source: CAT },
   leaving: { hint: "牠選擇離開，讓牠休息吧。", detail: "留出離開的路，讓牠自行決定何時再靠近。", source: PROTECTION },
 } as const;
 

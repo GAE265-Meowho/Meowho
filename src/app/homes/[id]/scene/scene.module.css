@@ -36,15 +36,19 @@
 .defs { position: absolute; }
 .coach { display: flex; flex-direction: column; gap: 28px; }
 .ready { display: flex; flex-direction: column; gap: 16px; }
+.readyRow { display: flex; flex-direction: column; gap: 12px; }
+.readyRow > p { margin: 0; }
 @media (min-width: 1024px) {
-  /* 電腦一頁看完：上排 8 格準備；下排左邊路線動畫，右邊上這樣拿、下別這樣拍，按鈕在右下角 */
-  .coach { display: grid; gap: 14px; grid-template-columns: 1fr 1.1fr; grid-template-areas: "prep prep" "route hold" "route dont" ". ready"; align-items: start; }
+  /* 電腦一頁看完：上排 8 格準備；下排左邊路線動畫，右邊上這樣拿、下別這樣拍；最下一列左邊隱私說明、右邊上傳鈕 */
+  .coach { display: grid; gap: 14px; grid-template-columns: 1fr 1.1fr; grid-template-areas: "prep prep" "route hold" "route dont" "ready ready"; align-items: start; }
   .routeCard, .hold, .dont { align-self: stretch; }
   .routeCard { justify-content: center; }
   .coach > section, .ready > section { padding: 16px; gap: 10px; }
   .prep { grid-area: prep; } .hold { grid-area: hold; } .dont { grid-area: dont; } .routeCard { grid-area: route; } .ready { grid-area: ready; }
   .hold .pics, .dont .pics { grid-template-columns: repeat(4, 1fr); gap: 8px; }
-  .ready { align-items: flex-end; }
+  .ready { align-items: stretch; }
+  .readyRow { flex-direction: row; align-items: center; justify-content: space-between; gap: 16px; }
+  .readyRow > :last-child { flex: none; }
   .hold .pics svg, .dont .pics svg { height: 60px; }
   .prep .pics { grid-template-columns: repeat(8, 1fr); gap: 8px; }
   .hero { font-size: 1.1rem; }

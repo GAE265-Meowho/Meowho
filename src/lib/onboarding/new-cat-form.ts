@@ -99,7 +99,10 @@ export function storyExtras(f: NewCatForm, text: string): { form: NewCatForm; fi
   // 「小米，8/01 在公園撿到…」：開頭第一段很短、不像句子時當作名字
   let name = f.name;
   const first = text.trim().split(/[，,。\s]/)[0];
-  if (!name.trim() && first && first.length <= 6 && !/\d|撿|在|我|牠|他|她|很|是|的/.test(first)) { name = first; filled.push("name"); }
+  // 口語的「牠叫妹妹」「名字是小米」也算
+  const called = text.match(/(?:^|[，,。\s])(?:牠|她|他|這隻|名字)?(?:叫做|叫|是)\s*([^\s，,。的]{1,6})/);
+  if (!name.trim() && first && first.length <= 6 && !/\d|撿|在|我|牠|他|她|很|是|的|叫/.test(first)) { name = first; filled.push("name"); }
+  else if (!name.trim() && called && /^(牠|她|他|這隻|名字)/.test(first)) { name = called[1]; filled.push("name"); }
   const medical = { ...f.medical };
   const dose = text.match(/([\d一二兩三四五])\s*劑/);
   if (dose && medical.vaccineDoses === null) { medical.vaccineDoses = Math.min(3, Number(dose[1]) || CN[dose[1]] || 0); filled.push("vaccine"); }

@@ -195,3 +195,21 @@ describe("口述擴充：一段完整的介紹，規則式就能填滿補資料�
     expect(f.behavior.night).toBeUndefined();
   });
 });
+
+describe("口語的簡短介紹", () => {
+  const t = "牠叫妹妹，女生，大概一歲，八月初在公園撿到的。已經結紮了，疫苗打了三劑，有晶片。很黏人、很親人，很愛吃，偶爾會咬手。跟其他貓處得來，但不行跟狗。剛來躲了兩天。最喜歡被摸下巴，不要摸肚子。最愛紙箱。";
+  const { form } = storyExtras(emptyForm(), t);
+  it("「牠叫妹妹」抓得到名字", () => {
+    expect(form.name).toBe("妹妹");
+    expect(storyExtras(emptyForm(), "名字是小米，母的").form.name).toBe("小米");
+  });
+  it("「牠很怕生」不會被當成名字", () => {
+    expect(storyExtras(emptyForm(), "牠很怕生").form.name).toBe("");
+  });
+  it("講到的都填好，沒講的留給補資料", () => {
+    expect(form).toMatchObject({ sex: "female", ageNum: "1" });
+    expect(form.compat).toMatchObject({ cats: "yes", dogs: "no" });
+    expect(form.care.touch).toEqual({ chin: "love", belly: "no" });
+    expect(unfilledKeys(form)).not.toContain("name");
+  });
+});

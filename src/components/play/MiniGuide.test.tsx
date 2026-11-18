@@ -22,7 +22,7 @@ describe("小遊戲開始前的示範", () => {
 
   it("勾「下次不再顯示」之後直接進遊戲", () => {
     const { unmount } = render(<MiniGuideGate id="pet" catName="灰寶"><p>遊戲本體</p></MiniGuideGate>);
-    expect(screen.getByText("在牠身上慢慢拖曳")).toBeInTheDocument();
+    expect(screen.getByText("在頭和下巴慢慢拖")).toBeInTheDocument();
     fireEvent.click(screen.getByLabelText("下次不再顯示"));
     fireEvent.click(screen.getByRole("button", { name: "開始" }));
     unmount();
@@ -34,5 +34,11 @@ describe("小遊戲開始前的示範", () => {
     render(<MiniGuideGate id="play" catName="灰寶"><p>遊戲本體</p></MiniGuideGate>);
     expect(screen.getByLabelText("逗貓的遊戲畫面示範")).toBeInTheDocument();
     expect(screen.getByText("灰寶碰到才算抓到")).toBeInTheDocument();
+  });
+
+  it("說明疊在錄影上（渝茜 2026-11-18）：第一段字直接出現，步驟清單只給螢幕報讀", () => {
+    render(<MiniGuideGate id="nail" catName="灰寶"><p>遊戲本體</p></MiniGuideGate>);
+    expect(screen.getByText("① 按住肉球")).toBeInTheDocument();
+    expect(screen.getByText("按住肉球").closest("ol")?.className).toMatch(/srOnly/);
   });
 });
