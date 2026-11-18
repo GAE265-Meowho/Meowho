@@ -34,8 +34,8 @@ export const GRANTABLE_MODULES = ADMIN_MODULES.filter(
 );
 export type GrantableModule = Exclude<AdminModule, (typeof SYSTEM_ADMIN_ONLY_MODULES)[number]>;
 
-/** 側欄項目：首頁（待辦總覽）與系統操作流程圖（#468）不是授權模組，所有登入的管理員都有。Admin 授權前有分隔線。 */
-export const HQ_OPEN_ITEMS = ["home", "flows"] as const;
+/** 側欄項目：首頁（待辦總覽）、系統操作流程圖（#468）與影片（#489）不是授權模組，所有登入的管理員都有。Admin 授權前有分隔線。 */
+export const HQ_OPEN_ITEMS = ["home", "flows", "videos"] as const;
 export type HqOpenItem = (typeof HQ_OPEN_ITEMS)[number];
 export type SidebarItem = HqOpenItem | AdminModule;
 export const HQ_SIDEBAR_ORDER: readonly SidebarItem[] = [...HQ_OPEN_ITEMS, ...ADMIN_MODULES];

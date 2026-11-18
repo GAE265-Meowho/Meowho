@@ -77,6 +77,7 @@ MeowHQ（`/MeowHQ`，取代舊隱藏後台）開發中：階段 0（#18）、db�
 - 待建立：檢舉處理、影像與文字審核
 
 ## 主要檔案
+- 影片（#489）：`src/app/MeowHQ/videos/page.tsx`（`?tab=` 分頁，目前只有前導影片）、`src/components/hq/videos/TrailerBoard.tsx`（上傳與畫面）、`src/lib/hq/videos/trailer.ts`（v3 分鏡腳本資料、上傳格、進度）＋測試；腳本原稿 `docs/video/前導影片分鏡腳本_v3.md`，改腳本兩邊一起改
 - `src/lib/hq/types.ts`（MeowHQ 共用約定：模組代號、角色、處置類型、快選原因、錯誤代碼、側欄順序；T-HQ-01）、`src/lib/hq/types.test.ts`
 - `src/lib/hq/permissions.ts`（可見模組、存取、`canSuspend`／`canBan`／最後一位系統管理員／授予限制；T-HQ-03）、`src/lib/hq/actions.ts`（原因必填、停權期限與到期、影響說明、黑名單 Email 確認、快選原因；含 R9～R11；T-HQ-04）及其測試（UT-HQ-01～11、17～28），Issue #20
 - `src/components/Providers.tsx`（從 `site_settings` 讀取標誌、`setLogo` 寫入；`useSiteLogo()` 給後台元件只讀用）、`src/lib/mock-data.ts`（`LOGOS`）、`src/lib/site-logo.ts`（`resolveSiteLogo`、`logoWordmark`）
@@ -101,6 +102,7 @@ MeowHQ（`/MeowHQ`，取代舊隱藏後台）開發中：階段 0（#18）、db�
 - **改母體的順序**：改 `stepB`／`stepC` → 在 Meow 用 Blender 5.2 跑 B、C（PowerShell 指令前要加 `&`）→ 複製 `base_clips.glb` 到 repo `public/hq-cat-models/base/` → 跑 `eat_drink.mjs` → 成貓再上傳 Storage。直接從 Blender 匯出會蓋掉 eat／drink 的修改；只換單一動作用 `scripts/clips/splice_clip.py`。
 
 ## 決策
+- 2026-11-18｜#489：「影片」和系統操作流程圖一樣是不需授權的側欄項目（`HQ_OPEN_ITEMS`）。分鏡圖存既有的 `meow-site-assets` bucket（`videos/trailer/<格>__<UTC 時間戳>.webp`），不新增資料表、不用執行 SQL；上傳前在瀏覽器縮到最長邊 1920px 的 WebP（bucket 上限 1 MB）。同一格重傳留舊版，畫面取最新。限制：0003 的 policy 只讓系統管理員上傳與列出，一般管理員看得到腳本但看不到已上傳的圖；要開放再另寫 migration。
 - 2026-11-13｜#409：幼貓貼圖改用「照片投影烘焙」（`Meow\cat_base_kitten\photo_bake\`）：原照片去背後找正交相機對位，依法線、遮擋加權投到 UV；AI 貼圖只當底圖（肚子、腿內側、眼鼻嘴）。網格、UV、動作不變，只換 `albedo_filled.png`。
 - 2026-11-12｜#384：幼貓理毛改成和成貓 groom v4 同一套（端坐、低頭閉眼、左右手輪流舔，6 秒一圈），參照 Tina 提供的照片；前臂直立、手腕往前折、腳掌朝前下垂（不往內彎），嘴貼肉球；頭往下 45°。
 - 2026-11-11｜#373：幼貓母體四腳在靜止姿勢就站直、左右對稱（照片是 ¾ 側身走路姿勢）。以左半身為準：前腳手腕放在肩關節正下方（`FRONT_WRIST_AHEAD`）、後腳跗關節對齊；右邊兩隻腳骨頭擺到左腳鏡像（`match_right_legs`），右半身網格貼齊左半身鏡像（`symmetrize_side`，尾巴根、脖子、胸口與肩膀上方不動）。頂點數與 UV 不變，舊貼圖照用。睡姿前腳改用世界方向（`SLEEP_FRONT`）。前腳掌收回後 `PAW_AHEAD_M.kitten` 0.086 → 0.053。
@@ -144,6 +146,7 @@ ole === "admin" 判斷管理員，而現有 admin 會升為 system_admin；舊�
 | 2026-10-28 | Tina × Cursor | MeowHQ 階段 0：`src/lib/hq/types.ts` 與測試（8 種處置含 `unban`）、0002 資料表草案 | #18 |
 | 2026-10-29 | Tina × Cursor | MeowHQ 階段 1 db：`0002_meow_hq.sql`、`supabase/tests/`（SQL 測試與本機執行器） | #19 |
 | 2026-11-04 | Tina × Claude Code | MeowHQ 新增「貓戶管理」模組：依類別查看貓戶、貓咪卡片；0020 授權現有管理員 | #179 |
+| 2026-11-18 | Tina × Claude Code | MeowHQ 新增「影片 › 前導影片」（`/MeowHQ/videos`）：v3 分鏡腳本、定角 4／定景 4、分鏡圖 35 格上傳與進度 | #489 |
 | 2026-11-18 | Tina × Claude Code | MeowHQ 新增「系統操作流程圖」（`/MeowHQ/flows`，貓戶／領養人分頁，所有管理員可看；內容在 `src/lib/hq/system-flows.ts`） | #468 |
 - 2026-10-29｜#26 審查修正：黑名單只用於貓友與貓戶長，`meow_ban_email` 拒絕管理員（`target_is_admin`）；`meow_set_role` 拒絕把停權中的帳號升為管理員（`target_suspended`）；註冊時黑名單同時比對 Email 與 `auth_user_id`；兩個內部函式補 `search_path`；policy 內的權限函式改包 `(select ...)`。
 - 2026-10-29｜依規格書 R9（#30）：`meow_ban_email` 對尚未建立會員資料的 Email 回 `not_found`，不能預先封禁；UT-HQDB-11 改為「會員資料被刪除後，黑名單帳號重新建立會員資料 → 拒絕」。
