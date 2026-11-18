@@ -14,7 +14,8 @@ export const FRAME_MAKE_LABELS: Record<FrameMake, string> = {
   edit: "剪輯字卡",
 };
 
-export type Frame = { id: string; make: FrameMake; label?: string; prompt: string };
+/** refs：這一格要掛的定角／定景參考圖（RefSlot 的 id），會寫進完整 prompt 的開頭 */
+export type Frame = { id: string; make: FrameMake; label?: string; prompt: string; refs: string[] };
 export type Shot = {
   no: number;
   line: ShotLine;
@@ -31,7 +32,8 @@ export type RefSlot = {
   name: string;
   setting: string;
   prompt: string;
-  usedIn: number[];
+  /** 寫進英文 prompt 的角色／場景說明，讓生成工具知道這張參考圖是誰、是哪裡 */
+  en: string;
 };
 
 export const STYLE_TAIL = "cinematic, photorealistic, soft natural light, shallow depth of field, 35mm film look";
@@ -40,10 +42,30 @@ export const LINE_TAIL: Partial<Record<ShotLine, string>> = {
   人: "eye-level shot, cool fluorescent and screen light",
 };
 
-/** AI 鏡頭要貼進生成工具的完整 prompt：鏡頭 prompt＋風格尾巴（貓線、人線再加各自的尾巴） */
+/** 參考圖的固定檔名：組員從 MeowHQ 下載定角／定景照時用這個檔名，prompt 裡也寫這個檔名 */
+export const refFileName = (refId: string) => `${refId}.webp`;
+
+export function refById(refId: string): RefSlot | undefined {
+  return [...CHARACTERS, ...SCENES].find(r => r.id === refId);
+}
+
+/** 參考圖用在哪些鏡頭：由每一格的 refs 算出來，不另外手寫 */
+export function usedInShots(refId: string): number[] {
+  return SHOT_SECTIONS.flatMap(sec => sec.shots).filter(s => s.frames.some(f => f.refs.includes(refId))).map(s => s.no);
+}
+
+/**
+ * AI 鏡頭要貼進生成工具的完整 prompt：
+ * 開頭列出要掛的參考圖（Image 1、2…＝哪個檔案、是誰或哪裡），接著鏡頭 prompt＋風格尾巴（貓線、人線再加各自的尾巴）。
+ */
 export function fullPrompt(frame: Frame, line: ShotLine): string {
   if (frame.make !== "ai") return frame.prompt;
-  return [frame.prompt, STYLE_TAIL, LINE_TAIL[line]].filter(Boolean).join(", ");
+  const body = [frame.prompt, STYLE_TAIL, LINE_TAIL[line]].filter(Boolean).join(", ");
+  const refs = frame.refs.map(refById).filter((r): r is RefSlot => Boolean(r));
+  if (!refs.length) return body;
+  const list = refs.map((r, i) => `Image ${i + 1} = ${refFileName(r.id)}: ${r.en}.`).join("\n");
+  const keep = "Keep every character's face, fur pattern, hairstyle and outfit, and the location's layout, exactly the same as in the reference images.";
+  return `Reference images (attach in this order):\n${list}\n${keep}\n\n${body}`;
 }
 
 export const VIDEO_TABS = [{ value: "trailer", label: "前導影片" }] as const;
@@ -74,25 +96,25 @@ export const CHARACTERS: RefSlot[] = [
     id: "char-xiaoju", kind: "character", name: "小橘",
     setting: "1 歲左右的橘色虎斑貓，琥珀色眼睛，白胸口，左耳尖有一個小缺口（每一幕都要在）",
     prompt: "Character reference sheet of a young orange tabby cat, about 1 year old, amber eyes, white chest patch, small notch on the tip of the left ear, slim build. Front view, side view, back view, and three expressions: scared, curious, relaxed. Plain light gray background, soft natural lighting, photorealistic, consistent design.",
-    usedIn: [1, 2, 3, 5, 7, 11, 12, 14, 16, 18, 28, 29, 30],
+    en: "Xiaoju, the young orange tabby cat (amber eyes, white chest patch, small notch on the left ear tip)",
   },
   {
     id: "char-xiaojie", kind: "character", name: "小傑",
     setting: "28 歲台灣男性，AI 導入顧問上班族，獨居台北小套房，常加班到很晚；想養貓想了兩年，安靜、細心、容易想太多，平時穿休閒上衣、上班穿襯衫",
     prompt: "Character reference sheet of a 28-year-old Taiwanese man, an office worker who works late, calm and thoughtful, tends to overthink, short black hair, round glasses. Two outfits: a plain casual T-shirt at home and a light blue button-up shirt for work. Front view, side view, and three expressions: hesitant, focused, warm smile. Plain light gray background, photorealistic.",
-    usedIn: [4, 6, 10, 13, 15, 16, 19, 20, 22, 26, 28, 29],
+    en: "Xiaojie, a 28-year-old Taiwanese man with short black hair and round glasses",
   },
   {
     id: "char-afang", kind: "character", name: "阿芳",
     setting: "36 歲台灣女性，中途媽媽，溫柔、對貓有愛心與熱情，但貓被退養時會感到很疲憊，穿咖啡色針織外套（每一幕同一件）",
     prompt: "Character reference sheet of a 36-year-old Taiwanese woman, a cat rescuer, kind and warm face with a hint of tiredness, shoulder-length black hair tied back, brown knitted cardigan, jeans. Front view, side view, and three expressions: worried, gentle smile, teary. Plain light gray background, photorealistic.",
-    usedIn: [5, 7, 11, 16, 18, 26, 28],
+    en: "Afang, a 36-year-old Taiwanese cat rescuer in a brown knitted cardigan",
   },
   {
     id: "char-couple", kind: "character", name: "情侶（配角）",
     setting: "20 多歲年輕情侶，女生染金色頭髮，第一次領養小橘。要固定兩人的外貌、髮型與服裝；表情從初次領養的開心期待、環境被弄亂的無奈、對抓沙發和電線缺乏耐心，到爭吵生氣",
     prompt: "Character reference sheet of a young Taiwanese couple in their mid-20s. The woman has dyed blonde shoulder-length hair and wears a white hoodie; the man has short black hair and wears a dark green T-shirt. The same two people shown in four moments: excited and happy, helpless at a messy room, impatient, arguing angrily. Plain light gray background, photorealistic, consistent faces and outfits.",
-    usedIn: [11, 14],
+    en: "the young couple (the woman has dyed blonde hair and a white hoodie, the man wears a dark green T-shirt)",
   },
 ];
 
@@ -102,25 +124,55 @@ export const SCENES: RefSlot[] = [
     id: "scene-studio", kind: "scene", name: "小傑的套房",
     setting: "台北約 8 坪小套房，一扇大窗、一張沙發、書桌；書桌下有一團沒整理的延長線和充電線。人線前半段都在這裡，結尾也回到這裡",
     prompt: "Small Taipei studio apartment about 25 square meters, one large window, a gray sofa, a desk with a laptop, a messy tangle of power strips and charging cables under the desk, minimal furniture, lived-in but tidy. Wide shot, photorealistic.",
-    usedIn: [4, 6, 13, 15, 16, 20, 28, 29],
+    en: "Xiaojie's small Taipei studio apartment (large window, gray sofa, desk with cables underneath)",
   },
   {
     id: "scene-afang-home", kind: "scene", name: "阿芳家（中途之家）",
     setting: "中途之家就是阿芳家：老公寓一樓，門口有鐵門和幾盆植物（開場雨夜的紙箱、鏡 16 抱起小橘都在門口）；屋裡有貓窩、貓抓柱和幾個外出籠，廚房餐桌靠窗，阿芳拍小橘、在廚房回訊息都在這裡",
     prompt: "Ground-floor apartment of a Taiwanese cat rescuer in an old building, shown in two views: the front doorstep with an iron gate, a few potted plants and a dim yellow street light; and the cozy interior with a kitchen table by the window, cat beds, scratching posts and a few pet carriers, warm light, lived-in and slightly cluttered. Wide shots, photorealistic, no people.",
-    usedIn: [1, 2, 3, 7, 16, 18, 26],
+    en: "Afang's ground-floor apartment, which is also the cat shelter (doorstep with an iron gate and potted plants; kitchen table by the window, cat beds, pet carriers)",
   },
   {
     id: "scene-couple-home", kind: "scene", name: "情侶家",
     setting: "年輕情侶的公寓客廳：布沙發、電視櫃下外露的電線、餐桌上一瓶白百合，好看但沒有防貓",
     prompt: "Modern Taipei apartment living room of a young couple, fabric sofa, TV cabinet with exposed power cords and chargers underneath, dining table with a vase of white lilies, stylish but not cat-proofed. Wide shot, photorealistic, no people.",
-    usedIn: [12, 14],
+    en: "the couple's living room (fabric sofa, TV cabinet, dining table with a vase of white lilies)",
   },
 ];
 
-const ai = (id: string, prompt: string, label?: string): Frame => ({ id, make: "ai", prompt, label });
-const rec = (id: string, prompt: string): Frame => ({ id, make: "record", prompt });
-const edit = (id: string, prompt: string): Frame => ({ id, make: "edit", prompt });
+/** 每一格 AI 分鏡要掛的參考圖：角色在前、場景在後（生成工具多半最多 4 張，這裡每格都 ≤ 4） */
+export const FRAME_REFS: Record<string, string[]> = {
+  "s01": ["scene-afang-home"],
+  "s02": ["char-xiaoju", "scene-afang-home"],
+  "s03": ["char-xiaoju"],
+  "s04": ["char-xiaojie", "scene-studio"],
+  "s05": ["char-xiaoju", "char-afang"],
+  "s06": ["char-xiaojie", "scene-studio"],
+  "s07-1": ["char-afang", "char-xiaoju", "scene-afang-home"],
+  "s07-2": ["char-xiaoju", "char-afang", "scene-afang-home"],
+  "s10": ["char-xiaojie", "scene-studio"],
+  "s11": ["char-couple", "char-xiaoju", "char-afang", "scene-afang-home"],
+  "s12-1": ["char-xiaoju", "scene-couple-home"],
+  "s12-2": ["char-xiaoju", "scene-couple-home"],
+  "s13": ["char-xiaojie", "scene-studio"],
+  "s14-1": ["char-xiaoju", "scene-couple-home"],
+  "s14-2": ["char-xiaoju", "char-couple", "scene-couple-home"],
+  "s15": ["char-xiaojie", "scene-studio"],
+  "s16-1": ["char-afang", "char-xiaoju", "scene-afang-home"],
+  "s16-2": ["char-xiaojie", "scene-studio"],
+  "s18": ["char-afang", "char-xiaoju", "scene-afang-home"],
+  "s19": ["char-xiaojie", "scene-studio"],
+  "s20": ["char-xiaojie", "scene-studio"],
+  "s22": ["char-xiaojie", "scene-studio"],
+  "s26-1": ["char-afang", "scene-afang-home"],
+  "s26-2": ["char-xiaojie", "scene-studio"],
+  "s28": ["char-xiaoju", "char-xiaojie", "char-afang", "scene-studio"],
+  "s29": ["char-xiaoju", "char-xiaojie", "scene-studio"],
+  "s30": ["char-xiaoju", "scene-studio"],
+};
+const ai = (id: string, prompt: string, label?: string): Frame => ({ id, make: "ai", prompt, label, refs: FRAME_REFS[id] ?? [] });
+const rec = (id: string, prompt: string): Frame => ({ id, make: "record", prompt, refs: [] });
+const edit = (id: string, prompt: string): Frame => ({ id, make: "edit", prompt, refs: [] });
 
 export const SHOT_SECTIONS: ShotSection[] = [
   {

@@ -10,7 +10,7 @@ import { getBrowserSupabase } from "@/lib/supabase/client";
 import {
   CHARACTERS, FRAME_MAKE_LABELS, FRAME_MAX_BYTES, LINE_LOOK, MATCH_CUTS, NARRATION, SCENES, SHOT_SECTIONS,
   TRAILER_BUCKET, TRAILER_DIR, TRAILER_FACTS, TRAILER_SUMMARY, TRAILER_TITLE,
-  fitWithin, frameCounts, frameStoragePath, fullPrompt, latestBySlot, uploadProgress, validateFrameFile,
+  fitWithin, frameCounts, frameStoragePath, fullPrompt, latestBySlot, refById, refFileName, uploadProgress, usedInShots, validateFrameFile,
   type Frame, type FrameMake, type RefSlot, type Shot, type SlotUpload,
 } from "@/lib/hq/videos/trailer";
 
@@ -109,7 +109,7 @@ export function TrailerBoard() {
 
       <section className="hq-video-sec" aria-labelledby="tv-chars">
         <h2 id="tv-chars">定角照片</h2>
-        <p className="hq-sub">每個角色挑定一張，所有鏡頭都用它當參考圖（Reference／Element），角色每一幕才會長得一樣。</p>
+        <p className="hq-sub">每個角色挑定一張，所有鏡頭都用它當參考圖（Reference／Element），角色每一幕才會長得一樣。下載時用固定檔名，分鏡的英文 prompt 會寫「Image 1 = 檔名」，照順序掛上去即可。</p>
         <div className="hq-video-refs">{CHARACTERS.map(r => <RefCard key={r.id} r={r} {...slot} />)}</div>
       </section>
 
@@ -239,9 +239,50 @@ function RefCard({ r, wide, ...slot }: SlotProps & { r: RefSlot; wide?: boolean 
       <ImageSlot id={r.id} alt={`${r.name}${r.kind === "character" ? "定角照" : "定景照"}`} ratio={wide ? "wide" : "square"} {...slot} />
       <h3 className="hq-h3">{r.name}</h3>
       <p>{r.setting}</p>
-      <p className="hq-sub">用在鏡 {r.usedIn.join("、")}</p>
+      <p className="hq-sub">用在鏡 {usedInShots(r.id).join("、")}</p>
+      <div className="hq-row hq-row-tight">
+        <code className="hq-video-file">{refFileName(r.id)}</code>
+        <DownloadRef id={r.id} url={slot.urlOf(r.id)} />
+      </div>
       <Prompt text={r.prompt} copy={slot.copy} />
     </article>
+  );
+}
+
+/** 用固定檔名下載參考圖（Supabase 公開網址跨網域，a[download] 不會生效，所以先抓成 blob） */
+function DownloadRef({ id, url }: { id: string; url: string | null }) {
+  const [busy, setBusy] = useState(false);
+  if (!url) return <span className="hq-sub">還沒上傳</span>;
+  async function save() {
+    setBusy(true);
+    try {
+      const blob = await (await fetch(url!)).blob();
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = refFileName(id);
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    } finally { setBusy(false); }
+  }
+  return <button type="button" className="hq-btn ghost small" disabled={busy} onClick={() => void save()}>{busy ? "下載中…" : "下載"}</button>;
+}
+
+/** 這一格要掛的參考圖：縮圖＋名稱＋固定檔名，順序和 prompt 的 Image 1、2… 一致 */
+function RefChips({ refs, urlOf }: { refs: string[]; urlOf: SlotProps["urlOf"] }) {
+  if (!refs.length) return null;
+  return (
+    <ol className="hq-video-refchips" aria-label="要掛的參考圖">
+      {refs.map((id, i) => {
+        const r = refById(id);
+        const url = urlOf(id);
+        return (
+          <li key={id}>
+            <span className="hq-video-refthumb">{url ? <img src={url} alt="" loading="lazy" /> : i + 1}</span>
+            <span><b>Image {i + 1}　{r?.name}</b><code className="hq-video-file">{refFileName(id)}</code></span>
+          </li>
+        );
+      })}
+    </ol>
   );
 }
 
@@ -267,6 +308,7 @@ function ShotCard({ s, filter, ...slot }: SlotProps & { s: Shot; filter: Filter 
               {f.label && <span className="hq-sub">{f.label}</span>}
             </div>
             <ImageSlot id={f.id} alt={`鏡 ${s.no}${f.label ? `（${f.label}）` : ""}分鏡圖`} ratio="wide" {...slot} />
+            <RefChips refs={f.refs} urlOf={slot.urlOf} />
             {f.make === "ai" ? <Prompt text={fullPrompt(f, s.line)} copy={slot.copy} /> : <p className="hq-sub">{f.prompt}</p>}
           </div>
         ))}
