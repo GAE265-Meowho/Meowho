@@ -33,10 +33,11 @@ describe("後台模組代號（規格書 §4.2、決策 003）", () => {
 });
 
 describe("側欄順序（UT-HQ-01 基礎，規格書 §4.0）", () => {
-  it("首頁 → 系統操作流程圖 → 貓戶管理 → 檢舉 → 用戶權限 → 商品 → 知識 → 虛擬體驗元件 → Admin 授權", () => {
+  it("首頁 → 系統操作流程圖 → 影片 → 貓戶管理 → 檢舉 → 用戶權限 → 商品 → 知識 → 虛擬體驗元件 → Admin 授權", () => {
     expect(HQ_SIDEBAR_ORDER).toEqual([
       "home",
       "flows",
+      "videos",
       "households",
       "report_moderation",
       "user_management",
@@ -46,8 +47,8 @@ describe("側欄順序（UT-HQ-01 基礎，規格書 §4.0）", () => {
       "admin_authorization",
     ]);
   });
-  it("側欄項目＝首頁、系統操作流程圖＋全部 7 個模組，沒有多也沒有少", () => {
-    expect([...HQ_SIDEBAR_ORDER].sort()).toEqual(["home", "flows", ...ADMIN_MODULES].sort());
+  it("側欄項目＝首頁、系統操作流程圖、影片＋全部 7 個模組，沒有多也沒有少", () => {
+    expect([...HQ_SIDEBAR_ORDER].sort()).toEqual(["home", "flows", "videos", ...ADMIN_MODULES].sort());
   });
   it("Admin 授權排在最後（其前有分隔線）", () => {
     expect(HQ_SIDEBAR_ORDER[HQ_SIDEBAR_ORDER.length - 1]).toBe("admin_authorization");
@@ -63,7 +64,7 @@ describe("可授權模組（UT-HQ-11 基礎）", () => {
     expect(GRANTABLE_MODULES).not.toContain("admin_authorization");
   });
   it("可授權模組的順序與側欄一致", () => {
-    const sidebarModules = HQ_SIDEBAR_ORDER.filter((x) => x !== "home" && x !== "flows" && GRANTABLE_MODULES.includes(x as never));
+    const sidebarModules = HQ_SIDEBAR_ORDER.filter((x) => x !== "home" && x !== "flows" && x !== "videos" && GRANTABLE_MODULES.includes(x as never));
     expect(GRANTABLE_MODULES).toEqual(sidebarModules);
   });
 });

@@ -274,3 +274,12 @@ describe("系統操作流程圖（#468）", () => {
     expect(link).toHaveAttribute("aria-current", "page");
   });
 });
+
+describe("影片（#489）", () => {
+  it("側欄在系統操作流程圖之後顯示，連到 /MeowHQ/videos，所在頁標示目前", () => {
+    render(shell({ items: ["home", "flows", "videos", "households"], activePath: "/MeowHQ/videos" }));
+    const link = screen.getByRole("link", { name: "影片" });
+    expect(link).toHaveAttribute("href", "/MeowHQ/videos");
+    expect(link).toHaveAttribute("aria-current", "page");
+  });
+});

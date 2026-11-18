@@ -13,6 +13,11 @@ export const HQ_PAGE_META_PATHS = {
     "src/lib/hq/system-flows.ts",
     "src/lib/hq/system-flows.test.ts",
   ],
+  "videos/trailer": [
+    "src/app/MeowHQ/videos",
+    "src/components/hq/videos",
+    "src/lib/hq/videos",
+  ],
   households: [
     "src/app/MeowHQ/households",
     "src/components/hq/households",
@@ -165,6 +170,7 @@ export function resolvePageMetaKey(pathname: string, search = ""): HqPageMetaKey
 
   if (path === "/MeowHQ") return "home";
   if (path.startsWith("/MeowHQ/flows")) return "flows";
+  if (path.startsWith("/MeowHQ/videos")) return "videos/trailer"; // 之後加分頁（系統操作、架構部署）再依 ?tab= 分 key
   if (path.startsWith("/MeowHQ/households")) return "households";
   if (path.startsWith("/MeowHQ/reports")) return "reports";
   if (path.startsWith("/MeowHQ/users")) return "users";
