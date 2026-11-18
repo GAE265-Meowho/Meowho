@@ -4,7 +4,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-li
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { listBundledCats } from "@/lib/hq/cat-models/bundled";
 import type { CatModelView } from "@/lib/hq/cat-models/types";
-import { AiViews, estPerImageUsd } from "./AiViews";
+import { AiViews, CostPanel, estPerImageUsd } from "./AiViews";
 
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 const base: CatModelView = { ...listBundledCats()[0], ageMonths: 3, body: "kitten", variantStorage: false, bodyVariants: undefined };
@@ -55,6 +55,24 @@ describe("AiViews（#110）", () => {
     // 300×5 + 988×8 + 196×30 = 15284 → US$0.0153
     expect(screen.getAllByText("US$0.0153").length).toBeGreaterThan(0);
     expect(estPerImageUsd("low")).toBeCloseTo(0.01628, 4);
+  });
+  it("#467 成本：AI 三視角費用＋GPU 用量（次數、時間、估計費用）與總計", () => {
+    const usage = { left: { input: 1288, output: 196, textIn: 300, imageIn: 988 } };
+    render(<CostPanel cat={cat({ aiViews: ["left"], aiUsage: usage, aiQuality: "low", gpuJobs: [
+      { body: "adult", status: "done", seconds: 214, finishedAt: "2026-11-13T06:53:34Z" },
+      { body: "kitten", status: "error", seconds: 35, finishedAt: "2026-11-13T07:00:35Z" },
+    ] })} />);
+    const gpu = screen.getByRole("table", { name: "GPU 用量" });
+    expect(within(gpu).getByText("成貓")).toBeInTheDocument();
+    expect(within(gpu).getByText("3 分 34 秒")).toBeInTheDocument();
+    expect(within(gpu).getByText("幼貓（失敗）")).toBeInTheDocument();
+    // 249 秒 × 0.736 / 3600 = 0.0509
+    expect(within(gpu).getByText("US$0.0509")).toBeInTheDocument();
+    expect(screen.getByText(/總計/)).toBeInTheDocument();
+  });
+  it("#467 沒有 GPU 紀錄：寫明", () => {
+    render(<CostPanel cat={cat({ gpuJobs: [] })} />);
+    expect(screen.getByText("還沒有 GPU 任務紀錄。")).toBeInTheDocument();
   });
   it("三張都沒產生過：「產生 AI 三視角」送出三個角度；未設定影像模型顯示白話原因", async () => {
     const f = ok();

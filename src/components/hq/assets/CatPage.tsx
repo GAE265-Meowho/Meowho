@@ -14,7 +14,7 @@ import {
 import { HqLoadError, HqSkeleton } from "../HqStates";
 import { HqNotFound } from "../HqLoginPage";
 import type { PreviewInfo } from "./CatPreview";
-import { EXTRA_SLOTS } from "./AiViews";
+import { CostPanel, EXTRA_SLOTS } from "./AiViews";
 import { ClipList } from "./ClipList";
 import { PanelGroup } from "./PanelGroup";
 import { ASSETS_CATS_HREF, studioHref } from "./hrefs";
@@ -135,6 +135,8 @@ function Preview({ cat }: { cat: CatModelView }) {
           )}
         </PanelGroup>
         <GeneratedViews cat={cat} />
+        {/* #467 AI 三視角費用、GPU 用量與估計費用（原本只在製作glb工作區的「用量與費用清單」） */}
+        <PanelGroup title="AI 與 GPU 成本"><CostPanel cat={cat} /></PanelGroup>
       </section>
 
       {/* #289：預覽是正方形（中間欄多寬就多高），貓咪紋理放在預覽下方、跟著預覽體型切換 */}

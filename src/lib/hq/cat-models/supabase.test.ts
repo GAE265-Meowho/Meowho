@@ -17,7 +17,7 @@ function fakeClient() {
   const query = (table: string) => {
     const q = {
       select: (...a: unknown[]) => { calls.push({ table, op: "select", args: a }); return q; },
-      eq: () => q, order: () => q, limit: () => q,
+      eq: () => q, in: () => q, order: () => q, limit: () => q,
       maybeSingle: async () => ({ data: table === "meow_cat_models" ? modelRow : table === "meow_cat_model_variants" ? variantRows?.[0] ?? null : null, error: null }),
       then: (resolve: (value: unknown) => void) => resolve({ data: table === "meow_cat_model_variants" ? variantRows : table === "meow_cat_model_jobs" ? jobRows : null,
         error: table === "meow_cat_model_variants" && variantRows === null ? { message: "missing table" } : null }),
@@ -85,6 +85,12 @@ describe("#104 依體型獨立操作", () => {
     expect(cat?.bodyVariants?.kitten).toMatchObject({ albedoUrl: kitten, texture: { state: "confirmed" } });
     expect(cat?.bodyVariants?.adult?.albedoUrl).toMatch(/\/storage\/v1\/object\/public\/meow-cat-models\/cats\/a\.png$/);
     expect(cat?.body).toBe("adult");
+  });
+  it("#467 讀單一隻貓：附上跑完的 GPU 任務與秒數", async () => {
+    modelRow = row({ status: "ready", albedo_path: "cats/a.png" });
+    jobRows = [{ status: "done", body_type: "adult", started_at: "2026-11-13T06:50:00Z", finished_at: "2026-11-13T06:53:34Z" }];
+    const cat = await sbGetCat(ID);
+    expect(cat?.gpuJobs).toEqual([{ body: "adult", status: "done", seconds: 214, finishedAt: "2026-11-13T06:53:34Z" }]);
   });
   it("確認幼貓不更新成貓的舊欄位", async () => {
     process.env.CAT_MODEL_VARIANTS_WORKER_READY = "1";
