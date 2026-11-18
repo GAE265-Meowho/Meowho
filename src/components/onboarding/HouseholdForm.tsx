@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { TW_CITIES, TW_DISTRICTS } from "@/lib/geo/tw-districts";
 import {
-  ALONE, DWELLINGS, EXPERIENCE, FAMILY, LANDLORD, LIVING, NO_PETS, PETS, ROLES, ROLE_INFO, budgetRow, checkHousehold, emptyHouseholdForm, pickSolo,
+  ALLERGY, ALONE, DWELLINGS, EXPERIENCE, FAMILY, LANDLORD, LIVING, NO_PETS, PETS, ROLES, ROLE_INFO, budgetRow, budgetRowLegacy, checkHousehold, isMissingColumn, emptyHouseholdForm, pickSolo,
   toHouseholdRow, toHouseholdUpdate, verificationRow,
   type HouseholdForm as Form, type MissingField,
 } from "@/lib/onboarding/household-rules";
@@ -20,7 +20,7 @@ import s from "./intake.module.css";
 
 const MISSING_LABEL: Record<MissingField, string> = {
   role: "身分", name: "喵戶名稱", nameTaken: "不重複的喵戶名稱（你已經有同名的喵戶）", city: "縣市", district: "區", dwelling: "住家型態",
-  living: "住家狀況", landlord: "房東同不同意養貓", family: "同住的人", pets: "家裡現有的寵物", experience: "養貓經驗", budget: "每月養貓預算（1～200,000 元）", orgName: "單位名稱", orgProofUrl: "立案證明連結（網址）",
+  living: "住家狀況", landlord: "房東同不同意養貓", family: "同住的人", allergy: "你或同住的人對貓過敏嗎", pets: "家裡現有的寵物", experience: "養貓經驗", budget: "每月養貓預算（1～200,000 元）", orgName: "單位名稱", orgProofUrl: "立案證明連結（網址）",
 };
 
 export function HouseholdForm({ userId, existingNames, onDemoCreated, onCreated, editing }: {
@@ -47,6 +47,17 @@ export function HouseholdForm({ userId, existingNames, onDemoCreated, onCreated,
   const owner = f.role === "cat_owner";
   const foster = f.role === "personal_foster" || f.role === "shelter_org";
 
+  /** 預算＋過敏存進私密表；0036 還沒執行（沒有 allergy 欄位）就退回只存預算。回傳錯誤或 null */
+  async function savePrivate(sb: NonNullable<ReturnType<typeof getBrowserSupabase>>, householdId: string) {
+    const b = budgetRow(f, householdId);
+    if (!b) return null;
+    const at = new Date().toISOString();
+    const { error: e1 } = await sb.from("meow_household_budgets").upsert({ ...b, updated_at: at });
+    if (!isMissingColumn(e1)) return e1;
+    const { error: e2 } = await sb.from("meow_household_budgets").upsert({ ...budgetRowLegacy(f, householdId), updated_at: at });
+    return e2;
+  }
+
   async function create() {
     setTried(true);
     if (missing.length) return;
@@ -61,11 +72,8 @@ export function HouseholdForm({ userId, existingNames, onDemoCreated, onCreated,
         setError(err.message.includes("household_name_taken") ? "你已經有同名的喵戶，換個名字吧。" : `儲存失敗：${err.message}`);
         return;
       }
-      const b = budgetRow(f, editing.id);
-      if (b) {
-        const { error: bErr } = await sb.from("meow_household_budgets").upsert({ ...b, updated_at: new Date().toISOString() });
-        if (bErr) { setSaving(false); setError(`每月預算儲存失敗：${bErr.message}`); return; }
-      }
+      const bErr = await savePrivate(sb, editing.id);
+      if (bErr) { setSaving(false); setError(`每月預算儲存失敗：${bErr.message}`); return; }
       router.push("/me");
       return;
     }
@@ -79,9 +87,8 @@ export function HouseholdForm({ userId, existingNames, onDemoCreated, onCreated,
     const v = verificationRow(f, { householdId: data.id, userId });
     // 徽章申請失敗不擋建立喵戶：之後可以在「我的喵戶」重新申請
     if (v) await sb.from("meow_shelter_verifications").insert(v);
-    // 每月預算另存一張只有喵戶長看得到的表（0025）；失敗不擋建立喵戶，之後可以在修改喵戶補上
-    const b = budgetRow(f, data.id);
-    if (b) await sb.from("meow_household_budgets").upsert(b);
+    // 每月預算與過敏另存一張只有喵戶長看得到的表（0025、0036）；失敗不擋建立喵戶，之後可以在修改喵戶補上
+    await savePrivate(sb, data.id);
     if (onCreated) { onCreated({ id: data.id, name: row.name, role: f.role }); return; }
     router.push("/me");
   }
@@ -153,6 +160,11 @@ export function HouseholdForm({ userId, existingNames, onDemoCreated, onCreated,
             {f.home.family.includes("其他") && (
               <input aria-label="其他同住的人" value={f.home.familyOther} maxLength={30} placeholder="請說明" onChange={e => setHome({ familyOther: e.target.value })} />
             )}
+          </div>
+          {/* 過敏（渝茜 2026-11-18）：健康資訊，和預算一樣只有自己看得到（0036），不放公開的 home；試養報告用它給建議 */}
+          <div className={s.field}>
+            <span className={s.label}>你或同住的人對貓過敏嗎<Required /></span>
+            <OnePick label="你或同住的人對貓過敏嗎" options={ALLERGY} value={f.allergy} onChange={v => set({ allergy: v })} />
           </div>
           <div className={s.field}>
             <span className={s.label}>家裡現有的寵物<Required /></span>

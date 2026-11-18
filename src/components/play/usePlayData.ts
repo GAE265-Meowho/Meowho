@@ -10,6 +10,7 @@ import { normalizeHome, type PlayerHome } from "@/lib/play/background";
 import type { Hazard } from "@/lib/play/hazards";
 import { hazardsFromReport, pickReport } from "@/lib/play/player-data";
 import type { Ready } from "@/lib/play/run-gate";
+import { ALLERGY, type Allergy } from "@/lib/onboarding/household-rules";
 import { getBrowserSupabase } from "@/lib/supabase/client";
 
 export interface PlayHousehold { id: string; name: string; home: PlayerHome }
@@ -33,6 +34,8 @@ export function usePlayHouseholds(): PlayHousehold[] | undefined {
 export interface HouseholdExtras {
   /** 每月預算（新台幣）；沒填是 null */
   budget: number | null;
+  /** 你或同住的人對貓過敏嗎（0036）；沒填或還沒有這個欄位是 null */
+  allergy: Allergy | null;
   /** 我的 3D 房間：id 與成果資料夾網址；null＝還沒建好 */
   room: { id: string; base: string } | null;
   /** 環境報告轉成的危險清單；null＝沒有可用的報告 */
@@ -51,7 +54,7 @@ export function useHouseholdExtras(householdId: string | null): HouseholdExtras 
     let alive = true;
     (async () => {
       const [{ data: b }, { data: rooms }, { data: pending }, { data: reports }] = await Promise.all([
-        sb.from("meow_household_budgets").select("monthly_twd").eq("household_id", householdId).maybeSingle(),
+        sb.from("meow_household_budgets").select("*").eq("household_id", householdId).maybeSingle(),
         sb.from("meow_room_models").select("id").eq("owner_household_id", householdId).eq("status", "ready").not("completed_at", "is", null)
           .order("created_at", { ascending: false }).limit(1),
         sb.from("meow_room_models").select("id").eq("owner_household_id", householdId).in("status", ["queued", "running"]).limit(1),
@@ -69,13 +72,14 @@ export function useHouseholdExtras(householdId: string | null): HouseholdExtras 
         id: householdId,
         v: {
           budget: typeof b?.monthly_twd === "number" ? b.monthly_twd : null,
+          allergy: typeof b?.allergy === "string" && b.allergy in ALLERGY ? (b.allergy as Allergy) : null,
           room: roomId ? { id: roomId, base: homeSceneBase(householdId, roomId) } : null,
           hazards: report ? hazardsFromReport(report.items) : null,
           roomState: roomId ? "ready" : pending?.length ? "pending" : "none",
           reportState,
         },
       });
-    })().catch(() => { if (alive) setState({ id: householdId, v: { budget: null, room: null, hazards: null, roomState: "none", reportState: "none" } }); });
+    })().catch(() => { if (alive) setState({ id: householdId, v: { budget: null, allergy: null, room: null, hazards: null, roomState: "none", reportState: "none" } }); });
     return () => { alive = false; };
   }, [householdId]);
   return state && state.id === householdId ? state.v : undefined;

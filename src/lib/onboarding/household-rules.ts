@@ -23,6 +23,10 @@ export const NO_PETS = "沒有";
 export const LANDLORD = { yes: "同意", asking: "還在問", no: "不同意" } as const;
 /** 養貓經驗（愛媽認為最有用的題目之一，#233） */
 export const EXPERIENCE = { none: "沒養過貓", some: "養過，不到 3 年", long: "養過 3 年以上" } as const;
+/** 你或同住的人對貓過敏嗎（渝茜 2026-11-18）。健康資訊：不放公開的 home，和預算存同一張只有本人看得到的表（0036） */
+export const ALLERGY = { none: "沒有", mild: "有，症狀輕微", severe: "有，症狀明顯", unsure: "不確定（沒和貓長時間相處過）" } as const;
+export type Allergy = keyof typeof ALLERGY;
+const isAllergy = (v: unknown): v is Allergy => typeof v === "string" && Object.hasOwn(ALLERGY, v);
 /** 每月養貓預算上限（和 0025 的 check 一致） */
 export const BUDGET_MAX = 200000;
 
@@ -54,15 +58,17 @@ export interface HouseholdForm {
   applyBadge: boolean;
   /** 一般飼主的每月養貓預算（輸入框的文字）；存在 meow_household_budgets，不跟喵戶一起公開（0025） */
   budget: string;
+  /** 一般飼主：你或同住的人對貓過敏嗎；和預算存在 meow_household_budgets（0036） */
+  allergy: Allergy | null;
 }
 
 export const emptyHouseholdForm = (): HouseholdForm => ({
   role: null, name: "", city: null, district: "", intro: "",
   home: { dwelling: null, dwellingOther: "", living: null, family: [], familyOther: "", pets: [], petsOther: "", landlord: null, experience: null },
-  terms: null, orgName: "", orgProofUrl: "", applyBadge: false, budget: "",
+  terms: null, orgName: "", orgProofUrl: "", applyBadge: false, budget: "", allergy: null,
 });
 
-export type MissingField = "role" | "name" | "nameTaken" | "city" | "district" | "dwelling" | "living" | "landlord" | "family" | "pets" | "experience" | "budget" | "orgName" | "orgProofUrl";
+export type MissingField = "role" | "name" | "nameTaken" | "city" | "district" | "dwelling" | "living" | "landlord" | "family" | "allergy" | "pets" | "experience" | "budget" | "orgName" | "orgProofUrl";
 
 /** 每月預算：1～200,000 的整數，可以寫千分位；不合格回傳 null */
 export function parseBudget(typed: string): number | null {
@@ -105,6 +111,7 @@ export function checkHousehold(f: HouseholdForm, existingNames: string[] = []): 
     if (!h.living) miss.push("living");
     if (h.living === "rent" && !h.landlord) miss.push("landlord");
     if (!h.family.length) miss.push("family");
+    if (!f.allergy) miss.push("allergy");
     if (!h.pets.length) miss.push("pets");
     if (!h.experience) miss.push("experience");
     if (parseBudget(f.budget) === null) miss.push("budget");
@@ -125,10 +132,24 @@ const cleanHome = (h: Home): Home => ({
   landlord: h.living === "rent" ? h.landlord : null,
 });
 
-/** 一般飼主的每月預算 → meow_household_budgets 一筆；中途或沒填好回傳 null */
+/** 一般飼主的每月預算與過敏 → meow_household_budgets 一筆；中途或沒填好回傳 null */
 export function budgetRow(f: HouseholdForm, householdId: string) {
   const n = parseBudget(f.budget);
-  return f.role === "cat_owner" && n !== null ? { household_id: householdId, monthly_twd: n } : null;
+  return f.role === "cat_owner" && n !== null ? { household_id: householdId, monthly_twd: n, allergy: f.allergy } : null;
+}
+
+/** 0036 還沒執行（沒有 allergy 欄位）時的退路：只存預算，表單照樣能存 */
+export function budgetRowLegacy(f: HouseholdForm, householdId: string) {
+  const row = budgetRow(f, householdId);
+  if (!row) return null;
+  const { allergy: _skip, ...rest } = row;
+  void _skip;
+  return rest;
+}
+
+/** Supabase 回的錯誤是不是「沒有這個欄位」（PostgREST 的 PGRST204，或 Postgres 的 42703） */
+export function isMissingColumn(err: { code?: string; message?: string } | null | undefined): boolean {
+  return !!err && (err.code === "PGRST204" || err.code === "42703");
 }
 
 export function toHouseholdRow(f: HouseholdForm) {
@@ -181,6 +202,8 @@ export function fromHouseholdRow(r: {
   home: Partial<Home> | Record<string, unknown> | null; adoption_terms: AdoptionTerms | null; org_name: string | null; org_proof_url: string | null;
   /** meow_household_budgets.monthly_twd（0025）；沒填過是 null */
   budget?: number | null;
+  /** meow_household_budgets.allergy（0036）；沒填過或還沒有這個欄位是 null／undefined */
+  allergy?: string | null;
 }): HouseholdForm {
   const empty = emptyHouseholdForm();
   const home = HomeSchema.safeParse({ ...empty.home, ...(r.home ?? {}) });
@@ -197,6 +220,7 @@ export function fromHouseholdRow(r: {
     orgName: r.org_name ?? "",
     orgProofUrl: r.org_proof_url ?? "",
     budget: r.budget ? String(r.budget) : "",
+    allergy: isAllergy(r.allergy) ? r.allergy : null,
   };
 }
 
