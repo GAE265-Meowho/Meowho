@@ -8,6 +8,11 @@ export const HQ_PAGE_META_PATHS = {
   home: [
     "src/app/MeowHQ/page.tsx",
   ],
+  flows: [
+    "src/app/MeowHQ/flows",
+    "src/lib/hq/system-flows.ts",
+    "src/lib/hq/system-flows.test.ts",
+  ],
   households: [
     "src/app/MeowHQ/households",
     "src/components/hq/households",
@@ -159,6 +164,7 @@ export function resolvePageMetaKey(pathname: string, search = ""): HqPageMetaKey
   const tab = new URLSearchParams(search.startsWith("?") ? search.slice(1) : search).get("tab") ?? "";
 
   if (path === "/MeowHQ") return "home";
+  if (path.startsWith("/MeowHQ/flows")) return "flows";
   if (path.startsWith("/MeowHQ/households")) return "households";
   if (path.startsWith("/MeowHQ/reports")) return "reports";
   if (path.startsWith("/MeowHQ/users")) return "users";

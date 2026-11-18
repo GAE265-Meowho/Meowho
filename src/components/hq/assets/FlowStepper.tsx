@@ -4,7 +4,9 @@
 import type { ReactNode } from "react";
 import type { StepState } from "@/lib/hq/cat-models/types";
 
-export type StepIcon = "upload" | "views" | "paint" | "glb" | "queue" | "cutout" | "model" | "pattern" | "done" | "fail";
+export type StepIcon = "upload" | "views" | "paint" | "glb" | "queue" | "cutout" | "model" | "pattern" | "done" | "fail"
+  // 系統操作流程圖（#468）
+  | "login" | "home" | "cat" | "diary" | "tag" | "review" | "transfer" | "chat" | "search" | "check" | "send";
 
 const PATHS: Record<StepIcon, ReactNode> = {
   upload: <><path d="M12 15V4" /><path d="m7 9 5-5 5 5" /><path d="M4 15v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4" /></>,
@@ -17,6 +19,17 @@ const PATHS: Record<StepIcon, ReactNode> = {
   pattern: <><path d="M4 8c3-2 5 2 8 0s5 2 8 0" /><path d="M4 13c3-2 5 2 8 0s5 2 8 0" /><path d="M4 18c3-2 5 2 8 0s5 2 8 0" /></>,
   done: <path d="m5 12 4 4 10-10" />,
   fail: <><path d="M12 7v6" /><path d="M12 17h.01" /><circle cx="12" cy="12" r="9" /></>,
+  login: <><path d="M10 4H6a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h4" /><path d="M11 12h9" /><path d="m16 8 4 4-4 4" /></>,
+  home: <><path d="M4 11l8-7 8 7v8a1 1 0 0 1-1 1h-4v-6h-6v6H5a1 1 0 0 1-1-1z" /></>,
+  cat: <><path d="M5 10l1-5 4 3h4l4-3 1 5c.9 1.2 1.3 2.6 1.3 4 0 4-3.6 6-8.3 6s-8.3-2-8.3-6c0-1.4.4-2.8 1.3-4z" /><path d="M9.5 13.5h.01M14.5 13.5h.01" /></>,
+  diary: <><path d="M6 4h11a1 1 0 0 1 1 1v15H7a2 2 0 0 1-2-2V5a1 1 0 0 1 1-1z" /><path d="M5 18a2 2 0 0 1 2-2h11" /><path d="M9 8h5" /></>,
+  tag: <><path d="M3 12V4h8l9 9-8 8z" /><circle cx="7.5" cy="8.5" r="1.3" /></>,
+  review: <><rect x="5" y="4" width="14" height="17" rx="1.5" /><path d="M9 4V3h6v1" /><path d="m9 13 2 2 4-4" /></>,
+  transfer: <><path d="M3 12l5-4.5L13 12v7H3z" /><path d="M14 9.5l3.5-3 3.5 3V19h-5" /><path d="M8 3.5c2-1.5 6-1.5 8 0" /><path d="m15 2 1 1.5-1.7.7" /></>,
+  chat: <><path d="M4 5h16v11H9l-5 4z" /><path d="M8 9.5h8M8 12.5h5" /></>,
+  search: <><circle cx="11" cy="11" r="6" /><path d="m20 20-4.5-4.5" /></>,
+  check: <><path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6z" /><path d="M9 12l2 2 4-4" /></>,
+  send: <><path d="M21 3 10 14" /><path d="M21 3l-7 18-4-7-7-4z" /></>,
 };
 
 function Icon({ name }: { name: StepIcon }) {
