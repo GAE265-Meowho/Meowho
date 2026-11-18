@@ -52,7 +52,33 @@ it("does not associate a different comparison with an unmatched priority or trus
   expect(output).toContain("需要進一步確認");
   expect(output).not.toContain(path("c"));
   expect(renderReportPresentation(report(candidate("&lt;線材&gt;", "a", "b"), "&lt;線材&gt;"), false))
-    .toContain("優先查核｜&lt;線材&gt;");
+    .toContain('<h2 id="priority-title">&lt;線材&gt;</h2>');
+});
+
+it.each([
+  ["垂下的環狀拉繩", "cord"],
+  ["外露電線", "cable"],
+  ["未確認的紗窗", "window"],
+  ["家具邊緣", "alert"],
+])("uses a fixed decorative SVG for %s", (name, icon) => {
+  const output = renderReportPresentation(report(candidate(name, "a", "b"), name), false);
+  expect(output).toContain(`class="meow-hero"><svg class="meow-icon" data-icon="${icon}"`);
+  expect(output).toContain('aria-hidden="true" focusable="false"');
+  expect(output).not.toMatch(/極高風險|危險指數|<script/);
+  expect(output.match(/<img /g)).toHaveLength(2);
+  expect(output).toContain('fetchpriority="high"');
+  expect(output).toContain('fetchpriority="low"');
+  expect(output.indexOf(path("a"))).toBeLessThan(output.indexOf("可能造成的後果"));
+  expect(output.indexOf("現在可以怎麼做")).toBeLessThan(output.indexOf(path("b")));
+});
+
+it("escapes markup-like text in the header and guidance", () => {
+  const html = report(candidate("書桌附近", "a", "b").replace("固定線材", "&lt;img src=x onerror=alert(1)&gt;"))
+    .replace("</header>", "<p>&lt;svg onload=alert(1)&gt;</p></header>");
+  const output = renderReportPresentation(html, false);
+  expect(output).toContain("&lt;svg onload=alert(1)&gt;");
+  expect(output).toContain("&lt;img src=x onerror=alert(1)&gt;");
+  expect(output).not.toMatch(/<(svg onload|img src=x)/);
 });
 
 it("only allows actual image elements and valid report-relative paths", () => {

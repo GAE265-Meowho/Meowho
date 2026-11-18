@@ -1,5 +1,7 @@
 # PLAN — 計畫與任務管理
 
+- AI 居家安全報告資訊圖 V2（Jerry0808 × Codex）：分支 `codex/home-safety-infographic`，審查中。以 #474 為基底，沿用 #273 報告授權及相同歷史報告。
+
 - AI 居家安全報告首屏與圖片載入（Jerry0808 × Codex）：分支 `codex/home-safety-report-ux`，審查中。沿用 #273 報告授權；待驗收 Preview 的真實 Owner 登入及 Azure 延遲。
 
 - AI 居家環境安全檢測對外命名（Jerry0808 × Codex，關聯 #424）：分支 `chore/meowhome-home-safety-naming`，審查中。
