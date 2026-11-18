@@ -33,6 +33,18 @@ function labeledText(article: Element, label: string) {
   return paragraph?.childNodes.slice(1).map(content).join("").trim();
 }
 
+function markerValues(figure: Element, simulated: boolean) {
+  const markers = elements(figure, node => node.tagName === "svg" && !!hasClass(node, "evidence-marker")
+    && Boolean(hasClass(node, "simulated")) === simulated);
+  if (markers.length !== 1 || attr(markers[0], "viewBox") !== "0 0 100 100") return;
+  const rects = elements(markers[0], node => node.tagName === "rect");
+  if (rects.length !== 1) return;
+  const box = ["x", "y", "width", "height"].map(key => attr(rects[0], key) ?? "");
+  if (!box.every(value => /^\d+(?:\.\d+)?$/.test(value))) return;
+  const [x, y, width, height] = box.map(Number);
+  if (width > 0 && height > 0 && x + width <= 100.00001 && y + height <= 100.00001) return [x, y, width, height];
+}
+
 export function parseReportPresentation(html: string) {
   const doc = parse(html, { sourceCodeLocationInfo: true });
   const images = elements(doc, node => node.tagName === "img");
@@ -75,26 +87,23 @@ export function parseReportPresentation(html: string) {
           elements(node, item => item.tagName === "figcaption" && content(item).trim() === label).length);
       const figureImage = (node: Element | undefined) => node && source(elements(node, child => child.tagName === "img")[0]);
       const original = figure(pair, "改善前｜原始影格");
+      const simulation = figure(pair, "改善後｜AI 模擬示意");
       const originalImage = figureImage(original);
+      const simulatedImage = figureImage(simulation);
       const detail = elements(article, node => node.tagName === "div" && !!hasClass(node, "pair") && !!hasClass(node, "detail"))[0];
       const detailBefore = detail && figureImage(figure(detail, "改善前局部｜原圖"));
+      const detailAfter = detail && figureImage(figure(detail, "改善後局部｜AI 模擬示意"));
       const before = originalImage ?? detailBefore;
-      const after = originalImage ? figureImage(figure(pair, "改善後｜AI 模擬示意"))
-        : detail && figureImage(figure(detail, "改善後局部｜AI 模擬示意"));
+      const after = originalImage ? simulatedImage : detailAfter;
       const note = elements(article, node => !!hasClass(node, "position-note"))[0];
       const position = note ? content(note) : "";
-      const marker = original && elements(original, node => node.tagName === "svg" && !!hasClass(node, "evidence-marker"))[0];
-      const rect = marker && elements(marker, node => node.tagName === "rect")[0];
-      const box = rect && ["x", "y", "width", "height"].map(key => attr(rect, key) ?? "");
-      const values = box?.map(Number);
       const human = position.includes("Before 實線為人工確認位置");
       const estimated = position.includes("Before 實線為 AI 估計範圍");
-      const region = originalImage && values && box?.every(value => /^\d+(?:\.\d+)?$/.test(value))
-        && attr(marker!, "viewBox") === "0 0 100 100"
-        && values[2] > 0 && values[3] > 0
-        && values[0] + values[2] <= 100.00001 && values[1] + values[3] <= 100.00001
-        && (human || estimated) ? { values, estimated } : undefined;
-      return [{ caseId: attr(article, "id"), name, impact, action, observation, before, after, detailBefore, region, cropped: !originalImage, uncertainty: labeledText(article, "待現場確認") }];
+      const values = originalImage && original && (human || estimated) ? markerValues(original, false) : undefined;
+      const region = values ? { values, estimated } : undefined;
+      const afterRegion = originalImage && simulatedImage && simulation && position.includes("After 虛線為場景對位區域。")
+        ? markerValues(simulation, true) : undefined;
+      return [{ caseId: attr(article, "id"), name, impact, action, observation, before, after, detailBefore, detailAfter, region, afterRegion, cropped: !originalImage, uncertainty: labeledText(article, "待現場確認") }];
     });
   // A legacy title alone does not establish that two views show the same place.
   const byAction = new Map<string, (typeof candidates)[number]>();
@@ -103,7 +112,7 @@ export function parseReportPresentation(html: string) {
     const existing = byAction.get(key);
     if (!existing || (!existing.before && item.before)) byAction.set(key, item);
   }
-  const withoutImages = { before: undefined, after: undefined, region: undefined, cropped: false, detailBefore: undefined };
+  const withoutImages = { before: undefined, after: undefined, region: undefined, afterRegion: undefined, cropped: false, detailBefore: undefined, detailAfter: undefined };
   const legacyItems = [...byAction.values()];
   function legacyRank(name: string) {
     const position = priorityEntries.findIndex(entry => entry.name === name);
@@ -164,16 +173,20 @@ body:has(.meow-priority){max-width:1120px;color:#183247}
 .meow-item h3+div{margin-top:12px}
 .meow-priority h2{font-size:clamp(22px,3.5vw,36px);line-height:1.2;margin:2px 0 0}
 .meow-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-template-areas:"impact action" "before after";gap:14px}
+.meow-grid.with-details{grid-template-areas:"impact action" "before after" "before-detail after-detail"}
 .meow-grid.solo{grid-template-columns:minmax(0,1fr);grid-template-areas:"impact" "action"}
 .meow-priority figure{min-width:0;margin:0;background:var(--blue);border-radius:var(--radius);padding:12px}
 .meow-priority figcaption{font-size:15px;margin:0 0 8px}
 .meow-priority .meow-before{grid-area:before}
 .meow-priority .meow-after{grid-area:after}
+.meow-priority .meow-before-detail{grid-area:before-detail}
+.meow-priority .meow-after-detail{grid-area:after-detail}
 .meow-photo{display:grid;place-items:center;aspect-ratio:16/9;container-type:size;background:white;border-radius:8px}
 .meow-photo .evidence{position:relative;max-width:100%;line-height:0}
 .meow-photo img{display:block;width:auto;height:auto;max-width:100%;max-height:100cqh;object-fit:contain;border-radius:8px}
 .meow-priority .region{position:absolute;box-sizing:border-box;border:3px solid var(--red);pointer-events:none;box-shadow:0 0 0 1px white}
 .meow-priority .estimated{border-style:dashed}
+.meow-priority .simulated-region{border-style:dashed;border-color:var(--green)}
 .meow-priority figure p{margin-top:8px;font-size:14px}
 .meow-card{border-radius:var(--radius);padding:clamp(12px,2vw,20px)}
 .meow-card h4{margin:0 0 4px;font-size:14px}
@@ -188,7 +201,7 @@ body:has(.meow-priority){max-width:1120px;color:#183247}
 .meow-report-pdf{color:#103b5b}
 .meow-report-toggle .meow-icon,.meow-report-pdf .meow-icon{width:21px}
 .meow-report-toggle:focus-visible,.meow-report-pdf:focus-visible{outline:2px solid #103b5b;outline-offset:3px}
-@media(max-width:650px){.meow-grid{grid-template-columns:minmax(0,1fr);grid-template-areas:"impact" "before" "action" "after"}.meow-priority figure{padding:8px}.meow-banner{gap:8px}}
+@media(max-width:650px){.meow-grid{grid-template-columns:minmax(0,1fr);grid-template-areas:"impact" "before" "action" "after"}.meow-grid.with-details{grid-template-areas:"impact" "before" "before-detail" "action" "after" "after-detail"}.meow-priority figure{padding:8px}.meow-banner{gap:8px}}
 </style>`;
 
 const iconPaths = {
@@ -218,6 +231,18 @@ function hazardIcon(name: string): keyof typeof iconPaths {
 const icon = (name: keyof typeof iconPaths) =>
   `<svg class="meow-icon" data-icon="${name}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${iconPaths[name]}</svg>`;
 
+function marker(values: number[] | undefined, variant: string) {
+  if (!values) return "";
+  const style = ["left", "top", "width", "height"].map((key, index) => `${key}:${values[index]}%`).join(";");
+  return `<span aria-hidden="true" class="region${variant}" style="${style}"></span>`;
+}
+
+function detailFigure(side: "before" | "after", caption: string, image: string | undefined) {
+  return `<figure class="meow-${side}-detail"><figcaption>${caption}</figcaption>${image
+    ? `<div class="meow-photo"><img src="${image}" alt="${caption}" loading="lazy"></div>`
+    : "<p>此報告未提供這張局部影像。</p>"}</figure>`;
+}
+
 export function renderReportPresentation(html: string, full: boolean, presentation = parseReportPresentation(html), itemIndex?: number) {
   const { items, headerStart, headerEnd, bodyEnd, images } = presentation;
   if (headerStart === undefined || headerEnd === undefined || bodyEnd === undefined || headerEnd > bodyEnd) return html;
@@ -227,13 +252,15 @@ export function renderReportPresentation(html: string, full: boolean, presentati
   const limits = [...new Set([...(impact?.limits ?? []), selected?.uncertainty]
     .filter(Boolean).map(text => text!.replace(/。$/, "")))];
   const region = selected?.region;
-  const marker = region ? `<span aria-hidden="true" class="region${region.estimated ? " estimated" : ""}" style="${["left","top","width","height"].map((key, index) => `${key}:${region.values[index]}%`).join(";")}"></span>` : "";
+  const afterRegion = selected?.afterRegion;
+  const showDetails = Boolean(selected?.before && !selected.cropped);
   const before = selected?.before ? `<figure class="meow-before"><figcaption>${selected.cropped ? "改善前｜危害局部" : "改善前｜原始影格"}</figcaption>
-    <div class="meow-photo"><div class="evidence"><img src="${selected.before}" alt="${escape(selected.name)}的${selected.cropped ? "原始局部" : "原始影格"}" fetchpriority="high">${marker}</div></div>
+    <div class="meow-photo"><div class="evidence"><img src="${selected.before}" alt="${escape(selected.name)}的${selected.cropped ? "原始局部" : "原始影格"}" fetchpriority="high">${marker(region?.values, region?.estimated ? " estimated" : "")}</div></div>
     <p>${region ? region.estimated ? "紅色虛線為 AI 估計位置。" : "紅框為人工確認位置。" : "畫面中的具體位置待確認。"}</p>
     <p>${escape(selected.observation)}</p>${!selected.cropped && selected.detailBefore ? `<a href="${selected.detailBefore}">查看原始局部放大</a>` : ""}</figure>` : "";
-  const after = selected?.before ? `<figure class="meow-after">${selected.after ? `<figcaption>改善後｜AI 模擬示意</figcaption>
-    <div class="meow-photo"><img src="${selected.after}" alt="${escape(selected.name)}的 AI 改善示意" fetchpriority="low"></div>
+  const after = selected?.before ? `<figure class="meow-after">${selected.after ? `<figcaption>${selected.cropped ? "改善後局部｜AI 模擬示意" : "改善後｜AI 模擬示意"}</figcaption>
+    <div class="meow-photo"><div class="evidence"><img src="${selected.after}" alt="${escape(selected.name)}的 AI 改善示意" fetchpriority="low">${marker(afterRegion, " simulated-region")}</div></div>
+    ${selected.cropped ? "" : `<p>${afterRegion ? "綠色虛線為 AI 模擬對應區域。" : "這張 AI 示意圖的對應位置待確認。"}</p>`}
     <p>實際改善情形仍待現場確認。</p>` : "<p>這個項目沒有可展示的 AI 改善示意。</p>"}</figure>` : "";
   const collapse = `<a class="meow-report-toggle" href="html#report-view" id="report-view-return">收合完整報告${icon("up")}</a>`;
   const pdf = `<a class="meow-report-pdf" href="pdf">${icon("file")}下載完整 PDF</a>`;
@@ -246,11 +273,13 @@ export function renderReportPresentation(html: string, full: boolean, presentati
     const href = open ? `html#${panelId}` : `?item=${index + 1}#${panelId}`;
     return `<section class="meow-item"><h3><a class="meow-hero" id="${panelId}" href="${href}" aria-expanded="${open}" aria-controls="${panelId}-panel">
       ${icon(hazardIcon(item.name))}<span>${escape(item.name)}</span>${icon(open ? "up" : "down")}</a></h3>
-      <div id="${panelId}-panel"${open ? "" : " hidden"}>${open ? `${!before && item.observation ? `<p>${escape(item.observation)}</p>` : ""}<div class="meow-grid${before ? "" : " solo"}">
+      <div id="${panelId}-panel"${open ? "" : " hidden"}>${open ? `${!before && item.observation ? `<p>${escape(item.observation)}</p>` : ""}<div class="meow-grid${before ? "" : " solo"}${showDetails ? " with-details" : ""}">
         ${impact?.consequence ? `<div class="meow-card meow-impact">${icon("alert")}<div><h4>可能後果</h4><p>${escape(impact.consequence)}</p></div></div>` : ""}
         ${before}
+        ${showDetails ? detailFigure("before", "改善前局部｜原圖", item.detailBefore) : ""}
         <div class="meow-card meow-action">${icon("action")}<div><h4>建議行動</h4><p>${escape(item.action)}</p></div></div>
-        ${after}</div>
+        ${after}
+        ${showDetails ? detailFigure("after", "改善後局部｜AI 模擬示意", item.detailAfter) : ""}</div>
         ${limits.length ? `<div class="meow-limits">${icon("info")}<p><strong>需要現場確認</strong> ${limits.map(escape).join("。")}。</p></div>` : ""}` : ""}</div></section>`;
   });
   const intro = `<section class="meow-priority" aria-labelledby="priority-title">

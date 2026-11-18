@@ -45,6 +45,38 @@ it("preserves the evidence without a fabricated box or After image", () => {
   expect(output).not.toContain('class="region estimated"');
   expect(output).not.toContain("改善後｜AI 模擬示意");
   expect(output).toContain("這個項目沒有可展示的 AI 改善示意。");
+  expect(output).toContain("此報告未提供這張局部影像。");
+  expect(output.match(/<img /g)).toHaveLength(1);
+});
+
+const localizedComparison = () => candidate("書桌附近", "a", "b")
+  .replace(img("b"), img("b") + '<svg class="evidence-marker simulated" viewBox="0 0 100 100"><rect x="42" y="10" width="18" height="25"></rect></svg>')
+  .replace("Before 實線為 AI 估計範圍。", "Before 實線為 AI 估計範圍。 After 虛線為場景對位區域。")
+  .replace(img("d"), `<figure><figcaption>改善前局部｜原圖</figcaption>${img("d")}</figure>
+<figure><figcaption>改善後局部｜AI 模擬示意</figcaption>${img("e")}</figure>`);
+
+it("uses the case's independent After coordinates and its two lazy detail assets", () => {
+  const html = report(localizedComparison() + candidate("其他房間", "c", "f"));
+  const output = renderReportPresentation(html, false, undefined, 0);
+  expect(output).toContain('class="region estimated" style="left:12%;top:25%;width:30%;height:40%"');
+  expect(output).toContain('class="region simulated-region" style="left:42%;top:10%;width:18%;height:25%"');
+  expect(output).toContain("綠色虛線為 AI 模擬對應區域。");
+  expect(output).toContain(`src="${path("d")}" alt="改善前局部｜原圖" loading="lazy"`);
+  expect(output).toContain(`src="${path("e")}" alt="改善後局部｜AI 模擬示意" loading="lazy"`);
+  expect(output).not.toContain(path("f"));
+  expect(renderReportPresentation(html, false)).not.toContain("<img ");
+});
+
+it.each([
+  ["unrecognized provenance", "After 虛線為場景對位區域。", "After 位置待確認。"],
+  ["out-of-bounds coordinates", 'x="42"', 'x="90"'],
+  ["wrong figure marker type", 'class="evidence-marker simulated"', 'class="evidence-marker"'],
+])("keeps both images and omits the After outline for %s", (_, from, to) => {
+  const output = renderReportPresentation(report(localizedComparison().replace(from, to)), false, undefined, 0);
+  expect(output).toContain('class="region estimated"');
+  expect(output).not.toContain('class="region simulated-region"');
+  expect(output).toContain("這張 AI 示意圖的對應位置待確認。");
+  expect(output.match(/<img /g)).toHaveLength(4);
 });
 
 it("retains independently evidenced cases and escapes their labels", () => {
