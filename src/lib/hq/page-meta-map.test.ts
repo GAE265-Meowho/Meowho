@@ -10,6 +10,7 @@ describe("resolvePageMetaKey", () => {
     expect(resolvePageMetaKey("/MeowHQ/reports")).toBe("reports");
     expect(resolvePageMetaKey("/MeowHQ/products")).toBe("products");
     expect(resolvePageMetaKey("/MeowHQ/knowledge")).toBe("knowledge");
+    expect(resolvePageMetaKey("/MeowHQ/flows", "?tab=adopter")).toBe("flows");
   });
 
   it("assets 依 ?tab=；子路徑繼承", () => {

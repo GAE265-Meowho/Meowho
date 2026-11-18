@@ -683,3 +683,8 @@
   .hq-catstage-square > .hq-catview { order: -1; position: sticky; top: 56px; z-index: 5; background: var(--hq-bg); padding: .5rem 0; }
   .hq-catstage-square .hq-canvas { aspect-ratio: auto; height: max(240px, 42dvh); }
 }
+/* 系統操作流程圖（#468）：各階段上下排，沿用製作流程的 FlowStepper */
+.hq-sysflow { display: flex; flex-direction: column; gap: 1.25rem; padding: 1.1rem 1.25rem; }
+.hq-sysflow-phase + .hq-sysflow-phase { padding-top: 1.25rem; border-top: 1px dashed var(--hq-line); }
+.hq-sysflow h3 { margin: 0 0 1rem; font-size: .95rem; color: var(--hq-sage-ink); }
+.hq-sysflow h3 small { margin-left: .4rem; font-size: .8rem; font-weight: 400; color: var(--hq-sub); }

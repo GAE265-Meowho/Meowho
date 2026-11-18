@@ -265,3 +265,12 @@ describe("UT-HQ-48 儲存失敗", () => {
     expect(screen.getByRole("button", { name: "儲存" })).toBeDisabled();
   });
 });
+
+describe("系統操作流程圖（#468）", () => {
+  it("側欄在首頁之後顯示，連到 /MeowHQ/flows，所在頁標示目前", () => {
+    render(shell({ items: ["home", "flows", "households"], activePath: "/MeowHQ/flows" }));
+    const link = screen.getByRole("link", { name: "系統操作流程圖" });
+    expect(link).toHaveAttribute("href", "/MeowHQ/flows");
+    expect(link).toHaveAttribute("aria-current", "page");
+  });
+});
