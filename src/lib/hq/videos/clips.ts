@@ -10,8 +10,7 @@ export type ClipMotion = { action: string; camera: string };
 /** 每格 AI 分鏡的動作與運鏡（英文，直接貼進圖生影片工具） */
 export const CLIP_MOTION: Record<string, ClipMotion> = {
   s01: { action: "Raindrops fall steadily on the closed cardboard box and splash on the wet tiles; the street light flickers slightly. Only the sound of rain.", camera: "Slow dolly-in from far away toward the box." },
-  s02: { action: "The cat's amber eyes peek through the narrow gap between the two top flaps of the same sealed shipping box (clear packing tape on the flaps; no side slit, no side-cut opening, no torn side wall), blink slowly, ears twitching at the sound of the rain.", camera: "Very slow push-in, focus locked on the eyes." },
-  s03: { action: "The cat curls up tighter in the corner, ears flatten, then it slowly looks up toward the camera.", camera: "Static top-down shot with subtle handheld breathing." },
+  s02: { action: "Continuity from the previous rainy-doorstep box shot: inside the same cardboard box, the small hungry orange tabby curls up tighter in the corner, ears flatten, soft hungry meow; rain continues outside.", camera: "Static top-down shot with subtle handheld breathing, looking into the open top of the box." },
   s04: { action: "Xiaojie opens the door, pauses in the dark doorway, drops his shoulders and steps in; rain runs down the window behind him.", camera: "Static shot from inside the room, eye level." },
   s05: { action: "Afang slowly crouches and reaches out her hand; the kitten hesitates, then sniffs her fingers.", camera: "Low-angle slow push-in." },
   s06: { action: "Xiaojie scrolls with his thumb, stops on a cat photo, lingers, then keeps scrolling; screen light flickers on his face.", camera: "Slow push-in to a close-up of his face." },
