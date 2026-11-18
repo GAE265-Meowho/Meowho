@@ -73,6 +73,7 @@ export function fullPrompt(frame: Frame, line: ShotLine): string {
 export const VIDEO_TABS = [
   { value: "trailer", label: "前導影片：分鏡" },
   { value: "trailer-clips", label: "前導影片：影片" }, // #493 產生影片，#501 改以完成的影片為主（網址不變）
+  { value: "trailer-voice", label: "前導影片：配音" }, // #504
 ] as const;
 export type VideoTab = (typeof VIDEO_TABS)[number]["value"];
 

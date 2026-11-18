@@ -20,6 +20,11 @@ export const HQ_PAGE_META_PATHS = {
     "src/lib/hq/videos/trailer.test.ts",
     "docs/video",
   ],
+  "videos/trailer-voice": [
+    "src/components/hq/videos/VoiceBoard.tsx",
+    "src/lib/hq/videos/voice.ts",
+    "src/lib/hq/videos/voice.test.ts",
+  ],
   "videos/trailer-clips": [
     "src/components/hq/videos/ClipsBoard.tsx",
     "src/components/hq/videos/TrailerVideos.tsx",
@@ -180,7 +185,7 @@ export function resolvePageMetaKey(pathname: string, search = ""): HqPageMetaKey
 
   if (path === "/MeowHQ") return "home";
   if (path.startsWith("/MeowHQ/flows")) return "flows";
-  if (path.startsWith("/MeowHQ/videos")) return tab === "trailer-clips" ? "videos/trailer-clips" : "videos/trailer";
+  if (path.startsWith("/MeowHQ/videos")) return tab === "trailer-clips" ? "videos/trailer-clips" : tab === "trailer-voice" ? "videos/trailer-voice" : "videos/trailer";
   if (path.startsWith("/MeowHQ/households")) return "households";
   if (path.startsWith("/MeowHQ/reports")) return "reports";
   if (path.startsWith("/MeowHQ/users")) return "users";

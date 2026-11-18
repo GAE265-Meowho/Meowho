@@ -6,6 +6,7 @@
 import { NEGATIVE_PROMPT, clipSections, motionPrompt, startFrameFileName, type ClipItem } from "@/lib/hq/videos/clips";
 import { frameCounts } from "@/lib/hq/videos/trailer";
 import { videoSlotLabel } from "@/lib/hq/videos/trailer-video";
+import { VIDEO_AUDIO_RULE } from "@/lib/hq/videos/voice";
 import { GenLogButton, useGenLogs } from "./GenLog";
 import { DownloadRef, Prompt, RefChips, useCopy, useTrailerUploads, type SlotProps } from "./TrailerBoard";
 import { TrailerVideosNotice, VideoSlot, useTrailerVideos, type TrailerVideosState } from "./TrailerVideos";
@@ -25,6 +26,10 @@ export function ClipsBoard() {
 
   return (
     <div className="hq-video">
+      <div className="hq-video-callout" role="note">
+        <b>生成影片前先看：</b>{VIDEO_AUDIO_RULE}
+        <span className="hq-sub">旁白在「前導影片：配音」用固定的兩個聲音另外做，才能確保前後一致。</span>
+      </div>
       <section className="hq-video-sec" aria-labelledby="vid-full">
         <h2 id="vid-full">完整影片</h2>
         <TrailerVideosNotice state={videos} />
@@ -39,7 +44,7 @@ export function ClipsBoard() {
           <ol className="hq-video-steps">
             <li>到「前導影片：分鏡」上傳這一格的分鏡圖，以及要掛的定角、定景照。</li>
             <li>展開片段卡的「生成素材」，下載起始畫面和參考圖，檔名就是 prompt 裡寫的檔名。</li>
-            <li>在圖生影片工具（例如 Kling）放上起始畫面，依序掛上參考圖，貼上 prompt 和負面 prompt，選建議的生成長度。</li>
+            <li>在圖生影片工具（例如 Kling）放上起始畫面，依序掛上參考圖，貼上 prompt 和負面 prompt，選建議的生成長度。{VIDEO_AUDIO_RULE}</li>
             <li>生成好的片段上傳回這張卡；剪好的段落和完整影片上傳到各段與最上方。</li>
           </ol>
         </details>

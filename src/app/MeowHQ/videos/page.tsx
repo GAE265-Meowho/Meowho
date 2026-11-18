@@ -6,6 +6,7 @@ import { HqPageHeader } from "@/components/hq/HqPageHeader";
 import { HqSkeleton } from "@/components/hq/HqStates";
 import { HqTabs, useListQuery } from "@/components/hq/list/HqList";
 import { ClipsBoard } from "@/components/hq/videos/ClipsBoard";
+import { VoiceBoard } from "@/components/hq/videos/VoiceBoard";
 import { TrailerBoard } from "@/components/hq/videos/TrailerBoard";
 import { TRAILER_MD_FILENAME, VIDEO_TABS } from "@/lib/hq/videos/trailer";
 import { TRAILER_MD } from "@/lib/hq/videos/trailer-md.generated";
@@ -30,7 +31,7 @@ function VideosPage() {
         <span className="hq-sub">{TRAILER_MD_FILENAME}</span>
       </div>
       <HqTabs tabs={[...VIDEO_TABS]} value={tab} onChange={v => update({ tab: v === "trailer" ? undefined : v })} />
-      {tab === "trailer-clips" ? <ClipsBoard /> : <TrailerBoard />}
+      {tab === "trailer-clips" ? <ClipsBoard /> : tab === "trailer-voice" ? <VoiceBoard /> : <TrailerBoard />}
     </>
   );
 }

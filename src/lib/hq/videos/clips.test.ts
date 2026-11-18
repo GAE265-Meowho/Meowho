@@ -40,6 +40,7 @@ describe("前導影片：產生影片", () => {
     expect(p).toContain("Image 2 = scene-afang-home.webp");
     expect(p).toContain(`Action: ${CLIP_MOTION.s02.action}`);
     expect(p).toContain(`Camera: ${CLIP_MOTION.s02.camera}`);
+    expect(p).toContain("No music, no voice"); // #504：生成時不要聲音
   });
 
   it("非 AI 的格子沒有圖生影片 prompt", () => {

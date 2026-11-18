@@ -6,25 +6,27 @@ import {
   TRAILER_VIDEO_PREFIX, checkTrailerVideo, groupTrailerVideos, trailerVideoFileName, trailerVideoPath, videoSlotLabel,
 } from "@/lib/hq/videos/trailer-video";
 import { getMediaStore } from "@/lib/storage/server";
-import { READ_TTL_SEC, UPLOAD_TTL_SEC } from "@/lib/storage/types";
+import { READ_TTL_SEC, UPLOAD_TTL_SEC, type MediaStore } from "@/lib/storage/types";
 import { getServerSupabase } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
-async function guard() {
+type Guard = { ok: false; res: NextResponse } | { ok: true; store: MediaStore };
+
+async function guard(): Promise<Guard> {
   const sb = await getServerSupabase();
   const store = getMediaStore();
-  if (!sb || !store) return { error: NextResponse.json({ error: "not_configured" }, { status: 503 }) };
+  if (!sb || !store) return { ok: false, res: NextResponse.json({ error: "not_configured" }, { status: 503 }) };
   const { data: auth } = await sb.auth.getUser();
-  if (!auth.user) return { error: NextResponse.json({ error: "login_required" }, { status: 401 }) };
+  if (!auth.user) return { ok: false, res: NextResponse.json({ error: "login_required" }, { status: 401 }) };
   const { data: isAdmin, error } = await sb.rpc("meow_is_admin");
-  if (error || !isAdmin) return { error: NextResponse.json({ error: "permission_denied" }, { status: 403 }) };
-  return { store };
+  if (error || !isAdmin) return { ok: false, res: NextResponse.json({ error: "permission_denied" }, { status: 403 }) };
+  return { ok: true, store };
 }
 
 export async function GET() {
   const g = await guard();
-  if ("error" in g) return g.error;
+  if (!g.ok) return g.res;
   try {
     const grouped = groupTrailerVideos(await g.store.list(TRAILER_VIDEO_PREFIX));
     const videos: Record<string, { path: string; at: string; url: string; downloadUrl: string }[]> = {};
@@ -46,7 +48,7 @@ export async function GET() {
 
 export async function POST(req: Request) {
   const g = await guard();
-  if ("error" in g) return g.error;
+  if (!g.ok) return g.res;
   const body = await req.json().catch(() => null) as { slot?: unknown; mime?: unknown; sizeBytes?: unknown } | null;
   const error = checkTrailerVideo({ slot: body?.slot, mime: body?.mime, sizeBytes: body?.sizeBytes });
   if (error) return NextResponse.json({ error }, { status: 400 });
