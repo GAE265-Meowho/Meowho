@@ -1,10 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { budgetRow, canAddHousehold, checkHousehold, defaultCatStatus, emptyHouseholdForm, fromHouseholdRow, parseBudget, pickSolo, toHouseholdRow, toHouseholdUpdate, verificationRow, type Home, type HouseholdForm } from "./household-rules";
+import { budgetRow, budgetRowLegacy, isMissingColumn, canAddHousehold, checkHousehold, defaultCatStatus, emptyHouseholdForm, fromHouseholdRow, parseBudget, pickSolo, toHouseholdRow, toHouseholdUpdate, verificationRow, type Home, type HouseholdForm } from "./household-rules";
 
 const base = (o: Partial<HouseholdForm>): HouseholdForm => ({ ...emptyHouseholdForm(), city: "台中市", district: "北屯區", ...o });
+const rowBase = { name: "子哲的家", caretaker_type: "cat_owner" as const, city: "台中市", district: "北屯區", intro: null, home: null, adoption_terms: null, org_name: null, org_proof_url: null };
 /** 必填都填好的一般飼主 */
 const owner = (h: Partial<Home> = {}): HouseholdForm => base({
-  role: "cat_owner", name: "子哲的家", budget: "4000",
+  role: "cat_owner", name: "子哲的家", budget: "4000", allergy: "none",
   home: { ...emptyHouseholdForm().home, dwelling: "apartment", living: "family", family: ["自己住"], pets: ["沒有"], experience: "none", ...h },
 });
 
@@ -14,7 +15,7 @@ describe("依身分建立喵戶：必填欄位", () => {
   });
 
   it("一般飼主：名稱、住家型態、住家狀況、同住的人、現有寵物、養貓經驗、每月預算必填（#233）", () => {
-    expect(checkHousehold(base({ role: "cat_owner" }))).toEqual(["name", "dwelling", "living", "family", "pets", "experience", "budget"]);
+    expect(checkHousehold(base({ role: "cat_owner" }))).toEqual(["name", "dwelling", "living", "family", "allergy", "pets", "experience", "budget"]);
     expect(checkHousehold(owner())).toEqual([]);
   });
 
@@ -90,13 +91,37 @@ describe("「自己住」「沒有」只能單選", () => {
 
 describe("每月預算存在另一張表（只有喵戶長看得到，0025）", () => {
   it("一般飼主才存，中途回傳 null", () => {
-    expect(budgetRow({ ...owner(), budget: "4,000" }, "h1")).toEqual({ household_id: "h1", monthly_twd: 4000 });
+    expect(budgetRow({ ...owner(), budget: "4,000" }, "h1")).toEqual({ household_id: "h1", monthly_twd: 4000, allergy: "none" });
     expect(budgetRow(base({ role: "personal_foster", budget: "4000" }), "h1")).toBeNull();
   });
   it("房東與養貓經驗存在住家資料；不是租屋就不存房東", () => {
     const row = toHouseholdRow(owner({ living: "own", landlord: "yes", experience: "long" }));
     expect(row.home).toMatchObject({ living: "own", landlord: null, experience: "long" });
     expect(row.home).not.toHaveProperty("budget");
+  });
+});
+
+describe("過敏（渝茜 2026-11-18）：健康資訊，不放公開的 home，和預算存同一張私密表（0036）", () => {
+  it("一般飼主必填；中途不用填", () => {
+    expect(checkHousehold(owner())).toEqual([]);
+    expect(checkHousehold({ ...owner(), allergy: null })).toEqual(["allergy"]);
+    expect(checkHousehold(base({ role: "personal_foster", name: "小橘之家" }))).not.toContain("allergy");
+  });
+  it("不會出現在公開的 home", () => {
+    const row = toHouseholdRow({ ...owner(), allergy: "severe" });
+    expect(row.home).not.toHaveProperty("allergy");
+  });
+  it("資料庫還沒加欄位（0036 未執行）時，退回只存預算", () => {
+    expect(budgetRowLegacy({ ...owner(), allergy: "mild" }, "h1")).toEqual({ household_id: "h1", monthly_twd: 4000 });
+    expect(isMissingColumn({ code: "PGRST204", message: "Could not find the 'allergy' column" })).toBe(true);
+    expect(isMissingColumn({ code: "42703", message: 'column "allergy" does not exist' })).toBe(true);
+    expect(isMissingColumn({ code: "23514", message: "check" })).toBe(false);
+    expect(isMissingColumn(null)).toBe(false);
+  });
+  it("修改喵戶：讀回過敏；舊資料或亂碼當作沒填", () => {
+    expect(fromHouseholdRow({ ...rowBase, budget: 3000, allergy: "unsure" }).allergy).toBe("unsure");
+    expect(fromHouseholdRow({ ...rowBase, allergy: "???" }).allergy).toBeNull();
+    expect(fromHouseholdRow(rowBase).allergy).toBeNull();
   });
 });
 
