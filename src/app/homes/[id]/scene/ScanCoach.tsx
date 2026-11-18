@@ -1,9 +1,9 @@
 "use client";
 // 房間掃描教練（從 3Dtest/capture_coach.html 搬來；「拍完檢查」在 VideoCheck）。
 // 參考家具組裝說明書：一格一張插圖配一行短字，完整說明放在 aria-label 給螢幕閱讀器。
-// 手機往下滑；電腦（≥1024px）排成一頁：上排出發前準備；下排左邊路線動畫，右邊上這樣拿、下別這樣拍，按鈕在右下角。
+// 手機往下滑；電腦（≥1024px）排成一頁：上排出發前準備；下排左邊路線動畫，右邊上這樣拿、下別這樣拍，最下一列隱私說明和上傳鈕。
 // 出發前準備 → 這樣拿 → 別這樣拍（都是插圖＋短字）→ 拍攝路線（自動播放的動畫）；同一件事只講一次。
-// 下面固定放「已經拍好了」、隱私說明和「開始製作／上傳影片」（由 page.tsx 傳進來）。
+// 下面固定放隱私說明和「已經拍好了，直接上傳」（電腦並排一行），錯誤訊息由 page.tsx 傳進來。
 import { useEffect, useRef, useState } from "react";
 import CatButton from "@/components/ui/CatButton";
 import Icon from "@/components/ui/Icon";
@@ -204,8 +204,8 @@ function RouteAnim() {
   );
 }
 
-/** actions：教練下面的隱私說明、錯誤訊息和「開始製作／上傳影片」；onPick：已經拍好的人直接選檔 */
-export default function ScanCoach({ actions, onPick }: { actions: React.ReactNode; onPick: () => void }) {
+/** note：隱私說明（業務規則要求的聲明，決策 007）；actions：錯誤訊息；onPick：選檔上傳 */
+export default function ScanCoach({ note, actions, onPick }: { note: string; actions: React.ReactNode; onPick: () => void }) {
   return (
     <div className={r.coach}>
       <PicDefs />
@@ -244,7 +244,10 @@ export default function ScanCoach({ actions, onPick }: { actions: React.ReactNod
       ))}
 
       <div className={r.ready}>
-        <CatButton variant="ghost" onClick={onPick}><Icon name="plus" size={18} />已經拍好了，直接上傳</CatButton>
+        <div className={r.readyRow}>
+          <p className={f.lead}>{note}</p>
+          <CatButton variant="ghost" onClick={onPick}><Icon name="plus" size={18} />已經拍好了，直接上傳</CatButton>
+        </div>
         {actions}
       </div>
     </div>

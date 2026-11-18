@@ -1,7 +1,7 @@
 "use client";
-// 建立我家的 3D 房間（規格 09 v0.6 §7.2、§8；#60、#61）：房間掃描教練（ScanCoach）＋隱私說明 →「開始製作」或「上傳影片」→ 背景建房間，同時做環境安全檢查。
+// 建立我家的 3D 房間（規格 09 v0.6 §7.2、§8；#60、#61）：房間掃描教練（ScanCoach）＋隱私說明 →「已經拍好了，直接上傳」→ 背景建房間，同時做環境安全檢查。
 // 環境檢查一律做、不再詢問（子哲 2026-11-04）；3D 房間和環境報告處理完（成功或失敗）立即刪除居家原始影片和照片（決策 007）。
-// 「開始製作」用手機錄影、「上傳影片」選檔 → /api/homes/[id]/videos 簽網址、瀏覽器直傳 Azure 私有容器（#273）
+// 「已經拍好了，直接上傳」選檔（拍完檢查的「重拍」用手機錄影）→ /api/homes/[id]/videos 簽網址、瀏覽器直傳 Azure 私有容器（#273）
 //   → /api/homes/[id]/room 建 queued 的房間和環境報告
 //   （上傳前先在手機上檢查影片，VideoCheck；建議重拍的不能上傳）
 //   → workers/room-convert 轉成 3D（約 20 分鐘，好了會通知）→ 這頁預覽，按「完成」呼叫 meow_finish_home_room，之後才能開始領養任務。
@@ -162,15 +162,9 @@ export default function ScenePage() {
     </section>
   );
   else body = (
-    <ScanCoach onPick={() => picker.current?.click()} actions={<>
-      {/* 隱私說明是業務規則要求的聲明（決策 007），用一般內文字級，放在按鈕正上方 */}
-      <p className={f.lead}>{UPLOAD_PRIVACY}</p>
+    <ScanCoach onPick={() => picker.current?.click()} note={UPLOAD_PRIVACY} actions={<>
       {room?.status === "failed" && !error && <p className={f.error} role="alert">上一支影片沒有轉換成功，請照上面的規則重新拍一次。</p>}
       {error && <p className={f.error} role="alert">{error}</p>}
-      <div className={f.actions}>
-        <CatButton onClick={() => camera.current?.click()}><Icon name="video" size={18} />開始製作</CatButton>
-        <CatButton variant="ghost" onClick={() => picker.current?.click()}><Icon name="plus" size={18} />上傳影片</CatButton>
-      </div>
     </>} />
   );
 
