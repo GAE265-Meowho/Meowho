@@ -4,6 +4,7 @@
 import {
   SHOT_SECTIONS, refById, refFileName, type Frame, type RefSlot, type Shot, type ShotSection,
 } from "./trailer";
+import { VIDEO_AUDIO_PROMPT } from "./voice";
 
 export type ClipMotion = { action: string; camera: string };
 
@@ -70,6 +71,7 @@ export function motionPrompt(frame: Frame): string {
     `Action: ${m.action}`,
     `Camera: ${m.camera}`,
     "Keep the composition, lighting and color of the start frame. Keep every character's face, fur pattern, hairstyle and outfit exactly the same as in the reference images. Natural, gentle motion; no scene cuts.",
+    VIDEO_AUDIO_PROMPT, // #504：旁白、配樂、字幕都在剪輯時才加
   ];
   return lines.join("\n");
 }

@@ -9,6 +9,7 @@ describe("前導影片的影片檔（#501）", () => {
     expect(s.filter(x => x.kind === "full")).toHaveLength(1);
     expect(s.filter(x => x.kind === "section").map(x => x.id)).toEqual(["opening", "cross", "product", "ending"]);
     expect(s.filter(x => x.kind === "clip")).toHaveLength(26);
+    expect(s.filter(x => x.kind === "voice")).toHaveLength(27);
     expect(isVideoSlot("s07-2")).toBe(true);
     expect(isVideoSlot("s08")).toBe(false); // 字卡不用生成
     expect(isVideoSlot("../x")).toBe(false);
@@ -16,6 +17,9 @@ describe("前導影片的影片檔（#501）", () => {
 
   it("上傳檢查：格、格式、大小", () => {
     expect(checkTrailerVideo({ slot: "full", mime: "video/mp4", sizeBytes: 300_000_000 })).toBeNull();
+    expect(checkTrailerVideo({ slot: "n03", mime: "audio/mpeg", sizeBytes: 100_000 })).toBeNull();
+    expect(checkTrailerVideo({ slot: "n03", mime: "video/mp4", sizeBytes: 100_000 })).toBe("unsupported_type");
+    expect(checkTrailerVideo({ slot: "full", mime: "audio/mpeg", sizeBytes: 100_000 })).toBe("unsupported_type");
     expect(checkTrailerVideo({ slot: "nope", mime: "video/mp4", sizeBytes: 1 })).toBe("invalid_slot");
     expect(checkTrailerVideo({ slot: "s01", mime: "image/png", sizeBytes: 1 })).toBe("unsupported_type");
     expect(checkTrailerVideo({ slot: "s01", mime: "video/mp4", sizeBytes: 0 })).toBe("invalid_size");
@@ -24,6 +28,7 @@ describe("前導影片的影片檔（#501）", () => {
 
   it("路徑帶格與 UTC 時間戳", () => {
     expect(trailerVideoPath("opening", "video/quicktime", new Date("2026-11-18T15:30:05Z"))).toBe("videos/trailer/opening/20261118153005.mov");
+    expect(trailerVideoPath("n03", "audio/mpeg", new Date("2026-11-18T15:30:05Z"))).toBe("videos/trailer/n03/20261118153005.mp3");
   });
 
   it("整理版本：每格新到舊，不認得的略過", () => {
@@ -44,10 +49,12 @@ describe("前導影片的影片檔（#501）", () => {
     expect(videoSlotLabel("opening")).toBe("第一段遺棄開場");
     expect(videoSlotLabel("s07-1")).toBe("鏡 6-1 拍小橘吃飯");
     expect(videoSlotLabel("s01")).toBe("鏡 1");
+    expect(videoSlotLabel("n03")).toBe("旁白 n03 小橘");
   });
 
   it("下載檔名", () => {
     expect(trailerVideoFileName("s07-1", "鏡 6-1 拍小橘吃飯", { path: "videos/trailer/s07-1/20261118100000.mp4", at: "2026-11-18T10:00:00Z" }))
       .toBe("前導影片_鏡6-1拍小橘吃飯_2026-11-18.mp4");
+    expect(trailerVideoFileName("n03", "旁白 n03 小橘", { path: "videos/trailer/n03/20261118100000.mp3", at: "2026-11-18T10:00:00Z" })).toBe("n03_小橘.mp3");
   });
 });

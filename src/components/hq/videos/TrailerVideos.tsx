@@ -4,7 +4,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useHqActor } from "@/components/hq/HqActor";
 import { useHqToast } from "@/components/hq/HqToast";
-import { TRAILER_VIDEO_ERROR, TRAILER_VIDEO_MIME, checkTrailerVideo, type TrailerVideoError } from "@/lib/hq/videos/trailer-video";
+import { TRAILER_VIDEO_ERROR, checkTrailerVideo, slotMimes, type TrailerVideoError } from "@/lib/hq/videos/trailer-video";
 import { formatLogTime } from "@/lib/hq/videos/gen-log";
 
 export type TrailerVideoVersion = { path: string; at: string; url: string; downloadUrl: string };
@@ -23,7 +23,7 @@ export function useTrailerVideos() {
   const { preview } = useHqActor();
   const [state, setState] = useState<State>({ videos: {}, status: "loading" });
   const reload = useCallback(async () => {
-    if (preview) { setState({ videos: {}, status: "off", message: "示範模式不能上傳或播放影片" }); return; }
+    if (preview) { setState({ videos: {}, status: "off", message: "示範模式不能上傳或播放影音檔" }); return; }
     const res = await fetch("/api/hq/trailer-videos", { cache: "no-store" }).catch(() => null);
     const json = await res?.json().catch(() => null) as { videos?: State["videos"]; error?: string } | null;
     if (!res?.ok || !json?.videos) {
@@ -65,7 +65,8 @@ async function uploadVideo(slot: string, file: File, onProgress: (pct: number) =
 }
 
 /** 一格影片：16:9 播放器、版本切換、上傳新版本、下載 */
-export function VideoSlot({ slot, label, state, emptyText = "還沒有影片" }: { slot: string; label: string; state: TrailerVideosState; emptyText?: string }) {
+/** media＝audio 時是旁白音檔（#504）：不放 16:9 框，用 audio 播放器 */
+export function VideoSlot({ slot, label, state, emptyText = "還沒有影片", media = "video" }: { slot: string; label: string; state: TrailerVideosState; emptyText?: string; media?: "video" | "audio" }) {
   const toast = useHqToast();
   const input = useRef<HTMLInputElement>(null);
   const versions = state.videos[slot] ?? [];
@@ -89,10 +90,15 @@ export function VideoSlot({ slot, label, state, emptyText = "還沒有影片" }:
 
   return (
     <div className="hq-video-vslot">
-      <div className="hq-video-frame wide hq-video-player">
-        {v ? <video key={v.path} src={v.url} controls preload="metadata" playsInline aria-label={`${label}影片`} />
-          : <span className="hq-sub">{state.status === "loading" ? "讀取中…" : emptyText}</span>}
-      </div>
+      {media === "audio" ? (
+        v ? <audio key={v.path} src={v.url} controls preload="none" aria-label={`${label}音檔`} className="hq-video-audio" />
+          : <span className="hq-sub">{state.status === "loading" ? "讀取中…" : emptyText}</span>
+      ) : (
+        <div className="hq-video-frame wide hq-video-player">
+          {v ? <video key={v.path} src={v.url} controls preload="metadata" playsInline aria-label={`${label}影片`} />
+            : <span className="hq-sub">{state.status === "loading" ? "讀取中…" : emptyText}</span>}
+        </div>
+      )}
       {progress !== null && (
         <div className="hq-video-bar" role="progressbar" aria-label={`${label}上傳進度`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={progress}>
           <span style={{ width: `${progress}%` }} />
@@ -101,9 +107,9 @@ export function VideoSlot({ slot, label, state, emptyText = "還沒有影片" }:
       <div className="hq-row hq-row-tight">
         {enabled && (
           <>
-            <input ref={input} type="file" accept={Object.keys(TRAILER_VIDEO_MIME).join(",")} hidden onChange={e => void choose(e.target.files?.[0])} />
+            <input ref={input} type="file" accept={Object.keys(slotMimes(slot)).join(",")} hidden onChange={e => void choose(e.target.files?.[0])} />
             <button type="button" className="hq-btn ghost small" disabled={progress !== null} onClick={() => input.current?.click()}>
-              {progress !== null ? `上傳中 ${progress}%` : v ? "上傳新版本" : "上傳影片"}
+              {progress !== null ? `上傳中 ${progress}%` : v ? "上傳新版本" : media === "audio" ? "上傳音檔" : "上傳影片"}
             </button>
           </>
         )}

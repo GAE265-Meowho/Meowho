@@ -55,6 +55,12 @@ describe("/api/hq/trailer-videos", () => {
     expect(json.upload.headers["x-ms-blob-type"]).toBe("BlockBlob");
   });
 
+  it("旁白音檔（#504）：n01–n27 收 MP3，路徑副檔名 mp3", async () => {
+    const json = await (await post({ slot: "n03", mime: "audio/mpeg", sizeBytes: 200_000 })).json();
+    expect(json.path).toMatch(/^videos\/trailer\/n03\/\d{14}\.mp3$/);
+    expect((await post({ slot: "n03", mime: "video/mp4", sizeBytes: 10 })).status).toBe(400);
+  });
+
   it("不合規的上傳回 400，不簽網址", async () => {
     expect((await post({ slot: "s08", mime: "video/mp4", sizeBytes: 10 })).status).toBe(400);
     expect((await post({ slot: "full", mime: "image/png", sizeBytes: 10 })).status).toBe(400);
