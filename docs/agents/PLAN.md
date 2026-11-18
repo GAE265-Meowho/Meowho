@@ -3,7 +3,8 @@
 - 前導影片產生影片 tab、(P) 生成紀錄、v3 修訂、腳本下載（Tina × Claude Code，#493、#494、#497、#498）：PR #495 已合併，完成。
 - 前導影片同一鏡多格標籤（Tina × Claude Code，#499）：PR #500 已合併，完成。
 - 前導影片「影片」tab 放完成的影片，存 Azure Blob（Tina × Claude Code，#501、#502 阿芳家兩隻中途貓與鏡 2 箱子結構）：PR #503 已合併，完成。
-- 前導影片配音 tab＋影片 tab 聲音提醒（Tina × Claude Code，#504）：分支 `feat/504-trailer-voice`，審查中；0039 待 Tina 確認後執行。
+- 前導影片配音 tab＋影片 tab 聲音提醒（Tina × Claude Code，#504）：PR #506 已合併；0039 待 Tina 確認後執行。
+- 前導影片時間軸：鏡 2 改 0:06–0:10、後續提前 20 秒（Tina × Claude Code，#507）：分支 `feat/507-trailer-timeline`，審查中。
 
 - AI 居家安全報告首屏與圖片載入（Jerry0808 × Codex）：分支 `codex/home-safety-report-ux`，審查中。沿用 #273 報告授權；待驗收 Preview 的真實 Owner 登入及 Azure 延遲。
 

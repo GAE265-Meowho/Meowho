@@ -19,16 +19,24 @@ describe("前導影片：產生影片", () => {
     expect(clipSections().flatMap(s => s.items).every(i => i.frame.make === "ai")).toBe(true);
   });
 
+  it("全片時間軸連續：鏡頭首尾相接，最後一鏡在 4:40 結束（#507）", () => {
+    const toSec = (t: string) => { const [m, x] = t.split(":").map(Number); return m * 60 + x; };
+    const all = SHOT_SECTIONS.flatMap(s => s.shots);
+    for (let i = 1; i < all.length; i++) expect(all[i].time.split("–")[0], `鏡 ${all[i].no}`).toBe(all[i - 1].time.split("–")[1]);
+    expect(toSec(all[all.length - 1].time.split("–")[1])).toBe(280);
+    for (const sec of SHOT_SECTIONS) expect(sec.range, sec.key).toBe(`${sec.shots[0].time.split("–")[0]}–${sec.shots[sec.shots.length - 1].time.split("–")[1]}`);
+  });
+
   it("鏡頭長度由分鏡表時間算出，多格平分；生成長度取 5、10 或 15 秒", () => {
     const s1 = shots[0];
     expect(shotSeconds(s1)).toBe(6); // 0:00–0:06
     expect(clipLength(s1)).toEqual({ cut: 6, generate: 10 });
-    expect(clipLength(shots[1])).toEqual({ cut: 24, generate: 15 }); // 鏡 2 0:06–0:30
-    const s6 = shots[5]; // 1:05–1:15，兩格（原鏡 7）
+    expect(clipLength(shots[1])).toEqual({ cut: 4, generate: 5 }); // 鏡 2 0:06–0:10（#507）
+    const s6 = shots[5]; // 0:45–0:55，兩格（原鏡 7）
     expect(clipLength(s6)).toEqual({ cut: 5, generate: 5 });
-    const s12 = shots[11]; // 2:15–2:22（原鏡 13）
+    const s12 = shots[11]; // 1:55–2:02（原鏡 13）
     expect(clipLength(s12)).toEqual({ cut: 7, generate: 10 });
-    const s17 = shots[16]; // 3:08–3:20，只有 1 格 AI（原鏡 18）
+    const s17 = shots[16]; // 2:48–3:00，只有 1 格 AI（原鏡 18）
     expect(clipLength(s17)).toEqual({ cut: 12, generate: 15 });
   });
 
