@@ -26,6 +26,7 @@ describe("可見模組（UT-HQ-01、02）", () => {
     expect(getVisibleSidebar(SA1)).toEqual([
       "home",
       "flows",
+      "videos",
       "households",
       "report_moderation",
       "user_management",
@@ -36,19 +37,19 @@ describe("可見模組（UT-HQ-01、02）", () => {
     ]);
   });
   it("UT-HQ-02 AD-P：只有首頁、商品、知識管理", () => {
-    expect(getVisibleSidebar(AD_P)).toEqual(["home", "flows", "products", "knowledge"]);
+    expect(getVisibleSidebar(AD_P)).toEqual(["home", "flows", "videos", "products", "knowledge"]);
   });
   it("授權順序錯亂時仍依側欄順序排列", () => {
     const a: HqActor = { role: "admin", modules: ["knowledge", "report_moderation"] };
-    expect(getVisibleSidebar(a)).toEqual(["home", "flows", "report_moderation", "knowledge"]);
+    expect(getVisibleSidebar(a)).toEqual(["home", "flows", "videos", "report_moderation", "knowledge"]);
   });
   it("管理員資料裡即使出現 admin_authorization 也不顯示", () => {
     const a: HqActor = { role: "admin", modules: ["admin_authorization", "products"] };
-    expect(getVisibleSidebar(a)).toEqual(["home", "flows", "products"]);
+    expect(getVisibleSidebar(a)).toEqual(["home", "flows", "videos", "products"]);
   });
   it("貓戶管理是授權模組，排在首頁之後（Issue #179）", () => {
-    expect(getVisibleSidebar({ role: "admin", modules: [] })).toEqual(["home", "flows"]);
-    expect(getVisibleSidebar({ role: "admin", modules: ["products", "households"] })).toEqual(["home", "flows", "households", "products"]);
+    expect(getVisibleSidebar({ role: "admin", modules: [] })).toEqual(["home", "flows", "videos"]);
+    expect(getVisibleSidebar({ role: "admin", modules: ["products", "households"] })).toEqual(["home", "flows", "videos", "households", "products"]);
   });
   it("非管理員沒有任何可見項目", () => {
     expect(getVisibleSidebar(X)).toEqual([]);

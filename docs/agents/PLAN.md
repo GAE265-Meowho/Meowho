@@ -1,8 +1,10 @@
 # PLAN — 計畫與任務管理
 
+- 前導影片 prompt 註明參考圖檔名（Tina × Claude Code，#491）：分支 `feat/491-trailer-prompt-refs`，審查中。
+
 - AI 居家安全報告首屏與圖片載入（Jerry0808 × Codex）：分支 `codex/home-safety-report-ux`，審查中。沿用 #273 報告授權；待驗收 Preview 的真實 Owner 登入及 Azure 延遲。
 
-- AI 居家安全報告結構化視圖（Jerry0808 × Codex，#273）：分支 `codex/home-safety-report-view`，進行中。Owner 視圖與歷史回退已完成本機驗證；真實雲端整合待獲准。
+- AI 居家安全報告與 WelfareLens Monorepo（Jerry0808 × Codex，#273）：分支 `feat/273-welfarelens-monorepo`，審查中。Worker 獨立建置及執行，Registry 與真實雲端整合待驗收。
 - AI 居家安全報告 V3 主線整合（Jerry0808 × Codex，#273）：分支 `codex/home-safety-v3-main`，審查中。
 - AI 居家環境安全檢測對外命名（Jerry0808 × Codex，關聯 #424）：分支 `chore/meowhome-home-safety-naming`，審查中。
 
@@ -24,7 +26,7 @@
 
 ## 任務（tracer-bullet，每張可獨立 Demo）
 
-- 新增貓咪改成口說 → 口說追問缺的欄位 → 只剩沒答到的用點的 → 名片（#478，子哲 × Claude Code，2026-11-18）：審查中；分支 `feat/478-new-cat-fill-missing`，PR #479。示範模式已走過完整流程，待登入正式站實測語音。
+- 新增貓咪口說建檔（#478，子哲 × Claude Code，2026-11-18）：#479、#483 已合併；第 3 份審查中（分支 `feat/478-voice-summary-handover`，PR #487）：口說補充改成一個彙整對話框、說說牠講法 placeholder、中途喵戶預設交接物品。待登入正式站實測語音。
 - #356 摸貓完整體驗（世安 × Codex）：審查中（`feat/356-pet-orbit`）。自由視角、單一自由互動、身體語言與衛教已整合；本次交付刻意不含摸貓專屬音效。待登入 Preview 驗照護入帳及手機實機。
 - #356 3D 刷牙、摸貓與照護圖示（世安 × Codex）：審查中。擬真刷牙已完成本機 Chrome 1280px／375px 五階段播放與操作驗收；待登入 Preview 驗照護入帳、第 30 天與手機實機。摸貓已整合成貓原始虎斑材質、尾巴命中校準，以及放鬆、抗拒與步行離場，待登入 Preview 與手機實機驗收。
 - 虛擬飼養第 5 份：貓動作串接、跟著貓、第 30 天半夜跑酷（#354，渝茜 × Claude Code，2026-11-14）：審查中；分支 `feat/354-play-cat-motion`，PR #433（疊在 #432 第 1 天外出籠之後）。已在渝茜的真實掃描房間看過第 1 天、第 3 天、第 30 天。

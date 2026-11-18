@@ -1,0 +1,102 @@
+name: WelfareLens Worker
+on:
+  pull_request:
+    paths:
+      - 'workers/welfarelens/**'
+      - '.github/workflows/welfarelens-worker.yml'
+      - 'src/lib/home-safety/report-view*.ts'
+  push:
+    branches: [main]
+    paths:
+      - 'workers/welfarelens/**'
+      - '.github/workflows/welfarelens-worker.yml'
+      - 'src/lib/home-safety/report-view*.ts'
+    tags: ['welfarelens-v*']
+permissions:
+  contents: read
+jobs:
+  worker:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: workers/welfarelens
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: workers/welfarelens/package-lock.json
+      - run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run worker:test-fixture
+      - run: npm test
+      - uses: docker/setup-buildx-action@v3
+      - name: Build linux/amd64
+        uses: docker/build-push-action@v6
+        with:
+          context: workers/welfarelens
+          file: workers/welfarelens/Dockerfile.worker
+          platforms: linux/amd64
+          load: true
+          tags: welfarelens-worker:ci
+          labels: org.opencontainers.image.revision=${{ github.sha }}
+          cache-from: type=gha,scope=welfarelens-worker
+          cache-to: type=gha,mode=max,scope=welfarelens-worker
+      - run: docker run --rm --network none welfarelens-worker:ci --self-test
+      - name: Test report stack without network
+        run: |
+          mkdir -p "${{ runner.temp }}/welfarelens-offline"
+          chmod 0777 "${{ runner.temp }}/welfarelens-offline"
+          docker run --rm --network none --mount "type=bind,src=$PWD/welfarelens-video-spike/samples/synthetic-room.mp4,dst=/tmp/synthetic-room.mp4,readonly" --mount "type=bind,src=${{ runner.temp }}/welfarelens-offline,dst=/data" welfarelens-worker:ci --fixture evals/fixtures/worker-scene.json --input /tmp/synthetic-room.mp4 --root /data
+      - name: Verify actual image report and queue contracts
+        run: |
+          docker run --rm --network none \
+            --mount "type=bind,src=$PWD/tests,dst=/app/tests,readonly" \
+            --mount "type=bind,src=$PWD/welfarelens-video-spike/samples,dst=/app/welfarelens-video-spike/samples,readonly" \
+            -e WELFARELENS_TEST_PDF_BROWSER=/usr/bin/chromium --entrypoint node welfarelens-worker:ci \
+            --experimental-strip-types --test tests/video-before-after.test.mjs tests/meowho-worker-mode.test.mjs tests/modernization-contract.test.mjs tests/meowho-worker.test.mjs tests/standalone-worker.test.mjs
+      - name: Export tested image
+        if: startsWith(github.ref, 'refs/tags/welfarelens-v') && vars.WELFARELENS_GHCR_RELEASE == 'true'
+        run: |
+          set -o pipefail
+          docker save welfarelens-worker:ci | gzip > "$RUNNER_TEMP/welfarelens-worker.tar.gz"
+      - uses: actions/upload-artifact@v4
+        if: startsWith(github.ref, 'refs/tags/welfarelens-v') && vars.WELFARELENS_GHCR_RELEASE == 'true'
+        with:
+          name: welfarelens-worker
+          path: ${{ runner.temp }}/welfarelens-worker.tar.gz
+          retention-days: 1
+          compression-level: 0
+  publish:
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/welfarelens-v') && vars.WELFARELENS_GHCR_RELEASE == 'true'
+    needs: worker
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: welfarelens-worker
+      - name: Publish and verify the tested digest
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GHCR_USER: ${{ github.actor }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          docker load --input welfarelens-worker.tar.gz
+          printf '%s' "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
+          package="ghcr.io/${REPOSITORY,,}/welfarelens-worker"
+          tag="$package:sha-$GITHUB_SHA"
+          docker tag welfarelens-worker:ci "$tag"
+          docker push "$tag"
+          digest="$(docker inspect --format='{{index .RepoDigests 0}}' "$tag")"
+          test "${digest%@*}" = "$package"
+          docker pull --platform linux/amd64 "$digest"
+          test "$(docker image inspect --format='{{.Id}}' "$digest")" = "$(docker image inspect --format='{{.Id}}' welfarelens-worker:ci)"
+          docker run --rm --network none "$digest" --self-test
+          printf '%s\n' "$digest" >> "$GITHUB_STEP_SUMMARY"

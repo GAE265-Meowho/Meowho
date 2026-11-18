@@ -23,6 +23,8 @@ export const HANDOVER_ITEMS = ["疫苗卡或病歷", "慣用飼料", "貓砂", "
 export const AdoptionTermsSchema = z.object({
   items: z.array(z.enum(ADOPTION_TERMS)).max(ADOPTION_TERMS.length),
   note: z.string().max(300),
+  /** 喵戶預設交接時會附上的物品（新增貓時帶入，每隻貓可以再改）；舊資料沒有這個欄位 */
+  handover: z.array(z.enum(HANDOVER_ITEMS)).max(HANDOVER_ITEMS.length).optional(),
 });
 export type AdoptionTerms = z.infer<typeof AdoptionTermsSchema>;
 

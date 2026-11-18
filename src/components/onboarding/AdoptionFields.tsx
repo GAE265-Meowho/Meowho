@@ -1,6 +1,6 @@
 "use client";
 // 送養文常見欄位的輸入元件（#82）：送養條件、醫療細項、相處、多選清單。喵戶表單與貓咪名片共用。
-import { ADOPTION_TERMS, COMPAT_KEYS, COMPAT_LABEL, type AdoptionTerms, type Compat, type Medical } from "@/lib/cat-profile/adoption";
+import { ADOPTION_TERMS, COMPAT_KEYS, HANDOVER_ITEMS, COMPAT_LABEL, type AdoptionTerms, type Compat, type Medical } from "@/lib/cat-profile/adoption";
 import s from "./intake.module.css";
 
 export function MultiPick<T extends string>({ label, options, value, onChange }: {
@@ -34,6 +34,9 @@ export function TermsFields({ id, value, onChange }: { id: string; value: Adopti
       <MultiPick label="送養條件" options={ADOPTION_TERMS} value={value.items} onChange={items => onChange({ ...value, items })} />
       <label className={s.label} htmlFor={`${id}-note`}>其他條件</label>
       <input id={`${id}-note`} value={value.note} maxLength={300} placeholder="例如：限雙北、需單養" onChange={e => onChange({ ...value, note: e.target.value })} />
+      {/* 喵戶預設的交接物品：新增貓時帶入那隻貓的名片，每隻可以再改 */}
+      <span className={s.label}>交接時會附上的物品</span>
+      <MultiPick label="交接時會附上的物品" options={HANDOVER_ITEMS} value={value.handover ?? []} onChange={handover => onChange({ ...value, handover })} />
     </>
   );
 }

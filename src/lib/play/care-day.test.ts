@@ -87,3 +87,17 @@ describe("flow 的今日照顧狀態", () => {
     expect(s.checkpoint?.today).toEqual(newDay(1));
   });
 });
+
+describe("照顧紀錄寫進 life.careLog（渝茜 2026-11-18）", () => {
+  it("劇情裡的照顧、在家的時光做的事、這天沒做的事都記下來；節點結束記下心情", () => {
+    const day3 = STORY.findIndex(n => n.id === "day3");
+    let s = toHome(day3);
+    expect(s.life.careLog?.find(c => c.node === "day3" && c.act === "feed")?.out).toBe("good");
+    expect(s.life.careLog?.find(c => c.node === "day3" && c.act === "scoop")).toMatchObject({ out: "skip" });
+    s = playReducer(s, { type: "care", act: "water", good: false, result: { fill: 40, washed: true } });
+    expect(s.life.careLog?.find(c => c.node === "day3" && c.act === "water")?.d).toBe("水只裝到 40%");
+    s = playReducer(s, { type: "next" });
+    expect(s.life.careLog?.find(c => c.node === "day3" && c.act === "brush")).toMatchObject({ out: "skip", d: "這天沒做" });
+    expect(s.life.moods?.some(m => m.node === "day3")).toBe(true);
+  });
+});

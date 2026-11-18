@@ -1,0 +1,37 @@
+/* Scoped translation of Meowho Design System v2; no team stylesheet or image transformations. */
+body.welfarelens-theme {
+ --paper:#fbf5ea;--cream:#fffaf0;--card:#fff;--line:#efe3cf;
+ --ink:#3f2e24;--ink-soft:#7a6252;--yellow:#f6b53b;--yellow-deep:#e9a21f;--yellow-soft:#fdedc4;
+ --orange:#e8913a;--orange-deep:#a8562a;--orange-soft:#fde3c6;--heading-orange:#b25e16;
+ --caramel:#a5602a;--caramel-deep:#7d4517;--pink:#f4b2ad;--pink-soft:#fde7e4;--mint-soft:#e3f2e7;
+ --green:var(--caramel-deep);--muted:var(--ink-soft);--soft:var(--cream);--brown:var(--caramel-deep);--blue:var(--caramel-deep);
+ background:var(--paper);color:var(--ink);
+}
+.welfarelens-theme .brand{font-size:clamp(17px,2.4vw,24px);color:var(--ink);text-decoration:none;gap:10px;line-height:1.5}
+.welfarelens-theme .brand-mark{background:var(--caramel);color:var(--card);font-size:18px}
+.welfarelens-theme .brand-sub{color:var(--ink-soft)}
+.welfarelens-theme .mode-nav a[aria-current=page]{background:var(--ink);color:var(--yellow)}
+.welfarelens-theme .primary{position:relative;border-radius:999px;background:var(--caramel);color:var(--card);border-color:var(--caramel);box-shadow:0 5px 0 var(--caramel-deep);margin:8px 12px 8px 0;isolation:isolate;min-height:48px}
+.welfarelens-theme .primary:before{content:'';position:absolute;width:36px;height:14px;left:15px;top:-9px;background:var(--caramel);clip-path:polygon(0 100%,12% 0,44% 100%,59% 100%,88% 0,100% 100%);z-index:-1}
+.welfarelens-theme .primary:after{content:'';position:absolute;width:13px;height:24px;right:-10px;top:40%;border:7px solid var(--caramel);border-left:0;border-top:0;border-radius:0 0 20px 0;z-index:-1}
+.welfarelens-theme .primary:hover:not(:disabled){background:var(--caramel-deep);border-color:var(--caramel-deep)}
+.welfarelens-theme .primary.file-button{overflow:visible}
+.welfarelens-theme .headline-phrase{display:inline-block}
+.welfarelens-theme .secondary{border-radius:999px;border-color:var(--orange);background:var(--card);color:var(--caramel-deep)}
+.welfarelens-theme :is(.video-guide,.scan-picker,.video-selected-issue,.issue-care,.quick-action,.quick-plan){background:var(--card);border-color:var(--line);border-radius:28px;box-shadow:0 6px 0 -1px var(--line)}
+.welfarelens-theme .issue-summary-actions button{background:var(--card);border-radius:22px;color:var(--ink)}
+.welfarelens-theme .issue-summary-actions button[aria-pressed=true]{background:var(--yellow-soft);border-color:var(--caramel)}
+.welfarelens-theme .video-issue-row.selected{border-color:var(--caramel)}
+.welfarelens-theme .issue-action{background:var(--cream)}
+.welfarelens-theme :is(button,a,summary):focus-visible{outline:3px solid var(--caramel-deep);outline-offset:4px}
+.welfarelens-theme :is(.secondary,.text-button,summary,.mode-nav a){min-height:44px}
+.welfarelens-theme .video-evidence :is(video,.video-event-image),.welfarelens-theme .evidence-zoom-scroll{background:var(--ink)}
+.welfarelens-theme .visual-report-counts{background:var(--yellow-soft)}
+.welfarelens-theme .visual-report-action{color:var(--ink)}
+.welfarelens-theme .visual-report-brand,.welfarelens-theme .visual-report-top>span{color:var(--caramel-deep)}
+.welfarelens-theme .visual-report-unknown,.welfarelens-theme .visual-related{color:var(--ink-soft)}
+.welfarelens-theme .visual-report-figure figcaption{font-size:9pt}
+.welfarelens-theme .video-warning{background:var(--yellow-soft);color:var(--caramel-deep)}
+@media(max-width:767px){.welfarelens-theme .brand-sub{display:none}.welfarelens-theme .mode-nav a{padding:10px 20px}.welfarelens-theme .topbar{gap:8px}.welfarelens-theme .brand{white-space:normal}}
+@media(prefers-reduced-motion:reduce){.welfarelens-theme *{animation:none!important;transition:none!important;scroll-behavior:auto!important}}
+@media print{body.welfarelens-theme{background:white}.welfarelens-theme .video-print-report{color:var(--ink)}.welfarelens-theme .visual-report-image svg rect:last-child{stroke:var(--caramel)}.welfarelens-theme .visual-report-overview aside{background:var(--cream);border-color:var(--caramel)}}

@@ -1,0 +1,32 @@
+node_modules/
+.next/
+*.tsbuildinfo
+.env*
+!.env.example
+private-eval/
+test-results/
+.superpowers/
+.video-scans/
+
+# Local builds and test outputs
+dist/
+out/
+coverage/
+playwright-report/
+playwright/.cache/
+.cache/
+
+# Private media and generated reports must stay outside version control
+*.mp4
+*.mov
+*.mkv
+*.avi
+*.pdf
+docs/audits/
+
+# Container exports and private credentials
+*.tar
+*.tar.gz
+*.key
+*.pem
+*.pfx

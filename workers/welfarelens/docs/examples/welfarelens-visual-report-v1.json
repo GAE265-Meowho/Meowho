@@ -1,0 +1,118 @@
+{
+  "product_name": "貓咪居家環境健檢",
+  "schema_version": "welfarelens.visual-report.v1",
+  "report_id": "11111111-1111-4111-8111-111111111111",
+  "job_id": "11111111-1111-4111-8111-111111111111",
+  "status": "incomplete",
+  "generated_at": 1793664000000,
+  "source": "snapshot",
+  "media_type": "video",
+  "summary": {
+    "priority": 1,
+    "attention": 0,
+    "care": 0,
+    "top_issue_keys": [
+      "example-wire"
+    ]
+  },
+  "issues": [
+    {
+      "key": "example-wire",
+      "label": "合成測試：外露線材",
+      "category": "PRIORITY_ACTION",
+      "severity": "moderate",
+      "facts": [
+        "合成範例，不是實際房間或 Azure 判讀。"
+      ],
+      "inferences": [
+        "貓可能由沙發接近線材"
+      ],
+      "action": "將線收入保護套並沿牆固定",
+      "uncertainty": [
+        "無法從影像得知是否通電"
+      ],
+      "evidence": [
+        {
+          "observation_id": "synthetic-wire",
+          "frame_id": "f000",
+          "timestamp": 0,
+          "location": "合成範例，不是實際房間或 Azure 判讀。",
+          "source": "sampled_frame",
+          "crop": null
+        }
+      ],
+      "sources": [
+        "https://www.cats.org.uk/help-and-advice/caring-for-your-cat/home-and-environment/keeping-your-cat-safe"
+      ],
+      "representative": {
+        "observation_id": "synthetic-wire",
+        "frame_id": "f000",
+        "timestamp": 0,
+        "frame_hash": "image-f000",
+        "frame_path": null,
+        "crop_path": null,
+        "region": {
+          "source": "unavailable",
+          "bbox": null
+        }
+      }
+    }
+  ],
+  "care_topics": [],
+  "reading_groups": [
+    {
+      "key": "example-wire",
+      "title": "合成測試：外露線材",
+      "relation": "single",
+      "issue_keys": [
+        "example-wire"
+      ]
+    }
+  ],
+  "observations": [
+    {
+      "observation_id": "synthetic-wire",
+      "event_ids": [
+        "event-synthetic-wire"
+      ],
+      "frame_id": "f000",
+      "timestamp": 0,
+      "frame_hash": "image-f000",
+      "rule_id": "H04",
+      "object_ref": 0,
+      "object_kind": "cord",
+      "object_label": "壁架下線材",
+      "candidate_bbox": null,
+      "facts": [],
+      "plant": null,
+      "quality": "adequate",
+      "fidelity": "validated_candidate",
+      "kind": "risk",
+      "severity": "moderate",
+      "title": "合成測試：外露線材",
+      "observation": "合成範例，不是實際房間或 Azure 判讀。",
+      "potential_risk": "貓可能由沙發接近線材",
+      "recommendation": "將線收入保護套並沿牆固定",
+      "unknown": [
+        "無法從影像得知是否通電"
+      ],
+      "sources": [
+        "https://www.cats.org.uk/help-and-advice/caring-for-your-cat/home-and-environment/keeping-your-cat-safe"
+      ],
+      "model": "fixture"
+    }
+  ],
+  "match_evidence": [],
+  "limitations": [
+    "AI 抽樣觀察及推論未經現場查核；未見不代表安全。",
+    "AI 估計框協助找到物件，位置可能有偏差；並非已驗證定位。",
+    "部分畫面未能完成分析，不能據此判定安全。"
+  ],
+  "analysis_metadata": {
+    "duration_seconds": null,
+    "sampled_times": [],
+    "model": "synthetic-example",
+    "expires_at": 1793665800000,
+    "metrics": null
+  }
+}

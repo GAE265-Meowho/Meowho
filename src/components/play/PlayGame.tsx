@@ -921,7 +921,7 @@ export function PlayGame({ cat, catHref }: { cat: PlayCatSource; catHref: string
       )}
 
       {state.step === "report" && home && (
-        <ReportStep state={state} pick={pick} monthly={shop.month} home={home} runId={runId} catHref={catHref}
+        <ReportStep state={state} pick={pick} monthly={shop.month} home={home} allergy={home.sample ? "none" : extras?.allergy ?? null} runId={runId} catHref={catHref}
           onReachEnd={() => setReportRead(true)} onAdoptInfo={!state.life.abandoned && cat.adoptable ? () => setAdoptOpen(n => n + 1) : undefined}
           onRestart={() => { dispatch({ type: "restart" }); setEnded(false); setReportRead(false); setShots([]); hazardsAsked.current = false; hazardShown.current = false; setHazardItem(null); setPlaced([]); setScanSpots({}); setScanPose({}); setAutoPlaced(false); setHintClosed(false); setLines({}); setRunId(null); setFrozenRoom(null); savedCp.current = null; }} />
       )}

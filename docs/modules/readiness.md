@@ -82,7 +82,7 @@ Worker 選用的 `report.html` 與 `html-assets/` 位於既有 attempt 前綴。
 |---|---|---|
 | 誰的房間 | 示範房間，`owner_household_id` 為 null | 飼主自己家，`owner_household_id`＝喵戶 id |
 | 誰能寫 `meow_room_models`／`meow_room_jobs` | 有 `virtual_assets` 權限的管理員（RLS） | 會員**不能**直接寫，只能讀、刪自己的；建立要經伺服器（service role），先用登入者身分確認是自己的喵戶 |
-| 原始影片 | 私有 bucket `meow-room-videos` | Azure 私有容器（`media-dev`／`media`）`homes/<household_id>/videos/<影片 id>.<mp4|mov>`（#273）；主站確認是喵戶長後簽短效上傳網址，瀏覽器直傳；300 MB、180 秒、mp4／mov（#243）。11/07 以前的影片在 Supabase `meow-home-videos`，先不刪，有容量警告再刪 |
+| 原始影片 | 私有 bucket `meow-room-videos` | Azure 共用私有容器 `media-dev` `homes/<household_id>/videos/<影片 id>.<mp4|mov>`（#273）；主站確認是喵戶長後簽短效上傳網址，瀏覽器直傳；300 MB、180 秒、mp4／mov（#243）。11/07 以前的影片在 Supabase `meow-home-videos`，先不刪，有容量警告再刪 |
 | 成果 | **公開** bucket `meow-room-models` | **私有** bucket `meow-home-scenes`（`<household_id>/…`），只有自己讀得到；前台用短時效 signed URL 讀，**不能放公開 bucket** |
 | 原始檔刪除 | 轉完刪 | 3D 房間和環境報告**都處理完（成功或失敗）**後，由主站的清理程式刪並寫 `raw_deleted_at`（決策 007、#242）；兩支 worker 都不刪 |
 | 環境報告 | 沒有 | 建房間時一律同時建一筆 `meow_env_reports`（`room_model_id`＝房間、`status = 'queued'`） |
@@ -207,12 +207,12 @@ Worker 選用的 `report.html` 與 `html-assets/` 位於既有 attempt 前綴。
 - 領養任務：`meow_task_templates`（系統預設任務，依年齡層）、`meow_cat_task_sets`（中途草稿）、`meow_cat_task_versions`（存了就不改）
 - 進行任務：`meow_task_runs`（進度、試養報告）、`meow_task_abandons`（放棄任務標籤，只有中途讀得到）
 - 我的 3D 房間：`meow_room_models`（`owner_household_id`、`completed_at`、`raw_deleted_at`；`env_check` 11/04 起不再使用，之後的 migration 再移除）；私有 bucket `meow-home-videos`、`meow-home-scenes`
-- 環境報告：`meow_env_reports`、`meow_env_report_shares`、`meow_env_report_advice`；Worker 的 `result.json`、`report.pdf`、裁切圖保存於私有 Azure Blob 容器（測試 `media-dev`／正式 `media`）的 attempt prefix，資料庫只存路徑。同一個喵戶可以有多份（檢測紀錄），單獨檢測的 `room_model_id` 為 null。
+- 環境報告：`meow_env_reports`、`meow_env_report_shares`、`meow_env_report_advice`；Worker 的 `result.json`、`report.pdf`、裁切圖保存於共用私有 Azure Blob 容器 `media-dev` 的 attempt prefix，資料庫只存路徑。同一個喵戶可以有多份（檢測紀錄），單獨檢測的 `room_model_id` 為 null。
 
 ## API／主要函式
 - 0017：`meow_save_cat_tasks()`、`meow_publish_cat()`、`meow_cat_publish_check()`、`meow_start_task_run()`、`meow_abandon_task_run()`、`meow_complete_task_run()`、`meow_share_task_proof()`、`meow_thread_task_status()`、`meow_finish_home_room()`、`meow_share_env_report()`
 - 安全報告（#277，Draft）：`GET /api/homes/[id]/reports/[reportId]` 以使用者 session/RLS 驗證本人或已分享的中途，只回摘要、項目、同源裁切圖 URL 與本人專用的同源 PDF URL；`GET .../[reportId]/pdf` 與 `GET .../[reportId]/crops/[key]` 每次重新授權後 redirect 至短效 Blob URL。PDF 直送 Azure，不經 Vercel Function。Owner 頁面先顯示 PDF，再保留風險卡片；Keeper 僅顯示授權摘要／裁切圖。裁切圖載入失敗可重新請求同源路由。舊 queued 報告與 ready 報告並存時，已完成報告仍標示可查看。回傳格式與環境容器選擇見 `docs/spec/10_居家環境健檢Worker契約.md` §5.1。真實 Owner／Azure Preview 驗收仍待合法測試 session。
-- Storage Adapter：`getMediaStore().readUrl()` 使用部署設定的單一 `AZURE_STORAGE_CONTAINER`；測試／Preview 應為 `media-dev`，正式為 `media`。不得自動跨容器 fallback。共用 Supabase 下，真實報告只可由指向 `media-dev` 且具有合法 owner session 的測試環境讀取。
+- Storage Adapter：`getMediaStore().readUrl()` 使用部署設定的單一 `AZURE_STORAGE_CONTAINER`；現行測試／Preview 與正式均使用 `media-dev`。各部署的實際設定仍需驗證。不得自動跨容器 fallback。共用 Supabase 下，真實報告只可由指向 `media-dev` 且具有合法 owner session 的測試環境讀取。
 - 待建立：環境影片風險偵測、情境劇本 AI 生成、任務 AI 摘要、Demo 加速模式
 
 ## #326 安全報告通知與佇列隔離
@@ -220,8 +220,8 @@ Worker 選用的 `report.html` 與 `html-assets/` 位於既有 attempt 前綴。
 - 通知方案 A 在本 PR 新增 `0034_meow_env_notifications.sql`，**只在本機 PGlite 驗證，尚未部署**。`meow_env_jobs` 首次轉為 `done`／`failed` 時，由同交易的 `SECURITY DEFINER` trigger 建立通知；只用該 job 的 `report_id`、相同的 `household_id` 關聯 `meow_households.owner_id`。不讀取或修改分享資料。
 - `meow_notifications.dedupe_key` nullable + partial unique index 作為去重：`env_job:<job UUID>:done|failed`。`queued`／`running`（含 requeued）不通知，job 狀態列鎖及 unique key 保護重複／併發終態呼叫；`already_done` 不會更新狀態。`claim` 判定 source 無效或租約耗盡而終結時也會通知。Worker RPC 簽章、回傳 JSON 與授權未改；匿名／authenticated 無權呼叫。
 - 失敗通知內文直接由 `public.meow_env_user_error(new.error_code)` 產生，使影片、來源與系統錯誤使用既有契約文案；不讀取尚未更新的 report.error。既有 `/notifications` 頁使用通用 `title/body/link` 顯示，RLS 僅允許讀本人通知，無需增加新 UI／權限。3D 房間 Worker 現行做法位於 `workers/room-convert/pipeline/room_worker.py`：終結後透過 service-role REST 查 household owner 再直接 POST notification，沒有通知冪等鍵；本 PR 不更動該流程。
-- **佇列隔離建議（等待子哲批准，未實作）**：在 `meow_env_jobs` 增加 nullable、受限的 `blob_container`（只允許 `media-dev`／`media`），新 `meow_create_home_processing` overload 由主站環境設定明確寫入；新 `meow_env_claim_scoped(worker, container)` 僅領取相同 `blob_container`。Worker claim 回傳維持 v05 現有 JSON 欄位與路徑格式；Worker 需有容器 allowlist，且核對傳入 scope 與實際 Azure client container 一致。舊 `meow_env_claim(worker)` 簽章保留但需改為 fail-closed（不領任何工作）；無 scope 舊 Job 先維持不可領取，盤點容器後另行核准回填。
-- **部署順序**：先確認沒有舊版常駐 Worker，再合併 migration，子哲審 SQL 後手動部署；舊 claim 立即 fail-closed；接著部署會從 server env 選容器的主站版本與 scoped Worker。用兩筆新測試 job 驗證交叉拒領後，才可分別安排正式 Worker。這會要求 Worker 做最小 claim 協定更新，但不改 v05 的 job 輸出 schema。測試涵蓋 `media-dev` Worker 只領 dev、`media` Worker 只領 prod、錯誤／空 scope 不領取、舊 Job 隔離、輸出契約相容及 attempt/prefix 隔離。任何回填、`--once` 或常駐執行均需子哲同意；不覆寫／重跑既有 `a1`。
+- **歷史佇列隔離提案（兩容器前提、未實作）**：在 `meow_env_jobs` 增加 nullable、受限的 `blob_container`（只允許 `media-dev`／`media`），新 `meow_create_home_processing` overload 由主站環境設定明確寫入；新 `meow_env_claim_scoped(worker, container)` 僅領取相同 `blob_container`。Worker claim 回傳維持 v05 現有 JSON 欄位與路徑格式；Worker 需有容器 allowlist，且核對傳入 scope 與實際 Azure client container 一致。舊 `meow_env_claim(worker)` 簽章保留但需改為 fail-closed（不領任何工作）；無 scope 舊 Job 先維持不可領取，盤點容器後另行核准回填。
+- **歷史提案部署順序**：先確認沒有舊版常駐 Worker，再合併 migration，子哲審 SQL 後手動部署；舊 claim 立即 fail-closed；接著部署會從 server env 選容器的主站版本與 scoped Worker。用兩筆新測試 job 驗證交叉拒領後，才可分別安排正式 Worker。這會要求 Worker 做最小 claim 協定更新，但不改 v05 的 job 輸出 schema。測試涵蓋 `media-dev` Worker 只領 dev、`media` Worker 只領 prod、錯誤／空 scope 不領取、舊 Job 隔離、輸出契約相容及 attempt/prefix 隔離。任何回填、`--once` 或常駐執行均需子哲同意；不覆寫／重跑既有 `a1`。
 
 ## 主要檔案
 - 安全報告：`src/app/api/homes/[id]/reports/[reportId]/route.ts`、`pdf/route.ts`、`crops/[key]/route.ts`、`src/app/homes/[id]/safety/SafetyReportDetails.tsx`、`src/lib/home-safety/report-access.ts`
@@ -419,6 +419,26 @@ Worker 選用的 `report.html` 與 `html-assets/` 位於既有 attempt 前綴。
 - 沒動：第 1 天貓縮在外出籠（`carrier-fit.ts`、`tuck`、`CatPose` 的 `carrier`）、3D 外出籠用品（`items.ts` 的 `carrier`、`catalog.ts`）、外出籠門音效 `sfx_carrier_door`（第 1 天用）、貓咪資料的 `CARE_ITEMS`「進外出籠」（領養資料欄位，跟遊戲無關）。
 - 加回來：還原這張 PR，或從 main `e8d9a32` 取回上面列的檔案（任務表 `docs/play-tasks/2-剪指甲外出籠貓抓板.md` 也有寫）。
 
+## 試養報告「依你家的情況」（#354，渝茜 × Claude Code，2026-11-18，分支 `feat/354-report-home-readiness`，疊在 `feat/354-household-allergy` 之上）
+- 新區塊放在「給你的建議」前面（`HomeReadiness.tsx`、規則與文字 `src/lib/play/home-readiness.ts`，文字照渝茜確認的示範第 4 版）：
+  - **從你填的資料看** 6 格：房東（不是租屋改「住家」）、同住的人、過敏（0036 私密表，`useHouseholdExtras().allergy`）、其他寵物、養貓經驗、每月預算。每格 ✓ 沒問題／! 要準備／✕ 先處理。
+  - **問問自己** 5 格（已準備好請打勾，右上角方框）：急診預備金、每天的時間、有人幫忙、人生的變化、陪牠到老。
+  - 點格子，建議出現在**那一塊的下面**（渝茜：不要一排一排插進去）。最上面是數量與色條。
+- 原本報告最後的「收養之前，問問自己」6 題併進來（`EXP_CHECKS`、`checksVerdict` 已刪）：第 1 題併進房東／同住的人，第 2 題變成「急診預備金」，其他 4 題各一格。
+- 原本「給你的建議」裡的房東、急診預備金句子，和規則備案的同住的人、寵物句子搬進這裡；AI 建議的提示詞（`PLAY_ADVICE`）也改成不再寫這些。
+- 第一次養貓的待辦（`FIRST_CAT_TODO`）只放遊戲沒演到的：寵物登記、一週內健檢、先找好醫院、三種要馬上看醫生的情況（24 小時不吃、蹲砂盆尿不出來、張嘴呼吸）。防墜紗窗、熟齡健檢遊戲裡已經有，不重複。
+- `PlayerHome` 多了 `landlord`、`experience`（中文標籤）。過敏只在這份報告給本人看，**不放進給中途的報告**（`report-payload.ts` 沒動）。沒有喵戶（範例的家）過敏當作「沒有」。
+
+## 照顧紀錄與報告分析（#354，渝茜 × Claude Code，2026-11-18，分支 `feat/354-care-log`，疊在 `feat/354-report-home-readiness` 之上）
+- **照顧紀錄** `src/lib/play/care-log.ts`：`life.careLog` 每天每個照顧動作一筆（`good` ✓／`meh` △／`skip` ✕＋一句細節）。餵飯記建議份量的幾 %（`feedResult` 多回傳 `portion`）、灑出來、太多太少；換水記水量、有沒有刷碗；鏟屎記剩幾坨；剪指甲、刷牙、摸貓記跑走、被咬、血線（`hurt`）；打開又關掉記「打開後關掉了」；一天結束沒做的記「這天沒做」（`flow.ts` 的 `endHome`）。劇情裡的照顧小遊戲（`miniDone`）也記。同一天同一個動作只留做得最好的一次。
+- **心情**：每個節點結束（`advance`）把信任、壓力記進 `life.moods`。
+- 兩個欄位都是選填，舊存檔讀得回來；`save.ts` 會檢查格式、太大時縮短。**沒有放進給中途的報告**（`report-payload.ts` 沒動，等渝茜決定要不要給中途看）。
+- **報告分析** `src/lib/play/report-analysis.ts`＋`ReportAnalysis.tsx`，放在報告標題下面，取代原本的「照顧紀錄」次數與「做得好／可以再想想」：
+  - 最該注意的一件事（餵飯、換水、鏟屎裡沒做最多的那件＋為什麼；都有做看技巧；都好給綠色鼓勵）
+  - 四個面向（每天的照顧、照顧的技巧、讀懂牠、劇情的選擇），每個附「怎麼進步」一句（渝茜：原本的「建議做到的程度」線看不出理由，改成具體改法）
+  - 每天有沒有做到：餵飯、換水、鏟屎 × 每天，✓ 做好了／△ 做了但不夠好／✕ 沒做，點格子看細節
+  - 牠的心情：信任、壓力折線（滑過去或點一下看當天的事）；你的選擇：✓／! 列表
+
 ## 小遊戲說明疊在示範影片上（#354，渝茜 × Claude Code，2026-11-18，分支 `feat/354-guide-overlay`）
 - `MiniGuide.tsx` 的錄影改成 `VideoDemo`：說明疊在影片上、跟著影片時間換（`mini-guide.ts` 的 `cues`），影片下面不再列步驟（`steps` 只留給螢幕報讀）。電腦：深色對話框指著要操作的地方，按鍵畫成鍵帽；手機（`useTouch`）：影片上方或下方的大字幕＋橘色圓圈。文字標記 `[動作]`、`{按鍵}`、`\n`（`guidePart`）。
 - 停格 `hold`：剪指甲三步（① 按住肉球 ② 剪指甲 ③ 注意：粉紅色是血線，剪到貓咪會流血）、刷牙翻嘴角（合成一句，至少 3 秒）。餵飯、換水 1.25 倍速（`rate`）。
@@ -428,5 +448,7 @@ Worker 選用的 `report.html` 與 `html-assets/` 位於既有 attempt 前綴。
 - 重錄任何示範影片後，`cues` 的秒數、位置要重新對（做法見 `docs/play-tasks/guide-videos.md`）。
 
 ### WelfareLens 私有結構化報告（#273）
+
+Worker 原始碼、測試、Docker、[環境設定](../../workers/welfarelens/ENVIRONMENT.md)及 [VM 操作](../../workers/welfarelens/VM_RUNBOOK.md)集中於 `workers/welfarelens/`。網站與 Worker 各自安裝依賴及發布。兩者目前使用共用私有 `media-dev`，舊規劃容器 `media` 保留。共用容器不提供佇列隔離，常駐領件仍需已驗證的獨占範圍。
 
 `MEOWHOME_PRIVATE_REPORT_VIEW=true` 時，現有 Owner HTML 路由優先讀取當前 attempt 的可選 `report-view.json`。伺服器直接用已驗證資料產生手風琴；首屏無案例圖片標記。視圖缺失、版本不符、損壞或關閉時沿用歷史 HTML 與摘要回退。完整版 HTML 與 PDF 仍走原本授權路徑。Keeper 分享範圍、共用 `meow_env_reports.items` 和 RPC 保持原樣。

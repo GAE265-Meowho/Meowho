@@ -38,4 +38,6 @@ export const HQ_MODULE_PATH: Record<AdminModule, string> = {
 /** 不需授權的側欄項目（首頁以外）的網址與名稱 */
 export const HQ_FLOWS_PATH = "/MeowHQ/flows";
 export const HQ_FLOWS_LABEL = "系統操作流程圖";
+export const HQ_VIDEOS_PATH = "/MeowHQ/videos";
+export const HQ_VIDEOS_LABEL = "影片";
 export const isModule = (x: SidebarItem): x is AdminModule => (ADMIN_MODULES as readonly string[]).includes(x);

@@ -12,6 +12,17 @@ import { AngleGuide, Field, MicIcon, PlusIcon, Said, Seg, Toggles } from "./part
 import s from "./newcat.module.css";
 
 type Set = (fn: (f: NewCatForm) => NewCatForm) => void;
+/** 說說牠的提示：照這個順序講比較順，AI 也比較好抓 */
+const STORY_PLACEHOLDER = [
+  "可以照這個順序說：",
+  "1. 名字、男生女生、大概幾歲、毛色品種",
+  "2. 在哪裡遇到、哪一天來你這裡",
+  "3. 健康：結紮、疫苗、驅蟲",
+  "4. 個性、有沒有壞習慣、跟其他貓狗處不處得來",
+  "5. 平常吃什麼、喜歡被摸哪裡、最愛什麼",
+  "",
+  "例如：牠叫妹妹，是女生，大概一歲，橘白虎斑。8 月 1 號在公園撿到的。已經結紮了，打了兩劑疫苗。很黏人，偶爾會咬手。平常吃乾飼料，最喜歡被摸下巴。",
+].join("\n");
 const HINT: Record<AngleKey, string> = { front: "看得到臉", left: "拍到四隻腳", back: "看得到尾巴" };
 
 export function PhotoStep({ form, previews, pendingAngles, pendingOthers, onAngle, onOthers, onRemoveOther, onCover }: {
@@ -101,7 +112,7 @@ export function TalkStep({ form, set, status, setStatus, sending, onSend }: {
   return (
     <>
       <h2 className={s.h1}>說說牠的故事</h2>
-      <p className={s.lead}>把遇到牠的故事和我們分享，名字、年紀、個性都可以說。說完按下一步，AI 會幫你填好，沒說到的再一題一題問你。</p>
+      <p className={s.lead}>把遇到牠的故事和我們分享，名字、年紀、個性都可以說。說完按下一步，AI 會幫你填好，沒說到的會整理好再問你。</p>
       <section className={`${s.card} ${s.stack} ${s.center}`} aria-label="用說的" style={{ gap: 12 }}>
         <button type="button" className={`${s.mic} ${mic.on ? s.on : ""}`} aria-label="按住說話"
           onPointerDown={e => { e.preventDefault(); base.current = form.story ? form.story.replace(/\s*$/, "") + (/[。，！？]$/.test(form.story.trim()) ? "" : "，") : ""; mic.start(); }}
@@ -109,7 +120,7 @@ export function TalkStep({ form, set, status, setStatus, sending, onSend }: {
         <b>{mic.on ? "放開就停止" : "按住說說牠"}</b>
         <div className={s.field} style={{ alignSelf: "stretch", textAlign: "left" }}>
           <label className={s.label} htmlFor="story">聽到的內容，有錯可以直接改</label>
-          <textarea id="story" className={s.story} maxLength={2000} value={form.story} placeholder="例如：小米，8/01 在公園撿到，大概三個月大，母的…"
+          <textarea id="story" className={s.story} maxLength={2000} value={form.story} placeholder={STORY_PLACEHOLDER} style={{ minHeight: 220 }}
             onChange={e => set(f => ({ ...f, story: e.target.value }))} />
           <span className={s.muted}>也可以直接打字，或貼上你寫過的送養文</span>
           <div className={s.two}>

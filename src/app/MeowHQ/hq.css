@@ -688,3 +688,66 @@
 .hq-sysflow-phase + .hq-sysflow-phase { padding-top: 1.25rem; border-top: 1px dashed var(--hq-line); }
 .hq-sysflow h3 { margin: 0 0 1rem; font-size: .95rem; color: var(--hq-sage-ink); }
 .hq-sysflow h3 small { margin-left: .4rem; font-size: .8rem; font-weight: 400; color: var(--hq-sub); }
+
+/* 影片 › 前導影片（#489）：腳本、定角定景、分鏡圖上傳。圖片放固定比例框（DESIGN §0-8） */
+.hq-video { display: flex; flex-direction: column; gap: 1.25rem; }
+.hq-video-sec { background: var(--hq-card); border: 1px solid var(--hq-line); border-radius: 12px; padding: 1rem 1.1rem; display: flex; flex-direction: column; gap: .7rem; min-width: 0; }
+.hq-video-sec h2 { margin: 0; font-size: 1.05rem; }
+.hq-video-sec p { margin: 0; }
+.hq-video-dl > div, .hq-video-shotinfo > div { display: contents; }
+.hq-video-progress { display: grid; gap: .6rem; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+.hq-video-prog { display: flex; flex-direction: column; gap: .3rem; font-size: .9rem; }
+.hq-video-prog .hq-row { justify-content: space-between; flex-wrap: nowrap; }
+.hq-video-bar { height: 8px; border-radius: 999px; background: var(--hq-sage-soft); overflow: hidden; }
+.hq-video-bar span { display: block; height: 100%; background: var(--hq-sage); border-radius: inherit; transition: width .3s; }
+.hq-video-refs { display: grid; gap: .85rem; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); }
+.hq-video-ref { border: 1px solid var(--hq-line); border-radius: 10px; padding: .7rem; display: flex; flex-direction: column; gap: .45rem; font-size: .92rem; min-width: 0; }
+.hq-video-ref .hq-h3 { margin: 0; }
+.hq-video-slot { display: flex; flex-direction: column; gap: .4rem; }
+.hq-video-slot .hq-error { margin: 0; }
+.hq-video-frame { position: relative; border-radius: 8px; overflow: hidden; background: var(--hq-bg); border: 1px dashed var(--hq-line); display: grid; place-items: center; }
+.hq-video-frame.wide { aspect-ratio: 16 / 9; }
+.hq-video-frame.square { aspect-ratio: 4 / 3; }
+.hq-video-frame a, .hq-video-frame img { display: block; width: 100%; height: 100%; }
+.hq-video-frame img { object-fit: contain; background: #fff; }
+.hq-video-prompt summary { cursor: pointer; min-height: 36px; display: flex; align-items: center; color: var(--hq-sage-ink); font-size: .9rem; }
+.hq-video-prompt p { font-size: .85rem; line-height: 1.5; background: var(--hq-bg); border-radius: 8px; padding: .5rem .65rem; margin: 0 0 .4rem; overflow-wrap: anywhere; }
+.hq-video-part { display: flex; flex-direction: column; gap: .7rem; padding-top: .5rem; }
+.hq-video-part + .hq-video-part { border-top: 1px dashed var(--hq-line); padding-top: 1rem; }
+.hq-video-part .hq-h3 .hq-sub { font-weight: 400; margin-left: .3rem; font-size: .85rem; }
+.hq-video-shot { border: 1px solid var(--hq-line); border-radius: 10px; padding: .75rem .85rem; display: flex; flex-direction: column; gap: .55rem; min-width: 0; }
+.hq-video-shot h4 { margin: 0; font-size: .98rem; }
+.hq-video-shotinfo { display: grid; grid-template-columns: 6em 1fr; gap: .3rem .75rem; margin: 0; font-size: .9rem; }
+.hq-video-shotinfo dt { color: var(--hq-sub); }
+.hq-video-shotinfo dd { margin: 0; overflow-wrap: anywhere; }
+.hq-video-frames { display: grid; gap: .75rem; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+.hq-video-framecard { display: flex; flex-direction: column; gap: .4rem; min-width: 0; }
+.hq-video-line, .hq-video-make { display: inline-flex; align-items: center; border-radius: 999px; padding: .1rem .6rem; font-size: .8rem; font-weight: 500; }
+.hq-video-line.l-cat { background: #E3ECF6; color: #2C4A6B; }
+.hq-video-line.l-human { background: #E6EEEA; color: #33503F; }
+.hq-video-line.l-merged, .hq-video-make.m-ai { background: var(--hq-caramel-soft); color: var(--hq-caramel-ink); }
+.hq-video-line.l-product, .hq-video-make.m-record { background: var(--hq-sage-soft); color: var(--hq-sage-ink); }
+.hq-video-make.m-edit { background: #EFEBE4; color: var(--hq-sub); }
+.hq-video-scroll { overflow-x: auto; }
+.hq-video-table { width: 100%; min-width: 560px; border-collapse: collapse; font-size: .88rem; }
+.hq-video-table th, .hq-video-table td { text-align: left; vertical-align: top; padding: .45rem .6rem; border-bottom: 1px solid var(--hq-line); }
+.hq-video-table thead th { color: var(--hq-sub); font-weight: 500; }
+.hq-video-voice { margin: 0; padding-left: 1.6rem; display: flex; flex-direction: column; gap: .35rem; font-size: .92rem; }
+.hq-video-voice b { display: inline-block; min-width: 3em; margin-right: .4rem; font-weight: 700; }
+.hq-video-voice b.cat { color: #2C4A6B; }
+.hq-video-voice b.human { color: #33503F; }
+@media (prefers-reduced-motion: reduce) { .hq-video-bar span { transition: none; } }
+@media (min-width: 960px) {
+  .hq-video-shot { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 3fr); column-gap: 1rem; align-items: start; }
+  .hq-video-shot > header { grid-column: 1 / -1; }
+  .hq-video-frames { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
+}
+/* 前導影片參考圖（#491）：prompt 換行照原樣顯示；每格分鏡列出要掛的定角／定景 */
+.hq-video-prompt p { white-space: pre-line; }
+.hq-video-file { font-size: .8rem; background: var(--hq-bg); border-radius: 6px; padding: .05rem .4rem; overflow-wrap: anywhere; }
+.hq-video-refchips { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .35rem; font-size: .85rem; }
+.hq-video-refchips li { display: flex; align-items: center; gap: .5rem; min-width: 0; }
+.hq-video-refchips li > span:last-child { display: flex; flex-wrap: wrap; align-items: center; gap: .2rem .45rem; min-width: 0; }
+.hq-video-refchips b { font-weight: 500; }
+.hq-video-refthumb { flex: none; width: 36px; height: 36px; border-radius: 6px; overflow: hidden; background: var(--hq-bg); border: 1px solid var(--hq-line); display: grid; place-items: center; color: var(--hq-sub); font-size: .8rem; }
+.hq-video-refthumb img { width: 100%; height: 100%; object-fit: cover; }

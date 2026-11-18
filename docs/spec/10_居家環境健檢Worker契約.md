@@ -220,7 +220,7 @@ Worker 用 service role key 呼叫 PostgREST：`POST /rest/v1/rpc/<函式>`。
 ```
 
 - `cropUrl`、`pdfUrl` 是同源授權路由，不是 Blob SAS、原始路徑或資料庫欄位。PDF 路由只對喵戶本人開放；裁切圖路由依本人或有效分享授權。兩者每次請求重新驗證，回 `307` 直轉短效 Blob URL，使用 `Cache-Control: private, no-store`；PDF 支援 `?download=1`。大型 PDF 由 Azure 傳送，不經 Vercel Function 代理。
-- 主站 Storage Adapter 只依部署環境設定的 `AZURE_STORAGE_CONTAINER` 簽發網址；測試／Preview 指向 `media-dev`，正式指向 `media`。不得在路由中跨容器嘗試或由路徑推導容器。Supabase 測試與正式共用時，必須使用與該部署容器相符的測試資料；Worker 的 SAS 成功不代表主站帳戶金鑰、容器設定或主站簽名能力已驗證。
+- 主站 Storage Adapter 只依部署環境設定的 `AZURE_STORAGE_CONTAINER` 簽發網址；依現行團隊決策，測試／Preview 與正式皆使用私有容器 `media-dev`。不得在路由中跨容器嘗試或由路徑推導容器。Worker 的 SAS 成功僅能驗證該 Worker 的存取，主站的容器設定、帳戶金鑰及簽名流程仍需分別驗證。
 - `items` 沿用 §6.1 的 Worker 欄位；API 將 `crop_path` 轉成 `cropUrl`，不回傳 Worker 私有 Blob 路徑。API 不讀取 `result.json`，也不向用戶端回傳 Service Role Key 或 SAS 值。
 
 測試與正式環境：
@@ -228,12 +228,12 @@ Worker 用 service role key 呼叫 PostgREST：`POST /rest/v1/rpc/<函式>`。
 | | 測試 | 正式 |
 |---|---|---|
 | 儲存帳戶 | `meowhomedia` | `meowhomedia` |
-| 容器 | `media-dev` | `media` |
-| 端點 | `https://meowhomedia.blob.core.windows.net/media-dev` | `https://meowhomedia.blob.core.windows.net/media` |
+| 容器 | `media-dev` | `media-dev` |
+| 端點 | `https://meowhomedia.blob.core.windows.net/media-dev` | 同左 |
 | Supabase | 目前測試與正式共用同一個專案（決策 005） | 同左 |
 
 - 因為 Supabase 共用，整合測試時：RPC 行為先用主站的 PGlite 測試驗證（競爭領件、租約到期、舊 attempt、冪等）；串真實 Supabase 時只用專用的測試喵戶，影片放 `media-dev`。
-- Managed Identity 由子哲在 Azure 入口網站設定角色指派；測試 VM 先只授權 `media-dev`，驗收後再加 `media`。
+- Managed Identity 由子哲在 Azure 入口網站設定角色指派。現行 Worker 所需存取限於 `media-dev`。保留早期規劃的 `media`，目前無須授權、同步或搬移資料。共用儲存與共用 Supabase 仍需分別核對佇列的領件範圍。
 
 ## 6. 成果格式
 

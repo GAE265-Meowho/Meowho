@@ -1,0 +1,26 @@
+import {createHmac,timingSafeEqual} from 'node:crypto';import {resolve} from 'node:path';import {createVideoApi,launchWorker} from './video/api.ts';import {VideoStore} from './video/store.ts';import {evidenceApi} from './video/evidence-api.ts';
+const states:Record<string,string>={uploading:'queued',queued:'queued',processing:'running',completed:'ready',partial:'failed',failed:'failed',cancelled:'cancelled'};
+const json=(v:unknown,status=200)=>Response.json(v,{status,headers:{'Cache-Control':'no-store'}});
+/** Server-to-server only. Main website authenticates users and supplies its stable scoped subject. Never expose key in a browser. */
+export function createIntegrationApi(env:Record<string,string|undefined>,root=resolve(process.cwd(),'.video-scans'),launch=launchWorker){const store=new VideoStore(root),api=createVideoApi(root,launch),evidence=evidenceApi(store);
+ return async(r:Request,method:string,id?:string,action?:string,asset?:string)=>{
+ const secret=env.WELFARELENS_INTEGRATION_KEY;if(!secret||secret.length<32)return json({error:'Integration is disabled'},503);
+ const provided=r.headers.get('authorization')??'',expected='Bearer '+secret;if(Buffer.byteLength(provided)!==Buffer.byteLength(expected)||!timingSafeEqual(Buffer.from(provided),Buffer.from(expected)))return json({error:'Unauthorized'},401);
+ const subject=r.headers.get('x-meowho-subject');if(!subject||subject.length>200||!subject.trim()||/[\r\n]/.test(subject))return json({error:'Missing scoped subject'},400);
+ const token=createHmac('sha256',secret).update('meowho-owner-v1\0'+subject).digest('hex'),origin='http://127.0.0.1:3100';const headers=new Headers({'cookie':`wl_video=${token}`,origin,'host':'127.0.0.1:3100'});
+ for(const name of ['content-type','content-length','idempotency-key','x-video-consent']){const value=r.headers.get(name);if(value)headers.set(name,value);}
+ const request=(verb:string,body?:ReadableStream<Uint8Array>|null)=>new Request(`${origin}/api/video-scans${id?'/'+encodeURIComponent(id):''}${new URL(r.url).search}`,{method:verb,headers,...(body?{body,duplex:'half' as const}:{})} as RequestInit);
+ const ready=async(jobId:string,job:{status:string;analysis_status?:string})=>job.status==='completed'&&job.analysis_status==='complete'
+  &&(await evidence(new Request(origin+'/?format=meowho',{headers}),jobId,'report')).status===200;
+ if(!id&&method==='POST'){const kind=r.headers.get('x-welfarelens-media-type')??'video';if(!['video','photo'].includes(kind))return json({error:'Real room photo or video required; floor plans cannot establish safety'},422);const result=await api.create(request('POST'));const data=await result.json();if(result.ok){const j=await store.get(data.video_id,token);if(j.input_kind&&j.input_kind!==kind)return json({error:'Idempotency key used for different input'},409);await store.update(data.video_id,{input_kind:kind as 'video'|'photo'});if(j.status==='completed'&&!await ready(j.video_id,j))data.status='failed';}return result.ok?json({version:1,job_id:data.video_id,status:states[data.status],phase:data.status==='uploading'?'awaiting_upload':data.status,expires_at:data.expires_at},201):json(data,result.status);}
+ if(!id)return json({error:'Not found'},404);
+ if(action==='report'){let job;try{job=await store.get(id,token);}catch{return json({error:'Not found'},404);}if(['completed','partial'].includes(job.status)&&!await ready(id,job))return json({error:'報告未達發布條件'},409);}
+ if(action==='report'||action==='crops'||action==='frame-info')return evidence(request(method,r.body),id,action,asset);
+ if(action==='frames'&&asset)return api.frame(request('GET'),id,asset);
+ if(action==='cancel'&&method==='POST')return api.cancel(request('POST'),id);
+ if(method==='PUT'&&!action){let job;try{job=await store.get(id,token);}catch{return json({error:'Not found'},404);}if(job.input_kind!=='photo')return api.upload(request('PUT',r.body),id);if(r.headers.get('x-video-consent')!=='true'||!['image/jpeg','image/png'].includes(r.headers.get('content-type')??'')||!r.body)return json({error:'JPEG/PNG and cloud processing consent required'},400);try{await store.upload(id,token,r.body,20*1024*1024);await launch(id);return json({job_id:id,status:'queued'},202);}catch(error){if(error instanceof Error&&['State','Duplicate'].includes(error.message))return json({error:'Job already received input'},409);await store.finish(id,{status:'failed',stage:'照片上傳失敗',analysis_status:'failed',error:'照片上傳失敗，可以重新建立工作。'}).catch(()=>{});return json({error:'Upload failed or duplicate'},409);}}
+ if(method==='DELETE'&&!action)return api.remove(request('DELETE'),id);
+ if(method==='GET'&&!action){const result=await api.status(request('GET'),id);const j=await result.json();if(!result.ok)return json(j,result.status);const publishable=await ready(id,j);return json({version:1,job_id:id,status:j.status==='completed'&&!publishable?'failed':states[j.status],phase:j.status==='uploading'?'awaiting_upload':j.stage,analysis_status:j.analysis_status,partial:j.status==='partial',expires_at:j.expires_at,error:j.error,timeout:j.status==='failed'&&/逾時|timeout/i.test(j.error??''),report_available:publishable});}
+ return json({error:'Unsupported action'},400);
+ };}
+export const integrationApi=createIntegrationApi(process.env);

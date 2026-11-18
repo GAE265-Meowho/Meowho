@@ -4,8 +4,9 @@
 > 最後更新：2026-11-18｜渝茜 × Claude Code（試養報告、過敏題、小遊戲說明疊字）
 
 ## 目前狀態
-- **#273 私有報告視圖（Jerry0808 × Codex）**：分支 `codex/home-safety-report-view`。新版 Owner 視圖預設關閉，既有分享權限與完整 HTML／PDF 繼續沿用；下一步由團隊審核測試旗標與合法 Owner 帳號。
-- **渝茜 11-18 回饋（#354，渝茜 × Claude Code）四張 PR**：#480 喵戶表單加過敏題（`0036_meow_household_allergy.sql` **待渝茜確認後執行**；沒執行前存檔退回只存預算）→ #481 試養報告「依你家的情況」（疊在 #480）→ #482 照顧紀錄與報告分析（疊在 #481）；#484 小遊戲說明疊在示範影片上、摸貓重錄（base main，獨立）。前一張合併後要把下一張的 base 改回 main。照顧紀錄、過敏都**沒有**放進給中途的報告，等渝茜決定。細節見 `docs/modules/readiness.md` 最後四節。
+- **#273 私有報告與 WelfareLens Monorepo（Jerry0808 × Codex）**：分支 feat/273-welfarelens-monorepo。Worker 入口與獨立依賴位於 workers/welfarelens，Reader／Writer 預設關閉。雲端驗收前先確認共用佇列、測試帳號與費用。
+- **MeowHQ 影片 › 前導影片（#489、#491 每格 prompt 寫明參考圖檔名 `<id>.webp`，見 `FRAME_REFS`，Tina × Claude Code，分支 `feat/489-hq-trailer-video`）**：`/MeowHQ/videos`，放 v3 分鏡腳本、定角／定景照與 35 格分鏡圖上傳（存 `meow-site-assets/videos/trailer/`，不用跑 SQL）。`0037_meow_trailer_frames.sql` 開放所有管理員上傳與列出 `videos/trailer/`，**須經 Tina 確認後執行**；執行前只有系統管理員能傳。之後的系統操作、架構部署影片加在 `VIDEO_TABS`，並在 `page-meta-map.ts` 依 `?tab=` 分 key。上傳流程只在示範模式看過版面，還沒在正式站用系統管理員實際傳一張。
+- **渝茜 11-18 回饋（#354，渝茜 × Claude Code）四張 PR**：#480 喵戶表單加過敏題（`0036_meow_household_allergy.sql` 已於 11-18 16:20 經渝茜確認後執行）、#484 小遊戲說明疊在示範影片上已合併；#481、#482 誤併到疊加分支，由 #486 補合到 main（**合併前試養報告還是舊版**）。以後疊加的 PR 要等前一張合併、把 base 改回 main 後再合。照顧紀錄、過敏都**沒有**放進給中途的報告，等渝茜決定。細節見 `docs/modules/readiness.md` 最後四節。
 - **#456 渝茜那一份（渝茜 × Claude Code，分支 `fix/456-yuchien-fixes`，一個 PR）**：已接 `sfx_brush`／`scratch`／`dig`／`accident`、設定裡音樂與音效分開調音量、鏟砂聲加大、高處台詞不寫死椅子、按鈕不可選取、結束今天跳沒做任務的疾病提示。圖示列改 emoji（`CareIcon.tsx`，餵貓是🥣、剪指甲是🐾，要實機看大小）。摸貓方向鍵已換搖桿、操作說明分手機／電腦（`lib/play/control-text.ts`）、示範影片提早預載已做，待實機驗收；刷牙說明還沒搬進 CONTROL_TEXT。細節見 `docs/daily/2026-11-17/1339-渝茜-456.md`。
 - **外出籠小遊戲移除（#354，渝茜 × Claude Code，2026-11-16，分支 `feat/354-remove-carrier-game`）**：刪掉「讓貓進外出籠」小遊戲、示範影片與第 10 年的對應步驟（第 10 年直接去看醫生，不再 `stress +5`）；第 1 天外出籠劇情、3D 外出籠用品不動。之後想加回來：還原這張 PR。細節見 `docs/modules/readiness.md` 最後一節。
 - **虛擬飼養實機回饋第二輪（#354，渝茜 × Claude Code，2026-11-16）**：分支 `fix/354-play-feedback-1116`，base main（#432、#434、#435 都已合併）。擺用品點了就自動放＋「點選移動」提示框、拿掉快速放；俯視可以一直轉＋縮放、飼養中有搖桿；第 3 天不重複餵；跑酷用走路重組的奔跑動作（`gallop.ts`）；後台音效庫接上（`sfx-cues.ts`）。下一步：請渝茜在這張的 Vercel 預覽、她的真實房間走一輪。細節見 `docs/modules/readiness.md` 最後一節。

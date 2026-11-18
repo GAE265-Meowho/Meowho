@@ -1,0 +1,30 @@
+name: welfarelens-worker-local
+services:
+  worker:
+    image: welfarelens-worker:local
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    # Local fixture only. No cloud credentials, outbound network, or inbound port.
+    network_mode: none
+    read_only: true
+    init: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    cpus: 2
+    mem_limit: 2g
+    # Chromium exceeds 128 total tasks while printing under the restricted container profile.
+    pids_limit: 256
+    restart: "no"
+    stop_grace_period: 15s
+    tmpfs:
+      - "/tmp:size=128m,mode=1777"
+    volumes:
+      - worker_data:/data
+      - type: bind
+        source: ${WELFARELENS_FIXTURE_INPUT_DIR:-./private-eval/worker-inputs}
+        target: /inputs
+        read_only: true
+    command: [--input, /inputs/input.mp4, --fixture, /app/evals/fixtures/worker-scene.json, --root, /data/jobs]
+volumes:
+  worker_data:

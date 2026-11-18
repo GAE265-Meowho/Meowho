@@ -1,0 +1,28 @@
+import {test} from 'node:test';import assert from 'node:assert/strict';import {buildScanResult} from '../src/domain/scan-result.ts';
+const pot={kind:'plant',label:'盆栽',bbox:[.1,.2,.3,.6],notes:'葉片可見'};
+const id=(name,confidence='high',index=0)=>({object_index:index,candidates:[{common_name:'植物',scientific_name:name,confidence}],features:'清晰葉形與紋理',identification_quality:'adequate'});
+const c=(plants,objects=[pot],extra={})=>({objects,questions:[],limitations:[],plants,image_quality:'adequate',...extra});
+test('verified lookalike records support qualified candidate risk without treating unlisted palms as safe',()=>{
+ const p=id('Epipremnum aureum','medium');p.candidates.push(...id('Philodendron hederaceum','medium').candidates);const r=buildScanResult(c([p]));assert.equal(r.plants[0].status,'UNKNOWN');assert.ok(r.plants[0].candidates.every(n=>n.toxicity==='TOXIC'));
+ assert.equal(buildScanResult(c([id('Dypsis lutescens')])).plants[0].status,'NON_TOXIC');
+ assert.equal(buildScanResult(c([id('Chamaedorea seifrizii')])).plants[0].status,'UNKNOWN');
+});
+test('known toxic pothos produces direct sourced action with no confirmation',()=>{const r=buildScanResult(c([id('Epipremnum aureum')]));assert.equal(r.plants[0].status,'TOXIC');assert.match(r.actions[0].title,/黃金葛/);assert.match(r.actions[0].action,/無法接觸/);assert.match(r.plants[0].sources[0],/aspca.org/);});
+test('known non-toxic parlor palm is subdued and never an improvement target',()=>{const r=buildScanResult(c([id('Chamaedorea elegans')]));assert.equal(r.plants[0].status,'NON_TOXIC');assert.equal(r.actions.length,0);assert.match(r.plants[0].action,/不需要.*移除/);});
+test('multiple pots are evaluated independently',()=>{const r=buildScanResult(c([id('Epipremnum aureum'),id('Chamaedorea elegans','high',1)],[pot,pot]));assert.deepEqual(r.plants.map(p=>p.status),['TOXIC','NON_TOXIC']);assert.equal(r.actions.length,1);});
+for(const [name,ident] of [['unlisted',id('Unknownus inventedii')],['low confidence',id('Chamaedorea elegans','low')],['no features',{...id('Chamaedorea elegans'),features:''}],['limited',{...id('Chamaedorea elegans'),identification_quality:'limited'}],['conflicting',{...id('Chamaedorea elegans'),candidates:[...id('Chamaedorea elegans').candidates,...id('Epipremnum aureum').candidates]}]])test(`precaution not non-toxic: ${name}`,()=>{const r=buildScanResult(c([ident]));assert.equal(r.plants[0].status,'UNKNOWN');assert.match(r.plants[0].action,/避免.*接觸/);});
+test('lily alternatives stay high priority even alongside a non-toxic candidate',()=>{const p=id('Chamaedorea elegans');p.candidates.push(...id('Lilium longiflorum','low').candidates);const r=buildScanResult(c([p]));assert.equal(r.plants[0].status,'UNKNOWN');assert.equal(r.actions[0].priority,'high');assert.match(r.actions[0].action,/移開/);});
+test('missing identity entry never suppresses a detected plant',()=>{assert.equal(buildScanResult(c([])).plants[0].status,'UNKNOWN');});
+test('no plants/closed window do not produce hazards; no whole-home safety claim',()=>{const r=buildScanResult(c([],[],{assessments:[]}));assert.equal(r.actions.length,0);assert.match(r.summary,/這張照片/);assert.doesNotMatch(r.summary,/完全安全/);});
+test('blurred image cannot produce clear result or non-toxic identity',()=>{const r=buildScanResult(c([id('Chamaedorea elegans')],[pot],{image_quality:'unusable'}));assert.equal(r.quality,'unusable');assert.match(r.summary,/重新拍攝/);assert.equal(r.plants[0].status,'UNKNOWN');});
+test('adequate plant detail is not discarded merely because full-scene detail is limited',()=>{const r=buildScanResult(c([id('Epipremnum aureum')],[pot],{image_quality:'limited'}));assert.equal(r.plants[0].status,'TOXIC');assert.equal(r.quality,'limited');});
+const fact=(key,value,status='OBSERVATION')=>({key,value,status,confidence:'high',evidence:'可見條件'});
+test('visible accessible opening and cord are actionable, no arbitrary prevention alerts',()=>{const objects=[{...pot,kind:'window',label:'開放窗戶'},{...pot,kind:'cord',label:'電線'}];const r=buildScanResult(c([],objects,{assessments:[{rule_id:'H01',object_indices:[0],facts:[fact('opening_visible',true),fact('access_route',true)],proposal:null},{rule_id:'H04',object_indices:[1],facts:[fact('exposed_cord',true),fact('reachable',true)],proposal:null}]}));assert.equal(r.actions.length,2);assert.match(r.actions[0].action,/關閉|防護/);});
+test('plant plus window, no mutation and missing source knowledge cannot certify safety',()=>{const candidate=c([id('Epipremnum aureum')],[pot,{...pot,kind:'window',label:'窗戶'}],{assessments:[{rule_id:'H01',object_indices:[1],facts:[fact('opening_visible',true),fact('access_route',true)],proposal:null}]});const original=JSON.stringify(candidate);assert.equal(buildScanResult(candidate).actions.length,2);assert.equal(JSON.stringify(candidate),original);});
+
+test('closed windows alone and inferred protection do not manufacture or clear a hazard',()=>{
+ const objects=[{...pot,kind:'window',label:'窗戶'}];
+ const closed=c([],objects,{assessments:[{rule_id:'H01',object_indices:[0],facts:[fact('opening_visible',false),fact('access_route',true)],proposal:null}]});assert.equal(buildScanResult(closed).actions.length,0);
+ const guessed=c([],objects,{assessments:[{rule_id:'H01',object_indices:[0],facts:[fact('opening_visible',true),fact('access_route',true),fact('unguarded_opening',false,'INFERENCE')],proposal:null}]});assert.equal(buildScanResult(guessed).actions.length,1);
+});
+test('duplicate findings for the same physical item do not inflate action count',()=>{const item={rule_id:'H04',object_indices:[0],facts:[fact('exposed_cord',true),fact('reachable',true)],proposal:null};assert.equal(buildScanResult(c([],[{...pot,kind:'cord'}],{assessments:[item,item]})).actions.length,1);});
