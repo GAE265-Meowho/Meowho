@@ -2,6 +2,7 @@ import "server-only";
 import { createHash } from "node:crypto";
 import { getServerSupabase } from "@/lib/supabase/server";
 import { getMediaStore } from "@/lib/storage/server";
+import { parseReportPresentation, renderReportPresentation, reportImageName } from "./report-presentation";
 import { isReportUuid, reportAttemptPrefix, validReportPdfPath } from "./report-access";
 
 const headers = {
@@ -11,13 +12,43 @@ const headers = {
   "Cross-Origin-Resource-Policy": "same-origin",
   "Content-Security-Policy": "default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; sandbox allow-same-origin allow-downloads",
 };
-const imageName = /^[a-f0-9]{64}\.(jpg|png)$/;
+const referenceCache = new Map<string, { expires: number; assets: Promise<Set<string>> }>();
+const referenceLifetime = 30_000;
+const referenceLimit = 32;
+
+async function readReportHtml(store: NonNullable<ReturnType<typeof getMediaStore>>, prefix: string) {
+  const document = await store.download(prefix + "report.html");
+  if (!document) return null;
+  if (!document.length || document.length > 1024 * 1024) return "";
+  const html = new TextDecoder().decode(document);
+  return html.startsWith("<!doctype html>") ? html : "";
+}
+
+function referencedImages(store: NonNullable<ReturnType<typeof getMediaStore>>, prefix: string) {
+  const previous = referenceCache.get(prefix);
+  if (previous && previous.expires > Date.now()) return previous.assets;
+
+  const assets = readReportHtml(store, prefix).then(html => {
+    if (html) return parseReportPresentation(html).assets;
+    if (referenceCache.get(prefix)?.assets === assets) referenceCache.delete(prefix);
+    return new Set<string>();
+  }).catch(error => {
+    if (referenceCache.get(prefix)?.assets === assets) referenceCache.delete(prefix);
+    throw error;
+  });
+  if (referenceCache.size >= referenceLimit) {
+    const oldest = referenceCache.keys().next().value;
+    if (oldest) referenceCache.delete(oldest);
+  }
+  referenceCache.set(prefix, { expires: Date.now() + referenceLifetime, assets });
+  return assets;
+}
 const empty = (status: number) => new Response(null, { status, headers });
 
 export async function readPrivateReport({ id, reportId }: {
   id: string; reportId: string;
-}, asset?: string, availabilityOnly = false) {
-  if (!isReportUuid(id) || !isReportUuid(reportId) || (asset !== undefined && !imageName.test(asset))) return empty(404);
+}, asset?: string, availabilityOnly = false, full = false) {
+  if (!isReportUuid(id) || !isReportUuid(reportId) || (asset !== undefined && !reportImageName.test(asset))) return empty(404);
   try {
     const sb = await getServerSupabase();
     if (!sb) return empty(503);
@@ -35,23 +66,28 @@ export async function readPrivateReport({ id, reportId }: {
       || !validReportPdfPath(prefix, report.pdf_path) || report.json_path !== prefix + "result.json") return empty(404);
     const store = getMediaStore();
     if (!store) return empty(503);
-    const document = await store.download(prefix + "report.html");
-    if (!document) return asset || availabilityOnly ? empty(404) : new Response(null, {
-      status: 303, headers: { ...headers, Location: "/homes/" + id + "/safety?view=summary&report=" + reportId },
-    });
-    if (!document.length || document.length > 1024 * 1024) return empty(404);
-    const html = new TextDecoder().decode(document);
-    if (!html.startsWith("<!doctype html>")) return empty(404);
-    if (availabilityOnly) return empty(204);
     if (!asset) {
+      const html = await readReportHtml(store, prefix);
+      if (html === null) return availabilityOnly ? empty(404) : new Response(null, {
+        status: 303, headers: { ...headers, Location: "/homes/" + id + "/safety?view=summary&report=" + reportId },
+      });
+      if (!html) return empty(404);
+      if (availabilityOnly) return empty(204);
       const back = '<nav aria-label="MeowHome"><a class="back-link" href="/homes/' + id
         + '/safety#records-title">返回居家安全檢測紀錄</a></nav>';
       const reportHeader = '<body><header><p class="kicker">WelfareLens × MeowHome</p><h1>貓咪居家環境健檢</h1>';
       const brandedHeader = '<body><header><p class="kicker">MeowHome｜AI 居家環境安全檢測</p><h1>貓咪居家環境健檢報告</h1>';
       const page = html.replace(reportHeader, brandedHeader).replace("<body>", "<body>" + back);
-      return new Response(page, { headers: { ...headers, "Content-Type": "text/html; charset=utf-8" } });
+      const presentation = parseReportPresentation(page);
+      if (referenceCache.size < referenceLimit || referenceCache.has(prefix)) {
+        referenceCache.set(prefix, {
+          expires: Date.now() + referenceLifetime,
+          assets: Promise.resolve(presentation.assets),
+        });
+      }
+      return new Response(renderReportPresentation(page, full, presentation), { headers: { ...headers, "Content-Type": "text/html; charset=utf-8" } });
     }
-    if (!html.includes('src="html-assets/' + asset + '"')) return empty(404);
+    if (!(await referencedImages(store, prefix)).has(asset)) return empty(404);
     const image = await store.download(prefix + "html-assets/" + asset);
     if (!image || image.length > 4 * 1024 * 1024
       || createHash("sha256").update(image).digest("hex") !== asset.slice(0, 64)) return empty(404);
