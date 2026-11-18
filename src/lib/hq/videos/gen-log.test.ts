@@ -25,8 +25,8 @@ describe("前導影片生成紀錄", () => {
   });
 
   it("再用一次：帶入工具、設定、圖、prompt，不帶結果備註", () => {
-    const log: GenLog = { id: "1", section: "opening", created_at: "2026-11-18T13:40:00Z", author: "Tina", tool: "Kling 4.0", settings: "Keyframes 10s 16:9", inputs: "s01, s02, s03", prompt: "p", negative_prompt: "", note: "鏡頭沒越過箱頂" };
-    expect(draftFrom(log)).toEqual({ tool: "Kling 4.0", settings: "Keyframes 10s 16:9", inputs: "s01, s02, s03", prompt: "p", negative_prompt: "", note: "" });
+    const log: GenLog = { id: "1", section: "opening", created_at: "2026-11-18T13:40:00Z", author: "Tina", tool: "Kling 4.0", settings: "Keyframes 10s 16:9", inputs: "s01, s02", prompt: "p", negative_prompt: "", note: "鏡頭沒越過箱頂" };
+    expect(draftFrom(log)).toEqual({ tool: "Kling 4.0", settings: "Keyframes 10s 16:9", inputs: "s01, s02", prompt: "p", negative_prompt: "", note: "" });
   });
 
   it("時間以台北時間顯示", () => {
