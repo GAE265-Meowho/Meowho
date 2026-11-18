@@ -1,8 +1,9 @@
 "use client";
 // 中途新增送養貓（設計稿 docs/design/new-cat-flow.html，#206；取代 IntakeChat 的建貓對話）：
-// 拍照 → 說說牠（只有口述）→ 補資料（只出現口述沒填到的欄位：基本資料與健康、快問快答、摸摸牠）→ 確認名片 → 完成。
+// 拍照 → 說說牠（只有口述）→ 口說追問（沒說到的依主題一題一題用說的問，lib/onboarding/new-cat-guide.ts）→ 補資料（只出現口述沒填到的欄位：基本資料與健康、快問快答、摸摸牠）→ 確認名片 → 完成。
 //   規則在 lib/onboarding/new-cat-form.ts（unfilledKeys／fillPagesFor）與 lib/cat-profile/new-cat.ts。
-//   要補的欄位在離開說說牠時算一次固定下來，邊填欄位也不會消失；從名片點「編輯」或修改既有的貓時整頁全部顯示。
+//   追問時說「不知道」「很健康」的項目記成不用再問；追問完還沒填的才到補資料頁用點的。
+//   要補的欄位在追問結束時算一次固定下來，邊填欄位也不會消失；從名片點「編輯」或修改既有的貓時整頁全部顯示。
 // 照片：先判讀（不是貓、不適當就不收），通過才上傳到 meow-cat-photos；角度照存 photo_angles，生活照存 photo_paths。
 //   每張照片各自在背景處理（縮圖 → AI 判讀 → 上傳），可以一次選很多張、邊處理邊拍下一張；格子上顯示「處理中」。
 // 口述：送 /api/onboarding/turn（LLM，失敗時規則式），再用規則補 LLM 沒有的欄位；填到的標「你說過」，中途可以直接改。
@@ -17,6 +18,7 @@ import {
   FILL_PAGES, applyExtracted, coverOf, emptyForm, fillPagesFor, mottos, storyExtras, toCatUpdateRow, toDraftCat, toNewCatRow, unfilledKeys,
   type FillPage, type NewCatForm,
 } from "@/lib/onboarding/new-cat-form";
+import { answerGuide, guideQuestions, keyLabel, type GuideId } from "@/lib/onboarding/new-cat-guide";
 import type { AdoptionTerms } from "@/lib/cat-profile/adoption";
 import type { CaretakerType } from "@/lib/onboarding/household";
 import { getBrowserSupabase } from "@/lib/supabase/client";
@@ -25,6 +27,7 @@ import CatButton from "../ui/CatButton";
 import { postJson } from "../onboarding/Chat";
 import { shrinkPhoto } from "../onboarding/media";
 import { ReviewStep, DoneStep } from "./Card";
+import { GuideStep } from "./Guide";
 import { BackIcon } from "./parts";
 import { BasicStep, PhotoStep, TalkStep } from "./PhotoTalk";
 import { QUICK_PAGES, QuickPage, TouchPage } from "./Quick";
@@ -33,9 +36,9 @@ import s from "./newcat.module.css";
 /** 要新增貓的喵戶：只有中途的喵戶能新增貓；送養條件是貓的預設值 */
 export interface ExistingHome { id: string; name: string; role: CaretakerType; terms: AdoptionTerms | null }
 
-type Step = "photo" | "talk" | "fill" | "review" | "done";
+type Step = "photo" | "talk" | "guide" | "fill" | "review" | "done";
 const STEP_LABEL = ["拍照", "說說牠", "補資料", "確認", "完成"];
-const STEP_OF: Record<Step, number> = { photo: 0, talk: 1, fill: 2, review: 3, done: 4 };
+const STEP_OF: Record<Step, number> = { photo: 0, talk: 1, guide: 1, fill: 2, review: 3, done: 4 };
 /** 補資料這一輪：要走的頁、只顯示的欄位（null＝全部）、填完是否直接回名片 */
 interface FillPass { pages: FillPage[]; only: ReadonlySet<string> | null; fromReview: boolean }
 const ALL_PAGES: FillPass = { pages: [...FILL_PAGES], only: null, fromReview: false };
@@ -58,6 +61,11 @@ export function NewCatFlow({ userId, home, edit }: { userId: string | null; home
   // 說說牠之後算出來的那一輪；從名片按上一步時回到這一輪的最後一頁
   const firstPass = useRef<FillPass>(ALL_PAGES);
   const lastSent = useRef<string | null>(null);
+  // 口說追問：這一輪要問的題目、目前第幾題、回答、說不知道的欄位
+  const [guide, setGuide] = useState<{ ids: GuideId[]; i: number }>({ ids: [], i: 0 });
+  const [answer, setAnswer] = useState("");
+  const [guideStatus, setGuideStatus] = useState("");
+  const cleared = useRef(new Set<string>());
   const [catId, setCatId] = useState(() => edit?.catId ?? crypto.randomUUID());
   const [previews, setPreviews] = useState<Record<string, string>>(() => edit?.previews ?? {});
   const [missing, setMissing] = useState<string[]>([]);
@@ -185,11 +193,40 @@ export function NewCatFlow({ userId, home, edit }: { userId: string | null; home
     let f = form;
     if (f.story.trim() && f.story !== lastSent.current) f = await sendStory();
     if (edit) { firstPass.current = ALL_PAGES; startFill(ALL_PAGES); return; }
-    const keys = unfilledKeys(f);
+    cleared.current = new Set();
+    const ids = guideQuestions(unfilledKeys(f), f.name).map(q => q.id);
+    if (!ids.length) { finishGuide(f); return; }
+    setGuide({ ids, i: 0 }); setAnswer(""); setGuideStatus(""); go("guide");
+  }
+
+  // ---------- 口說追問 ----------
+  const missingNow = (f: NewCatForm) => unfilledKeys(f).filter(k => !cleared.current.has(k));
+  // 目前這題：用現在還沒填的欄位重算題目，只問這題剩下的項目
+  const question = step === "guide" ? guideQuestions(missingNow(form), form.name).find(q => q.id === guide.ids[guide.i]) : undefined;
+  function finishGuide(f: NewCatForm) {
+    const keys = missingNow(f);
     const p: FillPass = { pages: fillPagesFor(keys), only: new Set(keys), fromReview: false };
     firstPass.current = p;
     if (p.pages.length) startFill(p); else toReview();
   }
+  // 下一題：跳過已經在別題順便答完的
+  function nextQuestion(f: NewCatForm) {
+    const left = new Set(guideQuestions(missingNow(f), f.name).map(q => q.id));
+    const j = guide.ids.findIndex((id, k) => k > guide.i && left.has(id));
+    if (j < 0) { finishGuide(f); return; }
+    setGuide(g => ({ ...g, i: j })); setAnswer(""); window.scrollTo(0, 0);
+  }
+  function sendAnswer() {
+    if (!question) return;
+    if (!answer.trim()) { setGuideStatus("先按住麥克風說說看，不知道的話按「跳過這題」"); return; }
+    const r = answerGuide(form, question, answer);
+    if (!r.filled.length && !r.cleared.length) { setGuideStatus("沒聽到可以填的，換個說法再說一次，或按「跳過這題」"); return; }
+    r.cleared.forEach(k => cleared.current.add(k));
+    setForm(r.form);
+    setGuideStatus(r.filled.length ? `記下了：${r.filled.map(keyLabel).join("、")}` : "好，這題先不填");
+    nextQuestion(r.form);
+  }
+  function skipQuestion() { setGuideStatus(""); nextQuestion(form); }
   const page = pass.pages[fp];
   function fillNext() {
     if (page === "basic" && !needBasics()) return;
@@ -263,6 +300,7 @@ export function NewCatFlow({ userId, home, edit }: { userId: string | null; home
   // ---------- 導覽 ----------
   function back() {
     if (step === "talk") go("photo");
+    else if (step === "guide") go("talk");
     else if (step === "fill") {
       if (pass.fromReview) toReview();
       else if (fp > 0) { setFp(fp - 1); setMissing([]); window.scrollTo(0, 0); }
@@ -325,6 +363,7 @@ export function NewCatFlow({ userId, home, edit }: { userId: string | null; home
 
       {step === "photo" && <PhotoStep form={form} previews={previews} pendingAngles={pendingAngles} pendingOthers={pendingOthers} onAngle={onAngle} onOthers={onOthers} onRemoveOther={onRemoveOther} onCover={(c: Cover) => set(f => ({ ...f, cover: c }))} />}
       {step === "talk" && <TalkStep form={form} set={set} status={status} setStatus={setStatus} sending={sending} onSend={() => { void sendStory(); }} />}
+      {step === "guide" && question && <GuideStep key={question.id} q={question} index={guide.i} total={guide.ids.length} answer={answer} setAnswer={setAnswer} status={guideStatus} setStatus={setGuideStatus} />}
       {step === "fill" && page === "basic" && <BasicStep form={form} set={set} only={pass.only} />}
       {step === "fill" && page === "touch" && <TouchPage form={form} set={set} only={pass.only} />}
       {step === "fill" && page !== "basic" && page !== "touch" && <QuickPage page={QUICK_PAGES.findIndex(q => q.key === page)} form={form} set={set} only={pass.only} />}
@@ -336,6 +375,13 @@ export function NewCatFlow({ userId, home, edit }: { userId: string | null; home
           {missBox}{errBox}
           {step === "photo" && <CatButton onClick={photoNext}>{busy ? "照片處理中…" : "下一步：說說牠的故事"}</CatButton>}
           {step === "talk" && <CatButton disabled={sending} onClick={() => { void talkNext(); }}>{sending ? "整理中…" : "下一步：補齊資料"}</CatButton>}
+          {step === "guide" && (
+            <>
+              <button type="button" className={s.linkBtn} onClick={() => finishGuide(form)}>剩下的改用點的</button>
+              <button type="button" className={s.linkBtn} onClick={skipQuestion}>跳過這題</button>
+              <CatButton onClick={sendAnswer}>說好了</CatButton>
+            </>
+          )}
           {step === "fill" && <CatButton onClick={fillNext}>{pass.fromReview ? "改好了，回到名片" : fp >= pass.pages.length - 1 ? "下一步：看名片" : "下一頁"}</CatButton>}
           {step === "review" && <CatButton disabled={saving} onClick={create}>{saving ? (edit ? "儲存中…" : "建立中…") : edit ? "儲存修改" : `建立${form.name.trim() || "這隻貓"}的名片`}</CatButton>}
           {edit && step !== "review" && <button type="button" className={s.linkBtn} disabled={saving} onClick={toReview}>直接看名片並儲存</button>}

@@ -71,7 +71,7 @@ export function PhotoStep({ form, previews, pendingAngles, pendingOthers, onAngl
 }
 
 /** 按住說話（瀏覽器內建語音，zh-TW）；不支援時提示直接打字 */
-function useMic(onText: (t: string) => void, onStatus: (m: string) => void) {
+export function useMic(onText: (t: string) => void, onStatus: (m: string) => void) {
   const rec = useRef<{ stop: () => void } | null>(null);
   const [on, setOn] = useState(false);
   useEffect(() => () => rec.current?.stop(), []);
@@ -101,7 +101,7 @@ export function TalkStep({ form, set, status, setStatus, sending, onSend }: {
   return (
     <>
       <h2 className={s.h1}>說說牠的故事</h2>
-      <p className={s.lead}>把遇到牠的故事和我們分享，名字、年紀、個性都可以說。說完按下一步，AI 會幫你填好，只剩沒說到的再請你補。</p>
+      <p className={s.lead}>把遇到牠的故事和我們分享，名字、年紀、個性都可以說。說完按下一步，AI 會幫你填好，沒說到的再一題一題問你。</p>
       <section className={`${s.card} ${s.stack} ${s.center}`} aria-label="用說的" style={{ gap: 12 }}>
         <button type="button" className={`${s.mic} ${mic.on ? s.on : ""}`} aria-label="按住說話"
           onPointerDown={e => { e.preventDefault(); base.current = form.story ? form.story.replace(/\s*$/, "") + (/[。，！？]$/.test(form.story.trim()) ? "" : "，") : ""; mic.start(); }}
