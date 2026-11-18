@@ -61,6 +61,16 @@ it.each([0, 1, 2, 3, 5])("renders %i unique closed rows and no evidence images",
   expect(closed).toContain(`需要改善（${count}）`);
 });
 
+it("keeps an evidenced legacy priority action even if no comparison is available", () => {
+  const html = report(candidate("窗邊的拉繩", "a", "b")).replace(
+    "<strong>書桌附近</strong>", "<strong>書桌附近</strong> · 收起可接觸的線材",
+  );
+  expect(parseReportPresentation(html).items.map(item => item.name)).toEqual(["書桌附近", "窗邊的拉繩"]);
+  const opened = renderReportPresentation(html, false, undefined, 0);
+  expect(opened).toContain("收起可接觸的線材");
+  expect(opened).not.toContain("<img ");
+});
+
 it("switches image pairs and retains similar names with a different action", () => {
   const html = report(candidate("左側電線", "a", "b") + candidate("左側電線", "c", "e")
     .replace("固定線材", "移除閒置線材"));

@@ -49,8 +49,15 @@ export function parseReportPresentation(html: string) {
   const siblings = priorityHeading?.parentNode?.childNodes;
   const priorityList = priorityHeading && siblings?.slice(siblings.indexOf(priorityHeading) + 1)
     .find(node => "tagName" in node);
-  const priority = priorityList && "tagName" in priorityList && priorityList.tagName === "ol"
-    ? elements(priorityList, node => node.tagName === "strong").map(node => content(node).trim()) : [];
+  const priorityEntries = priorityList && "tagName" in priorityList && priorityList.tagName === "ol"
+    ? elements(priorityList, node => node.tagName === "li").flatMap(row => {
+      const label = elements(row, node => node.tagName === "strong")[0];
+      if (!label) return [];
+      const name = content(label).trim();
+      const action = content(row).trim().slice(name.length).replace(/^\s*[·：:]\s*/, "").trim();
+      return name ? [{ name, action }] : [];
+    })
+    : [];
 
   const candidates = elements(doc, node => node.tagName === "article" && !!hasClass(node, "comparison"))
     .flatMap(article => {
@@ -96,10 +103,17 @@ export function parseReportPresentation(html: string) {
     const existing = byAction.get(key);
     if (!existing || (!existing.before && item.before)) byAction.set(key, item);
   }
-  const rank = (name: string) => {
-    const index = priority.indexOf(name);
-    return index < 0 ? priority.length : index;
-  };
+  const withoutImages = { before: undefined, after: undefined, region: undefined, cropped: false, detailBefore: undefined };
+  const legacyItems = [...byAction.values()];
+  function legacyRank(name: string) {
+    const position = priorityEntries.findIndex(entry => entry.name === name);
+    return position < 0 ? priorityEntries.length : position;
+  }
+  for (const entry of priorityEntries) {
+    if (entry.action && !legacyItems.some(item => item.name === entry.name)) {
+      legacyItems.push({ ...withoutImages, ...entry, caseId: undefined, observation: "", impact: "", uncertainty: undefined });
+    }
+  }
   const index = elements(doc, node => node.tagName === "ol" && attr(node, "id") === "report-improvements")[0];
   const items = index ? elements(index, node => node.tagName === "li").flatMap(row => {
     const name = attr(row, "data-label");
@@ -108,10 +122,10 @@ export function parseReportPresentation(html: string) {
     const caseId = attr(row, "data-case");
     const evidence = caseId && candidates.find(item => item.caseId === caseId && item.name === name);
     return [{
-      ...(evidence || { observation: attr(row, "data-observation") ?? "", before: undefined, after: undefined, region: undefined, cropped: false, detailBefore: undefined }),
+      ...(evidence || { observation: attr(row, "data-observation") ?? "", ...withoutImages }),
       name, action, impact: attr(row, "data-impact") ?? "", uncertainty: attr(row, "data-uncertainty"),
     }];
-  }) : [...byAction.values()].sort((a, b) => rank(a.name) - rank(b.name));
+  }) : legacyItems.sort((a, b) => legacyRank(a.name) - legacyRank(b.name));
 
   return { assets, items, headerStart, headerEnd, bodyEnd, images };
 }
@@ -230,7 +244,7 @@ export function renderReportPresentation(html: string, full: boolean, presentati
     const href = open ? `html#${panelId}` : `?item=${index + 1}#${panelId}`;
     return `<section class="meow-item"><h3><a class="meow-hero" id="${panelId}" href="${href}" aria-expanded="${open}" aria-controls="${panelId}-panel">
       ${icon(hazardIcon(item.name))}<span>${escape(item.name)}</span>${icon(open ? "up" : "down")}</a></h3>
-      <div id="${panelId}-panel"${open ? "" : " hidden"}>${open ? `${before ? "" : `<p>${escape(item.observation)}</p>`}<div class="meow-grid${before ? "" : " solo"}">${before}<div class="meow-guidance">
+      <div id="${panelId}-panel"${open ? "" : " hidden"}>${open ? `${!before && item.observation ? `<p>${escape(item.observation)}</p>` : ""}<div class="meow-grid${before ? "" : " solo"}">${before}<div class="meow-guidance">
         ${impact?.consequence ? `<div class="meow-card meow-impact">${icon("alert")}<div><h4>可能後果</h4><p>${escape(impact.consequence)}</p></div></div>` : ""}
         <div class="meow-card meow-action">${icon("action")}<div><h4>建議行動</h4><p>${escape(item.action)}</p></div></div>
         ${after}</div></div>
