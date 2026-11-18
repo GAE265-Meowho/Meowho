@@ -18,7 +18,7 @@ const report = (details: string, priority = "書桌附近") => `<!doctype html><
 it("matches priority to its own image pair and reuses normalized estimated coordinates", () => {
   const html = report(candidate("沙發附近", "c", "e") + candidate("書桌附近", "a", "b")
     + candidate("書桌附近", "f", "9"));
-  const output = renderReportPresentation(html, false);
+  const output = renderReportPresentation(html, false, undefined, 0);
   expect(output).toContain(path("a"));
   expect(output).toContain(path("b"));
   expect(output).not.toContain(path("c"));
@@ -40,19 +40,118 @@ it("retains detail markup and only enables its lazy images in the expanded respo
 });
 
 it("preserves the evidence without a fabricated box or After image", () => {
-  const output = renderReportPresentation(report(candidate("書桌附近", "a", "", "90")), false);
+  const output = renderReportPresentation(report(candidate("書桌附近", "a", "", "90")), false, undefined, 0);
   expect(output).toContain(path("a"));
   expect(output).not.toContain('class="region estimated"');
   expect(output).not.toContain("改善後｜AI 模擬示意");
+  expect(output).toContain("這個項目沒有可展示的 AI 改善示意。");
+  expect(output).toContain("此報告未提供這張局部影像。");
+  expect(output.match(/<img /g)).toHaveLength(1);
 });
 
-it("does not associate a different comparison with an unmatched priority or trust markup as text", () => {
-  const html = report(candidate("沙發附近", "c", "b"));
-  const output = renderReportPresentation(html, false);
-  expect(output).toContain("需要進一步確認");
-  expect(output).not.toContain(path("c"));
-  expect(renderReportPresentation(report(candidate("&lt;線材&gt;", "a", "b"), "&lt;線材&gt;"), false))
-    .toContain("優先查核｜&lt;線材&gt;");
+const localizedComparison = () => candidate("書桌附近", "a", "b")
+  .replace(img("b"), img("b") + '<svg class="evidence-marker simulated" viewBox="0 0 100 100"><rect x="42" y="10" width="18" height="25"></rect></svg>')
+  .replace("Before 實線為 AI 估計範圍。", "Before 實線為 AI 估計範圍。 After 虛線為場景對位區域。")
+  .replace(img("d"), `<figure><figcaption>改善前局部｜原圖</figcaption>${img("d")}</figure>
+<figure><figcaption>改善後局部｜AI 模擬示意</figcaption>${img("e")}</figure>`);
+
+it("uses the case's independent After coordinates and its two lazy detail assets", () => {
+  const html = report(localizedComparison() + candidate("其他房間", "c", "f"));
+  const output = renderReportPresentation(html, false, undefined, 0);
+  expect(output).toContain('class="region estimated" style="left:12%;top:25%;width:30%;height:40%"');
+  expect(output).toContain('class="region simulated-region" style="left:42%;top:10%;width:18%;height:25%"');
+  expect(output).toContain("綠色虛線為 AI 模擬對應區域。");
+  expect(output).toContain(`src="${path("d")}" alt="改善前局部｜原圖" loading="lazy"`);
+  expect(output).toContain(`src="${path("e")}" alt="改善後局部｜AI 模擬示意" loading="lazy"`);
+  expect(output).not.toContain(path("f"));
+  expect(renderReportPresentation(html, false)).not.toContain("<img ");
+});
+
+it.each([
+  ["unrecognized provenance", "After 虛線為場景對位區域。", "After 位置待確認。"],
+  ["out-of-bounds coordinates", 'x="42"', 'x="90"'],
+  ["wrong figure marker type", 'class="evidence-marker simulated"', 'class="evidence-marker"'],
+])("keeps both images and omits the After outline for %s", (_, from, to) => {
+  const output = renderReportPresentation(report(localizedComparison().replace(from, to)), false, undefined, 0);
+  expect(output).toContain('class="region estimated"');
+  expect(output).not.toContain('class="region simulated-region"');
+  expect(output).toContain("這張 AI 示意圖的對應位置待確認。");
+  expect(output.match(/<img /g)).toHaveLength(4);
+});
+
+it("retains independently evidenced cases and escapes their labels", () => {
+  const output = renderReportPresentation(report(candidate("&lt;線材&gt;", "a", "b")), false);
+  expect(output).toContain("<span>&lt;線材&gt;</span>");
+  expect(output).not.toContain("<img ");
+});
+
+it.each([0, 1, 2, 3, 5])("renders %i unique closed rows and no evidence images", (count) => {
+  const html = report(Array.from({ length: count }, (_, i) => candidate("位置 " + i, "a", "b")).join(""));
+  const closed = renderReportPresentation(html, false);
+  expect(parseReportPresentation(html).items).toHaveLength(count);
+  expect(closed.match(/aria-expanded="false"/g) ?? []).toHaveLength(count);
+  expect(closed).not.toContain("<img ");
+  expect(closed).toContain(`需要改善（${count}）`);
+});
+
+it("keeps an evidenced legacy priority action even if no comparison is available", () => {
+  const html = report(candidate("窗邊的拉繩", "a", "b")).replace(
+    "<strong>書桌附近</strong>", "<strong>書桌附近</strong> · 收起可接觸的線材",
+  );
+  expect(parseReportPresentation(html).items.map(item => item.name)).toEqual(["書桌附近", "窗邊的拉繩"]);
+  const opened = renderReportPresentation(html, false, undefined, 0);
+  expect(opened).toContain("收起可接觸的線材");
+  expect(opened).not.toContain("<img ");
+});
+
+it("switches image pairs and retains similar names with a different action", () => {
+  const html = report(candidate("左側電線", "a", "b") + candidate("左側電線", "c", "e")
+    .replace("固定線材", "移除閒置線材"));
+  const second = renderReportPresentation(html, false, undefined, 1);
+  expect(second).toContain(path("c"));
+  expect(second).toContain(path("e"));
+  expect(second).not.toContain(path("a"));
+  expect(second.match(/aria-expanded="true"/g)).toHaveLength(1);
+  expect(second).toContain('href="html#improvement-2"');
+});
+
+it("uses the Worker summary as the source of truth and keeps text-only rows", () => {
+  const html = report(candidate("書桌附近", "a", "b").replace("<article ", '<article id="case-1" ')
+    + '<ol id="report-improvements" hidden><li data-label="書桌附近" data-action="固定線材" data-case="case-1"></li>'
+    + '<li data-label="沙發旁" data-observation="可見線材" data-action="整理電線"></li></ol>');
+  const opened = renderReportPresentation(html, false, undefined, 1);
+  expect(opened).toContain("需要改善（2）");
+  expect(opened).toContain("整理電線");
+  expect(opened).not.toContain("<img ");
+});
+
+it.each([
+  ["垂下的環狀拉繩", "cord"],
+  ["外露電線", "cable"],
+  ["未確認的紗窗", "window"],
+  ["家具邊緣", "furniture"],
+  ["零件", "object"],
+  ["其他情況", "alert"],
+])("uses a fixed decorative SVG for %s", (name, icon) => {
+  const output = renderReportPresentation(report(candidate(name, "a", "b"), name), false, undefined, 0);
+  expect(output).toContain(`<svg class="meow-icon" data-icon="${icon}"`);
+  expect(output).toContain('aria-hidden="true" focusable="false"');
+  expect(output).not.toMatch(/極高風險|危險指數|<script/);
+  expect(output.match(/<img /g)).toHaveLength(2);
+  expect(output).toContain('fetchpriority="high"');
+  expect(output).toContain('fetchpriority="low"');
+  expect(output.indexOf("可能後果")).toBeLessThan(output.indexOf(path("a")));
+  expect(output.indexOf(path("a"))).toBeLessThan(output.indexOf("建議行動"));
+  expect(output.indexOf("建議行動")).toBeLessThan(output.indexOf(path("b")));
+});
+
+it("escapes markup-like text in the header and guidance", () => {
+  const html = report(candidate("書桌附近", "a", "b").replace("固定線材", "&lt;img src=x onerror=alert(1)&gt;"))
+    .replace("</header>", "<p>&lt;svg onload=alert(1)&gt;</p></header>");
+  const output = renderReportPresentation(html, false, undefined, 0);
+  expect(output).not.toContain("svg onload");
+  expect(output).toContain("&lt;img src=x onerror=alert(1)&gt;");
+  expect(output).not.toMatch(/<(svg onload|img src=x)/);
 });
 
 it("only allows actual image elements and valid report-relative paths", () => {
@@ -67,7 +166,7 @@ it("uses the same case's original crop without transferring full-frame coordinat
     .replace(img("a"), "")
     .replace(img("d"), '<figure><figcaption>改善前局部｜原圖</figcaption>' + img("d") + '</figure>'
       + '<figure><figcaption>改善後局部｜AI 模擬示意</figcaption>' + img("e") + '</figure>'));
-  const output = renderReportPresentation(html, false);
+  const output = renderReportPresentation(html, false, undefined, 0);
   expect(output).toContain("改善前｜危害局部");
   expect(output).toContain(path("d"));
   expect(output).toContain(path("e"));
@@ -78,7 +177,7 @@ it("uses the same case's original crop without transferring full-frame coordinat
 it("condenses a stated mitigation goal without losing uncertainty from the source", () => {
   const html = report(candidate("書桌附近", "a", "b").replace("若接觸可能纏繞",
     "看見拉繩；影片不能確認線材是否通電。；降低貓纏住繩圈而受傷的可能。"));
-  const output = renderReportPresentation(html, false);
+  const output = renderReportPresentation(html, false, undefined, 0);
   expect(output).toContain("貓可能纏住繩圈而受傷。");
   expect(output).toContain("影片不能確認線材是否通電");
 });
