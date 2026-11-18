@@ -62,7 +62,7 @@ describe("上傳與進度", () => {
     const p = uploadProgress(latestBySlot(["s01__20261118080000.webp", "scene-studio__20261118080000.webp"]));
     expect(p).toEqual({
       characters: { done: 0, total: 4 },
-      scenes: { done: 1, total: 4 },
+      scenes: { done: 1, total: 3 },
       frames: { done: 1, total: 35 },
     });
   });

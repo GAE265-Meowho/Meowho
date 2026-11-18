@@ -1,7 +1,7 @@
 "use client";
 /* eslint-disable @next/next/no-img-element */
 // 前導影片工作區（#489）：v3 分鏡腳本＋定角／定景照片＋每一格分鏡圖的上傳與進度。
-// 資料在 src/lib/hq/videos/trailer.ts；圖片存 meow-site-assets/videos/trailer/（0003 policy：系統管理員才能上傳與列出）。
+// 資料在 src/lib/hq/videos/trailer.ts；圖片存 meow-site-assets/videos/trailer/（0037 policy：所有管理員都能上傳與列出）。
 // 同一格重傳會留下舊版（檔名帶時間戳），畫面只顯示最新一版。
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useHqActor } from "@/components/hq/HqActor";
@@ -42,7 +42,7 @@ function useTrailerUploads() {
   const { actor, preview } = useHqActor();
   const [uploads, setUploads] = useState<Uploads>({});
   const [loaded, setLoaded] = useState(false);
-  const canList = !preview && actor?.role === "system_admin";
+  const canList = !preview && (actor?.role === "admin" || actor?.role === "system_admin");
   const load = useCallback(async () => {
     const sb = getBrowserSupabase();
     if (!canList || !sb) { setLoaded(true); return; }
@@ -75,7 +75,7 @@ export function TrailerBoard() {
     try { blob = await toWebp(file); } catch { return "這張圖讀不了或壓不到 1 MB 以下，請換一張"; }
     const path = frameStoragePath(slotId, new Date());
     const { error } = await sb.storage.from(TRAILER_BUCKET).upload(path, blob, { contentType: "image/webp", upsert: false });
-    if (error) return "上傳失敗，請確認是系統管理員並稍後再試";
+    if (error) return "上傳失敗，請稍後再試；一直失敗請確認 0037 已執行";
     const name = path.slice(TRAILER_DIR.length + 1);
     setUploads(u => ({ ...u, [slotId]: { name, versions: (u[slotId]?.versions ?? 0) + 1 } }));
     toast.show({ message: "已上傳" });
@@ -104,7 +104,7 @@ export function TrailerBoard() {
           <Progress label="分鏡圖" {...prog.frames} />
         </div>
         <p className="hq-sub">分鏡圖共 {counts.total} 格：AI 生成 {counts.ai}、系統錄影截圖 {counts.record}、剪輯字卡 {counts.edit}。</p>
-        {loaded && !canUpload && <p className="hq-note">只有系統管理員可以上傳與查看已上傳的圖片。</p>}
+        {loaded && !canUpload && <p className="hq-note">示範模式不能上傳，也看不到已上傳的圖片。</p>}
       </section>
 
       <section className="hq-video-sec" aria-labelledby="tv-chars">

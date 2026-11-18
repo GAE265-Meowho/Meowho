@@ -1,7 +1,7 @@
 // MeowHQ「影片 › 前導影片」（#489，Tina 2026-11-18）
 // 內容來源：《小橘的第二個家》v3 交叉敘事分鏡腳本（docs/video/前導影片分鏡腳本_v3.md）。
 // 改腳本時兩邊一起改；這裡只放畫面要用的資料與純函式，上傳在 src/components/hq/videos/。
-// 圖片存在 meow-site-assets bucket 的 videos/trailer/（0003 的 policy：只有系統管理員能上傳與列出）。
+// 圖片存在 meow-site-assets bucket 的 videos/trailer/（0037：所有管理員都能上傳與列出，不能刪除）。
 
 /** 分鏡的「線」：貓線、人線、匯聚（兩人同框或分割畫面）、產品、無（字卡） */
 export type ShotLine = "貓" | "人" | "匯" | "產品" | "—";
@@ -84,8 +84,8 @@ export const CHARACTERS: RefSlot[] = [
   },
   {
     id: "char-afang", kind: "character", name: "阿芳",
-    setting: "36 歲台灣女性，中途媽媽，溫柔、對貓有愛心與熱情，但貓被退養時會感到很疲憊，有時穿咖啡色針織外套",
-    prompt: "Character reference sheet of a 36-year-old Taiwanese woman, a cat rescuer, kind and warm face with a hint of tiredness, shoulder-length black hair tied back, light brown (beige) knitted cardigan, jeans. Front view, side view, and three expressions: worried, gentle smile, teary. Plain light gray background, photorealistic.",
+    setting: "36 歲台灣女性，中途媽媽，溫柔、對貓有愛心與熱情，但貓被退養時會感到很疲憊，穿咖啡色針織外套（每一幕同一件）",
+    prompt: "Character reference sheet of a 36-year-old Taiwanese woman, a cat rescuer, kind and warm face with a hint of tiredness, shoulder-length black hair tied back, brown knitted cardigan, jeans. Front view, side view, and three expressions: worried, gentle smile, teary. Plain light gray background, photorealistic.",
     usedIn: [5, 7, 11, 16, 18, 26, 28],
   },
   {
@@ -105,16 +105,10 @@ export const SCENES: RefSlot[] = [
     usedIn: [4, 6, 13, 15, 16, 20, 28, 29],
   },
   {
-    id: "scene-doorstep", kind: "scene", name: "中途之家門口（雨夜）",
-    setting: "老公寓一樓的中途之家門口，開場紙箱和鏡 16 阿芳抱起小橘都在這裡",
-    prompt: "Doorstep of an old Taiwanese apartment used as a small cat shelter, rainy night, iron gate, a few potted plants, wet tiled ground, dim yellow street light, warm light leaking from the half-open door. Wide shot, photorealistic, no people.",
-    usedIn: [1, 2, 3, 16],
-  },
-  {
-    id: "scene-afang-home", kind: "scene", name: "阿芳家",
-    setting: "中途媽媽的小公寓：有貓窩、貓抓柱和幾個外出籠，廚房餐桌靠窗，阿芳拍小橘、在廚房回訊息都在這裡",
-    prompt: "Cozy small Taiwanese apartment of a cat rescuer, a kitchen table by the window, cat beds, scratching posts and a few pet carriers, warm morning sunlight, lived-in and slightly cluttered. Wide shot, photorealistic, no people.",
-    usedIn: [7, 18, 26],
+    id: "scene-afang-home", kind: "scene", name: "阿芳家（中途之家）",
+    setting: "中途之家就是阿芳家：老公寓一樓，門口有鐵門和幾盆植物（開場雨夜的紙箱、鏡 16 抱起小橘都在門口）；屋裡有貓窩、貓抓柱和幾個外出籠，廚房餐桌靠窗，阿芳拍小橘、在廚房回訊息都在這裡",
+    prompt: "Ground-floor apartment of a Taiwanese cat rescuer in an old building, shown in two views: the front doorstep with an iron gate, a few potted plants and a dim yellow street light; and the cozy interior with a kitchen table by the window, cat beds, scratching posts and a few pet carriers, warm light, lived-in and slightly cluttered. Wide shots, photorealistic, no people.",
+    usedIn: [1, 2, 3, 7, 16, 18, 26],
   },
   {
     id: "scene-couple-home", kind: "scene", name: "情侶家",
@@ -146,7 +140,7 @@ export const SHOT_SECTIONS: ShotSection[] = [
       { no: 4, line: "人", time: "0:30–0:40", picture: "同一個雨夜，小傑加班完打開套房的門，屋裡沒開燈，窗外是同一場雨", voice: "小傑：「我想養一隻貓，想了兩年。」", sfx: "雨聲延續（聲音橋接）、開門聲",
         frames: [ai("s04", "Rainy night, a young man with round glasses opening the door of a dark small studio apartment after work, tired, rain streaking down the large window, city lights outside, cool blue-gray tones")] },
       { no: 5, line: "貓", time: "0:40–0:55", picture: "倒敘：半年前寒夜，阿芳在路邊機車下蹲下，伸手接小橘", voice: "小橘：「第一次遇見阿芳，是在一個很冷的晚上。」", sfx: "音樂轉溫暖",
-        frames: [ai("s05", "Flashback, cold winter night on a Taiwanese street, a woman in a beige cardigan crouches down beside a small orange tabby kitten under a scooter, reaching out gently, warm street light, soft film grain")] },
+        frames: [ai("s05", "Flashback, cold winter night on a Taiwanese street, a woman in a brown knitted cardigan crouches down beside a small orange tabby kitten under a scooter, reaching out gently, warm street light, soft film grain")] },
       { no: 6, line: "人", time: "0:55–1:05", picture: "小傑躺在沙發上滑手機，螢幕上是一張張待領養貓的照片，臉被螢幕照亮", voice: "小傑：「每天睡前，我都在看別人的貓。」", sfx: "冷氣聲、滑動聲",
         frames: [ai("s06", "A young man with round glasses lying on a gray sofa in a dark studio apartment, scrolling on his phone, face lit by the screen, wistful expression, cool screen light")] },
       { no: 7, line: "貓", time: "1:05–1:15", picture: "阿芳家，用手機拍小橘吃飯、睡覺；吹風機一響，小橘嚇得躲起來，阿芳在筆記本上記一筆", voice: "小橘：「她每天幫我拍照，記下我吃多少、睡多久、怕什麼聲音。」", sfx: "快門聲、吹風機聲",
@@ -178,7 +172,7 @@ export const SHOT_SECTIONS: ShotSection[] = [
         frames: [ai("s15", "Close-up of a man's thumb hovering over a button on a smartphone screen, hesitating, then the screen turns off and reflects his face, dark room, cool tones")] },
       { no: 16, line: "匯", time: "2:45–3:00", picture: "雨夜門口，阿芳打開紙箱抱起小橘，眼眶紅了；接小傑站在窗邊看雨。兩顆鏡頭用同一個雨聲接起來，最後並排成分割畫面", voice: "小橘：「所以，我回來了。」字幕：「一個怕再被送回來，一個怕自己做不好。」", sfx: "靜音 2 秒",
         frames: [
-          ai("s16-1", "Rainy night doorstep, the woman in a beige cardigan opens the cardboard box and lifts the wet orange tabby cat into her arms, teary eyes, cold blue light with warm light from the door behind her"),
+          ai("s16-1", "Rainy night doorstep, the woman in a brown knitted cardigan opens the cardboard box and lifts the wet orange tabby cat into her arms, teary eyes, cold blue light with warm light from the door behind her"),
           ai("s16-2", "A young man with round glasses standing by a rain-streaked window in a dark studio apartment, looking out at the city, silhouette, cold blue tones", "接"),
         ] },
     ],
@@ -190,7 +184,7 @@ export const SHOT_SECTIONS: ShotSection[] = [
       { no: 17, line: "—", time: "3:00–3:08", picture: "黑畫面，Meowho喵戶 門口貓頭 Logo 浮現", voice: "字幕：「如果，相遇可以慢一點、準一點？」", sfx: "一聲貓叫，音樂重新進來",
         frames: [edit("s17", "用剪輯軟體做 Logo 動畫，用向量的門口貓頭款 Logo")] },
       { no: 18, line: "產品", time: "3:08–3:20", picture: "① 建貓：阿芳建立喵戶，上傳小橘的影片和照片、寫下個性；系統生成像本尊的 3D 小橘。切到小傑手機上打開同一張介紹頁", voice: "小橘：「這一次，我的樣子、我的個性，都被好好放在同一個地方。」小傑：「我第一次看到一隻貓完整的樣子。」", sfx: "明亮音樂",
-        frames: [ai("s18", "The woman in a beige cardigan filming the orange tabby cat with her phone as it plays on the floor, warm afternoon light", "穿插")] },
+        frames: [ai("s18", "The woman in a brown knitted cardigan filming the orange tabby cat with her phone as it plays on the floor, warm afternoon light", "穿插")] },
       { no: 19, line: "產品", time: "3:20–3:30", picture: "② 幫我找貓：小傑輸入「上班族，晚上才回家，想要安靜一點的貓」，系統推薦小橘並附上推薦理由", voice: "小傑：「我只說了我怎麼生活，」小橘：「適合我的人，就找到了我。」", sfx: "—",
         frames: [ai("s19", "A young man with round glasses sitting on the sofa of a small Taipei studio apartment at night, typing on his phone, face lit by the screen, a slight surprised smile", "穿插")] },
       { no: 20, line: "產品", time: "3:30–3:42", picture: "③ 拍自家影片：小傑繞套房一圈，房間變成 3D；安全檢測標出書桌下的電線「可能被啃咬」。接小傑把電線收進集線盒", voice: "小傑：「桌下那團電線，我在牠來之前就整理好了。」", sfx: "—",
@@ -207,7 +201,7 @@ export const SHOT_SECTIONS: ShotSection[] = [
         frames: [rec("s25", "系統錄影：提出領養、附上試養報告與問卷")] },
       { no: 26, line: "匯", time: "4:20–4:31", picture: "⑨ 和中途對話：分割畫面，左半阿芳在廚房、右半小傑在沙發；中間疊上系統的對話串一來一回", voice: "小橘：「以前，阿芳只能從一張表單認識領養人。這一次，她可以慢慢問，他也答得出來。」", sfx: "訊息提示音一來一回",
         frames: [
-          ai("s26-1", "The woman in a beige cardigan sitting at her kitchen table typing on her phone, thoughtful, warm light", "左半"),
+          ai("s26-1", "The woman in a brown knitted cardigan sitting at her kitchen table typing on her phone, thoughtful, warm light", "左半"),
           ai("s26-2", "The young man with round glasses on his sofa typing a reply on his phone, focused, evening lamp light", "右半"),
         ] },
       { no: 27, line: "產品", time: "4:31–4:36", picture: "⑩ 移轉：阿芳按下移轉，小橘移到小傑的喵戶；紀錄分成「中途時期」和「新家時期」", voice: "小橘：「然後，她按下了移轉。」", sfx: "一聲輕快的提示音",
@@ -218,7 +212,7 @@ export const SHOT_SECTIONS: ShotSection[] = [
     title: "第四段：相遇結尾", range: "4:36–5:00",
     shots: [
       { no: 28, line: "匯", time: "4:36–4:46", picture: "小傑的套房，阿芳把外出籠放在地上打開；小傑沒有伸手，蹲在旁邊等。小橘慢慢走出來，走到窗邊坐下曬太陽", voice: "小傑：「你好，小橘。」", sfx: "溫暖主旋律",
-        frames: [ai("s28", "Low angle at cat eye level, a pet carrier door opening on the floor of a sunny small studio apartment, the orange tabby cat stepping out slowly on its own and walking toward a sunny window, a young man with round glasses kneeling nearby patiently without reaching out, a woman in a beige cardigan watching, golden hour light")] },
+        frames: [ai("s28", "Low angle at cat eye level, a pet carrier door opening on the floor of a sunny small studio apartment, the orange tabby cat stepping out slowly on its own and walking toward a sunny window, a young man with round glasses kneeling nearby patiently without reaching out, a woman in a brown knitted cardigan watching, golden hour light")] },
       { no: 29, line: "匯", time: "4:46–4:52", picture: "小橘在窗邊睡著，書桌下的電線已經收得整整齊齊；小傑在沙發上看書", voice: "小橘：「現在，我有了第二個家。」", sfx: "—",
         frames: [ai("s29", "The orange tabby cat napping by a sunny window in a cozy small studio apartment, neatly organized cables in a box under the desk, the young man reading on the sofa nearby, golden hour light")] },
       { no: 30, line: "匯", time: "4:52–5:00", picture: "小橘轉頭看鏡頭，慢慢眨眼；Logo＋標語", voice: "小橘：「謝謝你，讓我不用再回到那個紙箱。」小傑：「也謝謝你，等我準備好。」字幕：「Meowho喵戶｜讓每一次相遇，都走到最後。」", sfx: "收尾音、貓叫一聲",
