@@ -50,7 +50,7 @@ export const addCan = (s: FeedState, can: FeedCan): FeedState => (canFits(s, can
  */
 export function feedResult(s: FeedState, portion: number, start: FeedState = newFeed()) {
   const total = Math.round(feedAmount(s)), added = total - Math.round(feedAmount(start));
-  return { added, total, over: total > portion * 1.5, wet: s.wet > 0, soup: s.soup > 0, spill: Math.round(s.spill * 10) / 10,
+  return { added, total, portion, over: total > portion * 1.5, wet: s.wet > 0, soup: s.soup > 0, spill: Math.round(s.spill * 10) / 10,
     bowl: { dry: Math.round(s.dry * 10) / 10, wet: s.wet, soup: s.soup } };
 }
 
