@@ -152,6 +152,7 @@ ole === "admin" 判斷管理員，而現有 admin 會升為 system_admin；舊�
 | 2026-10-28 | Tina × Cursor | MeowHQ 階段 0：`src/lib/hq/types.ts` 與測試（8 種處置含 `unban`）、0002 資料表草案 | #18 |
 | 2026-10-29 | Tina × Cursor | MeowHQ 階段 1 db：`0002_meow_hq.sql`、`supabase/tests/`（SQL 測試與本機執行器） | #19 |
 | 2026-11-04 | Tina × Claude Code | MeowHQ 新增「貓戶管理」模組：依類別查看貓戶、貓咪卡片；0020 授權現有管理員 | #179 |
+| 2026-11-18 | Tina × Claude Code | 阿芳家定景加入中途貓短耳貓、灰寶（背景角色）；鏡 7、11、18 對應修改；鏡 2 prompt 指定上蓋兩片之間的縫、禁止側邊開口 | #502 |
 | 2026-11-18 | Tina × Claude Code | 「前導影片：產生影片」改名「前導影片：影片」：完整影片、段落影片、27 段片段的上傳／播放／下載／版本，存 Azure Blob（`/api/hq/trailer-videos`、`TrailerVideos.tsx`、`trailer-video.ts`）；生成素材收進摺疊區 | #501 |
 | 2026-11-18 | Tina × Claude Code | 同一鏡多格的標籤改「7-1 拍小橘吃飯」這類寫法（鏡 7、12、14、16、26），卡片標題與圖片說明一起改；`docs/video` 原稿同步 | #499 |
 | 2026-11-18 | Tina × Claude Code | 小橘移除左耳缺口設定；影片頁「下載最新腳本（.md）」：`scripts/gen-trailer-md.mjs`（predev／prebuild）把 `docs/video` 原稿包成 `trailer-md.generated.ts`，`trailer-md.test.ts` 擋未同步 | #495（#498） |
