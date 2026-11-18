@@ -3,7 +3,7 @@ import { beforeEach, expect, it, vi } from "vitest";
 import { readPrivateReport } from "./private-html-report";
 
 const mock = vi.hoisted(() => ({
-  user: "owner", owner: true, report: true, download: vi.fn(),
+  user: "owner", owner: true, report: true, attempt: 1, download: vi.fn(),
 }));
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/storage/server", () => ({ getMediaStore: () => ({ download: mock.download }) }));
@@ -16,7 +16,7 @@ vi.mock("@/lib/supabase/server", () => ({
         eq: () => query,
         maybeSingle: async () => ({
           data: table === "meow_households" ? (mock.owner ? { id } : null)
-            : mock.report ? { status: "ready", attempt: 1, pdf_path: prefix + "report.pdf", json_path: prefix + "result.json" } : null,
+            : mock.report ? { status: "ready", attempt: mock.attempt, pdf_path: prefix + "report.pdf", json_path: prefix + "result.json" } : null,
         }),
       };
       return query;
@@ -25,13 +25,16 @@ vi.mock("@/lib/supabase/server", () => ({
 }));
 
 const id = "87218146-9b22-48c1-93f8-c64823cd04ab";
-const reportId = "4f9a3c65-fa5d-430a-8f66-dd76d5daff99";
-const prefix = `homes/${id}/reports/${reportId}/a1/`;
+let caseNumber = 0;
+let reportId: string;
+let prefix: string;
 const image = Buffer.from("test image");
 const asset = createHash("sha256").update(image).digest("hex") + ".jpg";
 
 beforeEach(() => {
-  Object.assign(mock, { user: "owner", owner: true, report: true });
+  reportId = `4f9a3c65-fa5d-430a-8f66-${String(++caseNumber).padStart(12, "0")}`;
+  prefix = `homes/${id}/reports/${reportId}/a1/`;
+  Object.assign(mock, { user: "owner", owner: true, report: true, attempt: 1 });
   mock.download.mockReset().mockImplementation(async (path: string) =>
     path === prefix + "report.html" ? Buffer.from(`<!doctype html><body><img src="html-assets/${asset}"></body>`) : image);
 });
@@ -55,7 +58,7 @@ it("updates only the known report header, preserving matching content elsewhere"
   mock.download.mockResolvedValueOnce(Buffer.from(
     `<!doctype html><body><header>${body}${heading}</header><main>${body}${heading}</main></body>`,
   ));
-  const response = await readPrivateReport({ id, reportId });
+  const response = await readPrivateReport({ id, reportId }, undefined, false, true);
   const html = await response.text();
   expect(html).toContain('<header><p class="kicker">MeowHome｜AI 居家環境安全檢測</p><h1>貓咪居家環境健檢報告</h1></header>');
   expect(html).toContain(`<main>${body}${heading}</main>`);
@@ -86,4 +89,28 @@ it("redirects a legacy report and rejects malformed, unreferenced and corrupt as
   expect(legacy.headers.get("Location")).toBe(`/homes/${id}/safety?view=summary&report=${reportId}`);
   expect((await readPrivateReport({ id, reportId }, undefined, true)).status).toBe(404);
   expect((await readPrivateReport({ id, reportId }, asset)).status).toBe(404);
+});
+
+it("coalesces image reference downloads but revalidates ownership on a cache hit", async () => {
+  const results = await Promise.all([
+    readPrivateReport({ id, reportId }, asset),
+    readPrivateReport({ id, reportId }, asset),
+  ]);
+  expect(results.map(response => response.status)).toEqual([200, 200]);
+  expect(mock.download.mock.calls.filter(([path]) => path.endsWith("report.html"))).toHaveLength(1);
+  mock.owner = false;
+  expect((await readPrivateReport({ id, reportId }, asset)).status).toBe(404);
+  mock.owner = true;
+  mock.report = false;
+  expect((await readPrivateReport({ id, reportId }, asset)).status).toBe(404);
+});
+
+it("does not reuse an image whitelist across report attempts", async () => {
+  expect((await readPrivateReport({ id, reportId }, asset)).status).toBe(200);
+  mock.attempt = 2;
+  prefix = prefix.replace(/a1\/$/, "a2/");
+  mock.download.mockImplementation(async (path: string) =>
+    path.endsWith("report.html") ? Buffer.from("<!doctype html><body>新版報告</body>") : image);
+  expect((await readPrivateReport({ id, reportId }, asset)).status).toBe(404);
+  expect(mock.download).not.toHaveBeenCalledWith(prefix + "html-assets/" + asset);
 });
