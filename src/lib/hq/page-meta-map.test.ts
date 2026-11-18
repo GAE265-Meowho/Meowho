@@ -12,6 +12,8 @@ describe("resolvePageMetaKey", () => {
     expect(resolvePageMetaKey("/MeowHQ/knowledge")).toBe("knowledge");
     expect(resolvePageMetaKey("/MeowHQ/flows", "?tab=adopter")).toBe("flows");
     expect(resolvePageMetaKey("/MeowHQ/videos", "?tab=trailer")).toBe("videos/trailer");
+    expect(resolvePageMetaKey("/MeowHQ/videos", "")).toBe("videos/trailer");
+    expect(resolvePageMetaKey("/MeowHQ/videos", "?tab=trailer-clips")).toBe("videos/trailer-clips");
   });
 
   it("assets 依 ?tab=；子路徑繼承", () => {

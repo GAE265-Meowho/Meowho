@@ -751,3 +751,38 @@
 .hq-video-refchips b { font-weight: 500; }
 .hq-video-refthumb { flex: none; width: 36px; height: 36px; border-radius: 6px; overflow: hidden; background: var(--hq-bg); border: 1px solid var(--hq-line); display: grid; place-items: center; color: var(--hq-sub); font-size: .8rem; }
 .hq-video-refthumb img { width: 100%; height: 100%; object-fit: cover; }
+/* 前導影片：產生影片（#493） */
+.hq-video-sec h2 .hq-sub { font-weight: 400; font-size: .85rem; margin-left: .3rem; }
+.hq-video-steps { margin: 0; padding-left: 1.4rem; display: flex; flex-direction: column; gap: .25rem; font-size: .92rem; }
+.hq-video-clips { display: grid; gap: .85rem; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+.hq-video-clip { border: 1px solid var(--hq-line); border-radius: 10px; padding: .75rem .85rem; display: flex; flex-direction: column; gap: .5rem; min-width: 0; }
+.hq-video-clip .hq-h3 { margin: 0; }
+/* 前導影片生成紀錄（#494）：段落標題旁的 (P) 與紀錄對話框 */
+.hq-video-pbtn { display: inline-flex; align-items: center; gap: .25rem; min-height: 32px; padding: 0 .55rem; margin-left: .35rem; border: 1px solid var(--hq-line); border-radius: 999px; background: var(--hq-card); color: var(--hq-sage-ink); font-size: .85rem; font-weight: 500; vertical-align: middle; cursor: pointer; }
+.hq-video-pbtn:hover { border-color: var(--hq-sage); }
+.hq-video-pbtn:focus-visible { outline: 2px solid var(--hq-sage); outline-offset: 2px; }
+.hq-video-pcount { min-width: 1.2rem; height: 1.2rem; border-radius: 999px; background: var(--hq-sage); color: #fff; font-size: .72rem; display: inline-grid; place-items: center; padding: 0 .3rem; }
+.hq-video-dialog { width: min(720px, calc(100vw - 1.5rem)); max-height: calc(100dvh - 2rem); padding: 0; border: 1px solid var(--hq-line); border-radius: 12px; background: var(--hq-card); color: inherit; }
+.hq-video-dialog::backdrop { background: rgba(40, 36, 30, .45); }
+.hq-video-dialog-in { padding: 1rem 1.1rem 1.2rem; display: flex; flex-direction: column; gap: .8rem; }
+.hq-video-dialog-in > header { justify-content: space-between; flex-wrap: nowrap; position: sticky; top: 0; background: var(--hq-card); padding-bottom: .4rem; z-index: 1; }
+.hq-video-dialog-in h2 { margin: 0; font-size: 1rem; }
+.hq-video-logs { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .7rem; }
+.hq-video-log { border: 1px solid var(--hq-line); border-radius: 10px; padding: .7rem .8rem; display: flex; flex-direction: column; gap: .4rem; font-size: .9rem; }
+.hq-video-log p { margin: 0; overflow-wrap: anywhere; }
+.hq-video-logprompt { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; font-family: inherit; font-size: .85rem; line-height: 1.5; background: var(--hq-bg); border-radius: 8px; padding: .5rem .65rem; max-height: 14rem; overflow: auto; }
+.hq-video-logform { display: flex; flex-direction: column; gap: .6rem; border-top: 1px dashed var(--hq-line); padding-top: .8rem; }
+.hq-video-logform .hq-h3 { margin: 0; }
+.hq-video-field { display: flex; flex-direction: column; gap: .25rem; }
+.hq-video-field label { font-size: .88rem; font-weight: 500; }
+.hq-video-field input, .hq-video-field textarea { width: 100%; font: inherit; font-size: 16px; border: 1px solid var(--hq-line); border-radius: 8px; padding: .5rem .6rem; background: #fff; min-height: 44px; }
+.hq-video-field textarea { resize: vertical; }
+.hq-video-field [aria-invalid="true"] { border-color: #B4533A; }
+.hq-video-field .hq-error { margin: 0; }
+.hq-video-sechead { display: flex; align-items: center; flex-wrap: wrap; gap: .3rem; }
+.hq-video-sechead .hq-h3, .hq-video-sechead h2 { margin: 0; }
+.hq-video-sechead .hq-video-pbtn { margin-left: 0; }
+.hq-video-dialog-in > header .hq-btn { flex: none; white-space: nowrap; }
+/* 下載最新腳本（#498） */
+.hq-video-download { margin: -.25rem 0 .75rem; flex-wrap: wrap; }
+.hq-video-download .hq-sub { overflow-wrap: anywhere; }
