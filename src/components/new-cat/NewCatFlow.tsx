@@ -1,9 +1,12 @@
 "use client";
 // 中途新增送養貓（設計稿 docs/design/new-cat-flow.html，#206；取代 IntakeChat 的建貓對話）：
-// 拍照 → 說說牠 → 快問快答（6 頁＋摸摸牠）→ 確認名片 → 完成。規則在 lib/onboarding/new-cat-form.ts 與 lib/cat-profile/new-cat.ts。
+// 拍照 → 說說牠（只有口述）→ 補資料（只出現口述沒填到的欄位：基本資料與健康、快問快答、摸摸牠）→ 確認名片 → 完成。
+//   規則在 lib/onboarding/new-cat-form.ts（unfilledKeys／fillPagesFor）與 lib/cat-profile/new-cat.ts。
+//   要補的欄位在離開說說牠時算一次固定下來，邊填欄位也不會消失；從名片點「編輯」或修改既有的貓時整頁全部顯示。
 // 照片：先判讀（不是貓、不適當就不收），通過才上傳到 meow-cat-photos；角度照存 photo_angles，生活照存 photo_paths。
 //   每張照片各自在背景處理（縮圖 → AI 判讀 → 上傳），可以一次選很多張、邊處理邊拍下一張；格子上顯示「處理中」。
 // 口述：送 /api/onboarding/turn（LLM，失敗時規則式），再用規則補 LLM 沒有的欄位；填到的標「你說過」，中途可以直接改。
+//   按「下一步」時，口述有改過但還沒送出的會先自動送出。
 // 建好後背景建立 3D 貓（/api/cats/[id]/model，帶三張角度照）。示範模式（沒有 Supabase）可以完整操作，但不存檔、不上傳。
 // 修改既有的貓（edit）：同一套畫面，每一頁帶回原本的內容（lib 的 fromCatRow）；最後一步改成「儲存修改」，
 //   上面的步驟可以直接點過去；換掉或移除的原本照片在存檔成功後才從雲端刪掉。
@@ -11,7 +14,8 @@ import { useEffect, useRef, useState } from "react";
 import { anglesMissing, coverAfterRemoveOther, MAX_LIFE_PHOTOS, newCatMissing, type AngleKey, type Cover } from "@/lib/cat-profile/new-cat";
 import { beginCat, emptyIntake, type IntakeState } from "@/lib/onboarding/conversation";
 import {
-  applyExtracted, coverOf, emptyForm, mottos, storyExtras, toCatUpdateRow, toDraftCat, toNewCatRow, type NewCatForm,
+  FILL_PAGES, applyExtracted, coverOf, emptyForm, fillPagesFor, mottos, storyExtras, toCatUpdateRow, toDraftCat, toNewCatRow, unfilledKeys,
+  type FillPage, type NewCatForm,
 } from "@/lib/onboarding/new-cat-form";
 import type { AdoptionTerms } from "@/lib/cat-profile/adoption";
 import type { CaretakerType } from "@/lib/onboarding/household";
@@ -22,16 +26,19 @@ import { postJson } from "../onboarding/Chat";
 import { shrinkPhoto } from "../onboarding/media";
 import { ReviewStep, DoneStep } from "./Card";
 import { BackIcon } from "./parts";
-import { PhotoStep, TalkStep } from "./PhotoTalk";
-import { PAGES, QUICK_PAGES, QuickPage, TouchPage } from "./Quick";
+import { BasicStep, PhotoStep, TalkStep } from "./PhotoTalk";
+import { QUICK_PAGES, QuickPage, TouchPage } from "./Quick";
 import s from "./newcat.module.css";
 
 /** 要新增貓的喵戶：只有中途的喵戶能新增貓；送養條件是貓的預設值 */
 export interface ExistingHome { id: string; name: string; role: CaretakerType; terms: AdoptionTerms | null }
 
-type Step = "photo" | "talk" | "quick" | "touch" | "review" | "done";
-const STEP_LABEL = ["拍照", "說說牠", "快問", "確認", "完成"];
-const STEP_OF: Record<Step, number> = { photo: 0, talk: 1, quick: 2, touch: 2, review: 3, done: 4 };
+type Step = "photo" | "talk" | "fill" | "review" | "done";
+const STEP_LABEL = ["拍照", "說說牠", "補資料", "確認", "完成"];
+const STEP_OF: Record<Step, number> = { photo: 0, talk: 1, fill: 2, review: 3, done: 4 };
+/** 補資料這一輪：要走的頁、只顯示的欄位（null＝全部）、填完是否直接回名片 */
+interface FillPass { pages: FillPage[]; only: ReadonlySet<string> | null; fromReview: boolean }
+const ALL_PAGES: FillPass = { pages: [...FILL_PAGES], only: null, fromReview: false };
 type PhotoAi = { result: { isCat: boolean; inappropriate: boolean; coat: string | null; breed: string | null; confidence: number } | null };
 
 /** 修改既有的貓：原本的表單、照片預覽網址、存好後要做的事 */
@@ -46,7 +53,11 @@ export function NewCatFlow({ userId, home, edit }: { userId: string | null; home
   const removedOriginal = useRef(new Set<string>());
   const set = (fn: (f: NewCatForm) => NewCatForm) => setForm(fn);
   const [step, setStep] = useState<Step>("photo");
-  const [qp, setQp] = useState(0);
+  const [fp, setFp] = useState(0);
+  const [pass, setPass] = useState<FillPass>(ALL_PAGES);
+  // 說說牠之後算出來的那一輪；從名片按上一步時回到這一輪的最後一頁
+  const firstPass = useRef<FillPass>(ALL_PAGES);
+  const lastSent = useRef<string | null>(null);
   const [catId, setCatId] = useState(() => edit?.catId ?? crypto.randomUUID());
   const [previews, setPreviews] = useState<Record<string, string>>(() => edit?.previews ?? {});
   const [missing, setMissing] = useState<string[]>([]);
@@ -147,9 +158,10 @@ export function NewCatFlow({ userId, home, edit }: { userId: string | null; home
   }
 
   // ---------- 說說牠 ----------
-  async function sendStory() {
+  async function sendStory(): Promise<NewCatForm> {
     const text = form.story.trim();
-    if (!text) { setStatus("先說幾句，或打字貼上"); return; }
+    if (!text) { setStatus("先說幾句，或打字貼上"); return form; }
+    lastSent.current = form.story;
     setSending(true); setStatus("");
     let next = form, filled: string[] = [];
     try {
@@ -163,7 +175,26 @@ export function NewCatFlow({ userId, home, edit }: { userId: string | null; home
     const n = new Set([...filled, ...extra.filled]).size;
     setForm(next);
     setSending(false);
-    setStatus(n ? `已填好 ${n} 格，可以再說一段補充` : "沒有抓到可以填的，下面直接點選也可以");
+    setStatus(n ? `已填好 ${n} 格，可以再說一段補充，或按下一步` : "沒有抓到可以填的，按下一步直接填也可以");
+    return next;
+  }
+
+  // ---------- 補資料 ----------
+  const startFill = (p: FillPass, at = 0) => { setPass(p); setFp(at); go("fill"); };
+  async function talkNext() {
+    let f = form;
+    if (f.story.trim() && f.story !== lastSent.current) f = await sendStory();
+    if (edit) { firstPass.current = ALL_PAGES; startFill(ALL_PAGES); return; }
+    const keys = unfilledKeys(f);
+    const p: FillPass = { pages: fillPagesFor(keys), only: new Set(keys), fromReview: false };
+    firstPass.current = p;
+    if (p.pages.length) startFill(p); else toReview();
+  }
+  const page = pass.pages[fp];
+  function fillNext() {
+    if (page === "basic" && !needBasics()) return;
+    if (pass.fromReview || fp >= pass.pages.length - 1) toReview();
+    else { setFp(fp + 1); setMissing([]); window.scrollTo(0, 0); }
   }
 
   // ---------- 名片 ----------
@@ -223,7 +254,8 @@ export function NewCatFlow({ userId, home, edit }: { userId: string | null; home
 
   function another() {
     discard();
-    setForm(emptyForm()); setPreviews({}); setCatId(crypto.randomUUID()); setQp(0); setStatus(""); setDuplicate(false);
+    setForm(emptyForm()); setPreviews({}); setCatId(crypto.randomUUID()); setFp(0); setStatus(""); setDuplicate(false);
+    lastSent.current = null; firstPass.current = ALL_PAGES;
     motto.current = { i: 0, set: false };
     go("photo");
   }
@@ -231,25 +263,32 @@ export function NewCatFlow({ userId, home, edit }: { userId: string | null; home
   // ---------- 導覽 ----------
   function back() {
     if (step === "talk") go("photo");
-    else if (step === "quick") { if (qp > 0) { setQp(qp - 1); window.scrollTo(0, 0); } else go("talk"); }
-    else if (step === "touch") { setQp(QUICK_PAGES.length - 1); go("quick"); }
-    else if (step === "review") go("touch");
+    else if (step === "fill") {
+      if (pass.fromReview) toReview();
+      else if (fp > 0) { setFp(fp - 1); setMissing([]); window.scrollTo(0, 0); }
+      else go("talk");
+    }
+    else if (step === "review") {
+      const p = firstPass.current;
+      if (p.pages.length) startFill({ ...p, fromReview: false }, p.pages.length - 1); else go("talk");
+    }
   }
   const needBasics = () => {
     const miss = [!form.name.trim() && "名字", !form.lifeStage && "大概幾歲"].filter((x): x is string => Boolean(x));
     setMissing(miss);
     return miss.length === 0;
   };
-  // 名片上各區塊的「編輯」：直接回到那一頁
-  const jump = (to: "photo" | "talk" | "touch" | number) => {
-    if (typeof to === "number") { setQp(to); go("quick"); } else go(to);
+  // 名片上各區塊的「編輯」：直接回到那一頁（整頁全部顯示），改完回名片
+  const jump = (to: "photo" | "talk" | "basic" | "touch" | number) => {
+    if (to === "photo" || to === "talk") { go(to); return; }
+    const key: FillPage = typeof to === "number" ? QUICK_PAGES[to].key : to;
+    startFill({ pages: [key], only: null, fromReview: true });
   };
   const photoNext = () => {
     if (busy) { setMissing(["照片還在處理中，等一下再按"]); return; }
     const miss = edit ? [] : anglesMissing(form.angles);
     if (miss.length) setMissing(miss); else go("talk");
   };
-  const qNext = () => { if (qp < QUICK_PAGES.length - 1) { setQp(qp + 1); window.scrollTo(0, 0); } else go("touch"); };
 
   const idx = STEP_OF[step];
   const missBox = missing.length > 0 && <p className={s.missing} role="alert">還沒填：{missing.join("、")}</p>;
@@ -266,28 +305,29 @@ export function NewCatFlow({ userId, home, edit }: { userId: string | null; home
         {STEP_LABEL.map((l, i) => {
           const cls = i < idx ? s.done : i === idx ? s.now : "";
           // 修改時可以直接跳到任一步（完成那一步除外）
-          const to: Step[] = ["photo", "talk", "quick", "review"];
+          const to: Step[] = ["photo", "talk", "fill", "review"];
           if (!edit || i > 3) return <li key={l} className={cls}><i />{l}</li>;
           return (
             <li key={l} className={cls}>
               <button type="button" className={s.stepBtn} aria-current={i === idx ? "step" : undefined}
-                onClick={() => { if (to[i] === "quick") setQp(0); if (to[i] === "review") toReview(); else go(to[i]); }}><i />{l}</button>
+                onClick={() => { if (to[i] === "fill") startFill(ALL_PAGES); else if (to[i] === "review") toReview(); else go(to[i]); }}><i />{l}</button>
             </li>
           );
         })}
       </ol>
 
-      {(step === "quick" || step === "touch") && (
+      {step === "fill" && !pass.fromReview && (
         <div className={s.rowBetween} style={{ marginBottom: 8 }}>
-          <span className={s.kicker}>第 {step === "touch" ? PAGES : qp + 1} 頁，共 {PAGES} 頁</span>
-          <button type="button" className={s.linkBtn} onClick={step === "touch" ? toReview : qNext}>這頁略過</button>
+          <span className={s.kicker}>第 {fp + 1} 頁，共 {pass.pages.length} 頁</span>
+          <button type="button" className={s.linkBtn} onClick={fillNext}>這頁略過</button>
         </div>
       )}
 
       {step === "photo" && <PhotoStep form={form} previews={previews} pendingAngles={pendingAngles} pendingOthers={pendingOthers} onAngle={onAngle} onOthers={onOthers} onRemoveOther={onRemoveOther} onCover={(c: Cover) => set(f => ({ ...f, cover: c }))} />}
-      {step === "talk" && <TalkStep form={form} set={set} status={status} setStatus={setStatus} sending={sending} onSend={sendStory} />}
-      {step === "quick" && <QuickPage page={qp} form={form} set={set} />}
-      {step === "touch" && <TouchPage form={form} set={set} />}
+      {step === "talk" && <TalkStep form={form} set={set} status={status} setStatus={setStatus} sending={sending} onSend={() => { void sendStory(); }} />}
+      {step === "fill" && page === "basic" && <BasicStep form={form} set={set} only={pass.only} />}
+      {step === "fill" && page === "touch" && <TouchPage form={form} set={set} only={pass.only} />}
+      {step === "fill" && page !== "basic" && page !== "touch" && <QuickPage page={QUICK_PAGES.findIndex(q => q.key === page)} form={form} set={set} only={pass.only} />}
       {step === "review" && <ReviewStep form={form} set={set} previews={previews} home={home} onMotto={nextMotto} onJump={jump} />}
       {step === "done" && <DoneStep form={form} catId={catId} coverSrc={cover ? previews[cover] ?? null : null} demo={!live} onAnother={another} />}
 
@@ -295,14 +335,8 @@ export function NewCatFlow({ userId, home, edit }: { userId: string | null; home
         <div className={s.cta}>
           {missBox}{errBox}
           {step === "photo" && <CatButton onClick={photoNext}>{busy ? "照片處理中…" : "下一步：說說牠的故事"}</CatButton>}
-          {step === "talk" && (
-            <>
-              <button type="button" className={s.linkBtn} onClick={() => { if (needBasics()) toReview(); }}>先這樣，直接看名片</button>
-              <CatButton onClick={() => { if (needBasics()) { setQp(0); go("quick"); } }}>下一步：快問快答</CatButton>
-            </>
-          )}
-          {step === "quick" && <CatButton onClick={qNext}>{qp === QUICK_PAGES.length - 1 ? "最後一頁：摸摸牠" : "下一頁"}</CatButton>}
-          {step === "touch" && <CatButton onClick={toReview}>下一步：看名片</CatButton>}
+          {step === "talk" && <CatButton disabled={sending} onClick={() => { void talkNext(); }}>{sending ? "整理中…" : "下一步：補齊資料"}</CatButton>}
+          {step === "fill" && <CatButton onClick={fillNext}>{pass.fromReview ? "改好了，回到名片" : fp >= pass.pages.length - 1 ? "下一步：看名片" : "下一頁"}</CatButton>}
           {step === "review" && <CatButton disabled={saving} onClick={create}>{saving ? (edit ? "儲存中…" : "建立中…") : edit ? "儲存修改" : `建立${form.name.trim() || "這隻貓"}的名片`}</CatButton>}
           {edit && step !== "review" && <button type="button" className={s.linkBtn} disabled={saving} onClick={toReview}>直接看名片並儲存</button>}
         </div>

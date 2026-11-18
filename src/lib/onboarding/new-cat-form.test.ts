@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { emptyIntake } from "./conversation";
 import {
-  aiStoryOf, ageMonthsOf, applyExtracted, completeness, emptyForm, fromCatRow, toCatUpdateRow, type NewCatForm, mottos, skippedParts, storyExtras, tagsOf, toNewCatRow, weekLines, withAge,
+  aiStoryOf, ageMonthsOf, applyExtracted, completeness, emptyForm, fillPagesFor, fromCatRow, unfilledKeys, toCatUpdateRow, type NewCatForm, mottos, skippedParts, storyExtras, tagsOf, toNewCatRow, weekLines, withAge,
 } from "./new-cat-form";
 
 const base = emptyIntake().cat;
@@ -131,5 +131,67 @@ describe("重新打開這隻貓：每一頁都顯示原本填的內容（#206）
     expect(f).toMatchObject({ ageNum: "3", ageUnit: "year", others: ["a", "b"], cover: null, consent: true });
     expect(f.medical).toMatchObject({ neutered: "done", fivFelv: "untested" });
     expect(f.compat).toMatchObject({ cats: "unknown", guest: "unknown", notes: {} });
+  });
+});
+
+describe("說說牠之後只補沒填到的欄位", () => {
+  it("什麼都沒說：每一頁都要補，名字、年紀一定在裡面", () => {
+    const keys = unfilledKeys(emptyForm());
+    expect(keys).toEqual(expect.arrayContaining(["name", "age", "scale.brave", "behavior.scratch", "compat.cats", "arrival.hide", "touch"]));
+    expect(fillPagesFor(keys)).toEqual(["basic", "traits", "care", "habits", "behavior", "compat", "arrival", "touch"]);
+  });
+  it("口述填到的欄位不再出現", () => {
+    const { form } = storyExtras(emptyForm(), "小米，母的，打了兩劑疫苗，很怕生，最愛紙箱");
+    const keys = unfilledKeys(form);
+    expect(keys).not.toContain("name");
+    expect(keys).not.toContain("vaccine");
+    expect(keys).not.toContain("scale.brave");
+    expect(keys).not.toContain("otherNote");
+    expect(keys).toContain("age");
+  });
+  it("一頁的題目都填了，那頁就跳過", () => {
+    const f = emptyForm();
+    f.compat = { ...f.compat, cats: "yes", dogs: "no", kids: "maybe", guest: "yes" };
+    expect(fillPagesFor(unfilledKeys(f))).not.toContain("compat");
+  });
+});
+
+describe("口述擴充：一段完整的介紹，規則式就能填滿補資料要問的欄位", () => {
+  const story = "妹妹，母的，大概一歲，橘白虎斑的米克斯，體重 3.5 公斤。2026 年 8 月 1 日在公園撿到，以前右後腳受過傷，跳不太高。" +
+    "已經結紮了，打了三劑疫苗，體內體外驅蟲都做過，FIV 和 FeLV 都是陰性，也植入晶片了。有點食物過敏，現在每天吃一次過敏藥。" +
+    "個性很活潑、很黏人、很親人，換環境也適應很快，會踩踏、很愛吃、很好奇。" +
+    "偶爾會咬手、抓沙發。不會亂尿、護食、咬電線、衝門口。出門後不會一直叫，半夜也不會吵鬧。" +
+    "剪指甲要用毛巾包著，抱起來、梳毛、看醫生都很順利，進外出籠和餵藥要技巧，刷牙還沒試過。" +
+    "跟其他貓處得來，跟狗不行，跟小孩看情況，有客人來也可以。" +
+    "會用貓砂，吃乾飼料，半夜跑酷，喜歡待在高處，愛玩逗貓棒，怕吸塵器。" +
+    "剛來的時候躲了兩天，第二天就開始吃飯，第三天就讓我摸。" +
+    "最喜歡被摸下巴、頭頂和耳後，背和屁股可以摸，不要摸肚子、尾巴和腳掌，臉頰也可以。摸一兩分鐘就會膩。" +
+    "不想被摸的時候會甩尾巴、耳朵往後，然後直接走開。最愛紙箱。";
+  const { form } = storyExtras(emptyForm(), story);
+
+  it("補資料沒有要再問的欄位", () => {
+    expect(unfilledKeys(form)).toEqual([]);
+  });
+  it("各欄位填的值正確", () => {
+    expect(form).toMatchObject({ name: "妹妹", sex: "female", ageNum: "1", ageUnit: "year", lifeStage: "adult", coat: "橘白虎斑", breed: "米克斯", healthTags: ["食物過敏"] });
+    expect(form.care).toMatchObject({ weightKg: 3.5, origin: "street", since: "2026-08-01", touchLimit: "1_2_min" });
+    expect(form.medical).toMatchObject({ neutered: "done", vaccineDoses: 3, dewormInternal: "done", dewormExternal: "done", fivFelv: "negative", microchip: "yes" });
+    expect(form.medical.history).toContain("右後腳受過傷");
+    expect(form.medical.medication).toContain("每天吃一次過敏藥");
+    expect(form.care.handling).toEqual({ nail: "tricky", hold: "easy", brush: "easy", vet: "easy", carrier: "tricky", pill: "tricky", teeth: "untried" });
+    expect(form.behavior.bite?.level).toBe("sometimes");
+    expect(form.behavior.pee?.level).toBe("none");
+    expect(form.behavior.sep?.level).toBe("none");
+    expect(form.behavior.night?.level).toBe("none");
+    expect(form.compat).toMatchObject({ cats: "yes", dogs: "no", kids: "maybe", guest: "yes" });
+    expect(form.habits).toEqual(expect.arrayContaining(["會用貓砂", "乾飼料", "半夜跑酷", "高處", "逗貓棒", "怕吸塵器"]));
+    expect(form.care.arrival).toEqual({ hide: "1_3_days", eat: "1_3_days", touch: "1_3_days" });
+    expect(form.care.touch).toEqual({ chin: "love", top: "love", ear: "love", back: "ok", butt: "ok", belly: "no", tail: "no", paw: "no", cheek: "ok" });
+    expect(form.care.touchSigns).toEqual(["tail", "ears", "leave"]);
+  });
+  it("吃藥不會被當成餵藥、半夜跑酷不會被當成半夜吵鬧", () => {
+    const f = storyExtras(emptyForm(), "每天吃一次藥，半夜跑酷").form;
+    expect(f.care.handling?.pill).toBeUndefined();
+    expect(f.behavior.night).toBeUndefined();
   });
 });

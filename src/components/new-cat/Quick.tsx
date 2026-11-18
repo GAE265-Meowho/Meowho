@@ -1,5 +1,6 @@
 "use client";
-// 新增送養貓的第 3 步：快問快答 6 頁＋摸摸牠（#206）。單欄、一路往下滑；每頁都可以略過
+// 新增送養貓的第 3 步：補資料裡的快問快答 6 頁＋摸摸牠（#206）。單欄、一路往下滑；每頁都可以略過。
+// only＝只顯示說說牠沒填到的題目（unfilledKeys 的代號）；null＝全部（從名片點編輯、修改既有的貓）
 import {
   ARRIVAL_ITEMS, BEHAVIOR_ITEMS, BEHAVIOR_LEVEL_LABEL, CARE_ITEMS, COMPAT_KEYS, COMPAT_LABEL, HABIT_GROUPS, TOUCH_SIGNS, TOUCH_ZONES,
   type BehaviorKey, type Care,
@@ -55,25 +56,34 @@ function TraitRow({ t, form, set }: { t: (typeof TRAITS)[number]; form: NewCatFo
   );
 }
 
-export function QuickPage({ page, form, set }: { page: number; form: NewCatForm; set: Set }) {
+type Only = ReadonlySet<string> | null;
+
+export function QuickPage({ page, form, set, only }: { page: number; form: NewCatForm; set: Set; only: Only }) {
   const p = QUICK_PAGES[page];
+  const show = (k: string) => !only || only.has(k);
   const said = (k: string) => <Said k={k} said={form.said} guessed={form.guessed} />;
   const setCare = (patch: Partial<Care>) => set(f => ({ ...f, care: { ...f.care, ...patch } }));
   let body: React.ReactNode = null;
   if (p.key === "traits") {
     body = (
       <>
-        <div className={s.card} style={{ padding: "4px 16px" }}>{TRAITS.map(t => <TraitRow key={t.key} t={t} form={form} set={set} />)}</div>
-        <div className={s.gap} />
-        <div className={s.qgroup} role="group" aria-label="其他個性"><p>還有這些個性嗎？{said("extraTags")}</p>
-          <Toggles label="其他個性" options={EXTRA_PERSONALITY_TAGS} value={form.extraTags} onChange={v => set(f => ({ ...f, extraTags: v }))} />
-        </div>
+        {TRAITS.some(t => show(`scale.${t.key}`)) && (
+          <div className={s.card} style={{ padding: "4px 16px" }}>{TRAITS.filter(t => show(`scale.${t.key}`)).map(t => <TraitRow key={t.key} t={t} form={form} set={set} />)}</div>
+        )}
+        {show("extraTags") && (
+          <>
+            <div className={s.gap} />
+            <div className={s.qgroup} role="group" aria-label="其他個性"><p>還有這些個性嗎？{said("extraTags")}</p>
+              <Toggles label="其他個性" options={EXTRA_PERSONALITY_TAGS} value={form.extraTags} onChange={v => set(f => ({ ...f, extraTags: v }))} />
+            </div>
+          </>
+        )}
       </>
     );
   } else if (p.key === "care") {
     body = (
       <div className={s.card} style={{ padding: "6px 16px" }}>
-        {CARE_ITEMS.map(([k, l]) => (
+        {CARE_ITEMS.filter(([k]) => show(`care.${k}`)).map(([k, l]) => (
           <div key={k} className={s.qrow}><b>{l}{said(`care.${k}`)}</b>
             <Seg label={l} options={HANDLING} value={form.care.handling?.[k] ?? null}
               onChange={v => setCare({ handling: Object.fromEntries(Object.entries({ ...form.care.handling, [k]: v }).filter(([, x]) => x)) as Care["handling"] })} />
@@ -90,25 +100,25 @@ export function QuickPage({ page, form, set }: { page: number; form: NewCatForm;
     );
     body = (
       <div className={s.stack}>
-        {HABIT_GROUPS.map(g => (
+        {show("habits") && HABIT_GROUPS.map(g => (
           <div key={g.title} className={s.qgroup} role="group" aria-label={g.title}><p>{g.title}</p>
             <Toggles label={g.title} options={g.items} value={form.habits} onChange={v => set(f => ({ ...f, habits: v }))} />
             {g.title === "吃飯" && note("favoriteSnack", "最愛的零食", "例如：肉泥、凍乾雞肉")}
             {g.title === "還要注意" && note("cautionNote", "其他要注意的地方", "例如：怕戴頭套、看到鳥會很激動")}
           </div>
         ))}
-        <div className={s.field}>
+        {show("otherNote") && <div className={s.field}>
           <label className={s.label} htmlFor="n-other">其他想讓領養人知道的{said("otherNote")}</label>
           <textarea id="n-other" className={s.story} maxLength={300} style={{ minHeight: 110 }} value={form.care.otherNote ?? ""}
             placeholder="想到什麼都可以寫，例如：喜歡窩在衣櫃裡、聽到塑膠袋聲音會衝過來、跟另一隻貓是好朋友"
             onChange={e => setCare({ otherNote: e.target.value || null })} />
-        </div>
+        </div>}
       </div>
     );
   } else if (p.key === "behavior") {
     body = (
       <div className={s.card} style={{ padding: "6px 16px" }}>
-        {BEHAVIOR_ITEMS.map(([k, l]) => {
+        {BEHAVIOR_ITEMS.filter(([k]) => show(`behavior.${k}`)).map(([k, l]) => {
           const cur = form.behavior[k as BehaviorKey];
           const bad = cur?.level === "sometimes" || cur?.level === "often";
           return (
@@ -127,7 +137,7 @@ export function QuickPage({ page, form, set }: { page: number; form: NewCatForm;
   } else if (p.key === "compat") {
     body = (
       <div className={s.card} style={{ padding: "6px 16px" }}>
-        {COMPAT_KEYS.map(k => {
+        {COMPAT_KEYS.filter(k => show(`compat.${k}`)).map(k => {
           const v = form.compat[k];
           return (
             <div key={k} className={s.qrow}><b>{COMPAT_LABEL[k]}{said(`compat.${k}`)}</b>
@@ -144,7 +154,7 @@ export function QuickPage({ page, form, set }: { page: number; form: NewCatForm;
   } else {
     body = (
       <div className={s.card} style={{ padding: "6px 16px" }}>
-        {ARRIVAL_ITEMS.map(([k, l]) => (
+        {ARRIVAL_ITEMS.filter(([k]) => show(`arrival.${k}`)).map(([k, l]) => (
           <div key={k} className={s.qrow}><b>{l}{said(`arrival.${k}`)}</b>
             <Seg label={l} options={DAYS} value={form.care.arrival?.[k] ?? null}
               onChange={v => setCare({ arrival: Object.fromEntries(Object.entries({ ...form.care.arrival, [k]: v }).filter(([, x]) => x)) as Care["arrival"] })} />
@@ -169,8 +179,9 @@ const ZONE_POS: Record<string, [number, number, number]> = {
 const ZONE_LABEL = { love: "喜歡", ok: "可以", no: "不要摸" } as const;
 const DURS = [["few_strokes", "幾下"], ["1_2_min", "一兩分鐘"], ["long", "很久"], ["mood", "看心情"]] as const;
 
-export function TouchPage({ form, set }: { form: NewCatForm; set: Set }) {
+export function TouchPage({ form, set, only }: { form: NewCatForm; set: Set; only: Only }) {
   const touch = form.care.touch ?? {};
+  const show = (k: string) => !only || only.has(k);
   // 點貓咪身上的地方會跳出下拉選單：喜歡／可以／不要摸／還沒設定
   const pick = (k: string, v: string) => set(f => {
     const t = { ...f.care.touch };
@@ -180,6 +191,8 @@ export function TouchPage({ form, set }: { form: NewCatForm; set: Set }) {
   return (
     <>
       <h2 className={s.h1}>摸哪裡牠會開心？</h2>
+      {show("touch") && (
+      <>
       <p className={s.lead} style={{ fontSize: 14 }}>點貓咪身上的地方，從選單選牠喜不喜歡。沒摸過的不用選。</p>
       <div className={s.legend4} aria-hidden="true" style={{ gridTemplateColumns: "repeat(3, minmax(0, 1fr))" }}>
         <span style={{ background: "var(--caramel)", color: "#fff" }}>喜歡</span>
@@ -207,13 +220,21 @@ export function TouchPage({ form, set }: { form: NewCatForm; set: Set }) {
         })}
       </div>
       <div className={s.gap} />
+      </>
+      )}
+      {(show("touchLimit") || show("touchSigns")) && (
       <section className={s.card}>
+        {show("touchLimit") && <>
         <h2 className={s.h2} style={{ fontSize: 17, marginBottom: 8 }}>喜歡的地方，摸多久會膩？</h2>
         <Seg label="摸多久會膩" cols={4} options={DURS} value={form.care.touchLimit ?? null} onChange={v => set(f => ({ ...f, care: { ...f.care, touchLimit: v } }))} />
-        <h2 className={s.h2} style={{ fontSize: 17, margin: "20px 0 8px" }}>不想被摸時，牠會怎樣？</h2>
+        </>}
+        {show("touchSigns") && <>
+        <h2 className={s.h2} style={{ fontSize: 17, margin: show("touchLimit") ? "20px 0 8px" : "0 0 8px" }}>不想被摸時，牠會怎樣？</h2>
         <Toggles label="不想被摸時" options={TOUCH_SIGNS.map(([, l]) => l)} value={(form.care.touchSigns ?? []).map(k => TOUCH_SIGNS.find(([x]) => x === k)?.[1] ?? k)}
           onChange={v => set(f => ({ ...f, care: { ...f.care, touchSigns: TOUCH_SIGNS.filter(([, l]) => v.includes(l)).map(([k]) => k) } }))} />
+        </>}
       </section>
+      )}
     </>
   );
 }

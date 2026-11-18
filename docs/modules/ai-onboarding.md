@@ -15,7 +15,7 @@
 - PLAN 任務：6、7
 
 ## 目前狀態
-中途之家／愛貓人士 onboarding 已完成（Issue #1）：首頁「我想建立貓戶」→ `/onboarding` 聊天建立貓戶 → 拍照＋問答＋自由口述建立貓咪名片。2026-11-05（#206）新增貓咪改成設計稿 `docs/design/new-cat-flow.html` 的五步表單（`src/components/new-cat/`）：拍照 → 說說牠（口述經 `/api/onboarding/turn` 填進表格並標「你說過」，`lib/onboarding/new-cat-form.ts` 的 `storyExtras` 用規則補個性量表等 LLM 沒有的欄位）→ 快問快答 → 名片 → 完成，取代建貓對話 `IntakeChat`。Issue #33 進行真實流程走查與修正；領養人 onboarding 尚未開始（任務 7）。
+中途之家／愛貓人士 onboarding 已完成（Issue #1）：首頁「我想建立貓戶」→ `/onboarding` 聊天建立貓戶 → 拍照＋問答＋自由口述建立貓咪名片。2026-11-05（#206）新增貓咪改成設計稿 `docs/design/new-cat-flow.html` 的五步表單（`src/components/new-cat/`）：拍照 → 說說牠（口述經 `/api/onboarding/turn` 填進表格並標「你說過」，`lib/onboarding/new-cat-form.ts` 的 `storyExtras` 用規則補個性量表等 LLM 沒有的欄位）→ 快問快答 → 名片 → 完成，取代建貓對話 `IntakeChat`。2026-11-18（#478）改成拍照 → 說說牠（只有口說）→ 補資料（`unfilledKeys`／`fillPagesFor` 算出口述沒填到的欄位，只顯示這些；整頁填滿就跳過）→ 名片 → 完成；規則式擷取擴充到所有補資料欄位（`lib/onboarding/story-rules.ts`）。Issue #33 進行真實流程走查與修正；領養人 onboarding 尚未開始（任務 7）。
 
 ## 資料表（Supabase）
 - 寫入 `meow_households`、`meow_cats`（前端以使用者身分直接寫入，由 RLS 保護）
@@ -42,6 +42,7 @@
 - 新貓入戶一律先登入，並由使用者明確選擇貓咪歸屬的貓戶（即使只有一個貓戶也要選），避免放錯戶。
 - LLM 抽取結果一律先給使用者確認才寫入。
 - 必填最少化，其他欄位之後由週報提醒補。
+- 2026-11-18｜說說牠只留口說；送出後只把沒填到的欄位拿給中途補，要補的欄位在離開說說牠時算一次固定下來（邊填不會消失）；從名片點「編輯」或修改既有的貓時整頁顯示。口述的規則式擷取（`story-rules.ts`）一句一句判斷，只填還沒填的欄位，當作 LLM 漏抓時的保底（子哲，#478）。
 - LLM 輸入防護：只處理和貓有關的事；使用者內容一律包成 `<user_input>` 資料；建檔每題 200 字，超過前端不能送出、後端回 400（決策 004，Issue #38）。
 - 2026-10-31（子哲，#72）：改為**建檔對話引擎**（`src/lib/onboarding/conversation.ts`）：自由對話，一句話擷取所有欄位、只追問缺少的必填（喵戶：身分→名稱→縣市區；貓咪：照片→名字→年齡層）；照片／影片判讀只填空欄並標「請確認」；不猜性別；AI 失敗退回規則式。LLM 任務在 `src/lib/ai/intake.ts`（喵戶／貓咪一句話擷取、照片判讀），提示詞在 `src/lib/prompts/onboarding.ts` 的 `INTAKE_*`，回應不用 emoji。
 
@@ -56,6 +57,8 @@
 - 照片在瀏覽器先縮到最長邊 1024px 再送 AI 與上傳。
 - 新增 LLM 任務時，使用者內容一定要經 `wrapUserInput()`，API 一定要用 `checkInput()`；不要直接把使用者文字接進提示詞。
 - `intake.module.css` 的清單樣式不要寫 `.homeItem span` 這類後代選擇器，會選到 CatButton 的文字；用 `.homeItem > div > span`（#84）。
+
+- 2026-11-18｜`story-rules.ts` 是關鍵字規則，換一種講法就可能抓不到；抓不到的會留在補資料頁。「每天吃藥」不算餵藥、「半夜跑酷」不算半夜吵鬧、「最喜歡被摸…」不算最愛的東西，新增規則時要補對應測試（#478）。
 
 ## 變更紀錄
 | 日期 | 發起人 × 工具 | 變更 | PR |
@@ -72,3 +75,4 @@
 | 2026-10-31 | 子哲 × Claude Code | 建檔對話引擎與 LLM 擷取鏈（尚未接畫面；舊的一問一答流程仍在） | 待建立 |
 | 2026-11-01 | 子哲 × Claude Code | 修正喵戶清單貓形按鈕文字被染灰（深色按鈕白字） | #84 |
 | 2026-11-06 | 子哲 × Claude Code | 拿掉影片個性判讀（`/api/onboarding/cat-video/analyze`、`CAT_VIDEO_ANALYSIS`、`CatVideoSchema`、只給 Gemini 的影片送法）：建貓流程從 #206 起沒有影片，AI 也改用 Azure OpenAI；`meow_cat_videos` 的 AI 欄位留著不寫，領養任務草稿不再帶影片觀察 | — |
+| 2026-11-18 | 子哲 × Claude Code | 新增貓咪改成口說 → 只補沒說到的欄位 → 名片；擴充口述規則式擷取（體重、相遇地點、照護、壞習慣「沒有」、適應速度、摸摸牠等） | #479 |
