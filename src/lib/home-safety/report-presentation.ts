@@ -163,22 +163,23 @@ body:has(.meow-priority){max-width:1120px;color:#183247}
 .meow-item [aria-expanded=true]{border-color:var(--navy)}
 .meow-item h3+div{margin-top:12px}
 .meow-priority h2{font-size:clamp(22px,3.5vw,36px);line-height:1.2;margin:2px 0 0}
-.meow-grid{display:grid;grid-template-columns:minmax(0, 1.45fr) minmax(0, 1fr);gap:14px;align-items:start}
-.meow-grid.solo{grid-template-columns:minmax(0,1fr)}
-.meow-priority figure{min-width:0;background:var(--blue);border-radius:var(--radius);padding:12px}
+.meow-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-template-areas:"impact action" "before after";gap:14px}
+.meow-grid.solo{grid-template-columns:minmax(0,1fr);grid-template-areas:"impact" "action"}
+.meow-priority figure{min-width:0;margin:0;background:var(--blue);border-radius:var(--radius);padding:12px}
 .meow-priority figcaption{font-size:15px;margin:0 0 8px}
-.meow-priority .evidence{position:relative}
-.meow-priority img{width:100%;height:auto;max-height:none;border-radius:8px}
+.meow-priority .meow-before{grid-area:before}
+.meow-priority .meow-after{grid-area:after}
+.meow-photo{display:grid;place-items:center;aspect-ratio:16/9;container-type:size;background:white;border-radius:8px}
+.meow-photo .evidence{position:relative;max-width:100%;line-height:0}
+.meow-photo img{display:block;width:auto;height:auto;max-width:100%;max-height:100cqh;object-fit:contain;border-radius:8px}
 .meow-priority .region{position:absolute;box-sizing:border-box;border:3px solid var(--red);pointer-events:none;box-shadow:0 0 0 1px white}
 .meow-priority .estimated{border-style:dashed}
 .meow-priority figure p{margin-top:8px;font-size:14px}
-.meow-guidance{display:grid;gap:12px}
 .meow-card{border-radius:var(--radius);padding:clamp(12px,2vw,20px)}
 .meow-card h4{margin:0 0 4px;font-size:14px}
 .meow-card p{font-size:clamp(17px,2vw,21px);font-weight:700;line-height:1.45}
-.meow-impact{background:var(--red-soft);color:var(--red)}
-.meow-action{background:var(--green-soft);color:var(--green)}
-.meow-priority .meow-after{background:white;border:1px solid var(--line);max-width:320px}
+.meow-impact{grid-area:impact;background:var(--red-soft);color:var(--red)}
+.meow-action{grid-area:action;background:var(--green-soft);color:var(--green)}
 .meow-limits{background:var(--blue);padding:12px 16px;border-radius:12px;margin-top:14px}
 .meow-limits .meow-icon{width:28px;color:var(--navy)}
 .meow-limits strong{display:block}
@@ -187,7 +188,7 @@ body:has(.meow-priority){max-width:1120px;color:#183247}
 .meow-report-pdf{color:#103b5b}
 .meow-report-toggle .meow-icon,.meow-report-pdf .meow-icon{width:21px}
 .meow-report-toggle:focus-visible,.meow-report-pdf:focus-visible{outline:2px solid #103b5b;outline-offset:3px}
-@media(max-width:650px){.meow-grid{grid-template-columns:minmax(0,1fr)}.meow-priority figure{padding:8px}.meow-banner{gap:8px}}
+@media(max-width:650px){.meow-grid{grid-template-columns:minmax(0,1fr);grid-template-areas:"impact" "before" "action" "after"}.meow-priority figure{padding:8px}.meow-banner{gap:8px}}
 </style>`;
 
 const iconPaths = {
@@ -227,12 +228,13 @@ export function renderReportPresentation(html: string, full: boolean, presentati
     .filter(Boolean).map(text => text!.replace(/。$/, "")))];
   const region = selected?.region;
   const marker = region ? `<span aria-hidden="true" class="region${region.estimated ? " estimated" : ""}" style="${["left","top","width","height"].map((key, index) => `${key}:${region.values[index]}%`).join(";")}"></span>` : "";
-  const before = selected?.before ? `<figure><figcaption>${selected.cropped ? "改善前｜危害局部" : "改善前｜原始影格"}</figcaption>
-    <div class="evidence"><img src="${selected.before}" alt="${escape(selected.name)}的${selected.cropped ? "原始局部" : "原始影格"}" fetchpriority="high">${marker}</div>
+  const before = selected?.before ? `<figure class="meow-before"><figcaption>${selected.cropped ? "改善前｜危害局部" : "改善前｜原始影格"}</figcaption>
+    <div class="meow-photo"><div class="evidence"><img src="${selected.before}" alt="${escape(selected.name)}的${selected.cropped ? "原始局部" : "原始影格"}" fetchpriority="high">${marker}</div></div>
     <p>${region ? region.estimated ? "紅色虛線為 AI 估計位置。" : "紅框為人工確認位置。" : "畫面中的具體位置待確認。"}</p>
     <p>${escape(selected.observation)}</p>${!selected.cropped && selected.detailBefore ? `<a href="${selected.detailBefore}">查看原始局部放大</a>` : ""}</figure>` : "";
-  const after = selected?.before && selected.after ? `<figure class="meow-after"><figcaption>改善後｜AI 模擬示意</figcaption>
-    <img src="${selected.after}" alt="${escape(selected.name)}的 AI 改善示意" fetchpriority="low"><p>實際改善情形仍待現場確認。</p></figure>` : "";
+  const after = selected?.before ? `<figure class="meow-after">${selected.after ? `<figcaption>改善後｜AI 模擬示意</figcaption>
+    <div class="meow-photo"><img src="${selected.after}" alt="${escape(selected.name)}的 AI 改善示意" fetchpriority="low"></div>
+    <p>實際改善情形仍待現場確認。</p>` : "<p>這個項目沒有可展示的 AI 改善示意。</p>"}</figure>` : "";
   const collapse = `<a class="meow-report-toggle" href="html#report-view" id="report-view-return">收合完整報告${icon("up")}</a>`;
   const pdf = `<a class="meow-report-pdf" href="pdf">${icon("file")}下載完整 PDF</a>`;
   const toggle = `<a class="meow-report-toggle" href="?view=full#report-view-return">展開完整圖文報告${icon("down")}</a>`;
@@ -244,10 +246,11 @@ export function renderReportPresentation(html: string, full: boolean, presentati
     const href = open ? `html#${panelId}` : `?item=${index + 1}#${panelId}`;
     return `<section class="meow-item"><h3><a class="meow-hero" id="${panelId}" href="${href}" aria-expanded="${open}" aria-controls="${panelId}-panel">
       ${icon(hazardIcon(item.name))}<span>${escape(item.name)}</span>${icon(open ? "up" : "down")}</a></h3>
-      <div id="${panelId}-panel"${open ? "" : " hidden"}>${open ? `${!before && item.observation ? `<p>${escape(item.observation)}</p>` : ""}<div class="meow-grid${before ? "" : " solo"}">${before}<div class="meow-guidance">
+      <div id="${panelId}-panel"${open ? "" : " hidden"}>${open ? `${!before && item.observation ? `<p>${escape(item.observation)}</p>` : ""}<div class="meow-grid${before ? "" : " solo"}">
         ${impact?.consequence ? `<div class="meow-card meow-impact">${icon("alert")}<div><h4>可能後果</h4><p>${escape(impact.consequence)}</p></div></div>` : ""}
+        ${before}
         <div class="meow-card meow-action">${icon("action")}<div><h4>建議行動</h4><p>${escape(item.action)}</p></div></div>
-        ${after}</div></div>
+        ${after}</div>
         ${limits.length ? `<div class="meow-limits">${icon("info")}<p><strong>需要現場確認</strong> ${limits.map(escape).join("。")}。</p></div>` : ""}` : ""}</div></section>`;
   });
   const intro = `<section class="meow-priority" aria-labelledby="priority-title">

@@ -44,6 +44,7 @@ it("preserves the evidence without a fabricated box or After image", () => {
   expect(output).toContain(path("a"));
   expect(output).not.toContain('class="region estimated"');
   expect(output).not.toContain("改善後｜AI 模擬示意");
+  expect(output).toContain("這個項目沒有可展示的 AI 改善示意。");
 });
 
 it("retains independently evidenced cases and escapes their labels", () => {
@@ -107,7 +108,8 @@ it.each([
   expect(output.match(/<img /g)).toHaveLength(2);
   expect(output).toContain('fetchpriority="high"');
   expect(output).toContain('fetchpriority="low"');
-  expect(output.indexOf(path("a"))).toBeLessThan(output.indexOf("可能後果"));
+  expect(output.indexOf("可能後果")).toBeLessThan(output.indexOf(path("a")));
+  expect(output.indexOf(path("a"))).toBeLessThan(output.indexOf("建議行動"));
   expect(output.indexOf("建議行動")).toBeLessThan(output.indexOf(path("b")));
 });
 
