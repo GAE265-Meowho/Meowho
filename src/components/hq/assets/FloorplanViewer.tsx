@@ -13,6 +13,8 @@ import { jumpClipFor, jumpKind, type JumpTiming } from "@/lib/hq/rooms/cat-moves
 import { clipJumpTiming, isJumpClip } from "@/lib/hq/rooms/jump-clips";
 import { blocked, CAT_RADIUS_M, CAT_SCALE, freeSpot, obstacles, type Obstacle } from "@/lib/hq/floorplans/catwalk";
 import { boredChoice, isScratcher, SCRATCH_SECONDS, scratchStand } from "@/lib/play/scratch";
+import { playSfx } from "@/lib/play/audio-player";
+import { SCRATCH_SFX } from "@/lib/play/sfx-cues";
 import { bowlObstacles, bubbleOf, dropTargetBowl, isBowlSet, passableItem, standOff, stepItems, stepSpot, stepStory, STORY_START, withoutItem, type NeedIcon, type Spot, type Story, type StoryState } from "@/lib/hq/floorplans/story";
 import { expandRemovedIndices, type FurnitureMove, type FurnitureSupport } from "@/lib/hq/floorplans/experience-furniture";
 import { boxToSolid, clampFurniturePose, rotatedHalfExtents, type SolidBody } from "@/lib/hq/floorplans/experience-physics";
@@ -701,6 +703,8 @@ function CatActor({ s, look, click, pos, extraObs, forceClip = null, speed = 1, 
   // 磨爪（#354）：走去貓抓板時記下到了要面向哪；到了就播 scratch 幾秒
   const toScratch = useRef<number | null>(null);
   const scratching = useRef<{ left: number; heading: number } | null>(null);
+  /** #456：這次還沒磨過爪 → 第一次無聊一定去磨（scratch.ts boredChoice） */
+  const scratched = useRef(false);
   const [clip, setClip] = useState("idle");
   const plot = useRef<StoryState>(STORY_START);
   const spot = useRef<Spot | null>(null);
@@ -763,7 +767,10 @@ function CatActor({ s, look, click, pos, extraObs, forceClip = null, speed = 1, 
     let next = clip;
     if (done) {
       goal.current = null;
-      if (toScratch.current !== null) { scratching.current = { left: SCRATCH_SECONDS, heading: toScratch.current }; toScratch.current = null; }
+      if (toScratch.current !== null) {
+        scratching.current = { left: SCRATCH_SECONDS, heading: toScratch.current }; toScratch.current = null; scratched.current = true;
+        playSfx("sfx_scratch", SCRATCH_SFX.volume);  // #456 磨爪聲：同掃描房間（cat.js），開始磨爪那一刻響一次
+      }
     }
     const doing = story && plot.current.phase === "doing" ? story.steps[plot.current.step] : null;
     if (doing && spot.current) {
@@ -787,7 +794,7 @@ function CatActor({ s, look, click, pos, extraObs, forceClip = null, speed = 1, 
       if (idle.current > 6 && next !== "sleep") {
         const board = actor.on === null ? items.find(i => !i.support && isScratcher(i.name)) : undefined;
         const turned = board && Math.round((board.rotY ?? 0) / 90) % 2 !== 0;
-        const stand = board && boredChoice(Math.random, { scratcher: true, bed: false }) === "scratch"
+        const stand = board && boredChoice(Math.random, { scratcher: true, bed: false, scratched: scratched.current }) === "scratch"
           ? scratchStand({ x: board.x, z: board.z, widthM: turned ? board.depthM : board.widthM, depthM: turned ? board.widthM : board.depthM }, actor, CAT_RADIUS_M + 0.02)
           : null;
         if (stand && !blocked(stand.x, stand.z, s, world.obs)) {

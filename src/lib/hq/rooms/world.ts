@@ -6,7 +6,7 @@ import { RoomCat } from "./cat";
 import { cameraForward, clampInRoom, dropTarget, placeObjects, type PlacedObject, type RoomCamera, type RoomLayout, type RoomScene } from "./demo";
 import { RoomPhysics } from "./physics";
 import { footprintCells } from "@/lib/play/scene-items";
-import { boredChoice, scratchStand } from "@/lib/play/scratch";
+import { boredChoice, FIRST_SCRATCH_S, scratchStand } from "@/lib/play/scratch";
 import { CATCH_M, isCaught, reachableToy, type SceneCatCommand } from "@/lib/play/scene-cat";
 import { nextZoom, rayHit, topSpot, topUnder, zoomRest, type Top } from "@/lib/play/zoomies";
 
@@ -114,6 +114,8 @@ export async function createRoomWorld({ viewer, threeScene, scene, layout, camer
   const bed = objects.find(o => o.affordance.jump_on && !o.affordance.hide_under && o.surfaces);
   // 擺了貓抓板（#354）：無聊時大約一半走過去、面向板子磨爪（scratch），其他照舊跳上床
   let scratcher: { x: number; z: number; widthM: number; depthM: number } | null = null;
+  // #456：擺好貓抓板後還沒磨過 → 第一次無聊提早、一定去磨（不然實機玩一個場景幾乎看不到）
+  let scratched = true;
   const goScratch = () => {
     if (!scratcher) return false;
     const p = cat.cat.position;
@@ -123,8 +125,8 @@ export async function createRoomWorld({ viewer, threeScene, scene, layout, camer
     return k >= 0 && cat.goTo(k, new THREE.Vector2(scratcher.x * upm, scratcher.z * upm), "scratch");
   };
   cat.onBored = () => {
-    const what = boredChoice(Math.random, { scratcher: Boolean(scratcher), bed: Boolean(bed) });
-    if (what === "scratch" && goScratch()) return true;
+    const what = boredChoice(Math.random, { scratcher: Boolean(scratcher), bed: Boolean(bed), scratched });
+    if (what === "scratch" && goScratch()) { scratched = true; return true; }
     return bed && what !== null ? cat.jumpOn(bed, bed.surfaces![0].top_y) : false;
   };
   const cup = movable.find(m => m.ob.label === "cup");
@@ -361,7 +363,9 @@ export async function createRoomWorld({ viewer, threeScene, scene, layout, camer
 
     setItems(list) {
       cat.blockCells(list.flatMap(it => footprintCells(layout, it)));
+      const had = scratcher;
       scratcher = list.find(it => it.id === "scratcher") ?? null;
+      if (scratcher && !had) { scratched = false; cat.autoIn = Math.min(cat.autoIn, FIRST_SCRATCH_S); }
     },
 
     resetItems() {

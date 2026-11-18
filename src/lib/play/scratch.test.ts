@@ -1,6 +1,6 @@
 // 貓自己去磨爪（#354 第 2 份）：無聊時偶爾走到貓抓板旁、面向板子播 scratch。純函式。
 import { describe, expect, it } from "vitest";
-import { boredChoice, isScratcher, SCRATCH_SECONDS, scratchStand } from "./scratch";
+import { boredChoice, FIRST_SCRATCH_S, isScratcher, SCRATCH_SECONDS, scratchStand } from "./scratch";
 
 describe("哪個用品是貓抓板", () => {
   it("遊戲的「貓抓板」、後台的「耐抓劍麻貓抓板」都算；貓砂盆、餐碗不算", () => {
@@ -22,6 +22,14 @@ describe("無聊時做什麼", () => {
     expect(boredChoice(() => 0.1, { scratcher: false, bed: false })).toBeNull();
   });
   it("一次磨幾秒：三個循環左右", () => expect(SCRATCH_SECONDS).toBeGreaterThanOrEqual(2));
+  it("#456 擺了貓抓板還沒磨過：第一次無聊一定去磨爪（實機玩一個場景常常看不到）", () => {
+    expect(boredChoice(() => 0.9, { scratcher: true, bed: true, scratched: false })).toBe("scratch");
+    expect(boredChoice(() => 0.9, { scratcher: true, bed: true, scratched: true })).toBe("bed");
+    expect(boredChoice(() => 0.1, { scratcher: false, bed: true, scratched: false })).toBe("bed");
+  });
+  it("#456 擺了貓抓板：第一次無聊提早（掃描房間原本要閒著 30 秒以上）", () => {
+    expect(FIRST_SCRATCH_S).toBeLessThanOrEqual(10);
+  });
 });
 
 describe("磨爪站在哪", () => {
