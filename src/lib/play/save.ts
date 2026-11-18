@@ -2,6 +2,7 @@
 // 續玩時從那個節點的開頭重新開始，節點裡玩到一半的小遊戲會重玩（docs/play-tasks/7-進行中續玩放棄重玩.md 第二節第 4 點）。純函式。
 // 開場設定階段（你的家、採買、擺用品，還沒進節點）也存：cp＝null、setupStep＝目前在哪一步，續玩回到那一步、選擇都還在。
 // 格式向下相容：舊資料只有 cp、沒有 setupStep，照樣讀得回來；有 cp 就以 cp 為準。資料庫只檢查「是物件、50 KB 以內」，不用改 migration。
+import { parseCareLog } from "./care-log";
 import type { Checkpoint, SetupStep } from "./flow";
 import { STORY } from "./story";
 import { parsePoses, type ItemPose } from "./scan-place";
@@ -48,6 +49,8 @@ export function buildProgress<Pick, Placed>(a: { cp: Checkpoint | null; setupSte
       picks: life.picks.slice(-keep).map(p => ({ ...p, t: p.t.slice(0, len) })),
       notes: life.notes.slice(-keep).map(n => ({ ...n, t: n.t.slice(0, len) })),
       events: life.events.slice(-keep).map(e => ({ ...e, t: e.t.slice(0, len) })),
+      // 照顧紀錄一天最多 7 筆、6 天；太大時跟著縮
+      ...(life.careLog ? { careLog: life.careLog.slice(-Math.max(keep, 7)).map(c => ({ ...c, d: c.d.slice(0, Math.max(len, 12)) })) } : {}),
     } },
   });
   for (const [keep, len] of [[60, 120], [30, 80], [10, 40]] as const) {
@@ -79,6 +82,9 @@ export function parseSaved(raw: unknown): SavedRun | null {
   if (!isObj(life) || typeof life.name !== "string" || typeof life.trust !== "number" || typeof life.stress !== "number" || !isObj(life.cost) || !isObj(life.care)) return null;
   if (!Array.isArray(life.picks) || !Array.isArray(life.notes) || !Array.isArray(life.events) || !Array.isArray(life.labels)) return null;
   if (typeof cp.monthly !== "number" || typeof cp.startMonths !== "number" || !Array.isArray(cp.hazards) || !Array.isArray(cp.handled)) return null;
+  // 照顧紀錄、心情（2026-11-18 新增）：格式不對就丟掉，不擋續玩
+  if (life.careLog !== undefined) life.careLog = parseCareLog(life.careLog);
+  if (life.moods !== undefined) life.moods = Array.isArray(life.moods) ? life.moods.filter(m => isObj(m) && typeof m.node === "string" && typeof m.trust === "number" && typeof m.stress === "number") : [];
   return { v: 1, cp: cp as unknown as Checkpoint, setupStep: null, ...rest };
 }
 

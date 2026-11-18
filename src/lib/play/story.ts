@@ -6,6 +6,7 @@
 //   每個節點（結尾除外）結束後有一次「在家的時光」（flow.ts、care.ts）：逗貓、餵貓、換水、鏟屎、剪指甲、刷牙。
 // 不做房間物品互動；試養報告只寫選擇摘要，不寫家裡位置、不附裁切照。
 // 金額是劇本的估算常數（業務規則：數字只來自資料或公式，AI 不產生數字）。健康相關台詞（health: true）旁邊顯示「僅供參考，非醫療建議」。
+import type { CareEntry } from "./care-log";
 import { careGood } from "./care";
 import type { Hazard } from "./hazards";
 import { ageText } from "./player-data";
@@ -57,6 +58,10 @@ export interface Life {
   care: Care;
   /** 節點 5 要演的風險；null＝沒有清單，改演毛球小狀況 */
   risk: Risk | null;
+  /** 照顧紀錄：每一天每個照顧動作做了什麼、做得怎樣（care-log.ts，#354 渝茜 2026-11-18）；舊存檔沒有 */
+  careLog?: CareEntry[];
+  /** 每個節點結束時的信任、壓力（試養報告「牠的心情」折線）；舊存檔沒有 */
+  moods?: { node: NodeId; trust: number; stress: number }[];
 }
 
 export interface Ask {
