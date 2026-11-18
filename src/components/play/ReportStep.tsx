@@ -1,11 +1,9 @@
 "use client";
 // 虛擬飼養 DEMO（#237）：試養報告，照 catgame 原版（24k 的 fullMemoryHTML、fullReportHTML、fullAdvice）：
-//   回憶 → 標題（你和麻糬的 N 年／你和麻糬分開了）→ 花費與麻糬對你 → 這一生發生的事 → 作息與花費（一次性／每月／醫療／意外／其他）
-//   → 做得好的地方／可以再想想的地方 → 給你的建議（原版規則）→ AI 依你的家補充的建議（DEMO，/api/play/advice，失敗時規則產生）
-//   → 收養之前，問問自己 → 前往認養這隻貓（DEMO 先連回貓咪頁）。
+//   標題（你和麻糬的 N 年／你和麻糬分開了）→ 報告分析（最該注意的一件事、四個面向、每天有沒有做到、牠的心情、你的選擇；2026-11-18）
+//   → 回憶 → 這一生發生的事 → 作息與花費 → 依你家的情況（含原本的「收養之前，問問自己」）→ 給你的建議 → AI 補充 → 前往認養這隻貓。
 // 金額全部由公式算（costs.ts、flow.ts），AI 不產生數字。原版的「配對參考」「看看這隻貓是誰」DEMO 不做（固定麻糬）。
-import { Fragment, useEffect, useRef, useState } from "react";
-import { CARE_ACTS } from "@/lib/play/care";
+import { useEffect, useRef, useState } from "react";
 import CatButton from "@/components/ui/CatButton";
 import type { PlayerHome } from "@/lib/play/background";
 import { costTotal, money, type ShopPick } from "@/lib/play/costs";
@@ -20,7 +18,9 @@ import { getBrowserSupabase } from "@/lib/supabase/client";
 import s from "./play.module.css";
 import type { Allergy } from "@/lib/onboarding/household-rules";
 import { HomeReadiness } from "./HomeReadiness";
-import { CostCard, MoodScales, PickZone } from "./ReportParts";
+import { CostCard, MoodScales } from "./ReportParts";
+import { ReportAnalysis } from "./ReportAnalysis";
+import { analyzeReport } from "@/lib/play/report-analysis";
 import r from "./report.module.css";
 import { notifyRunChanged } from "./useActiveRun";
 
@@ -53,7 +53,6 @@ export function ReportStep({ state, pick, monthly, home, allergy, runId, catHref
   const X = state.life, C = X.cost, total = costTotal(C);
   const years = Math.max(1 / 12, (X.age - state.startMonths) / 12);
   const labelOf = (id: string) => { const n = STORY.find(x => x.id === id); return n ? nodeLabel(n, state.startMonths) : ""; };
-  const good = X.picks.filter(p => p.good === true), bad = X.picks.filter(p => p.good === false);
   const [tips, setTips] = useState<string[] | null>(null);
   const overBudget = pick.budget > 0 && monthly > pick.budget;
   const [sent, setSent] = useState<Sent>({ st: "idle" });
@@ -117,6 +116,9 @@ export function ReportStep({ state, pick, monthly, home, allergy, runId, catHref
         </dl>
       </section>
 
+      {/* 報告分析（渝茜 2026-11-18）：取代原本的「照顧紀錄」次數與「做得好／可以再想想」 */}
+      {!X.abandoned && <ReportAnalysis data={analyzeReport(X, state.startMonths)} />}
+
       <section className={s.card} aria-labelledby="memory-title">
         <h2 id="memory-title">{X.abandoned ? `你和${X.name}的日子` : `${X.name}的一生`}</h2>
         <ol className={s.log}>{memoryMoments(X).map((t, i) => <li key={i}>{t}</li>)}</ol>
@@ -131,13 +133,6 @@ export function ReportStep({ state, pick, monthly, home, allergy, runId, catHref
         </ul>
       </section>
 
-      <section className={s.card} aria-labelledby="care-title">
-        <h2 id="care-title">照顧紀錄</h2>
-        <dl className={s.sum}>
-          {CARE_ACTS.map(a => <Fragment key={a.act}><dt>{a.label}</dt><dd>{X.care.log[a.act] ?? 0}／{X.care.rounds}</dd></Fragment>)}
-        </dl>
-      </section>
-
       <section className={s.card} aria-labelledby="cost-title">
         <h2 id="cost-title">作息與花費</h2>
         <CostCard title="總花費" total={total} cost={C} labels={COST_LABELS}>
@@ -147,15 +142,6 @@ export function ReportStep({ state, pick, monthly, home, allergy, runId, catHref
         {overBudget && <p className={r.over}>每月約 {money(monthly)} 元，超出預算</p>}
         <p className={s.lead}>花費是依體驗中的選擇估算，實際金額會因地區、醫院和貓的狀況而不同。</p>
       </section>
-
-      {(good.length > 0 || bad.length > 0) && (
-        <section className={s.card} aria-label="做得好與可以再想想">
-          <div className={r.zones}>
-            <PickZone tone="good" title="做得好的地方" items={good.map(p => p.t)} />
-            <PickZone tone="think" title="可以再想想的地方" items={bad.map(p => p.t)} />
-          </div>
-        </section>
-      )}
 
       {/* 原本最後的「收養之前，問問自己」併進這裡（渝茜 2026-11-18） */}
       <HomeReadiness sample={home.sample} fundShort={!pick.fund || !!X.flags.fundUsed}

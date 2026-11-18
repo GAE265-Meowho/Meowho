@@ -7,6 +7,7 @@
 //   選了選項把 then 插到最前面；小遊戲結束把 then(結果) 插到最前面；{ end } 是送養結局，直接進報告。
 //   每段開始依月齡差累計每月花費（原版 X.monthly × months）；順序：主線 → 居家意外（只有節點 2）→ 個人化台詞（DEMO）→ 小叮嚀 → 飼養紀錄。
 import { addCare, careEffect, careOutcome, CARE_ACTS, skipEffect, type CareAct } from "./care";
+import { careEntry, logCare, logSkips } from "./care-log";
 import { dayAfter, newDay, parseDay, type CareDay } from "./care-day";
 import { scoopOutcome } from "./mini3d/scoop-rules";
 import { fullTx } from "./furniture";
@@ -107,7 +108,7 @@ const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 const nodeId = (s: PlayState): NodeId => STORY[s.nodeIndex].id;
 
 function cloneLife(l: Life): Life {
-  return { ...l, flags: { ...l.flags }, picks: [...l.picks], notes: [...l.notes], events: [...l.events], cost: { ...l.cost }, labels: l.labels, care: { ...l.care, log: { ...l.care.log } } };
+  return { ...l, flags: { ...l.flags }, picks: [...l.picks], notes: [...l.notes], events: [...l.events], cost: { ...l.cost }, labels: l.labels, care: { ...l.care, log: { ...l.care.log } }, careLog: [...(l.careLog ?? [])], moods: [...(l.moods ?? [])] };
 }
 
 /** 原版 expApplyMeta＋expFx：花費（分醫療、意外、其他）、信任、壓力、旗標、紀錄 */
@@ -199,6 +200,8 @@ function endHome(s: PlayState): PlayState {
     if (e.fx.stress) life.stress = clamp(life.stress + e.fx.stress, 0, 100);
   }
   life.care.rounds += 1;
+  // 照顧紀錄：這一天沒做（也沒試過）的動作記「沒做」
+  life.careLog = logSkips(life.careLog ?? [], nodeId(s), CARE_ACTS.map(c => c.act));
   return { ...s, life, homeDone: [], homeTried: [] };
 }
 
@@ -207,7 +210,9 @@ const checkpointOf = (s: PlayState, nodeIndex: number): Checkpoint => ({
   v: 1, nodeIndex, life: cloneLife(s.life), hazards: s.hazards, handled: [...s.handled], monthly: s.monthly, startMonths: s.startMonths, today: newDay(nodeIndex),
 });
 
-function advance(s: PlayState): PlayState {
+function advance(s0: PlayState): PlayState {
+  // 每個節點結束時記下信任、壓力（試養報告「牠的心情」）
+  const s: PlayState = { ...s0, life: { ...s0.life, moods: [...(s0.life.moods ?? []).filter(m => m.node !== nodeId(s0)), { node: nodeId(s0), trust: s0.life.trust, stress: s0.life.stress }] } };
   return !s.life.abandoned && s.nodeIndex + 1 < STORY.length ? enterNode({ ...s, checkpoint: checkpointOf(s, s.nodeIndex + 1) }, s.nodeIndex + 1) : { ...s, step: "report", cur: null };
 }
 
@@ -259,12 +264,15 @@ export function playReducer(s: PlayState, a: PlayAction): PlayState {
         const already = today.done.includes(a.act);
         const outcome = careOutcome(a.act, a.result);
         today = dayAfter(today, a.act, a.result);
-        if (already || outcome === "none") return { ...s, today };
+        if (already) return { ...s, today };
+        // 打開又關掉：沒有效果，但照顧紀錄記下來
+        if (outcome === "none") return { ...s, today, life: { ...s.life, careLog: logCare(s.life.careLog ?? [], careEntry(nodeId(s), a.act, a.result)) } };
       }
       const life = cloneLife(s.life);
       const e = careEffect(a.act, a.good, Boolean(life.flags.brushDaily), a.result);
       life.care = addCare(life.care, e.d);
       life.care.log[a.act] = (life.care.log[a.act] ?? 0) + 1;
+      if (a.result !== undefined) life.careLog = logCare(life.careLog ?? [], careEntry(nodeId(s), a.act, a.result));
       if (e.fx.trust) life.trust = clamp(life.trust + e.fx.trust, 0, 100);
       if (e.fx.stress) life.stress = clamp(life.stress + e.fx.stress, 0, 100);
       // 鏟一部分：照實記下還有幾坨沒鏟
@@ -284,10 +292,12 @@ export function playReducer(s: PlayState, a: PlayAction): PlayState {
       if (s.cur?.kind !== "mini") return s;
       const mini = s.cur.mini, care = CARE_ACTS.find(c => c.mini === mini)?.act;
       const n: PlayState = { ...s, today: care ? dayAfter(s.today, care, a.result) : s.today };
+      // 劇情裡的照顧小遊戲（第 1 天餵飯、第 3 天鏟屎…）也記進照顧紀錄
+      if (care) n.life = { ...cloneLife(s.life), careLog: logCare(s.life.careLog ?? [], careEntry(nodeId(s), care, a.result)) };
       // 劇情裡的鏟屎：照實寫進這一段的飼養紀錄（關掉、沒鏟、鏟一部分都不算做好）
       if (mini === "scoop") {
         const o = scoopOutcome(a.result);
-        n.life = cloneLife(s.life);
+        n.life = cloneLife(n.life);
         n.life.picks.push(o.kind === "good" ? { t: "把貓砂盆鏟乾淨了", good: true, node: nodeId(s) }
           : o.kind === "partial" ? { t: `鏟屎沒鏟完，還有 ${o.left} 坨沒鏟`, good: false, node: nodeId(s) }
           : { t: "沒有鏟屎", good: false, node: nodeId(s) });
