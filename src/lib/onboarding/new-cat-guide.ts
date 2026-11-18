@@ -1,6 +1,7 @@
-// 說說牠之後的口說追問（#478）：第一次口述沒填到的欄位，依主題一題一題用說的問，每題附一句「可以這樣說」。
-// 回答只跑規則式擷取（story-rules.ts，不等 LLM），說「其他都很順利」「其他都不會」這類話時，把這題剩下的項目一起填好；
-// 說「不知道」「沒有」「很健康」時，這題剩下的項目記成「不用再問」（cleared），最後的補資料點選頁就不會再出現。
+// 說說牠之後的口說補充（#478）：第一次口述沒填到的欄位彙整成一個對話框，依主題列出還要講什麼，每項附「可以這樣說」。
+// 中途一次講一段（answerMissing），只跑規則式擷取（story-rules.ts，不等 LLM）；講完還缺的再列一次，直到講完或改用點的。
+// 說「其他都很順利」「其他都不會」時，把上一句講到的主題剩下的項目一起填好；
+// 說「不知道」「沒有」「很健康」時，那個主題剩下的項目記成「不用再問」（cleared），最後的補資料點選頁就不會再出現。
 // 追問完還沒填、也沒說不知道的欄位，才交給補資料頁用點的。
 import { ARRIVAL_ITEMS, BEHAVIOR_ITEMS, CARE_ITEMS, COMPAT_KEYS, COMPAT_LABEL, type BehaviorKey } from "../cat-profile/adoption";
 import { TRAITS } from "../cat-profile/tags";
@@ -23,7 +24,7 @@ const join = (xs: string[]) => xs.length <= 1 ? xs.join("") : `${xs.slice(0, -1)
 /** 每個主題：涵蓋哪些欄位、怎麼問 */
 /** build 回傳 [題目, 範例回答, 範例後面接的一句（可省略）] */
 const TOPICS: { id: GuideId; has: (k: string) => boolean; build: (keys: string[], name: string) => [string, string, string?] }[] = [
-  { id: "name", has: k => k === "name", build: () => ["這隻貓叫什麼名字？", "直接說名字就好，例如：妹妹"] },
+  { id: "name", has: k => k === "name", build: () => ["這隻貓叫什麼名字？", "牠叫妹妹"] },
   { id: "basic", has: k => ["sex", "age", "weight"].includes(k), build: (keys, n) => {
     const q = [keys.includes("sex") && "是男生還是女生", keys.includes("age") && "大概幾歲或幾個月", keys.includes("weight") && "大概幾公斤"].filter(Boolean) as string[];
     const h = [keys.includes("sex") && "女生", keys.includes("age") && "大概一歲", keys.includes("weight") && "三公斤"].filter(Boolean) as string[];
@@ -47,12 +48,12 @@ const TOPICS: { id: GuideId; has: (k: string) => boolean; build: (keys: string[]
   } },
   { id: "care", has: k => k.startsWith("care."), build: keys => {
     const items = keys.map(k => label(CARE_ITEMS, k.slice(5)));
-    return [`照顧起來呢？${join(items)}，哪些順利、哪些比較難？`, `${items[0]}要用毛巾包，其他都很順利`];
+    const eg = keys.includes("care.nail") ? "剪指甲要用毛巾包" : `${items[0]}要技巧`;
+    return [`照顧起來呢？${join(items)}，哪些順利、哪些比較難？`, `${eg}，其他都很順利`];
   } },
   { id: "behavior", has: k => k.startsWith("behavior."), build: keys => {
     const items = keys.map(k => label(BEHAVIOR_ITEMS, k.slice(9)));
-    const eg = keys.includes("behavior.scratch") ? "抓沙發" : items[0];
-    return [`牠會不會${join(items)}？`, `偶爾會${eg}，其他都不會`];
+    return [`牠會不會${join(items)}？`, keys.includes("behavior.scratch") ? "偶爾會抓沙發，其他壞習慣都不會" : "壞習慣都不會"];
   } },
   { id: "compat", has: k => k.startsWith("compat."), build: keys => {
     const items = keys.map(k => COMPAT_LABEL[k.slice(7) as (typeof COMPAT_KEYS)[number]]);
@@ -86,62 +87,82 @@ export function guideQuestions(missing: readonly string[], catName: string): Gui
 }
 
 const clauses = (s: string) => s.split(/[，,。；;！!？?\n]/).map(c => c.trim()).filter(Boolean);
-/** 一句只講「不知道／沒有／很健康」 */
-const NOPE = /^(牠|身體|其他|剩下的?|別的)?(都|也)?(還)?(沒有|沒|不知道|不清楚|不確定|沒試過|沒注意|忘了|很健康|健康|沒問題)/;
-/** 「其他都…」「剩下的都…」 */
-const REST = /^(其他|剩下的?|別的|全部|都)/;
+/** 整句只講「不知道／沒有／很健康」 */
+const NOPE = /^(牠|身體|其他|剩下的?|別的)?(都|也)?(還)?(沒有|沒|不知道|不清楚|不確定|沒試過|沒注意|忘了|很健康|健康|沒問題)(了|耶|欸|喔|啦)?$/;
+/** 「其他都…」「剩下的都…」「壞習慣都不會」：指這個主題剩下的項目 */
+const REST = /其他|剩下|別的|全部|^都|(壞習慣|照顧|照護|個性)都/;
 
-/** 回答一題：回傳更新後的表單、這次填到的欄位、記成不用再問的欄位 */
-export function answerGuide(form: NewCatForm, q: GuideQuestion, answer: string): { form: NewCatForm; filled: string[]; cleared: string[] } {
+/** 一句話在講哪個主題（「其他都…」這種沒講主題的句子沿用上一句的主題） */
+const TOPIC_WORDS: [GuideId, RegExp][] = [
+  ["medical", /結紮|疫苗|驅蟲|FIV|FeLV|晶片/i],
+  ["body", /健康|過敏|吃藥|受過傷|慢性|身體/],
+  ["care", /剪指甲|抱起來|抱牠|外出籠|餵藥|梳毛|刷牙|看醫生|看獸醫|照顧|照護/],
+  ["behavior", /亂尿|咬手|咬人|抓人|護食|抓沙發|抓家具|半夜|衝門|出門|咬電線|壞習慣/],
+  ["compat", /(跟|和).{0,3}(貓|狗|小孩|小朋友|客人|陌生人)|^(貓|狗|小孩|小朋友|客人|陌生人)|處得來/],
+  ["arrival", /剛來|躲|開始吃|讓我摸|給摸|第.天/],
+  ["touch", /摸|膩|甩尾巴|走開/],
+  ["traits", /活潑|愛睡|黏人|獨立|親人|怕生|適應|慢熱|個性/],
+  ["habits", /飼料|乾乾|罐頭|罐罐|待在|愛玩|吸塵器|打雷|貓砂|最愛/],
+  ["basic", /公斤|kg|歲|個月|男生|女生|公的|母的/i],
+  ["meet", /撿到|遇到|收容所|棄養|[日號]來|來的/],
+  ["looks", /毛色|虎斑|米克斯|品種|三花|玳瑁|賓士/],
+];
+const topicOf = (c: string) => TOPIC_WORDS.find(([, re]) => re.test(c))?.[0] ?? null;
+/** 沒講主題的「都不會」「也不會」：一段話裡講好幾件事時，指的是壞習慣，不沿用上一句的主題 */
+const BARE_NOT = /^(其他|剩下的?|別的)?(都|也)?(不會|沒有壞習慣)/;
+
+/**
+ * 一段話回答所有還沒填的（彙整的對話框）：先跑規則式擷取，再處理「其他都…」「不知道」這種指一整個主題的句子。
+ * 回傳更新後的表單、這次填到的欄位、記成不用再問的欄位。
+ */
+export function answerMissing(form: NewCatForm, missing: readonly string[], answer: string): { form: NewCatForm; filled: string[]; cleared: string[] } {
   const text = answer.trim();
   if (!text) return { form, filled: [], cleared: [] };
-  if (q.id === "name") {
-    const name = text.replace(/^(牠|她|他|這隻)?(的名字)?(叫做|叫|名字是|是)?\s*/, "").split(/[，,。\s的]/)[0].slice(0, 30);
-    return name ? { form: markSaid({ ...form, name }, ["name"]), filled: ["name"], cleared: [] } : { form, filled: [], cleared: [] };
-  }
-  // 前面加逗號：讓「開頭第一段當名字」的規則不會把回答當成名字
+  // 前面加逗號：讓「開頭第一段當名字」的規則不會把回答當成名字；名字只認「牠叫…」「名字是…」
   const r = storyExtras(form, `，${text}`);
   let next = r.form;
   const filled = new Set(r.filled);
-  const left = () => q.keys.filter(k => !filled.has(k));
-  const restClause = clauses(text).find(c => REST.test(c));
+  if (!form.name.trim()) {
+    const m = text.match(/(?:牠|她|他|這隻)?(?:的名字)?(?:叫做|叫|名字是)\s*([^\s，,。的]{1,10})/);
+    if (m) { next = { ...next, name: m[1] }; filled.add("name"); }
+  }
+  const has = (t: GuideId) => (k: string) => guideQuestions([k], "").some(q => q.id === t);
+  const left = (t: GuideId) => missing.filter(k => has(t)(k) && !filled.has(k));
+  const cleared = new Set<string>();
 
-  if (restClause && q.id === "care") {
-    const lv = handlingLevel(restClause);
-    if (lv) {
-      const handling = { ...next.care.handling };
-      for (const k of left()) { handling[k.slice(5)] = lv; filled.add(k); }
-      next = { ...next, care: { ...next.care, handling } };
+  let topic: GuideId | null = null;
+  for (const c of clauses(text)) {
+    topic = topicOf(c) ?? (BARE_NOT.test(c) ? "behavior" : topic);
+    if (!topic) continue;
+    if (NOPE.test(c)) { left(topic).forEach(k => cleared.add(k)); continue; }
+    if (!REST.test(c)) continue;
+    if (topic === "care") {
+      const lv = handlingLevel(c);
+      if (lv) {
+        const handling = { ...next.care.handling };
+        for (const k of left("care")) { handling[k.slice(5)] = lv; filled.add(k); }
+        next = { ...next, care: { ...next.care, handling } };
+      }
+    } else if (topic === "behavior" && behaviorLevel(c) === "none") {
+      const behavior = { ...next.behavior };
+      for (const k of left("behavior")) { behavior[k.slice(9) as BehaviorKey] = { level: "none", note: null }; filled.add(k); }
+      next = { ...next, behavior };
+    } else if (topic === "compat") {
+      const lv = compatLevel(c);
+      if (lv) {
+        const compat = { ...next.compat };
+        for (const k of left("compat")) { compat[k.slice(7) as (typeof COMPAT_KEYS)[number]] = lv; filled.add(k); }
+        next = { ...next, compat };
+      }
     }
   }
-  if (restClause && q.id === "behavior" && behaviorLevel(restClause) === "none") {
-    const behavior = { ...next.behavior };
-    for (const k of left()) { behavior[k.slice(9) as BehaviorKey] = { level: "none", note: null }; filled.add(k); }
-    next = { ...next, behavior };
-  }
-  if (restClause && q.id === "compat") {
-    const lv = compatLevel(restClause);
-    if (lv) {
-      const compat = { ...next.compat };
-      for (const k of left()) { compat[k.slice(7) as (typeof COMPAT_KEYS)[number]] = lv; filled.add(k); }
-      next = { ...next, compat };
-    }
-  }
-  // 問題已經在問「不想被摸時會怎樣」，回答不用再講一次「不想被摸」
-  if (q.id === "touch" && q.keys.includes("touchSigns") && !filled.has("touchSigns")) {
+  // 提示已經寫了「不想被摸時會怎樣」，回答不用再講一次「不想被摸」
+  if (missing.includes("touchSigns") && !filled.has("touchSigns")) {
     const signs = SIGN_RULES.filter(([re]) => re.test(text)).map(([, k]) => k);
     if (signs.length) { next = { ...next, care: { ...next.care, touchSigns: [...new Set([...(next.care.touchSigns ?? []), ...signs])] } }; filled.add("touchSigns"); }
   }
-  // 適應速度：問題已經問了「躲幾天」，只回答「兩天」也算
-  if (q.id === "arrival" && q.keys.length === 1 && !filled.has(q.keys[0])) {
-    const k = q.keys[0].slice(8);
-    const r2 = storyExtras(next, `，${{ hide: "躲了", eat: "開始吃飯", touch: "讓我摸" }[k] ?? ""}${text}`);
-    if (r2.filled.includes(q.keys[0])) { next = r2.form; filled.add(q.keys[0]); }
-  }
-
-  const cleared = clauses(text).some(c => c.length <= 12 && NOPE.test(c)) ? left() : [];
   const all = [...filled];
-  return { form: markSaid(next, all), filled: all, cleared };
+  return { form: markSaid(next, all), filled: all, cleared: [...cleared].filter(k => !filled.has(k)) };
 }
 
 /** 欄位代號 → 給中途看的名稱（「記下了：體重、驅蟲」） */
