@@ -786,3 +786,5 @@
 /* 下載最新腳本（#498） */
 .hq-video-download { margin: -.25rem 0 .75rem; flex-wrap: wrap; }
 .hq-video-download .hq-sub { overflow-wrap: anywhere; }
+/* 同一鏡多格的標籤（#499） */
+.hq-video-framelabel { font-size: .88rem; font-weight: 600; color: var(--hq-ink, inherit); }

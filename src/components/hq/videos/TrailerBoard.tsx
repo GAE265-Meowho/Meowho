@@ -316,9 +316,9 @@ function ShotCard({ s, filter, ...slot }: SlotProps & { s: Shot; filter: Filter 
           <div key={f.id} className="hq-video-framecard">
             <div className="hq-row hq-row-tight">
               <span className={`hq-video-make m-${f.make}`}>{FRAME_MAKE_LABELS[f.make]}</span>
-              {f.label && <span className="hq-sub">{f.label}</span>}
+              {f.label && <b className="hq-video-framelabel">{f.label}</b>}
             </div>
-            <ImageSlot id={f.id} alt={`鏡 ${s.no}${f.label ? `（${f.label}）` : ""}分鏡圖`} ratio="wide" {...slot} />
+            <ImageSlot id={f.id} alt={`鏡 ${f.label && /^\d/.test(f.label) ? f.label : `${s.no}${f.label ? `（${f.label}）` : ""}`}分鏡圖`} ratio="wide" {...slot} />
             <RefChips refs={f.refs} urlOf={slot.urlOf} />
             {f.make === "ai" ? <Prompt text={fullPrompt(f, s.line)} copy={slot.copy} /> : <p className="hq-sub">{f.prompt}</p>}
           </div>

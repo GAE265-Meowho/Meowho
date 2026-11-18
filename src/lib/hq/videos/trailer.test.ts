@@ -12,6 +12,13 @@ describe("前導影片 v3 分鏡資料", () => {
     for (const s of shots) expect(s.frames.length).toBeGreaterThan(0);
   });
 
+  it("同一鏡有多格時，每格標籤都是「鏡號-序號 畫面」（例：7-1 拍小橘吃飯）", () => {
+    for (const s of shots.filter(x => x.frames.length > 1)) {
+      s.frames.forEach((f, i) => expect(f.label, f.id).toMatch(new RegExp(`^${s.no}-${i + 1} \\S`)));
+    }
+    expect(shots[6].frames.map(f => f.label)).toEqual(["7-1 拍小橘吃飯", "7-2 吹風機嚇到"]);
+  });
+
   it("需要產生 35 格：AI 生成 27、系統錄影截圖 5、剪輯字卡 3", () => {
     expect(frameCounts()).toEqual({ ai: 27, record: 5, edit: 3, total: 35 });
   });
