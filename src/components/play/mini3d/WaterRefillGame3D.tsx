@@ -96,7 +96,7 @@ export function WaterRefillGame3D({ onDone, initialFill = 0 }: { onDone: (r: unk
   </>;
 
   return <>
-    <p className={styles.hint}>{phase === "fill" ? `${controlText(CONTROL_TEXT.waterTap, touch)}接新水，七分滿就放開。` : phase === "wash" ? controlText(CONTROL_TEXT.waterWash, touch) : phase === "rinse" ? `${controlText(CONTROL_TEXT.waterTap, touch)}把泡泡沖乾淨。` : HINT[phase]}</p>
+    <p className={styles.hint}>{phase === "fill" ? `${controlText(CONTROL_TEXT.waterTap, touch)}接新水，七分滿就放開。記得要用煮沸過的水或過濾水喔。` : phase === "wash" ? controlText(CONTROL_TEXT.waterWash, touch) : phase === "rinse" ? `${controlText(CONTROL_TEXT.waterTap, touch)}把泡泡沖乾淨。` : HINT[phase]}</p>
     <div className={styles.scene}>
       <Canvas dpr={[1, 1.5]} camera={{ fov: 45, near: 0.01, far: 12 }} fallback={<p role="alert">這個瀏覽器無法顯示 3D 場景。</p>}>
         <WaterRefillScene drive={drive} scrub={scrub} />

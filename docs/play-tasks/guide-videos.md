@@ -1,14 +1,14 @@
 # 小遊戲示範影片（#354，渝茜 2026-11-14）
 
-每個小遊戲開始前的「怎麼玩」示範（`src/components/play/MiniGuide.tsx`、`src/lib/play/mini-guide.ts`）放的是**真正遊戲畫面**的錄影：`public/play/guide/<小遊戲>.mp4`（480px 寬、約 10～17 秒、靜音循環，七段合計約 570KB）。白色箭頭是滑鼠，按下時箭頭尖端有橘色波紋（`rec.mjs` 畫的，headless 錄不到系統游標）。說明在影片下面一排三步，每步 4～12 字。
+每個小遊戲開始前的「怎麼玩」示範（`src/components/play/MiniGuide.tsx`、`src/lib/play/mini-guide.ts`）放的是**真正遊戲畫面**的錄影：`public/play/guide/<小遊戲>.mp4`（480px 寬、約 10～17 秒、靜音循環，七段合計約 570KB）。白色箭頭是滑鼠，按下時箭頭尖端有橘色波紋（`rec.mjs` 畫的，headless 錄不到系統游標）。說明疊在影片上（2026-11-18 渝茜）：`mini-guide.ts` 每個小遊戲的 `cues` 寫「第幾秒到第幾秒、目標在影片的哪裡（%）、電腦／手機各一句」，`hold` 是停格幾秒；**重錄後秒數和位置要重新對**（用 `ffmpeg -i x.mp4 -vf "fps=2,drawtext=text='%{pts\:flt}'…,tile=6x4"` 看每半秒在哪）。逗貓錄影看不到玩具，老鼠（`toy-mouse.webp`，後台 3D 模型的截圖）照 `toy` 路線另外畫。
 
 | 小遊戲 | 檔案 | 錄了什麼 |
 |---|---|---|
 | 餵飯 | `feed.mp4` | 選乾飼料 → 按住倒到建議份量附近 → 放好了 |
 | 換水 | `water.mp4` | 菜瓜布畫圈刷乾淨 → 按住開水沖泡泡 → 接新水到七分滿（1.6 倍速） |
 | 鏟屎 | `scoop.mp4` | 鏟起砂團 → 左右甩 → 拿到垃圾袋放開，做三輪（2.4 倍速） |
-| 摸摸 | `pet.mp4` | 慢慢摸下巴（1.5 倍速，取前段） |
-| 刷牙 | `brush.mp4` | 第一階段「碰嘴角」：按住嘴角標記（第一次會先播衛教示範） |
+| 摸摸 | `pet.mp4` | 2026-11-18 重錄：摸頭 → 停下來看開心、煩躁 → 推左下角搖桿轉視角（三段剪接，見 `encode.sh` 的 `encPet`） |
+| 刷牙 | `brush.mp4` | 擬真影像版固定最後一階段（`BrushGameRealistic` 用 level 4）：按住空白鍵翻唇 → 特寫裡沿牙齦刷 → 放開 |
 | 剪指甲 | `nail.mp4` | 照片特寫版（#404）：點肉球讓指甲伸出來 → 指甲刀移到白色尖端剪，剪中間兩根（2026-11-16 重錄） |
 | 逗貓 | `play.mp4` | 渝茜的掃描房間實機：移動滑鼠帶玩具，灰寶在地板上追（2026-11-16 用內建瀏覽器的畫布錄影 `canvas.captureStream` 錄的，只有 3D 畫面、沒有游標） |
 
@@ -27,7 +27,7 @@
 為什麼這樣錄：小遊戲的 3D 畫布最多只畫 1.5 倍解析度（`<Canvas dpr={[1, 1.5]}>`），截圖再放大一定會糊。`rec-home.mjs` 錄影時把彈窗放大到 1900px、畫布約 1850×1333（長寬比照原本，鏡頭構圖不變），讓遊戲直接畫高解析度；每格把畫布疊到場景底色上（畫布透明處直接錄會變黑）、畫上滑鼠，再用 `canvas.captureStream` 錄成 webm。`play-*.mjs` 寫死的座標會自動換算到放大後的畫布。
 
 重錄：
-1. 同上第 1、2 步（另外把 `rec-home.mjs`、`play-feed.mjs`、`play-scoop.mjs`、`play-pet.mjs` 複製到暫存資料夾）。
+1. 同上第 1、2 步（另外把 `rec-home.mjs`、`play-feed.mjs`、`play-scoop.mjs`、`play-pet.mjs` 複製到暫存資料夾）。注意 `play-pet.mjs` 2026-11-18 改成「摸頭 → 停 → 推搖桿 → 再摸」，首頁版重錄時會跟著錄到搖桿。
 2. `BASE=http://localhost:3000 CHROME=<Chrome 路徑> OUT=/tmp/play-guide-rec node rec-home.mjs feed`（scoop、pet 同理）。
 3. 回 repo 根目錄：`OUT=/tmp/play-guide-rec bash scripts/play-guide-rec/encode-home.sh`（裁切用畫布比例，畫布大小改了不用重算）。
 4. 本機 `.env.local` 若有 `CAT_STUDIO_ROOT` 指向不存在的資料夾，摸貓與首頁 3D 貓會載不到母體（`/api/hq/cat-models/base` 404）；錄影時把它清空再 `npm run dev`。

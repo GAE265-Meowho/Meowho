@@ -252,7 +252,8 @@ export function PetGame3D({ ctx, onDone }: { ctx: MiniCtx; onDone: (r: unknown) 
     </div>
     <div className={styles.meters}>
       <label>開心 <progress max={100} value={result.fun} /> {result.fun}</label>
-      <label>煩躁 <progress max={100} value={state.annoyance} /></label>
+      {/* 煩躁一直框起來，快到底（牠開始轉頭）時變紅：太高牠會跑走（渝茜 2026-11-18） */}
+      <label className={styles.watch} data-alert={state.annoyance >= 28}>煩躁 <progress max={100} value={state.annoyance} /></label>
     </div>
     <section className={styles.petLesson}>
       <p role="status">{lesson.hint}</p>

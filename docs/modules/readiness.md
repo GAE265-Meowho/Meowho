@@ -418,3 +418,11 @@ Worker 選用的 `report.html` 與 `html-assets/` 位於既有 attempt 前綴。
 - 第 10 年（`year10`）：旁白「要出門了。你把〈貓名〉請進當年那個外出籠。」保留，接著直接 `checkupSteps(X)`。**健檢費用不變；原本沒進成外出籠會 `stress +5`，這項跟著拿掉。**
 - 沒動：第 1 天貓縮在外出籠（`carrier-fit.ts`、`tuck`、`CatPose` 的 `carrier`）、3D 外出籠用品（`items.ts` 的 `carrier`、`catalog.ts`）、外出籠門音效 `sfx_carrier_door`（第 1 天用）、貓咪資料的 `CARE_ITEMS`「進外出籠」（領養資料欄位，跟遊戲無關）。
 - 加回來：還原這張 PR，或從 main `e8d9a32` 取回上面列的檔案（任務表 `docs/play-tasks/2-剪指甲外出籠貓抓板.md` 也有寫）。
+
+## 小遊戲說明疊在示範影片上（#354，渝茜 × Claude Code，2026-11-18，分支 `feat/354-guide-overlay`）
+- `MiniGuide.tsx` 的錄影改成 `VideoDemo`：說明疊在影片上、跟著影片時間換（`mini-guide.ts` 的 `cues`），影片下面不再列步驟（`steps` 只留給螢幕報讀）。電腦：深色對話框指著要操作的地方，按鍵畫成鍵帽；手機（`useTouch`）：影片上方或下方的大字幕＋橘色圓圈。文字標記 `[動作]`、`{按鍵}`、`\n`（`guidePart`）。
+- 停格 `hold`：剪指甲三步（① 按住肉球 ② 剪指甲 ③ 注意：粉紅色是血線，剪到貓咪會流血）、刷牙翻嘴角（合成一句，至少 3 秒）。餵飯、換水 1.25 倍速（`rate`）。
+- 逗貓錄影看不到玩具：老鼠圖 `public/play/guide/toy-mouse.webp`（後台 3D 老鼠模型在內建瀏覽器渲染的截圖）照 `toy` 路線畫上去，電腦版加游標。
+- 摸貓示範重錄（看得到左下角搖桿）：`play-pet.mjs` 路線改成摸頭 → 停 → 推搖桿；`encode.sh` 的 `encPet` 剪三段。
+- 遊戲內文字：摸貓提示「停手也是照顧…」改「先停一下，看下面的「煩躁」：太高牠會跑走。」；摸貓的煩躁、刷牙的耐心一直框起來（`mini3d.module.css` 的 `.watch`），快到底時變紅閃一下；換水接新水時加「記得要用煮沸過的水或過濾水喔。」。
+- 重錄任何示範影片後，`cues` 的秒數、位置要重新對（做法見 `docs/play-tasks/guide-videos.md`）。
