@@ -30,7 +30,7 @@ function Cover({ src }: { src: string | null }) {
   return <div className={s.blob}>{src ? <img src={src} alt="" /> : <Icon name="cat" size={48} />}</div>;
 }
 
-type Jump = (to: "photo" | "talk" | "touch" | number) => void;
+type Jump = (to: "photo" | "talk" | "basic" | "touch" | number) => void;
 
 /** 每個區塊的標題列：右邊「編輯」直接回到那一頁 */
 function Head({ id, title, onEdit, extra }: { id: string; title: string; onEdit: () => void; extra?: React.ReactNode }) {
@@ -151,7 +151,7 @@ export function ReviewStep({ form, set, previews, home, onMotto, onJump }: {
       <div className={s.gap} />
       <div className={s.card}>
         <section className={s.block} aria-labelledby="sec-basic">
-          <Head id="sec-basic" title="基本資料" onEdit={() => onJump("talk")} />
+          <Head id="sec-basic" title="基本資料" onEdit={() => onJump("basic")} />
           <dl className={s.kv}>
             <dt>哪裡相遇的</dt><dd>{form.care.origin ? ORIGIN_LABEL[form.care.origin] : later}</dd>
             <dt>來你這裡的時間</dt><dd>{form.care.since || later}</dd>
@@ -159,7 +159,7 @@ export function ReviewStep({ form, set, previews, home, onMotto, onJump }: {
           </dl>
         </section>
         <section className={s.block} aria-labelledby="sec-health">
-          <Head id="sec-health" title="健康" onEdit={() => onJump("talk")} />
+          <Head id="sec-health" title="健康" onEdit={() => onJump("basic")} />
           {health.length > 0 && <div className={s.pills} style={{ marginTop: 8 }}>{health.map(h => <span key={h.t} className={`${s.pill} ${h.c}`}>{h.t}</span>)}</div>}
           <dl className={s.kv}>
             <dt>FIV／FeLV</dt><dd>{{ negative: "陰性", fiv_positive: "FIV 陽性", felv_positive: "FeLV 陽性", both_positive: "FIV、FeLV 陽性", untested: "還沒篩" }[m.fivFelv]}</dd>

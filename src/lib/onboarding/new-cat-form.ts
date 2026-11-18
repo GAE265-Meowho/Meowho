@@ -3,7 +3,7 @@
 // 口述：先走 /api/onboarding/turn（LLM，失敗時規則式），結果用 applyExtracted 填進表單；
 //   LLM 沒有的欄位（個性量表、小小壞習慣、適應速度、最愛的東西）由 storyExtras 用規則補。填到的欄位標「你說過」，中途可以直接改。
 import {
-  BehaviorSchema, CareSchema, CompatSchema, HABITS, HANDOVER_ITEMS, MedicalSchema, bitesOf, emptyCompat, emptyMedical,
+  ARRIVAL_ITEMS, BEHAVIOR_ITEMS, BehaviorSchema, CARE_ITEMS, COMPAT_KEYS, CareSchema, CompatSchema, HABITS, HANDOVER_ITEMS, MedicalSchema, bitesOf, emptyCompat, emptyMedical,
   type Behavior, type BehaviorKey, type Care, type Compat, type Medical,
 } from "../cat-profile/adoption";
 import { lifeStageOf, type LifeStage } from "../cat-profile/life-stage";
@@ -14,6 +14,7 @@ import {
 } from "../cat-profile/tags";
 import type { Sex } from "./cat";
 import type { CatFields } from "./conversation";
+import { storyRules } from "./story-rules";
 
 export type Origin = NonNullable<Care["origin"]>;
 export const ORIGIN_LABEL: Record<Origin, string> = { street: "街上撿到", abandoned: "被棄養", rehomed: "前飼主送養", shelter: "收容所" };
@@ -91,9 +92,6 @@ const EXTRA_WORDS: [RegExp, (typeof EXTRA_PERSONALITY_TAGS)[number]][] = [
   [/踩踏|踏踏|踩奶/, "愛踏踏"], [/很愛吃|愛吃|貪吃/, "貪吃"], [/好奇/, "好奇"], [/愛玩/, "愛玩"], [/撒嬌/, "愛撒嬌"], [/愛被抱|喜歡被抱/, "愛被抱"],
   [/溫和|脾氣很好/, "溫和"], [/小脾氣|有脾氣/, "有小脾氣"], [/怕寂寞/, "怕寂寞"], [/等門|在門口等/, "會等門"], [/愛叫|話很多|很吵/, "愛叫"], [/曬太陽/, "愛曬太陽"],
 ];
-const BEHAVIOR_WORDS: [RegExp, BehaviorKey][] = [
-  [/咬手|咬人|會抓人/, "bite"], [/亂尿/, "pee"], [/護食/, "guard"], [/抓沙發|抓家具/, "scratch"], [/咬電線|咬塑膠袋/, "chew"], [/衝門|暴衝出門/, "door"],
-];
 const CN: Record<string, number> = { 一: 1, 二: 2, 兩: 2, 三: 3, 四: 4, 五: 5, 六: 6, 七: 7 };
 
 export function storyExtras(f: NewCatForm, text: string): { form: NewCatForm; filled: string[] } {
@@ -112,26 +110,21 @@ export function storyExtras(f: NewCatForm, text: string): { form: NewCatForm; fi
   }
   const extra = EXTRA_WORDS.filter(([re]) => re.test(text)).map(([, t]) => t);
   if (extra.length) filled.push("extraTags");
-  const behavior = { ...f.behavior };
-  for (const [re, k] of BEHAVIOR_WORDS) {
-    if (re.test(text) && !behavior[k]) { behavior[k] = { level: "sometimes", note: null }; filled.push(`behavior.${k}`); }
-  }
-  const care: Care = { ...f.care, arrival: { ...(f.care.arrival ?? {}) }, handling: { ...(f.care.handling ?? {}) } };
-  const hide = text.match(/躲了?([\d一二兩三四五六七])天/);
-  if (hide) {
-    const d = Number(hide[1]) || CN[hide[1]] || 0;
-    care.arrival!.hide = d <= 0 ? "same_day" : d <= 3 ? "1_3_days" : d <= 7 ? "within_week" : "longer";
-    filled.push("arrival.hide");
-  }
-  if (/剪指甲.{0,8}(毛巾|兩個人|包)/.test(text)) { care.handling!.nail = "tricky"; filled.push("care.nail"); }
+  // 其他欄位（基本資料、健康、照護、壞習慣、處得來、適應、摸摸牠、習慣）：story-rules.ts 一句一句看
+  const rules = storyRules({ ...f, medical }, text);
+  filled.push(...rules.filled);
+  // 年紀用 withAge 寫回，順便算出年齡層
+  if (rules.filled.includes("age")) rules.form = withAge(rules.form, rules.form.ageNum, rules.form.ageUnit);
+  const care: Care = { ...rules.form.care };
   // 「最愛紙箱」「最喜歡逗貓棒」：寫進其他想說的
-  const fav = text.match(/最(愛|喜歡)([^，,。！!？?\s]{1,12})/);
+  // 「最喜歡被摸下巴」是摸摸牠，不算最愛的東西
+  const fav = [...text.matchAll(/最(愛|喜歡)([^，,。！!？?\s]{1,12})/g)].find(m => !m[0].includes("摸"));
   if (fav && !(care.otherNote ?? "").includes(fav[0])) {
     care.otherNote = [care.otherNote, fav[0]].filter(Boolean).join("；").slice(0, 300);
     filled.push("otherNote");
   }
   return {
-    form: markSaid({ ...f, name, medical, scale, behavior, care, extraTags: pickTags([...f.extraTags, ...extra], EXTRA_PERSONALITY_TAGS) }, filled),
+    form: markSaid({ ...rules.form, name, scale, care, extraTags: pickTags([...f.extraTags, ...extra], EXTRA_PERSONALITY_TAGS) }, filled),
     filled,
   };
 }
@@ -248,6 +241,46 @@ export function weekLines(f: NewCatForm): string[] {
   if (f.care.touch?.belly === "no") L.push("不喜歡被摸肚子");
   return L;
 }
+
+// ---------- 說說牠之後的補資料 ----------
+
+/** 補資料的頁面：基本資料與健康、快問快答各頁（QUICK_PAGES 的 key）、摸摸牠 */
+export const FILL_PAGES = ["basic", "traits", "care", "habits", "behavior", "compat", "arrival", "touch"] as const;
+export type FillPage = (typeof FILL_PAGES)[number];
+
+/** 還沒填的欄位代號（和畫面上「你說過」的代號相同）；說說牠送出後只把這些拿給中途補 */
+export function unfilledKeys(f: NewCatForm): string[] {
+  const m = f.medical, c = f.care;
+  const basic: [string, unknown][] = [
+    ["name", f.name.trim()], ["sex", f.sex && f.sex !== "unknown"], ["age", f.ageNum.trim()], ["weight", c.weightKg != null],
+    ["coat", f.coat.trim()], ["breed", f.breed.trim()], ["origin", c.origin], ["since", c.since],
+    ["neutered", m.neutered !== "unknown"], ["vaccine", m.vaccineDoses !== null], ["deworm", m.dewormInternal === "done" || m.dewormExternal === "done"],
+    ["fiv", m.fivFelv !== "untested"], ["chip", m.microchip !== "unknown"], ["healthTags", f.healthTags.length], ["history", m.history.trim()], ["medication", m.medication.trim()],
+  ];
+  return [
+    ...basic.filter(([, v]) => !v).map(([k]) => k),
+    ...TRAITS.filter(t => f.scale[t.key] == null).map(t => `scale.${t.key}`), ...(f.extraTags.length ? [] : ["extraTags"]),
+    ...CARE_ITEMS.filter(([k]) => !c.handling?.[k]).map(([k]) => `care.${k}`),
+    ...(f.habits.length ? [] : ["habits"]), ...(c.otherNote?.trim() ? [] : ["otherNote"]),
+    ...BEHAVIOR_ITEMS.filter(([k]) => !f.behavior[k as BehaviorKey]).map(([k]) => `behavior.${k}`),
+    ...COMPAT_KEYS.filter(k => f.compat[k] === "unknown").map(k => `compat.${k}`),
+    ...ARRIVAL_ITEMS.filter(([k]) => !c.arrival?.[k]).map(([k]) => `arrival.${k}`),
+    ...(Object.keys(c.touch ?? {}).length ? [] : ["touch"]), ...(c.touchLimit ? [] : ["touchLimit"]), ...(c.touchSigns?.length ? [] : ["touchSigns"]),
+  ];
+}
+
+const PAGE_OF = (k: string): FillPage => {
+  const head = k.split(".")[0];
+  if (head === "scale" || k === "extraTags") return "traits";
+  if (head === "care") return "care";
+  if (k === "habits" || k === "otherNote") return "habits";
+  if (head === "behavior" || head === "compat" || head === "arrival") return head;
+  if (k.startsWith("touch")) return "touch";
+  return "basic";
+};
+
+/** 有欄位要補的頁面，照流程順序 */
+export const fillPagesFor = (keys: readonly string[]): FillPage[] => FILL_PAGES.filter(p => keys.some(k => PAGE_OF(k) === p));
 
 /** 完成頁：還沒填的部分（試養會更像牠） */
 export function skippedParts(f: NewCatForm): string[] {
