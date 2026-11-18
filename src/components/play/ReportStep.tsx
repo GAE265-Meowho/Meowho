@@ -11,13 +11,15 @@ import type { PlayerHome } from "@/lib/play/background";
 import { costTotal, money, type ShopPick } from "@/lib/play/costs";
 import type { PlayState } from "@/lib/play/flow";
 import {
-  checksVerdict, DISCLAIMER, EXP_CHECKS, fullAdvice, HEALTH_NOTE, memoryMoments, outroFor, ruleAdvice, trustWord,
+  DISCLAIMER, fullAdvice, HEALTH_NOTE, memoryMoments, outroFor, ruleAdvice, trustWord,
 } from "@/lib/play/report";
 import { buildPlayReport } from "@/lib/play/report-payload";
 import { STORY } from "@/lib/play/story";
 import { nodeLabel } from "@/lib/play/timeline";
 import { getBrowserSupabase } from "@/lib/supabase/client";
 import s from "./play.module.css";
+import type { Allergy } from "@/lib/onboarding/household-rules";
+import { HomeReadiness } from "./HomeReadiness";
 import { CostCard, MoodScales, PickZone } from "./ReportParts";
 import r from "./report.module.css";
 import { notifyRunChanged } from "./useActiveRun";
@@ -27,8 +29,11 @@ const COST_LABELS = { once: "一次性花費（用品、第一次採買）", mon
 
 type Sent = { st: "idle" } | { st: "saving" } | { st: "saved"; runId: string } | { st: "sharing"; runId: string } | { st: "shared"; threadId: string } | { st: "error"; msg: string };
 
-export function ReportStep({ state, pick, monthly, home, runId, catHref, onRestart, onReachEnd, onAdoptInfo }: {
-  state: PlayState; pick: ShopPick; monthly: number; home: PlayerHome; runId: string | null; catHref: string; onRestart: () => void;
+export function ReportStep({ state, pick, monthly, home, allergy, runId, catHref, onRestart, onReachEnd, onAdoptInfo }: {
+  state: PlayState; pick: ShopPick; monthly: number; home: PlayerHome;
+  /** 你或同住的人對貓過敏嗎（私密表，0036）；只在這份報告給本人看，不放進給中途的報告 */
+  allergy: Allergy | null;
+  runId: string | null; catHref: string; onRestart: () => void;
   /** 讀到報告最後一張卡（之後跳領養資訊） */
   onReachEnd?: () => void;
   /** 打開這隻貓的領養資訊；沒給就照舊連回貓咪頁 */
@@ -49,9 +54,7 @@ export function ReportStep({ state, pick, monthly, home, runId, catHref, onResta
   const years = Math.max(1 / 12, (X.age - state.startMonths) / 12);
   const labelOf = (id: string) => { const n = STORY.find(x => x.id === id); return n ? nodeLabel(n, state.startMonths) : ""; };
   const good = X.picks.filter(p => p.good === true), bad = X.picks.filter(p => p.good === false);
-  const [checks, setChecks] = useState<boolean[]>(() => EXP_CHECKS.map(() => false));
   const [tips, setTips] = useState<string[] | null>(null);
-  const nChecked = checks.filter(Boolean).length;
   const overBudget = pick.budget > 0 && monthly > pick.budget;
   const [sent, setSent] = useState<Sent>({ st: "idle" });
   const saved = useRef(false);
@@ -154,24 +157,18 @@ export function ReportStep({ state, pick, monthly, home, runId, catHref, onResta
         </section>
       )}
 
+      {/* 原本最後的「收養之前，問問自己」併進這裡（渝茜 2026-11-18） */}
+      <HomeReadiness sample={home.sample} fundShort={!pick.fund || !!X.flags.fundUsed}
+        input={{ home, allergy, budget: pick.budget, monthly, catName: X.name, zoomies: X.picks.some(p => p.node === "day30") }} />
+
       <section className={s.card} aria-labelledby="tips-title" aria-live="polite">
         <h2 id="tips-title">給你的建議</h2>
-        <ul className={s.log}>{fullAdvice(X, pick, home).map((t, i) => <li key={i}>{t}</li>)}</ul>
+        <ul className={s.log}>{fullAdvice(X).map((t, i) => <li key={i}>{t}</li>)}</ul>
         <h3>依你的家補充</h3>
         {tips ? <ul className={s.log}>{tips.map((t, i) => <li key={i}>{t}</li>)}</ul> : <p className={s.lead}>正在整理建議…</p>}
       </section>
 
-      <section ref={endRef} className={s.card} aria-labelledby="checks-title">
-        <h2 id="checks-title">收養之前，問問自己</h2>
-        <div className={s.list}>
-          {EXP_CHECKS.map((t, i) => (
-            <label key={t} className={s.check}>
-              <input type="checkbox" checked={checks[i]} onChange={e => setChecks(v => v.map((x, j) => (j === i ? e.target.checked : x)))} />
-              {t}
-            </label>
-          ))}
-        </div>
-        <p className={s.lead} aria-live="polite">{checksVerdict(nChecked)}</p>
+      <section ref={endRef} className={s.card} aria-label="接下來">
         <p className={s.disclaimer}>{HEALTH_NOTE}{DISCLAIMER}</p>
         {sent.st === "error" && <p className={s.missing} role="status">試養報告沒有存成功，不影響這份報告；之後可以再玩一次。</p>}
         <div className={`${r.actions} ${r.actionsMain}`} aria-live="polite">

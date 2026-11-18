@@ -11,7 +11,7 @@ describe("normalizeHome（喵戶 home → 玩家背景）", () => {
 
   it("完整資料：代碼轉成中文，選「其他」時用補充文字", () => {
     const h = normalizeHome({ dwelling: "apartment", living: "own", family: ["小孩", "其他"], familyOther: "外婆", pets: ["狗"], petsOther: "" });
-    expect(h).toEqual({ dwelling: "公寓", living: "自有", family: ["小孩", "外婆"], pets: ["狗"], sample: false });
+    expect(h).toEqual({ dwelling: "公寓", living: "自有", family: ["小孩", "外婆"], pets: ["狗"], landlord: null, experience: null, sample: false });
   });
 
   it("缺欄位：住家型態、住家狀況、同住的人、現有寵物各自補範例值", () => {
@@ -59,5 +59,12 @@ describe("normalizeHome（喵戶 home → 玩家背景）", () => {
   it("homeSummary：一行文字給畫面和 AI 用", () => {
     expect(homeSummary({ dwelling: "公寓", living: "租屋", family: [], pets: [], sample: false })).toBe("公寓・租屋・一個人住・沒有其他寵物");
     expect(homeSummary({ dwelling: "透天", living: "自有", family: ["小孩"], pets: ["狗"], sample: false })).toBe("透天・自有・和小孩同住・家裡有狗");
+  });
+
+  it("租屋時讀房東同不同意、養貓經驗（試養報告「依你家的情況」）；不是租屋不讀房東", () => {
+    const h = normalizeHome({ dwelling: "building", living: "rent", landlord: "asking", experience: "some", family: [], pets: [] });
+    expect(h.landlord).toBe("還在問");
+    expect(h.experience).toBe("養過，不到 3 年");
+    expect(normalizeHome({ dwelling: "building", living: "own", landlord: "yes", family: [], pets: [] }).landlord).toBeNull();
   });
 });
