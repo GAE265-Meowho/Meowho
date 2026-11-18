@@ -150,6 +150,7 @@ ole === "admin" 判斷管理員，而現有 admin 會升為 system_admin；舊�
 | 2026-10-28 | Tina × Cursor | MeowHQ 階段 0：`src/lib/hq/types.ts` 與測試（8 種處置含 `unban`）、0002 資料表草案 | #18 |
 | 2026-10-29 | Tina × Cursor | MeowHQ 階段 1 db：`0002_meow_hq.sql`、`supabase/tests/`（SQL 測試與本機執行器） | #19 |
 | 2026-11-04 | Tina × Claude Code | MeowHQ 新增「貓戶管理」模組：依類別查看貓戶、貓咪卡片；0020 授權現有管理員 | #179 |
+| 2026-11-18 | Tina × Claude Code | 前導影片 v3 修訂：小傑改正常上下班（設定、鏡 4、鏡 19）、鏡 1 縮為 0:00–0:06（鏡 2 0:06–0:16、鏡 3 0:16–0:30）；`docs/video` 原稿的角色／定景表改由頁面資料產生，補小橘左耳缺口、小傑與情侶 prompt、套房鏡頭清單 | #495（#497） |
 | 2026-11-18 | Tina × Claude Code | 前導影片每段 (P) 生成紀錄：`meow_trailer_gen_logs`（0038）、`GenLog.tsx`、`src/lib/hq/videos/gen-log.ts`；補回 PR #492 合併時漏掉的 #493 產生影片 tab | #494 |
 | 2026-11-18 | Tina × Claude Code | 影片頁分 tab：「前導影片：分鏡」「前導影片：產生影片」（`?tab=trailer-clips`）；27 格圖生影片 prompt（動作、運鏡、起始畫面檔名、參考圖）、共用負面 prompt、成片／建議生成長度（`src/lib/hq/videos/clips.ts`） | #494（#493 原在 #492，合併時漏掉，改由 #494 帶入） |
 | 2026-11-18 | Tina × Claude Code | 前導影片：每格 AI 分鏡註明要掛的定角／定景（`FRAME_REFS`），完整 prompt 開頭寫「Image 1 = 檔名」；參考圖固定檔名下載（`<id>.webp`） | #491 |

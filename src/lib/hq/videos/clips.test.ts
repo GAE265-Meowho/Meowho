@@ -21,8 +21,9 @@ describe("前導影片：產生影片", () => {
 
   it("鏡頭長度由分鏡表時間算出，多格平分；生成長度取 5、10 或 15 秒", () => {
     const s1 = shots[0];
-    expect(shotSeconds(s1)).toBe(10);
-    expect(clipLength(s1)).toEqual({ cut: 10, generate: 10 });
+    expect(shotSeconds(s1)).toBe(6); // 0:00–0:06（#497）
+    expect(clipLength(s1)).toEqual({ cut: 6, generate: 10 });
+    expect(clipLength(shots[2])).toEqual({ cut: 14, generate: 15 }); // 鏡 3 0:16–0:30
     const s7 = shots[6]; // 1:05–1:15，兩格
     expect(clipLength(s7)).toEqual({ cut: 5, generate: 5 });
     const s13 = shots[12]; // 2:15–2:22

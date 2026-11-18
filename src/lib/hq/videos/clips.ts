@@ -9,7 +9,7 @@ export type ClipMotion = { action: string; camera: string };
 
 /** 每格 AI 分鏡的動作與運鏡（英文，直接貼進圖生影片工具） */
 export const CLIP_MOTION: Record<string, ClipMotion> = {
-  s01: { action: "Raindrops fall steadily on the closed cardboard box and splash on the wet tiles; the street light flickers slightly.", camera: "Slow dolly-in toward the box." },
+  s01: { action: "Raindrops fall steadily on the closed cardboard box and splash on the wet tiles; the street light flickers slightly. Only the sound of rain.", camera: "Slow dolly-in from far away toward the box." },
   s02: { action: "The cat's amber eyes blink slowly through the gap of the box, ears twitching at the sound of the rain.", camera: "Very slow push-in, focus locked on the eyes." },
   s03: { action: "The cat curls up tighter in the corner, ears flatten, then it slowly looks up toward the camera.", camera: "Static top-down shot with subtle handheld breathing." },
   s04: { action: "Xiaojie opens the door, pauses in the dark doorway, drops his shoulders and steps in; rain runs down the window behind him.", camera: "Static shot from inside the room, eye level." },
