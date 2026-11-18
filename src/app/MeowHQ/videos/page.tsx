@@ -1,6 +1,6 @@
 "use client";
 // 影片（#489，Tina 2026-11-18）：成果影片的腳本與素材工作區。所有登入的管理員都看得到，不需授權模組。
-// 分頁以 ?tab= 切換：前導影片的分鏡（預設）與產生影片（#493）；之後的系統操作、架構部署影片加在 VIDEO_TABS。
+// 分頁以 ?tab= 切換：前導影片的分鏡（預設）與影片（#493、#501：完成的影片與生成素材）；之後的系統操作、架構部署影片加在 VIDEO_TABS。
 import { Suspense } from "react";
 import { HqPageHeader } from "@/components/hq/HqPageHeader";
 import { HqSkeleton } from "@/components/hq/HqStates";

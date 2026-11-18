@@ -103,6 +103,7 @@ MeowHQ（`/MeowHQ`，取代舊隱藏後台）開發中：階段 0（#18）、db�
 - **改母體的順序**：改 `stepB`／`stepC` → 在 Meow 用 Blender 5.2 跑 B、C（PowerShell 指令前要加 `&`）→ 複製 `base_clips.glb` 到 repo `public/hq-cat-models/base/` → 跑 `eat_drink.mjs` → 成貓再上傳 Storage。直接從 Blender 匯出會蓋掉 eat／drink 的修改；只換單一動作用 `scripts/clips/splice_clip.py`。
 
 ## 決策
+- 2026-11-18｜#501：完成的影片存 Azure Blob 私有容器（決策 006），路徑 `videos/trailer/<格>/<UTC 時間戳>.<副檔名>`，格＝full、四段代號、AI 片段 id；不建資料表，列出資料夾得知版本。`/api/hq/trailer-videos` GET 列版本並簽 1 小時播放／下載網址、POST 檢查（MP4／WebM／MOV、1 GB 內）後簽 15 分鐘上傳網址，瀏覽器直接 PUT。權限繼承影片頁（`meow_is_admin`）。不開放刪除（舊版保留）。**課程 Azure 額度 11/29 到期，最終版要另外備份。**
 - 2026-11-18｜#498：腳本 .md 下載內容以 `docs/video/前導影片分鏡腳本_v3.md` 為唯一來源，建置時包進前端；改原稿後跑 `npm run video:md`（predev／prebuild 也會跑）。
 - 2026-11-18｜#494：每段標題旁 (P) 開生成紀錄（原生 `<dialog>`）。紀錄不能改，要改就「再用一次」帶入舊內容新增一筆，保留每次嘗試的歷史。權限依 Tina 指示繼承頁面，不區分本人。
 - 2026-11-18｜#493：產生影片 tab 只列 AI 分鏡（27 段）；系統錄影、字卡不用生成。成片長度由分鏡表時間算（同一顆鏡頭多格平分），建議生成長度取 5／10／15 秒（Kling 3.0 單段最長 15 秒）。起始畫面固定檔名 `<格>.webp`。Canva 的影片生成需要付費方案，目前不接。
@@ -151,6 +152,8 @@ ole === "admin" 判斷管理員，而現有 admin 會升為 system_admin；舊�
 | 2026-10-28 | Tina × Cursor | MeowHQ 階段 0：`src/lib/hq/types.ts` 與測試（8 種處置含 `unban`）、0002 資料表草案 | #18 |
 | 2026-10-29 | Tina × Cursor | MeowHQ 階段 1 db：`0002_meow_hq.sql`、`supabase/tests/`（SQL 測試與本機執行器） | #19 |
 | 2026-11-04 | Tina × Claude Code | MeowHQ 新增「貓戶管理」模組：依類別查看貓戶、貓咪卡片；0020 授權現有管理員 | #179 |
+| 2026-11-18 | Tina × Claude Code | 阿芳家定景加入中途貓短耳貓、灰寶（背景角色）；鏡 7、11、18 對應修改；鏡 2 prompt 指定上蓋兩片之間的縫、禁止側邊開口 | #502 |
+| 2026-11-18 | Tina × Claude Code | 「前導影片：產生影片」改名「前導影片：影片」：完整影片、段落影片、27 段片段的上傳／播放／下載／版本，存 Azure Blob（`/api/hq/trailer-videos`、`TrailerVideos.tsx`、`trailer-video.ts`）；生成素材收進摺疊區 | #501 |
 | 2026-11-18 | Tina × Claude Code | 同一鏡多格的標籤改「7-1 拍小橘吃飯」這類寫法（鏡 7、12、14、16、26），卡片標題與圖片說明一起改；`docs/video` 原稿同步 | #499 |
 | 2026-11-18 | Tina × Claude Code | 小橘移除左耳缺口設定；影片頁「下載最新腳本（.md）」：`scripts/gen-trailer-md.mjs`（predev／prebuild）把 `docs/video` 原稿包成 `trailer-md.generated.ts`，`trailer-md.test.ts` 擋未同步 | #495（#498） |
 | 2026-11-18 | Tina × Claude Code | 前導影片 v3 修訂：小傑改正常上下班（設定、鏡 4、鏡 19）、鏡 1 縮為 0:00–0:06（鏡 2 0:06–0:16、鏡 3 0:16–0:30）；`docs/video` 原稿的角色／定景表改由頁面資料產生，補小橘左耳缺口、小傑與情侶 prompt、套房鏡頭清單 | #495（#497） |
