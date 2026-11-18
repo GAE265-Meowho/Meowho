@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  CHARACTERS, NARRATION, SCENES, SHOT_SECTIONS, allSlotIds, fitWithin, frameCounts, frameStoragePath,
+  CHARACTERS, FRAME_REFS, NARRATION, SCENES, SHOT_SECTIONS, allSlotIds, refFileName, usedInShots, fitWithin, frameCounts, frameStoragePath,
   fullPrompt, latestBySlot, uploadProgress, validateFrameFile,
 } from "./trailer";
 
@@ -23,9 +23,23 @@ describe("前導影片 v3 分鏡資料", () => {
     expect(ids).toHaveLength(CHARACTERS.length + SCENES.length + 35);
   });
 
-  it("定角、定景標的鏡頭都存在", () => {
-    const nos = new Set(shots.map(s => s.no));
-    for (const r of [...CHARACTERS, ...SCENES]) for (const n of r.usedIn) expect(nos.has(n)).toBe(true);
+  it("每一格 AI 分鏡都有參考圖，最多 4 張，而且都是存在的定角／定景；非 AI 的格子沒有參考圖", () => {
+    const refIds = new Set([...CHARACTERS, ...SCENES].map(r => r.id));
+    for (const f of shots.flatMap(s => s.frames)) {
+      if (f.make === "ai") {
+        expect(f.refs.length, f.id).toBeGreaterThan(0);
+        expect(f.refs.length, f.id).toBeLessThanOrEqual(4);
+        for (const r of f.refs) expect(refIds.has(r), `${f.id} → ${r}`).toBe(true);
+      } else expect(f.refs).toEqual([]);
+    }
+    const aiIds = new Set(shots.flatMap(s => s.frames).filter(f => f.make === "ai").map(f => f.id));
+    for (const k of Object.keys(FRAME_REFS)) expect(aiIds.has(k), k).toBe(true);
+  });
+
+  it("每張定角／定景至少用在一顆鏡頭；用在哪些鏡頭由 refs 算出", () => {
+    for (const r of [...CHARACTERS, ...SCENES]) expect(usedInShots(r.id).length, r.id).toBeGreaterThan(0);
+    expect(usedInShots("char-couple")).toEqual([11, 14]);
+    expect(usedInShots("scene-couple-home")).toEqual([12, 14]);
   });
 
   it("旁白只有小橘與小傑兩個聲線", () => {
@@ -37,6 +51,12 @@ describe("前導影片 v3 分鏡資料", () => {
     const p = fullPrompt(s1.frames[0], s1.line);
     expect(p).toContain("35mm film look");
     expect(p.endsWith("low camera angle at cat eye level")).toBe(true);
+    const s2 = shots[1];
+    const p2 = fullPrompt(s2.frames[0], s2.line);
+    expect(p2.startsWith("Reference images (attach in this order):\nImage 1 = char-xiaoju.webp: Xiaoju")).toBe(true);
+    expect(p2).toContain("Image 2 = scene-afang-home.webp: Afang's ground-floor apartment");
+    expect(p2).toContain(s2.frames[0].prompt);
+    expect(refFileName("scene-studio")).toBe("scene-studio.webp");
     const s9 = shots[8];
     expect(fullPrompt(s9.frames[0], s9.line)).toBe(s9.frames[0].prompt);
   });
