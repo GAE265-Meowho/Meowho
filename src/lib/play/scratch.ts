@@ -9,9 +9,18 @@ const SCRATCH_CHANCE = 0.5;
 /** 用品名稱是不是貓抓板：遊戲裡叫「貓抓板」，後台品名是「耐抓劍麻貓抓板」 */
 export const isScratcher = (name: string) => name.includes("貓抓板");
 
-/** 無聊時做什麼：scratch 去磨爪、bed 跳上床、null 照舊閒晃 */
-export function boredChoice(rand: () => number, has: { scratcher: boolean; bed: boolean }): "scratch" | "bed" | null {
-  if (has.scratcher && rand() < SCRATCH_CHANCE) return "scratch";
+/**
+ * 擺了貓抓板後，掃描房間的貓第一次「無聊」提早到閒著幾秒（#456）。
+ * 原本要閒著 30～60 秒（cat.js AUTO_MIN／AUTO_MAX）才找事做、又只有一半去磨爪，實機玩一個場景幾乎看不到。
+ */
+export const FIRST_SCRATCH_S = 8;
+
+/**
+ * 無聊時做什麼：scratch 去磨爪、bed 跳上床、null 照舊閒晃。
+ * scratched＝false（擺了貓抓板、這次還沒磨過）時一定先去磨爪（#456）；沒傳照舊一半機率。
+ */
+export function boredChoice(rand: () => number, has: { scratcher: boolean; bed: boolean; scratched?: boolean }): "scratch" | "bed" | null {
+  if (has.scratcher && (has.scratched === false || rand() < SCRATCH_CHANCE)) return "scratch";
   return has.bed ? "bed" : null;
 }
 
