@@ -5,9 +5,10 @@
 // 幾張示範圖自動輪播（GUIDE_STEP_MS 換一張，也可以點下面的圓點），每張是簡單的插圖＋會動的手，示範要按住、畫圈、拖曳還是點；
 // 下面一句說明。「下次不再顯示」勾了就記在這台裝置，之後直接開始。prefers-reduced-motion 時手不動、不自動輪播。
 // MiniGuideGate：示範看完才顯示 children（小遊戲本體）；modal＝自己包一層 Mini3DModal（原版 2D 小遊戲、3D 逗貓用）。
-import { useEffect, useId, useState, type ReactNode } from "react";
+import { Fragment, useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import CatButton from "@/components/ui/CatButton";
-import { BRUSH_PRELOAD, GUIDE_STEP_MS, GUIDE_VIDEOS, MINI_GUIDES, guideSkipped, guideText, setGuideSkipped, type GuideId, type GuideProp, type GuideStep } from "@/lib/play/mini-guide";
+import { BRUSH_PRELOAD, GUIDE_STEP_MS, GUIDE_VIDEOS, MINI_GUIDES, cueAt, guidePart, guideSkipped, guideText, setGuideSkipped, toyAt, type GuideCue, type GuideId, type GuideProp, type GuideStep, type MiniGuide } from "@/lib/play/mini-guide";
+import { useTouch } from "./useTouch";
 import { Mini3DModal } from "./mini3d/Mini3DModal";
 import g from "./guide.module.css";
 
@@ -129,10 +130,10 @@ function GuideCard({ id, catName, onStart }: { id: GuideId; catName: string; onS
     return (
       <div className={g.card} role="group" aria-labelledby={titleId}>
         <p className={g.kicker} id={titleId}>{guide.title}怎麼玩</p>
-        {/* 錄影在上，下面一排三個短步驟（2026-11-14 渝茜） */}
-        <VideoDemo src={guide.video} label={`${guide.title}的遊戲畫面示範`} />
-        <ol className={g.list}>
-          {guide.steps.map((st, k) => <li key={k}><span className={g.num}>{k + 1}</span>{guideText(st.text, catName)}</li>)}
+        {/* 2026-11-18 渝茜：說明疊在錄影上、跟著影片換步驟，下面不再列文字（步驟只留給螢幕報讀） */}
+        <VideoDemo src={guide.video} label={`${guide.title}的遊戲畫面示範`} guide={guide} catName={catName} />
+        <ol className={g.srOnly}>
+          {guide.steps.map((st, k) => <li key={k}>{guideText(st.text, catName)}</li>)}
         </ol>
         {foot}
       </div>
@@ -167,10 +168,107 @@ export function warmGuideVideos() {
   }
 }
 
-/** 真正遊戲畫面的錄影：靜音循環自動播放；減少動態時不自動播，改給控制列 */
-function VideoDemo({ src, label }: { src: string; label: string }) {
+const NO_CUES: GuideCue[] = [];
+
+/** 說明文字：[動作] 黃色標籤、{按鍵} 鍵帽、換行 */
+function CueText({ text, catName }: { text: string; catName: string }) {
+  return <>{guidePart(guideText(text, catName)).map((p, i) => p.k === "br" ? <br key={i} />
+    : p.k === "verb" ? <span key={i} className={g.verb}>{p.s}</span>
+      : p.k === "key" ? <kbd key={i} className={g.key}>{p.s}</kbd> : <Fragment key={i}>{p.s}</Fragment>)}</>;
+}
+
+/**
+ * 真正遊戲畫面的錄影＋疊在上面的說明（渝茜 2026-11-18）：
+ *   電腦：深色對話框指著要操作的地方（目標在下半部時框放上面），按鍵畫成鍵帽；手機：畫面小，改成影片上方或下方的大字幕＋橘色圓圈標位置。
+ *   有 hold 的步驟播到那裡先停格，讓字看得完；逗貓另外畫老鼠與游標（錄影裡看不到）。
+ * 減少動態時不自動播、給控制列；字照樣跟著影片時間換。
+ */
+function VideoDemo({ src, label, guide, catName }: { src: string; label: string; guide: MiniGuide; catName: string }) {
   const [still] = useState(() => typeof window !== "undefined" && Boolean(window.matchMedia?.("(prefers-reduced-motion: reduce)").matches));
-  return <video className={g.video} src={warmed.get(src) ?? src} aria-label={label} muted loop playsInline autoPlay={!still} controls={still} preload="auto" />;
+  const touch = useTouch();
+  const video = useRef<HTMLVideoElement>(null);
+  const wrap = useRef<HTMLDivElement>(null);
+  const call = useRef<HTMLDivElement>(null);
+  const toy = useRef<HTMLDivElement>(null);
+  const [i, setI] = useState(0);
+  const cues = guide.cues ?? NO_CUES;
+  const cue: GuideCue | undefined = cues[i];
+
+  // 跟著影片時間換說明；遇到 hold 就停格一下（每輪播放各停一次）
+  useEffect(() => {
+    const v = video.current;
+    if (!v || !cues.length) return;
+    v.playbackRate = v.defaultPlaybackRate = guide.rate ?? 1;
+    const held = new Set<number>();
+    let prev = 0, raf = 0, timer: ReturnType<typeof setTimeout> | undefined;
+    const tick = () => {
+      const t = v.currentTime;
+      if (t < prev - 0.5) held.clear();
+      prev = t;
+      const k = cueAt(cues, t), c = cues[k];
+      setI(k);
+      if (c.hold && !still && !held.has(k) && t >= c.hold[0] && !v.paused) {
+        held.add(k); v.pause();
+        timer = setTimeout(() => { v.play().catch(() => { /* 使用者自己暫停了 */ }); }, c.hold[1] * 1000);
+      }
+      if (guide.toy && toy.current) {
+        const [x, y] = toyAt(guide.toy, t);
+        toy.current.style.left = `${x}%`; toy.current.style.top = `${y}%`; toy.current.style.opacity = y > 100 ? "0" : "1";
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => { cancelAnimationFrame(raf); if (timer) clearTimeout(timer); };
+  }, [cues, guide.rate, guide.toy, still]);
+
+  // 電腦版的對話框：放在目標下方（目標在下半部就放上方），不超出影片左右
+  useLayoutEffect(() => {
+    const el = call.current, box = wrap.current;
+    if (!el || !box || !cue) return;
+    const W = box.clientWidth, H = box.clientHeight, w = el.offsetWidth, h = el.offsetHeight;
+    if (cue.x === undefined || cue.y === undefined) { el.style.left = `${(W - w) / 2}px`; el.style.top = "12px"; el.dataset.dir = "free"; return; }
+    const tx = (cue.x / 100) * W, ty = (cue.y / 100) * H, up = cue.y > 58;
+    const left = Math.max(8, Math.min(W - w - 8, tx - w / 2));
+    el.style.left = `${left}px`;
+    el.style.top = `${up ? ty - 34 - h : ty + 34}px`;
+    el.style.setProperty("--ax", `${Math.max(14, Math.min(w - 14, tx - left))}px`);
+    el.dataset.dir = up ? "up" : "down";
+  }, [cue, touch]);
+
+  const text = cue ? (touch ? cue.m ?? cue.d : cue.d) : "";
+  const ring = cue && cue.x !== undefined && cue.tone !== "good";
+  return (
+    <div className={g.vwrap} ref={wrap} data-touch={touch}>
+      <video ref={video} className={g.video} src={warmed.get(src) ?? src} aria-label={label} muted loop playsInline autoPlay={!still} controls={still} preload="auto" />
+      {guide.toy && (
+        <div ref={toy} className={g.toyMouse} aria-hidden="true">
+          {/* eslint-disable-next-line @next/next/no-img-element -- 128px 的小圖，疊在影片上跟著動 */}
+          <img src="/play/guide/toy-mouse.webp" alt="" width={64} height={40} />
+          {!touch && <svg className={g.toyCursor} viewBox="0 0 17 23" width="20" height="27"><path d="M1 1v17.5l4.4-4.2 2.9 6.8 3-1.3-2.9-6.6H15z" fill="#fff" stroke="#111" strokeWidth="1.4" strokeLinejoin="round" /></svg>}
+        </div>
+      )}
+      {cue && (
+        <div aria-live="polite">
+          {ring && <span className={g.target} data-tone={cue.tone} style={{ left: `${cue.x}%`, top: `${cue.y}%` }} aria-hidden="true" />}
+          {cue.w && !touch && <span className={g.warnTag}>⚠ {cue.w}</span>}
+          {cue.tip && !touch && <span className={g.tipTag}>{cue.tip}</span>}
+          {touch ? (
+            <div className={g.cap} data-tone={cue.tone} data-at={(cue.y ?? 0) > 58 ? "top" : "bottom"}>
+              {cue.step && <b className={g.stepHead}>{cue.step}</b>}
+              <CueText text={text} catName={catName} />
+              {cue.w && <span className={g.capWarn}>⚠ {cue.w}</span>}
+              {cue.tip && <span className={g.capTip}>{cue.tip}</span>}
+            </div>
+          ) : (
+            <div ref={call} className={g.call} data-tone={cue.tone}>
+              {cue.step && <b className={g.stepHead}>{cue.step}</b>}
+              <CueText text={text} catName={catName} />
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
 }
 
 /** 示範看完才顯示小遊戲；這台裝置勾過「下次不再顯示」就直接顯示 */

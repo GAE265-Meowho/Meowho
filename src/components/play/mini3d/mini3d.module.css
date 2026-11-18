@@ -41,6 +41,11 @@
 .meters { display: flex; flex-wrap: wrap; gap: .25rem 1rem; }
 .meters label { display: flex; align-items: center; gap: .35rem; }
 .meters progress { width: 6rem; }
+/* 要盯著看的那一條（摸貓的煩躁、刷牙的耐心，渝茜 2026-11-18）：一直框起來；快到底時框變紅、閃一下 */
+.watch { padding: .15rem .6rem; border: 2.5px solid var(--orange, #e8913a); border-radius: 999px; font-weight: 700; }
+.watch[data-alert="true"] { border-color: #c4453a; background: var(--pink-soft, #fde7e4); animation: watchPulse 1s ease-in-out infinite; }
+@keyframes watchPulse { 50% { box-shadow: 0 0 0 5px rgba(196, 69, 58, .25); } }
+@media (prefers-reduced-motion: reduce) { .watch[data-alert="true"] { animation: none; } }
 .status { min-height: 1.6em; margin: .35rem 0; display: flex; align-items: center; gap: .25rem; }
 .petControls { display: flex; align-items: center; justify-content: space-between; gap: .5rem; margin-block: .5rem; }
 .petControls button { flex-shrink: 0; }

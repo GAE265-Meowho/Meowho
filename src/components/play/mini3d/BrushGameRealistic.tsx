@@ -346,7 +346,8 @@ export function BrushGameRealistic({
     {failed ? <p role="alert">無法載入刷牙影像，請關閉後再試。</p> : !ready && <p role="status">刷牙影像載入中…</p>}
     <div className={`${styles.meters} ${photo.meters}`} data-feedback={feedback}>
       <label>進度 <progress max={100} value={score} /> {score}%</label>
-      <label>耐心 <progress max={config.patience} value={remaining} /></label>
+      {/* 耐心一直框起來，快沒了或牠在抗拒時變紅：要放開讓牠休息（渝茜 2026-11-18，和摸貓的煩躁同一套） */}
+      <label className={styles.watch} data-alert={feedback === "warning" || feedback === "resisting" || remaining / config.patience < 0.35}>耐心 <progress max={config.patience} value={remaining} /></label>
     </div>
     {config.teeth > 0 && !state.result && <p className={styles.hint}>
       保持翻唇，沿著特寫中的近似牙齦邊緣輕輕來回刷。刷毛朝向牙齦，與牙齒長軸約成 45°（方向示意）。
