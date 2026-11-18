@@ -4,6 +4,7 @@
 > 最後更新：2026-11-16｜渝茜 × Claude Code（虛擬飼養實機回饋第二輪）
 
 ## 目前狀態
+- **居家安全報告 V3（#273）**：`codex/home-safety-accordion` 接續 #475。預設收合；展開連結裝載單一案例。新版 Worker 的統計摘要與改善項目清單同源；上線後須驗證 Owner／Keeper 與 PDF。
 - **居家安全報告資訊圖 V2（#273，Jerry0808 × Codex）**：`codex/home-safety-infographic` 接續 #474。下一步在有測試 Owner 權限的 Preview 核對私人報告及 PDF 下載。本機以既有真實報告重播，沒有重跑 AI 或變更發布產物。
 - **#456 渝茜那一份（渝茜 × Claude Code，分支 `fix/456-yuchien-fixes`，一個 PR）**：已接 `sfx_brush`／`scratch`／`dig`／`accident`、設定裡音樂與音效分開調音量、鏟砂聲加大、高處台詞不寫死椅子、按鈕不可選取、結束今天跳沒做任務的疾病提示。圖示列改 emoji（`CareIcon.tsx`，餵貓是🥣、剪指甲是🐾，要實機看大小）。摸貓方向鍵已換搖桿、操作說明分手機／電腦（`lib/play/control-text.ts`）、示範影片提早預載已做，待實機驗收；刷牙說明還沒搬進 CONTROL_TEXT。細節見 `docs/daily/2026-11-17/1339-渝茜-456.md`。
 - **外出籠小遊戲移除（#354，渝茜 × Claude Code，2026-11-16，分支 `feat/354-remove-carrier-game`）**：刪掉「讓貓進外出籠」小遊戲、示範影片與第 10 年的對應步驟（第 10 年直接去看醫生，不再 `stress +5`）；第 1 天外出籠劇情、3D 外出籠用品不動。之後想加回來：還原這張 PR。細節見 `docs/modules/readiness.md` 最後一節。
