@@ -38,7 +38,7 @@ async function toWebp(file: File): Promise<Blob> {
   throw new Error("too_large");
 }
 
-function useTrailerUploads() {
+export function useTrailerUploads() {
   const { actor, preview } = useHqActor();
   const [uploads, setUploads] = useState<Uploads>({});
   const [loaded, setLoaded] = useState(false);
@@ -57,6 +57,15 @@ function useTrailerUploads() {
     return u && sb ? sb.storage.from(TRAILER_BUCKET).getPublicUrl(`${TRAILER_DIR}/${u.name}`).data.publicUrl : null;
   }, [uploads]);
   return { uploads, setUploads, loaded, canUpload: canList, urlOf };
+}
+
+/** 複製到剪貼簿並提示 */
+export function useCopy() {
+  const toast = useHqToast();
+  return useCallback(async (text: string) => {
+    try { await navigator.clipboard.writeText(text); toast.show({ message: "已複製" }); }
+    catch { toast.show({ message: "瀏覽器不允許複製，請手動選取" }); }
+  }, [toast]);
 }
 
 export function TrailerBoard() {
@@ -82,10 +91,7 @@ export function TrailerBoard() {
     return null;
   }, [setUploads, toast]);
 
-  const copy = useCallback(async (text: string) => {
-    try { await navigator.clipboard.writeText(text); toast.show({ message: "已複製 prompt" }); }
-    catch { toast.show({ message: "瀏覽器不允許複製，請手動選取" }); }
-  }, [toast]);
+  const copy = useCopy();
 
   const slot = { urlOf, uploads, canUpload, upload, copy };
   const showShot = (s: Shot) => s.frames.some(f => filter === "all" || (filter === "missing" ? !uploads[f.id] : f.make === filter));
@@ -179,7 +185,7 @@ function Progress({ label, done, total }: { label: string; done: number; total: 
   );
 }
 
-type SlotProps = {
+export type SlotProps = {
   urlOf: (id: string) => string | null;
   uploads: Uploads;
   canUpload: boolean;
@@ -223,10 +229,10 @@ function ImageSlot({ id, alt, ratio, urlOf, uploads, canUpload, upload }: SlotPr
   );
 }
 
-function Prompt({ text, copy }: { text: string; copy: (t: string) => void }) {
+export function Prompt({ text, copy, title = "英文 prompt", open }: { text: string; copy: (t: string) => void; title?: string; open?: boolean }) {
   return (
-    <details className="hq-video-prompt">
-      <summary>英文 prompt</summary>
+    <details className="hq-video-prompt" open={open}>
+      <summary>{title}</summary>
       <p lang="en">{text}</p>
       <button type="button" className="hq-btn ghost small" onClick={() => copy(text)}>複製 prompt</button>
     </details>
@@ -250,7 +256,7 @@ function RefCard({ r, wide, ...slot }: SlotProps & { r: RefSlot; wide?: boolean 
 }
 
 /** 用固定檔名下載參考圖（Supabase 公開網址跨網域，a[download] 不會生效，所以先抓成 blob） */
-function DownloadRef({ id, url }: { id: string; url: string | null }) {
+export function DownloadRef({ id, url, fileName = refFileName(id) }: { id: string; url: string | null; fileName?: string }) {
   const [busy, setBusy] = useState(false);
   if (!url) return <span className="hq-sub">還沒上傳</span>;
   async function save() {
@@ -259,7 +265,7 @@ function DownloadRef({ id, url }: { id: string; url: string | null }) {
       const blob = await (await fetch(url!)).blob();
       const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
-      a.download = refFileName(id);
+      a.download = fileName;
       a.click();
       setTimeout(() => URL.revokeObjectURL(a.href), 1000);
     } finally { setBusy(false); }
@@ -268,7 +274,7 @@ function DownloadRef({ id, url }: { id: string; url: string | null }) {
 }
 
 /** 這一格要掛的參考圖：縮圖＋名稱＋固定檔名，順序和 prompt 的 Image 1、2… 一致 */
-function RefChips({ refs, urlOf }: { refs: string[]; urlOf: SlotProps["urlOf"] }) {
+export function RefChips({ refs, urlOf }: { refs: string[]; urlOf: SlotProps["urlOf"] }) {
   if (!refs.length) return null;
   return (
     <ol className="hq-video-refchips" aria-label="要掛的參考圖">

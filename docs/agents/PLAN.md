@@ -1,6 +1,6 @@
 # PLAN — 計畫與任務管理
 
-- 前導影片 prompt 註明參考圖檔名（Tina × Claude Code，#491）：分支 `feat/491-trailer-prompt-refs`，審查中。
+- 前導影片 prompt 註明參考圖檔名＋產生影片 tab（Tina × Claude Code，#491、#493）：分支 `feat/491-trailer-prompt-refs`，PR #492，審查中。
 
 - AI 居家安全報告首屏與圖片載入（Jerry0808 × Codex）：分支 `codex/home-safety-report-ux`，審查中。沿用 #273 報告授權；待驗收 Preview 的真實 Owner 登入及 Azure 延遲。
 

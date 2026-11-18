@@ -68,7 +68,10 @@ export function fullPrompt(frame: Frame, line: ShotLine): string {
   return `Reference images (attach in this order):\n${list}\n${keep}\n\n${body}`;
 }
 
-export const VIDEO_TABS = [{ value: "trailer", label: "前導影片" }] as const;
+export const VIDEO_TABS = [
+  { value: "trailer", label: "前導影片：分鏡" },
+  { value: "trailer-clips", label: "前導影片：產生影片" }, // #493
+] as const;
 export type VideoTab = (typeof VIDEO_TABS)[number]["value"];
 
 export const TRAILER_TITLE = "Meowho喵戶 前導影片《小橘的第二個家》v3 交叉敘事";

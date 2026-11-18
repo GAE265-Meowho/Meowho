@@ -15,8 +15,14 @@ export const HQ_PAGE_META_PATHS = {
   ],
   "videos/trailer": [
     "src/app/MeowHQ/videos",
-    "src/components/hq/videos",
-    "src/lib/hq/videos",
+    "src/components/hq/videos/TrailerBoard.tsx",
+    "src/lib/hq/videos/trailer.ts",
+    "src/lib/hq/videos/trailer.test.ts",
+  ],
+  "videos/trailer-clips": [
+    "src/components/hq/videos/ClipsBoard.tsx",
+    "src/lib/hq/videos/clips.ts",
+    "src/lib/hq/videos/clips.test.ts",
   ],
   households: [
     "src/app/MeowHQ/households",
@@ -170,7 +176,7 @@ export function resolvePageMetaKey(pathname: string, search = ""): HqPageMetaKey
 
   if (path === "/MeowHQ") return "home";
   if (path.startsWith("/MeowHQ/flows")) return "flows";
-  if (path.startsWith("/MeowHQ/videos")) return "videos/trailer"; // 之後加分頁（系統操作、架構部署）再依 ?tab= 分 key
+  if (path.startsWith("/MeowHQ/videos")) return tab === "trailer-clips" ? "videos/trailer-clips" : "videos/trailer";
   if (path.startsWith("/MeowHQ/households")) return "households";
   if (path.startsWith("/MeowHQ/reports")) return "reports";
   if (path.startsWith("/MeowHQ/users")) return "users";
