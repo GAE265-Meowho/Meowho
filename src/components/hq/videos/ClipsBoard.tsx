@@ -52,7 +52,8 @@ export function ClipsBoard() {
 function ClipCard({ item, urlOf, copy }: { item: ClipItem; urlOf: SlotProps["urlOf"]; copy: (t: string) => void }) {
   const { shot, frame, cut, generate } = item;
   const url = urlOf(frame.id);
-  const title = `鏡 ${shot.no}${frame.label ? `（${frame.label}）` : ""}`;
+  // 同一鏡多格時標籤自帶編號（例：7-1 拍小橘吃飯，#499）；單格的「穿插」照舊加在鏡號後
+  const title = frame.label && /^\d/.test(frame.label) ? `鏡 ${frame.label}` : `鏡 ${shot.no}${frame.label ? `（${frame.label}）` : ""}`;
   return (
     <article className="hq-video-clip" aria-label={title}>
       <header className="hq-row">
