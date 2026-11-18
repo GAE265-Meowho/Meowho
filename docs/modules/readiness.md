@@ -426,3 +426,7 @@ Worker 選用的 `report.html` 與 `html-assets/` 位於既有 attempt 前綴。
 - 摸貓示範重錄（看得到左下角搖桿）：`play-pet.mjs` 路線改成摸頭 → 停 → 推搖桿；`encode.sh` 的 `encPet` 剪三段。
 - 遊戲內文字：摸貓提示「停手也是照顧…」改「先停一下，看下面的「煩躁」：太高牠會跑走。」；摸貓的煩躁、刷牙的耐心一直框起來（`mini3d.module.css` 的 `.watch`），快到底時變紅閃一下；換水接新水時加「記得要用煮沸過的水或過濾水喔。」。
 - 重錄任何示範影片後，`cues` 的秒數、位置要重新對（做法見 `docs/play-tasks/guide-videos.md`）。
+
+### WelfareLens 私有結構化報告（#273）
+
+`MEOWHOME_PRIVATE_REPORT_VIEW=true` 時，現有 Owner HTML 路由優先讀取當前 attempt 的可選 `report-view.json`。伺服器直接用已驗證資料產生手風琴；首屏無案例圖片標記。視圖缺失、版本不符、損壞或關閉時沿用歷史 HTML 與摘要回退。完整版 HTML 與 PDF 仍走原本授權路徑。Keeper 分享範圍、共用 `meow_env_reports.items` 和 RPC 保持原樣。

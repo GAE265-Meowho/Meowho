@@ -4,6 +4,8 @@ import { getServerSupabase } from "@/lib/supabase/server";
 import { getMediaStore } from "@/lib/storage/server";
 import { parseReportPresentation, renderReportPresentation, reportImageName } from "./report-presentation";
 import { isReportUuid, reportAttemptPrefix, validReportPdfPath } from "./report-access";
+import { reportViewAssetNames } from "./report-view-contract";
+import { readReportView, renderPrivateReportView } from "./private-report-view";
 
 const headers = {
   "Cache-Control": "private, no-store",
@@ -13,6 +15,7 @@ const headers = {
   "Content-Security-Policy": "default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; sandbox allow-same-origin allow-downloads",
 };
 const referenceCache = new Map<string, { expires: number; assets: Promise<Set<string>> }>();
+const viewCache = new Map<string, { expires: number; assets: Set<string> }>();
 const referenceLifetime = 30_000;
 const referenceLimit = 32;
 
@@ -67,6 +70,18 @@ export async function readPrivateReport({ id, reportId }: {
     const store = getMediaStore();
     if (!store) return empty(503);
     if (!asset) {
+      if (!full && process.env.MEOWHOME_PRIVATE_REPORT_VIEW === "true") {
+        const view = await readReportView(store, prefix, reportId, report.attempt);
+        if (view) {
+          if (viewCache.size >= referenceLimit) {
+            const oldest = viewCache.keys().next().value;
+            if (oldest) viewCache.delete(oldest);
+          }
+          viewCache.set(prefix, { expires: Date.now() + referenceLifetime, assets: reportViewAssetNames(view) });
+          if (availabilityOnly) return empty(204);
+          return new Response(renderPrivateReportView(id, view, itemIndex), { headers: { ...headers, "Content-Type": "text/html; charset=utf-8" } });
+        }
+      }
       const html = await readReportHtml(store, prefix);
       if (html === null) return availabilityOnly ? empty(404) : new Response(null, {
         status: 303, headers: { ...headers, Location: "/homes/" + id + "/safety?view=summary&report=" + reportId },
@@ -87,7 +102,14 @@ export async function readPrivateReport({ id, reportId }: {
       }
       return new Response(renderReportPresentation(page, full, presentation, itemIndex), { headers: { ...headers, "Content-Type": "text/html; charset=utf-8" } });
     }
-    if (!(await referencedImages(store, prefix)).has(asset)) return empty(404);
+    const cached = viewCache.get(prefix);
+    let viewHasAsset = process.env.MEOWHOME_PRIVATE_REPORT_VIEW === "true"
+      && cached !== undefined && cached.expires > Date.now() && cached.assets.has(asset);
+    if (!viewHasAsset && process.env.MEOWHOME_PRIVATE_REPORT_VIEW === "true" && (!cached || cached.expires <= Date.now())) {
+      const view = await readReportView(store, prefix, reportId, report.attempt);
+      viewHasAsset = !!view && reportViewAssetNames(view).has(asset);
+    }
+    if (!viewHasAsset && !(await referencedImages(store, prefix)).has(asset)) return empty(404);
     const image = await store.download(prefix + "html-assets/" + asset);
     if (!image || image.length > 4 * 1024 * 1024
       || createHash("sha256").update(image).digest("hex") !== asset.slice(0, 64)) return empty(404);
