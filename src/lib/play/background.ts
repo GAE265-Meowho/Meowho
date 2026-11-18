@@ -1,6 +1,6 @@
 // 虛擬飼養 DEMO（#237）：玩家背景直接讀喵戶的 home 欄位（HouseholdForm／household-rules.ts），不另外問玩家，也不問作息。
 // 沒登入、沒有喵戶或欄位缺漏時補範例值，整個流程照樣能玩。純函式。
-import { ALONE, DWELLINGS, FAMILY, LIVING, NO_PETS, PETS } from "@/lib/onboarding/household-rules";
+import { ALONE, DWELLINGS, EXPERIENCE, FAMILY, LANDLORD, LIVING, NO_PETS, PETS } from "@/lib/onboarding/household-rules";
 
 export interface PlayerHome {
   /** 住家型態（中文） */
@@ -11,12 +11,16 @@ export interface PlayerHome {
   family: string[];
   /** 現有寵物；空陣列＝沒有 */
   pets: string[];
+  /** 租屋時房東同不同意（中文：同意／還在問／不同意）；不是租屋或沒填是 null（試養報告「依你家的情況」用） */
+  landlord?: string | null;
+  /** 養貓經驗（中文：沒養過貓／養過，不到 3 年／養過 3 年以上）；沒填是 null */
+  experience?: string | null;
   /** true＝整份是範例背景（沒登入、沒喵戶或資料全空） */
   sample: boolean;
 }
 
 /** 範例背景：沒登入或沒喵戶時用 */
-export const SAMPLE_HOME: PlayerHome = { dwelling: "電梯大樓", living: "租屋", family: ["伴侶"], pets: [], sample: true };
+export const SAMPLE_HOME: PlayerHome = { dwelling: "電梯大樓", living: "租屋", family: ["伴侶"], pets: [], landlord: LANDLORD.yes, experience: EXPERIENCE.none, sample: true };
 
 const OTHER_MAX = 30;
 const clip = (v: unknown) => (typeof v === "string" ? v.trim().slice(0, OTHER_MAX) : "");
@@ -37,12 +41,16 @@ export function normalizeHome(raw: unknown): PlayerHome {
   const family = pickList(r.family, FAMILY, r.familyOther, ALONE, "家人");
   const pets = pickList(r.pets, PETS, r.petsOther, NO_PETS, "小動物");
   if (!dwellingKey && !livingKey && !family?.length && !pets?.length) return { ...SAMPLE_HOME };
+  const landlord = livingKey === "rent" && typeof r.landlord === "string" && r.landlord in LANDLORD ? LANDLORD[r.landlord as keyof typeof LANDLORD] : null;
+  const experience = typeof r.experience === "string" && r.experience in EXPERIENCE ? EXPERIENCE[r.experience as keyof typeof EXPERIENCE] : null;
   const dwelling = dwellingKey === "other" && clip(r.dwellingOther) ? clip(r.dwellingOther) : dwellingKey ? DWELLINGS[dwellingKey] : SAMPLE_HOME.dwelling;
   return {
     dwelling,
     living: livingKey ? LIVING[livingKey] : SAMPLE_HOME.living,
     family: family ?? [...SAMPLE_HOME.family],
     pets: pets ?? [...SAMPLE_HOME.pets],
+    landlord,
+    experience,
     sample: false,
   };
 }

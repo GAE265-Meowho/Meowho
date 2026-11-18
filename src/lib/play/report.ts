@@ -11,20 +11,7 @@ export const DISCLAIMER = "本作品提供之資訊僅供輔助參考，不能�
 /** 業務規則要求的聲明（AGENTS.md §6），和原版 DISCLAIMER 一起顯示 */
 export const HEALTH_NOTE = "僅供參考，非醫療建議。";
 
-/** 原版「收養之前，問問自己」 */
-export const EXP_CHECKS = [
-  "未來 15 年，我住的地方都能養貓（房東、家人都同意）",
-  "我能一次拿出 2 到 3 萬元的急診費用",
-  "我每天能花 30 到 60 分鐘照顧和陪伴牠",
-  "出差、旅行或生病時，我有可靠的人能幫忙照顧",
-  "交往、結婚、生小孩時，我會把牠一起規劃進去",
-  "牠老了、生病了，我願意陪牠走到最後",
-] as const;
-
-export function checksVerdict(n: number): string {
-  return n === EXP_CHECKS.length ? "六項你都能做到。你已經準備好了。"
-    : n >= 4 ? `你已經能做到 ${n} 項。剩下的幾項，建議在收養前先想好辦法。` : `目前勾了 ${n} 項。不急著現在收養也沒關係。`;
-}
+// 原版「收養之前，問問自己」6 題已併進「依你家的情況」（home-readiness.ts，渝茜 2026-11-18）
 
 /** 原版 expTrustWord */
 export const trustWord = (t: number) => (t >= 65 ? "很黏你" : t >= 45 ? "信任你" : t >= 25 ? "還在熟悉你" : "有點怕你");
@@ -44,12 +31,11 @@ export function memoryMoments(X: Pick<Life, "picks" | "name">): string[] {
  * 原版 fullAdvice。DEMO 沒有作息題與序章問題，條件依手上的資料改寫：
  *   作息、出差（沒有問）→ 不出；急診預備金：沒存醫療預備金或動用過；房東：喵戶的住家狀況是租屋；過敏：DEMO 不問（不出）。
  */
-export function fullAdvice(X: Pick<Life, "flags" | "care">, shop: { fund: number | null }, home: Pick<PlayerHome, "living">): string[] {
+export function fullAdvice(X: Pick<Life, "flags" | "care">): string[] {
   const A: string[] = [];
-  if (!shop.fund || X.flags.fundUsed) A.push("先存一筆 2 到 3 萬元的急診預備金，就醫時壓力會小很多。");
+  // 急診預備金、房東、同住的人、寵物搬到「依你家的情況」（home-readiness.ts），這裡不再重複
   if (X.flags.scolded) A.push("貓在砂盆外尿尿時，先排除身體問題，再檢查貓砂、砂盆位置和乾淨程度。不要處罰。");
   if (!X.flags.brushDaily || X.care.teeth < 60) A.push("刷牙從幼貓期開始練最容易，每天幾分鐘就好。");
-  if (home.living === "租屋") A.push("養之前先問房東，確定未來幾年都能養。");
   if (!A.length) A.push("你的作息和準備都很不錯。實際收養前，再和中途聊聊這隻貓的習慣。");
   return A;
 }
@@ -75,8 +61,8 @@ export function ruleAdvice(ctx: AdviceContext): string[] {
   const wrong = ctx.choices.filter(c => c.good === false);
   if (wrong.length) tips.push(`回頭想想「${wrong[0].text}」這個選擇，下次可以怎麼做。`);
   if (ctx.overBudget) tips.push("每月花費超過你的預算，建議先調整用品或預留一筆貓咪預備金。");
-  if (ctx.home.pets.length) tips.push(`家裡已經有${ctx.home.pets.join("、")}，接貓回家後先分開住幾天，從交換氣味開始認識。`);
-  else if (ctx.home.family.length) tips.push(`和${ctx.home.family.join("、")}先說好餵食、鏟砂由誰負責，照顧才不會漏掉。`);
+  // 同住的人、現有寵物的建議在「依你家的情況」（home-readiness.ts），這裡不再重複
+  if (tips.length < 2) tips.push("實際收養前，再和中途聊聊這隻貓的個性、習慣和健康紀錄。");
   return tips.slice(0, 4);
 }
 
