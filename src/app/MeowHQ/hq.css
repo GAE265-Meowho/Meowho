@@ -788,3 +788,17 @@
 .hq-video-download .hq-sub { overflow-wrap: anywhere; }
 /* 同一鏡多格的標籤（#499） */
 .hq-video-framelabel { font-size: .88rem; font-weight: 600; color: var(--hq-ink, inherit); }
+/* 前導影片：影片（#501）：完整影片、段落影片、片段播放與上傳 */
+.hq-video-vslot { display: flex; flex-direction: column; gap: .45rem; min-width: 0; }
+.hq-video-player { background: #1f1c18; border-style: solid; }
+.hq-video-player video { width: 100%; height: 100%; display: block; object-fit: contain; background: #000; }
+.hq-video-player .hq-sub { color: #cfc8bd; }
+.hq-video-full { max-width: 960px; }
+.hq-video-section { display: flex; flex-direction: column; gap: .45rem; max-width: 560px; padding-bottom: .4rem; }
+.hq-video-section .hq-h3, .hq-video-sec > .hq-h3 { margin: 0; font-size: .95rem; }
+.hq-video-version { display: inline-flex; align-items: center; gap: .35rem; }
+.hq-video-version select { font: inherit; font-size: 16px; min-height: 36px; border: 1px solid var(--hq-line); border-radius: 8px; padding: 0 .4rem; background: #fff; }
+.hq-video-material { border-top: 1px dashed var(--hq-line); padding-top: .35rem; }
+.hq-video-material > summary { cursor: pointer; min-height: 36px; display: flex; align-items: center; color: var(--hq-sage-ink); font-size: .9rem; }
+.hq-video-material-in { display: flex; flex-direction: column; gap: .5rem; padding-top: .3rem; }
+.hq-video-clip h4.hq-h3 { margin: 0; font-size: .98rem; }

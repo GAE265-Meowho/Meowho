@@ -22,6 +22,9 @@ export const HQ_PAGE_META_PATHS = {
   ],
   "videos/trailer-clips": [
     "src/components/hq/videos/ClipsBoard.tsx",
+    "src/components/hq/videos/TrailerVideos.tsx",
+    "src/lib/hq/videos/trailer-video.ts",
+    "src/app/api/hq/trailer-videos",
     "src/lib/hq/videos/clips.ts",
     "src/lib/hq/videos/clips.test.ts",
   ],
