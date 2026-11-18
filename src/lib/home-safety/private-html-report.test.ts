@@ -60,7 +60,10 @@ it("updates only the known report header, preserving matching content elsewhere"
   ));
   const response = await readPrivateReport({ id, reportId }, undefined, false, true);
   const html = await response.text();
-  expect(html).toContain('<header><p class="kicker">MeowHome｜AI 居家環境安全檢測</p><h1>貓咪居家環境健檢報告</h1></header>');
+  expect(html).toContain('<header><p class="kicker">MeowHome｜AI 居家環境安全檢測</p>');
+  expect(html).toContain("<h1>貓咪居家環境健檢報告</h1>");
+  expect(response.headers.get("Content-Security-Policy")).toContain("default-src 'none'");
+  expect(response.headers.get("Content-Security-Policy")).toContain("sandbox allow-same-origin allow-downloads");
   expect(html).toContain(`<main>${body}${heading}</main>`);
 });
 

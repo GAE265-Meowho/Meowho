@@ -33,6 +33,18 @@ function labeledText(article: Element, label: string) {
   return paragraph?.childNodes.slice(1).map(content).join("").trim();
 }
 
+function markerValues(figure: Element, simulated: boolean) {
+  const markers = elements(figure, node => node.tagName === "svg" && !!hasClass(node, "evidence-marker")
+    && Boolean(hasClass(node, "simulated")) === simulated);
+  if (markers.length !== 1 || attr(markers[0], "viewBox") !== "0 0 100 100") return;
+  const rects = elements(markers[0], node => node.tagName === "rect");
+  if (rects.length !== 1) return;
+  const box = ["x", "y", "width", "height"].map(key => attr(rects[0], key) ?? "");
+  if (!box.every(value => /^\d+(?:\.\d+)?$/.test(value))) return;
+  const [x, y, width, height] = box.map(Number);
+  if (width > 0 && height > 0 && x + width <= 100.00001 && y + height <= 100.00001) return [x, y, width, height];
+}
+
 export function parseReportPresentation(html: string) {
   const doc = parse(html, { sourceCodeLocationInfo: true });
   const images = elements(doc, node => node.tagName === "img");
@@ -42,14 +54,22 @@ export function parseReportPresentation(html: string) {
   }));
   const body = elements(doc, node => node.tagName === "body")[0];
   const header = body?.childNodes.find(node => "tagName" in node && node.tagName === "header");
+  const headerStart = header?.sourceCodeLocation?.startOffset;
   const headerEnd = header?.sourceCodeLocation?.endOffset;
   const bodyEnd = body?.sourceCodeLocation?.endTag?.startOffset;
   const priorityHeading = elements(doc, node => node.tagName === "h3" && content(node).trim() === "優先採取的行動")[0];
   const siblings = priorityHeading?.parentNode?.childNodes;
   const priorityList = priorityHeading && siblings?.slice(siblings.indexOf(priorityHeading) + 1)
     .find(node => "tagName" in node);
-  const priority = priorityList && "tagName" in priorityList && priorityList.tagName === "ol"
-    ? elements(priorityList, node => node.tagName === "strong").map(node => content(node).trim()) : [];
+  const priorityEntries = priorityList && "tagName" in priorityList && priorityList.tagName === "ol"
+    ? elements(priorityList, node => node.tagName === "li").flatMap(row => {
+      const label = elements(row, node => node.tagName === "strong")[0];
+      if (!label) return [];
+      const name = content(label).trim();
+      const action = content(row).trim().slice(name.length).replace(/^\s*[·：:]\s*/, "").trim();
+      return name ? [{ name, action }] : [];
+    })
+    : [];
 
   const candidates = elements(doc, node => node.tagName === "article" && !!hasClass(node, "comparison"))
     .flatMap(article => {
@@ -67,35 +87,56 @@ export function parseReportPresentation(html: string) {
           elements(node, item => item.tagName === "figcaption" && content(item).trim() === label).length);
       const figureImage = (node: Element | undefined) => node && source(elements(node, child => child.tagName === "img")[0]);
       const original = figure(pair, "改善前｜原始影格");
+      const simulation = figure(pair, "改善後｜AI 模擬示意");
       const originalImage = figureImage(original);
+      const simulatedImage = figureImage(simulation);
       const detail = elements(article, node => node.tagName === "div" && !!hasClass(node, "pair") && !!hasClass(node, "detail"))[0];
-      const before = originalImage ?? (detail && figureImage(figure(detail, "改善前局部｜原圖")));
-      const after = originalImage ? figureImage(figure(pair, "改善後｜AI 模擬示意"))
-        : detail && figureImage(figure(detail, "改善後局部｜AI 模擬示意"));
+      const detailBefore = detail && figureImage(figure(detail, "改善前局部｜原圖"));
+      const detailAfter = detail && figureImage(figure(detail, "改善後局部｜AI 模擬示意"));
+      const before = originalImage ?? detailBefore;
+      const after = originalImage ? simulatedImage : detailAfter;
       const note = elements(article, node => !!hasClass(node, "position-note"))[0];
       const position = note ? content(note) : "";
-      const marker = original && elements(original, node => node.tagName === "svg" && !!hasClass(node, "evidence-marker"))[0];
-      const rect = marker && elements(marker, node => node.tagName === "rect")[0];
-      const box = rect && ["x", "y", "width", "height"].map(key => attr(rect, key) ?? "");
-      const values = box?.map(Number);
       const human = position.includes("Before 實線為人工確認位置");
       const estimated = position.includes("Before 實線為 AI 估計範圍");
-      const region = originalImage && values && box?.every(value => /^\d+(?:\.\d+)?$/.test(value))
-        && attr(marker!, "viewBox") === "0 0 100 100"
-        && values[2] > 0 && values[3] > 0
-        && values[0] + values[2] <= 100.00001 && values[1] + values[3] <= 100.00001
-        && (human || estimated) ? { values, estimated } : undefined;
-      return [{ name, impact, action, observation, before, after, region, cropped: !originalImage, uncertainty: labeledText(article, "待現場確認") }];
+      const values = originalImage && original && (human || estimated) ? markerValues(original, false) : undefined;
+      const region = values ? { values, estimated } : undefined;
+      const afterRegion = originalImage && simulatedImage && simulation && position.includes("After 虛線為場景對位區域。")
+        ? markerValues(simulation, true) : undefined;
+      return [{ caseId: attr(article, "id"), name, impact, action, observation, before, after, detailBefore, detailAfter, region, afterRegion, cropped: !originalImage, uncertainty: labeledText(article, "待現場確認") }];
     });
-  // Worker already deduplicates its ordered priority list by reading group.
-  // Show a single candidate even when a hazard appears in multiple comparisons.
-  const firstPriority = priority[0];
-  const selected = firstPriority
-    ? candidates.find(item => item.name === firstPriority && item.before)
-      ?? candidates.find(item => item.name === firstPriority)
-    : candidates.find(item => item.before);
+  // A legacy title alone does not establish that two views show the same place.
+  const byAction = new Map<string, (typeof candidates)[number]>();
+  for (const item of candidates) {
+    const key = JSON.stringify([item.name, item.action, item.observation]);
+    const existing = byAction.get(key);
+    if (!existing || (!existing.before && item.before)) byAction.set(key, item);
+  }
+  const withoutImages = { before: undefined, after: undefined, region: undefined, afterRegion: undefined, cropped: false, detailBefore: undefined, detailAfter: undefined };
+  const legacyItems = [...byAction.values()];
+  function legacyRank(name: string) {
+    const position = priorityEntries.findIndex(entry => entry.name === name);
+    return position < 0 ? priorityEntries.length : position;
+  }
+  for (const entry of priorityEntries) {
+    if (entry.action && !legacyItems.some(item => item.name === entry.name)) {
+      legacyItems.push({ ...withoutImages, ...entry, caseId: undefined, observation: "", impact: "", uncertainty: undefined });
+    }
+  }
+  const index = elements(doc, node => node.tagName === "ol" && attr(node, "id") === "report-improvements")[0];
+  const items = index ? elements(index, node => node.tagName === "li").flatMap(row => {
+    const name = attr(row, "data-label");
+    const action = attr(row, "data-action");
+    if (!name || !action) return [];
+    const caseId = attr(row, "data-case");
+    const evidence = caseId && candidates.find(item => item.caseId === caseId && item.name === name);
+    return [{
+      ...(evidence || { observation: attr(row, "data-observation") ?? "", ...withoutImages }),
+      name, action, impact: attr(row, "data-impact") ?? "", uncertainty: attr(row, "data-uncertainty"),
+    }];
+  }) : legacyItems.sort((a, b) => legacyRank(a.name) - legacyRank(b.name));
 
-  return { assets, selected, headerEnd, bodyEnd, images };
+  return { assets, items, headerStart, headerEnd, bodyEnd, images };
 }
 
 function summarizeImpact(impact: string) {
@@ -110,56 +151,151 @@ function summarizeImpact(impact: string) {
 }
 
 const summaryStyles = `<style>
-.meow-priority{--warning:#a31d23;--warning-bg:#fff4f2;--paper:#fffaf0;--border:#efe3cf;--ink:#3f2e24;margin:18px 0;padding:clamp(14px,3vw,26px);border:1px solid var(--border);border-radius:16px;background:var(--paper);color:var(--ink);font-size:16px}
-.meow-priority h2{margin:0 0 12px;font-size:clamp(21px,4vw,29px)}
-.meow-priority .warning{border-inline-start:4px solid var(--warning);background:var(--warning-bg);color:var(--warning);padding:12px}
-.meow-priority p{margin:8px 0}.meow-priority .warning p{margin:4px 0}
-.meow-priority .priority-pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:14px 0}
-.meow-priority .priority-pair.single{grid-template-columns:minmax(0,1fr);max-width:620px}
-.meow-priority figure{min-width:0}.meow-priority .evidence{position:relative}
-.meow-priority img{width:100%;height:auto;max-height:none}
-.meow-priority .region{position:absolute;box-sizing:border-box;border:3px solid var(--warning);pointer-events:none;box-shadow:0 0 0 1px white}
+html:has(.meow-priority){background:#f0f6f9}
+body:has(.meow-priority){max-width:1120px;color:#183247}
+.meow-banner,.meow-priority{--navy:#103b5b;--blue:#edf6fb;--ink:#183247;--red:#a62218;--red-soft:#fff0ee;--green:#285929;--green-soft:#eef7e7;--line:#d5e3ec;--radius:16px}
+.meow-banner{display:flex;align-items:center;justify-content:space-between;gap:14px;background:var(--navy);color:white;padding:clamp(16px,3vw,32px);border:0;border-radius:var(--radius)}
+.meow-banner h1{font-size:clamp(23px,3.8vw,40px);line-height:1.25;margin:4px 0 6px}
+.meow-banner p{font-size:14px;margin:0;color:#d9ebf5}
+.meow-banner .meow-icon{width:clamp(50px,7vw,84px);color:#c9e8f8}
+.meow-icon{display:block;width:clamp(42px,5vw,60px);height:auto;flex:none}
+.meow-priority{margin:clamp(12px,2vw,24px) 0;color:var(--ink);font-size:16px}
+.meow-priority p{margin:0}
+.meow-hero,.meow-card,.meow-limits{display:flex;align-items:center;gap:clamp(12px,2vw,20px)}
+.meow-hero{background:white;border:1px solid var(--line);border-radius:var(--radius);padding:clamp(12px,2.2vw,24px);margin-bottom:14px}
+.meow-hero .meow-icon{width:clamp(49px,6vw,78px);color:var(--red);background:var(--red-soft);border-radius:14px;padding:7px;box-sizing:border-box}
+.meow-item h3{margin:12px 0}
+.meow-item .meow-hero{margin:0;color:var(--ink);text-decoration:none;font-size:clamp(19px,3vw,26px);min-height:44px;overflow-wrap:anywhere}
+.meow-item .meow-hero span{flex:1;min-width:0}
+.meow-item .meow-hero .meow-icon:last-child{width:24px;background:none;padding:0}
+.meow-item .meow-hero:focus-visible{outline:2px solid var(--navy);outline-offset:3px}
+.meow-item [aria-expanded=true]{border-color:var(--navy)}
+.meow-item h3+div{margin-top:12px}
+.meow-priority h2{font-size:clamp(22px,3.5vw,36px);line-height:1.2;margin:2px 0 0}
+.meow-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-template-areas:"impact action" "before after";gap:14px}
+.meow-grid.with-details{grid-template-areas:"impact action" "before after" "before-detail after-detail"}
+.meow-grid.solo{grid-template-columns:minmax(0,1fr);grid-template-areas:"impact" "action"}
+.meow-priority figure{min-width:0;margin:0;background:var(--blue);border-radius:var(--radius);padding:12px}
+.meow-priority figcaption{font-size:15px;margin:0 0 8px}
+.meow-priority .meow-before{grid-area:before}
+.meow-priority .meow-after{grid-area:after}
+.meow-priority .meow-before-detail{grid-area:before-detail}
+.meow-priority .meow-after-detail{grid-area:after-detail}
+.meow-photo{display:grid;place-items:center;aspect-ratio:16/9;container-type:size;background:white;border-radius:8px}
+.meow-photo .evidence{position:relative;max-width:100%;line-height:0}
+.meow-photo img{display:block;width:auto;height:auto;max-width:100%;max-height:100cqh;object-fit:contain;border-radius:8px}
+.meow-priority .region{position:absolute;box-sizing:border-box;border:3px solid var(--red);pointer-events:none;box-shadow:0 0 0 1px white}
 .meow-priority .estimated{border-style:dashed}
-.meow-report-toggle,.meow-report-pdf{display:inline-flex;align-items:center;min-height:44px;margin:4px 16px 4px 0}
-.meow-report-toggle:focus-visible,.meow-report-pdf:focus-visible{outline:2px solid currentColor;outline-offset:3px}
-@media(max-width:560px){.meow-priority .priority-pair{grid-template-columns:minmax(0,1fr)}}
+.meow-priority .simulated-region{border-style:dashed;border-color:var(--green)}
+.meow-priority figure p{margin-top:8px;font-size:14px}
+.meow-card{border-radius:var(--radius);padding:clamp(12px,2vw,20px)}
+.meow-card h4{margin:0 0 4px;font-size:14px}
+.meow-card p{font-size:clamp(17px,2vw,21px);font-weight:700;line-height:1.45}
+.meow-impact{grid-area:impact;background:var(--red-soft);color:var(--red)}
+.meow-action{grid-area:action;background:var(--green-soft);color:var(--green)}
+.meow-limits{background:var(--blue);padding:12px 16px;border-radius:12px;margin-top:14px}
+.meow-limits .meow-icon{width:28px;color:var(--navy)}
+.meow-limits strong{display:block}
+.meow-report-toggle,.meow-report-pdf{display:inline-flex;align-items:center;gap:8px;min-height:44px;margin:8px 12px 4px 0}
+.meow-report-toggle{padding:0 16px;border-radius:999px;background:#103b5b;color:white;text-decoration:none;font-weight:700}
+.meow-report-pdf{color:#103b5b}
+.meow-report-toggle .meow-icon,.meow-report-pdf .meow-icon{width:21px}
+.meow-report-toggle:focus-visible,.meow-report-pdf:focus-visible{outline:2px solid #103b5b;outline-offset:3px}
+@media(max-width:650px){.meow-grid{grid-template-columns:minmax(0,1fr);grid-template-areas:"impact" "before" "action" "after"}.meow-grid.with-details{grid-template-areas:"impact" "before" "before-detail" "action" "after" "after-detail"}.meow-priority figure{padding:8px}.meow-banner{gap:8px}}
 </style>`;
 
-export function renderReportPresentation(html: string, full: boolean, presentation = parseReportPresentation(html)) {
-  const { selected, headerEnd, bodyEnd, images } = presentation;
-  if (headerEnd === undefined || bodyEnd === undefined || headerEnd > bodyEnd) return html;
+const iconPaths = {
+  shield: '<path d="M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11Z"/><path d="m8.5 12 2.4 2.4 4.6-4.8"/>',
+  alert: '<path d="M10.3 4a2 2 0 0 1 3.4 0l8 14A2 2 0 0 1 20 21H4a2 2 0 0 1-1.7-3l8-14Z"/><path d="M12 9v4m0 4h.01"/>',
+  cord: '<path d="M12 2v4c0 3-5 5-5 10a5 5 0 0 0 10 0c0-4-4-6-5-10m0 0 3-4"/>',
+  cable: '<path d="M8 3v4m4-4v4M6 7h8v2a4 4 0 0 1-4 4v4a3 3 0 0 0 6 0v-2a3 3 0 0 1 6 0v4"/>',
+  window: '<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M12 3v18M4 12h16"/>',
+  furniture: '<path d="M5 21V4h14v17M5 11h14M5 17h14"/>',
+  object: '<rect x="4" y="7" width="16" height="13" rx="2"/><path d="M4 11h16m-10 4h4"/>',
+  action: '<rect x="5" y="5" width="14" height="16" rx="2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="m8 14 2.5 2.5 5-5"/>',
+  info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v5m0-8h.01"/>',
+  file: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Zm0 0v6h6M8 13h8m-8 4h8"/>',
+  down: '<path d="m6 9 6 6 6-6"/>',
+  up: '<path d="m6 15 6-6 6 6"/>',
+} as const;
 
+function hazardIcon(name: string): keyof typeof iconPaths {
+  if (/拉繩|繩圈|繩帶|環狀繩/.test(name)) return "cord";
+  if (/電線|插座|線材/.test(name)) return "cable";
+  if (/窗戶|紗窗/.test(name)) return "window";
+  if (/家具|櫃|層架/.test(name)) return "furniture";
+  if (/小物|零件/.test(name)) return "object";
+  return "alert";
+}
+
+const icon = (name: keyof typeof iconPaths) =>
+  `<svg class="meow-icon" data-icon="${name}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${iconPaths[name]}</svg>`;
+
+function marker(values: number[] | undefined, variant: string) {
+  if (!values) return "";
+  const style = ["left", "top", "width", "height"].map((key, index) => `${key}:${values[index]}%`).join(";");
+  return `<span aria-hidden="true" class="region${variant}" style="${style}"></span>`;
+}
+
+function detailFigure(side: "before" | "after", caption: string, image: string | undefined) {
+  return `<figure class="meow-${side}-detail"><figcaption>${caption}</figcaption>${image
+    ? `<div class="meow-photo"><img src="${image}" alt="${caption}" loading="lazy"></div>`
+    : "<p>此報告未提供這張局部影像。</p>"}</figure>`;
+}
+
+export function renderReportPresentation(html: string, full: boolean, presentation = parseReportPresentation(html), itemIndex?: number) {
+  const { items, headerStart, headerEnd, bodyEnd, images } = presentation;
+  if (headerStart === undefined || headerEnd === undefined || bodyEnd === undefined || headerEnd > bodyEnd) return html;
+
+  const selected = !full && itemIndex !== undefined ? items[itemIndex] : undefined;
   const impact = selected && summarizeImpact(selected.impact);
   const limits = [...new Set([...(impact?.limits ?? []), selected?.uncertainty]
     .filter(Boolean).map(text => text!.replace(/。$/, "")))];
   const region = selected?.region;
-  const marker = region ? `<span aria-hidden="true" class="region${region.estimated ? " estimated" : ""}" style="${["left","top","width","height"].map((key, index) => `${key}:${region.values[index]}%`).join(";")}"></span>` : "";
-  const pictures = selected?.before ? `<div class="priority-pair${selected.after ? "" : " single"}">
-    <figure><figcaption>${selected.cropped ? "改善前｜危害局部" : "改善前｜原始影格"}</figcaption><div class="evidence"><img src="${selected.before}" alt="${escape(selected.name)}的${selected.cropped ? "原始局部" : "原始影格"}" fetchpriority="high">${marker}</div>
-    <p>${region ? region.estimated ? "紅色虛線為 AI 估計位置。" : "紅框為人工確認位置。" : "畫面中的具體位置待確認。"}</p></figure>
-    ${selected.after ? `<figure><figcaption>改善後｜AI 模擬示意</figcaption><img src="${selected.after}" alt="${escape(selected.name)}的 AI 改善示意"><p>實際改善情形仍待現場確認。</p></figure>` : ""}</div>` : "";
-
-  const toggle = full
-    ? '<a class="meow-report-toggle" href="html#report-view">收合完整報告</a>'
-    : '<a class="meow-report-toggle" href="?view=full#report-view">展開完整圖文報告</a>';
-  const intro = `${summaryStyles}<section class="meow-priority" aria-labelledby="priority-title">
-    <h2 id="priority-title">安全檢測重點</h2>
-    ${selected ? `<div class="warning"><strong>優先查核｜${escape(selected.name)}</strong><p><b>可能後果</b> ${escape(impact!.consequence)}</p></div>
-    <p><strong>建議行動</strong> ${escape(selected.action)}</p>${pictures}
-    <p><strong>畫面觀察</strong> ${escape(selected.observation)}</p>
-    ${limits.length ? `<p><strong>待現場確認</strong> ${limits.map(escape).join("。")}。</p>` : ""}`
-    : "<p>優先危害需要進一步確認。請展開報告查看觀察、改善建議與現場查核事項。</p>"}
-    <div id="report-view" tabindex="-1">${toggle}<a class="meow-report-pdf" href="pdf">下載完整 PDF</a></div></section>`;
-  if (!full) return html.slice(0, headerEnd) + intro + html.slice(bodyEnd);
+  const afterRegion = selected?.afterRegion;
+  const showDetails = Boolean(selected?.before && !selected.cropped);
+  const before = selected?.before ? `<figure class="meow-before"><figcaption>${selected.cropped ? "改善前｜危害局部" : "改善前｜原始影格"}</figcaption>
+    <div class="meow-photo"><div class="evidence"><img src="${selected.before}" alt="${escape(selected.name)}的${selected.cropped ? "原始局部" : "原始影格"}" fetchpriority="high">${marker(region?.values, region?.estimated ? " estimated" : "")}</div></div>
+    <p>${region ? region.estimated ? "紅色虛線為 AI 估計位置。" : "紅框為人工確認位置。" : "畫面中的具體位置待確認。"}</p>
+    <p>${escape(selected.observation)}</p>${!selected.cropped && selected.detailBefore ? `<a href="${selected.detailBefore}">查看原始局部放大</a>` : ""}</figure>` : "";
+  const after = selected?.before ? `<figure class="meow-after">${selected.after ? `<figcaption>${selected.cropped ? "改善後局部｜AI 模擬示意" : "改善後｜AI 模擬示意"}</figcaption>
+    <div class="meow-photo"><div class="evidence"><img src="${selected.after}" alt="${escape(selected.name)}的 AI 改善示意" fetchpriority="low">${marker(afterRegion, " simulated-region")}</div></div>
+    ${selected.cropped ? "" : `<p>${afterRegion ? "綠色虛線為 AI 模擬對應區域。" : "這張 AI 示意圖的對應位置待確認。"}</p>`}
+    <p>實際改善情形仍待現場確認。</p>` : "<p>這個項目沒有可展示的 AI 改善示意。</p>"}</figure>` : "";
+  const collapse = `<a class="meow-report-toggle" href="html#report-view" id="report-view-return">收合完整報告${icon("up")}</a>`;
+  const pdf = `<a class="meow-report-pdf" href="pdf">${icon("file")}下載完整 PDF</a>`;
+  const toggle = `<a class="meow-report-toggle" href="?view=full#report-view-return">展開完整圖文報告${icon("down")}</a>`;
+  const banner = `<header class="meow-banner"><div><p>MeowHome｜AI 居家環境安全檢測</p>
+    <h1>你的居家安全檢測結果</h1></div>${icon("shield")}</header>`;
+  const rows = items.map((item, index) => {
+    const open = item === selected;
+    const panelId = `improvement-${index + 1}`;
+    const href = open ? `html#${panelId}` : `?item=${index + 1}#${panelId}`;
+    return `<section class="meow-item"><h3><a class="meow-hero" id="${panelId}" href="${href}" aria-expanded="${open}" aria-controls="${panelId}-panel">
+      ${icon(hazardIcon(item.name))}<span>${escape(item.name)}</span>${icon(open ? "up" : "down")}</a></h3>
+      <div id="${panelId}-panel"${open ? "" : " hidden"}>${open ? `${!before && item.observation ? `<p>${escape(item.observation)}</p>` : ""}<div class="meow-grid${before ? "" : " solo"}${showDetails ? " with-details" : ""}">
+        ${impact?.consequence ? `<div class="meow-card meow-impact">${icon("alert")}<div><h4>可能後果</h4><p>${escape(impact.consequence)}</p></div></div>` : ""}
+        ${before}
+        ${showDetails ? detailFigure("before", "改善前局部｜原圖", item.detailBefore) : ""}
+        <div class="meow-card meow-action">${icon("action")}<div><h4>建議行動</h4><p>${escape(item.action)}</p></div></div>
+        ${after}
+        ${showDetails ? detailFigure("after", "改善後局部｜AI 模擬示意", item.detailAfter) : ""}</div>
+        ${limits.length ? `<div class="meow-limits">${icon("info")}<p><strong>需要現場確認</strong> ${limits.map(escape).join("。")}。</p></div>` : ""}` : ""}</div></section>`;
+  });
+  const intro = `<section class="meow-priority" aria-labelledby="priority-title">
+    <h2 id="priority-title">需要改善（${items.length}）</h2>
+    ${rows.length ? rows.join("") : "<p>目前無法從這份報告整理改善項目。可查看完整報告中的查核建議。</p>"}
+    <div id="report-view" tabindex="-1">${toggle}${pdf}</div></section>`;
+  const start = html.slice(0, headerStart) + summaryStyles + banner + intro;
+  if (!full) return start + html.slice(bodyEnd);
 
   // Apply lazy loading to the existing detail images without rewriting evidence markup.
   let detail = html.slice(headerEnd, bodyEnd);
-  for (const image of images.reverse()) {
+  for (const image of [...images].reverse()) {
     const start = image.sourceCodeLocation?.startOffset;
     if (start === undefined || start < headerEnd || start >= bodyEnd || attr(image, "loading")) continue;
     const offset = start - headerEnd + "<img".length;
     detail = detail.slice(0, offset) + ' loading="lazy"' + detail.slice(offset);
   }
-  return html.slice(0, headerEnd) + intro + '<main id="full-report">' + detail
-    + '<a class="meow-report-toggle" href="html#report-view">收合完整報告</a></main>' + html.slice(bodyEnd);
+  return html.slice(0, headerEnd) + summaryStyles + '<main id="full-report">' + collapse + pdf + detail + '</main>' + html.slice(bodyEnd);
 }
