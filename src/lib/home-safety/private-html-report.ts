@@ -47,7 +47,7 @@ const empty = (status: number) => new Response(null, { status, headers });
 
 export async function readPrivateReport({ id, reportId }: {
   id: string; reportId: string;
-}, asset?: string, availabilityOnly = false, full = false) {
+}, asset?: string, availabilityOnly = false, full = false, itemIndex?: number) {
   if (!isReportUuid(id) || !isReportUuid(reportId) || (asset !== undefined && !reportImageName.test(asset))) return empty(404);
   try {
     const sb = await getServerSupabase();
@@ -85,7 +85,7 @@ export async function readPrivateReport({ id, reportId }: {
           assets: Promise.resolve(presentation.assets),
         });
       }
-      return new Response(renderReportPresentation(page, full, presentation), { headers: { ...headers, "Content-Type": "text/html; charset=utf-8" } });
+      return new Response(renderReportPresentation(page, full, presentation, itemIndex), { headers: { ...headers, "Content-Type": "text/html; charset=utf-8" } });
     }
     if (!(await referencedImages(store, prefix)).has(asset)) return empty(404);
     const image = await store.download(prefix + "html-assets/" + asset);
