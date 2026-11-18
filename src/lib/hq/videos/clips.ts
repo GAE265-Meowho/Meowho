@@ -2,7 +2,7 @@
 // 每格 AI 分鏡的圖生影片 prompt：起始畫面＝該格分鏡圖，參考圖＝FRAME_REFS，再加動作與運鏡。
 // 剪接長度由分鏡表的時間算出；生成長度取 5、10、15 秒（Kling 3.0 單段最長 15 秒），剪接時再裁。
 import {
-  SHOT_SECTIONS, refById, refFileName, type Frame, type RefSlot, type Shot,
+  SHOT_SECTIONS, refById, refFileName, type Frame, type RefSlot, type Shot, type ShotSection,
 } from "./trailer";
 
 export type ClipMotion = { action: string; camera: string };
@@ -77,8 +77,9 @@ export function motionPrompt(frame: Frame): string {
 
 export type ClipItem = { shot: Shot; frame: Frame; cut: number; generate: 5 | 10 | 15 };
 /** 產生影片 tab 的清單：只有 AI 生成的格子；系統錄影與剪輯字卡不用生成 */
-export function clipSections(): { title: string; range: string; items: ClipItem[] }[] {
+export function clipSections(): { key: ShotSection["key"]; title: string; range: string; items: ClipItem[] }[] {
   return SHOT_SECTIONS.map(sec => ({
+    key: sec.key,
     title: sec.title,
     range: sec.range,
     items: sec.shots.flatMap(shot => shot.frames.filter(f => f.make === "ai").map(frame => ({ shot, frame, ...clipLength(shot) }))),

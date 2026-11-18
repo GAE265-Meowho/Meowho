@@ -25,7 +25,9 @@ export type Shot = {
   sfx: string;
   frames: Frame[];
 };
-export type ShotSection = { title: string; range: string; note?: string; shots: Shot[] };
+/** key：段落代號，生成紀錄（meow_trailer_gen_logs.section）用 */
+export type SectionKey = "opening" | "cross" | "product" | "ending";
+export type ShotSection = { key: SectionKey; title: string; range: string; note?: string; shots: Shot[] };
 export type RefSlot = {
   id: string;
   kind: "character" | "scene";
@@ -179,7 +181,7 @@ const edit = (id: string, prompt: string): Frame => ({ id, make: "edit", prompt,
 
 export const SHOT_SECTIONS: ShotSection[] = [
   {
-    title: "第一段：遺棄開場", range: "0:00–0:30",
+    key: "opening", title: "第一段：遺棄開場", range: "0:00–0:30",
     shots: [
       { no: 1, line: "貓", time: "0:00–0:10", picture: "雨夜，中途之家門口放著一個紙箱", voice: "—", sfx: "雨聲",
         frames: [ai("s01", "Rainy night, a closed cardboard box sitting alone on a wet doorstep of an old Taiwanese apartment, dim yellow street light, raindrops, slow dolly-in, cold blue tones, melancholic mood")] },
@@ -190,7 +192,7 @@ export const SHOT_SECTIONS: ShotSection[] = [
     ],
   },
   {
-    title: "第二段：交叉敘事", range: "0:30–3:00",
+    key: "cross", title: "第二段：交叉敘事", range: "0:30–3:00",
     shots: [
       { no: 4, line: "人", time: "0:30–0:40", picture: "同一個雨夜，小傑加班完打開套房的門，屋裡沒開燈，窗外是同一場雨", voice: "小傑：「我想養一隻貓，想了兩年。」", sfx: "雨聲延續（聲音橋接）、開門聲",
         frames: [ai("s04", "Rainy night, a young man with round glasses opening the door of a dark small studio apartment after work, tired, rain streaking down the large window, city lights outside, cool blue-gray tones")] },
@@ -233,7 +235,7 @@ export const SHOT_SECTIONS: ShotSection[] = [
     ],
   },
   {
-    title: "第三段：匯聚與產品登場", range: "3:00–4:36",
+    key: "product", title: "第三段：匯聚與產品登場", range: "3:00–4:36",
     note: "每一顆鏡頭都要同時照到兩條線：功能是「替誰解決了什麼」，旁白就由那個人說。鏡 21–24 的畫面主體是小傑 3D 房間裡的 3D 小橘，右上角一直放著信任、壓力、花費三個數值。",
     shots: [
       { no: 17, line: "—", time: "3:00–3:08", picture: "黑畫面，Meowho喵戶 門口貓頭 Logo 浮現", voice: "字幕：「如果，相遇可以慢一點、準一點？」", sfx: "一聲貓叫，音樂重新進來",
@@ -264,7 +266,7 @@ export const SHOT_SECTIONS: ShotSection[] = [
     ],
   },
   {
-    title: "第四段：相遇結尾", range: "4:36–5:00",
+    key: "ending", title: "第四段：相遇結尾", range: "4:36–5:00",
     shots: [
       { no: 28, line: "匯", time: "4:36–4:46", picture: "小傑的套房，阿芳把外出籠放在地上打開；小傑沒有伸手，蹲在旁邊等。小橘慢慢走出來，走到窗邊坐下曬太陽", voice: "小傑：「你好，小橘。」", sfx: "溫暖主旋律",
         frames: [ai("s28", "Low angle at cat eye level, a pet carrier door opening on the floor of a sunny small studio apartment, the orange tabby cat stepping out slowly on its own and walking toward a sunny window, a young man with round glasses kneeling nearby patiently without reaching out, a woman in a brown knitted cardigan watching, golden hour light")] },

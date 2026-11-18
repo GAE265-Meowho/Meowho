@@ -6,6 +6,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useHqActor } from "@/components/hq/HqActor";
 import { useHqToast } from "@/components/hq/HqToast";
+import { GenLogButton, useGenLogs } from "./GenLog";
 import { getBrowserSupabase } from "@/lib/supabase/client";
 import {
   CHARACTERS, FRAME_MAKE_LABELS, FRAME_MAX_BYTES, LINE_LOOK, MATCH_CUTS, NARRATION, SCENES, SHOT_SECTIONS,
@@ -92,6 +93,7 @@ export function TrailerBoard() {
   }, [setUploads, toast]);
 
   const copy = useCopy();
+  const genLogs = useGenLogs();
 
   const slot = { urlOf, uploads, canUpload, upload, copy };
   const showShot = (s: Shot) => s.frames.some(f => filter === "all" || (filter === "missing" ? !uploads[f.id] : f.make === filter));
@@ -145,7 +147,10 @@ export function TrailerBoard() {
           if (!list.length) return null;
           return (
             <div key={sec.title} className="hq-video-part">
-              <h3 className="hq-h3">{sec.title}<span className="hq-sub">（{sec.range}）</span></h3>
+              <div className="hq-video-sechead">
+                <h3 className="hq-h3">{sec.title}<span className="hq-sub">（{sec.range}）</span></h3>
+                <GenLogButton section={sec} state={genLogs} copy={copy} />
+              </div>
               {sec.note && <p className="hq-sub">{sec.note}</p>}
               {list.map(s => <ShotCard key={s.no} s={s} filter={filter} {...slot} />)}
             </div>

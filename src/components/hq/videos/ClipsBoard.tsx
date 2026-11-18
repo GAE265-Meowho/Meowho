@@ -4,6 +4,7 @@
 // 系統錄影與剪輯字卡不用生成，不列。資料在 src/lib/hq/videos/clips.ts。
 import { NEGATIVE_PROMPT, clipSections, motionPrompt, startFrameFileName, type ClipItem } from "@/lib/hq/videos/clips";
 import { frameCounts } from "@/lib/hq/videos/trailer";
+import { GenLogButton, useGenLogs } from "./GenLog";
 import { DownloadRef, Prompt, RefChips, useCopy, useTrailerUploads, type SlotProps } from "./TrailerBoard";
 
 const LINE_LABEL: Record<string, string> = { 貓: "貓線", 人: "人線", 匯: "匯聚", 產品: "產品" };
@@ -11,6 +12,7 @@ const LINE_LABEL: Record<string, string> = { 貓: "貓線", 人: "人線", 匯: 
 export function ClipsBoard() {
   const { uploads, urlOf } = useTrailerUploads();
   const copy = useCopy();
+  const genLogs = useGenLogs();
   const sections = clipSections();
   const items = sections.flatMap(s => s.items);
   const ready = items.filter(i => uploads[i.frame.id]).length;
@@ -34,7 +36,10 @@ export function ClipsBoard() {
 
       {sections.map(sec => (
         <section key={sec.title} className="hq-video-sec" aria-label={sec.title}>
-          <h2>{sec.title}<span className="hq-sub">（{sec.range}）</span></h2>
+          <div className="hq-video-sechead">
+            <h2>{sec.title}<span className="hq-sub">（{sec.range}）</span></h2>
+            <GenLogButton section={sec} state={genLogs} copy={copy} />
+          </div>
           <div className="hq-video-clips">
             {sec.items.map(item => <ClipCard key={item.frame.id} item={item} urlOf={urlOf} copy={copy} />)}
           </div>
