@@ -81,4 +81,4 @@
 | 2026-11-06 | 子哲 × Claude Code | 拿掉影片個性判讀（`/api/onboarding/cat-video/analyze`、`CAT_VIDEO_ANALYSIS`、`CatVideoSchema`、只給 Gemini 的影片送法）：建貓流程從 #206 起沒有影片，AI 也改用 Azure OpenAI；`meow_cat_videos` 的 AI 欄位留著不寫，領養任務草稿不再帶影片觀察 | — |
 | 2026-11-18 | 子哲 × Claude Code | 新增貓咪改成口說 → 只補沒說到的欄位 → 名片；擴充口述規則式擷取（體重、相遇地點、照護、壞習慣「沒有」、適應速度、摸摸牠等） | #479 |
 | 2026-11-18 | 子哲 × Claude Code | 第一次口述後用口說追問補缺的欄位（`new-cat-guide.ts`、`Guide.tsx`）；短答規則：三公斤、8 月 1 號、有驅蟲、貓可以、其他都很順利 | #479 |
-| 2026-11-18 | 子哲 × Claude Code | 口說補充改成彙整對話框（`answerMissing`）；說說牠加講法 placeholder；中途喵戶預設交接物品（`adoption_terms.handover`），新增貓時帶入 | 待建立 |
+| 2026-11-18 | 子哲 × Claude Code | 口說補充改成彙整對話框（`answerMissing`）；說說牠加講法 placeholder；中途喵戶預設交接物品（`adoption_terms.handover`），新增貓時帶入 | #487 |
