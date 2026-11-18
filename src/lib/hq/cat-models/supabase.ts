@@ -18,6 +18,7 @@ import {
   CAT_ID_RE, MAX_PHOTO_BYTES, discardPending, textureInfo,
 } from "./types";
 import type { FileKind } from "./local";
+import { gpuJobs } from "./cost";
 import { confirmVariant, legacyVariants, prepareVariant, restoreVariant, variantTexture, type Variant, type Variants } from "./variants";
 
 import { ensureModelPhoto, isModelPhotoPath } from "@/lib/cat-model-photo";
@@ -286,8 +287,13 @@ export async function sbGetCat(id: string): Promise<CatModelView | null> {
     .select(`status,step,error,queued_at,started_at,finished_at${variantStorage ? ",body_type" : ""}`)
     .eq("model_id", id).order("queued_at", { ascending: false }).limit(1).maybeSingle();
   const jobRow = (job as (JobRow & { body_type?: BodyType | null }) | null) ?? null;
+  // #467 GPU 用量：這隻貓所有跑完的紋理貼圖任務（含重新產生、失敗的）
+  const { data: allJobs } = await sb.from("meow_cat_model_jobs")
+    .select(`status,started_at,finished_at${variantStorage ? ",body_type" : ""}`)
+    .eq("model_id", id).in("status", ["done", "error"]).order("queued_at", { ascending: true });
   const [view] = await withFrontCats([data as Row], [viewFromRow(data as Row, jobRow)]);
   return { ...view,
+    gpuJobs: gpuJobs((allJobs as (JobRow & { body_type?: BodyType | null })[] | null) ?? []),
     variantStorage,
     jobBody: jobRow?.body_type ?? null,
     bodyVariants: variantViews(data as Row, variantStorage ? (variants as VariantRow[] | null) ?? [] : null) };

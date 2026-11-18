@@ -109,7 +109,7 @@ describe("貓咪頁工作區（#96）", () => {
     expect(within(stage).getByTestId("cat-canvas")).toBeInTheDocument();
     expect(groupTitles(panel)).toEqual(["播放與畫面", "動作"]);
     const info = screen.getByRole("region", { name: "原貓咪資訊" });
-    expect(groupTitles(info)).toEqual(["原貓咪資訊", "AI 三視角"]); // 已產生的三視角放在原貓咪資訊下方
+    expect(groupTitles(info)).toEqual(["原貓咪資訊", "AI 三視角", "AI 與 GPU 成本"]); // 已產生的三視角放在原貓咪資訊下方
     // #289：貓咪紋理移到中間欄、3D 預覽下方；預覽外框是正方形
     expect(groupTitles(stage)).toEqual(["貓咪紋理"]);
     const canvas = within(stage).getByTestId("cat-canvas");

@@ -219,3 +219,8 @@ ole === "admin" 判斷管理員，而現有 admin 會升為 system_admin；舊�
 - Migration：`0021_meow_household_items.sql`，已於 2026-11-04 在 `onebpkbkrnnwamwsoelo` 執行。新增 `meow_item_categories`、`meow_items`、公開 bucket `meow-items`（只允許 .glb，20MB）；讀取公開，寫入需 `virtual_assets`。畫面與虛擬體驗接線尚未做。
 - 畫面：`ItemsTab`（上傳、篩選、類別 CRUD）；虛擬體驗 `ExperienceTab` 可放置用品，`FloorplanViewer` 加入碰撞。
 - 小物分流：平面圖 AI 讀落地風扇（`fan`）、桌上電腦（`computer`）與桌上雜物（`cup`／`vase`／`notebook`，可 `parent` 貼 desk／table／cabinet／counter）；**包包、鍵盤**仍走生活用品上傳（`0022` 種子含 `bags`／`keyboards`／`cups`／`vases`／`notebooks`，後三者亦可手動上傳自訂 glb）。虛擬體驗 nested：`PlacedHouseholdItem.y`／`support`。
+
+### #467 貓咪頁 AI 與 GPU 成本（2026-11-18）
+- 貓咪頁「原貓咪資訊」欄多一組「AI 與 GPU 成本」（`CostPanel`，`AiViews.tsx`）：AI 三視角每張 token 與估計費用、GPU（產生紋理貼圖）每次任務的時間與估計費用、總計；製作glb工作區的「用量與費用清單」改用同一個元件。
+- GPU 時間取 `meow_cat_model_jobs` 中 done／error 任務的 `started_at`～`finished_at`（`sbGetCat` 的 `gpuJobs`，純函式在 `src/lib/hq/cat-models/cost.ts`）；本機與示範貓沒有任務紀錄。
+- 價格：Azure NC4as_T4_v3（Tesla T4）Southeast Asia Linux 隨用隨付 US$0.736／小時（2026-11 查）。只算任務實際執行時間，VM 閒置也會計費，實際以 Azure 帳單為準。AI 三視角每張只記最近一次產生的用量。

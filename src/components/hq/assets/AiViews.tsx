@@ -6,8 +6,9 @@ import { useState, type ReactNode } from "react";
 import { buildViewPrompt } from "@/lib/prompts/cat-views";
 import {
   AI_QUALITIES, AI_SIZES, GEN_VIEWS, GEN_VIEW_LABELS, IMAGE_PRICE, imageCostUsd, QUALITY_OUTPUT_TOKENS,
-  type AiQuality, type AiSize, type CatModelView, type GenView,
+  BODY_LABELS, type AiQuality, type AiSize, type CatModelView, type GenView,
 } from "@/lib/hq/cat-models/types";
+import { formatDuration, GPU_PRICE, gpuCostUsd, gpuSummary, USD_TO_TWD } from "@/lib/hq/cat-models/cost";
 import { CAT_API, catFileUrl, postJson } from "./useCatModels";
 
 const ERRORS: Record<string, string> = {
@@ -137,32 +138,67 @@ export function AiSettingsPanel({ value, onChange }: { value: AiSettings; onChan
   );
 }
 
-/** 用量與費用清單：每張的 token 與估計費用、合計 */
-function UsagePanel({ cat }: { cat: CatModelView }) {
+/**
+ * #467 成本：AI 三視角（每張 token 與估計費用）＋GPU（產生紋理貼圖的任務次數、時間、估計費用）＋總計。
+ * 貓咪頁直接顯示；製作glb工作區收在「用量與費用清單」裡。
+ */
+export function CostPanel({ cat }: { cat: CatModelView }) {
   const rows = GEN_VIEWS.filter(v => cat.aiUsage[v]).map(v => ({ v, u: cat.aiUsage[v]!, cost: imageCostUsd(cat.aiUsage[v]!) }));
   const total = rows.reduce((s, r) => s + r.cost, 0);
+  const jobs = cat.gpuJobs ?? [];
+  const gpu = gpuSummary(jobs);
+  const all = total + gpu.usd;
+  return (
+    <>
+      <h4 className="hq-ai-sub">AI 三視角（gpt-image-2）</h4>
+      {rows.length ? (
+        <table className="hq-table hq-ai-usage">
+          <thead><tr><th>步驟</th><th>用量</th><th>估計費用</th></tr></thead>
+          <tbody>
+            {rows.map(({ v, u, cost }) => (
+              <tr key={v}>
+                <td>{GEN_VIEW_LABELS[v]}</td>
+                <td>輸入 {u.input.toLocaleString()} token{u.imageIn !== null ? `（圖片 ${u.imageIn.toLocaleString()}、文字 ${(u.textIn ?? 0).toLocaleString()}）` : ""}、輸出 {u.output.toLocaleString()} token</td>
+                <td>{fmtUsd(cost)}</td>
+              </tr>
+            ))}
+            <tr><td><strong>合計</strong></td><td>{cat.aiQuality ? `畫質：${QUALITY_LABELS[cat.aiQuality]}` : ""}</td><td><strong>{fmtUsd(total)}</strong>（約台幣 {(total * USD_TO_TWD).toFixed(1)} 元）</td></tr>
+          </tbody>
+        </table>
+      ) : <p className="hq-hint">產生完成後顯示每張照片的用量。</p>}
+      {/* 價格出處：OpenAI gpt-image-2 公開價（2026-10），Azure 實際以帳單為準；年齡判斷的聊天模型用量很小（約 US$0.0001），不列。每張只記最近一次產生的用量 */}
+      <p className="hq-hint">gpt-image-2 每百萬 token：文字輸入 US${IMAGE_PRICE.textIn}、圖片輸入 US${IMAGE_PRICE.imageIn}、圖片輸出 US${IMAGE_PRICE.output}。實際費用以 Azure 帳單為準。</p>
+
+      <h4 className="hq-ai-sub">GPU（產生紋理貼圖）</h4>
+      {jobs.length ? (
+        <table className="hq-table hq-ai-usage" aria-label="GPU 用量">
+          <thead><tr><th>體型</th><th>GPU 時間</th><th>估計費用</th></tr></thead>
+          <tbody>
+            {jobs.map((j, i) => (
+              <tr key={i}>
+                <td>{j.body ? BODY_LABELS[j.body] : "—"}{j.status === "error" ? "（失敗）" : ""}</td>
+                <td>{formatDuration(j.seconds)}</td>
+                <td>{fmtUsd(gpuCostUsd(j.seconds))}</td>
+              </tr>
+            ))}
+            <tr><td><strong>合計 {gpu.count} 次</strong></td><td>{formatDuration(gpu.seconds)}</td><td><strong>{fmtUsd(gpu.usd)}</strong>（約台幣 {(gpu.usd * USD_TO_TWD).toFixed(1)} 元）</td></tr>
+          </tbody>
+        </table>
+      ) : <p className="hq-hint">還沒有 GPU 任務紀錄。</p>}
+      {/* 價格出處見 lib/hq/cat-models/cost.ts GPU_PRICE；只算任務在 GPU 上跑的時間，VM 閒置開著也會計費 */}
+      <p className="hq-hint">{GPU_PRICE.vm}，每小時 US${GPU_PRICE.usdPerHour}（隨用隨付）；只算任務實際執行時間，VM 開著沒做事也會計費，實際以 Azure 帳單為準。</p>
+
+      <p><strong>總計：{fmtUsd(all)}</strong>（約台幣 {(all * USD_TO_TWD).toFixed(1)} 元）</p>
+    </>
+  );
+}
+
+/** 製作glb工作區：成本收在「用量與費用清單」裡 */
+function UsagePanel({ cat }: { cat: CatModelView }) {
   return (
     <details className="hq-ai-fold">
       <summary>用量與費用清單</summary>
-      <div className="hq-ai-fold-body">
-        {rows.length ? (
-          <table className="hq-table hq-ai-usage">
-            <thead><tr><th>步驟</th><th>用量</th><th>估計費用</th></tr></thead>
-            <tbody>
-              {rows.map(({ v, u, cost }) => (
-                <tr key={v}>
-                  <td>{GEN_VIEW_LABELS[v]}</td>
-                  <td>輸入 {u.input.toLocaleString()} token{u.imageIn !== null ? `（圖片 ${u.imageIn.toLocaleString()}、文字 ${(u.textIn ?? 0).toLocaleString()}）` : ""}、輸出 {u.output.toLocaleString()} token</td>
-                  <td>{fmtUsd(cost)}</td>
-                </tr>
-              ))}
-              <tr><td><strong>合計</strong></td><td>{cat.aiQuality ? `畫質：${QUALITY_LABELS[cat.aiQuality]}` : ""}</td><td><strong>{fmtUsd(total)}</strong>（約台幣 {(total * 32).toFixed(1)} 元）</td></tr>
-            </tbody>
-          </table>
-        ) : <p className="hq-hint">產生完成後顯示每張照片的用量。</p>}
-        {/* 價格出處：OpenAI gpt-image-2 公開價（2026-10），Azure 實際以帳單為準；年齡判斷的聊天模型用量很小（約 US$0.0001），不列 */}
-        <p className="hq-hint">gpt-image-2 每百萬 token：文字輸入 US${IMAGE_PRICE.textIn}、圖片輸入 US${IMAGE_PRICE.imageIn}、圖片輸出 US${IMAGE_PRICE.output}。實際費用以 Azure 帳單為準。</p>
-      </div>
+      <div className="hq-ai-fold-body"><CostPanel cat={cat} /></div>
     </details>
   );
 }

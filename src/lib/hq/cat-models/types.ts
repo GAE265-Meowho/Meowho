@@ -128,6 +128,8 @@ export interface CatModelView {
   aiPrompts: Partial<Record<GenView, { en: string; zh: string }>>;
   aiUsage: Partial<Record<GenView, { input: number; output: number; textIn: number | null; imageIn: number | null }>>;
   aiQuality: AiQuality | null;
+  /** 跑完的 GPU 任務（產生紋理貼圖，#467）：只有讀單一隻貓（Supabase）時才有；本機、示範貓沒有 */
+  gpuJobs?: import("./cost").GpuJob[];
   /** 貼圖確認（#129）：沒有時視為「有貼圖就已確認」（本機、示範貓） */
   texture?: TextureInfo;
 }
