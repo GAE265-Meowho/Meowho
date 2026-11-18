@@ -1,4 +1,4 @@
-/* 建立我家的 3D 房間（規格 09 §7.2） */
+/* 建立我家的 3D 房間（規格 09 §7.2）；safety/page.tsx 也用 .tips／.num */
 .tips { margin: 0; padding: 0; list-style: none; display: grid; gap: 14px; }
 .tips li { display: grid; grid-template-columns: 36px 1fr; gap: 12px; align-items: start; }
 .tips b { color: var(--ink); }
@@ -17,39 +17,72 @@
 .viewer :global(.hq-roomviewer-bar) { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 12px; color: var(--ink-soft); }
 
 /* 房間掃描教練（ScanCoach.tsx，搬自 3Dtest/capture_coach.html） */
-.steps { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.steps button {
-  display: grid; gap: 2px; justify-items: start; text-align: left; cursor: pointer;
-  border: 1px solid var(--line); background: var(--card); color: var(--ink); border-radius: 14px; padding: 10px 14px;
-  font: inherit; font-weight: 700;
-}
-.steps button span { font-size: 12px; font-weight: 500; color: var(--ink-soft); }
-.steps button[aria-selected="true"] { border-color: var(--orange); box-shadow: inset 0 -3px 0 var(--orange); }
-.steps button:focus-visible { outline: 2px solid var(--orange); outline-offset: 2px; }
 .map { width: 100%; height: auto; display: block; }
 .wall { fill: none; stroke: var(--ink); stroke-width: 3; }
 .furn { fill: var(--line); stroke: var(--ink-soft); stroke-width: 1; }
 .route { fill: none; stroke: var(--orange); stroke-width: 2.5; stroke-dasharray: 7 5; }
-.route2 { fill: none; stroke: var(--ink); stroke-width: 2; stroke-dasharray: 3 5; opacity: .6; }
 .fan { fill: var(--orange-soft); stroke: var(--orange); stroke-width: .8; }
-.fan2 { fill: none; stroke: var(--ink); stroke-width: .8; opacity: .55; }
 .start { fill: var(--orange); }
 .bad { stroke: #c3352b; stroke-width: 4; stroke-linecap: round; }
 .lbl { fill: var(--ink-soft); font-size: 11px; }
-.legend { margin: 0; display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13px; color: var(--ink-soft); }
-.legend i { display: inline-block; width: 18px; border-top: 2.5px dashed var(--orange); vertical-align: middle; margin-right: 6px; }
-.legend i.dot { border-top: 2px dotted var(--ink); opacity: .6; }
-.dont { display: grid; grid-template-columns: 110px 1fr; gap: 12px; align-items: center; }
-@media (max-width: 380px) { .dont { grid-template-columns: 1fr; } .dont svg { max-width: 140px; margin: 0 auto; } }
-.row { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
-.count { font-weight: 700; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+/* 拍攝教練（ScanCoach）：說明書風格的插圖、自動播放的路線動畫 */
+.body { fill: var(--ink-soft); }
+.head { fill: #f6d3b0; stroke: var(--ink); stroke-width: 1.2; }
+.phone { fill: var(--ink); }
+.limb { fill: none; stroke: var(--ink); stroke-width: 4; stroke-linecap: round; }
+.ground { stroke: var(--line); stroke-width: 2; }
+.tip { fill: var(--orange); }
+.ok { fill: none; stroke: #1d8657; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+.defs { position: absolute; }
+.coach { display: flex; flex-direction: column; gap: 28px; }
+.ready { display: flex; flex-direction: column; gap: 16px; }
+@media (min-width: 1024px) {
+  /* 電腦一頁看完：上排 8 格準備；下排左邊路線動畫，右邊上這樣拿、下別這樣拍，按鈕在右下角 */
+  .coach { display: grid; gap: 14px; grid-template-columns: 1fr 1.1fr; grid-template-areas: "prep prep" "route hold" "route dont" ". ready"; align-items: start; }
+  .routeCard, .hold, .dont { align-self: stretch; }
+  .routeCard { justify-content: center; }
+  .coach > section, .ready > section { padding: 16px; gap: 10px; }
+  .prep { grid-area: prep; } .hold { grid-area: hold; } .dont { grid-area: dont; } .routeCard { grid-area: route; } .ready { grid-area: ready; }
+  .hold .pics, .dont .pics { grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .ready { align-items: flex-end; }
+  .hold .pics svg, .dont .pics svg { height: 60px; }
+  .prep .pics { grid-template-columns: repeat(8, 1fr); gap: 8px; }
+  .hero { font-size: 1.1rem; }
+  .picCap { font-size: .8rem; }
+  .cap { font-size: 1rem; }
+  .routeCard .anim .map { height: 200px; max-height: none; width: auto; max-width: 100%; }
+}
+.hero { margin: 0; font-size: 1.5rem; font-weight: 800; color: var(--ink); }
+.pics { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+.pics li { position: relative; display: grid; gap: 4px; padding: 8px; border: 1px solid var(--line); border-radius: 14px; background: var(--card); }
+.pics svg { width: 100%; height: auto; display: block; }
+.picNum { display: inline-grid; place-items: center; width: 1.4em; height: 1.4em; margin-right: 4px; border-radius: 50%; background: var(--orange); color: #fff; font-size: .8em; vertical-align: .1em; }
+.picCap { text-align: center; font-weight: 700; color: var(--ink); }
+@media (min-width: 560px) and (max-width: 1023px) { .pics { grid-template-columns: repeat(4, 1fr); } ul.pics { grid-template-columns: repeat(3, 1fr); } }
+.line { fill: none; stroke: var(--ink); stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+.screen { fill: var(--yellow-soft); }
+.faint { opacity: .35; }
+.ray { fill: none; stroke: var(--orange); stroke-width: 2.5; stroke-linecap: round; }
+.cloth { fill: var(--orange-soft); stroke: var(--ink); stroke-width: 2; stroke-linejoin: round; }
+.hand { fill: #f6d3b0; stroke: var(--ink); stroke-width: 2; stroke-linejoin: round; }
+.lock { fill: none; stroke: #d9a300; stroke-width: 2.5; }
+.wall2 { fill: var(--line); stroke: var(--ink); stroke-width: 2; }
+.arrowLine { fill: none; stroke: var(--orange); stroke-width: 3; stroke-linecap: round; }
+.chip { font-size: 11px; font-weight: 800; fill: var(--ink); }
+.chipSoft { font-size: 9px; fill: var(--ink-soft); }
+.anim { display: grid; gap: 8px; justify-items: center; }
+.anim .map { max-height: min(50vh, 360px); }
+.titleRow { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; }
+.len { margin: 0; color: var(--ink-soft); font-size: .9rem; font-weight: 600; }
+.cap { margin: 0; min-height: 1.6em; text-align: center; font-size: 1.15rem; font-weight: 700; color: var(--ink); }
+.play { min-height: 44px; padding: 0 18px; border: 1px solid var(--line); border-radius: 999px; background: var(--card); color: var(--ink); font: inherit; font-weight: 600; cursor: pointer; }
+.play:focus-visible { outline: 2px solid var(--orange); outline-offset: 2px; }
 .check { margin: 0; padding: 0; list-style: none; display: grid; }
 .check label, .check p { display: grid; grid-template-columns: 22px 1fr; gap: 10px; align-items: start; margin: 0; padding: 10px 0; border-bottom: 1px solid var(--line); color: var(--ink); cursor: pointer; }
 .check p { grid-template-columns: 1fr; cursor: default; }
 .check li:last-child label, .check li:last-child p { border-bottom: 0; }
 .check input { width: 18px; height: 18px; margin: 3px 0 0; accent-color: var(--orange); }
 .check small { display: block; color: var(--ink-soft); font-size: 13px; font-weight: 400; }
-.mantra { margin: 0; padding: 14px; border-radius: 16px; background: var(--orange-soft); color: var(--ink); font-size: 18px; font-weight: 700; text-align: center; text-wrap: balance; }
 .spec { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 .spec div { display: grid; gap: 2px; padding: 10px; border: 1px solid var(--line); border-radius: 12px; min-width: 0; }
 .spec b { font-size: 17px; color: var(--ink); }
