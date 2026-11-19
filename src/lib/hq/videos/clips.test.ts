@@ -14,16 +14,16 @@ describe("前導影片：產生影片", () => {
     }
   });
 
-  it("清單只有 AI 生成的 26 格，系統錄影與字卡不列", () => {
-    expect(clipSections().flatMap(s => s.items)).toHaveLength(26);
+  it("清單只有 AI 生成的 25 格，系統錄影與字卡不列", () => {
+    expect(clipSections().flatMap(s => s.items)).toHaveLength(25);
     expect(clipSections().flatMap(s => s.items).every(i => i.frame.make === "ai")).toBe(true);
   });
 
-  it("全片時間軸連續：鏡頭首尾相接，最後一鏡在 4:40 結束（#507）", () => {
+  it("全片時間軸連續：鏡頭首尾相接，最後一鏡在 3:00 結束（#515）", () => {
     const toSec = (t: string) => { const [m, x] = t.split(":").map(Number); return m * 60 + x; };
     const all = SHOT_SECTIONS.flatMap(s => s.shots);
     for (let i = 1; i < all.length; i++) expect(all[i].time.split("–")[0], `鏡 ${all[i].no}`).toBe(all[i - 1].time.split("–")[1]);
-    expect(toSec(all[all.length - 1].time.split("–")[1])).toBe(280);
+    expect(toSec(all[all.length - 1].time.split("–")[1])).toBe(180);
     for (const sec of SHOT_SECTIONS) expect(sec.range, sec.key).toBe(`${sec.shots[0].time.split("–")[0]}–${sec.shots[sec.shots.length - 1].time.split("–")[1]}`);
   });
 
@@ -32,12 +32,12 @@ describe("前導影片：產生影片", () => {
     expect(shotSeconds(s1)).toBe(6); // 0:00–0:06
     expect(clipLength(s1)).toEqual({ cut: 6, generate: 10 });
     expect(clipLength(shots[1])).toEqual({ cut: 4, generate: 5 }); // 鏡 2 0:06–0:10（#507）
-    const s6 = shots[5]; // 0:45–0:55，兩格（原鏡 7）
-    expect(clipLength(s6)).toEqual({ cut: 5, generate: 5 });
-    const s12 = shots[11]; // 1:55–2:02（原鏡 13）
-    expect(clipLength(s12)).toEqual({ cut: 7, generate: 10 });
-    const s17 = shots[16]; // 2:48–3:00，只有 1 格 AI（原鏡 18）
-    expect(clipLength(s17)).toEqual({ cut: 12, generate: 15 });
+    const s5 = shots[4]; // 0:26–0:34，兩格
+    expect(clipLength(s5)).toEqual({ cut: 4, generate: 5 });
+    const s9 = shots[8]; // 0:56–1:06，查資料＋看電線兩格
+    expect(clipLength(s9)).toEqual({ cut: 5, generate: 5 });
+    const s14 = shots[13]; // 1:37–1:45，只有 1 格 AI
+    expect(clipLength(s14)).toEqual({ cut: 8, generate: 10 });
   });
 
   it("圖生影片 prompt 有起始畫面檔名、依序的參考圖、動作與運鏡", () => {
@@ -52,6 +52,6 @@ describe("前導影片：產生影片", () => {
   });
 
   it("非 AI 的格子沒有圖生影片 prompt", () => {
-    expect(motionPrompt(shots[6].frames[0])).toBe(""); // 鏡 7 字卡／螢幕錄影
+    expect(motionPrompt(shots[5].frames[0])).toBe(""); // 鏡 6 群組分割畫面（動態設計，非 AI）
   });
 });

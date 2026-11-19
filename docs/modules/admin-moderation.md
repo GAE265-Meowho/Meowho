@@ -105,6 +105,7 @@ MeowHQ（`/MeowHQ`，取代舊隱藏後台）開發中：階段 0（#18）、db�
 - **改母體的順序**：改 `stepB`／`stepC` → 在 Meow 用 Blender 5.2 跑 B、C（PowerShell 指令前要加 `&`）→ 複製 `base_clips.glb` 到 repo `public/hq-cat-models/base/` → 跑 `eat_drink.mjs` → 成貓再上傳 Storage。直接從 Blender 匯出會蓋掉 eat／drink 的修改；只換單一動作用 `scripts/clips/splice_clip.py`。
 
 ## 決策
+- 2026-11-19｜#515：前導影片縮為約 3:00（26 顆鏡頭、旁白 25 句 n01–n25）。分鏡圖代號（s01…s30）是存檔路徑，不跟著重新編號；刪掉的 s06、s09 不再列出，已上傳的檔案留在儲存區不刪。原 s10（搜尋）與 s13（看電線）合併成新鏡 9 的兩格。
 - 2026-11-19｜#513：分鏡表編修只存改動（0041），原稿仍在 `trailer.ts`；鏡頭用穩定代號（第一格分鏡圖代號去掉序號，例 s07），重新編號也不會掉。頁面編修不會自動寫回 `docs/video` 與下載的 .md，定稿前用「匯出編修」同步。
 - 2026-11-19｜#504：旁白另外用 TTS 做，不用影片工具自帶的聲音；兩個角色各固定一組聲音規格（存 0039，保留歷史）。旁白音檔與影片共用 `/api/hq/trailer-videos`：格 n01–n27 收 MP3／WAV／M4A，其他格收影片。`NARRATION` 加 `shots`（每句落在哪幾鏡）。
 - 2026-11-18｜#501：完成的影片存 Azure Blob 私有容器（決策 006），路徑 `videos/trailer/<格>/<UTC 時間戳>.<副檔名>`，格＝full、四段代號、AI 片段 id；不建資料表，列出資料夾得知版本。`/api/hq/trailer-videos` GET 列版本並簽 1 小時播放／下載網址、POST 檢查（MP4／WebM／MOV、1 GB 內）後簽 15 分鐘上傳網址，瀏覽器直接 PUT。權限繼承影片頁（`meow_is_admin`）。不開放刪除（舊版保留）。**課程 Azure 額度 11/29 到期，最終版要另外備份。**
@@ -156,6 +157,7 @@ ole === "admin" 判斷管理員，而現有 admin 會升為 system_admin；舊�
 | 2026-10-28 | Tina × Cursor | MeowHQ 階段 0：`src/lib/hq/types.ts` 與測試（8 種處置含 `unban`）、0002 資料表草案 | #18 |
 | 2026-10-29 | Tina × Cursor | MeowHQ 階段 1 db：`0002_meow_hq.sql`、`supabase/tests/`（SQL 測試與本機執行器） | #19 |
 | 2026-11-04 | Tina × Claude Code | MeowHQ 新增「貓戶管理」模組：依類別查看貓戶、貓咪卡片；0020 授權現有管理員 | #179 |
+| 2026-11-19 | Tina × Claude Code | 前導影片縮為約 3 分鐘：刪原鏡 5、原鏡 8，小傑線改為晚上查養貓注意事項後低頭看腳邊電線（新鏡 9），全片 26 鏡、旁白 25 句；分鏡卡寬螢幕時 prompt 移到圖片右側（#515） |
 | 2026-11-19 | Tina × Claude Code | 分鏡表畫面／旁白字幕／音效可在頁面編修、每格新增中文 prompt 補充與「複製中英文 prompt（給 AI agent）」、匯出編修；影片 tab 的畫面也套用編修；`docs/video` 說明中英文 prompt 一起給 AI agent；修阿芳家定景說明的鏡號（16→15） | #513 |
 | 2026-11-19 | Tina × Claude Code | 場景一縮短：鏡 2 改 0:06–0:10，其後鏡頭、段落、概要時間整批提前 20 秒（全片約 4:40）；測試檢查時間軸首尾相接 | #507 |
 | 2026-11-19 | Tina × Claude Code | 「前導影片：配音」tab（`?tab=trailer-voice`）：兩個角色聲音規格（0039）、27 句旁白音檔 n01–n27（Azure，同 `/api/hq/trailer-videos`）；影片 tab 加「生成時關掉聲音」提醒，圖生影片 prompt 加 Audio 指示；修 #501 API 測試型別錯誤 | #504 |

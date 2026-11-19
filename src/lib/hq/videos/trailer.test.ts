@@ -7,27 +7,28 @@ import {
 const shots = SHOT_SECTIONS.flatMap(s => s.shots);
 
 describe("前導影片 v3 分鏡資料", () => {
-  it("29 顆鏡頭依序編號，每顆至少一格分鏡圖", () => {
-    expect(shots.map(s => s.no)).toEqual(Array.from({ length: 29 }, (_, i) => i + 1));
+  it("26 顆鏡頭依序編號，每顆至少一格分鏡圖（#515 縮為 3 分鐘）", () => {
+    expect(shots.map(s => s.no)).toEqual(Array.from({ length: 26 }, (_, i) => i + 1));
     for (const s of shots) expect(s.frames.length).toBeGreaterThan(0);
   });
 
-  it("同一鏡有多格時，每格標籤都是「鏡號-序號 畫面」（例：6-1 拍小橘吃飯）", () => {
+  it("同一鏡有多格時，每格標籤都是「鏡號-序號 畫面」（例：5-1 拍小橘吃飯）", () => {
     for (const s of shots.filter(x => x.frames.length > 1)) {
       s.frames.forEach((f, i) => expect(f.label, f.id).toMatch(new RegExp(`^${s.no}-${i + 1} \\S`)));
     }
-    expect(shots[5].frames.map(f => f.label)).toEqual(["6-1 拍小橘吃飯", "6-2 吹風機嚇到"]);
+    expect(shots[4].frames.map(f => f.label)).toEqual(["5-1 拍小橘吃飯", "5-2 吹風機嚇到"]);
+    expect(shots[8].frames.map(f => f.label)).toEqual(["9-1 查養貓注意事項", "9-2 看腳邊電線"]);
   });
 
-  it("需要產生 34 格：AI 生成 26、系統錄影截圖 5、剪輯字卡 3", () => {
-    expect(frameCounts()).toEqual({ ai: 26, record: 5, edit: 3, total: 34 });
+  it("需要產生 32 格：AI 生成 25、系統錄影截圖 5、剪輯字卡 2", () => {
+    expect(frameCounts()).toEqual({ ai: 25, record: 5, edit: 2, total: 32 });
   });
 
   it("每一格上傳的代號都不重複，且只用小寫英數與減號（存檔路徑用）", () => {
     const ids = allSlotIds();
     expect(new Set(ids).size).toBe(ids.length);
     for (const id of ids) expect(id).toMatch(/^[a-z0-9-]+$/);
-    expect(ids).toHaveLength(CHARACTERS.length + SCENES.length + 34);
+    expect(ids).toHaveLength(CHARACTERS.length + SCENES.length + 32);
   });
 
   it("每一格 AI 分鏡都有參考圖，最多 4 張，而且都是存在的定角／定景；非 AI 的格子沒有參考圖", () => {
@@ -45,8 +46,8 @@ describe("前導影片 v3 分鏡資料", () => {
 
   it("每張定角／定景至少用在一顆鏡頭；用在哪些鏡頭由 refs 算出", () => {
     for (const r of [...CHARACTERS, ...SCENES]) expect(usedInShots(r.id).length, r.id).toBeGreaterThan(0);
-    expect(usedInShots("char-couple")).toEqual([10, 13]);
-    expect(usedInShots("scene-couple-home")).toEqual([11, 13]);
+    expect(usedInShots("char-couple")).toEqual([7, 10]);
+    expect(usedInShots("scene-couple-home")).toEqual([8, 10]);
   });
 
   it("旁白只有小橘與小傑兩個聲線", () => {
@@ -64,8 +65,8 @@ describe("前導影片 v3 分鏡資料", () => {
     expect(p2).toContain("Image 2 = scene-afang-home.webp: Afang's ground-floor apartment");
     expect(p2).toContain(s2.frames[0].prompt);
     expect(refFileName("scene-studio")).toBe("scene-studio.webp");
-    const s7 = shots[6]; // 鏡 7 字卡／螢幕錄影（非 AI）
-    expect(fullPrompt(s7.frames[0], s7.line)).toBe(s7.frames[0].prompt);
+    const s6 = shots[5]; // 鏡 6 群組分割畫面（非 AI）
+    expect(fullPrompt(s6.frames[0], s6.line)).toBe(s6.frames[0].prompt);
   });
 });
 
@@ -90,7 +91,7 @@ describe("上傳與進度", () => {
     expect(p).toEqual({
       characters: { done: 0, total: 4 },
       scenes: { done: 1, total: 3 },
-      frames: { done: 1, total: 34 },
+      frames: { done: 1, total: 32 },
     });
   });
 

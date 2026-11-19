@@ -1,85 +1,101 @@
 {
-  "generatedAt": "2026/11/18 09:11:45",
+  "generatedAt": "2026/11/19 11:46:14",
   "pages": {
     "home": {
-      "updatedBy": "ZING15",
-      "versionDate": "2026/11/17 23:30:00"
+      "updatedBy": "captainCYC",
+      "versionDate": "2026/11/14 16:02:01"
+    },
+    "flows": {
+      "updatedBy": "Claude",
+      "versionDate": "2026/11/18 09:50:17"
+    },
+    "videos/trailer": {
+      "updatedBy": "Claude",
+      "versionDate": "2026/11/19 11:30:21"
+    },
+    "videos/trailer-voice": {
+      "updatedBy": "Claude",
+      "versionDate": "2026/11/19 00:11:13"
+    },
+    "videos/trailer-clips": {
+      "updatedBy": "Claude",
+      "versionDate": "2026/11/19 11:30:21"
     },
     "households": {
-      "updatedBy": "ZING15",
-      "versionDate": "2026/11/17 23:30:00"
+      "updatedBy": "captainCYC",
+      "versionDate": "2026/11/14 16:02:01"
     },
     "reports": {
-      "updatedBy": "ZING15",
-      "versionDate": "2026/11/17 23:30:00"
+      "updatedBy": "captainCYC",
+      "versionDate": "2026/11/14 16:02:01"
     },
     "users": {
-      "updatedBy": "ZING15",
-      "versionDate": "2026/11/17 23:30:00"
+      "updatedBy": "captainCYC",
+      "versionDate": "2026/11/14 16:02:01"
     },
     "products": {
-      "updatedBy": "ZING15",
-      "versionDate": "2026/11/17 23:30:00"
+      "updatedBy": "captainCYC",
+      "versionDate": "2026/11/14 16:02:01"
     },
     "knowledge": {
-      "updatedBy": "ZING15",
-      "versionDate": "2026/11/17 23:30:00"
+      "updatedBy": "captainCYC",
+      "versionDate": "2026/11/14 16:02:01"
     },
     "admin/auth": {
-      "updatedBy": "ZING15",
-      "versionDate": "2026/11/17 23:30:00"
+      "updatedBy": "captainCYC",
+      "versionDate": "2026/11/14 16:02:01"
     },
     "admin/audit": {
-      "updatedBy": "ZING15",
-      "versionDate": "2026/11/17 23:30:00"
+      "updatedBy": "captainCYC",
+      "versionDate": "2026/11/14 16:02:01"
     },
     "admin/stats": {
-      "updatedBy": "ZING15",
-      "versionDate": "2026/11/17 23:30:00"
+      "updatedBy": "captainCYC",
+      "versionDate": "2026/11/14 16:02:01"
     },
     "admin/settings": {
       "updatedBy": "ZING15",
-      "versionDate": "2026/11/17 23:30:00"
+      "versionDate": "2026/11/16 15:24:59"
     },
     "assets/cats": {
-      "updatedBy": "ZING15",
-      "versionDate": "2026/11/17 23:30:00"
+      "updatedBy": "Claude",
+      "versionDate": "2026/11/18 09:42:41"
     },
     "assets/rooms": {
-      "updatedBy": "ZING15",
-      "versionDate": "2026/11/17 23:30:00"
+      "updatedBy": "Claude",
+      "versionDate": "2026/11/18 09:12:25"
     },
     "assets/rooms-video": {
-      "updatedBy": "ZING15",
-      "versionDate": "2026/11/17 23:30:00"
+      "updatedBy": "captainCYC",
+      "versionDate": "2026/11/14 16:02:01"
     },
     "assets/rooms-polaroid": {
-      "updatedBy": "ZING15",
-      "versionDate": "2026/11/17 23:30:00"
+      "updatedBy": "captainCYC",
+      "versionDate": "2026/11/14 16:02:01"
     },
     "assets/rooms-floorplan": {
-      "updatedBy": "ZING15",
-      "versionDate": "2026/11/17 23:30:00"
+      "updatedBy": "Claude",
+      "versionDate": "2026/11/18 09:12:25"
     },
     "assets/food": {
-      "updatedBy": "ZING15",
-      "versionDate": "2026/11/17 23:30:00"
+      "updatedBy": "captainCYC",
+      "versionDate": "2026/11/14 16:02:01"
     },
     "assets/items": {
-      "updatedBy": "ZING15",
-      "versionDate": "2026/11/17 23:30:00"
+      "updatedBy": "captainCYC",
+      "versionDate": "2026/11/14 16:02:01"
     },
     "assets/sounds": {
-      "updatedBy": "ZING15",
-      "versionDate": "2026/11/17 23:30:00"
+      "updatedBy": "Claude",
+      "versionDate": "2026/11/17 22:08:23"
     },
     "assets/others": {
-      "updatedBy": "ZING15",
-      "versionDate": "2026/11/17 23:30:00"
+      "updatedBy": "captainCYC",
+      "versionDate": "2026/11/14 16:02:01"
     },
     "assets/experience": {
-      "updatedBy": "ZING15",
-      "versionDate": "2026/11/17 23:30:00"
+      "updatedBy": "somebabyTina",
+      "versionDate": "2026/11/16 11:57:20"
     }
   }
 }

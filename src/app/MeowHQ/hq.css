@@ -742,6 +742,13 @@
   .hq-video-shot > header { grid-column: 1 / -1; }
   .hq-video-frames { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
 }
+/* #515：分鏡卡每格一列；寬螢幕時圖片＋參照在左、英文／中文 prompt 與複製鈕在右 */
+.hq-video-framebody, .hq-video-framemedia, .hq-video-frametext { display: flex; flex-direction: column; gap: .4rem; min-width: 0; }
+@media (min-width: 960px) {
+  .hq-video-shot .hq-video-frames { grid-template-columns: minmax(0, 1fr); }
+  .hq-video-framebody { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: .75rem; align-items: start; }
+  .hq-video-frametext .hq-btn { align-self: flex-start; }
+}
 /* 前導影片參考圖（#491）：prompt 換行照原樣顯示；每格分鏡列出要掛的定角／定景 */
 .hq-video-prompt p { white-space: pre-line; }
 .hq-video-file { font-size: .8rem; background: var(--hq-bg); border-radius: 6px; padding: .05rem .4rem; overflow-wrap: anywhere; }
