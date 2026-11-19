@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   CHARACTERS, FRAME_REFS, NARRATION, SCENES, SHOT_SECTIONS, allSlotIds, refFileName, usedInShots, fitWithin, frameCounts, frameStoragePath,
-  fullPrompt, latestBySlot, uploadProgress, validateFrameFile,
+  fullPrompt, isFrameFileName, latestBySlot, uploadProgress, validateFrameFile, withoutVersion,
 } from "./trailer";
 
 const shots = SHOT_SECTIONS.flatMap(s => s.shots);
@@ -81,9 +81,23 @@ describe("上傳與進度", () => {
       "s99__20261118070000.webp", "notes.txt", "s01__bad.webp",
     ]);
     expect(got).toEqual({
-      s01: { name: "s01__20261118090000.webp", versions: 2 },
-      "char-xiaoju": { name: "char-xiaoju__20261118070000.webp", versions: 1 },
+      s01: { name: "s01__20261118090000.webp", versions: 2, all: ["s01__20261118090000.webp", "s01__20261118080000.webp"] },
+      "char-xiaoju": { name: "char-xiaoju__20261118070000.webp", versions: 1, all: ["char-xiaoju__20261118070000.webp"] },
     });
+  });
+
+  it("刪掉一版後，最新版換成下一版；刪光就沒有這一格（#547）", () => {
+    const u = latestBySlot(["s01__20261118080000.webp", "s01__20261118090000.webp"]);
+    expect(withoutVersion(u, "s01__20261118090000.webp").s01).toEqual({ name: "s01__20261118080000.webp", versions: 1, all: ["s01__20261118080000.webp"] });
+    expect(withoutVersion(withoutVersion(u, "s01__20261118090000.webp"), "s01__20261118080000.webp").s01).toBeUndefined();
+  });
+
+  it("只有分鏡格自己的檔名可以刪（#547）", () => {
+    expect(isFrameFileName("s18__20261119063730.webp")).toBe(true);
+    expect(isFrameFileName("char-afang__20261118124127.webp")).toBe(true);
+    expect(isFrameFileName("../s18__20261119063730.webp")).toBe(false);
+    expect(isFrameFileName("s99__20261119063730.webp")).toBe(false);
+    expect(isFrameFileName("s18__20261119063730.png")).toBe(false);
   });
 
   it("進度分定角、定景、分鏡圖三類", () => {

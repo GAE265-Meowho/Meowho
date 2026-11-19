@@ -705,6 +705,9 @@
 .hq-video-ref .hq-h3 { margin: 0; }
 .hq-video-slot { display: flex; flex-direction: column; gap: .4rem; }
 .hq-video-slot .hq-error { margin: 0; }
+.hq-video-versions { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: .5rem; }
+.hq-video-versions li { display: flex; flex-direction: column; align-items: flex-start; gap: .2rem; width: 112px; }
+.hq-video-versions img { width: 112px; aspect-ratio: 16 / 9; object-fit: cover; border: 1px solid var(--hq-line); border-radius: 6px; display: block; }
 .hq-video-frame { position: relative; border-radius: 8px; overflow: hidden; background: var(--hq-bg); border: 1px dashed var(--hq-line); display: grid; place-items: center; }
 .hq-video-frame.wide { aspect-ratio: 16 / 9; }
 .hq-video-frame.square { aspect-ratio: 4 / 3; }
