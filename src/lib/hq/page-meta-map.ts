@@ -16,6 +16,8 @@ export const HQ_PAGE_META_PATHS = {
   "videos/trailer": [
     "src/app/MeowHQ/videos",
     "src/components/hq/videos/TrailerBoard.tsx",
+    "src/components/hq/videos/ScriptEdits.tsx",
+    "src/lib/hq/videos/script-edits.ts",
     "src/lib/hq/videos/trailer.ts",
     "src/lib/hq/videos/trailer.test.ts",
     "docs/video",

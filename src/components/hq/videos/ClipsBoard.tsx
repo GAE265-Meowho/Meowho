@@ -10,6 +10,8 @@ import { VIDEO_AUDIO_RULE } from "@/lib/hq/videos/voice";
 import { GenLogButton, useGenLogs } from "./GenLog";
 import { DownloadRef, Prompt, RefChips, useCopy, useTrailerUploads, type SlotProps } from "./TrailerBoard";
 import { TrailerVideosNotice, VideoSlot, useTrailerVideos, type TrailerVideosState } from "./TrailerVideos";
+import { useScriptEdits, type ScriptEditsState } from "./ScriptEdits";
+import { shotValue } from "@/lib/hq/videos/script-edits";
 
 const LINE_LABEL: Record<string, string> = { 貓: "貓線", 人: "人線", 匯: "匯聚", 產品: "產品" };
 
@@ -18,6 +20,7 @@ export function ClipsBoard() {
   const copy = useCopy();
   const genLogs = useGenLogs();
   const videos = useTrailerVideos();
+  const edits = useScriptEdits();
   const sections = clipSections();
   const items = sections.flatMap(s => s.items);
   const clipsDone = items.filter(i => videos.videos[i.frame.id]?.length).length;
@@ -63,7 +66,7 @@ export function ClipsBoard() {
           </div>
           <h3 className="hq-h3">片段</h3>
           <div className="hq-video-clips">
-            {sec.items.map(item => <ClipCard key={item.frame.id} item={item} urlOf={urlOf} copy={copy} videos={videos} />)}
+            {sec.items.map(item => <ClipCard key={item.frame.id} item={item} urlOf={urlOf} copy={copy} videos={videos} edits={edits} />)}
           </div>
         </section>
       ))}
@@ -71,7 +74,7 @@ export function ClipsBoard() {
   );
 }
 
-function ClipCard({ item, urlOf, copy, videos }: { item: ClipItem; urlOf: SlotProps["urlOf"]; copy: (t: string) => void; videos: TrailerVideosState }) {
+function ClipCard({ item, urlOf, copy, videos, edits }: { item: ClipItem; urlOf: SlotProps["urlOf"]; copy: (t: string) => void; videos: TrailerVideosState; edits: ScriptEditsState }) {
   const { shot, frame, cut, generate } = item;
   const url = urlOf(frame.id);
   const title = videoSlotLabel(frame.id);
@@ -95,7 +98,7 @@ function ClipCard({ item, urlOf, copy, videos }: { item: ClipItem; urlOf: SlotPr
           </div>
           <dl className="hq-video-shotinfo">
             <div><dt>建議生成</dt><dd>{generate} 秒</dd></div>
-            <div><dt>畫面</dt><dd>{shot.picture}</dd></div>
+            <div><dt>畫面</dt><dd>{shotValue(shot, "picture", edits.eff)}</dd></div>
           </dl>
           <RefChips refs={frame.refs} urlOf={urlOf} />
           <Prompt text={motionPrompt(frame)} copy={copy} title="圖生影片 prompt（動作與運鏡）" />
