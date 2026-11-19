@@ -11,7 +11,8 @@
 - 前導影片鏡 2 小橘心聲加長、每鏡不超過 10 秒（Tina × Claude Code，#517）：PR #518 已合併，完成。
 - 前導影片鏡 27 小傑坐沙發抱小橘、家具位置對齊套房定景（Tina × Claude Code，#524）：PR #525 已合併，完成。
 - 前導影片腳本 v4：鏡 2 旁白採珮瑜修改版、圖生影片 prompt 對齊（Tina × Claude Code，#526）：PR #527 已合併，完成。
-- 前導影片鏡 5-2 夜間吹風機、小橘躲進貓床、prompt 去衝突（Tina × Claude Code，#530）：分支 `feat/530-shot5-dryer`，審查中。
+- 前導影片鏡 5-2 夜間吹風機、小橘躲進貓床、prompt 去衝突（Tina × Claude Code，#530）：PR #531 已合併，完成。
+- 前導影片：影片不預先載入，按下播放才載入（Tina × Claude Code，#532）：分支 `feat/532-video-click-to-play`，審查中。
 
 - AI 居家安全報告首屏與圖片載入（Jerry0808 × Codex）：分支 `codex/home-safety-report-ux`，審查中。沿用 #273 報告授權；待驗收 Preview 的真實 Owner 登入及 Azure 延遲。
 
