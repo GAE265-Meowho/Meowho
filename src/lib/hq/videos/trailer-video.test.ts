@@ -10,6 +10,7 @@ describe("前導影片的影片檔（#501）", () => {
     expect(s.filter(x => x.kind === "section").map(x => x.id)).toEqual(["opening", "cross", "product", "ending"]);
     expect(s.filter(x => x.kind === "clip")).toHaveLength(26);
     expect(s.filter(x => x.kind === "voice")).toHaveLength(25);
+    expect(s.filter(x => x.kind === "rec")).toHaveLength(10); // 第三段系統錄影（#529）
     expect(isVideoSlot("s07-2")).toBe(true);
     expect(isVideoSlot("s08")).toBe(false); // 字卡不用生成
     expect(isVideoSlot("../x")).toBe(false);
@@ -46,6 +47,8 @@ describe("前導影片的影片檔（#501）", () => {
 
   it("顯示名稱", () => {
     expect(videoSlotLabel("full")).toBe("完整版");
+    expect(videoSlotLabel("rec-find")).toBe("鏡 16 系統錄影 幫我找貓");
+    expect(trailerVideoPath("rec-play", "video/mp4", new Date("2026-11-19T08:00:00Z"))).toBe("videos/trailer/rec-play/20261119080000.mp4");
     expect(videoSlotLabel("opening")).toBe("第一段遺棄開場");
     expect(videoSlotLabel("s07-1")).toBe("鏡 5-1 拍小橘吃飯");
     expect(videoSlotLabel("s01")).toBe("鏡 1");

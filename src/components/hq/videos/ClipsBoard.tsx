@@ -2,11 +2,13 @@
 /* eslint-disable @next/next/no-img-element */
 // 前導影片：影片（#493 產生影片 → #501 改以影片為主）。
 // 最上方完整影片；每一段有段落影片與 (P) 生成紀錄；每格 AI 分鏡一張卡，主角是片段影片，
-// 圖生影片要用的起始畫面、參考圖、prompt 收在「生成素材」摺疊區。系統錄影與剪輯字卡不用生成，不列。
+// 圖生影片要用的起始畫面、參考圖、prompt 收在「生成素材」摺疊區。剪輯字卡不用生成，不列。
+// 第三段另有「系統錄影」（#529）：scripts/trailer-rec 在正式站照分鏡錄的真實產品畫面，剪輯與 AI 生圖時當參考。
 import { NEGATIVE_PROMPT, clipSections, motionPrompt, startFrameFileName, type ClipItem } from "@/lib/hq/videos/clips";
 import { frameCounts } from "@/lib/hq/videos/trailer";
 import { videoSlotLabel } from "@/lib/hq/videos/trailer-video";
 import { VIDEO_AUDIO_RULE } from "@/lib/hq/videos/voice";
+import { REC_CLIPS } from "@/lib/hq/videos/rec-clips";
 import { GenLogButton, useGenLogs } from "./GenLog";
 import { DownloadRef, Prompt, RefChips, useCopy, useTrailerUploads, type SlotProps } from "./TrailerBoard";
 import { TrailerVideosNotice, VideoSlot, useTrailerVideos, type TrailerVideosState } from "./TrailerVideos";
@@ -68,9 +70,32 @@ export function ClipsBoard() {
           <div className="hq-video-clips">
             {sec.items.map(item => <ClipCard key={item.frame.id} item={item} urlOf={urlOf} copy={copy} videos={videos} edits={edits} />)}
           </div>
+          {sec.key === "product" && <RecClips videos={videos} />}
         </section>
       ))}
     </div>
+  );
+}
+
+/** 第三段的系統錄影：每支一格，標出是哪一鏡、誰的畫面 */
+function RecClips({ videos }: { videos: TrailerVideosState }) {
+  const done = REC_CLIPS.filter(c => videos.videos[c.id]?.length).length;
+  return (
+    <>
+      <h3 className="hq-h3">系統錄影<span className="hq-sub">（{done}／{REC_CLIPS.length}）</span></h3>
+      <div className="hq-video-clips">
+        {REC_CLIPS.map(c => (
+          <article key={c.id} className="hq-video-clip" aria-label={videoSlotLabel(c.id)}>
+            <header className="hq-row">
+              <h4 className="hq-h3">鏡 {c.shot}・{c.title}</h4>
+              <span className="hq-sub">{c.who}的畫面</span>
+            </header>
+            <VideoSlot slot={c.id} label={videoSlotLabel(c.id)} state={videos} emptyText="系統錄影還沒上傳" />
+            <p className="hq-sub">{c.note}</p>
+          </article>
+        ))}
+      </div>
+    </>
   );
 }
 

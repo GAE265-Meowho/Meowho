@@ -2,6 +2,7 @@
 // 路徑：videos/trailer/<格>/<UTC 時間戳>.<副檔名>；同一格重傳是新的一版，畫面預設播最新版。不另建資料表，靠列出資料夾得知有哪些版本。
 import { SHOT_SECTIONS, type SectionKey } from "./trailer";
 import { VOICE_LINES, speakerName } from "./voice";
+import { REC_CLIPS, recClip } from "./rec-clips";
 
 export const TRAILER_VIDEO_PREFIX = "videos/trailer/";
 /** 單檔上限：瀏覽器直傳 Azure（單次 PUT），完整影片 1080p 5 分鐘通常在數百 MB 內 */
@@ -22,15 +23,16 @@ export const TRAILER_AUDIO_MIME: Record<string, string> = {
   "audio/x-m4a": "m4a",
 };
 
-export type VideoSlotKind = "full" | "section" | "clip" | "voice";
+export type VideoSlotKind = "full" | "section" | "clip" | "voice" | "rec";
 
-/** 可以放影片的格：完整影片、四段、每一格 AI 分鏡（片段） */
+/** 可以放影片的格：完整影片、四段、每一格 AI 分鏡（片段）、旁白、第三段的系統錄影（#529） */
 export function videoSlots(): { id: string; kind: VideoSlotKind }[] {
   return [
     { id: "full", kind: "full" as const },
     ...SHOT_SECTIONS.map(s => ({ id: s.key as string, kind: "section" as const })),
     ...SHOT_SECTIONS.flatMap(s => s.shots.flatMap(sh => sh.frames.filter(f => f.make === "ai").map(f => ({ id: f.id, kind: "clip" as const })))),
     ...VOICE_LINES.map(l => ({ id: l.id, kind: "voice" as const })),
+    ...REC_CLIPS.map(c => ({ id: c.id, kind: "rec" as const })),
   ];
 }
 
@@ -80,6 +82,8 @@ export function groupTrailerVideos(paths: readonly string[]): Record<string, Vid
 /** 每一格的顯示名稱：完整版、第一段遺棄開場、鏡 7-1 拍小橘吃飯、鏡 1 */
 export function videoSlotLabel(slot: string): string {
   if (slot === "full") return "完整版";
+  const rec = recClip(slot);
+  if (rec) return `鏡 ${rec.shot} 系統錄影 ${rec.title}`;
   const line = VOICE_LINES.find(l => l.id === slot);
   if (line) return `旁白 ${slot} ${speakerName(line.speaker)}`;
   const sec = SHOT_SECTIONS.find(s => s.key === slot);
