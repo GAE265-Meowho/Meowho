@@ -252,13 +252,13 @@ export async function processMeowhoJob(options:{
    },
    async fail(_job,stage,error){
     if(!owns())return false;
-    const observed=error as {code?:string;diagnostics?:{error_type:string|null}[]};
+    const observed=error as {code?:string;retryable?:false;diagnostics?:{error_type:string|null}[]};
     const errors=new Set(observed?.diagnostics?.map(entry=>entry.error_type));
     const code=observed?.code??'';
     const mapped=failureCodes.has(code)?code:errors.has('credentials')?'permission_denied':
      errors.has('quota')?'rate_limited':errors.has('timeout')?'timeout':errors.has('provider_unavailable')?'service_unavailable':
      errors.has('configuration')||errors.has('disabled')?'config_error':stage==='analysis'&&!observed?.diagnostics?'config_error':'result_invalid';
-    return finish('meow_env_fail',{p_code:mapped,p_detail:`${stage}: ${mapped}`,p_retryable:retryable.has(mapped)&&claim.attempt<3});
+    return finish('meow_env_fail',{p_code:mapped,p_detail:`${stage}: ${mapped}`,p_retryable:observed?.retryable!==false&&retryable.has(mapped)&&claim.attempt<3});
    },
    async save(){throw new MeowhoError('config_error');},
    async complete(){throw new MeowhoError('config_error');},

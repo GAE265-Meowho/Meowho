@@ -104,7 +104,7 @@ test('unattempted edits stay in the compact action list instead of creating empt
  assert.doesNotMatch(html,/<article class="comparison">|BEFORE｜|data:image/);
 });
 
-test('distinct targets can exceed three edits; valid new four-image cases are published without human review',async()=>{
+test('all three concurrency settings preserve case indices and report contracts',async t=>{
  const preview=process.env.WELFARELENS_QA_PDF_DIR;
  const dir=preview??await mkdtemp(join(tmpdir(),'wl-professional-'));
  if(preview)await mkdir(dir,{recursive:true});
@@ -127,19 +127,73 @@ test('distinct targets can exceed three edits; valid new four-image cases are pu
   ].map(o=>({...o,observation:'離線測試圖樣，僅驗證版面及證據關聯。',unknown:['沒有真實居家判斷。']}));
   const {risk,visual,input}=setup(hash,'azure',extra);
   assert.equal(planVisualCases(risk,visual).filter(c=>c.reason==='selected').length,6);
-  let calls=0,active=0,peak=0;
-  const generated=await renderVideoAfter(risk,visual,dir,{url:'unused',key:'unused',deployment:'test-editor'},signal,async(_config,_image,_prompt,_size,_signal,_fetch,quality)=>{
-   assert.equal(quality,'high');
-   const ordinal=++calls;
-   peak=Math.max(peak,++active);
-   const file=join(dir,`mock-${ordinal}.png`);
-   await command(ffmpeg,['-v','error','-y','-i',ppm,'-vf',`drawbox=x=270:y=130:w=105:h=84:color=0x${ordinal}0aa80:t=fill`,'-frames:v','1','-threads','1',file],signal);
-   const png=await readFile(file);
-   active--;
-   return {ok:true,png,encoded:png.toString('base64'),width:640,height:360,usage:null};
-  },undefined,2);
-  assert.equal(calls,6);
-  assert.equal(peak,2);
+  const config={url:'https://fixture.openai.azure.com/openai/v1/images/edits',key:'fixture',deployment:'test-editor'};
+  const entries=planVisualCases(risk,visual).filter(c=>c.reason==='selected');
+  const byLabel=new Map();
+  const pngs=[];
+  for(const [index,entry] of entries.entries()){
+   byLabel.set(risk.risk_objects.find(o=>o.object_id===entry.object_id).display_name_zh,index);
+   const file=join(dir,`mock-${index}.png`);
+   await command(ffmpeg,['-v','error','-i',ppm,'-vf',`drawbox=x=270:y=130:w=105:h=84:color=0x${index+1}0aa80:t=fill`,'-frames:v','1','-threads','1',file],signal);
+   pngs.push(await readFile(file));
+  }
+  let generated;
+  for(const concurrency of [1,2,3]){
+   const target=concurrency===3?dir:join(dir,`mode-${concurrency}`);
+   if(target!==dir){await mkdir(target);await copyFile(join(dir,'f000.jpg'),join(target,'f000.jpg'));}
+   let calls=0,active=0,peak=0;
+   generated=await renderVideoAfter(risk,visual,target,config,signal,async(_config,_image,prompt,_size,_signal,_fetch,quality)=>{
+    assert.equal(quality,'high');
+    calls++;
+    peak=Math.max(peak,++active);
+    const index=byLabel.get(JSON.parse(prompt.slice(prompt.indexOf('{'))).object);
+    await new Promise(resolve=>setTimeout(resolve,15+6*(5-index)));
+    active--;
+    const png=pngs[index];
+    return {ok:true,png,encoded:png.toString('base64'),width:640,height:360,usage:null};
+   },undefined,concurrency);
+   assert.equal(calls,6);
+   assert.equal(peak,concurrency);
+   for(const [index,entry] of entries.entries()){
+    const pair=generated.visual_comparisons.find(c=>c.comparison_id===entry.comparison_id);
+    const output=index===0?'after.png':`after-${index+1}.png`;
+    assert.equal(pair.after_image_ref,output);
+    assert.deepEqual(await readFile(join(target,output)),pngs[index]);
+   }
+  }
+  for(const failure of [429,408,'unknown','cancelled']){
+   const target=join(dir,`batch-${failure}`);
+   await mkdir(target);await copyFile(join(dir,'f000.jpg'),join(target,'f000.jpg'));
+   const job=new AbortController();
+   const failures=[];
+   let calls=0,waiting=0,finishFirst,release;
+   const first=new Promise(resolve=>{finishFirst=resolve;});
+   const ready=new Promise(resolve=>{release=resolve;});
+   const mock=t.mock.method(globalThis,'fetch',async(_url,init)=>{
+    if(++calls===1){
+     await first;
+     init.signal.throwIfAborted();
+     return Response.json({data:[{b64_json:pngs[0].toString('base64')}]});
+    }
+    if(failure==='cancelled')job.abort();
+    finishFirst();
+    return typeof failure==='number'?new Response(null,{status:failure}):Response.json({unexpected:true});
+   });
+   const pace=async(waitSignal,send)=>{
+    if(++waiting===1)return send();
+    if(waiting===2){await ready;waitSignal.throwIfAborted();return send();}
+    release();
+    await new Promise(resolve=>waitSignal.addEventListener('abort',resolve,{once:true}));
+    waitSignal.throwIfAborted();
+   };
+   try{
+    const stopped=await renderVideoAfter(risk,visual,target,config,job.signal,undefined,code=>failures.push(code),3,undefined,pace);
+    assert.equal(calls,2);
+    assert.equal(stopped.visual_comparisons.filter(c=>c.after_generation_status.status==='not_requested').length,4);
+    assert.equal(stopped.visual_comparisons.filter(c=>c.after_generation_status.status==='generated').length,failure==='cancelled'?0:1);
+    assert.deepEqual(failures,failure==='cancelled'?[]:[failure===429?'rate_limited':failure===408?'timeout':'result_invalid']);
+   }finally{mock.mock.restore();}
+  }
   assert.deepEqual(generated.visual_comparisons.map(c=>c.after_image_ref).filter(Boolean).sort(),['after-2.png','after-3.png','after-4.png','after-5.png','after-6.png','after.png']);
   const edited=structuredClone(generated);
   const first=edited.visual_comparisons.find(pair=>pair.after_image_ref);
