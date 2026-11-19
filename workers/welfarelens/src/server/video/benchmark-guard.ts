@@ -152,21 +152,29 @@ export async function openBenchmarkRun(directory:string,config:BenchmarkConfig,r
         let started!:number;
         try{
           await previous;
-          signal?.throwIfAborted();
-          if(stopped||blocked)throw Error('benchmark_stopped');
-          const remaining = Math.max(last[kind]+config[kind].gapMs-Date.now(),
-            lastMonotonic[kind]+config[kind].gapMs-performance.now());
-          if(remaining>0)await timers.setTimeout(Math.ceil(remaining),undefined,{signal});
-          signal?.throwIfAborted();
+          const gap = config[kind].gapMs;
+          let previousWall = last[kind];
+          let previousMonotonic = lastMonotonic[kind];
+          let atMs: number;
+          let monotonic: number;
+          for (;;) {
+            signal?.throwIfAborted();
+            if(stopped||blocked)throw Error('benchmark_stopped');
+            atMs = Date.now();
+            monotonic = performance.now();
+            if(atMs<previousWall||monotonic<previousMonotonic)throw Error('benchmark_clock');
+            const remaining = Math.max(last[kind]+gap-atMs,lastMonotonic[kind]+gap-monotonic);
+            if(remaining<=0)break;
+            // A timer can wake before the monotonic deadline. Recheck both clocks before dispatch.
+            previousWall = atMs;
+            previousMonotonic = monotonic;
+            await timers.setTimeout(Math.ceil(remaining),undefined,{signal});
+          }
           const cost = config[kind].reserveUsdMicros;
-          if(stopped||blocked||counts[kind]>=caps[kind]||spent+cost>budget){
+          if(counts[kind]>=caps[kind]||spent+cost>budget){
             blocked=true;
             throw Error('benchmark_limit');
           }
-          const atMs = Date.now();
-          const monotonic = performance.now();
-          if(atMs<last[kind]+config[kind].gapMs||monotonic<lastMonotonic[kind]+config[kind].gapMs)
-            throw Error('benchmark_clock');
           durableAppend(path,{event:'dispatch',run,kind,atMs,waitMs:Math.round(performance.now()-queuedAt),reservedUsdMicros:cost});
           last[kind] = atMs;
           lastMonotonic[kind] = monotonic;

@@ -131,9 +131,55 @@ test('transport failures count against the VLM cap and the journal omits request
  await assert.rejects(openBenchmarkRun(folder,config,2,'pilot'),/requires_review/);
 });
 
+test('an early timer wake-up keeps waiting without dispatching or charging the journal',async t=>{
+ const folder=await workspace(t);
+ t.mock.timers.enable({apis:['Date','setTimeout'],now:Date.now()});
+ let monotonic=0;
+ t.mock.method(performance,'now',()=>monotonic);
+ const flush=()=>new Promise(resolve=>setImmediate(resolve));
+ const starts=[];
+ const guard=await openBenchmarkRun(folder,config,1,'pilot',async()=>{
+  starts.push(monotonic);
+  return new Response('{}');
+ });
+ await invoke(guard);
+ const completed=invoke(guard).then(()=>null,error=>error);
+ await flush();
+ monotonic=0.75;
+ t.mock.timers.tick(1);
+ await flush();
+ assert.deepEqual(starts,[0]);
+ assert.equal(guard.counts().vlm,1);
+ monotonic=1.75;
+ t.mock.timers.tick(1);
+ assert.equal(await completed,null);
+ assert.deepEqual(starts,[0,1.75]);
+ assert.equal(guard.counts().vlm,2);
+ await guard.close(true);
+});
+
+test('a wall clock rollback blocks dispatch and leaves the request budget unchanged',async t=>{
+ const folder=await workspace(t);
+ const start=Date.now();
+ t.mock.timers.enable({apis:['Date'],now:start});
+ let calls=0;
+ const guard=await openBenchmarkRun(folder,config,1,'pilot',async()=>{
+  calls++;
+  return new Response('{}');
+ });
+ await invoke(guard);
+ t.mock.timers.setTime(start-1);
+ await assert.rejects(invoke(guard),/benchmark_clock/);
+ assert.equal(calls,1);
+ assert.equal(guard.counts().vlm,1);
+ await guard.close(false);
+});
+
 test('paired image starts use the same shared limiter and a 429 blocks later paid requests',async t=>{
  const folder=await workspace(t);
  t.mock.timers.enable({apis:['Date','setTimeout'],now:Date.now()});
+ const start=Date.now();
+ t.mock.method(performance,'now',()=>Date.now()-start);
  const flush=()=>new Promise(resolve=>setImmediate(resolve));
  const starts=[];
  let release;
