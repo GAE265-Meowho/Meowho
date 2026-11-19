@@ -7,6 +7,17 @@ import { useHqToast } from "@/components/hq/HqToast";
 import { TRAILER_VIDEO_ERROR, checkTrailerVideo, slotMimes, type TrailerVideoError } from "@/lib/hq/videos/trailer-video";
 import { formatLogTime } from "@/lib/hq/videos/gen-log";
 
+/** 影片不預先載入（#532）：一頁有幾十格影片，進頁面只放播放鈕；按下才放 <video> 並自動播放 */
+export function ClickToPlay({ src, label }: { src: string; label: string }) {
+  const [on, setOn] = useState(false);
+  if (on) return <video src={src} controls autoPlay playsInline aria-label={`${label}影片`} />;
+  return (
+    <button type="button" className="hq-video-playbtn" aria-label={`播放：${label}`} onClick={() => setOn(true)}>
+      <span aria-hidden="true">▶</span>
+    </button>
+  );
+}
+
 export type TrailerVideoVersion = { path: string; at: string; url: string; downloadUrl: string };
 type State = { videos: Record<string, TrailerVideoVersion[]>; status: "loading" | "ready" | "off" | "error"; message?: string };
 
@@ -95,7 +106,7 @@ export function VideoSlot({ slot, label, state, emptyText = "還沒有影片", m
           : <span className="hq-sub">{state.status === "loading" ? "讀取中…" : emptyText}</span>
       ) : (
         <div className="hq-video-frame wide hq-video-player">
-          {v ? <video key={v.path} src={v.url} controls preload="metadata" playsInline aria-label={`${label}影片`} />
+          {v ? <ClickToPlay key={v.path} src={v.url} label={label} />
             : <span className="hq-sub">{state.status === "loading" ? "讀取中…" : emptyText}</span>}
         </div>
       )}

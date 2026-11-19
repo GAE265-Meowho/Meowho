@@ -105,6 +105,7 @@ MeowHQ（`/MeowHQ`，取代舊隱藏後台）開發中：階段 0（#18）、db�
 - **改母體的順序**：改 `stepB`／`stepC` → 在 Meow 用 Blender 5.2 跑 B、C（PowerShell 指令前要加 `&`）→ 複製 `base_clips.glb` 到 repo `public/hq-cat-models/base/` → 跑 `eat_drink.mjs` → 成貓再上傳 Storage。直接從 Blender 匯出會蓋掉 eat／drink 的修改；只換單一動作用 `scripts/clips/splice_clip.py`。
 
 ## 決策
+- 2026-11-19｜#532：影片頁一頁有幾十格影片，`<video>` 只在按下播放後才放進頁面（不用 preload=metadata），省流量也不自動播放；音檔維持 preload=none。
 - 2026-11-19｜#517：前導影片每一鏡不超過 10 秒（`clips.test.ts` 守住）；鏡 2 改 0:06–0:15，小橘第一句旁白加長為心聲。
 - 2026-11-19｜#515：前導影片縮為約 3:00（26 顆鏡頭、旁白 25 句 n01–n25）。分鏡圖代號（s01…s30）是存檔路徑，不跟著重新編號；刪掉的 s06、s09 不再列出，已上傳的檔案留在儲存區不刪。原 s10（搜尋）與 s13（看電線）合併成新鏡 9 的兩格。
 - 2026-11-19｜#513：分鏡表編修只存改動（0041），原稿仍在 `trailer.ts`；鏡頭用穩定代號（第一格分鏡圖代號去掉序號，例 s07），重新編號也不會掉。頁面編修不會自動寫回 `docs/video` 與下載的 .md，定稿前用「匯出編修」同步。
@@ -158,6 +159,7 @@ ole === "admin" 判斷管理員，而現有 admin 會升為 system_admin；舊�
 | 2026-10-28 | Tina × Cursor | MeowHQ 階段 0：`src/lib/hq/types.ts` 與測試（8 種處置含 `unban`）、0002 資料表草案 | #18 |
 | 2026-10-29 | Tina × Cursor | MeowHQ 階段 1 db：`0002_meow_hq.sql`、`supabase/tests/`（SQL 測試與本機執行器） | #19 |
 | 2026-11-04 | Tina × Claude Code | MeowHQ 新增「貓戶管理」模組：依類別查看貓戶、貓咪卡片；0020 授權現有管理員 | #179 |
+| 2026-11-19 | Tina × Claude Code | 前導影片各 tab 的影片不預先載入：進頁面只顯示播放鈕，按下才載入並自動播放（`ClickToPlay`，#532） |
 | 2026-11-19 | Tina × Claude Code | 鏡 5-2 改為夜間吹風機、小橘躲進貓床；英文與動作 prompt 去除衝突（沙發、日光、筆記本字跡）（#530） |
 | 2026-11-19 | Tina × Claude Code | 前導影片腳本進版 v4（`docs/video/前導影片分鏡腳本_v4.md`，下載檔名同步）：鏡 2 旁白採珮瑜在頁面的修改，s02 動作 prompt 補發抖、舔嘴唇（#526） |
 | 2026-11-19 | Tina × Claude Code | 鏡 27 改為小傑坐沙發抱小橘；英文 prompt 依套房定景寫明家具位置，參考圖加小傑定角（#524） |
