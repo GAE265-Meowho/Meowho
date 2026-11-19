@@ -199,10 +199,10 @@ export const SHOT_SECTIONS: ShotSection[] = [
         frames: [ai("s04", "Rainy night, a young man with round glasses wearing a light blue button-up shirt opening the door of a dark small studio apartment after work, tired, rain streaking down the large window, city lights outside, cool blue-gray tones")] },
       { no: 4, line: "貓", time: "0:21–0:28", picture: "倒敘：半年前寒夜，阿芳在路邊機車下蹲下，伸手接小橘", voice: "小橘：「第一次遇見阿芳，是在一個很冷的晚上。」", sfx: "音樂轉溫暖",
         frames: [ai("s05", "Flashback, cold winter night on a Taiwanese street, a woman in a brown knitted cardigan crouches down beside a small orange tabby kitten under a scooter, reaching out gently, warm street light, soft film grain")] },
-      { no: 5, line: "貓", time: "0:28–0:36", picture: "阿芳家，用手機拍小橘吃飯、睡覺，短耳貓和灰寶在旁邊吃飯、打盹；吹風機一響，只有小橘嚇得躲起來，另外兩隻照睡，阿芳在筆記本上記一筆", voice: "小橘：「她每天幫我拍照，記下我吃多少、睡多久、怕什麼聲音。」", sfx: "快門聲、吹風機聲",
+      { no: 5, line: "貓", time: "0:28–0:36", picture: "白天阿芳家，阿芳用手機拍小橘吃飯、睡覺，短耳貓和灰寶在旁邊吃飯、打盹。夜間阿芳洗完澡，開吹風機要吹頭髮，吹風機一響，只有小橘嚇得跑到貓床躲起來，另外兩隻照睡；阿芳拿起桌上的筆記本，記下小橘這個事件", voice: "小橘：「她每天幫我拍照，記下我吃多少、睡多久、怕什麼聲音。」", sfx: "快門聲、吹風機聲",
         frames: [
           ai("s07-1", "Cozy small apartment, the woman takes photos of the orange tabby cat eating from a bowl with her smartphone, two other shelter cats (a short-eared cat and a gray cat) eating and dozing in the background, over-the-shoulder shot, morning sunlight", "5-1 拍小橘吃飯"),
-          ai("s07-2", "Only the orange tabby cat startles and hides behind a sofa as a hair dryer turns on, while the short-eared cat and the gray cat keep sleeping calmly, the woman writing a note in a small notebook", "5-2 吹風機嚇到"),
+          ai("s07-2", "Night inside Afang's apartment, warm indoor lamp light, no daylight. Afang, hair still damp after a shower, wearing her brown knitted cardigan over loungewear, has just switched on a hair dryer; only the orange tabby cat startles and bolts into a cat bed to hide, ears flattened, while the short-eared cat and the gray cat Huibao keep sleeping calmly nearby. An open notebook and a pen lie on the table beside her, pages densely filled and edged with sticky notes, the writing blurred and unreadable. Low camera angle at cat eye level", "5-2 吹風機嚇到"),
         ] },
       { no: 6, line: "匯", time: "0:36–0:44", picture: "分割畫面：左半阿芳把小橘照片貼進群組，右半小傑睡前躺在床上滑同一個群組；訊息往上刷，小橘的照片被推走", voice: "小傑：「每一隻都很可愛，可是哪一隻適合我？」", sfx: "通知聲越來越密",
         frames: [edit("s08", "用動態設計或螢幕錄影，不用 AI：假的社群介面，兩支手機並排，同一則貼文在左邊送出、在右邊被滑走")] },

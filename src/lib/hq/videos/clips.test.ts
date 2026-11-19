@@ -37,6 +37,18 @@ describe("前導影片：產生影片", () => {
     expect(f.prompt).toMatch(/desk under the window/);
   });
 
+  it("鏡 5-2 夜間吹風機：小橘躲進貓床，筆記本字跡模糊，動作是關吹風機後記一筆（#530）", () => {
+    const s5 = SHOT_SECTIONS.flatMap(x => x.shots).find(s => s.no === 5)!;
+    expect(s5.picture).toContain("只有小橘嚇得跑到貓床躲起來");
+    const f = s5.frames[1];
+    expect(f.prompt).toMatch(/^Night/);
+    expect(f.prompt).toMatch(/cat bed/);
+    expect(f.prompt).not.toMatch(/sofa/);
+    expect(f.prompt).toMatch(/unreadable/);
+    expect(CLIP_MOTION["s07-2"].action).toMatch(/switches off the hair dryer/);
+    expect(CLIP_MOTION["s07-2"].action).not.toMatch(/sofa/);
+  });
+
   it("每一鏡都不超過 10 秒（#517 Tina 確認）", () => {
     for (const s of SHOT_SECTIONS.flatMap(x => x.shots)) expect(shotSeconds(s), `鏡 ${s.no}`).toBeLessThanOrEqual(10);
   });
