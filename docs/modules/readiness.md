@@ -231,6 +231,7 @@ Worker 選用的 `report.html` 與 `html-assets/` 位於既有 attempt 前綴。
 - `requirement/catsafe_ar_README.md`（團隊 AR 模組草稿，未放入 repo）
 
 ## 決策
+- 2026-11-19（#510，子哲）：領養任務紀錄跟著帳號（`member_id`），刪喵戶時保留紀錄與試養報告，只把定格的房間、報告欄位清成空值；不把房間與安全報告改成跟著帳號（會動到決策 007 範圍）。
 - 2026-10-31（子哲，決策 007）：居家環境原始影片與照片在 3D 場景和環境報告產出後立即刪除，只留風險裁切照；3D 場景只有領養人看得到；環境報告由領養人在私訊中主動分享給喵戶長；喵戶長可對每個風險項目寫建議。
 - 環境報告（影片＋Vision）為核心，AR 為加分；iOS 降級為 3D 檢視。
 - 虛擬試養綁定想領養的那隻貓；同時只能一隻。
@@ -252,6 +253,7 @@ Worker 選用的 `report.html` 與 `html-assets/` 位於既有 attempt 前綴。
 
 ## 地雷
 - 植物不可直接判定有毒，只提示查證。
+- 刪喵戶會連帶刪房間與安全報告，`meow_task_runs.room_model_id`、`env_report_id` 由外鍵清成空值（一次 UPDATE）；0035 的 `meow_task_run_guard` 曾把它當成竄改拋出 `run_not_found`，做過任務的個人喵戶刪不掉。`0040_meow_task_run_guard_cascade.sql`（#510）改為：由其他觸發器引發（`pg_trigger_depth() > 1`）且只清空這兩欄就放行。之後改這個 guard 要保留這條；測試 `node supabase/tests/run-pglite-0040.mjs`。
 - ［已失效］居家影片在貓咪移轉完成時刪除原檔（改見決策 007 與 spec 09）。
 - 會員家裡的 3D 房間後台（virtual_assets）也看不到，處理一律走伺服器 service role。
 - 房間和環境報告剛好同時處理完時，兩邊都以為對方還沒好，影片會留著沒刪；之後要加每天清一次的檢查。
