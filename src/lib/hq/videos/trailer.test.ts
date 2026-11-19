@@ -20,15 +20,15 @@ describe("前導影片 v3 分鏡資料", () => {
     expect(shots[8].frames.map(f => f.label)).toEqual(["9-1 查養貓注意事項", "9-2 看腳邊電線"]);
   });
 
-  it("需要產生 35 格：AI 生成 28、系統錄影截圖 5、剪輯字卡 2", () => {
-    expect(frameCounts()).toEqual({ ai: 28, record: 5, edit: 2, total: 35 });
+  it("需要產生 33 格：AI 生成 26、系統錄影截圖 5、剪輯字卡 2", () => {
+    expect(frameCounts()).toEqual({ ai: 26, record: 5, edit: 2, total: 33 });
   });
 
   it("每一格上傳的代號都不重複，且只用小寫英數與減號（存檔路徑用）", () => {
     const ids = allSlotIds();
     expect(new Set(ids).size).toBe(ids.length);
     for (const id of ids) expect(id).toMatch(/^[a-z0-9-]+$/);
-    expect(ids).toHaveLength(CHARACTERS.length + SCENES.length + 35);
+    expect(ids).toHaveLength(CHARACTERS.length + SCENES.length + 33);
   });
 
   it("每一格 AI 分鏡都有參考圖，最多 4 張，而且都是存在的定角／定景；非 AI 的格子沒有參考圖", () => {
@@ -91,7 +91,7 @@ describe("上傳與進度", () => {
     expect(p).toEqual({
       characters: { done: 0, total: 4 },
       scenes: { done: 1, total: 3 },
-      frames: { done: 1, total: 35 },
+      frames: { done: 1, total: 33 },
     });
   });
 
