@@ -1,5 +1,5 @@
 // MeowHQ「影片 › 前導影片」（#489，Tina 2026-11-18）
-// 內容來源：《小橘的第二個家》v3 交叉敘事分鏡腳本（docs/video/前導影片分鏡腳本_v3.md）。
+// 內容來源：《小橘的第二個家》v4 交叉敘事分鏡腳本（docs/video/前導影片分鏡腳本_v4.md）。
 // 改腳本時兩邊一起改；這裡只放畫面要用的資料與純函式，上傳在 src/components/hq/videos/。
 // 圖片存在 meow-site-assets bucket 的 videos/trailer/（0037：所有管理員都能上傳與列出，不能刪除）。
 
@@ -78,9 +78,9 @@ export const VIDEO_TABS = [
 export type VideoTab = (typeof VIDEO_TABS)[number]["value"];
 
 /** 下載最新腳本時的檔名，和 Tina 電腦裡的檔名一致（#498） */
-export const TRAILER_MD_FILENAME = "Meowho喵戶 前導影片分鏡腳本《小橘的第二個家》v3 交叉敘事.md";
+export const TRAILER_MD_FILENAME = "Meowho喵戶 前導影片分鏡腳本《小橘的第二個家》v4 交叉敘事.md";
 
-export const TRAILER_TITLE = "Meowho喵戶 前導影片《小橘的第二個家》v3 交叉敘事";
+export const TRAILER_TITLE = "Meowho喵戶 前導影片《小橘的第二個家》v4 交叉敘事";
 export const TRAILER_SUMMARY =
   "約 3 分鐘的故事短片，兩條線交叉剪接：中途貓小橘怕再被送回來，想領養的小傑怕自己做不好。最後兩條線匯聚到「他們要怎麼相遇」，再帶出產品。核心訊息：領養不是終點，終養才是。";
 export const TRAILER_FACTS: [string, string][] = [
@@ -188,7 +188,7 @@ export const SHOT_SECTIONS: ShotSection[] = [
     shots: [
       { no: 1, line: "貓", time: "0:00–0:06", picture: "雨夜，中途之家門口放著紙箱。鏡頭從遠處緩慢推近，只有雨聲。", voice: "—", sfx: "只有雨聲",
         frames: [ai("s01", "Rainy night, a closed cardboard box sitting alone on a wet doorstep of an old Taiwanese apartment, dim yellow street light, raindrops, slow dolly-in, cold blue tones, melancholic mood")] },
-      { no: 2, line: "貓", time: "0:06–0:15", picture: "接續鏡 1 同一個雨夜紙箱：鏡頭進到箱子裡，小橘縮在角落，肚子餓（輕舔嘴唇／空食碗意象），雨聲持續", voice: "小橘：「這是我第二次，被送回來。我不知道哪裡做錯了……我只想要一個，不會再把我送走的家。」", sfx: "肚子餓的喵叫、下雨聲",
+      { no: 2, line: "貓", time: "0:06–0:15", picture: "接續鏡 1 同一個雨夜紙箱：鏡頭進到箱子裡，小橘縮在角落，肚子餓（輕舔嘴唇／空食碗意象），雨聲持續", voice: "小橘：「我是不是哪裡做錯了……好冷……肚子好餓。我只想要一個，不會再把我送走的家。」", sfx: "肚子餓的喵叫、下雨聲",
         frames: [ai("s02", "Continuity from the previous shot (s01): looking down into the SAME sealed shipping cardboard box from that rainy Taiwanese doorstep — a top-loading carton with clear packing tape on the top flaps, now slightly open from above. Inside, a SMALL young orange tabby cat curled up in the corner (slim, fits in one corner, NOT oversized), ears down, looking up at the camera, hungry and weak — empty food dish nearby and licking its lips, soft rain light from the open top flaps, wet cardboard walls, melancholic mood")] },
     ],
   },
@@ -293,7 +293,7 @@ export const MATCH_CUTS: { name: string; from: string; to: string; meaning: stri
 
 /** 旁白完整稿：兩個聲線各自生成一支音檔，再依分鏡表切段對齊 */
 export const NARRATION: { who: "橘" | "傑"; text: string }[] = [
-  { who: "橘", text: "這是我第二次，被送回來。我不知道哪裡做錯了……我只想要一個，不會再把我送走的家。" },
+  { who: "橘", text: "我是不是哪裡做錯了……好冷……肚子好餓。我只想要一個，不會再把我送走的家。" },
   { who: "傑", text: "我想養一隻貓，想了兩年。" },
   { who: "橘", text: "第一次遇見阿芳，是在一個很冷的晚上。" },
   { who: "橘", text: "她每天幫我拍照，記下我吃多少、睡多久、怕什麼聲音。" },

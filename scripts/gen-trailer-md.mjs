@@ -6,11 +6,11 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
-const src = join(root, "docs/video/前導影片分鏡腳本_v3.md");
+const src = join(root, "docs/video/前導影片分鏡腳本_v4.md");
 const out = join(root, "src/lib/hq/videos/trailer-md.generated.ts");
 
 const md = readFileSync(src, "utf8");
-const body = `// 自動產生，請勿手改：來源 docs/video/前導影片分鏡腳本_v3.md（npm run video:md）
+const body = `// 自動產生，請勿手改：來源 docs/video/前導影片分鏡腳本_v4.md（npm run video:md）
 export const TRAILER_MD = ${JSON.stringify(md)};
 `;
 let prev = "";

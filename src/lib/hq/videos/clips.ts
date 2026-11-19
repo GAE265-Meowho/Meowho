@@ -11,7 +11,7 @@ export type ClipMotion = { action: string; camera: string };
 /** 每格 AI 分鏡的動作與運鏡（英文，直接貼進圖生影片工具） */
 export const CLIP_MOTION: Record<string, ClipMotion> = {
   s01: { action: "Raindrops fall steadily on the closed cardboard box and splash on the wet tiles; the street light flickers slightly. Only the sound of rain.", camera: "Slow dolly-in from far away toward the box." },
-  s02: { action: "Continuity from the previous rainy-doorstep box shot: inside the same cardboard box, the small hungry orange tabby curls up tighter in the corner, ears flatten, soft hungry meow; rain continues outside.", camera: "Static top-down shot with subtle handheld breathing, looking into the open top of the box." },
+  s02: { action: "Continuity from the previous rainy-doorstep box shot: inside the same cardboard box, the small hungry orange tabby curls up tighter in the corner, shivering from the cold, ears flatten; it licks its lips, glances at the empty spot where a food bowl should be and lets out a soft hungry meow; rain keeps drumming on the box.", camera: "Static top-down shot with subtle handheld breathing, looking into the open top of the box." },
   s04: { action: "Xiaojie opens the door, pauses in the dark doorway, drops his shoulders and steps in; rain runs down the window behind him.", camera: "Static shot from inside the room, eye level." },
   s05: { action: "Afang slowly crouches and reaches out her hand; the kitten hesitates, then sniffs her fingers.", camera: "Low-angle slow push-in." },
   "s07-1": { action: "The orange cat eats from the bowl while the short-eared cat and the gray cat eat and doze nearby; Afang lifts her phone and taps the screen to take a photo.", camera: "Static over-the-shoulder shot." },
