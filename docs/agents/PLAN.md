@@ -6,8 +6,9 @@
 - 前導影片配音 tab＋影片 tab 聲音提醒（Tina × Claude Code，#504）：PR #506 已合併；0039 Tina 已於 2026-11-19 執行。
 - 做過領養任務的個人喵戶刪不掉（run_not_found）（子哲 × Claude Code，#510）：PR #511 合併，完成；0040 子哲已於 2026-11-19 在 Supabase 執行。
 - 前導影片時間軸：鏡 2 改 0:06–0:10、後續提前 20 秒（Tina × Claude Code，#507）：PR #508 已合併，完成。
-- 前導影片分鏡表頁面編修＋中文 prompt（Tina × Claude Code，#513）：PR #514 已合併；0041 待 Tina 確認是否已執行。
-- 前導影片縮為 3 分鐘、小傑線改為查資料發現電線、分鏡卡 prompt 移到圖片右側（Tina × Claude Code，#515）：分支 `feat/515-trailer-3min`，審查中。
+- 前導影片分鏡表頁面編修＋中文 prompt（Tina × Claude Code，#513）：PR #514 已合併；0041 Tina 已於 2026-11-19 執行，完成。
+- 前導影片縮為 3 分鐘、小傑線改為查資料發現電線、分鏡卡 prompt 移到圖片右側（Tina × Claude Code，#515）：PR #516 已合併，完成。
+- 前導影片鏡 2 小橘心聲加長、每鏡不超過 10 秒（Tina × Claude Code，#517）：分支 `feat/517-shot2-voice`，審查中。
 
 - AI 居家安全報告首屏與圖片載入（Jerry0808 × Codex）：分支 `codex/home-safety-report-ux`，審查中。沿用 #273 報告授權；待驗收 Preview 的真實 Owner 登入及 Azure 延遲。
 

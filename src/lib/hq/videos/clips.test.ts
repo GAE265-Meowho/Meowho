@@ -27,14 +27,25 @@ describe("前導影片：產生影片", () => {
     for (const sec of SHOT_SECTIONS) expect(sec.range, sec.key).toBe(`${sec.shots[0].time.split("–")[0]}–${sec.shots[sec.shots.length - 1].time.split("–")[1]}`);
   });
 
+  it("每一鏡都不超過 10 秒（#517 Tina 確認）", () => {
+    for (const s of SHOT_SECTIONS.flatMap(x => x.shots)) expect(shotSeconds(s), `鏡 ${s.no}`).toBeLessThanOrEqual(10);
+  });
+
+  it("鏡 2 小橘說出被送回來的心聲，也說出想要一個長久的家（#517）", () => {
+    const s2 = SHOT_SECTIONS[0].shots[1];
+    expect(s2.voice).toMatch(/^小橘：「這是我第二次，被送回來。/);
+    expect(s2.voice).toContain("不會再把我送走的家");
+    expect(shotSeconds(s2)).toBeGreaterThanOrEqual(8);
+  });
+
   it("鏡頭長度由分鏡表時間算出，多格平分；生成長度取 5、10 或 15 秒", () => {
     const s1 = shots[0];
     expect(shotSeconds(s1)).toBe(6); // 0:00–0:06
     expect(clipLength(s1)).toEqual({ cut: 6, generate: 10 });
-    expect(clipLength(shots[1])).toEqual({ cut: 4, generate: 5 }); // 鏡 2 0:06–0:10（#507）
-    const s5 = shots[4]; // 0:26–0:34，兩格
+    expect(clipLength(shots[1])).toEqual({ cut: 9, generate: 10 }); // 鏡 2 0:06–0:15（#517）
+    const s5 = shots[4]; // 0:28–0:36，兩格
     expect(clipLength(s5)).toEqual({ cut: 4, generate: 5 });
-    const s9 = shots[8]; // 0:56–1:06，查資料＋看電線兩格
+    const s9 = shots[8]; // 0:58–1:08，查資料＋看電線兩格
     expect(clipLength(s9)).toEqual({ cut: 5, generate: 5 });
     const s14 = shots[13]; // 1:37–1:45，只有 1 格 AI
     expect(clipLength(s14)).toEqual({ cut: 8, generate: 10 });

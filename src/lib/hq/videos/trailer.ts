@@ -84,9 +84,9 @@ export const TRAILER_TITLE = "Meowho喵戶 前導影片《小橘的第二個家�
 export const TRAILER_SUMMARY =
   "約 3 分鐘的故事短片，兩條線交叉剪接：中途貓小橘怕再被送回來，想領養的小傑怕自己做不好。最後兩條線匯聚到「他們要怎麼相遇」，再帶出產品。核心訊息：領養不是終點，終養才是。";
 export const TRAILER_FACTS: [string, string][] = [
-  ["長度", "約 3:00（雙旁白合計約 400 字）"],
+  ["長度", "約 3:00（雙旁白合計約 430 字）"],
   ["比例", "16:9，1080p"],
-  ["結構", "遺棄開場 0:00–0:10 → 交叉敘事 0:10–1:32 → 匯聚與產品登場 1:32–2:40 → 相遇結尾 2:40–3:00"],
+  ["結構", "遺棄開場 0:00–0:15 → 交叉敘事 0:15–1:32 → 匯聚與產品登場 1:32–2:40 → 相遇結尾 2:40–3:00"],
   ["敘事觀點", "小橘第一人稱（貓線）、小傑第一人稱（人線）輪流出現，關鍵處用分割畫面或對切讓兩人同框"],
   ["系統畫面", "1:37 之後用真實系統錄影或截圖，不用 AI 生成"],
 ];
@@ -183,48 +183,48 @@ const edit = (id: string, prompt: string): Frame => ({ id, make: "edit", prompt,
 
 export const SHOT_SECTIONS: ShotSection[] = [
   {
-    key: "opening", title: "第一段：遺棄開場", range: "0:00–0:10",
+    key: "opening", title: "第一段：遺棄開場", range: "0:00–0:15",
     shots: [
       { no: 1, line: "貓", time: "0:00–0:06", picture: "雨夜，中途之家門口放著紙箱。鏡頭從遠處緩慢推近，只有雨聲。", voice: "—", sfx: "只有雨聲",
         frames: [ai("s01", "Rainy night, a closed cardboard box sitting alone on a wet doorstep of an old Taiwanese apartment, dim yellow street light, raindrops, slow dolly-in, cold blue tones, melancholic mood")] },
-      { no: 2, line: "貓", time: "0:06–0:10", picture: "接續鏡 1 同一個雨夜紙箱：鏡頭進到箱子裡，小橘縮在角落，肚子餓（輕舔嘴唇／空食碗意象），雨聲持續", voice: "字幕：「這是我第二次，被送回來。」", sfx: "肚子餓的喵叫、下雨聲",
+      { no: 2, line: "貓", time: "0:06–0:15", picture: "接續鏡 1 同一個雨夜紙箱：鏡頭進到箱子裡，小橘縮在角落，肚子餓（輕舔嘴唇／空食碗意象），雨聲持續", voice: "小橘：「這是我第二次，被送回來。我不知道哪裡做錯了……我只想要一個，不會再把我送走的家。」", sfx: "肚子餓的喵叫、下雨聲",
         frames: [ai("s02", "Continuity from the previous shot (s01): looking down into the SAME sealed shipping cardboard box from that rainy Taiwanese doorstep — a top-loading carton with clear packing tape on the top flaps, now slightly open from above. Inside, a SMALL young orange tabby cat curled up in the corner (slim, fits in one corner, NOT oversized), ears down, looking up at the camera, hungry and weak — empty food dish nearby and licking its lips, soft rain light from the open top flaps, wet cardboard walls, melancholic mood")] },
     ],
   },
   {
-    key: "cross", title: "第二段：交叉敘事", range: "0:10–1:32",
+    key: "cross", title: "第二段：交叉敘事", range: "0:15–1:32",
     shots: [
-      { no: 3, line: "人", time: "0:10–0:18", picture: "同一個雨夜，小傑下班回家打開套房的門，屋裡沒開燈，窗外是同一場雨", voice: "小傑：「我想養一隻貓，想了兩年。」", sfx: "雨聲延續（聲音橋接）、開門聲",
+      { no: 3, line: "人", time: "0:15–0:21", picture: "同一個雨夜，小傑下班回家打開套房的門，屋裡沒開燈，窗外是同一場雨", voice: "小傑：「我想養一隻貓，想了兩年。」", sfx: "雨聲延續（聲音橋接）、開門聲",
         frames: [ai("s04", "Rainy night, a young man with round glasses wearing a light blue button-up shirt opening the door of a dark small studio apartment after work, tired, rain streaking down the large window, city lights outside, cool blue-gray tones")] },
-      { no: 4, line: "貓", time: "0:18–0:26", picture: "倒敘：半年前寒夜，阿芳在路邊機車下蹲下，伸手接小橘", voice: "小橘：「第一次遇見阿芳，是在一個很冷的晚上。」", sfx: "音樂轉溫暖",
+      { no: 4, line: "貓", time: "0:21–0:28", picture: "倒敘：半年前寒夜，阿芳在路邊機車下蹲下，伸手接小橘", voice: "小橘：「第一次遇見阿芳，是在一個很冷的晚上。」", sfx: "音樂轉溫暖",
         frames: [ai("s05", "Flashback, cold winter night on a Taiwanese street, a woman in a brown knitted cardigan crouches down beside a small orange tabby kitten under a scooter, reaching out gently, warm street light, soft film grain")] },
-      { no: 5, line: "貓", time: "0:26–0:34", picture: "阿芳家，用手機拍小橘吃飯、睡覺，短耳貓和灰寶在旁邊吃飯、打盹；吹風機一響，只有小橘嚇得躲起來，另外兩隻照睡，阿芳在筆記本上記一筆", voice: "小橘：「她每天幫我拍照，記下我吃多少、睡多久、怕什麼聲音。」", sfx: "快門聲、吹風機聲",
+      { no: 5, line: "貓", time: "0:28–0:36", picture: "阿芳家，用手機拍小橘吃飯、睡覺，短耳貓和灰寶在旁邊吃飯、打盹；吹風機一響，只有小橘嚇得躲起來，另外兩隻照睡，阿芳在筆記本上記一筆", voice: "小橘：「她每天幫我拍照，記下我吃多少、睡多久、怕什麼聲音。」", sfx: "快門聲、吹風機聲",
         frames: [
           ai("s07-1", "Cozy small apartment, the woman takes photos of the orange tabby cat eating from a bowl with her smartphone, two other shelter cats (a short-eared cat and a gray cat) eating and dozing in the background, over-the-shoulder shot, morning sunlight", "5-1 拍小橘吃飯"),
           ai("s07-2", "Only the orange tabby cat startles and hides behind a sofa as a hair dryer turns on, while the short-eared cat and the gray cat keep sleeping calmly, the woman writing a note in a small notebook", "5-2 吹風機嚇到"),
         ] },
-      { no: 6, line: "匯", time: "0:34–0:42", picture: "分割畫面：左半阿芳把小橘照片貼進群組，右半小傑睡前躺在床上滑同一個群組；訊息往上刷，小橘的照片被推走", voice: "小傑：「每一隻都很可愛，可是哪一隻適合我？」", sfx: "通知聲越來越密",
+      { no: 6, line: "匯", time: "0:36–0:44", picture: "分割畫面：左半阿芳把小橘照片貼進群組，右半小傑睡前躺在床上滑同一個群組；訊息往上刷，小橘的照片被推走", voice: "小傑：「每一隻都很可愛，可是哪一隻適合我？」", sfx: "通知聲越來越密",
         frames: [edit("s08", "用動態設計或螢幕錄影，不用 AI：假的社群介面，兩支手機並排，同一則貼文在左邊送出、在右邊被滑走")] },
-      { no: 7, line: "貓", time: "0:42–0:48", picture: "情侶開心地抱走小橘，灰寶在窗邊看著小橘被帶走", voice: "小橘：「後來有人帶我回家，他們很喜歡我。」", sfx: "輕快音樂",
+      { no: 7, line: "貓", time: "0:44–0:50", picture: "情侶開心地抱走小橘，灰寶在窗邊看著小橘被帶走", voice: "小橘：「後來有人帶我回家，他們很喜歡我。」", sfx: "輕快音樂",
         frames: [ai("s11", "A happy young couple carrying the orange tabby cat in a pet carrier out of an apartment door, smiling, daylight, the rescuer woman waving goodbye in background, a gray cat watching from the window behind her")] },
-      { no: 8, line: "貓", time: "0:48–0:56", picture: "快切：情侶家電視櫃下一團外露的電線，小橘湊過去用掌子撥；桌上的百合花，小橘湊近聞", voice: "小橘：「可是他們不知道電線要收好，不知道百合花會讓我生病……」", sfx: "音樂漸弱",
+      { no: 8, line: "貓", time: "0:50–0:58", picture: "快切：情侶家電視櫃下一團外露的電線，小橘湊過去用掌子撥；桌上的百合花，小橘湊近聞", voice: "小橘：「可是他們不知道電線要收好，不知道百合花會讓我生病……」", sfx: "音樂漸弱",
         frames: [
           ai("s12-1", "Low angle, an orange tabby cat crouching under a TV cabinet, curiously pawing at a tangle of exposed power cords and chargers, dim living room, tense mood", "8-1 撥弄電線"),
           ai("s12-2", "Close-up of an orange tabby cat sniffing a vase of white lilies on a dining table, soft daylight, subtle sense of danger", "8-2 聞百合花"),
         ] },
-      { no: 9, line: "人", time: "0:56–1:06", picture: "晚上下班後，書桌檯燈下，小傑用筆電查「第一次養貓要注意什麼」，清單寫著「電線收好、不要放百合、窗戶裝紗網」，他停在「電線收好」；接著低頭看腳邊那團延長線和充電線，皺眉", voice: "小傑：「我查了好多養貓要注意的事……我家的電線，安全嗎？」", sfx: "鍵盤聲、插頭拔起聲",
+      { no: 9, line: "人", time: "0:58–1:08", picture: "晚上下班後，書桌檯燈下，小傑用筆電查「第一次養貓要注意什麼」，清單寫著「電線收好、不要放百合、窗戶裝紗網」，他停在「電線收好」；接著低頭看腳邊那團延長線和充電線，皺眉", voice: "小傑：「我查了好多養貓要注意的事……我家的電線，安全嗎？」", sfx: "鍵盤聲、插頭拔起聲",
         frames: [
           ai("s10", "Night, a young man with round glasses at his desk in a small Taipei studio apartment under a warm desk lamp, reading a laptop screen that shows a first-time cat owner checklist (keep cables tidy, no lilies, window screens), his finger pausing on the line about cables, reflections of text in his glasses", "9-1 查養貓注意事項"),
           ai("s13", "Night, the same young man glancing down from his desk chair at a messy tangle of power strips and charging cables on the floor under his desk, worried frown, warm desk lamp light, low composition echoing a cat under a TV cabinet", "9-2 看腳邊電線"),
         ] },
-      { no: 10, line: "貓", time: "1:06–1:14", picture: "帳單散在桌上；接沙發底下的低角度，小橘躲著，背景情侶在吵架", voice: "小橘：「他們不是壞人，只是還沒準備好。」", sfx: "時鐘聲",
+      { no: 10, line: "貓", time: "1:08–1:16", picture: "帳單散在桌上；接沙發底下的低角度，小橘躲著，背景情侶在吵架", voice: "小橘：「他們不是壞人，只是還沒準備好。」", sfx: "時鐘聲",
         frames: [
           ai("s14-1", "Top-down shot of a table covered with vet bills and receipts, a cat paw stepping into frame, muted colors", "10-1 散落的帳單"),
           ai("s14-2", "Low angle from under a sofa, an orange tabby cat hiding in the shadow, a young couple arguing out of focus in the background, cold tones", "10-2 躲在沙發下"),
         ] },
-      { no: 11, line: "人", time: "1:14–1:20", picture: "手機畫面停在領養申請頁，「我想領養」按鈕下方，小傑的拇指懸著；最後鎖上螢幕，畫面變黑，映出他的臉", voice: "小傑：「我怕的不是麻煩，是我會讓牠失望。」", sfx: "只剩時鐘聲",
+      { no: 11, line: "人", time: "1:16–1:22", picture: "手機畫面停在領養申請頁，「我想領養」按鈕下方，小傑的拇指懸著；最後鎖上螢幕，畫面變黑，映出他的臉", voice: "小傑：「我怕的不是麻煩，是我會讓牠失望。」", sfx: "只剩時鐘聲",
         frames: [ai("s15", "Close-up of a man's thumb hovering over a button on a smartphone screen, hesitating, then the screen turns off and reflects his face, dark room, cool tones")] },
-      { no: 12, line: "匯", time: "1:20–1:32", picture: "雨夜門口，阿芳打開紙箱抱起小橘，眼眶紅了；接小傑站在窗邊看雨。兩顆鏡頭用同一個雨聲接起來，最後並排成分割畫面", voice: "小橘：「所以，我回來了。」字幕：「一個怕再被送回來，一個怕自己做不好。」", sfx: "靜音 2 秒",
+      { no: 12, line: "匯", time: "1:22–1:32", picture: "雨夜門口，阿芳打開紙箱抱起小橘，眼眶紅了；接小傑站在窗邊看雨。兩顆鏡頭用同一個雨聲接起來，最後並排成分割畫面", voice: "小橘：「所以，我回來了。」字幕：「一個怕再被送回來，一個怕自己做不好。」", sfx: "靜音 2 秒",
         frames: [
           ai("s16-1", "Rainy night doorstep, the woman in a brown knitted cardigan opens the cardboard box and lifts the wet orange tabby cat into her arms, teary eyes, cold blue light with warm light from the door behind her", "12-1 阿芳抱起小橘"),
           ai("s16-2", "A young man with round glasses standing by a rain-streaked window in a dark studio apartment, looking out at the city, silhouette, cold blue tones", "12-2 小傑窗邊看雨"),
@@ -289,7 +289,7 @@ export const MATCH_CUTS: { name: string; from: string; to: string; meaning: stri
 
 /** 旁白完整稿：兩個聲線各自生成一支音檔，再依分鏡表切段對齊 */
 export const NARRATION: { who: "橘" | "傑"; text: string }[] = [
-  { who: "橘", text: "這是我第二次，被送回來。" },
+  { who: "橘", text: "這是我第二次，被送回來。我不知道哪裡做錯了……我只想要一個，不會再把我送走的家。" },
   { who: "傑", text: "我想養一隻貓，想了兩年。" },
   { who: "橘", text: "第一次遇見阿芳，是在一個很冷的晚上。" },
   { who: "橘", text: "她每天幫我拍照，記下我吃多少、睡多久、怕什麼聲音。" },
