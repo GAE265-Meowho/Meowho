@@ -1,4 +1,4 @@
-type Stage='claim'|'renew'|'source_download'|'source_probe'|'validation'|'json_generate'|'upload'|'complete'|'fail'|'image_case'|'image_edit_request'|'report_prepare'|'pdf_render'|'html_generate';
+type Stage='claim'|'renew'|'source_download'|'source_probe'|'validation'|'json_generate'|'upload'|'complete'|'fail'|'image_case'|'image_edit_request'|'report_prepare'|'pdf_render'|'html_generate'|'local_pipeline';
 export class JobProfile {
  private started=performance.now();
  private claimedAt:number|null=null;

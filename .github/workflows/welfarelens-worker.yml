@@ -66,6 +66,40 @@ jobs:
             --mount "type=bind,src=$PWD/welfarelens-video-spike/samples,dst=/app/welfarelens-video-spike/samples,readonly" \
             -e WELFARELENS_TEST_PDF_BROWSER=/usr/bin/chromium --entrypoint node welfarelens-worker:ci \
             --experimental-strip-types --test tests/video-before-after.test.mjs tests/meowho-worker-mode.test.mjs tests/modernization-contract.test.mjs tests/meowho-worker.test.mjs tests/standalone-worker.test.mjs
+      - name: Run packaged Benchmark preflight offline
+        run: |
+          set -euo pipefail
+          input="$PWD/welfarelens-video-spike/samples/synthetic-room.mp4"
+          batch="$(mktemp -d)"
+          export BENCH_INPUT_SHA="$(sha256sum "$input" | cut -d' ' -f1)"
+          export BENCH_IMAGE_ID="$(docker image inspect --format='{{.Id}}' welfarelens-worker:ci)"
+          export BENCH_REVISION="$(docker image inspect --format='{{index .Config.Labels "org.opencontainers.image.revision"}}' welfarelens-worker:ci)"
+          test "$BENCH_REVISION" = "$GITHUB_SHA"
+          node --input-type=module - "$batch" <<'JS'
+          import { writeFileSync } from 'node:fs';
+          const { BENCH_INPUT_SHA, BENCH_IMAGE_ID, BENCH_REVISION } = process.env;
+          // Locally loaded CI image has no repository digest. This value is an offline fixture only.
+          const digest = 'sha256:' + '0'.repeat(64);
+          const model = {host:'fixture.openai.azure.com', deployment:'fixture', version:'fixture',
+            sku:'fixture', confirmedRpm:6, gapMs:12000, reserveUsdMicros:1};
+          writeFileSync(process.argv[2] + '/approval.json', JSON.stringify({
+            approvalRef:'offline-ci-fixture', commit:BENCH_REVISION, digest, inputSha256:BENCH_INPUT_SHA,
+            pilotUsdMicros:30000000, batchUsdMicros:40000000, vlm:model, image:model,
+          }));
+          writeFileSync(process.argv[2] + '/identity.json', JSON.stringify({
+            ref:'ghcr.io/gae265-meowho/meowho/welfarelens-worker@' + digest,
+            revision:BENCH_REVISION, imageId:BENCH_IMAGE_ID,
+          }));
+          JS
+          docker run --rm --network none --user "$(id -u):$(id -g)" \
+            --mount "type=bind,src=$batch,dst=/batch" \
+            --mount "type=bind,src=$input,dst=/tmp/fixture.mp4,readonly" \
+            -e AZURE_OPENAI_ENDPOINT=https://fixture.openai.azure.com -e AZURE_OPENAI_DEPLOYMENT=fixture -e AZURE_OPENAI_API_KEY=fixture \
+            -e AZURE_IMAGE_ENDPOINT=https://fixture.openai.azure.com -e AZURE_IMAGE_DEPLOYMENT=fixture -e AZURE_IMAGE_API_KEY=fixture \
+            --entrypoint node "$BENCH_IMAGE_ID" --experimental-strip-types scripts/pipeline-benchmark.ts \
+            --preflight --config /batch/approval.json --input /tmp/fixture.mp4 --batch /batch \
+            --image-identity "$(cat "$batch/identity.json")"
+          test ! -e "$batch/requests.jsonl"
       - name: Export tested image
         if: startsWith(github.ref, 'refs/tags/welfarelens-v') && vars.WELFARELENS_GHCR_RELEASE == 'true'
         run: |
@@ -105,5 +139,6 @@ jobs:
           test "${digest%@*}" = "$package"
           docker pull --platform linux/amd64 "$digest"
           test "$(docker image inspect --format='{{.Id}}' "$digest")" = "$(docker image inspect --format='{{.Id}}' welfarelens-worker:ci)"
+          test "$(docker image inspect --format='{{index .Config.Labels "org.opencontainers.image.revision"}}' "$digest")" = "$GITHUB_SHA"
           docker run --rm --network none "$digest" --self-test
           printf '%s\n' "$digest" >> "$GITHUB_STEP_SUMMARY"

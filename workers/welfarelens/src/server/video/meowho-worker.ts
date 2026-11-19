@@ -32,6 +32,18 @@ export const MeowhoResultSchema=z.object({
 }).strict();
 type Canonical=z.infer<typeof import('../../domain/welfare-report.ts').WelfareLensReportV1Schema>;
 type Bundle=Awaited<ReturnType<typeof executeLiveJob>>;
+export function buildMeowhoResult(options:{
+ jobId:string;reportId:string;attempt:number;workerId:string;modelVersion:string;bundle:Bundle;
+ canonical:Canonical;summary:string;publication:Pick<Awaited<ReturnType<typeof prepareMeowhoItems>>,'items'|'warnings'>;
+}){
+ const {bundle,canonical,publication}=options;
+ const result=MeowhoResultSchema.parse({schema:'meow_env_result/1',job_id:options.jobId,report_id:options.reportId,attempt:options.attempt,
+  worker:{id:options.workerId,version:'welfarelens 0.4.0'},model:{name:bundle.model,version:options.modelVersion},
+  video:{duration_s:bundle.duration,frames:bundle.evidence.length},summary:options.summary,items:publication.items,warnings:publication.warnings,
+  created_at:new Date(canonical.generated_at).toISOString()});
+ if(new Set(result.items.map(item=>item.key)).size!==result.items.length)throw new MeowhoError('result_invalid');
+ return result;
+}
 export async function prepareMeowhoItems(options:{canonical:Canonical;bundle:Bundle;directory:string;outputPrefix:string;signal:AbortSignal;
  upload:(path:string,file:string,contentType:string,signal:AbortSignal)=>Promise<void>;ensure:()=>void}){
  const {canonical,bundle,directory,outputPrefix,signal,upload,ensure}=options;
@@ -217,10 +229,8 @@ export async function processMeowhoJob(options:{
     ensure();step='upload';
     const {items,warnings}=await prepareMeowhoItems({canonical,bundle,directory:dir,outputPrefix:claim.output_prefix,signal,
      upload,ensure});
-    const result=MeowhoResultSchema.parse({schema:'meow_env_result/1',job_id:claim.job_id,report_id:claim.report_id,attempt:claim.attempt,
-     worker:{id:options.workerId,version:'welfarelens 0.4.0'},model:{name:bundle.model,version:options.env?.WELFARELENS_MODEL_VERSION??'unknown'},
-     video:{duration_s:bundle.duration,frames:bundle.evidence.length},summary,items,warnings,created_at:new Date(canonical.generated_at).toISOString()});
-    if(new Set(result.items.map(item=>item.key)).size!==result.items.length)throw new MeowhoError('result_invalid');
+    const result=buildMeowhoResult({jobId:claim.job_id,reportId:claim.report_id,attempt:claim.attempt,workerId:options.workerId,
+     modelVersion:options.env?.WELFARELENS_MODEL_VERSION??'unknown',bundle,canonical,summary,publication:{items,warnings}});
     const jsonFile=join(dir,'result.json'),jsonPath=claim.output_prefix+'result.json',pdfPath=claim.output_prefix+'report.pdf';
     await profile.measure('json_generate',()=>writeFile(jsonFile,JSON.stringify(result),{flag:'wx',mode:0o600}));
     // Keep the exact payload for idempotent acknowledgement retry.

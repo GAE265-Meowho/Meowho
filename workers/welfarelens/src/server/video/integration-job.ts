@@ -28,6 +28,36 @@ function validPdf(pdf:Buffer){
  return offset>0&&offset<pdf.length&&/^(?:xref\b|\d+\s+\d+\s+obj\b)/.test(pdf.subarray(offset,offset+40).toString('latin1'));
 }
 
+export async function validateIntegrationArtifacts(dir:string,bundle:StandaloneBundle,requireImages:boolean){
+   const [report,adapter,pdf]=await Promise.all(required.map(name=>readFile(join(dir,name))));
+   const canonical=WelfareLensReportV1Schema.parse(JSON.parse(report.toString('utf8')));
+   const meowho=MeowhoEnvReportSchema.parse(JSON.parse(adapter.toString('utf8')));
+   if(canonical.report_id!==bundle.job_id||canonical.analysis_status!=='complete'||canonical.source!=='snapshot'||meowho.report_id!==canonical.report_id||!validPdf(pdf))throw Error('Invalid artifact');
+   // The legacy flag still requests images, with the same automatic checks.
+   const needsImages=requireImages||bundle.stages.editing!=='not_requested';
+   if(needsImages){
+    const index=IllustrationIndex.parse(JSON.parse(await readFile(join(dir,illustrationAudit),'utf8')));
+    const risk=RiskObjectReportSchema.parse(JSON.parse(await readFile(join(dir,'welfarelens-risk-objects.v1.json'),'utf8')));
+    const visual=VisualReportSchema.parse(JSON.parse(await readFile(join(dir,'visual-report.json'),'utf8')));
+    const selected=planVisualCases(risk,visual).filter(c=>c.reason==='selected');
+    if(index.job_id!==bundle.job_id||risk.analysis_id!==bundle.job_id||visual.job_id!==bundle.job_id||!selected.length)throw Error('Required illustrations missing');
+    for(const plan of selected){
+     const pair=risk.visual_comparisons.find(p=>p.comparison_id===plan.comparison_id);
+     const entry=index.cases.find(c=>c.comparison_id===plan.comparison_id);
+     const generation=pair?.after_generation_status;
+     if(!pair||generation?.status!=='generated'||entry?.disposition!=='illustrated'
+      ||entry.before_image_ref!==pair.before_image_ref||entry.after_image_ref!==generation.path
+      ||!entry.detail_sha256)throw Error('Required illustrations failed validation');
+     const prefix=generation.path.slice(0,-4);
+     const assets=[[pair.before_image_ref,generation.input_sha256],[generation.path,generation.output_sha256],
+      [prefix+'-before-detail.jpg',entry.detail_sha256[0]],[prefix+'-after-detail.jpg',entry.detail_sha256[1]]];
+     if(entry.before_detail_ref!==assets[2][0]||entry.after_detail_ref!==assets[3][0])throw Error('Mismatched illustration detail');
+     for(const [path,digest] of assets)if(createHash('sha256').update(await readFile(join(dir,path))).digest('hex')!==digest)throw Error('Invalid illustration asset');
+    }
+   }
+   return {canonical,meowho,needsImages};
+}
+
 export type IntegrationPorts = {
  claim():Promise<Claim|undefined>;
  readSource(job:Claim,destination:string):Promise<void>;
@@ -63,35 +93,7 @@ export async function processIntegrationJob(root:string,ports:IntegrationPorts,p
     throw Object.assign(Error('Required artifacts missing'),{code});
    }
    const dir=join(jobs,bundle.job_id);
-   const {canonical,meowho,needsImages}=await measure(profile,'validation',async()=>{
-   const [report,adapter,pdf]=await Promise.all(required.map(name=>readFile(join(dir,name))));
-   const canonical=WelfareLensReportV1Schema.parse(JSON.parse(report.toString('utf8')));
-   const meowho=MeowhoEnvReportSchema.parse(JSON.parse(adapter.toString('utf8')));
-   if(canonical.report_id!==bundle.job_id||canonical.analysis_status!=='complete'||canonical.source!=='snapshot'||meowho.report_id!==canonical.report_id||!validPdf(pdf))throw Error('Invalid artifact');
-   // The legacy flag still requests images, with the same automatic checks.
-   const needsImages=job.requireImages||job.requireApprovedImages||bundle.stages.editing!=='not_requested';
-   if(needsImages){
-    const index=IllustrationIndex.parse(JSON.parse(await readFile(join(dir,illustrationAudit),'utf8')));
-    const risk=RiskObjectReportSchema.parse(JSON.parse(await readFile(join(dir,'welfarelens-risk-objects.v1.json'),'utf8')));
-    const visual=VisualReportSchema.parse(JSON.parse(await readFile(join(dir,'visual-report.json'),'utf8')));
-    const selected=planVisualCases(risk,visual).filter(c=>c.reason==='selected');
-    if(index.job_id!==bundle.job_id||risk.analysis_id!==bundle.job_id||visual.job_id!==bundle.job_id||!selected.length)throw Error('Required illustrations missing');
-    for(const plan of selected){
-     const pair=risk.visual_comparisons.find(p=>p.comparison_id===plan.comparison_id);
-     const entry=index.cases.find(c=>c.comparison_id===plan.comparison_id);
-     const generation=pair?.after_generation_status;
-     if(!pair||generation?.status!=='generated'||entry?.disposition!=='illustrated'
-      ||entry.before_image_ref!==pair.before_image_ref||entry.after_image_ref!==generation.path
-      ||!entry.detail_sha256)throw Error('Required illustrations failed validation');
-     const prefix=generation.path.slice(0,-4);
-     const assets=[[pair.before_image_ref,generation.input_sha256],[generation.path,generation.output_sha256],
-      [prefix+'-before-detail.jpg',entry.detail_sha256[0]],[prefix+'-after-detail.jpg',entry.detail_sha256[1]]];
-     if(entry.before_detail_ref!==assets[2][0]||entry.after_detail_ref!==assets[3][0])throw Error('Mismatched illustration detail');
-     for(const [path,digest] of assets)if(createHash('sha256').update(await readFile(join(dir,path))).digest('hex')!==digest)throw Error('Invalid illustration asset');
-    }
-   }
-   return {canonical,meowho,needsImages};
-   });
+   const {canonical,meowho,needsImages}=await measure(profile,'validation',()=>validateIntegrationArtifacts(dir,bundle,!!(job.requireImages||job.requireApprovedImages)));
    stage='storage';
    if(ports.preparePublication)publish=await ports.preparePublication(job,dir,bundle,canonical,meowho.summary);
    else {
