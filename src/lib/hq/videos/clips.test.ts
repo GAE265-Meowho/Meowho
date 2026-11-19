@@ -49,14 +49,12 @@ describe("前導影片：產生影片", () => {
     expect(CLIP_MOTION["s07-2"].action).not.toMatch(/sofa/);
   });
 
-  it("鏡 7 情侶在阿芳家門口從阿芳手上接走小橘，不用外出籠（#535）", () => {
+  it("鏡 7 情侶在阿芳家門口從阿芳手上接過裝著小橘的外出籠（#537）", () => {
     const s7 = SHOT_SECTIONS.flatMap(x => x.shots).find(s => s.no === 7)!;
-    expect(s7.picture).toContain("從阿芳手上接過小橘");
-    const f = s7.frames[0];
-    expect(f.prompt).toMatch(/hands the orange tabby cat into the woman's arms/);
-    expect(f.prompt).not.toMatch(/carrier/);
-    expect(CLIP_MOTION.s11.action).toMatch(/hands the orange tabby cat over/);
-    expect(CLIP_MOTION.s11.action).not.toMatch(/carrier/);
+    expect(s7.picture).toContain("從阿芳手上接過裝著小橘的外出籠");
+    expect(s7.frames[0].prompt).toMatch(/hands the pet carrier with the orange tabby cat inside/);
+    expect(CLIP_MOTION.s11.action).toMatch(/hands over the pet carrier/);
+    expect(CLIP_MOTION.s11.action).not.toMatch(/into her arms/);
   });
 
   it("每一鏡都不超過 10 秒（#517 Tina 確認）", () => {
