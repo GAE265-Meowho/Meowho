@@ -35,7 +35,7 @@ export const CLIP_MOTION: Record<string, ClipMotion> = {
   "s26-2": { action: "Xiaojie reads the message, smiles and types a reply.", camera: "Static medium shot." },
   s28: { action: "The carrier door opens; the cat slowly steps out, looks around, walks to the sunny window and sits down. Xiaojie stays kneeling without reaching out; Afang watches quietly.", camera: "Low angle at cat eye level, slow follow." },
   s29: { action: "The cat sleeps by the window, its side gently rising and falling; Xiaojie turns a page on the sofa.", camera: "Static wide shot with a very slow push-in." },
-  s30: { action: "The cat slowly turns its head toward the camera and blinks slowly.", camera: "Static close-up with a very slow push-in." },
+  s30: { action: "Sitting on the sofa, Xiaojie holds the cat in his arms and strokes its back; the cat slowly turns its head toward the camera and blinks slowly.", camera: "Very slow push-in from medium close-up to the cat's face; keep the sofa, floor lamp, window and desk where the studio reference places them." },
 };
 
 /** 負面 prompt：所有格共用（工具有 Negative prompt 欄位就貼） */

@@ -176,7 +176,7 @@ export const FRAME_REFS: Record<string, string[]> = {
   "s26-2": ["char-xiaojie", "scene-studio"],
   "s28": ["char-xiaoju", "char-xiaojie", "char-afang", "scene-studio"],
   "s29": ["char-xiaoju", "char-xiaojie", "scene-studio"],
-  "s30": ["char-xiaoju", "scene-studio"],
+  "s30": ["char-xiaoju", "char-xiaojie", "scene-studio"],
 };
 const ai = (id: string, prompt: string, label?: string): Frame => ({ id, make: "ai", prompt, label, refs: FRAME_REFS[id] ?? [] });
 const rec = (id: string, prompt: string): Frame => ({ id, make: "record", prompt, refs: [] });
@@ -272,8 +272,8 @@ export const SHOT_SECTIONS: ShotSection[] = [
         frames: [ai("s28", "Low angle at cat eye level, a pet carrier door opening on the floor of a sunny small studio apartment, the orange tabby cat stepping out slowly on its own and walking toward a sunny window, a young man with round glasses kneeling nearby patiently without reaching out, a woman in a brown knitted cardigan watching, golden hour light")] },
       { no: 26, line: "匯", time: "2:48–2:53", picture: "小橘在窗邊睡著，書桌下的電線已經收得整整齊齊；小傑在沙發上看書", voice: "小橘：「現在，我有了第二個家。」", sfx: "—",
         frames: [ai("s29", "The orange tabby cat napping by a sunny window in a cozy small studio apartment, neatly organized cables in a box under the desk, the young man reading on the sofa nearby, golden hour light")] },
-      { no: 27, line: "匯", time: "2:53–3:00", picture: "小橘轉頭看鏡頭，慢慢眨眼；Logo＋標語", voice: "小橘：「謝謝你，讓我不用再回到那個紙箱。」小傑：「也謝謝你，等我準備好。」字幕：「Meowho喵戶｜讓每一次相遇，都走到最後。」", sfx: "收尾音、貓叫一聲",
-        frames: [ai("s30", "Close-up of the orange tabby cat by the sunny window slowly turning its head to look into the camera and blinking slowly, peaceful, warm golden light")] },
+      { no: 27, line: "匯", time: "2:53–3:00", picture: "小傑坐在沙發抱著小橘，小橘轉頭看鏡頭，慢慢眨眼；家具位置照小傑的套房定景（沙發靠左牆、身後落地燈、窗戶在後方、書桌在窗下）；Logo＋標語", voice: "小橘：「謝謝你，讓我不用再回到那個紙箱。」小傑：「也謝謝你，等我準備好。」字幕：「Meowho喵戶｜讓每一次相遇，都走到最後。」", sfx: "收尾音、貓叫一聲",
+        frames: [ai("s30", "Late afternoon golden hour in the same small Taipei studio apartment, furniture placed exactly as in the studio reference: the gray fabric sofa against the left wall with a beige cushion and a knitted throw, a white floor lamp beside it, a light wooden coffee table on a woven rug in front of the sofa, the large window with beige curtains on the back wall, and the desk under the window to the right with a laptop, a desk lamp and a small plant, the cables under it now neatly packed in a cable box. Medium close-up from the coffee table side, the young man with round glasses sitting on the sofa holding the orange tabby cat in his arms, the cat slowly turning its head to look straight into the camera and blinking slowly, his gentle smile, the window and curtains softly out of focus behind them, peaceful, warm golden light")] },
     ],
   },
 ];
