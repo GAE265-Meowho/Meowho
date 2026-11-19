@@ -1,6 +1,6 @@
 "use client";
 /* eslint-disable @next/next/no-img-element */
-// 前導影片工作區（#489）：v3 分鏡腳本＋定角／定景照片＋每一格分鏡圖的上傳與進度。
+// 前導影片工作區（#489）：v4 分鏡腳本＋定角／定景照片＋每一格分鏡圖的上傳與進度。
 // 資料在 src/lib/hq/videos/trailer.ts；圖片存 meow-site-assets/videos/trailer/（0037 policy：所有管理員都能上傳與列出）。
 // 同一格重傳會留下舊版（檔名帶時間戳），畫面只顯示最新一版。
 import { useCallback, useEffect, useRef, useState } from "react";
