@@ -14,8 +14,8 @@ describe("前導影片：產生影片", () => {
     }
   });
 
-  it("清單只有 AI 生成的 28 格，系統錄影與字卡不列", () => {
-    expect(clipSections().flatMap(s => s.items)).toHaveLength(28);
+  it("清單只有 AI 生成的 26 格，系統錄影與字卡不列", () => {
+    expect(clipSections().flatMap(s => s.items)).toHaveLength(26);
     expect(clipSections().flatMap(s => s.items).every(i => i.frame.make === "ai")).toBe(true);
   });
 
