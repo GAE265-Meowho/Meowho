@@ -32,3 +32,13 @@ test('cancelled pacing waits never start a transport or spend a slot',async()=>{
  await pace(signal,async()=>{starts++;});
  assert.equal(starts,2);
 });
+
+test('a synchronous durable reservation cannot shorten the transport start interval',async()=>{
+ let now=0;
+ const pace=createImageEditPacer(()=>now,async ms=>{now+=ms;});
+ const signal=new AbortController().signal;
+ const starts=[];
+ await pace(signal,()=>{now+=8;starts.push(now);return Promise.resolve();});
+ await pace(signal,()=>{starts.push(now);return Promise.resolve();});
+ assert.deepEqual(starts,[8,12008]);
+});

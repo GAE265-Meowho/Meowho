@@ -13,9 +13,9 @@ export function createImageEditPacer(
    signal.throwIfAborted();
    const at=now();
    if(at>=nextStart){
-    // Check, reserve and invoke fetch in the same turn of the event loop.
-    nextStart=at+minimumGapMs;
-    return send();
+    // The synchronous send path may flush an audit entry before starting fetch.
+    try{return send();}
+    finally{nextStart=now()+minimumGapMs;}
    }
    await wait(Math.ceil(nextStart-at),signal);
   }

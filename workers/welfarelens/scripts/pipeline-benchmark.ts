@@ -115,7 +115,7 @@ async function main(){
     await mkdir(root,{mode:0o700});
     const bundle=await profile.measure('local_pipeline',()=>executeLiveJob({
       live:true,input,root,profile,signal:abort.signal,pdfBrowser:browser,meowhoInput:true,allowImageEditing:true,
-      providerRequests:guard.providerRequests,reportViewIdentity:{report_id:reportId,attempt:1},
+      providerRequests:guard.providerRequests,imageTransportOwnsPacing:true,reportViewIdentity:{report_id:reportId,attempt:1},
       env:{...process.env,ENABLE_CLOUD_ANALYSIS:'true',ENABLE_IMAGE_EDITING:'true',WELFARELENS_PRIVATE_HTML:'true',
         WELFARELENS_VIDEO_CONCURRENCY:'2',WELFARELENS_VIDEO_MAX_RETRIES:'0',WELFARELENS_IMAGE_EDIT_CONCURRENCY:String(guard.concurrency)},
     }));

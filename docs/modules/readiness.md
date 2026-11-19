@@ -453,6 +453,8 @@ Worker 選用的 `report.html` 與 `html-assets/` 位於既有 attempt 前綴。
 
 固定六件的 [M4 改圖 Benchmark](../../workers/welfarelens/docs/benchmarks/controlled-image-benchmark.md) 已完成 1／2／3 路六輪比較。Worker 只接受 1／2／3，預設 2，程序內跨 Job 的 Image Edit 起送間隔至少 12 秒。多程序共用部署與 M6 真人驗收見 [Worker 環境設定](../../workers/welfarelens/ENVIRONMENT.md)。
 
+[M6 單筆驗收](../../workers/welfarelens/VM_RUNBOOK.md#m6-首筆真人工作) 使用隔離佇列及私有帳本，模型上限為 VLM 14 次與改圖 8 次。共用 Claim RPC 沒有指定 Job 的原子篩選，測試模式拒絕團隊共用專案。網站與 Queue 契約沿用既有版本，真實驗收待隔離資源與費用核准。
+
 效能驗收採本機 Docker。已核准兩輪 US$30 Pilot，六輪暫留 US$40。後四輪須核對 Pilot 帳單並另行核准，原本的預留額持續計入。真實呼叫需先確認發布映像及成本。詳見 [Benchmark 紀錄](../../workers/welfarelens/docs/benchmarks/2026-11-pipeline-performance.md)。
 
 效能驗收使用獨立本機入口，可在不領取 Supabase 工作的情況下測量真實模型與本機報告。主機啟動器檢查 GHCR Digest、OCI revision、Image ID 及平台，並提供不建立請求帳本的斷網預檢。配額、預算、原始紀錄及人工品質標準見 [WelfareLens 效能驗收](../../workers/welfarelens/docs/benchmarks/2026-11-pipeline-performance.md)。雲端佇列、Blob 和租約恢復需獨立驗收。

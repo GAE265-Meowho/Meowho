@@ -13,6 +13,7 @@ import {buildRiskObjects,RiskObjectReportSchema} from '../src/domain/risk-object
 import {buildComparisonHtml,planVisualCases,renderComparisonPdf,renderVideoAfter} from '../src/server/video/before-after.ts';
 import {command} from '../src/server/video/media.ts';
 import {createImageEditPacer} from '../src/server/video/image-edit-pacing.ts';
+import {openM6ModelGuard} from '../src/server/video/m6-model-guard.ts';
 import {buildDetailImages,detailRegions} from '../src/server/video/comparison-detail.ts';
 import {reportViewFromPrepared} from '../src/server/video/report-view-model.ts';
 import {readHumanReview} from '../src/server/video/comparison-review.ts';
@@ -159,7 +160,8 @@ test('all three concurrency settings preserve case indices and report contracts'
     const secondStarted=new Promise(resolve=>{releaseFirst=resolve;});
     const pace=createImageEditPacer(()=>now,async ms=>{now+=ms;});
     const deadline=AbortSignal.timeout(30_000);
-    const mock=t.mock.method(globalThis,'fetch',async(_url,init)=>{
+    const ledger=join(target,'requests.jsonl');
+    const guard=openM6ModelGuard(ledger,async(_url,init)=>{
      starts.push(now);
      const requestNumber=++calls;
      peak=Math.max(peak,++active);
@@ -179,9 +181,12 @@ test('all three concurrency settings preserve case indices and report contracts'
      }finally{active--;}
     });
     try{
-     generated=await renderVideoAfter(risk,visual,target,config,deadline,undefined,undefined,undefined,undefined,pace);
+     generated=await renderVideoAfter(risk,visual,target,config,deadline,undefined,undefined,undefined,undefined,pace,guard.requests.image);
      assert.deepEqual(starts,[0,12000,24000,36000,48000,60000]);
-    }finally{mock.mock.restore();}
+     const records=(await readFile(ledger,'utf8')).trim().split('\n').map(JSON.parse);
+     assert.equal(records.filter(record=>record.event==='start').length,6);
+     assert.equal(Math.max(...records.filter(record=>record.event==='response').map(record=>record.in_flight_at_dispatch)),2);
+    }finally{guard.close();}
    }else{
     generated=await renderVideoAfter(risk,visual,target,config,signal,editor,undefined,concurrency);
    }

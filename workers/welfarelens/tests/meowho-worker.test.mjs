@@ -11,6 +11,7 @@ import {command} from '../src/server/video/media.ts';
 import {randomUUID} from 'node:crypto';
 import {runMeowhoQueue} from '../src/server/video/meowho-worker-mode.ts';
 import {createBlobPort} from '../src/server/video/meowho-blob.ts';
+import {openM6ModelGuard} from '../src/server/video/m6-model-guard.ts';
 
 const id='4f8620ce-f4d3-4736-9e89-09231af83ec9';
 const home='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',report='bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
@@ -42,6 +43,45 @@ test('empty queue returns idle without touching Blob; a foreign output prefix is
  const blob={download:()=>assert.fail('Unexpected download'),upload:()=>assert.fail('Unexpected upload')};
  assert.equal(await processMeowhoJob({root,workerId:'mock',blob,rpc:async()=>null}),'idle');
  await assert.rejects(processMeowhoJob({root,workerId:'mock',blob,rpc:async()=>({...claim(),output_prefix:'elsewhere/'})}));
+});
+
+test('M6 stops a mismatched claim before source reads, renewals or writes',async t=>{
+ const root=await rootFor(t);
+ const guard=openM6ModelGuard(join(root,'m6.jsonl'),()=>assert.fail('Unexpected model request'));
+ try{
+  await assert.rejects(processMeowhoJob({root,workerId:'mock',m6:{jobId:randomUUID(),guard},
+   rpc:async name=>{assert.equal(name,'meow_env_claim');return claim();},
+   blob:{download:()=>assert.fail('Unexpected download'),upload:()=>assert.fail('Unexpected upload')},
+  }),{code:'config_error'});
+ }finally{guard.close();}
+});
+
+test('M6 stops after an unusable HTTP 200 VLM body with no retry or publication',async t=>{
+ const root=await rootFor(t);
+ const sends=[];
+ const guard=openM6ModelGuard(join(root,'m6.jsonl'),async url=>{
+  sends.push(String(url));
+  return Response.json({unusable:true});
+ });
+ try{
+  const result=await processMeowhoJob({root,workerId:'mock',m6:{jobId:id,guard},
+   env:{ENABLE_CLOUD_ANALYSIS:'true',ENABLE_IMAGE_EDITING:'true',AZURE_OPENAI_ENDPOINT:'https://mock.openai.azure.com',
+    AZURE_OPENAI_API_KEY:'fixture',AZURE_OPENAI_DEPLOYMENT:'fixture',WELFARELENS_VIDEO_CONCURRENCY:'1',
+    AZURE_IMAGE_ENDPOINT:'https://mock.openai.azure.com',AZURE_IMAGE_API_KEY:'fixture',AZURE_IMAGE_DEPLOYMENT:'fixture',
+    WELFARELENS_VIDEO_MAX_RETRIES:'2',WELFARELENS_PDF_BROWSER:'unused'},
+   rpc:async(name,body)=>{
+    if(name==='meow_env_claim')return claim();
+    assert.equal(name,'meow_env_fail');
+    assert.equal(body.p_retryable,false);
+    return 'failed';
+   },
+   blob:{download:(_path,file)=>copyFile(fixture,file),upload:()=>assert.fail('Unexpected upload')},
+  });
+  assert.equal(result,'failed');
+  assert.equal(sends.length,1);
+  assert.match(sends[0],/\/chat\/completions$/);
+  assert.throws(guard.assertHealthy,/m6_vlm_response_unusable/);
+ }finally{guard.close();}
 });
 
 test('heartbeat renews during a blocked analysis; a stale reply cancels it without publication',async t=>{

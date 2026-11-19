@@ -21,6 +21,7 @@ MeowHome 及 WelfareLens 現階段共用私有 Azure Blob 容器 `media-dev`。�
 | `MEOWHO_WORKER_POLL_MS`、`MEOWHO_WORKER_MAX_JOBS` | Worker 輪詢間隔與本次最多處理的嘗試數 | 否 | 有界輪詢須設定上限。預設間隔 10 秒 |
 | `MEOWHO_WORKER_SERVICE`、`MEOWHO_QUEUE_ENABLED`、`MEOWHO_DEDICATED_QUEUE_PROJECT_REF` | 長期服務的部署模式、批准開關及已驗證獨占佇列專案 | 否 | 僅限獲准的獨占佇列。共用專案維持關閉 |
 | `WELFARELENS_QUEUE_IMAGE`、`WELFARELENS_QUEUE_ENV_FILE` | Compose 映像 digest 與 VM 私有設定檔位置 | 否 | 使用 Queue Compose 時必填 |
+| `MEOWHO_M6_JOB_ID`、`MEOWHO_M6_MODEL_LEDGER` | 首筆 E2E 預期 Job ID 與容器內持久帳本絕對路徑 | 否 | 僅限隔離專案，兩者皆須設定，只允許 `--once`，設過相同帳本即拒絕重啟 |
 | `GITHUB_TOKEN`、`WELFARELENS_GHCR_RELEASE` | GitHub Actions 內建權杖及 Registry 發布開關 | 權杖是 | 一般 CI 僅讀原始碼。發布工作另有套件寫入權限 |
 
 - **Vercel** 在 Project Settings 分別管理 Production、Preview、Development。Preview 若指向共用 Supabase 或 `media-dev`，必須按同一資料環境處理。設定和授權尚未證實時，只驗證建置，勿在 Preview 上傳真實影片。Worker 變數只在 Worker 執行環境設定。

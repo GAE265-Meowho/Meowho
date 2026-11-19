@@ -4,6 +4,7 @@ import {join} from 'node:path';
 import {z} from 'zod';
 import {processIntegrationJob} from './integration-job.ts';
 import {executeLiveJob, MEOWHO_MAX_BYTES} from './standalone.ts';
+import type {openM6ModelGuard} from './m6-model-guard.ts';
 import {probeVideo} from './media.ts';
 import {buildMeowhoItemProposals,MeowhoHazardKeySchema} from '../../domain/meowho-hazards.ts';
 import {createMeowhoEvidenceCrop} from './meowho-crop.ts';
@@ -144,6 +145,7 @@ export async function processMeowhoJob(options:{
  queueWait?:(jobId:string,signal:AbortSignal)=>Promise<number|null>;
  onProfile?:(profile:ReturnType<JobProfile['snapshot']>)=>void;
  analyze?:(input:string,root:string,signal:AbortSignal)=>ReturnType<Analyze>;
+ m6?:{jobId:string; guard:ReturnType<typeof openM6ModelGuard>};
 }){
  const {rpc,blob}=options, controller=new AbortController();
  const profile=new JobProfile();
@@ -202,6 +204,7 @@ export async function processMeowhoJob(options:{
     const result=await profile.measure('claim',()=>rpc('meow_env_claim',{p_worker:options.workerId},signal));
     if(result===null)return undefined;
     claim=ClaimSchema.parse(result);
+    if(options.m6&&(claim.job_id!==options.m6.jobId||claim.attempt!==1))throw new MeowhoError('config_error');
     profile.claimed();
     if(claim.attempt===1&&options.queueWait)queueWait=options.queueWait(claim.job_id,signal).then(ms=>profile.queuedFor(ms),()=>{});
     setExpiry(claim.lease_until);schedule();
@@ -222,8 +225,14 @@ export async function processMeowhoJob(options:{
     if(options.analyze)return options.analyze(input,root,signal);
     const env=options.env??process.env;
     if(!env.WELFARELENS_PDF_BROWSER||env.ENABLE_IMAGE_EDITING!=='true')throw new MeowhoError('config_error');
-    return executeLiveJob({input,root,profile,signal,meowhoInput:true,live:true,env,allowImageEditing:true,pdfBrowser:env.WELFARELENS_PDF_BROWSER,
+    const bundle=await executeLiveJob({input,root,profile,signal,meowhoInput:true,live:true,
+     env:options.m6?{...env,WELFARELENS_VIDEO_MAX_RETRIES:'0'}:env,providerRequests:options.m6?.guard.requests,
+     onVlmFailure:options.m6?.guard.stopAfterVlmFailure,
+     allowImageEditing:true,pdfBrowser:env.WELFARELENS_PDF_BROWSER,
      reportViewIdentity:env.WELFARELENS_PRIVATE_REPORT_VIEW==='true'?{report_id:claim.report_id,attempt:claim.attempt}:undefined});
+    options.m6?.guard.assertHealthy();
+    if(options.m6&&bundle.diagnostics?.some(entry=>entry.error_type))throw new MeowhoError('result_invalid');
+    return bundle;
    },
    async preparePublication(_job,dir,bundle,canonical,summary){
     ensure();step='upload';
@@ -245,7 +254,10 @@ export async function processMeowhoJob(options:{
        ensure();htmlSignal.throwIfAborted();
        return upload(path,file,mime,htmlSignal);
       },(options.env??process.env).WELFARELENS_PRIVATE_REPORT_VIEW==='true');
-     }catch{console.warn('welfarelens: optional HTML upload unavailable');}
+     }catch(error){
+      if(options.m6)throw error;
+      console.warn('welfarelens: optional HTML upload unavailable');
+     }
     }
     ensure();
     return ()=>finish('meow_env_complete',body);
@@ -258,7 +270,7 @@ export async function processMeowhoJob(options:{
     const mapped=failureCodes.has(code)?code:errors.has('credentials')?'permission_denied':
      errors.has('quota')?'rate_limited':errors.has('timeout')?'timeout':errors.has('provider_unavailable')?'service_unavailable':
      errors.has('configuration')||errors.has('disabled')?'config_error':stage==='analysis'&&!observed?.diagnostics?'config_error':'result_invalid';
-    return finish('meow_env_fail',{p_code:mapped,p_detail:`${stage}: ${mapped}`,p_retryable:observed?.retryable!==false&&retryable.has(mapped)&&claim.attempt<3});
+    return finish('meow_env_fail',{p_code:mapped,p_detail:`${stage}: ${mapped}`,p_retryable:!options.m6&&observed?.retryable!==false&&retryable.has(mapped)&&claim.attempt<3});
    },
    async save(){throw new MeowhoError('config_error');},
    async complete(){throw new MeowhoError('config_error');},
