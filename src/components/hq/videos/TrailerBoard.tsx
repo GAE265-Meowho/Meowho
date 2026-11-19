@@ -326,8 +326,13 @@ function ShotCard({ s, filter, edits, ...slot }: SlotProps & { s: Shot; filter: 
               <span className={`hq-video-make m-${f.make}`}>{FRAME_MAKE_LABELS[f.make]}</span>
               {f.label && <b className="hq-video-framelabel">{f.label}</b>}
             </div>
+            {/* #515：寬螢幕時圖片在左、prompt 在右，手機上下排 */}
+            <div className="hq-video-framebody">
+            <div className="hq-video-framemedia">
             <ImageSlot id={f.id} alt={`鏡 ${f.label && /^\d/.test(f.label) ? f.label : `${s.no}${f.label ? `（${f.label}）` : ""}`}分鏡圖`} ratio="wide" {...slot} />
             <RefChips refs={f.refs} urlOf={slot.urlOf} />
+            </div>
+            <div className="hq-video-frametext">
             {f.make === "ai" ? (
               <>
                 <Prompt text={fullPrompt(f, s.line)} copy={slot.copy} title="英文 prompt" />
@@ -339,6 +344,8 @@ function ShotCard({ s, filter, edits, ...slot }: SlotProps & { s: Shot; filter: 
                 <button type="button" className="hq-btn ghost small" onClick={() => slot.copy(agentPrompt(f, s.line, zhPromptOf(f, edits.eff)))}>複製中英文 prompt（給 AI agent）</button>
               </>
             ) : <p className="hq-sub">{f.prompt}</p>}
+            </div>
+            </div>
           </div>
         ))}
       </div>

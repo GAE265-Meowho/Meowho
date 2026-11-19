@@ -3,17 +3,18 @@ import { EMPTY_VOICE_DRAFT, SPEAKERS, VOICE_LINES, prepareVoiceSpec, voiceFileNa
 import { SHOT_SECTIONS } from "./trailer";
 
 describe("前導影片：配音（#504）", () => {
-  it("27 句旁白編號 n01–n27：小橘 14 句、小傑 13 句", () => {
-    expect(VOICE_LINES).toHaveLength(27);
+  it("25 句旁白編號 n01–n25：小橘 15 句、小傑 10 句（#515 縮為 3 分鐘）", () => {
+    expect(VOICE_LINES).toHaveLength(25);
     expect(VOICE_LINES[0].id).toBe("n01");
-    expect(VOICE_LINES[26].id).toBe("n27");
-    expect(VOICE_LINES.filter(l => l.speaker === "xiaoju")).toHaveLength(14);
-    expect(VOICE_LINES.filter(l => l.speaker === "xiaojie")).toHaveLength(13);
+    expect(VOICE_LINES[24].id).toBe("n25");
+    expect(VOICE_LINES.filter(l => l.speaker === "xiaoju")).toHaveLength(15);
+    expect(VOICE_LINES.filter(l => l.speaker === "xiaojie")).toHaveLength(10);
   });
 
-  it("每句都找得到所在鏡頭（由旁白欄自動對應），跨鏡的句子標成範圍", () => {
+  it("每句都找得到所在鏡頭（由旁白欄自動對應），對應到新編號", () => {
     for (const l of VOICE_LINES) expect(l.shots, l.id).not.toBe("—");
-    expect(VOICE_LINES.find(l => l.text.startsWith("她每天幫我拍照"))!.shots).toMatch(/–/);
+    expect(VOICE_LINES.find(l => l.text.startsWith("我查了好多"))!.shots).toBe("9"); // 查資料＋看電線同一鏡
+    expect(VOICE_LINES[0].shots).toBe("2");
   });
 
   it("每句標的鏡頭都存在，而且那顆鏡頭的旁白欄確實有這句（或這句的開頭）", () => {
