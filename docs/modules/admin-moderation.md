@@ -160,6 +160,7 @@ ole === "admin" 判斷管理員，而現有 admin 會升為 system_admin；舊�
 | 2026-10-28 | Tina × Cursor | MeowHQ 階段 0：`src/lib/hq/types.ts` 與測試（8 種處置含 `unban`）、0002 資料表草案 | #18 |
 | 2026-10-29 | Tina × Cursor | MeowHQ 階段 1 db：`0002_meow_hq.sql`、`supabase/tests/`（SQL 測試與本機執行器） | #19 |
 | 2026-11-04 | Tina × Claude Code | MeowHQ 新增「貓戶管理」模組：依類別查看貓戶、貓咪卡片；0020 授權現有管理員 | #179 |
+| 2026-11-19 | Tina × Claude Code | 鏡 11 改為同一雨夜坐到沙發拿手機、拇指懸著（保留 Tina 的分鏡計畫圖）；第一格廣角書桌照 9-1；鏡 22 呼應與錄影改回手機（#543） |
 | 2026-11-19 | Tina × Claude Code | 鏡 11 改為同一雨夜的書桌筆電、滑鼠懸在「我想領養」上；`STUDIO_LAYOUT` 讓 12-2、17、25、26、27 的套房擺設對齊 9-1；鏡 22 呼應改為滑鼠（#541） |
 | 2026-11-19 | Tina × Claude Code | 鏡 9 連戲：s10 prompt 照已生成的 9-1 寫明家具位置與門口廣角，s13 改為用 s10.webp 改圖只改姿勢；動作與運鏡同步（#539） |
 | 2026-11-19 | Tina × Claude Code | 鏡 7 交接改用外出籠：情侶從阿芳手上接過裝著小橘的外出籠，s11 分鏡圖與動作 prompt 同步（#537） |

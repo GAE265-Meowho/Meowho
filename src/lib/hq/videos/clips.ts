@@ -23,7 +23,7 @@ export const CLIP_MOTION: Record<string, ClipMotion> = {
   s13: { action: "He slowly looks down at the cable tangle under his desk and frowns; he nudges one cable with his foot.", camera: "Same doorway framing as 9-1; slow push-in toward the cables under the desk. Do not move any furniture." },
   "s14-1": { action: "A cat paw steps onto the pile of bills; the papers shift slightly.", camera: "Static top-down shot." },
   "s14-2": { action: "The cat hides under the sofa with wide eyes; the out-of-focus couple argues and gestures in the background.", camera: "Static low shot from under the sofa." },
-  s15: { action: "His index finger hovers over the mouse button, trembles slightly and lifts away without clicking; he slowly closes the laptop lid and the darkening screen reflects his face.", camera: "Static over-the-shoulder close-up on the desk." },
+  s15: { action: "He leaves the desk, sits down on the sofa and picks up his phone; his thumb hovers over the button, trembles slightly and pulls back; he locks the screen and the dark screen reflects his face.", camera: "Start on the wide doorway shot matching 9-1, then close-ups of the phone, his thumb and his face (cut together in editing; the planned panel sequence is kept)." },
   "s16-1": { action: "Afang opens the box, lifts the wet cat into her arms and holds it tight, tears in her eyes.", camera: "Slow push-in." },
   "s16-2": { action: "Xiaojie stands still by the window watching the rain, breathing slowly.", camera: "Static silhouette shot with a slow push-in." },
   s18: { action: "Afang films the cat playing with a toy on the floor and smiles at her phone screen.", camera: "Gentle handheld shot at eye level." },
