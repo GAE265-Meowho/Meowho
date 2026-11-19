@@ -12,6 +12,7 @@ import {buildVisualReport} from '../src/domain/visual-report.ts';
 import {buildRiskObjects,RiskObjectReportSchema} from '../src/domain/risk-objects.ts';
 import {buildComparisonHtml,planVisualCases,renderComparisonPdf,renderVideoAfter} from '../src/server/video/before-after.ts';
 import {command} from '../src/server/video/media.ts';
+import {createImageEditPacer} from '../src/server/video/image-edit-pacing.ts';
 import {buildDetailImages,detailRegions} from '../src/server/video/comparison-detail.ts';
 import {reportViewFromPrepared} from '../src/server/video/report-view-model.ts';
 import {readHumanReview} from '../src/server/video/comparison-review.ts';
@@ -142,7 +143,7 @@ test('all three concurrency settings preserve case indices and report contracts'
    const target=concurrency===3?dir:join(dir,`mode-${concurrency??'default'}`);
    if(target!==dir){await mkdir(target);await copyFile(join(dir,'f000.jpg'),join(target,'f000.jpg'));}
    let calls=0,active=0,peak=0;
-   generated=await renderVideoAfter(risk,visual,target,config,signal,async(_config,_image,prompt,_size,_signal,_fetch,quality)=>{
+   const editor=async(_config,_image,prompt,_size,_signal,_fetch,quality)=>{
     assert.equal(quality,'high');
     calls++;
     peak=Math.max(peak,++active);
@@ -151,7 +152,39 @@ test('all three concurrency settings preserve case indices and report contracts'
     active--;
     const png=pngs[index];
     return {ok:true,png,encoded:png.toString('base64'),width:640,height:360,usage:null};
-   },undefined,concurrency);
+   };
+   if(concurrency===undefined){
+    let now=0,releaseFirst;
+    const starts=[];
+    const secondStarted=new Promise(resolve=>{releaseFirst=resolve;});
+    const pace=createImageEditPacer(()=>now,async ms=>{now+=ms;});
+    const deadline=AbortSignal.timeout(30_000);
+    const mock=t.mock.method(globalThis,'fetch',async(_url,init)=>{
+     starts.push(now);
+     const requestNumber=++calls;
+     peak=Math.max(peak,++active);
+     try{
+      if(requestNumber===1){
+       await new Promise((resolve,reject)=>{
+        deadline.addEventListener('abort',()=>reject(deadline.reason),{once:true});
+        void secondStarted.then(resolve);
+       });
+      }else if(requestNumber===2){
+       releaseFirst();
+      }
+      assert.equal(init.body.get('quality'),'high');
+      const prompt=init.body.get('prompt');
+      const index=byLabel.get(JSON.parse(prompt.slice(prompt.indexOf('{'))).object);
+      return Response.json({data:[{b64_json:pngs[index].toString('base64')}]});
+     }finally{active--;}
+    });
+    try{
+     generated=await renderVideoAfter(risk,visual,target,config,deadline,undefined,undefined,undefined,undefined,pace);
+     assert.deepEqual(starts,[0,12000,24000,36000,48000,60000]);
+    }finally{mock.mock.restore();}
+   }else{
+    generated=await renderVideoAfter(risk,visual,target,config,signal,editor,undefined,concurrency);
+   }
    assert.equal(calls,6);
    assert.equal(peak,expectedPeak);
    for(const [index,entry] of entries.entries()){
