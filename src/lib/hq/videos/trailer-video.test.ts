@@ -4,11 +4,11 @@ import {
 } from "./trailer-video";
 
 describe("前導影片的影片檔（#501）", () => {
-  it("可放影片的格：完整影片 1、四段 4、AI 片段 28、旁白 25", () => {
+  it("可放影片的格：完整影片 1、四段 4、AI 片段 26、旁白 25", () => {
     const s = videoSlots();
     expect(s.filter(x => x.kind === "full")).toHaveLength(1);
     expect(s.filter(x => x.kind === "section").map(x => x.id)).toEqual(["opening", "cross", "product", "ending"]);
-    expect(s.filter(x => x.kind === "clip")).toHaveLength(28);
+    expect(s.filter(x => x.kind === "clip")).toHaveLength(26);
     expect(s.filter(x => x.kind === "voice")).toHaveLength(25);
     expect(isVideoSlot("s07-2")).toBe(true);
     expect(isVideoSlot("s08")).toBe(false); // 字卡不用生成
