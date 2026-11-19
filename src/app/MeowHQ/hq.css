@@ -815,3 +815,14 @@
 .hq-video-line-row { border: 1px solid var(--hq-line); border-radius: 10px; padding: .6rem .75rem; display: flex; flex-direction: column; gap: .4rem; min-width: 0; }
 .hq-video-line-text { margin: 0; font-size: .95rem; line-height: 1.6; }
 .hq-video-audio { width: 100%; height: 40px; }
+/* 分鏡表頁面編修（#513） */
+.hq-video-editview { display: flex; flex-direction: column; gap: .2rem; }
+.hq-video-edittext { white-space: pre-wrap; overflow-wrap: anywhere; }
+.hq-video-editmeta { display: flex; flex-wrap: wrap; align-items: center; gap: .35rem; }
+.hq-video-edited { font-size: .75rem; background: var(--hq-caramel-soft); color: var(--hq-caramel-ink); border-radius: 999px; padding: .05rem .5rem; }
+.hq-video-editbtn { font: inherit; font-size: .8rem; color: var(--hq-sage-ink); background: none; border: 0; padding: .35rem .2rem; min-height: 32px; text-decoration: underline; text-underline-offset: 2px; cursor: pointer; }
+.hq-video-editbtn:focus-visible { outline: 2px solid var(--hq-sage); outline-offset: 2px; border-radius: 4px; }
+.hq-video-edit { display: flex; flex-direction: column; gap: .35rem; }
+.hq-video-edit textarea { width: 100%; font: inherit; font-size: 16px; border: 1px solid var(--hq-line); border-radius: 8px; padding: .5rem .6rem; background: #fff; resize: vertical; }
+.hq-video-edit .hq-error { margin: 0; }
+.hq-video-zh { display: flex; flex-direction: column; gap: .2rem; border-top: 1px dashed var(--hq-line); padding-top: .4rem; font-size: .9rem; }

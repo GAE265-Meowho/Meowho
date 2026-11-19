@@ -137,7 +137,7 @@ export const SCENES: RefSlot[] = [
   },
   {
     id: "scene-afang-home", kind: "scene", name: "阿芳家（中途之家）",
-    setting: "中途之家就是阿芳家：老公寓一樓，門口有鐵門和幾盆植物（開場雨夜的紙箱、鏡 16 抱起小橘都在門口）；屋裡有貓窩、貓抓柱和幾個外出籠，廚房餐桌靠窗，阿芳拍小橘、在廚房回訊息都在這裡。中途之家不只一隻貓：除了小橘，還住著兩隻中途貓「短耳貓」和「灰寶」，只當背景，不搶小橘的戲（#502）",
+    setting: "中途之家就是阿芳家：老公寓一樓，門口有鐵門和幾盆植物（開場雨夜的紙箱、鏡 15 抱起小橘都在門口）；屋裡有貓窩、貓抓柱和幾個外出籠，廚房餐桌靠窗，阿芳拍小橘、在廚房回訊息都在這裡。中途之家不只一隻貓：除了小橘，還住著兩隻中途貓「短耳貓」和「灰寶」，只當背景，不搶小橘的戲",
     prompt: "Ground-floor apartment of a Taiwanese cat rescuer in an old building, shown in two views: the front doorstep with an iron gate, a few potted plants and a dim yellow street light; and the cozy interior with a kitchen table by the window, cat beds, scratching posts and a few pet carriers, warm light, lived-in and slightly cluttered. Two resident shelter cats live here: a short-eared cat and a gray cat named Huibao, resting on a cat bed and a scratching post; neither of them is orange. Wide shots, photorealistic, no people.",
     en: "Afang's ground-floor apartment, which is also the cat shelter (doorstep with an iron gate and potted plants; kitchen table by the window, cat beds, pet carriers; two resident cats in the background: a short-eared cat and a gray cat named Huibao)",
   },

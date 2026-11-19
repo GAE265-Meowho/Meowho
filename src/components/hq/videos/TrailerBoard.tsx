@@ -7,6 +7,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useHqActor } from "@/components/hq/HqActor";
 import { useHqToast } from "@/components/hq/HqToast";
 import { GenLogButton, useGenLogs } from "./GenLog";
+import { EditableText, ExportEdits, useScriptEdits, type ScriptEditsState } from "./ScriptEdits";
+import { SHOT_FIELDS, agentPrompt, shotKey, zhPromptOf } from "@/lib/hq/videos/script-edits";
 import { getBrowserSupabase } from "@/lib/supabase/client";
 import {
   CHARACTERS, FRAME_MAKE_LABELS, FRAME_MAX_BYTES, LINE_LOOK, MATCH_CUTS, NARRATION, SCENES, SHOT_SECTIONS,
@@ -94,6 +96,7 @@ export function TrailerBoard() {
 
   const copy = useCopy();
   const genLogs = useGenLogs();
+  const edits = useScriptEdits();
 
   const slot = { urlOf, uploads, canUpload, upload, copy };
   const showShot = (s: Shot) => s.frames.some(f => filter === "all" || (filter === "missing" ? !uploads[f.id] : f.make === filter));
@@ -138,7 +141,12 @@ export function TrailerBoard() {
       </section>
 
       <section className="hq-video-sec" aria-labelledby="tv-board">
-        <h2 id="tv-board">分鏡表</h2>
+        <div className="hq-video-sechead">
+          <h2 id="tv-board">分鏡表</h2>
+          <ExportEdits state={edits} />
+        </div>
+        <p className="hq-sub">畫面、旁白／字幕、音效和每格的中文 prompt 都可以按「編修」直接改，改過的會標「已編修」，可以還原原稿。產生分鏡圖時，把「中英文 prompt」一起交給 AI agent。</p>
+        {edits.error && <p className="hq-error" role="alert">{edits.error}</p>}
         <div className="hq-chips" role="group" aria-label="篩選分鏡圖">
           {FILTERS.map(f => <button key={f.value} className={filter === f.value ? "on" : ""} aria-pressed={filter === f.value} onClick={() => setFilter(f.value)}>{f.label}</button>)}
         </div>
@@ -152,7 +160,7 @@ export function TrailerBoard() {
                 <GenLogButton section={sec} state={genLogs} copy={copy} />
               </div>
               {sec.note && <p className="hq-sub">{sec.note}</p>}
-              {list.map(s => <ShotCard key={s.no} s={s} filter={filter} {...slot} />)}
+              {list.map(s => <ShotCard key={s.no} s={s} filter={filter} edits={edits} {...slot} />)}
             </div>
           );
         })}
@@ -297,7 +305,7 @@ export function RefChips({ refs, urlOf }: { refs: string[]; urlOf: SlotProps["ur
   );
 }
 
-function ShotCard({ s, filter, ...slot }: SlotProps & { s: Shot; filter: Filter }) {
+function ShotCard({ s, filter, edits, ...slot }: SlotProps & { s: Shot; filter: Filter; edits: ScriptEditsState }) {
   const frames = s.frames.filter(f => filter === "all" || (filter === "missing" ? !slot.uploads[f.id] : f.make === filter));
   return (
     <article className="hq-video-shot" aria-labelledby={`shot-${s.no}`}>
@@ -307,9 +315,9 @@ function ShotCard({ s, filter, ...slot }: SlotProps & { s: Shot; filter: Filter 
         <span className="hq-sub">{s.time}</span>
       </header>
       <dl className="hq-video-shotinfo">
-        <div><dt>畫面</dt><dd>{s.picture}</dd></div>
-        <div><dt>旁白／字幕</dt><dd>{s.voice}</dd></div>
-        <div><dt>音效</dt><dd>{s.sfx}</dd></div>
+        {SHOT_FIELDS.map(({ field, label }) => (
+          <div key={field}><dt>{label}</dt><dd><EditableText target={shotKey(s)} field={field} label={`鏡 ${s.no} ${label}`} original={s[field]} state={edits} /></dd></div>
+        ))}
       </dl>
       <div className="hq-video-frames">
         {frames.map((f: Frame) => (
@@ -320,7 +328,17 @@ function ShotCard({ s, filter, ...slot }: SlotProps & { s: Shot; filter: Filter 
             </div>
             <ImageSlot id={f.id} alt={`鏡 ${f.label && /^\d/.test(f.label) ? f.label : `${s.no}${f.label ? `（${f.label}）` : ""}`}分鏡圖`} ratio="wide" {...slot} />
             <RefChips refs={f.refs} urlOf={slot.urlOf} />
-            {f.make === "ai" ? <Prompt text={fullPrompt(f, s.line)} copy={slot.copy} /> : <p className="hq-sub">{f.prompt}</p>}
+            {f.make === "ai" ? (
+              <>
+                <Prompt text={fullPrompt(f, s.line)} copy={slot.copy} title="英文 prompt" />
+                <div className="hq-video-zh">
+                  <span className="hq-sub">中文 prompt（補充）</span>
+                  <EditableText target={f.id} field="zh_prompt" label={`${f.label ?? `鏡 ${s.no}`} 中文 prompt`} original="" state={edits}
+                    placeholder="補充英文 prompt 沒寫到的意圖或細節，例：紙箱是上掀式、上蓋有膠帶；小橘要瘦小" emptyText="還沒有中文補充" />
+                </div>
+                <button type="button" className="hq-btn ghost small" onClick={() => slot.copy(agentPrompt(f, s.line, zhPromptOf(f, edits.eff)))}>複製中英文 prompt（給 AI agent）</button>
+              </>
+            ) : <p className="hq-sub">{f.prompt}</p>}
           </div>
         ))}
       </div>
