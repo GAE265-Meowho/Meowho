@@ -3,6 +3,8 @@
 import { SHOT_SECTIONS, type SectionKey } from "./trailer";
 import { VOICE_LINES, speakerName } from "./voice";
 import { REC_CLIPS, recClip } from "./rec-clips";
+import { CLIP_MOTION } from "./clips";
+import type { Shot } from "./trailer";
 
 export const TRAILER_VIDEO_PREFIX = "videos/trailer/";
 /** 單檔上限：瀏覽器直傳 Azure（單次 PUT），完整影片 1080p 5 分鐘通常在數百 MB 內 */
@@ -23,7 +25,15 @@ export const TRAILER_AUDIO_MIME: Record<string, string> = {
   "audio/x-m4a": "m4a",
 };
 
-export type VideoSlotKind = "full" | "section" | "clip" | "voice" | "rec";
+export type VideoSlotKind = "full" | "section" | "clip" | "shot" | "voice" | "rec";
+
+/** 整鏡成品（#548）：兩格以上、或拆成多支短片生成的鏡頭，剪好／合成後的整鏡影片放這裡。
+ *  代號用 m-<第一格代號>（存檔路徑），不跟著鏡號變 */
+export function compositeShots(): { id: string; shot: Shot }[] {
+  return SHOT_SECTIONS.flatMap(s => s.shots)
+    .filter(sh => sh.frames.length >= 2 || sh.frames.some(f => CLIP_MOTION[f.id]?.cuts?.length))
+    .map(sh => ({ id: `m-${sh.frames[0].id.replace(/-\d+$/, "")}`, shot: sh }));
+}
 
 /** 可以放影片的格：完整影片、四段、每一格 AI 分鏡（片段）、旁白、第三段的系統錄影（#529） */
 export function videoSlots(): { id: string; kind: VideoSlotKind }[] {
@@ -31,6 +41,7 @@ export function videoSlots(): { id: string; kind: VideoSlotKind }[] {
     { id: "full", kind: "full" as const },
     ...SHOT_SECTIONS.map(s => ({ id: s.key as string, kind: "section" as const })),
     ...SHOT_SECTIONS.flatMap(s => s.shots.flatMap(sh => sh.frames.filter(f => f.make === "ai").map(f => ({ id: f.id, kind: "clip" as const })))),
+    ...compositeShots().map(c => ({ id: c.id, kind: "shot" as const })),
     ...VOICE_LINES.map(l => ({ id: l.id, kind: "voice" as const })),
     ...REC_CLIPS.map(c => ({ id: c.id, kind: "rec" as const })),
   ];
@@ -88,6 +99,8 @@ export function videoSlotLabel(slot: string): string {
   if (line) return `旁白 ${slot} ${speakerName(line.speaker)}`;
   const sec = SHOT_SECTIONS.find(s => s.key === slot);
   if (sec) return sec.title.replace("：", "");
+  const comp = slot.startsWith("m-") ? compositeShots().find(c => c.id === slot) : undefined;
+  if (comp) return `鏡 ${comp.shot.no} 整鏡成品`;
   for (const s of SHOT_SECTIONS) for (const sh of s.shots) for (const f of sh.frames) {
     if (f.id === slot) return f.label && /^\d/.test(f.label) ? `鏡 ${f.label}` : `鏡 ${sh.no}`;
   }

@@ -16,7 +16,8 @@
 - 前導影片鏡 7 情侶在門口從阿芳手上接走小橘（Tina × Claude Code，#535）：PR #536 已合併；#537 改為外出籠交接，PR #538 已合併，完成。
 - 前導影片鏡 9 兩格家具連戲（Tina × Claude Code，#539）：PR #540 已合併，完成。
 - 前導影片鏡 11 延續 9-2 雨夜書桌、後續套房鏡頭對齊 9-1（Tina × Claude Code，#541）：PR #542 已合併；#543 改為沙發拿手機，PR #544 已合併，完成。
-- 前導影片鏡 11 片段卡拆成 4 支短片（Tina × Claude Code，#545）：分支 `feat/545-shot11-cuts`，審查中。
+- 前導影片鏡 11 片段卡拆成 4 支短片（Tina × Claude Code，#545）：PR #546 已合併，完成。
+- 前導影片影片 tab 多格鏡頭加「整鏡成品」上傳格（Tina × Claude Code，#548）：分支 `feat/548-shot-composite`，審查中。
 
 - AI 居家安全報告首屏與圖片載入（Jerry0808 × Codex）：分支 `codex/home-safety-report-ux`，審查中。沿用 #273 報告授權；待驗收 Preview 的真實 Owner 登入及 Azure 延遲。
 
