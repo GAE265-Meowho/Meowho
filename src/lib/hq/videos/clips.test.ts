@@ -57,6 +57,17 @@ describe("前導影片：產生影片", () => {
     expect(CLIP_MOTION.s11.action).not.toMatch(/into her arms/);
   });
 
+  it("鏡 9 兩格寫同一段套房家具位置，9-2 用 9-1 成品改圖（#539）", () => {
+    const [f1, f2] = SHOT_SECTIONS.flatMap(x => x.shots).find(s => s.no === 9)!.frames;
+    for (const f of [f1, f2]) {
+      expect(f.prompt).toContain("do not move, add or remove any furniture");
+      expect(f.prompt).toMatch(/desk under the right side of the window/);
+      expect(f.prompt).toMatch(/sofa against the left wall/);
+    }
+    expect(f2.prompt).toMatch(/Edit the 9-1 image \(s10\.webp\)/);
+    expect(f1.prompt).toMatch(/unreadable/);
+  });
+
   it("每一鏡都不超過 10 秒（#517 Tina 確認）", () => {
     for (const s of SHOT_SECTIONS.flatMap(x => x.shots)) expect(shotSeconds(s), `鏡 ${s.no}`).toBeLessThanOrEqual(10);
   });
