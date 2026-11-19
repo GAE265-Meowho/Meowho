@@ -17,7 +17,7 @@ MeowHome 及 WelfareLens 現階段共用私有 Azure Blob 容器 `media-dev`。�
 | `ENABLE_CLOUD_ANALYSIS`、`ENABLE_IMAGE_EDITING` | Worker 執行真實分析與圖片生成 | 否 | 真實領件須兩者為 `true` |
 | `MEOWHO_WORKER_TMP`、`WELFARELENS_PDF_BROWSER` | Worker 私有暫存目錄及 Chromium 執行檔 | 否 | 真實領件，Docker 預設瀏覽器已配置 |
 | `WELFARELENS_PRIVATE_HTML`、`WELFARELENS_PRIVATE_REPORT_VIEW` | Worker 私有 HTML 及新版 Writer 開關 | 否 | 選填，兩者皆為 `true` 才上傳新版 JSON |
-| `WELFARELENS_IMAGE_EDIT_CONCURRENCY`、`WELFARELENS_VIDEO_CONCURRENCY`、`WELFARELENS_VIDEO_MAX_RETRIES` | AI 並行及 VLM 傳輸重試 | 否 | 選填，預設 1、2、2。改圖只接受 1／2／3 |
+| `WELFARELENS_IMAGE_EDIT_CONCURRENCY`、`WELFARELENS_VIDEO_CONCURRENCY`、`WELFARELENS_VIDEO_MAX_RETRIES` | AI 並行及 VLM 傳輸重試 | 否 | 選填，預設 2、2、2。改圖只接受 1／2／3，空字串為設定錯誤 |
 | `MEOWHO_WORKER_POLL_MS`、`MEOWHO_WORKER_MAX_JOBS` | Worker 輪詢間隔與本次最多處理的嘗試數 | 否 | 有界輪詢須設定上限。預設間隔 10 秒 |
 | `MEOWHO_WORKER_SERVICE`、`MEOWHO_QUEUE_ENABLED`、`MEOWHO_DEDICATED_QUEUE_PROJECT_REF` | 長期服務的部署模式、批准開關及已驗證獨占佇列專案 | 否 | 僅限獲准的獨占佇列。共用專案維持關閉 |
 | `WELFARELENS_QUEUE_IMAGE`、`WELFARELENS_QUEUE_ENV_FILE` | Compose 映像 digest 與 VM 私有設定檔位置 | 否 | 使用 Queue Compose 時必填 |
@@ -32,10 +32,10 @@ Vercel 的 Production 與 Preview 目標值及 VM 現行設定，需從各環境
 
 ## Worker 改圖與 M6 驗收
 
-程式預設為 `1`。正式路徑驗收通過後，受控真人環境可在 Worker 的私有環境檔明確設 `WELFARELENS_IMAGE_EDIT_CONCURRENCY=2`。在部署流量可控時可另行驗收 `3`。回退時先排空執行中的 Job，設回 `1` 或移除此設定，再重啟 Worker。
+未設定時使用 `2`，也可在 Worker 的私有環境檔明確設 `WELFARELENS_IMAGE_EDIT_CONCURRENCY=2`。在部署流量可控時可顯式使用 `3`。回退時先停止領件，讓執行中的 Job 收尾，再顯式設為 `1` 後重啟。用 `meowho_worker_start` 的 `image_edit_concurrency` 確認實際值。已部署的顯式設定優先。
 
 正式影片 Worker 的同一程序跨 Job 至少間隔 12 秒起送一次 Image Edit。429、HTTP 408、傳輸逾時與無法確認的回應會停止同批尚未起送的改圖，在途請求按自身期限收尾。Job 取消或租約失效時會傳遞取消訊號。改圖失敗不會自動重送，缺少必要改善圖的 Job 也不會自動重排或發布報告。現有報告 JSON、HTML、PDF 與 Queue 介面沿用原契約。
 
 同一部署的 6 RPM 由所有 Worker、其他程序及客戶端共享。各程序只知道自己的起送時間，重啟會清除本機節流狀態；回退或切換後若不能確認最後起送時間，等部署最近 60 秒清空後再領件。多個程序同時使用時必須分開部署、集中節流或協調時段。單程序節流無法保證整個部署不超限。
 
-M6 需另行批准真人影片、請求數、費用上限及執行時段。先確認隔離的 Supabase 佇列、獨立 Blob 前綴、單一 Worker 與可控制的模型流量；以 `1` 執行一份測試 Job，核對 Claim、Lease、Attempt、Complete、Owner 存取及每個案例的 PNG 對應，驗證 JSON、HTML、PDF 均可讀取。真人測試再以 `2` 依序送入三個測試戶各一份，核對每筆起送至少隔 12 秒（含跨 Job）、沒有 429 或意外重試、各戶只能存取自己的報告。監控使用次數與 Usage；遇到租約失效、429、逾時、未知回應或產物契約失敗即停止。用隔離替身驗收 lease／重啟與停止邏輯；正式設定回退到 `1`，既有 reports 不需遷移。
+M6 需另行批准授權影片、請求數、費用上限及執行時段。使用隔離的 Supabase 佇列、獨立 Blob 前綴、單一 Worker 與可控制的模型流量，先用手機上傳一支具至少兩個合格案例的影片。保留改圖並行設定未設定，以啟動日誌確認預設雙路。核對 Claim、Lease、Attempt、Complete、實際起送時間、在途重疊、案例與 PNG 對應、JSON／HTML／PDF 可讀，以及 Owner 和另一登入帳號的授權結果。遇到租約失效、429、逾時、未知回應或產物契約失敗即停止，保留 Usage 與失敗證據。跨 Job 節流、三戶隔離和重啟復原依 [VM 操作手冊](./VM_RUNBOOK.md) 安排後續隔離驗收。

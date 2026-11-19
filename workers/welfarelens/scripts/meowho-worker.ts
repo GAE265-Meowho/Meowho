@@ -21,7 +21,9 @@ try{
   env.ENABLE_CLOUD_ANALYSIS!=='true'||env.ENABLE_IMAGE_EDITING!=='true'||!env.WELFARELENS_PDF_BROWSER||
   !env.AZURE_OPENAI_ENDPOINT||!env.AZURE_OPENAI_API_KEY||!env.AZURE_OPENAI_DEPLOYMENT)throw new MeowhoError('config_error');
  imageEditConfig(env);
- imageEditConcurrency(env.WELFARELENS_IMAGE_EDIT_CONCURRENCY);
+ let editConcurrency:ReturnType<typeof imageEditConcurrency>;
+ try{editConcurrency=imageEditConcurrency(env.WELFARELENS_IMAGE_EDIT_CONCURRENCY);}
+ catch{throw new MeowhoError('config_error');}
  const parent=resolve(env.MEOWHO_WORKER_TMP);
  await privateRoot(parent);
  const workerRoot=await mkdtemp(join(parent,'meowho-worker-'));
@@ -31,6 +33,7 @@ try{
  const queueWait=readMeowhoQueueWait(env.MEOWHO_SUPABASE_URL,env.MEOWHO_SUPABASE_SERVICE_ROLE_KEY);
  const processNext=()=>processMeowhoJob({root:workerRoot,workerId,rpc,blob,env,queueWait,signal:shutdown.signal,
   onProfile:profile=>console.log(JSON.stringify(profile))});
+ console.log(JSON.stringify({event:'meowho_worker_start',image_edit_concurrency:editConcurrency}));
  if(mode.once){
   const outcome=await processNext();
   console.log(JSON.stringify({event:'meowho_job',mode:'once',outcome}));

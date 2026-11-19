@@ -138,8 +138,8 @@ test('all three concurrency settings preserve case indices and report contracts'
    pngs.push(await readFile(file));
   }
   let generated;
-  for(const concurrency of [1,2,3]){
-   const target=concurrency===3?dir:join(dir,`mode-${concurrency}`);
+  for(const [concurrency,expectedPeak] of [[undefined,2],[1,1],[2,2],[3,3]]){
+   const target=concurrency===3?dir:join(dir,`mode-${concurrency??'default'}`);
    if(target!==dir){await mkdir(target);await copyFile(join(dir,'f000.jpg'),join(target,'f000.jpg'));}
    let calls=0,active=0,peak=0;
    generated=await renderVideoAfter(risk,visual,target,config,signal,async(_config,_image,prompt,_size,_signal,_fetch,quality)=>{
@@ -153,7 +153,7 @@ test('all three concurrency settings preserve case indices and report contracts'
     return {ok:true,png,encoded:png.toString('base64'),width:640,height:360,usage:null};
    },undefined,concurrency);
    assert.equal(calls,6);
-   assert.equal(peak,concurrency);
+   assert.equal(peak,expectedPeak);
    for(const [index,entry] of entries.entries()){
     const pair=generated.visual_comparisons.find(c=>c.comparison_id===entry.comparison_id);
     const output=index===0?'after.png':`after-${index+1}.png`;

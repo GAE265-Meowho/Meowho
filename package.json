@@ -19,7 +19,8 @@
     "log": "node scripts/daily-log.mjs",
     "media:promote": "npx -y tsx@4.19.2 --conditions=react-server scripts/promote-media.mts",
     "hq:import-cat": "npx -y tsx@4.19.2 scripts/import-hq-cat-model.mts",
-    "audio:upload": "node scripts/upload-play-audio.mjs"
+    "audio:upload": "node scripts/upload-play-audio.mjs",
+    "trailer:upload": "npx -y tsx@4.19.2 --conditions=react-server scripts/trailer-rec/upload.mts"
   },
   "dependencies": {
     "@azure/storage-blob": "12.34.0",

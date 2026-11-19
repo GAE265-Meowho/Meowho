@@ -16,6 +16,8 @@ export const HQ_PAGE_META_PATHS = {
   "videos/trailer": [
     "src/app/MeowHQ/videos",
     "src/components/hq/videos/TrailerBoard.tsx",
+    "src/app/api/hq/trailer-frames",
+    "scripts/trailer-board",
     "src/components/hq/videos/ScriptEdits.tsx",
     "src/lib/hq/videos/script-edits.ts",
     "src/lib/hq/videos/trailer.ts",
@@ -31,6 +33,8 @@ export const HQ_PAGE_META_PATHS = {
     "src/components/hq/videos/ClipsBoard.tsx",
     "src/components/hq/videos/TrailerVideos.tsx",
     "src/lib/hq/videos/trailer-video.ts",
+    "src/lib/hq/videos/rec-clips.ts",
+    "scripts/trailer-rec",
     "src/app/api/hq/trailer-videos",
     "src/lib/hq/videos/clips.ts",
     "src/lib/hq/videos/clips.test.ts",

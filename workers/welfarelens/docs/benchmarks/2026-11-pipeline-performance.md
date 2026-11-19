@@ -1,6 +1,6 @@
 # WelfareLens 影片分析效能驗收
 
-**狀態：完整 Pipeline 的 A／B Pilot 已完成。** 後續輪次與實際帳務仍待驗證。要分離改圖並行的影響，請使用 [固定六件改圖 Benchmark](./controlled-image-benchmark.md)。
+**狀態：2026-11-19 完成完整 Pipeline 的真實 A／B 各一輪。** 帳單、盲審與後四輪待完成。[固定六件改圖 Benchmark](./controlled-image-benchmark.md) 的獨立證據支持 Worker 預設採雙路，完整雲端路徑仍待 M6 驗收。
 
 ## 問題與比較對象
 
@@ -13,18 +13,23 @@ A 維持逐案改圖。B 允許兩個獨立案例同時進行，仍按原順序�
 | 項目 | 紀錄 |
 | --- | --- |
 | 主線基準 | `656c4e705f9ab058387163e58278ff3718c5f4bf`，PR #496 合併提交 |
-| Benchmark Commit、Linux AMD64 Docker Digest、Image ID、OCI revision label | 待測。更新前需比對實際測試映像與 Commit |
-| 真實開始／結束日期、執行主機、CPU／RAM | 待測 |
+| RC.1 Registry RepoDigest（Linux AMD64） | `ghcr.io/gae265-meowho/meowho/welfarelens-worker@sha256:894eda7afbe4c1405e2191e131a4b8472529c8859b7c218c8b133b1b620cdef9` |
+| RC.1 Docker Desktop 本機 `.Id` | `sha256:894eda7afbe4c1405e2191e131a4b8472529c8859b7c218c8b133b1b620cdef9`（此 containerd 後端的實測值） |
+| RC.1 Registry manifest 的 `config.digest` | `sha256:c3d1057768f418113b64d7419f9e525092d1b2ee34fa694937c1dff4c6579971` |
+| RC.1 OCI revision 及發布 Commit | `36a0bb270582bcf3a7c7061c08f4651ae1bd2aeb` |
+| 真實執行 | 2026-11-19（台北時間），Windows Docker Desktop，A 14:27:53–14:32:59，B 14:33:51–14:37:37。Worker 分析階段取樣峰值 RSS 為 A 162.0 MiB、B 146.7 MiB，未量測整台主機峰值 |
 | 影片 | 授權測試用 `cleanroom.mp4`，本機 ffprobe 查得 H.264，111.325 秒，720 × 1280，29,326,000 bytes |
-| 來源影片 SHA-256、八個時間戳記、案例及圖片數 | 影片 Hash 於私有核准設定中固定。其餘待測 |
+| 來源影片 SHA-256、取樣及案例 | 影片 Hash 固定於私有核准設定。A、B 八張影格的 Hash 與時間戳一致。實際改圖 A 6 件、B 5 件 |
 | VLM | 本機設定對應 `gpt-6.1-terra`，版本 `2026-10-26`，GlobalStandard，2,000 RPM／2,000,000 TPM。Azure 控制面唯讀核對 |
 | 改圖 | 本機設定對應 `gpt-image-2.5-sunburst`，版本 `2026-09-08`，GlobalStandard，6 requests／60 秒。Azure 控制面唯讀核對 |
-| 配額共享與時窗 | 呼叫者歸屬及可用餘裕待確認。由部署管理者保留測試時段，避免其他服務耗盡配額 |
+| 配額共享與時窗 | 已確認 Pilot 保留時段。Azure Monitor 查詢近 20 分鐘未回傳資料點，無法藉此判定其他服務的請求量。兩輪沒有 429 |
 | 計費 | 本機兩輪 Pilot 已核准 US$30。六輪暫保留 US$40，後四輪須另行批准。帳戶有效價目與實際逐輪帳單待核對 |
 
 [合併後 Worker CI](https://github.com/GAE265-Meowho/Meowho/actions/runs/44436327751) · [合併後網站 CI](https://github.com/GAE265-Meowho/Meowho/actions/runs/44436327480)
 
-2026-11-19 在 Windows Docker Desktop 建置 Linux AMD64 離線驗證映像，以 `--network none` 掛載實際影片及私有可寫目錄，確認六項 Azure AI 設定可讀取、FFmpeg 抽影格、Chromium 產 PDF、容器 Self-test，且沒有建立請求帳本。此映像未發布至 Registry；GHCR Digest 與最終發布版 OCI revision 仍待驗證。
+2026-11-19 在 Windows Docker Desktop 依 [RC.1 發布紀錄](https://github.com/GAE265-Meowho/Meowho/actions/runs/44457072100) 拉取固定 Digest，以 `docker image inspect` 分別查核 RepoDigests、`.Id`、平台及 OCI revision，再以 `docker manifest inspect` 查核 Registry manifest 的配置雜湊。此主機的 RepoDigest 雜湊與 `.Id` 顯示同值，Registry 配置雜湊則不同。跨主機追溯使用 RepoDigest，主機啟動器使用當次 Docker 查到的 `.Id` 鎖定執行映像。
+
+固定 RC.1 通過斷網 Self-test、合成影格 JSON／PDF 生成，以及以 `cleanroom.mp4` 執行不帶 `--run` 的斷網預檢。預檢沒有建立請求帳本，付費測量另以真實輪次紀錄為準。
 
 ## 執行與重現
 
@@ -70,8 +75,8 @@ node workers/welfarelens/scripts/summarize-pipeline-benchmark.mjs $Batch
 
 | 輪次 | 路數 | 本機 Pipeline | FFmpeg／VLM／改圖／PDF／HTML | VLM／改圖請求、429、Timeout、Retry | Token／費用／累積 | 產物／品質 |
 | --- | --- | --- | --- | --- | --- | --- |
-| 1 | A（1） | 待測 | 待測 | 待測 | 待測 | 待測 |
-| 2 | B（2） | 待測 | 待測 | 待測 | 待測 | 待測 |
+| 1 | A（1） | 306.099 秒 | 5.767／99.811／187.910／5.051／1.110 秒 | 8／6，429、Timeout、Retry 各 0 | 預留 US$8.50。按回傳 Usage 估計 US$0.5433，待帳單 | 程式驗證 PASS。PDF 10 頁、HTML 23 個唯一圖片資產 |
+| 2 | B（2） | 225.942 秒 | 6.833／103.209／94.348／7.930／0.944 秒 | 8／5，429、Timeout、Retry 各 0 | 預留 US$7.75。按回傳 Usage 估計 US$0.4952，待帳單 | 程式驗證 PASS。PDF 9 頁、HTML 20 個唯一圖片資產 |
 | 3 | B（2） | 待測 | 待測 | 待測 | 待測 | 待測 |
 | 4 | A（1） | 待測 | 待測 | 待測 | 待測 | 待測 |
 | 5 | A（1） | 待測 | 待測 | 待測 | 待測 | 待測 |
@@ -79,17 +84,28 @@ node workers/welfarelens/scripts/summarize-pipeline-benchmark.mjs $Batch
 
 | 指標 | A | B |
 | --- | --- | --- |
-| 排序後三輪耗時、中位數、最慢值 | 待測 | 待測 |
-| Pipeline 加速與關鍵路徑 | 待測 | 待測 |
+| 排序後三輪耗時、中位數、最慢值 | 目前 1/3，306.099 秒，中位數待測 | 目前 1/3，225.942 秒，中位數待測 |
+| Pipeline 加速與關鍵路徑 | 改圖為最長單一階段，187.910 秒 | 整體少 80.157 秒（26.2%，1.35×），改圖少 93.562 秒（1.99×）。VLM 103.209 秒，轉為最長單一階段 |
 | 真實 Queue Wait、Claim-to-Ready、Blob、Complete | 待測。共用佇列未參與此次本機模型測試 | 待測。共用佇列未參與此次本機模型測試 |
 
 本機 Pipeline 以進入影片處理至完整本機產物驗證計時。腳本另列模型處理區間與本機驗證；同時執行的子階段不相加成總秒數。從 `spans` 起迄及 analysis 計時確認關鍵路徑。請求紀錄的服務時間止於回應標頭，含完整接收與解析的時間看 `image_edit_request`。服務端內部排隊無法從回應中獨立分離。雲端 Queue Wait 用 `queued_at` 到首次領取，另記 Claim-to-Ready，包含 Blob 與回寫。離線儲存驗證不能代替該段真實量測。
+
+| 輪次 | VLM 輸入／輸出 tokens | 改圖輸入／輸出 tokens | 改圖節流等待合計 | 改圖至回應標頭合計 | 產物驗證 |
+| --- | --- | --- | --- | --- | --- |
+| A | 46,072／20,688 | 8,059／6,948 | 0 秒 | 182.505 秒 | 1.537 秒 |
+| B | 46,072／20,343 | 6,717／5,790 | 13.132 秒 | 155.663 秒 | 3.826 秒 |
+
+27 筆實際請求皆有回應，合計 16 次 VLM、11 次改圖。最短改圖起送間隔 A 為 29.064 秒、B 為 12.000 秒。B 的改圖測量區間重疊約 82.6 秒，代表兩路確實發生重疊。B 同時少一件改圖，兩輪只共享四個不同的改圖輸入 Hash，生成提示的 Hash 全部不同，因此不能將 80.157 秒的差額全部歸因於並行。
+
+累計預留 US$16.25。估算以 Terra 輸入全採長上下文 cached-write 公告價 US$2.50、輸出 US$7.50，Sunburst 輸入全採影像價 US$8、輸出 US$30，每百萬 tokens 計算，兩輪約 **US$1.04**。帳戶實際計費、分類及折扣待對帳，故未建立 `verified-billing.json`。
 
 ## 品質通過條件、失敗與決策
 
 - 驗收工具沿用正式影片分析、報告生成、PDF／四圖來源關聯及 SHA-256 驗證，並生成符合正式 Schema 的本機 `result.json`。HTML／sidecar 的資產須存在且 Hash 相符。所有產物本機保存，本模式不執行 Blob 上傳或 Supabase Claim/Complete。
 - A/B 使用相同證據影格、Prompt Hash、改圖尺寸設定及四圖案例。逐組確認風險種類、嚴重度、證據定位、After 改動範圍與局部對照。由不看組別的審查者逐頁比對 PDF 和 HTML，確認中文字型、框選、可讀性、模擬標示與缺圖。生成隨機性造成來源或案例差異時，保留原數據並標記不可直接歸因於並行。無影像人審時品質仍待驗收。
-- 429、Timeout、已送出但回應未知、產物不完整、缺少用量或未知成本各自記錄，不補零、不挑最快樣本。留存執行順序、所有失敗與隔離條件。本次真實失敗案例待測。若需要重跑，需先對帳並另行核准，不能覆寫原始批次。
+- 兩輪均完成 `meow_env_result/1`、HTML、sidecar、四圖及 PDF 的結構與雜湊驗證。共用風險項目與等級一致（細繩與電線為高、窗戶為中），電線引用的證據影格不同。兩輪首頁均列 5 個改善項目及 6 個待確認項目。改善案例引用的原始影格數為 A 4 張、B 5 張。
+- 已渲染 A 10 頁及 B 9 頁，檢查整份頁面縮圖及代表性頁面。首頁中文、統計與改圖模擬標示可讀，無明顯空白頁或截斷。共同床邊線材案例可辨識模擬前後差異。仍需盲審各案例的證據、改善一致性與場景保留，程式通過無法替代此項。
+- 本次 429、Timeout、Retry 與無回應請求均為 0。後續保留執行順序及所有失敗。沒有執行第 3 至 6 輪，原始批次在 Git 外保留。建議完成帳單及盲審後依另一次批准續測，觀察各組中位數及最慢值。Worker 雙路預設的工程決策以獨立的固定六件改圖實驗為依據。
 - #509 合併後的 Linux Worker CI 在 1 ms 測試間隔暴露計時器提前喚醒的錯誤。斷網 Linux AMD64 回歸測試重現 `benchmark_clock`。修正後會等待牆上時鐘與單調時鐘都滿足間隔才登錄並送出請求，真正的時鐘倒退仍會停止。
 - 啟用兩路須有六輪有效結果、品質未退化、證據與契約無缺漏、無新增限流與超額。比較中位數與最慢值，查看收益是否同時出現在改圖和本機總流程。若沒有穩定收益或成本／品質證據不全，維持一路。最終決策待測。6 分鐘是第一目標，4 分鐘是挑戰目標。
 - 後續獨立驗收專用佇列三戶、VM 重啟、Lease 恢復、停止開關、回復與 Blob 實體資產。僅在經確認隔離的環境領件。`MEOWHO_WORKER_MAX_JOBS=1` 不指定 Job ID。共享配額、本機與 VM 差異、六輪樣本量與 Azure 計費匯總粒度均限制結論。

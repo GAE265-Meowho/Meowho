@@ -3,9 +3,9 @@ import test from 'node:test';
 import {createImageEditPacer} from '../src/server/video/image-edit-pacing.ts';
 import {imageEditConcurrency} from '../src/server/video/before-after.ts';
 
-test('Worker accepts 1/2/3, defaults to 1 and rejects 4',()=>{
- assert.deepEqual([undefined,'1','2','3'].map(imageEditConcurrency),[1,1,2,3]);
- for(const value of ['4','0','',' 2','2.5'])assert.throws(()=>imageEditConcurrency(value));
+test('Worker accepts 1/2/3, defaults to 2 and rejects invalid configuration',()=>{
+ assert.deepEqual([undefined,'1','2','3'].map(imageEditConcurrency),[2,1,2,3]);
+ for(const value of ['4','0','',' 2','2.5','garbage'])assert.throws(()=>imageEditConcurrency(value), /Invalid image edit concurrency/);
 });
 
 test('transport starts are paced across batches without serializing in-flight requests',async()=>{

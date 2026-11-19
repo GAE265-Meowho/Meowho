@@ -80,7 +80,7 @@ MeowHQ（`/MeowHQ`，取代舊隱藏後台）開發中：階段 0（#18）、db�
 - 待建立：檢舉處理、影像與文字審核
 
 ## 主要檔案
-- 影片（#489）：`src/app/MeowHQ/videos/page.tsx`（`?tab=` 分頁，目前只有前導影片）、`src/components/hq/videos/TrailerBoard.tsx`（上傳與畫面）、`src/lib/hq/videos/trailer.ts`（v3 分鏡腳本資料、上傳格、進度）＋測試；腳本原稿 `docs/video/前導影片分鏡腳本_v3.md`，改腳本兩邊一起改
+- 影片（#489）：`src/app/MeowHQ/videos/page.tsx`（`?tab=` 分頁，目前只有前導影片）、`src/components/hq/videos/TrailerBoard.tsx`（上傳與畫面）、`src/lib/hq/videos/trailer.ts`（v3 分鏡腳本資料、上傳格、進度）＋測試；腳本原稿 `docs/video/前導影片分鏡腳本_v4.md`，改腳本兩邊一起改
 - `src/lib/hq/types.ts`（MeowHQ 共用約定：模組代號、角色、處置類型、快選原因、錯誤代碼、側欄順序；T-HQ-01）、`src/lib/hq/types.test.ts`
 - `src/lib/hq/permissions.ts`（可見模組、存取、`canSuspend`／`canBan`／最後一位系統管理員／授予限制；T-HQ-03）、`src/lib/hq/actions.ts`（原因必填、停權期限與到期、影響說明、黑名單 Email 確認、快選原因；含 R9～R11；T-HQ-04）及其測試（UT-HQ-01～11、17～28），Issue #20
 - `src/components/Providers.tsx`（從 `site_settings` 讀取標誌、`setLogo` 寫入；`useSiteLogo()` 給後台元件只讀用）、`src/lib/mock-data.ts`（`LOGOS`）、`src/lib/site-logo.ts`（`resolveSiteLogo`、`logoWordmark`）
@@ -105,12 +105,15 @@ MeowHQ（`/MeowHQ`，取代舊隱藏後台）開發中：階段 0（#18）、db�
 - **改母體的順序**：改 `stepB`／`stepC` → 在 Meow 用 Blender 5.2 跑 B、C（PowerShell 指令前要加 `&`）→ 複製 `base_clips.glb` 到 repo `public/hq-cat-models/base/` → 跑 `eat_drink.mjs` → 成貓再上傳 Storage。直接從 Blender 匯出會蓋掉 eat／drink 的修改；只換單一動作用 `scripts/clips/splice_clip.py`。
 
 ## 決策
+- 2026-11-19｜#548：整鏡成品的儲存格用 `m-<第一格代號>`（如 `m-s16`＝鏡 12），不用鏡號，避免重新編號後檔案對不上。
+- 2026-11-19｜#539：同一鏡的多格分鏡圖要連戲時，後一格用前一格的成品改圖（prompt 寫 Edit the …image），不重新生成房間；prompt 裡的家具位置以已生成的成品為準。
+- 2026-11-19｜#532：影片頁一頁有幾十格影片，`<video>` 只在按下播放後才放進頁面（不用 preload=metadata），省流量也不自動播放；音檔維持 preload=none。
 - 2026-11-19｜#517：前導影片每一鏡不超過 10 秒（`clips.test.ts` 守住）；鏡 2 改 0:06–0:15，小橘第一句旁白加長為心聲。
 - 2026-11-19｜#515：前導影片縮為約 3:00（26 顆鏡頭、旁白 25 句 n01–n25）。分鏡圖代號（s01…s30）是存檔路徑，不跟著重新編號；刪掉的 s06、s09 不再列出，已上傳的檔案留在儲存區不刪。原 s10（搜尋）與 s13（看電線）合併成新鏡 9 的兩格。
 - 2026-11-19｜#513：分鏡表編修只存改動（0041），原稿仍在 `trailer.ts`；鏡頭用穩定代號（第一格分鏡圖代號去掉序號，例 s07），重新編號也不會掉。頁面編修不會自動寫回 `docs/video` 與下載的 .md，定稿前用「匯出編修」同步。
 - 2026-11-19｜#504：旁白另外用 TTS 做，不用影片工具自帶的聲音；兩個角色各固定一組聲音規格（存 0039，保留歷史）。旁白音檔與影片共用 `/api/hq/trailer-videos`：格 n01–n27 收 MP3／WAV／M4A，其他格收影片。`NARRATION` 加 `shots`（每句落在哪幾鏡）。
 - 2026-11-18｜#501：完成的影片存 Azure Blob 私有容器（決策 006），路徑 `videos/trailer/<格>/<UTC 時間戳>.<副檔名>`，格＝full、四段代號、AI 片段 id；不建資料表，列出資料夾得知版本。`/api/hq/trailer-videos` GET 列版本並簽 1 小時播放／下載網址、POST 檢查（MP4／WebM／MOV、1 GB 內）後簽 15 分鐘上傳網址，瀏覽器直接 PUT。權限繼承影片頁（`meow_is_admin`）。不開放刪除（舊版保留）。**課程 Azure 額度 11/29 到期，最終版要另外備份。**
-- 2026-11-18｜#498：腳本 .md 下載內容以 `docs/video/前導影片分鏡腳本_v3.md` 為唯一來源，建置時包進前端；改原稿後跑 `npm run video:md`（predev／prebuild 也會跑）。
+- 2026-11-18｜#498：腳本 .md 下載內容以 `docs/video/前導影片分鏡腳本_v4.md` 為唯一來源，建置時包進前端；改原稿後跑 `npm run video:md`（predev／prebuild 也會跑）。
 - 2026-11-18｜#494：每段標題旁 (P) 開生成紀錄（原生 `<dialog>`）。紀錄不能改，要改就「再用一次」帶入舊內容新增一筆，保留每次嘗試的歷史。權限依 Tina 指示繼承頁面，不區分本人。
 - 2026-11-18｜#493：產生影片 tab 只列 AI 分鏡（27 段）；系統錄影、字卡不用生成。成片長度由分鏡表時間算（同一顆鏡頭多格平分），建議生成長度取 5／10／15 秒（Kling 3.0 單段最長 15 秒）。起始畫面固定檔名 `<格>.webp`。Canva 的影片生成需要付費方案，目前不接。
 - 2026-11-18｜#491：每格 AI 分鏡要掛的參考圖寫在 `FRAME_REFS`（角色在前、場景在後、最多 4 張），「用在哪些鏡頭」由它算出，不再手寫；參考圖對外的檔名固定為 `<id>.webp`（例如 `char-xiaoju.webp`），和 Storage 裡帶時間戳的檔名分開，prompt 只寫固定檔名。
@@ -158,6 +161,16 @@ ole === "admin" 判斷管理員，而現有 admin 會升為 system_admin；舊�
 | 2026-10-28 | Tina × Cursor | MeowHQ 階段 0：`src/lib/hq/types.ts` 與測試（8 種處置含 `unban`）、0002 資料表草案 | #18 |
 | 2026-10-29 | Tina × Cursor | MeowHQ 階段 1 db：`0002_meow_hq.sql`、`supabase/tests/`（SQL 測試與本機執行器） | #19 |
 | 2026-11-04 | Tina × Claude Code | MeowHQ 新增「貓戶管理」模組：依類別查看貓戶、貓咪卡片；0020 授權現有管理員 | #179 |
+| 2026-11-19 | Tina × Claude Code | 影片 tab：兩格以上或拆成多支短片的鏡頭（5、8、9、10、11、12、23）在片段後加「整鏡成品」卡，可上傳剪好／合成的整鏡（Blob 格 `m-<第一格代號>`）（#548） |
+| 2026-11-19 | Tina × Claude Code | `CLIP_MOTION` 新增 `cuts`：一鏡拆成幾支短片分別生成；鏡 11 片段卡改為 4 支（計畫圖第 2、5、13、15 格），建議生成顯示「5 秒 × 4 支」（#545） |
+| 2026-11-19 | Tina × Claude Code | 鏡 11 改為同一雨夜坐到沙發拿手機、拇指懸著（保留 Tina 的分鏡計畫圖）；第一格廣角書桌照 9-1；鏡 22 呼應與錄影改回手機（#543） |
+| 2026-11-19 | Tina × Claude Code | 鏡 11 改為同一雨夜的書桌筆電、滑鼠懸在「我想領養」上；`STUDIO_LAYOUT` 讓 12-2、17、25、26、27 的套房擺設對齊 9-1；鏡 22 呼應改為滑鼠（#541） |
+| 2026-11-19 | Tina × Claude Code | 鏡 9 連戲：s10 prompt 照已生成的 9-1 寫明家具位置與門口廣角，s13 改為用 s10.webp 改圖只改姿勢；動作與運鏡同步（#539） |
+| 2026-11-19 | Tina × Claude Code | 鏡 7 交接改用外出籠：情侶從阿芳手上接過裝著小橘的外出籠，s11 分鏡圖與動作 prompt 同步（#537） |
+| 2026-11-19 | Tina × Claude Code | 鏡 7 改為情侶在阿芳家門口從阿芳手上接過小橘，s11 分鏡圖與動作 prompt 同步（#535） |
+| 2026-11-19 | Tina × Claude Code | 前導影片各 tab 的影片不預先載入：進頁面只顯示播放鈕，按下才載入並自動播放（`ClickToPlay`，#532） |
+| 2026-11-19 | Tina × Claude Code | 鏡 5-2 改為夜間吹風機、小橘躲進貓床；英文與動作 prompt 去除衝突（沙發、日光、筆記本字跡）（#530） |
+| 2026-11-19 | Tina × Claude Code | 前導影片腳本進版 v4（`docs/video/前導影片分鏡腳本_v4.md`，下載檔名同步）：鏡 2 旁白採珮瑜在頁面的修改，s02 動作 prompt 補發抖、舔嘴唇（#526） |
 | 2026-11-19 | Tina × Claude Code | 鏡 27 改為小傑坐沙發抱小橘；英文 prompt 依套房定景寫明家具位置，參考圖加小傑定角（#524） |
 | 2026-11-19 | Tina × Claude Code | 前導影片每鏡不超過 10 秒；鏡 2 小橘心聲加長（0:06–0:15），鏡 3、4、12 縮短，全片仍 3:00（#517） |
 | 2026-11-19 | Tina × Claude Code | 前導影片縮為約 3 分鐘：刪原鏡 5、原鏡 8，小傑線改為晚上查養貓注意事項後低頭看腳邊電線（新鏡 9），全片 26 鏡、旁白 25 句；分鏡卡寬螢幕時 prompt 移到圖片右側（#515） |

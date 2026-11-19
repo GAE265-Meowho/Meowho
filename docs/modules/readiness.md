@@ -451,7 +451,7 @@ Worker 選用的 `report.html` 與 `html-assets/` 位於既有 attempt 前綴。
 
 ### WelfareLens 私有結構化報告（#273）
 
-固定六件的 [M4 改圖 Benchmark](../../workers/welfarelens/docs/benchmarks/controlled-image-benchmark.md) 已完成 1／2／3 路六輪比較。Worker 只接受 1／2／3，預設 1，程序內跨 Job 的 Image Edit 起送間隔至少 12 秒。多程序共用部署與 M6 真人驗收見 [Worker 環境設定](../../workers/welfarelens/ENVIRONMENT.md)。
+固定六件的 [M4 改圖 Benchmark](../../workers/welfarelens/docs/benchmarks/controlled-image-benchmark.md) 已完成 1／2／3 路六輪比較。Worker 只接受 1／2／3，預設 2，程序內跨 Job 的 Image Edit 起送間隔至少 12 秒。多程序共用部署與 M6 真人驗收見 [Worker 環境設定](../../workers/welfarelens/ENVIRONMENT.md)。
 
 效能驗收採本機 Docker。已核准兩輪 US$30 Pilot，六輪暫留 US$40。後四輪須核對 Pilot 帳單並另行核准，原本的預留額持續計入。真實呼叫需先確認發布映像及成本。詳見 [Benchmark 紀錄](../../workers/welfarelens/docs/benchmarks/2026-11-pipeline-performance.md)。
 

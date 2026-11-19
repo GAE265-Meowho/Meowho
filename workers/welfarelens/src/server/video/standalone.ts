@@ -54,6 +54,7 @@ async function executeJob(options:Input&Mode){
  const live='live' in options?options:null;
  if(live&&(live.env.ENABLE_CLOUD_ANALYSIS!=='true'||!live.env.AZURE_OPENAI_ENDPOINT||!live.env.AZURE_OPENAI_API_KEY||!live.env.AZURE_OPENAI_DEPLOYMENT))throw Error('Live analysis is not configured');
  const edit=live?.allowImageEditing?imageEditConfig(live.env):null;
+ const editConcurrency=edit?imageEditConcurrency(live?.env.WELFARELENS_IMAGE_EDIT_CONCURRENCY):undefined;
  if(edit&&!options.pdfBrowser)throw Error('Image editing requires PDF rendering');
  if(edit&&live?.env.ENABLE_IMAGE_EDITING!=='true')throw Error('Live image editing is disabled');
  const input=resolve(options.input),root=resolve(options.root);
@@ -96,7 +97,7 @@ async function executeJob(options:Input&Mode){
    const editor:typeof editAzureImage|undefined=request
     ?(config,bytes,prompt,size,deadline,_request,quality,mask)=>editAzureImage(config,bytes,prompt,size,deadline,request,quality,mask)
     :undefined;
-   risk=await renderVideoAfter(risk,visual,dir,edit,editSignal,editor,code=>imageFailures.push(code),imageEditConcurrency(live?.env.WELFARELENS_IMAGE_EDIT_CONCURRENCY),options.profile);
+   risk=await renderVideoAfter(risk,visual,dir,edit,editSignal,editor,code=>imageFailures.push(code),editConcurrency,options.profile);
    const attempts=risk.visual_comparisons.filter(p=>p.after_generation_status.status!=='not_requested');
    manifest.stages.editing=attempts.length&&attempts.every(p=>p.after_generation_status.status==='generated')?'generated':attempts.length?'failed':'no_eligible_object';
    for(const attempt of attempts)if(attempt.after_image_ref)manifest.artifacts.push(attempt.after_image_ref);

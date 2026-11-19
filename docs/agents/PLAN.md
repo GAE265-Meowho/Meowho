@@ -1,6 +1,6 @@
 # PLAN — 計畫與任務管理
 
-- WelfareLens M4 受控改圖（Jerry0808 × Codex，#273，審查中）：1／2／3 路六輪已完成。Worker 預設 1，正式路徑驗收後受控真人環境採 2，3 為明確啟用的選項。M6 真實驗收待另行批准。
+- WelfareLens M4 受控改圖（Jerry0808 × Codex，#273，審查中）：1／2／3 路六輪已完成。Worker 預設 2，1 為明確回退值，3 為明確啟用的選項。M6 真實驗收待另行批准。
 
 - 前導影片產生影片 tab、(P) 生成紀錄、v3 修訂、腳本下載（Tina × Claude Code，#493、#494、#497、#498）：PR #495 已合併，完成。
 - 前導影片同一鏡多格標籤（Tina × Claude Code，#499）：PR #500 已合併，完成。
@@ -11,11 +11,20 @@
 - 前導影片分鏡表頁面編修＋中文 prompt（Tina × Claude Code，#513）：PR #514 已合併；0041 Tina 已於 2026-11-19 執行，完成。
 - 前導影片縮為 3 分鐘、小傑線改為查資料發現電線、分鏡卡 prompt 移到圖片右側（Tina × Claude Code，#515）：PR #516 已合併，完成。
 - 前導影片鏡 2 小橘心聲加長、每鏡不超過 10 秒（Tina × Claude Code，#517）：PR #518 已合併，完成。
-- 前導影片鏡 27 小傑坐沙發抱小橘、家具位置對齊套房定景（Tina × Claude Code，#524）：分支 `feat/524-shot27-sofa`，審查中。
+- 前導影片鏡 27 小傑坐沙發抱小橘、家具位置對齊套房定景（Tina × Claude Code，#524）：PR #525 已合併，完成。
+- 前導影片腳本 v4：鏡 2 旁白採珮瑜修改版、圖生影片 prompt 對齊（Tina × Claude Code，#526）：PR #527 已合併，完成。
+- 前導影片鏡 5-2 夜間吹風機、小橘躲進貓床、prompt 去衝突（Tina × Claude Code，#530）：PR #531 已合併，完成。
+- 前導影片：影片不預先載入，按下播放才載入（Tina × Claude Code，#532）：PR #533 已合併，完成。
+- 前導影片鏡 7 情侶在門口從阿芳手上接走小橘（Tina × Claude Code，#535）：PR #536 已合併；#537 改為外出籠交接，PR #538 已合併，完成。
+- 前導影片鏡 9 兩格家具連戲（Tina × Claude Code，#539）：PR #540 已合併，完成。
+- 前導影片鏡 11 延續 9-2 雨夜書桌、後續套房鏡頭對齊 9-1（Tina × Claude Code，#541）：PR #542 已合併；#543 改為沙發拿手機，PR #544 已合併，完成。
+- 前導影片鏡 11 片段卡拆成 4 支短片（Tina × Claude Code，#545）：PR #546 已合併，完成。
+- 前導影片影片 tab 多格鏡頭加「整鏡成品」上傳格（Tina × Claude Code，#548）：分支 `feat/548-shot-composite`，審查中。
 
 - AI 居家安全報告首屏與圖片載入（Jerry0808 × Codex）：分支 `codex/home-safety-report-ux`，審查中。沿用 #273 報告授權；待驗收 Preview 的真實 Owner 登入及 Azure 延遲。
 
 - AI 居家安全報告與 WelfareLens Benchmark（Jerry0808 × Codex，#273）：#496、#509 已合併。Benchmark 計時器修正審查中。已核准發布私有 GHCR RC 及本機兩輪 US$30 Pilot，須先由修正後的 main 通過 Worker CI 並驗證 Registry Digest。六輪暫留 US$40，後四輪需 Pilot 對帳及另行核准。
+- WelfareLens 私有映像發布（Jerry0808 × Codex，#519，審查中）：RC.1 已發布。修正未來的完整映像封存流程，待審查及後續受信任 Tag 實際驗收。
 - AI 居家安全報告 V3 主線整合（Jerry0808 × Codex，#273）：分支 `codex/home-safety-v3-main`，審查中。
 - AI 居家環境安全檢測對外命名（Jerry0808 × Codex，關聯 #424）：分支 `chore/meowhome-home-safety-naming`，審查中。
 

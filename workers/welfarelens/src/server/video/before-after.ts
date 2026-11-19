@@ -21,13 +21,13 @@ export {buildComparisonHtml} from './comparison-report.ts';
 import {planVisualCases} from './visual-cases.ts';
 export {planVisualCases} from './visual-cases.ts';
 export function imageEditConcurrency(value:string|undefined):1|2|3 {
- if(value===undefined||value==='1')return 1;
- if(value==='2')return 2;
+ if(value===undefined||value==='2')return 2;
+ if(value==='1')return 1;
  if(value==='3')return 3;
  throw Error('Invalid image edit concurrency');
 }
 
-export async function renderVideoAfter(input:RiskObjectReport,visual:VisualReport,dir:string,config:ReturnType<typeof imageEditConfig>,signal:AbortSignal,edit:Editor=editAzureImage,recordFailure?:(code:string)=>void,concurrency:1|2|3=1,profile?:JobProfile,pace=paceWorkerImageEdit){
+export async function renderVideoAfter(input:RiskObjectReport,visual:VisualReport,dir:string,config:ReturnType<typeof imageEditConfig>,signal:AbortSignal,edit:Editor=editAzureImage,recordFailure?:(code:string)=>void,concurrency=imageEditConcurrency(undefined),profile?:JobProfile,pace=paceWorkerImageEdit){
  const r=RiskObjectReportSchema.parse(input);
  if(r.source!=='azure')throw Error('Offline fixture cannot request editing');
  if(r.visual_comparisons.some(v=>v.after_generation_status.status!=='not_requested'))throw Error('Job already attempted image editing');

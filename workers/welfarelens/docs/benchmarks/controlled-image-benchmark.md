@@ -9,7 +9,7 @@
 ## 程式路徑
 
 - `src/domain/scan-result.ts`、`src/server/video/visual-cases.ts` 與 `before-after.ts` 是歷史正式 Pipeline 的 VLM 候選、可視化選案、Prompt 組裝。受控模式從凍結資料開始。
-- `src/server/video/image-edit-pool.ts` 由正式報告與受控工具共用。保留原有正式預設。索引在 await 前遞增，輸出依原始索引保存。
+- `src/server/video/image-edit-pool.ts` 由正式報告與受控工具共用。索引在 await 前遞增，輸出依原始索引保存。
 - `src/server/image-edit-client.ts` 負責 multipart、180 秒呼叫中止訊號的傳遞、有界 JSON 收取與 PNG 檢查。單次 image client 無自動重試。
 - `src/server/video/benchmark-guard.ts` 以獨占鎖、共享節流、持久預留及輸出核准控制實驗。受控策略每輪最多六件、共兩輪、VLM 為零。核對每一次 payload，錯誤、429 或未知回應都會關閉後續新 dispatch，已在途的請求仍保留預留。
 - `scripts/controlled-image-benchmark.ts` 記錄排隊、領取索引、回應解析、圖片解碼驗證、結果 SHA-256、Usage 與成本估算。A 的驗收檔和六個 PNG 均需通過雜湊檢查，B 才放行。
@@ -63,7 +63,7 @@ node workers/welfarelens/scripts/run-controlled-image-benchmark.mjs --image $ima
 
 ## 六輪並行比較
 
-沿用同一份 Frozen Manifest。加入 `--six-round` 後，固定順序為 2、3、4、4、3、2。每輪六件，零 VLM，跨輪沿用同一份帳本記錄的最後起送時間。這個模式要求部署為 6 RPM、最小起送間隔設定為 12,000 ms。四路僅供實驗，正式 Worker 接受 1／2／3，預設 1。
+沿用同一份 Frozen Manifest。加入 `--six-round` 後，固定順序為 2、3、4、4、3、2。每輪六件，零 VLM，跨輪沿用同一份帳本記錄的最後起送時間。這個模式要求部署為 6 RPM、最小起送間隔設定為 12,000 ms。四路僅供實驗。正式 Worker 接受 1／2／3，預設 2。
 
 使用新映像與全新的私有乾跑目錄，於啟動器加入 `--six-round --dry-run`。逐輪確認成功才繼續。主機以 `--network none` 啟動並拒絕在乾跑模式提供憑證或批准檔。
 
@@ -120,3 +120,5 @@ node workers/welfarelens/scripts/check-controlled-image-traffic.mjs --metrics $m
 ### 六輪實測結論
 
 固定六件的 1 → 2 → 3 → 3 → 2 → 1 已完成。六件改圖中位數為 185.154／101.207／92.766 秒，雙路較單路少 45.34%，三路較雙路再少 8.34%。全批 36 次 HTTP 200、零 VLM、429、逾時或重試，最短起送間隔 12.004 秒。Azure Monitor 最終為 `boundary_uncertain`；部署總量與 HTTP 200 均為 36，個別請求的分鐘歸屬仍不確定。模型費用按 Usage 估算 US$1.637472，US$27 為預留額，帳單未對帳。此結果只量測改圖，完整 Queue、Blob 與報告端到端速度待 M6。
+
+三組在固定工作量下估算模型費用相同。雙路取得主要耗時降幅，作為正式預設；三路保留給能協調部署容量的執行環境，單路可顯式回退。起送節流由每個程序獨立維持，重啟或多程序共用部署時須依[部署說明](../../ENVIRONMENT.md)協調。
