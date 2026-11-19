@@ -49,6 +49,16 @@ describe("前導影片：產生影片", () => {
     expect(CLIP_MOTION["s07-2"].action).not.toMatch(/sofa/);
   });
 
+  it("鏡 7 情侶在阿芳家門口從阿芳手上接走小橘，不用外出籠（#535）", () => {
+    const s7 = SHOT_SECTIONS.flatMap(x => x.shots).find(s => s.no === 7)!;
+    expect(s7.picture).toContain("從阿芳手上接過小橘");
+    const f = s7.frames[0];
+    expect(f.prompt).toMatch(/hands the orange tabby cat into the woman's arms/);
+    expect(f.prompt).not.toMatch(/carrier/);
+    expect(CLIP_MOTION.s11.action).toMatch(/hands the orange tabby cat over/);
+    expect(CLIP_MOTION.s11.action).not.toMatch(/carrier/);
+  });
+
   it("每一鏡都不超過 10 秒（#517 Tina 確認）", () => {
     for (const s of SHOT_SECTIONS.flatMap(x => x.shots)) expect(shotSeconds(s), `鏡 ${s.no}`).toBeLessThanOrEqual(10);
   });
