@@ -5,11 +5,34 @@ import { join } from 'node:path';
 import { test } from 'node:test';
 import { execFileSync } from 'node:child_process';
 import { BenchmarkConfig, openBenchmarkRun } from '../src/server/video/benchmark-guard.ts';
+import { benchmarkAzureEnv, verifyBenchmarkImage } from '../scripts/run-pipeline-benchmark.mjs';
 
 const vlm={host:'vlm.openai.azure.com',deployment:'test-vlm',version:'test',sku:'test',confirmedRpm:60001,gapMs:1,reserveUsdMicros:10};
 const image={...vlm,host:'image.openai.azure.com',deployment:'test-image',confirmedRpm:6,gapMs:12000,reserveUsdMicros:30};
 const config=BenchmarkConfig.parse({approvalRef:'test',commit:'a'.repeat(40),digest:'sha256:'+'b'.repeat(64),
  inputSha256:'c'.repeat(64),pilotUsdMicros:800,batchUsdMicros:3000,vlm,image});
+
+test('Docker launcher pins the inspected Linux AMD64 image and rejects mismatched release evidence',()=>{
+ const ref='ghcr.io/gae265-meowho/meowho/welfarelens-worker@'+config.digest;
+ const imageId='sha256:'+'1'.repeat(64);
+ const inspected={RepoDigests:[ref],Id:imageId,Os:'linux',Architecture:'amd64',
+  Config:{Labels:{'org.opencontainers.image.revision':config.commit}}};
+ assert.deepEqual(verifyBenchmarkImage(config,inspected),{ref,imageId,revision:config.commit});
+ for(const change of [{RepoDigests:[]},{RepoDigests:['other/image@'+config.digest]},
+   {Id:'latest'},{Architecture:'arm64'},{Os:'windows'},
+   {Config:{Labels:{'org.opencontainers.image.revision':'d'.repeat(40)}}}]){
+  assert.throws(()=>verifyBenchmarkImage(config,{...inspected,...change}),/mismatch/);
+ }
+});
+
+test('launcher passes only Azure AI configuration and rejects missing or multiline keys',()=>{
+ const six=['AZURE_OPENAI_ENDPOINT','AZURE_OPENAI_DEPLOYMENT','AZURE_OPENAI_API_KEY',
+  'AZURE_IMAGE_ENDPOINT','AZURE_IMAGE_DEPLOYMENT','AZURE_IMAGE_API_KEY'];
+ const env=six.map(name=>name+'="dummy-value"').join('\n');
+ assert.deepEqual(Object.keys(benchmarkAzureEnv(env+'\nMEOWHO_SUPABASE_SERVICE_ROLE_KEY=no\nWELFARELENS_MEDIA_DEV_SAS_URL=no')),six);
+ assert.throws(()=>benchmarkAzureEnv(env.replace('AZURE_IMAGE_API_KEY','MISSING')),/AZURE_IMAGE_API_KEY/);
+ assert.throws(()=>benchmarkAzureEnv(env.replace('AZURE_IMAGE_API_KEY="dummy-value"','AZURE_IMAGE_API_KEY="unsafe\nvalue"')),/AZURE_IMAGE_API_KEY/);
+});
 const invoke=(guard,kind='vlm',deployment=config[kind].deployment)=>{
  const path=kind==='vlm'?'chat/completions':'images/edits';
  return guard.providerRequests[kind](`https://${config[kind].host}/openai/v1/${path}`,
@@ -105,10 +128,17 @@ test('unapproved deployment cannot dispatch and less than 12 seconds is rejected
 test('summary keeps missing measurements unknown and reports the median of all three rounds',async t=>{
  const folder=await workspace(t);
  await writeFile(join(folder,'requests.jsonl'),'{"event":"batch"}\n');
+ const version={commit:config.commit,digest:config.digest,ociRevision:config.commit,imageId:'sha256:'+'1'.repeat(64)};
  for(const [run,duration_ms] of [[1,7000],[4,9000],[5,5000]]){
-  await writeFile(join(folder,`run-${run}.json`),JSON.stringify({ok:true,profile:{spans:[{stage:'local_pipeline',duration_ms}]}}));
+  await writeFile(join(folder,`run-${run}.json`),JSON.stringify({...version,ok:true,profile:{spans:[{stage:'local_pipeline',duration_ms}]}}));
  }
- const rendered=execFileSync(process.execPath,['scripts/summarize-pipeline-benchmark.mjs',folder],{encoding:'utf8'});
+ const render=()=>execFileSync(process.execPath,['scripts/summarize-pipeline-benchmark.mjs',folder],{encoding:'utf8'});
+ const rendered=render();
+ assert.match(rendered,/實測映像 Commit／OCI revision/);
  assert.match(rendered,/路數 1 的成功樣本 3\/3。排序秒數 5、7、9。中位數 7，最慢值 9。/);
  assert.match(rendered,/路數 2 的成功樣本 0\/3。排序秒數 待測。中位數 待測，最慢值 待測。/);
+ await writeFile(join(folder,'run-2.json'),JSON.stringify({ok:true,...version,imageId:'sha256:'+'2'.repeat(64)}));
+ const mixed=render();
+ assert.match(mixed,/映像版本存在差異/);
+ assert.doesNotMatch(mixed,/中位數 7/);
 });

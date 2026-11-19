@@ -1,8 +1,11 @@
 import { createHash, randomUUID } from 'node:crypto';
+import { execFile } from 'node:child_process';
 import { createReadStream } from 'node:fs';
-import { lstat, mkdir, readFile, realpath, stat, writeFile } from 'node:fs/promises';
+import { lstat, mkdir, mkdtemp, readFile, realpath, rm, stat, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
-import { parseArgs } from 'node:util';
+import { pathToFileURL } from 'node:url';
+import { parseArgs, promisify } from 'node:util';
+import { z } from 'zod';
 import { BenchmarkConfig, openBenchmarkRun } from '../src/server/video/benchmark-guard.ts';
 import { executeLiveJob, privateRoot } from '../src/server/video/standalone.ts';
 import { validateIntegrationArtifacts } from '../src/server/video/integration-job.ts';
@@ -11,6 +14,33 @@ import { JobProfile } from '../src/server/video/job-profile.ts';
 import { imageEditConfig } from '../src/server/image-edit-client.ts';
 import { probeVideo } from '../src/server/video/media.ts';
 import { reportViewAssetNames, ReportViewSchema } from '../src/domain/report-view.ts';
+
+const runCommand = promisify(execFile);
+const ImageIdentity = z.object({
+  ref:z.string().regex(/^ghcr\.io\/gae265-meowho\/meowho\/welfarelens-worker@sha256:[a-f0-9]{64}$/),
+  revision:z.string().regex(/^[a-f0-9]{40}$/),
+  imageId:z.string().regex(/^sha256:[a-f0-9]{64}$/),
+}).strict();
+
+async function verifyRuntime(directory:string,input:string,browser:string){
+  const scratch=await mkdtemp(join(directory,'.preflight-'));
+  try{
+    const frame=join(scratch,'frame.jpg');
+    await runCommand(process.env.FFMPEG_PATH||'ffmpeg',[
+      '-v','error','-nostdin','-protocol_whitelist','file,pipe','-i',input,
+      '-map','0:v:0','-frames:v','1','-threads','1',frame,
+    ],{timeout:30_000});
+    const html=join(scratch,'probe.html'),pdf=join(scratch,'probe.pdf');
+    await writeFile(html,'<!doctype html><meta charset="utf-8"><p>WelfareLens 預檢</p><img src="frame.jpg">');
+    const args=['--headless','--disable-gpu','--disable-background-networking','--no-first-run',
+      '--user-data-dir='+join(scratch,'browser'),'--print-to-pdf='+pdf,pathToFileURL(html).href];
+    if(process.env.WELFARELENS_PDF_NO_SANDBOX==='true')args.unshift('--no-sandbox');
+    await runCommand(browser,args,{timeout:45_000});
+    if((await readFile(pdf)).subarray(0,5).toString()!=='%PDF-')throw Error('Chromium PDF probe failed');
+  }finally{
+    await rm(scratch,{recursive:true,force:true});
+  }
+}
 
 async function hashFile(path:string){
   const hash=createHash('sha256');
@@ -42,10 +72,12 @@ async function verifyHtml(directory:string,id:string){
 async function main(){
   const {values}=parseArgs({options:{
     config:{type:'string'},input:{type:'string'},batch:{type:'string'},run:{type:'string'},
-    phase:{type:'string'},preflight:{type:'boolean'},'expansion-approval':{type:'string'},
+    phase:{type:'string'},preflight:{type:'boolean'},'expansion-approval':{type:'string'},'image-identity':{type:'string'},
   }});
   if(!values.config||!values.input||!values.batch)throw Error('Arguments');
   const config=BenchmarkConfig.parse(JSON.parse(await readFile(values.config,'utf8')));
+  const identity=ImageIdentity.parse(JSON.parse(values['image-identity']??'null'));
+  if(identity.revision!==config.commit||!identity.ref.endsWith('@'+config.digest))throw Error('Image identity mismatch');
   const input=resolve(values.input),directory=resolve(values.batch),info=await lstat(input);
   if(!info.isFile()||info.isSymbolicLink()||await realpath(input)!==input||info.size>300_000_000
     ||await hashFile(input)!==config.inputSha256)throw Error('Unexpected input');
@@ -63,7 +95,9 @@ async function main(){
   if(maximumRoundUsdMicros*2>config.pilotUsdMicros||maximumRoundUsdMicros*6>config.batchUsdMicros)
     throw Error('Budget cannot support the complete envelope');
   if(values.preflight){
-    console.log(JSON.stringify({event:'benchmark_preflight',ok:true,metadata,maximumRoundUsdMicros,commit:config.commit,digest:config.digest}));
+    await verifyRuntime(directory,input,browser);
+    console.log(JSON.stringify({event:'benchmark_preflight',ok:true,metadata,maximumRoundUsdMicros,
+      commit:config.commit,digest:config.digest,imageId:identity.imageId,ociRevision:identity.revision}));
     return;
   }
   const run=Number(values.run),phase=values.phase;
@@ -124,6 +158,7 @@ async function main(){
     try{
       await writeFile(join(directory,`run-${run}.json`),JSON.stringify({
         run,concurrency:guard.concurrency,at:new Date().toISOString(),commit:config.commit,digest:config.digest,
+        imageId:identity.imageId,ociRevision:identity.revision,
         ok,stage,counts:guard.counts(),checks,profile:profile.snapshot(ok?'local_validated':'failed'),
       },null,2),{flag:'wx',mode:0o600});
       recorded=true;

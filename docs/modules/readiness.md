@@ -449,7 +449,7 @@ Worker 選用的 `report.html` 與 `html-assets/` 位於既有 attempt 前綴。
 
 ### WelfareLens 私有結構化報告（#273）
 
-效能驗收使用獨立本機入口，可在不領取 Supabase 工作的情況下測量真實模型與本機報告。配額、預算、原始紀錄及人工品質標準見 [WelfareLens 效能驗收](../../workers/welfarelens/docs/benchmarks/2026-11-pipeline-performance.md)。雲端佇列、Blob 和租約恢復需獨立驗收。
+效能驗收使用獨立本機入口，可在不領取 Supabase 工作的情況下測量真實模型與本機報告。主機啟動器檢查 GHCR Digest、OCI revision、Image ID 及平台，並提供不建立請求帳本的斷網預檢。配額、預算、原始紀錄及人工品質標準見 [WelfareLens 效能驗收](../../workers/welfarelens/docs/benchmarks/2026-11-pipeline-performance.md)。雲端佇列、Blob 和租約恢復需獨立驗收。
 
 Worker 原始碼、測試、Docker、[環境設定](../../workers/welfarelens/ENVIRONMENT.md)及 [VM 操作](../../workers/welfarelens/VM_RUNBOOK.md)集中於 `workers/welfarelens/`。網站與 Worker 各自安裝依賴及發布。兩者目前使用共用私有 `media-dev`，舊規劃容器 `media` 保留。共用容器不提供佇列隔離，常駐領件仍需已驗證的獨占範圍。
 

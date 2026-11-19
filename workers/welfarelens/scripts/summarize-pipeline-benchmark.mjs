@@ -18,6 +18,8 @@ const sum=(rows,key)=>rows.reduce((total,row)=>total+row[key],0);
 const coverage=[];
 const totals=[[],[]];
 const usageRows=[];
+const versions=new Set();
+let missingVersion=false;
 let cumulative=0,cumulativeKnown=true;
 console.log('| 輪次 | 路數 | 結果 | 本機 Pipeline 秒 | FFmpeg 秒 | VLM 秒 | 改圖秒 | PDF 秒 | HTML 秒 | VLM／改圖請求 | 429 | Timeout | Retry | 預留 USD | 實際 USD | 累積實際 USD |');
 console.log('| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |');
@@ -33,6 +35,13 @@ for(const [index,arm] of order.entries()){
  const metrics=row?.profile?.analysis?.metrics;
  const timings=row?.profile?.analysis?.timings;
  const status=row?.ok===true?'PASS':row?'FAIL':own.length?'中斷，待核對':'待測';
+ if(row){
+  const {commit,digest,imageId,ociRevision}=row;
+  if(/^[a-f0-9]{40}$/.test(commit)&&commit===ociRevision&&
+    /^sha256:[a-f0-9]{64}$/.test(digest)&&/^sha256:[a-f0-9]{64}$/.test(imageId)){
+   versions.add(`Commit／OCI revision \`${commit}\`，RepoDigest \`${digest}\`，Image ID \`${imageId}\``);
+  }else missingVersion=true;
+ }
  const local=row?.profile?.wall_ms??elapsed('local_pipeline');
  if(row?.ok&&Number.isFinite(local))totals[arm-1].push(local);
  const actual=billing[run];
@@ -51,6 +60,8 @@ for(const [index,arm] of order.entries()){
   usageRows.push(`| ${run} | ${show(metrics?.prompt_tokens)}／${show(metrics?.completion_tokens)} | ${show(imageTokens('input_tokens'))}／${show(imageTokens('output_tokens'))} | ${seconds(sum(images,'waitMs'))} | ${seconds(sum(received.map(e=>e.response),'elapsedMs'))} | ${imageFailures} | ${images.length-received.length} |`);
  }
 }
+if(versions.size===1&&!missingVersion)console.log(`\n實測映像 ${[...versions][0]}。`);
+else if(versions.size>1||missingVersion)console.log('\n映像版本存在差異或缺少證據，效能數據僅供逐輪審查。');
 if(usageRows.length){
  console.log('\n| 輪次 | VLM 輸入／輸出 Tokens | 改圖輸入／輸出 Tokens | 改圖節流等待合計秒 | 改圖至回應標頭合計秒 | 改圖傳輸失敗或未知 | 送出未記回應 |');
  console.log('| --- | --- | --- | --- | --- | --- | --- |');
@@ -58,7 +69,7 @@ if(usageRows.length){
 }
 for(const [index,values] of totals.entries()){
  const sorted=values.sort((a,b)=>a-b);
- console.log(`\n路數 ${index+1} 的成功樣本 ${sorted.length}/3。排序秒數 ${sorted.map(seconds).join('、')||'待測'}。中位數 ${sorted.length===3?seconds(sorted[1]):'待測'}，最慢值 ${sorted.length?seconds(sorted.at(-1)):'待測'}。`);
+ console.log(`\n路數 ${index+1} 的成功樣本 ${sorted.length}/3。排序秒數 ${sorted.map(seconds).join('、')||'待測'}。中位數 ${sorted.length===3&&versions.size===1&&!missingVersion?seconds(sorted[1]):'待測'}，最慢值 ${sorted.length?seconds(sorted.at(-1)):'待測'}。`);
 }
 if(coverage.length>1){
  const fingerprints=coverage.map(({frameHashes,editInputs,coverage:items})=>
