@@ -27,14 +27,14 @@ describe("前導影片：產生影片", () => {
     for (const sec of SHOT_SECTIONS) expect(sec.range, sec.key).toBe(`${sec.shots[0].time.split("–")[0]}–${sec.shots[sec.shots.length - 1].time.split("–")[1]}`);
   });
 
-  it("鏡 27 小傑坐沙發抱小橘，prompt 寫明套房家具位置並掛小傑定角", () => {
+  it("鏡 27 小傑坐沙發抱小橘，prompt 寫明套房家具位置（以 9-1 為準）並掛小傑定角", () => {
     const s27 = SHOT_SECTIONS.flatMap(x => x.shots).find(s => s.no === 27)!;
     expect(s27.picture).toMatch(/^小傑坐在沙發抱著小橘/);
     const f = s27.frames[0];
     expect(f.refs).toEqual(["char-xiaoju", "char-xiaojie", "scene-studio"]);
     expect(f.prompt).toMatch(/gray .*sofa against the left wall/);
     expect(f.prompt).toMatch(/floor lamp/);
-    expect(f.prompt).toMatch(/desk under the window/);
+    expect(f.prompt).toMatch(/desk under the right side of the window/);
   });
 
   it("鏡 5-2 夜間吹風機：小橘躲進貓床，筆記本字跡模糊，動作是關吹風機後記一筆（#530）", () => {
@@ -66,6 +66,22 @@ describe("前導影片：產生影片", () => {
     }
     expect(f2.prompt).toMatch(/Edit the 9-1 image \(s10\.webp\)/);
     expect(f1.prompt).toMatch(/unreadable/);
+  });
+
+  it("鏡 11 延續 9-2 雨夜書桌：筆電＋滑鼠懸著，畫面文字剪輯時疊；後續套房鏡頭以 9-1 擺設為準（#541）", () => {
+    const shots = SHOT_SECTIONS.flatMap(x => x.shots);
+    const s11 = shots.find(s => s.no === 11)!;
+    expect(s11.picture).toContain("滑鼠");
+    expect(s11.frames[0].prompt).toMatch(/same rainy night/i);
+    expect(s11.frames[0].prompt).toMatch(/9-1 image \(s10\.webp\)/);
+    expect(s11.frames[0].prompt).toMatch(/mouse/);
+    expect(s11.frames[0].prompt).not.toMatch(/smartphone/);
+    expect(CLIP_MOTION.s15.action).toMatch(/mouse/);
+    for (const id of ["s16-2", "s20", "s28", "s29", "s30"]) {
+      const f = shots.flatMap(s => s.frames).find(x => x.id === id)!;
+      expect(f.prompt, id).toContain("Room layout as in the 9-1 image (s10.webp)");
+    }
+    expect(shots.find(s => s.no === 22)!.picture).toContain("呼應鏡 11：這次滑鼠按下去了");
   });
 
   it("每一鏡都不超過 10 秒（#517 Tina 確認）", () => {

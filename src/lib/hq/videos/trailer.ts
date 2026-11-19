@@ -178,6 +178,9 @@ export const FRAME_REFS: Record<string, string[]> = {
   "s29": ["char-xiaoju", "char-xiaojie", "scene-studio"],
   "s30": ["char-xiaoju", "char-xiaojie", "scene-studio"],
 };
+/** #541：小傑套房的擺設以已生成的 9-1（s10.webp）為準，後面在套房的鏡頭都貼這段，避免家具亂跳 */
+const STUDIO_LAYOUT = "Room layout as in the 9-1 image (s10.webp), attach it as an extra reference; do not move, add or remove any furniture: an air conditioner high on the upper left wall; a gray fabric sofa against the left wall with a beige cushion and a knitted throw, a white floor lamp behind it; a light wooden coffee table with a mug and a book on a woven rug in front of the sofa; a bed with a plaid cover in the left foreground; a large window with gray curtains in the center of the back wall, city buildings outside; the desk under the right side of the window with a laptop, a black mouse, a desk lamp, a pencil cup, books and a trailing plant; a white fridge and a wardrobe on the right edge.";
+
 const ai = (id: string, prompt: string, label?: string): Frame => ({ id, make: "ai", prompt, label, refs: FRAME_REFS[id] ?? [] });
 const rec = (id: string, prompt: string): Frame => ({ id, make: "record", prompt, refs: [] });
 const edit = (id: string, prompt: string): Frame => ({ id, make: "edit", prompt, refs: [] });
@@ -223,12 +226,12 @@ export const SHOT_SECTIONS: ShotSection[] = [
           ai("s14-1", "Top-down shot of a table covered with vet bills and receipts, a cat paw stepping into frame, muted colors", "10-1 散落的帳單"),
           ai("s14-2", "Low angle from under a sofa, an orange tabby cat hiding in the shadow, a young couple arguing out of focus in the background, cold tones", "10-2 躲在沙發下"),
         ] },
-      { no: 11, line: "人", time: "1:16–1:22", picture: "手機畫面停在領養申請頁，「我想領養」按鈕下方，小傑的拇指懸著；最後鎖上螢幕，畫面變黑，映出他的臉", voice: "小傑：「我怕的不是麻煩，是我會讓牠失望。」", sfx: "只剩時鐘聲",
-        frames: [ai("s15", "Close-up of a man's thumb hovering over a button on a smartphone screen, hesitating, then the screen turns off and reflects his face, dark room, cool tones")] },
+      { no: 11, line: "人", time: "1:16–1:22", picture: "同一個雨夜，接在 9-2 之後：鏡頭來到小傑的書桌，筆電畫面停在領養申請頁，「我想領養」按鈕上，小傑的手放在滑鼠上、食指懸著沒按下；最後闔上筆電，變暗的螢幕映出他的臉", voice: "小傑：「我怕的不是麻煩，是我會讓牠失望。」", sfx: "只剩時鐘聲",
+        frames: [ai("s15", "The same rainy night, a few minutes after 9-2, in the same studio apartment; attach the 9-1 image (s10.webp) as the reference for the room, the desk items, the lighting and the man (round glasses, gray T-shirt). Over-the-shoulder close-up from behind his right shoulder, focused on the desk: the open laptop, the black mouse, the desk lamp, the pencil cup, the books and the trailing plant, the rain-streaked window with gray curtains softly out of focus behind. His right hand rests on the mouse, index finger hovering just above the button without clicking. The laptop screen shows a plain bright web page, blurred, with no readable text (the real adoption page with the 我想領養 button and the cursor is composited in editing). Warm desk lamp light mixed with cool blue light from the rainy window")] },
       { no: 12, line: "匯", time: "1:22–1:27", picture: "雨夜門口，阿芳打開紙箱抱起小橘，眼眶紅了；接小傑站在窗邊看雨。兩顆鏡頭用同一個雨聲接起來，最後並排成分割畫面", voice: "小橘：「所以，我回來了。」字幕：「一個怕再被送回來，一個怕自己做不好。」", sfx: "靜音 2 秒",
         frames: [
           ai("s16-1", "Rainy night doorstep, the woman in a brown knitted cardigan opens the cardboard box and lifts the wet orange tabby cat into her arms, teary eyes, cold blue light with warm light from the door behind her", "12-1 阿芳抱起小橘"),
-          ai("s16-2", "A young man with round glasses standing by a rain-streaked window in a dark studio apartment, looking out at the city, silhouette, cold blue tones", "12-2 小傑窗邊看雨"),
+          ai("s16-2", `The same rainy night in the same studio apartment. ${STUDIO_LAYOUT} The young man with round glasses in a gray T-shirt stands at the large window, looking out at the rain and the city lights, the desk with the closed laptop and the lit desk lamp beside him on the right, silhouette, cold blue tones with warm lamp light`, "12-2 小傑窗邊看雨"),
         ] },
       { no: 13, line: "匯", time: "1:27–1:32", picture: "同一個畫面切成三格子畫面（左＝阿芳、中＝小橘、右＝小傑），三人同時在苦惱：阿芳在門口空紙箱旁扶額、小橘裹著毛巾耳朵垂下、小傑在窗邊拿著手機皺眉。接鏡 12 並排的兩格，中間再推開一格放小橘；三人最後一起說出同一句話", voice: "阿芳、小橘、小傑（三人齊聲）：「難道沒有一個平台可以解決這些問題嗎？」", sfx: "雨聲收掉，三人的聲音疊在一起，說完停一拍",
         frames: [ai("s31", "ONE single 16:9 frame divided into three vertical split-screen panels of equal width separated by thin dark lines, all three characters troubled at the same moment, same rainy-night cold blue tone and same eye-line height across panels. LEFT panel: the woman in a brown knitted cardigan at the shelter apartment doorstep beside the empty wet cardboard box, rubbing her forehead, tired and worried. CENTER panel: the small orange tabby cat wrapped in a towel on the doormat, ears down, looking up anxiously. RIGHT panel: the young man with round glasses by the rain-streaked window of his dark studio apartment, holding his phone, frowning and hesitant. Medium close-ups, each subject centered in its panel")] },
@@ -245,7 +248,7 @@ export const SHOT_SECTIONS: ShotSection[] = [
       { no: 16, line: "產品", time: "1:45–1:52", picture: "② 幫我找貓：小傑輸入「上班族，白天不在家，想要安靜一點的貓」，系統推薦小橘並附上推薦理由", voice: "小傑：「我只說了我怎麼生活，」小橘：「適合我的人，就找到了我。」", sfx: "—",
         frames: [ai("s19", "A young man with round glasses sitting on the sofa of a small Taipei studio apartment at night, typing on his phone, face lit by the screen, a slight surprised smile", "穿插")] },
       { no: 17, line: "產品", time: "1:52–2:00", picture: "③ 拍自家影片：小傑繞套房一圈，房間變成 3D；安全檢測標出書桌下的電線「可能被啃咬」。接小傑把電線收進集線盒", voice: "小傑：「桌下那團電線，我在牠來之前就整理好了。」", sfx: "—",
-        frames: [ai("s20", "The young man tidying the power cables under his desk into a cable management box and wrapping them with protective sleeves, focused, daylight, the same desk from earlier", "穿插")] },
+        frames: [ai("s20", `Daytime, sunlight through the window. ${STUDIO_LAYOUT} Closer shot of the desk area: the young man with round glasses kneels under the desk, tidying the tangle of power strips and charging cables into a cable management box and wrapping them with protective sleeves, focused`, "穿插")] },
       { no: 18, line: "產品", time: "2:00–2:05", picture: "④ 領養任務開場：依小橘的年齡採買、和每月預算比一比；擺用品，碗和砂盆的位置選項就是 AI 從小傑家找出的家具", voice: "小橘：「他先替我擺好了碗和砂盆。」字幕：「領養任務：3D 小橘住進你家的 3D 房間」", sfx: "放東西的輕響",
         frames: [rec("s21", "系統錄影：領養任務開場（採買與預算）、擺用品")] },
       { no: 19, line: "產品", time: "2:05–2:12", picture: "⑤ 第 1 天：3D 小橘躲進外出籠，小傑選「等牠自己出來」，信任往上跳；快切逗貓、餵貓、鏟屎", voice: "小傑：「第一天，我學會了等。」", sfx: "選擇音效、逗貓棒鈴鐺聲",
@@ -254,8 +257,8 @@ export const SHOT_SECTIONS: ShotSection[] = [
         frames: [rec("s23", "系統錄影：半年後、五年後、10 年後、15 歲四個時刻，字卡用剪輯軟體疊上；五年後要帶到獸醫提示文字")] },
       { no: 21, line: "產品", time: "2:19–2:23", picture: "⑦ 試養報告：小橘活了幾年、對小傑的感覺、一生總花費", voice: "小傑：「我在自己家，先陪牠走了一輩子。」", sfx: "—",
         frames: [rec("s24", "系統錄影：試養報告頁")] },
-      { no: 22, line: "產品", time: "2:23–2:26", picture: "⑧ 提出領養：小傑按下「我想領養」，附上試養報告和問卷送出。呼應鏡 11：這次拇指沒有停", voice: "—", sfx: "送出音效",
-        frames: [rec("s25", "系統錄影：提出領養、附上試養報告與問卷")] },
+      { no: 22, line: "產品", time: "2:23–2:26", picture: "⑧ 提出領養：小傑按下「我想領養」，附上試養報告和問卷送出。呼應鏡 11：這次滑鼠按下去了", voice: "—", sfx: "送出音效",
+        frames: [rec("s25", "系統錄影：提出領養、附上試養報告與問卷；用電腦版畫面錄，呼應鏡 11 的筆電")] },
       { no: 23, line: "匯", time: "2:26–2:35", picture: "⑨ 和中途對話：分割畫面，左半阿芳在廚房、右半小傑在沙發；中間疊上系統的對話串一來一回", voice: "小橘：「這一次，她可以慢慢問，他也答得出來。」", sfx: "訊息提示音一來一回",
         frames: [
           ai("s26-1", "The woman in a brown knitted cardigan sitting at her kitchen table typing on her phone, thoughtful, warm light", "23-1 左半：阿芳打字"),
@@ -269,11 +272,11 @@ export const SHOT_SECTIONS: ShotSection[] = [
     key: "ending", title: "第四段：相遇結尾", range: "2:40–3:00",
     shots: [
       { no: 25, line: "匯", time: "2:40–2:48", picture: "小傑的套房，阿芳把外出籠放在地上打開；小傑沒有伸手，蹲在旁邊等。小橘慢慢走出來，走到窗邊坐下曬太陽", voice: "小傑：「你好，小橘。」", sfx: "溫暖主旋律",
-        frames: [ai("s28", "Low angle at cat eye level, a pet carrier door opening on the floor of a sunny small studio apartment, the orange tabby cat stepping out slowly on its own and walking toward a sunny window, a young man with round glasses kneeling nearby patiently without reaching out, a woman in a brown knitted cardigan watching, golden hour light")] },
+        frames: [ai("s28", `Golden hour, sunlight through the window. ${STUDIO_LAYOUT} The cables under the desk are now neatly packed in a cable box. Low angle at cat eye level near the coffee table: a pet carrier door opening on the floor, the orange tabby cat stepping out slowly on its own and walking toward the sunny window, the young man with round glasses kneeling nearby patiently without reaching out, the woman in a brown knitted cardigan watching`)] },
       { no: 26, line: "匯", time: "2:48–2:53", picture: "小橘在窗邊睡著，書桌下的電線已經收得整整齊齊；小傑在沙發上看書", voice: "小橘：「現在，我有了第二個家。」", sfx: "—",
-        frames: [ai("s29", "The orange tabby cat napping by a sunny window in a cozy small studio apartment, neatly organized cables in a box under the desk, the young man reading on the sofa nearby, golden hour light")] },
-      { no: 27, line: "匯", time: "2:53–3:00", picture: "小傑坐在沙發抱著小橘，小橘轉頭看鏡頭，慢慢眨眼；家具位置照小傑的套房定景（沙發靠左牆、身後落地燈、窗戶在後方、書桌在窗下）；Logo＋標語", voice: "小橘：「謝謝你，讓我不用再回到那個紙箱。」小傑：「也謝謝你，等我準備好。」字幕：「Meowho喵戶｜讓每一次相遇，都走到最後。」", sfx: "收尾音、貓叫一聲",
-        frames: [ai("s30", "Late afternoon golden hour in the same small Taipei studio apartment, furniture placed exactly as in the studio reference: the gray fabric sofa against the left wall with a beige cushion and a knitted throw, a white floor lamp beside it, a light wooden coffee table on a woven rug in front of the sofa, the large window with beige curtains on the back wall, and the desk under the window to the right with a laptop, a desk lamp and a small plant, the cables under it now neatly packed in a cable box. Medium close-up from the coffee table side, the young man with round glasses sitting on the sofa holding the orange tabby cat in his arms, the cat slowly turning its head to look straight into the camera and blinking slowly, his gentle smile, the window and curtains softly out of focus behind them, peaceful, warm golden light")] },
+        frames: [ai("s29", `Golden hour, sunlight through the window. ${STUDIO_LAYOUT} The cables under the desk are now neatly packed in a cable box. Wide shot from the doorway as in 9-1: the orange tabby cat napping in the sun by the window, the young man reading a book on the sofa`)] },
+      { no: 27, line: "匯", time: "2:53–3:00", picture: "小傑坐在沙發抱著小橘，小橘轉頭看鏡頭，慢慢眨眼；家具位置照 9-1 成品（沙發靠左牆、身後落地燈、窗戶在後方、書桌在窗右下、冰箱在右緣）；Logo＋標語", voice: "小橘：「謝謝你，讓我不用再回到那個紙箱。」小傑：「也謝謝你，等我準備好。」字幕：「Meowho喵戶｜讓每一次相遇，都走到最後。」", sfx: "收尾音、貓叫一聲",
+        frames: [ai("s30", `Late afternoon golden hour. ${STUDIO_LAYOUT} The cables under the desk are now neatly packed in a cable box. Medium close-up from the coffee table side, the young man with round glasses sitting on the sofa holding the orange tabby cat in his arms, the cat slowly turning its head to look straight into the camera and blinking slowly, his gentle smile, the window and curtains softly out of focus behind them, peaceful, warm golden light`)] },
     ],
   },
 ];
@@ -283,7 +286,7 @@ export const MATCH_CUTS: { name: string; from: string; to: string; meaning: stri
   { name: "同一場雨", from: "鏡 1–2 紙箱在雨裡", to: "鏡 3 小傑開門，窗外同一場雨", meaning: "他們在同一座城市，卻還沒相遇" },
   { name: "同一個群組", from: "鏡 6 左半：阿芳貼文", to: "鏡 6 右半：小傑睡前在滑", meaning: "資訊明明在，卻對不上" },
   { name: "同一團電線", from: "鏡 8 小橘撥弄電視櫃下的電線", to: "鏡 9 小傑查到「電線要收好」，低頭看自己腳邊的延長線", meaning: "小傑擔心的，正是小橘被退養的原因" },
-  { name: "同一個停頓", from: "鏡 10 小橘躲在沙發下", to: "鏡 11 小傑的手指停在「我想領養」上", meaning: "兩個人都還沒準備好" },
+  { name: "同一個停頓", from: "鏡 10 小橘躲在沙發下", to: "鏡 11 小傑的滑鼠停在「我想領養」上，沒有按下", meaning: "兩個人都還沒準備好" },
   { name: "兩格變三格", from: "鏡 12 阿芳和小傑並排的兩格分割畫面", to: "鏡 13 同一個畫面切成三格，中間推開一格放小橘，三人同時苦惱", meaning: "三個人卡在同一個問題上，帶出產品" },
   { name: "同一個分割畫面", from: "鏡 6 兩支手機各滑各的", to: "鏡 23 兩支手機在對話串裡一來一回", meaning: "從「對不上」變成「說得上話」" },
   { name: "怕什麼聲音", from: "鏡 5 阿芳記下小橘怕什麼聲音", to: "鏡 23 阿芳問小傑家吵不吵", meaning: "中途記下的事，終於有人接得住" },
