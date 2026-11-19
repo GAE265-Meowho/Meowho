@@ -68,20 +68,22 @@ describe("前導影片：產生影片", () => {
     expect(f1.prompt).toMatch(/unreadable/);
   });
 
-  it("鏡 11 延續 9-2 雨夜書桌：筆電＋滑鼠懸著，畫面文字剪輯時疊；後續套房鏡頭以 9-1 擺設為準（#541）", () => {
+  it("鏡 11 同一雨夜坐到沙發拿手機、拇指懸著；第一格書桌照 9-1；後續套房鏡頭以 9-1 擺設為準（#543）", () => {
     const shots = SHOT_SECTIONS.flatMap(x => x.shots);
     const s11 = shots.find(s => s.no === 11)!;
-    expect(s11.picture).toContain("滑鼠");
-    expect(s11.frames[0].prompt).toMatch(/same rainy night/i);
-    expect(s11.frames[0].prompt).toMatch(/9-1 image \(s10\.webp\)/);
-    expect(s11.frames[0].prompt).toMatch(/mouse/);
-    expect(s11.frames[0].prompt).not.toMatch(/smartphone/);
-    expect(CLIP_MOTION.s15.action).toMatch(/mouse/);
+    expect(s11.picture).toContain("坐到沙發");
+    expect(s11.picture).toContain("拇指懸著");
+    const f = s11.frames[0];
+    expect(f.prompt).toContain("Room layout as in the 9-1 image (s10.webp)");
+    expect(f.prompt).toMatch(/no extra side table or shelf/);
+    expect(f.prompt).toMatch(/phone/);
+    expect(f.prompt).not.toMatch(/mouse button/);
+    expect(CLIP_MOTION.s15.action).toMatch(/thumb hovers/);
     for (const id of ["s16-2", "s20", "s28", "s29", "s30"]) {
-      const f = shots.flatMap(s => s.frames).find(x => x.id === id)!;
-      expect(f.prompt, id).toContain("Room layout as in the 9-1 image (s10.webp)");
+      const x = shots.flatMap(s => s.frames).find(y => y.id === id)!;
+      expect(x.prompt, id).toContain("Room layout as in the 9-1 image (s10.webp)");
     }
-    expect(shots.find(s => s.no === 22)!.picture).toContain("呼應鏡 11：這次滑鼠按下去了");
+    expect(shots.find(s => s.no === 22)!.picture).toContain("呼應鏡 11：這次拇指沒有停");
   });
 
   it("每一鏡都不超過 10 秒（#517 Tina 確認）", () => {
