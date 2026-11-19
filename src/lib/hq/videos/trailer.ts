@@ -206,8 +206,8 @@ export const SHOT_SECTIONS: ShotSection[] = [
         ] },
       { no: 6, line: "匯", time: "0:36–0:44", picture: "分割畫面：左半阿芳把小橘照片貼進群組，右半小傑睡前躺在床上滑同一個群組；訊息往上刷，小橘的照片被推走", voice: "小傑：「每一隻都很可愛，可是哪一隻適合我？」", sfx: "通知聲越來越密",
         frames: [edit("s08", "用動態設計或螢幕錄影，不用 AI：假的社群介面，兩支手機並排，同一則貼文在左邊送出、在右邊被滑走")] },
-      { no: 7, line: "貓", time: "0:44–0:50", picture: "阿芳家門口，情侶面對阿芳，從阿芳手上接過小橘，開心地抱著小橘轉身離開；灰寶在窗邊看著小橘被帶走", voice: "小橘：「後來有人帶我回家，他們很喜歡我。」", sfx: "輕快音樂",
-        frames: [ai("s11", "At Afang's doorstep with the iron gate and potted plants, daylight, the young couple facing Afang as she gently hands the orange tabby cat into the woman's arms, everyone smiling, a gray cat watching from the window behind her")] },
+      { no: 7, line: "貓", time: "0:44–0:50", picture: "阿芳家門口，情侶面對阿芳，從阿芳手上接過裝著小橘的外出籠，開心地提著轉身離開；灰寶在窗邊看著小橘被帶走", voice: "小橘：「後來有人帶我回家，他們很喜歡我。」", sfx: "輕快音樂",
+        frames: [ai("s11", "At Afang's doorstep with the iron gate and potted plants, daylight, the young couple facing Afang as she gently hands the pet carrier with the orange tabby cat inside to the woman, the cat peeking out through the carrier door, everyone smiling, a gray cat watching from the window behind her")] },
       { no: 8, line: "貓", time: "0:50–0:58", picture: "快切：情侶家電視櫃下一團外露的電線，小橘湊過去用掌子撥；桌上的百合花，小橘湊近聞", voice: "小橘：「可是他們不知道電線要收好，不知道百合花會讓我生病……」", sfx: "音樂漸弱",
         frames: [
           ai("s12-1", "Low angle, an orange tabby cat crouching under a TV cabinet, curiously pawing at a tangle of exposed power cords and chargers, dim living room, tense mood", "8-1 撥弄電線"),
