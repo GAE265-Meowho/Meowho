@@ -20,6 +20,7 @@ const eslintConfig = [
       "next-env.d.ts",
       // Standalone design prototypes have their own package.json and lint setup.
       "prototypes/**",
+      "workers/welfarelens/**",
     ],
   },
 ];

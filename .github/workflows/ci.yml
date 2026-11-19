@@ -8,11 +8,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # MeowHQ version labels need per-path commit history in a clean checkout.
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
       - run: npm ci
+      - run: npm run hq:page-meta
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test

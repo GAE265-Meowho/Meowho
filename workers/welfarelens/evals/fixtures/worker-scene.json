@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "provenance": "synthetic_model_fixture_not_azure",
+  "candidate": {
+    "objects": [{"kind":"cord","label":"合成測試線材","bbox":[0.2,0.3,0.6,0.8],"notes":"測試輸出，不是實際影片偵測"}],
+    "plants": [],
+    "image_quality": "adequate",
+    "questions": [],
+    "limitations": ["Synthetic model fixture; does not establish actual objects or model quality."],
+    "assessments": [{
+      "rule_id":"H04","object_indices":[0],
+      "facts":[{"key":"exposed_cord","value":true,"status":"OBSERVATION","evidence":"Synthetic fixture only","confidence":"medium"}],
+      "proposal":{"kind":"PREVENTION","action":"合成測試：整理線材。","rationale":"測試資料投影與證據追溯，不是影片判斷。","placement":null}
+    }]
+  }
+}

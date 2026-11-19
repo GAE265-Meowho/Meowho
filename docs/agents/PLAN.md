@@ -8,6 +8,7 @@
 
 - AI 居家安全報告首屏與圖片載入（Jerry0808 × Codex）：分支 `codex/home-safety-report-ux`，審查中。沿用 #273 報告授權；待驗收 Preview 的真實 Owner 登入及 Azure 延遲。
 
+- AI 居家安全報告與 WelfareLens Monorepo（Jerry0808 × Codex，#273）：分支 `feat/273-welfarelens-monorepo`，審查中。Worker 獨立建置及執行，Registry 與真實雲端整合待驗收。
 - AI 居家安全報告 V3 主線整合（Jerry0808 × Codex，#273）：分支 `codex/home-safety-v3-main`，審查中。
 - AI 居家環境安全檢測對外命名（Jerry0808 × Codex，關聯 #424）：分支 `chore/meowhome-home-safety-naming`，審查中。
 

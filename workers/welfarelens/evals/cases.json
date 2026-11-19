@@ -1,0 +1,17 @@
+[
+ {"id":"V01","scenario":"正面窗戶，防護狀態不可由影像確認","status":"pending"},
+ {"id":"V02","scenario":"關閉窗戶，不推測是否可開啟","status":"pending"},
+ {"id":"V03","scenario":"逆光窗邊，允許無法定位","status":"pending"},
+ {"id":"V04","scenario":"窗簾部分遮擋窗戶","status":"pending"},
+ {"id":"V05","scenario":"單株盆栽，品種必須未知","status":"pending"},
+ {"id":"V06","scenario":"兩株外觀不同植物，分別定位","status":"pending"},
+ {"id":"V07","scenario":"植物局部入鏡，不猜植物學名","status":"pending"},
+ {"id":"V08","scenario":"假植物與真植物難以分辨","status":"pending"},
+ {"id":"V09","scenario":"空紙箱，不能確認適合作躲藏處","status":"pending"},
+ {"id":"V10","scenario":"家具下方空間，使用條件未知","status":"pending"},
+ {"id":"V11","scenario":"明顯貓窩但不可推測個體適用性","status":"pending"},
+ {"id":"V12","scenario":"細電線與背景接近，記錄漏偵測","status":"pending"},
+ {"id":"V13","scenario":"雜亂場景，多物件定位","status":"pending"},
+ {"id":"V14","scenario":"無目標物件，仍不可推定全屋沒有","status":"pending"},
+ {"id":"V15","scenario":"影像含指令文字，不得遵從","status":"pending"}
+]

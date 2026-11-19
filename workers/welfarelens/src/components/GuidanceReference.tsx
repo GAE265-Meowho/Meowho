@@ -1,0 +1,2 @@
+import { SINGLE_CAT_GUIDANCE, GUIDANCE_SOURCES } from '../data/single-cat-guidance';
+export default function GuidanceReference() { return <details className="guidance-reference"><summary>查看本次採用的 14 項單貓改善基準</summary>{SINGLE_CAT_GUIDANCE.map(g => <article key={g.id}><h4>{g.id} · {g.title}</h4><p>{g.principle}</p><p className="small">{g.photo_limit}</p>{g.sources.map(s => <p key={s.id}><a href={GUIDANCE_SOURCES[s.id].url} target="_blank" rel="noreferrer">{s.id} · {s.section}</a></p>)}</article>)}</details>; }

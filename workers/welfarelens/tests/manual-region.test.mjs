@@ -1,0 +1,2 @@
+import {test} from 'node:test';import assert from 'node:assert/strict';import {dragBox} from '../src/domain/manual-region.ts';
+test('drag normalizes reverse drags and clamps portrait/landscape responsive coordinates',()=>{assert.deepEqual(dragBox({x:80,y:90},{x:20,y:10}),[.2,.1,.8,.9]);assert.deepEqual(dragBox({x:-5,y:20},{x:110,y:150}),[0,.2,1,1]);assert.equal(dragBox({x:5,y:5},{x:5,y:5}),null);});

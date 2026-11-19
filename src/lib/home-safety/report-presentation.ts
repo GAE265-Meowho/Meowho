@@ -1,3 +1,4 @@
+import type { ReportView } from "./report-view-contract";
 import { parse, type DefaultTreeAdapterTypes } from "parse5";
 
 type Node = DefaultTreeAdapterTypes.Node;
@@ -243,7 +244,7 @@ function detailFigure(side: "before" | "after", caption: string, image: string |
     : "<p>此報告未提供這張局部影像。</p>"}</figure>`;
 }
 
-export function renderReportPresentation(html: string, full: boolean, presentation = parseReportPresentation(html), itemIndex?: number) {
+export function renderReportPresentation(html: string, full: boolean, presentation = parseReportPresentation(html), itemIndex?: number, view?: ReportView) {
   const { items, headerStart, headerEnd, bodyEnd, images } = presentation;
   if (headerStart === undefined || headerEnd === undefined || bodyEnd === undefined || headerEnd > bodyEnd) return html;
 
@@ -272,7 +273,7 @@ export function renderReportPresentation(html: string, full: boolean, presentati
     const panelId = `improvement-${index + 1}`;
     const href = open ? `html#${panelId}` : `?item=${index + 1}#${panelId}`;
     return `<section class="meow-item"><h3><a class="meow-hero" id="${panelId}" href="${href}" aria-expanded="${open}" aria-controls="${panelId}-panel">
-      ${icon(hazardIcon(item.name))}<span>${escape(item.name)}</span>${icon(open ? "up" : "down")}</a></h3>
+      ${icon(hazardIcon("hazard" in item && typeof item.hazard === "string" ? item.hazard : item.name))}<span>${escape(item.name)}</span>${icon(open ? "up" : "down")}</a></h3>
       <div id="${panelId}-panel"${open ? "" : " hidden"}>${open ? `${!before && item.observation ? `<p>${escape(item.observation)}</p>` : ""}<div class="meow-grid${before ? "" : " solo"}${showDetails ? " with-details" : ""}">
         ${impact?.consequence ? `<div class="meow-card meow-impact">${icon("alert")}<div><h4>可能後果</h4><p>${escape(impact.consequence)}</p></div></div>` : ""}
         ${before}
@@ -282,10 +283,13 @@ export function renderReportPresentation(html: string, full: boolean, presentati
         ${showDetails ? detailFigure("after", "改善後局部｜AI 模擬示意", item.detailAfter) : ""}</div>
         ${limits.length ? `<div class="meow-limits">${icon("info")}<p><strong>需要現場確認</strong> ${limits.map(escape).join("。")}。</p></div>` : ""}` : ""}</div></section>`;
   });
+  const statistics = view ? `<p>${view.statistics.confirmations} 項需要現場確認 · ${view.statistics.hazards.length} 種已分類危害 · ${view.statistics.evidence_frames} 張原始證據影格</p>
+    ${view.statistics.hazards.length ? `<ul>${view.statistics.hazards.map(hazard => `<li>${escape(hazard.label)}（${hazard.count}）</li>`).join("")}</ul>` : ""}` : "";
+  const checks = view?.confirmations.length ? `<section aria-labelledby="report-checks"><h3 id="report-checks">需要現場確認</h3><ul>${view.confirmations.map(check => `<li><strong>${escape(check.label)}</strong>　${check.conditions.map(escape).join("；")}</li>`).join("")}</ul></section>` : "";
   const intro = `<section class="meow-priority" aria-labelledby="priority-title">
-    <h2 id="priority-title">需要改善（${items.length}）</h2>
+    <h2 id="priority-title">需要改善（${items.length}）</h2>${statistics}
     ${rows.length ? rows.join("") : "<p>目前無法從這份報告整理改善項目。可查看完整報告中的查核建議。</p>"}
-    <div id="report-view" tabindex="-1">${toggle}${pdf}</div></section>`;
+    ${checks}<div id="report-view" tabindex="-1">${toggle}${pdf}</div></section>`;
   const start = html.slice(0, headerStart) + summaryStyles + banner + intro;
   if (!full) return start + html.slice(bodyEnd);
 

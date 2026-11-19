@@ -1,0 +1,21 @@
+services:
+  worker:
+    image: ${WELFARELENS_QUEUE_IMAGE:?Set an approved GHCR image digest}
+    container_name: welfarelens-worker-queue
+    profiles: [approved-queue]
+    env_file: ${WELFARELENS_QUEUE_ENV_FILE:?Set the private environment file path}
+    environment:
+      MEOWHO_BLOB_CONTAINER: media-dev
+      MEOWHO_WORKER_TMP: /data
+      MEOWHO_WORKER_SERVICE: 'true'
+    tmpfs:
+      - /data:uid=1000,gid=1000,mode=0700
+    entrypoint: [node, --experimental-strip-types, scripts/meowho-worker.ts]
+    command: [--poll]
+    restart: unless-stopped
+    stop_grace_period: 45s
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"

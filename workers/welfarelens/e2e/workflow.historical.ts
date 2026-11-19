@@ -1,0 +1,28 @@
+import { test, expect } from '@playwright/test';
+import {readFile} from 'node:fs/promises';
+for (const width of [320,412,1440]) test(`single-cat direct preparation workflow ${width}`,async({page})=>{
+ await page.setViewportSize({width,height:915});
+ const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.goto('/');await expect(page.locator('main')).toHaveAttribute('aria-busy','false');
+ await expect(page).toHaveTitle(/WelfareLens/);
+ if(width<=700)await expect(page.locator('.mobile-step')).toContainText('1 / 3');
+ await expect(page.getByText('小麥',{exact:false})).toHaveCount(0);
+ await page.getByRole('button',{name:/先用虛構示範試試看/}).click();
+ await page.getByRole('button',{name:'查看示範建議 →'}).click();
+ await expect(page.getByRole('button',{name:'標記 1：窗邊'})).toBeVisible();
+ await expect(page.getByText('多貓',{exact:false})).toHaveCount(0);
+ await page.getByRole('button',{name:'產生改善對照 →'}).click();
+ if(width<=700)await page.getByRole('button',{name:'改善構想',exact:true}).click();
+ await expect(page.getByText('尚未產生改善圖片',{exact:true})).toBeVisible();
+ await expect(page.getByAltText('AI 生成的改善構想圖')).toHaveCount(0);
+ const download=page.waitForEvent('download');await page.getByRole('button',{name:'下載準備計畫 JSON'}).click();
+ const file=await download;expect(file.suggestedFilename()).toBe('welfarelens-plan.json');
+ const data=JSON.parse(await readFile((await file.path())!,'utf8'));
+ expect(data.version).toBe(3);expect(data.guidance.scope).toBe('single-cat');expect(data.guidance.item_count).toBe(14);
+ expect(data.baseline.mode).toBe('OBSERVED');expect(data.generatedImage).toBeNull();expect(data.plan.actions).toHaveLength(3);
+ expect(data.cat).toBeUndefined();expect(data.scenario).toBeUndefined();expect(data.selectedPlans).toBeUndefined();
+ expect(data.baseline.cases.flatMap((c:{facts:{status:string}[]})=>c.facts).some((f:{status:string})=>f.status==='HYPOTHESIS')).toBe(false);
+ expect(JSON.stringify(data)).not.toContain('data:image');
+ await page.getByRole('button',{name:'← 返回改善建議'}).click();await expect(page.getByRole('heading',{name:'這個房間，可以這樣改善'})).toBeVisible();
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);expect(errors).toEqual([]);
+});

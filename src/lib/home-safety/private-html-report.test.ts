@@ -117,3 +117,25 @@ it("does not reuse an image whitelist across report attempts", async () => {
   expect((await readPrivateReport({ id, reportId }, asset)).status).toBe(404);
   expect(mock.download).not.toHaveBeenCalledWith(prefix + "html-assets/" + asset);
 });
+it("uses an authorized optional view without fetching historical HTML, then falls back on an invalid version", async () => {
+  vi.stubEnv("MEOWHOME_PRIVATE_REPORT_VIEW", "true");
+  try {
+    const view = { schema: "meow_report_view/1", report_id: reportId, attempt: 1,
+      improvements: [], confirmations: [], statistics: { improvements: 0, confirmations: 0, evidence_frames: 0, hazards: [] } };
+    mock.download.mockImplementation(async (path: string) => path.endsWith("report-view.json")
+      ? Buffer.from(JSON.stringify(view)) : Buffer.from("<!doctype html><body>歷史完整報告</body>"));
+    const response = await readPrivateReport({ id, reportId });
+    expect(response.status).toBe(200);
+    expect(await response.text()).toContain("需要改善（0）");
+    expect(mock.download.mock.calls).toEqual([[prefix + "report-view.json"]]);
+    mock.owner = false;
+    expect((await readPrivateReport({ id, reportId })).status).toBe(404);
+    expect(mock.download).toHaveBeenCalledTimes(1);
+    mock.owner = true;
+    mock.download.mockResolvedValueOnce(Buffer.from(JSON.stringify({ ...view, schema: "meow_report_view/2" })));
+    const fallback = await readPrivateReport({ id, reportId });
+    expect(await fallback.text()).toContain("歷史完整報告");
+  } finally {
+    vi.unstubAllEnvs();
+  }
+});

@@ -1,0 +1,33 @@
+import {test,expect} from '@playwright/test';
+import {readFile,mkdir} from 'node:fs/promises';
+import {roomFixture,id,observation} from '../tests/fixtures/video-p0.mjs';
+import {aggregateVideoIssues,RawObservationSchema,MatchEvidenceSchema} from '../src/domain/video-issues';
+const root='test-results/video-issues';
+for(const width of [375,1280,850])test(`issue workspace groups care, keeps wires distinct, selects synchronized evidence ${width}px`,async({page})=>{
+ await page.setViewportSize({width,height:width===850?375:900});const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
+ const {observations,matches}=roomFixture(),report={version:1,video_id:id,source:'snapshot',...aggregateVideoIssues(observations.map(o=>RawObservationSchema.parse(o)),matches.map(m=>MatchEvidenceSchema.parse(m)),key=>'issue-'+key.join('-'),{allowTestEvidence:true})};
+ const frames=[0,4,8,12].map(t=>({frame_id:`f${String(t).padStart(3,'0')}`,timestamp:t,hash:'fixture-'+t,novelty:0,sharpness:1}));
+ const job={video_id:id,created_at:Date.now(),expires_at:Date.now()+1800000,status:'completed',stage:'分析完成',original_deleted:true,metadata:{duration:14.015,width:3840,height:2160,codec:'h264',rotation:0},frames,events:[],warning:['本機影片重建測試資料，非原始 Azure 回覆；身分配對為測試標註。'],error:null,model:'fixture',analysis_provider:'azure',analysis_status:'complete',review_status:'not_human_reviewed'};
+ await page.route('**/api/video-scans**',async route=>{const request=route.request(),url=request.url();if(request.method()==='POST')return route.fulfill({status:201,json:{video_id:id}});if(request.method()==='PUT')return route.fulfill({status:202,json:{status:'queued'}});if(request.method()==='DELETE')return route.fulfill({json:{deleted:true}});if(url.endsWith('/issues'))return route.fulfill({json:report});if(url.includes('/frames/')){const f=url.split('/').pop()!,t=frames.find(fm=>fm.frame_id===f)?.timestamp??0;try{return await route.fulfill({contentType:'image/jpeg',body:await readFile(`private-eval/video-p0/at-${t}.jpg`)});}catch{return route.fulfill({contentType:'image/svg+xml',body:'<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360"/>'});}}return route.fulfill({json:job});});
+ await page.route('**/api/analyze',route=>route.abort());
+ await page.goto('/video');const file='welfarelens-video-spike/samples/synthetic-room.mp4';
+ await page.getByLabel('上傳影片',{exact:true}).setInputFiles(file);await page.getByRole('button',{name:'開始真實 Azure 分析'}).click();
+ await expect(page.getByRole('heading',{name:'影片改善摘要'})).toBeVisible();await expect(page.getByText('2 項優先改善 · 1 項需要留意 · 3 個照護主題',{exact:true})).toBeVisible();
+ await page.getByText('重新拍攝／上傳影片',{exact:true}).click();await expect(page.getByLabel('上傳影片',{exact:true})).toBeVisible();await page.getByText('重新拍攝／上傳影片',{exact:true}).click();
+ await expect(page.getByRole('button',{name:/選取.*壁架下線材/})).toBeVisible();await expect(page.getByRole('button',{name:/選取.*落地燈線材/})).toBeVisible();
+ await page.getByRole('button',{name:/選取.*壁架下線材/}).click();await page.getByRole('button',{name:'查看證據 00:04',exact:true}).click();await expect(page.locator('.video-event-image')).toHaveAttribute('src',/f004$/);await expect(page.locator('video')).toHaveJSProperty('currentTime',4);await expect(page.getByRole('heading',{name:'壁架下線材',exact:true})).toBeVisible();
+ await page.getByRole('button',{name:/選取.*疑似直立葉盆栽/}).click();await page.getByRole('button',{name:'查看證據 00:12',exact:true}).click();await page.getByRole('button',{name:/選取.*壁架下線材/}).focus();await page.keyboard.press('Enter');await page.getByRole('button',{name:'查看證據 00:04',exact:true}).click();await expect(page.locator('video')).toHaveJSProperty('currentTime',4);await expect(page.locator('.video-event-image')).toHaveAttribute('src',/f004$/);
+ await expect(page.locator('.video-event-image')).toBeVisible();await expect(page.locator('.video-evidence')).not.toContainText('無法載入');expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);expect(errors).toEqual([]);
+ await page.getByRole('heading',{name:'影片改善摘要'}).scrollIntoViewIfNeeded();await mkdir(root,{recursive:true});await page.screenshot({path:`${root}/video-p0-${width}.png`,fullPage:true});
+ await page.getByText('其他照護建議（3 個主題）',{exact:true}).click();await expect(page.getByRole('button',{name:/選取.*磨爪位置/})).toBeVisible();await page.getByRole('button',{name:/選取.*磨爪位置/}).click();await expect(page.getByRole('heading',{name:'磨爪位置',exact:true})).toBeVisible();
+ await page.getByText('詳細證據、不同建議與來源',{exact:true}).click();await expect(page.getByText('可考慮安排磨爪位置',{exact:true}).first()).toBeVisible();
+ await page.reload();await expect(page.locator('video')).toHaveCount(0);await expect(page.locator('.video-event-image')).toBeVisible();await expect(page.getByText('原片已清除，以下保留事件截圖與改善建議。',{exact:true})).toBeVisible();
+ await page.getByRole('button',{name:'刪除此掃描',exact:true}).click();await expect(page.getByRole('heading',{name:'影片改善摘要'})).toHaveCount(0);
+});
+test('more than three important issues remain reachable; unavailable images never create overlays',async({page})=>{
+ const obs=Array.from({length:5},(_,i)=>RawObservationSchema.parse(observation('w'+i,{object_ref:i,title:'線材 '+i}))),report={version:1,video_id:id,source:'snapshot',...aggregateVideoIssues(obs,[],key=>key.join('-'))};
+ await page.addInitScript(value=>sessionStorage.setItem('welfarelens.video.id',value),id);
+ const job={video_id:id,created_at:Date.now(),expires_at:Date.now()+1800000,status:'partial',stage:'完成',original_deleted:true,frames:[{frame_id:'f000',timestamp:0,hash:'frame',novelty:0,sharpness:1}],events:[],warning:['部分畫面未完成'],error:null,model:'fixture',analysis_provider:'azure',analysis_status:'incomplete',review_status:'not_human_reviewed'};
+ await page.route('**/api/video-scans**',route=>route.request().url().endsWith('/issues')?route.fulfill({json:report}):route.request().url().includes('/frames/')?route.fulfill({status:404}):route.fulfill({json:job}));await page.goto('/video');
+ await expect(page.getByRole('button',{name:/選取.*線材 4/})).toBeHidden();await page.getByText('另有 2 項優先改善',{exact:true}).click();await page.getByRole('button',{name:/選取.*線材 4/}).click();await expect(page.getByRole('heading',{name:'線材 4',exact:true})).toBeVisible();await expect(page.getByText('證據影格暫時無法載入，仍可查看原始觀察與來源。',{exact:true})).toBeVisible();await expect(page.locator('.video-evidence svg')).toHaveCount(0);
+});
