@@ -11,6 +11,7 @@
 !scripts/
 !scripts/standalone-worker.ts
 !scripts/meowho-worker.ts
+!scripts/pipeline-benchmark.ts
 !scripts/meowho-blob-smoke.ts
 !evals/
 !evals/fixtures/

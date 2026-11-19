@@ -19,7 +19,7 @@ export async function analyzeVideoImage(image:string,plant:boolean,env:Record<st
  const result=await response.json();if(!response.ok)throw Error(['credentials','quota','timeout','invalid_output','disabled','configuration'].includes(result.code)?result.code:'provider_unavailable');
  return {candidate:CandidateSchema.parse(result.candidate),usage:result.usage,deployment:result.deployment};
 }
-export async function runVideoScan(store:VideoStore,id:string,options:{env:Record<string,string|undefined>;signal:AbortSignal;analyze?:typeof analyzeVideoImage;experimentalMaxSeconds?:number}){
+export async function runVideoScan(store:VideoStore,id:string,options:{env:Record<string,string|undefined>;signal:AbortSignal;analyze?:typeof analyzeVideoImage;providerRequest?:typeof fetch;experimentalMaxSeconds?:number}){
  const begin=performance.now(),cpuStart=process.cpuUsage(),dir=await store.directory(id),input=join(dir,'original.bin'),signal=options.signal;
  // Existing two-call ceiling remains the safe default; operators may reduce it for quota pressure.
  const concurrency=options.env.WELFARELENS_VIDEO_CONCURRENCY==='1'?1:2;
@@ -41,7 +41,7 @@ export async function runVideoScan(store:VideoStore,id:string,options:{env:Recor
  const analyze=async(image:string,plant:boolean,frameId:string,timestamp:number,objectIndex:number|null=null,queueWait=0)=>{
   signal.throwIfAborted();if(fatal)throw Error(fatal);metrics.calls++;activeCalls++;metrics.maxActiveCalls=Math.max(metrics.maxActiveCalls,activeCalls);sampleResources();const call=metrics.calls,started=performance.now();let auditFailed=false;
   try{
-   const recorded=createAuditFetch(store,id,{call,stage:plant?'plant_recheck':'scene',frame_id:frameId,timestamp,object_index:objectIndex});
+   const recorded=createAuditFetch(store,id,{call,stage:plant?'plant_recheck':'scene',frame_id:frameId,timestamp,object_index:objectIndex},options.providerRequest);
    const configuredRetries=Number(options.env.WELFARELENS_VIDEO_MAX_RETRIES??2);
    const retrying=createRetryFetch(recorded,{maxRetries:configuredRetries,onAttempt:attempt=>{metrics.request_attempts++;if(attempt)metrics.retry_count++;}});
    const request:typeof fetch=async(...args)=>{try{return await retrying(...args);}catch(e){if(e instanceof Error&&e.message==='audit_failed')auditFailed=true;throw e;}};
