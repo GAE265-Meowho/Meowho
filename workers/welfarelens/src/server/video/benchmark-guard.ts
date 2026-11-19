@@ -31,22 +31,27 @@ export const BenchmarkConfig = z.object({
   && c.vlm.gapMs >= Math.ceil(60_000 / (c.vlm.confirmedRpm - 1))
   && c.image.gapMs >= Math.max(12_000, Math.ceil(60_000 / (c.image.confirmedRpm - 1))));
 export type BenchmarkConfig = z.infer<typeof BenchmarkConfig>;
-export const ControlledImageApproval = z.object({
+const controlledIdentity = {
   approvalRef: BenchmarkConfig.shape.approvalRef,
   commit: BenchmarkConfig.shape.commit,
   imageId: z.string().regex(/^sha256:[a-f0-9]{64}$/),
   manifestSha256: BenchmarkConfig.shape.inputSha256,
-  approvedUsdMicros: z.literal(9_000_000),
-}).strict();
+};
+export const ControlledImageApproval = z.union([
+  z.object({...controlledIdentity,approvedUsdMicros:z.literal(9_000_000)}).strict(),
+  z.object({...controlledIdentity,approvedUsdMicros:z.literal(27_000_000),
+    study:z.literal('concurrency-234'),batchPathSha256:BenchmarkConfig.shape.inputSha256}).strict(),
+]);
 export const ControlledImageDeployment = model.extend({
   reserveUsdMicros: z.literal(750_000),
 }).refine(c => c.confirmedRpm > 1 && c.gapMs >= Math.max(12_000, Math.ceil(60_000 / (c.confirmedRpm - 1))));
 type ControlledPolicy = z.infer<typeof ControlledImageApproval> & {
   image: z.infer<typeof ControlledImageDeployment>;
-  priorReservedUsdMicros: 16_250_000;
+  priorReservedUsdMicros: 16_250_000|25_250_000;
   mode: 'offline'|'live';
 };
 export const benchmarkOrder = [1, 2, 2, 1, 1, 2] as const;
+export const controlledConcurrencyOrder = [2, 3, 4, 4, 3, 2] as const;
 const caps = {vlm: 14, image: 8};
 export function maximumBenchmarkRound(config:BenchmarkConfig){
   return caps.vlm*config.vlm.reserveUsdMicros + caps.image*config.image.reserveUsdMicros;
@@ -56,9 +61,10 @@ const reconciliationSchema = z.tuple([billedMicros,billedMicros]);
 const billingSchema = z.object({'1':billedMicros,'2':billedMicros});
 const eventSchema = z.discriminatedUnion('event', [
   z.object({event:z.literal('batch'),fingerprint:z.string()}),
-  z.object({event:z.literal('run_start'),run:positive,concurrency:z.union([z.literal(1),z.literal(2)]),at:z.iso.datetime(),
+  z.object({event:z.literal('run_start'),run:positive,concurrency:z.union([z.literal(1),z.literal(2),z.literal(3),z.literal(4)]),at:z.iso.datetime(),
     expansionApproval:z.string().optional(),pilotBillingUsdMicros:reconciliationSchema.optional()}),
-  z.object({event:z.literal('dispatch'),run:positive,kind:kindSchema,atMs:positive,waitMs:z.number().nonnegative(),reservedUsdMicros:positive}),
+  z.object({event:z.literal('dispatch'),run:positive,kind:kindSchema,atMs:positive,waitMs:z.number().nonnegative(),
+    pacingSleepMs:z.number().nonnegative().optional(),reservedUsdMicros:positive}),
   z.object({event:z.literal('response'),dispatch:positive,status:z.number().int().min(100).max(599).nullable(),elapsedMs:z.number().nonnegative(),failure:z.enum(['network','timeout','cancelled']).nullable(),
     transportAtMs:positive.optional(),headerAtMs:positive.optional()}),
   z.object({event:z.literal('run_end'),run:positive,ok:z.boolean(),at:z.iso.datetime()}),
@@ -85,8 +91,12 @@ export async function openControlledImageRun(directory:string,approval:z.infer<t
   image:z.infer<typeof ControlledImageDeployment>,mode:ControlledPolicy['mode'],run:number,request:typeof fetch,
   verifyPayload:(body:FormData,index:number)=>Promise<void>,offlineSleep?:(ms:number,signal?:AbortSignal)=>Promise<void>){
   if(mode!=='offline'&&offlineSleep)throw Error('benchmark_live_clock');
-  return openRun(directory,{...ControlledImageApproval.parse(approval),image:ControlledImageDeployment.parse(image),
-    mode,priorReservedUsdMicros:16_250_000},run,'pilot',request,undefined,verifyPayload,offlineSleep);
+  const approved=ControlledImageApproval.parse(approval);
+  const deployment=ControlledImageDeployment.parse(image);
+  const expanded='study' in approved;
+  if(expanded&&(deployment.confirmedRpm!==6||deployment.gapMs!==12_000))throw Error('benchmark_study_pacing');
+  return openRun(directory,{...approved,image:deployment,
+    mode,priorReservedUsdMicros:expanded?25_250_000:16_250_000},run,'pilot',request,undefined,verifyPayload,offlineSleep);
 }
 
 async function openRun(directory:string,config:BenchmarkConfig|ControlledPolicy,run:number,phase:'pilot'|'remaining',
@@ -94,9 +104,10 @@ async function openRun(directory:string,config:BenchmarkConfig|ControlledPolicy,
   sleep:(ms:number,signal?:AbortSignal)=>Promise<void>=(ms,signal)=>timers.setTimeout(ms,undefined,{signal})){
   const controlled='manifestSha256' in config;
   const runCaps=controlled?{vlm:0,image:6}:caps;
-  const concurrency = benchmarkOrder[run-1];
-  if(!concurrency || (controlled&&run>2) || (run<=2 ? phase!=='pilot' : phase!=='remaining'))throw Error('benchmark_run_number');
-  if(run>2?!/^[a-zA-Z0-9._-]{1,100}$/.test(expansionApproval??''):expansionApproval!==undefined)
+  const order=controlled?('study' in config?controlledConcurrencyOrder:[1,2] as const):benchmarkOrder;
+  const concurrency = order[run-1];
+  if(!concurrency || (!controlled&&(run<=2 ? phase!=='pilot' : phase!=='remaining')))throw Error('benchmark_run_number');
+  if(!controlled&&run>2?!/^[a-zA-Z0-9._-]{1,100}$/.test(expansionApproval??''):expansionApproval!==undefined)
     throw Error('benchmark_expansion_approval');
   const lock = join(directory,'active.lock');
   await mkdir(lock,{mode:0o700});
@@ -118,12 +129,12 @@ async function openRun(directory:string,config:BenchmarkConfig|ControlledPolicy,
     const ends = entries.filter(e=>e.event==='run_end');
     const dispatched = entries.filter(e=>e.event==='dispatch');
     const responses = entries.filter(e=>e.event==='response');
-    if(starts.length!==run-1||starts.some((e,index)=>e.run!==index+1||e.concurrency!==benchmarkOrder[index]
-      ||(index>=2&&e.expansionApproval!==expansionApproval))
+    if(starts.length!==run-1||starts.some((e,index)=>e.run!==index+1||e.concurrency!==order[index]
+      ||(!controlled&&index>=2&&e.expansionApproval!==expansionApproval))
       ||ends.length!==starts.length||ends.some((e,index)=>!e.ok||e.run!==index+1)
       ||responses.length!==dispatched.length||new Set(responses.map(e=>e.dispatch)).size!==dispatched.length
       ||responses.some(e=>e.dispatch>dispatched.length||e.status===429)
-      ||(controlled&&(dispatched.length!==(run-1)*6||dispatched.some(e=>e.run!==1||e.kind!=='image'||e.reservedUsdMicros!==750_000)
+      ||(controlled&&(dispatched.length!==(run-1)*6||dispatched.some((e,index)=>e.run!==Math.floor(index/6)+1||e.kind!=='image'||e.reservedUsdMicros!==750_000)
         ||responses.some(e=>e.status===null||e.status<200||e.status>=300||e.failure!==null||
           e.headerAtMs===undefined||e.transportAtMs===undefined))))throw Error('benchmark_batch_requires_review');
     const last = {vlm:0,image:0};
@@ -157,7 +168,7 @@ async function openRun(directory:string,config:BenchmarkConfig|ControlledPolicy,
       }
       if(pilotExposure>config.pilotUsdMicros)throw Error('benchmark_pilot_budget_exceeded');
     }
-    const remainingRounds=(run<=2 ? 2 : benchmarkOrder.length)-run+1;
+    const remainingRounds=(controlled?order.length:run<=2?2:order.length)-run+1;
     const roundReserve=controlled?runCaps.image*config.image.reserveUsdMicros:maximumBenchmarkRound(config);
     if(spent + remainingRounds*roundReserve > budget)
       throw Error('benchmark_budget');
@@ -200,6 +211,7 @@ async function openRun(directory:string,config:BenchmarkConfig|ControlledPolicy,
           const gap = settings.gapMs;
           let previousWall = last[kind];
           let previousMonotonic = lastMonotonic[kind];
+          let pacingSleepMs=0;
           let atMs: number;
           let monotonic: number;
           for (;;) {
@@ -214,13 +226,15 @@ async function openRun(directory:string,config:BenchmarkConfig|ControlledPolicy,
             previousWall = atMs;
             previousMonotonic = monotonic;
             await sleep(Math.ceil(remaining),signal);
+            pacingSleepMs+=performance.now()-monotonic;
           }
           const cost = settings.reserveUsdMicros;
           if(counts[kind]>=runCaps[kind]||spent+cost>budget){
             blocked=true;
             throw Error('benchmark_limit');
           }
-          durableAppend(path,{event:'dispatch',run,kind,atMs,waitMs:Math.round(performance.now()-queuedAt),reservedUsdMicros:cost});
+          durableAppend(path,{event:'dispatch',run,kind,atMs,waitMs:Math.round(performance.now()-queuedAt),
+            pacingSleepMs:controlled?Math.round(pacingSleepMs):undefined,reservedUsdMicros:cost});
           last[kind] = atMs;
           lastMonotonic[kind] = monotonic;
           counts[kind]++;

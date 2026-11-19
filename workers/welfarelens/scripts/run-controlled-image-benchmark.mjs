@@ -1,4 +1,5 @@
 import { execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { readFileSync, realpathSync, statSync } from 'node:fs';
 import { parseArgs, parseEnv } from 'node:util';
 import { assertPrivatePath } from './run-pipeline-benchmark.mjs';
@@ -8,11 +9,12 @@ function main(){
   try{
     const {values}=parseArgs({options:{
       image:{type:'string'},commit:{type:'string'},frozen:{type:'string'},batch:{type:'string'},
-      run:{type:'string'},approval:{type:'string'},'azure-env':{type:'string'},'dry-run':{type:'boolean'},
+      run:{type:'string'},approval:{type:'string'},'azure-env':{type:'string'},'dry-run':{type:'boolean'},'six-round':{type:'boolean'},
     }});
     const dry=values['dry-run']===true;
+    const sixRound=values['six-round']===true;
     if(!/^sha256:[a-f0-9]{64}$/.test(values.image??'')||!/^[a-f0-9]{40}$/.test(values.commit??'')||
-      !['1','2'].includes(values.run)||!values.frozen||!values.batch||
+      !(sixRound?/^[1-6]$/:/^[12]$/).test(values.run??'')||!values.frozen||!values.batch||
       (dry ? values.approval||values['azure-env'] : !values.approval||!values['azure-env']))throw Error('arguments');
     const checked=(name,directory)=>{
       const path=realpathSync(values[name]);
@@ -42,12 +44,21 @@ function main(){
       '--mount',`type=bind,src=${batch},dst=/batch`];
     if(process.getuid&&process.getgid)args.push('--user',`${process.getuid()}:${process.getgid()}`);
     const flags=[];
+    if(sixRound)flags.push('--six-round');
     if(dry){
       args.push('--network','none');
       flags.push('--dry-run');
     }else{
       stage='private approval and image credentials';
       const approval=checked('approval',false);
+      if(sixRound){
+        if(statSync(approval).size>4096)throw Error('invalid approval');
+        const approved=JSON.parse(readFileSync(approval,'utf8'));
+        const batchPathSha256=createHash('sha256').update(batch).digest('hex');
+        if(approved.study!=='concurrency-234'||approved.approvedUsdMicros!==27000000||
+          approved.batchPathSha256!==batchPathSha256||approved.commit!==commit||approved.imageId!==image.Id)
+          throw Error('approval must match the batch path and image');
+      }
       args.push('--mount',`type=bind,src=${approval},dst=/approval.json,readonly`);
       flags.push('--approval','/approval.json');
       const source=parseEnv(readFileSync(values['azure-env'],'utf8'));

@@ -59,4 +59,24 @@ node workers/welfarelens/scripts/run-controlled-image-benchmark.mjs --image $ima
 | 在途重疊與速率 | `overlapMs` 計算同時有至少兩個 dispatch-to-header 區間的時間。用個別耗時、節流及重疊判斷瓶頸。 |
 | 總體比較 | B 的 `pair` 記錄節省毫秒數、加速比與耗時降幅。 `actualBilledUsd` 保持 null，估算按歷史公告輸入／輸出費率及 Usage。離線輸出只用來驗證程式。 |
 
-正式結果仍待測。單對只能證明這個工作負載、該部署時段下的差異。不能外推成完整 Pipeline 的新實測時間，也不能當成調整預設所需的長期穩定證據。
+2026-11-19 真實 A/B 一對的 Wall Time 為 191.706／115.925 秒，六件皆成功。單對結果只代表該工作負載及部署時段，不可外推為完整 Pipeline 的加速比例。
+
+## 六輪並行比較
+
+沿用同一份 Frozen Manifest。加入 `--six-round` 後，固定順序為 2、3、4、4、3、2。每輪六件，零 VLM，跨輪沿用同一份帳本記錄的最後起送時間。這個模式要求部署為 6 RPM、最小起送間隔設定為 12,000 ms。正式 Worker 的並行設定仍只接受 1／2。
+
+使用新映像與全新的私有乾跑目錄，於啟動器加入 `--six-round --dry-run`。逐輪確認成功才繼續。主機以 `--network none` 啟動並拒絕在乾跑模式提供憑證或批准檔。
+
+真實六輪需另外取得 **US$27／最多 36 次請求**與 Sunburst 共用時段的批准。持久帳本保留 US$25.25 歷史預留曝險，新批次最多新增 US$27。預留是本機請求控制，Azure 實際費用另行對帳。
+
+在核准後，於私有批准檔沿用上述身分欄位，改填 `approvedUsdMicros: 27000000`，加入 `study: "concurrency-234"` 及 `batchPathSha256`。後者是下列命令輸出的標準化主機目錄雜湊，批准檔三十六次配額只供該批次路徑使用。
+
+```powershell
+node --input-type=module -e 'import {realpathSync} from "node:fs"; import {createHash} from "node:crypto"; console.log(createHash("sha256").update(realpathSync(process.argv[1])).digest("hex"))' -- $liveBatch
+
+node workers/welfarelens/scripts/run-controlled-image-benchmark.mjs --image $image --commit $rev --frozen "$private/frozen" --batch $liveBatch --run 1 --six-round --approval $approval --azure-env $azureEnv
+```
+
+逐輪檢視 `ok`、六件 PNG、請求結果與預留額後，才將 `--run` 依序改為 2 至 6。每輪放行前會驗證前一輪的案例、原圖／提示雜湊與輸出雜湊，並核對所有已完成輪次的帳本。遇到 429、逾時、中止、未知回應或費用異常，停止整批並保留證據。
+
+每輪保存 `slotWaitMs`、`throttleWaitMs`（guard 總等待，含排隊）、`pacingSleepMs`（已起送請求的節流等待）及 `inFlightMs`（依同時在途數分組的 dispatch-to-header 時間）。各等待總和可能在時間上重疊，不可加總成 Wall Time。用每組兩輪的 Wall Time、中位數、最慢值、成功率、請求錯誤及最高在途數判斷差異。六輪實測與雲端費用目前待獨立驗收。

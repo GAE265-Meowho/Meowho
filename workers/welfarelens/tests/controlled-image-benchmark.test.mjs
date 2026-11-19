@@ -93,19 +93,22 @@ test('A and B repeat all six semantic multipart payloads with shared pacing and 
   await assert.rejects(executeControlledImages(dir,frozen,approval,1,'offline',assert.fail,assert.fail),/requires_review/);
 });
 
-for(const failure of ['429','timeout','network']){
+for(const failure of ['429','timeout','network','cancelled','unknown-response']){
   test(failure+' stops the batch without dropping the dispatch reserve',async t=>{
     clock(t);
     const {dir,frozen,approval}=await fixture(t);
+    const controller=new AbortController();
     const result=await drive(t,executeControlledImages(dir,frozen,approval,1,'offline',async()=>{
       if(failure==='429')return new Response('',{status:429});
+      if(failure==='unknown-response')return Response.json({unrecognized:true});
+      if(failure==='cancelled'){controller.abort();controller.signal.throwIfAborted();}
       throw new DOMException('failure',failure==='timeout'?'TimeoutError':'NetworkError');
-    },async()=>{}));
+    },async()=>{},dir,'offline',controller.signal));
     assert.equal(result.ok,false);
     assert.equal(result.counts.image,1);
     const events=(await readFile(join(dir,'requests.jsonl'),'utf8')).trim().split('\n').map(JSON.parse);
     assert.equal(events.find(e=>e.event==='dispatch').reservedUsdMicros,750000);
-    assert.equal(events.find(e=>e.event==='response').failure,failure==='429'?null:failure);
+    assert.equal(events.find(e=>e.event==='response').failure,['429','unknown-response'].includes(failure)?null:failure);
     await assert.rejects(executeControlledImages(dir,frozen,approval,2,'offline',assert.fail,assert.fail),/requires_review/);
   });
 }
@@ -115,6 +118,64 @@ test('manifest identity and the exact two-round spending envelope fail closed',a
   for(const config of [{...approval,manifestSha256:'1'.repeat(64)},{...approval,approvedUsdMicros:8999999}])
     await assert.rejects(executeControlledImages(dir,frozen,config,1,'offline',assert.fail,assert.fail));
   await assert.rejects(executeControlledImages(dir,frozen,approval,3,'offline',assert.fail,assert.fail),/run_number/);
+});
+
+function expanded(approval){
+  return {...approval,study:'concurrency-234',approvedUsdMicros:27000000,batchPathSha256:'1'.repeat(64)};
+}
+
+test('six rounds reuse the payload, enforce a shared start gap, and reach each requested concurrency',async t=>{
+  clock(t);
+  const {dir,frozen,approval}=await fixture(t);
+  const approved=expanded(approval);
+  const starts=[];
+  const order=[2,3,4,4,3,2];
+  for(const [index,concurrency] of order.entries()){
+    let active=0,peak=0,next=0;
+    const result=await drive(t,executeControlledImages(dir,frozen,approved,index+1,'offline',async(_url,{body})=>{
+      const original=manifest.cases[next++];
+      assert.equal(body.get('prompt'),original.prompt);
+      assert.equal(hash(Buffer.from(await body.get('image').arrayBuffer())),original.inputSha256);
+      starts.push(Date.now());
+      peak=Math.max(peak,++active);
+      await sleep(60000);
+      active--;
+      return Response.json({data:[{b64_json:png.toString('base64')}]});
+    },async()=>{},dir,'offline',undefined,undefined,sleep));
+    assert.equal(result.ok,true);
+    assert.equal(result.concurrency,concurrency);
+    assert.equal(peak,concurrency);
+    assert.equal(result.peakInFlight,concurrency);
+    assert.equal(result.pair,null);
+    assert.deepEqual(result.counts,{vlm:0,image:6});
+    assert.deepEqual(result.cases.map(c=>c.id),manifest.cases.map(c=>c.id));
+  }
+  assert.equal(starts.length,36);
+  assert.ok(starts.slice(1).every((at,i)=>at-starts[i]>=12000));
+  const events=(await readFile(join(dir,'requests.jsonl'),'utf8')).trim().split('\n').map(JSON.parse);
+  assert.equal(events.filter(e=>e.event==='dispatch').reduce((sum,e)=>sum+e.reservedUsdMicros,0),27000000);
+  await assert.rejects(executeControlledImages(dir,frozen,approved,6,'offline',assert.fail,assert.fail),/requires_review/);
+  await assert.rejects(executeControlledImages(dir,frozen,approved,7,'offline',assert.fail,assert.fail),/run_number/);
+});
+
+test('the expanded approval rejects other budgets and pacing before any requests',async t=>{
+  const {dir,frozen,approval}=await fixture(t);
+  await assert.rejects(executeControlledImages(dir,frozen,{...expanded(approval),approvedUsdMicros:26999999},
+    1,'offline',assert.fail,assert.fail));
+  frozen.manifest.image.gapMs=15000;
+  await assert.rejects(executeControlledImages(dir,frozen,expanded(approval),1,'offline',assert.fail,assert.fail),
+    /benchmark_study_pacing/);
+});
+
+test('a tampered output blocks the next expanded round before new requests',async t=>{
+  clock(t);
+  const {dir,frozen,approval}=await fixture(t);
+  const approved=expanded(approval);
+  const result=await drive(t,executeControlledImages(dir,frozen,approved,1,'offline',async()=>
+    Response.json({data:[{b64_json:png.toString('base64')}]}),async()=>{},dir,'offline',undefined,undefined,sleep));
+  assert.ok(result.ok);
+  await writeFile(join(dir,'run-1','2.png'),'tampered');
+  await assert.rejects(executeControlledImages(dir,frozen,approved,2,'offline',assert.fail,assert.fail),/requires_review/);
 });
 
 test('a changed payload is blocked before dispatch, even if the file was valid at load',async t=>{

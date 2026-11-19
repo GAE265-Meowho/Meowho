@@ -6,7 +6,7 @@ import { pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
 import { z } from 'zod';
 import { editAzureImage, imageEditConfig } from '../src/server/image-edit-client.ts';
-import { ControlledImageApproval, ControlledImageDeployment, openControlledImageRun } from '../src/server/video/benchmark-guard.ts';
+import { BenchmarkConfig, ControlledImageApproval, ControlledImageDeployment, controlledConcurrencyOrder, openControlledImageRun } from '../src/server/video/benchmark-guard.ts';
 import { runImageEditPool } from '../src/server/video/image-edit-pool.ts';
 import { command } from '../src/server/video/media.ts';
 
@@ -17,7 +17,7 @@ const requestParameters = {apiVersion:'v1',size:'auto',quality:'high',n:1,format
   mime:'image/jpeg',filename:'room.jpg',timeoutMs:180000} as const;
 export const FrozenImageManifest = z.object({
   schema:z.literal('welfarelens.controlled-image/v1'),
-  sourceRevision:ControlledImageApproval.shape.commit,
+  sourceRevision:BenchmarkConfig.shape.commit,
   sourceDigest:digest,
   pilotJournalSha256:sha,
   priorReservedUsdMicros:z.literal(16_250_000),
@@ -82,19 +82,22 @@ export async function executeControlledImages(directory:string,frozen:Frozen,app
   signal?:AbortSignal, provenance?:{containerHost:string;hostPlatform:string;hostArch:string},
   offlineSleep?:(ms:number,signal?:AbortSignal)=>Promise<void>) {
   if(approval.manifestSha256!==frozen.sha256)throw Error('benchmark_frozen_manifest');
+  const order='study' in approval?controlledConcurrencyOrder:[1,2];
+  if(!order[run-1])throw Error('benchmark_run_number');
   const {manifest,inputs}=frozen;
   let referenceWallMs:number|undefined;
-  if(run===2){
-    const a=await readPrivateFile(join(directory,'run-1.json'),128_000).then(raw=>JSON.parse(raw.toString('utf8')))
+  if(run>1){
+    const a=await readPrivateFile(join(directory,`run-${run-1}.json`),128_000).then(raw=>JSON.parse(raw.toString('utf8')))
       .catch(()=>{throw Error('benchmark_batch_requires_review');});
-    if(a.ok!==true||a.run!==1||a.mode!==mode||a.commit!==approval.commit||a.imageId!==approval.imageId||
+    if(a.ok!==true||a.run!==run-1||a.concurrency!==order[run-2]||a.mode!==mode||a.commit!==approval.commit||a.imageId!==approval.imageId||
       a.manifestSha256!==frozen.sha256||a.cases?.length!==6||!Number.isFinite(a.wallMs)||a.wallMs<=0)
       throw Error('benchmark_batch_requires_review');
     referenceWallMs=a.wallMs;
     for(const [index,c] of manifest.cases.entries()){
       const record=a.cases[index];
-      const after=await readPrivateFile(join(directory,'run-1',(index+1)+'.png'),20_000_000);
-      if(record?.id!==c.id||record.status!=='validated'||hash(after)!==record.outputSha256)
+      const after=await readPrivateFile(join(directory,`run-${run-1}`,(index+1)+'.png'),20_000_000);
+      if(record?.id!==c.id||record.status!=='validated'||record.inputSha256!==c.inputSha256||
+        record.promptSha256!==c.promptSha256||hash(after)!==record.outputSha256)
         throw Error('benchmark_batch_requires_review');
     }
   }
@@ -158,20 +161,29 @@ export async function executeControlledImages(directory:string,frozen:Frozen,app
     const responseById=new Map(events.filter(e=>e.event==='response').map(e=>[e.dispatch,e]));
     const dispatches=events.filter(e=>e.event==='dispatch').map((e,i)=>({...e,response:responseById.get(i+1)})).filter(e=>e.run===run);
     const requests=dispatches.map((e,i)=>({caseId:records[i].id,dispatchIntentAtMs:e.atMs,
-      dispatchAtMs:e.response?.transportAtMs??null,
+      dispatchAtMs:e.response?.transportAtMs??null,pacingSleepMs:e.pacingSleepMs??null,
       headerAtMs:e.response?.headerAtMs??null,waitMs:e.waitMs,
       throughHeadersMs:e.response?.status!=null?e.response.elapsedMs:null,httpStatus:e.response?.status??null,
       failure:e.response?.failure??null,reservedUsdMicros:e.reservedUsdMicros}));
     const intervals=requests.flatMap(r=>r.headerAtMs===null||r.dispatchAtMs===null?[]:[[r.dispatchAtMs,r.headerAtMs]]);
     const boundaries=[...new Set(intervals.flat())].sort((a,b)=>a-b);
-    const overlapMs=boundaries.slice(1).reduce((sum,right,i)=>sum+(intervals.filter(([start,end])=>start<=boundaries[i]&&end>=right).length>1?right-boundaries[i]:0),0);
+    const inFlightMs=[0,0,0,0,0];
+    boundaries.slice(1).forEach((right,i)=>{
+      const left=boundaries[i];
+      const inFlight=intervals.filter(([start,end])=>start<=left&&end>=right).length;
+      inFlightMs[inFlight]+=right-left;
+    });
+    const overlapMs=inFlightMs.slice(2).reduce((sum,ms)=>sum+ms,0);
     const estimates=records.map(r=>estimateImageUsd(r.usage));
     const estimateUsd=estimates.every(value=>value!==null)?estimates.reduce((sum,value)=>sum+value,0):null;
     const result={ok,setupFailure,mode,run,concurrency:guard.concurrency,startedAt,wallMs,
-      overlapMs,throttleWaitMs:requests.reduce((sum,r)=>sum+r.waitMs,0),retryCount:0,
+      overlapMs,inFlightMs,peakInFlight:Math.max(0,inFlightMs.findLastIndex(ms=>ms>0)),
+      slotWaitMs:records.reduce((sum,r)=>sum+(r.assignedMs===null?0:r.assignedMs-r.enqueuedMs),0),
+      throttleWaitMs:requests.reduce((sum,r)=>sum+r.waitMs,0),
+      pacingSleepMs:requests.reduce((sum,r)=>sum+(r.pacingSleepMs??0),0),retryCount:0,
       counts:guard.counts(),estimateUsd,actualBilledUsd:null,manifestSha256:frozen.sha256,
       commit:approval.commit,imageId:approval.imageId,provenance,finishedAt:new Date().toISOString(),
-      pair:ok&&referenceWallMs!==undefined&&wallMs>0?{aWallMs:referenceWallMs,bWallMs:wallMs,
+      pair:!('study' in approval)&&ok&&referenceWallMs!==undefined&&wallMs>0?{aWallMs:referenceWallMs,bWallMs:wallMs,
         savedMs:referenceWallMs-wallMs,speedup:referenceWallMs/wallMs,reduction:(referenceWallMs-wallMs)/referenceWallMs}:null,
       cases:records,requests};
     await writeFile(join(directory,`run-${run}.json`),JSON.stringify(result,null,2),{flag:'wx',mode:0o600,flush:true});
@@ -197,21 +209,24 @@ async function privateDirectory(path:string){
 async function main(){
   const {values}=parseArgs({options:{
     frozen:{type:'string'},batch:{type:'string'},approval:{type:'string'},run:{type:'string'},
-    'dry-run':{type:'boolean'},identity:{type:'string'},'host-platform':{type:'string'},'host-arch':{type:'string'},
+    'dry-run':{type:'boolean'},'six-round':{type:'boolean'},identity:{type:'string'},'host-platform':{type:'string'},'host-arch':{type:'string'},
   }});
-  if(!values.frozen||!values.batch||!values.run||!['1','2'].includes(values.run)
+  const sixRound=values['six-round']===true;
+  if(!values.frozen||!values.batch||!values.run||!(sixRound?/^[1-6]$/:/^[12]$/).test(values.run)
     ||Boolean(values.approval)===Boolean(values['dry-run']))throw Error('benchmark_arguments');
   const frozenDir=await privateDirectory(values.frozen);
   const directory=await privateDirectory(values.batch);
   if(directory===frozenDir)throw Error('benchmark_private_directory');
   const frozen=await loadFrozenImages(frozenDir);
-  const identity=z.object({commit:ControlledImageApproval.shape.commit,imageId:digest}).strict()
+  const identity=z.object({commit:BenchmarkConfig.shape.commit,imageId:digest}).strict()
     .parse(JSON.parse(values.identity??'null'));
   const mode=values['dry-run']?'offline':'live';
   const approval=ControlledImageApproval.parse(mode==='offline'?{...identity,approvalRef:'offline',
-    manifestSha256:frozen.sha256,approvedUsdMicros:9000000}
+    manifestSha256:frozen.sha256,...(sixRound?{study:'concurrency-234',batchPathSha256:hash(directory),approvedUsdMicros:27000000}
+      :{approvedUsdMicros:9000000})}
     :JSON.parse((await readPrivateFile(values.approval!,4096)).toString('utf8')));
-  if(approval.imageId!==identity.imageId||approval.commit!==identity.commit)throw Error('benchmark_image_identity');
+  if(approval.imageId!==identity.imageId||approval.commit!==identity.commit||('study' in approval)!==sixRound)
+    throw Error('benchmark_image_identity');
   let transport:typeof fetch;
   let key='offline';
   if(mode==='offline'){
