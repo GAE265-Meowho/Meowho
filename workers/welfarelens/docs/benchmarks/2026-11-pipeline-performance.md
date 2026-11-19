@@ -20,7 +20,7 @@ A 維持逐案改圖。B 允許兩個獨立案例同時進行，仍按原順序�
 | VLM | 本機設定對應 `gpt-6.1-terra`，版本 `2026-10-26`，GlobalStandard，2,000 RPM／2,000,000 TPM。Azure 控制面唯讀核對 |
 | 改圖 | 本機設定對應 `gpt-image-2.5-sunburst`，版本 `2026-09-08`，GlobalStandard，6 requests／60 秒。Azure 控制面唯讀核對 |
 | 配額共享與時窗 | 呼叫者歸屬及可用餘裕待確認。由部署管理者保留測試時段，避免其他服務耗盡配額 |
-| 計費 | 帳戶有效價目、每次最壞計費量、實際逐輪成本待核對。US$10 Pilot、US$40 全批僅為提案上限，未核准 |
+| 計費 | Pilot 預算政策 US$30，首次付費執行仍待批准。六輪暫保留 US$40，後四輪須另行批准。帳戶有效價目、可證明上界與實際逐輪帳單待核對 |
 
 [合併後 Worker CI](https://github.com/GAE265-Meowho/Meowho/actions/runs/44436327751) · [合併後網站 CI](https://github.com/GAE265-Meowho/Meowho/actions/runs/44436327480)
 
@@ -29,9 +29,9 @@ A 維持逐案改圖。B 允許兩個獨立案例同時進行，仍按原順序�
 ## 執行與重現
 
 1. 在單一本機或專用 VM 建立專案外、只有操作者可讀寫的批次目錄。Windows 使用限本人存取的 ACL，Linux 使用 `umask 077`。持久掛載同一批次目錄，使用本機磁碟。影片與部屬核准設定唯讀掛載。原始 trace、影片、完整報告、圖片、計費明細、環境檔及身分資訊均留在私有目錄。
-2. 在私有 `approval.json` 記錄 `approvalRef`、`commit`（40 字元）、`digest`（`sha256:…`）、`inputSha256`、`pilotUsdMicros`、`batchUsdMicros`，以及 `vlm`、`image` 各自的 `host`、`deployment`、`version`、`sku`、`confirmedRpm`、`gapMs`、`reserveUsdMicros`。一美元等於 1,000,000 micros。版本、配額與預留額由操作者依控制面及計價文件確認。程式會比對本機載入的實際 host 和 deployment，並檢查每次送出的 model。核准編號是工程追溯資料，並無外部審批驗證。
+2. 在私有 `approval.json` 記錄 `approvalRef`、`commit`（40 字元）、`digest`（`sha256:…`）、`inputSha256`、`pilotUsdMicros: 30000000`、`batchUsdMicros: 40000000`，以及 `vlm`、`image` 各自的 `host`、`deployment`、`version`、`sku`、`confirmedRpm`、`gapMs`、`reserveUsdMicros`。一美元等於 1,000,000 micros。逐次預留額依控制面及計費證據確認。程式會比對實際 host、deployment 與每個請求的 model。核准編號供追溯，操作者須先取得對應的實際核准。
 3. 費用由「可證明的單次最壞計價」核算成預留額。VLM 須考慮影像／文字輸入、最長回覆及有效費率，改圖須考慮輸入圖、提示詞與 `auto/high` 所能產生的最壞輸出。以未快取價計算，失敗、逾時及未知請求一律保留全額。尚無法證明單次預留額足以涵蓋實際帳單時，維持阻擋。公開價目可用作交叉檢查，實際帳戶費率仍須核對。
-4. 每輪硬上限 VLM 14 次與改圖 8 次。Pilot 最多 28／16，六輪合計最多 84／48。預檢以最大包絡核對兩輪和六輪預算。每一個 dispatch 落地並同步寫碟後才呼叫 Azure。批次目錄有獨占鎖，重跑相同輪次會拒絕，Crash 之後保留鎖供對帳。勿清空或複製目錄來繼續測試。A、B 共享同一套限流演算法與兩輪間的間隔狀態。改圖至少間隔 12 秒，每分鐘最多五次本批次起送，並可拉長間隔。遇 429 停止新請求，已送出者可能計費。VLM 本次停用傳輸重試，Pipeline 未通過會停止後續輪次。
+4. 每輪硬上限 VLM 14 次與改圖 8 次。Pilot 最多 28／16，六輪合計最多 84／48。Pilot 僅檢查兩輪預算。後四輪須在 Pilot 成功、兩輪均完成帳單歸屬及另行核准後才可開始。每輪以當時的累積支出加上該階段剩餘輪次的最高預留額核對。已對帳的 Pilot 每輪採帳單與原預留的較高值計入六輪總預算，避免釋放保留額或重複加收同一筆費用。第三輪鎖定兩輪對帳數字及核准編號，後續輪次沿用。每一個 dispatch 落地並同步寫碟後才呼叫 Azure。批次目錄有獨占鎖，重跑同輪會拒絕，Crash 後保留鎖供對帳。勿清空或複製目錄來繼續測試。兩組共享限流與輪次間隔狀態，改圖至少間隔 12 秒，本批次每分鐘最多五次起送。遇 429 停止新請求。VLM 停用傳輸重試，Pipeline 未通過會停止後續輪次。
 5. 主機啟動器要求本機 Docker socket 和固定的 GHCR Digest，核對 RepoDigests、Linux AMD64、OCI revision 與核准 Commit。容器以已查驗的 Image ID 執行，禁止自動 Pull，逐輪保存實際 Image ID、Digest、Commit 及 OCI revision。這是本機版本追溯，發布時仍應以可信任 CI 的 Digest 為準。
 
 Windows PowerShell 範例。`$Image` 使用發布 CI 提供的完整 `ghcr.io/gae265-meowho/meowho/welfarelens-worker@sha256:…`，`$Config`、`$Video` 和 `$Batch` 使用已存在的私有絕對路徑。`$AzureEnv` 指向現有私有 Azure AI 設定，程式只傳入兩組端點、Deployment 與 Key 共六項設定。Docker 管理權限可檢視執行中容器的環境，應使用個人或專用主機。Linux 可用相同 Node 啟動器和對應 shell 變數。
@@ -48,17 +48,25 @@ node workers/welfarelens/scripts/run-pipeline-benchmark.mjs --config $Config --i
 node workers/welfarelens/scripts/summarize-pipeline-benchmark.mjs $Batch
 ```
 
-## 單次費用上界核對
+## 成本證據與付費前判定
 
-- Terra Global Standard 公告未快取長語境費率為每百萬輸入 US$2、輸出 US$7.50。模型最高輸入 922,000 tokens，程式明確設定 `max_completion_tokens=8000`。以模型級包絡試算為 **US$1.904／次**，28 次即 **US$53.312**，尚未含改圖，已超過 Pilot US$10 提案。這個試算遠寬於實際影格請求。要在原預算內執行，須取得可驗證且適用於本 Worker 實際文字、Schema、影格／裁切與模型的輸入 token 上界，以及確認帳戶價目。 [Terra 定價公告](https://techcommunity.microsoft.com/blog/azure-ai-foundry-blog/gpt-6-1-terra-now-generally-available-in-microsoft-foundry-build-agents-that-see/4567769) · [Microsoft 模型規格](https://learn.microsoft.com/en-us/azure/foundry/foundry-models/concepts/models-sold-directly-by-azure)
-- Sunburst 保留 `size=auto`、`quality=high`、單張 PNG。Microsoft 公告每百萬未快取 tokens 的文字輸入、圖片輸入、圖片輸出費率分別為 US$5、US$8、US$30。若三項可計費 token 上界分別為 T、I、O，單次公開價上界為 `(5T + 8I + 30O) / 1,000,000` 美元。官方規格列出 4,000 字元提示詞上限，模型文件指出 `auto` 的輸出用量由生成圖決定。目前缺此版本計費 token 上界，實際帳戶費率也待核對，因此仍無可核准的單次費用。 [Microsoft Sunburst 定價公告](https://techcommunity.microsoft.com/blog/azure-ai-foundry-blog/create-multimodal-applications-with-openai-models-in-microsoft-foundry/4543593) · [OpenAI 圖片計費說明](https://developers.openai.com/api/docs/guides/image-generation#cost-and-latency)
-- 設 Terra 單次保守上界為 V、Sunburst 為 I，須同時滿足 `28V + 16I ≤ US$10` 與 `84V + 48I ≤ US$40`。預留額供程式在送出請求前判斷；實際費用依 Azure 計費紀錄另行核對。
+| 來源 | 實際觀察與工作負載試算 |
+| --- | --- |
+| Terra 歷史完整影片，8 次影格 | 每次 5,759 輸入 tokens，輸出 1,170–4,019。總計 46,072 輸入、22,788 輸出。以公告短／長語境未快取價換算，當批約 US$0.160–0.263 |
+| 現行 Terra 請求，離線擷取 | 對既有八張真實 JPEG，以現行 `createAnalyzeHandler` 的注入傳輸捕捉請求，只統計大小。系統提示 10,731 bytes、Schema 7,503 bytes、JPEG 24,305–103,981 bytes、整包 JSON 51,526–157,762 bytes。每次送單張 `detail=high`，`max_completion_tokens=8000`。影格長邊限制 1440，植物補查長邊限制 1536。Byte 數沒有直接換算為計費 tokens |
+| Sunburst 歷史真實改圖，5 次 | 相同 `auto/high`，提示 483–493 字元，輸入 1,333–1,347 tokens、輸出各 1,158 tokens。歷史 usage 無文字／影像輸入細項。把全部輸入以較高的影像輸入價計算，樣本每次最多約 US$0.04552。這五次屬歷史紀錄，未涵蓋所有輸入或自動輸出尺寸 |
+| 兩輪工作負載試算 | 28 次 Terra 均採歷史 5,759 輸入、8,000 最大輸出與公告長語境費率，約 US$2.003。16 次 Sunburst 採歷史最高輸入和輸出用量，約 US$0.728。合計約 **US$2.73**。未量到現行植物補查用量、素材變異與帳戶實付費率 |
+
+- Terra 公告 Global Standard 每百萬輸入／輸出，短語境 US$1／5，長語境 US$2／7.50。922K 模型級輸入配上 Worker 的 8K 輸出，得出 US$1.904／次的模型級壓力假設。歷史八張的實際輸入量比此假設低兩個數量級。現有資料仍未證明每次影格或植物補查請求的計費上界。 [Terra 定價公告](https://techcommunity.microsoft.com/blog/azure-ai-foundry-blog/gpt-6-1-terra-now-generally-available-in-microsoft-foundry-build-agents-that-see/4567769) · [Microsoft 模型規格](https://learn.microsoft.com/en-us/azure/foundry/foundry-models/concepts/models-sold-directly-by-azure)
+- Sunburst 公告 Global Standard 每百萬未快取 tokens 的文字輸入、圖片輸入、圖片輸出費率為 US$5、US$8、US$30。若可證明三類上界 T、I、O，可按 `(5T + 8I + 30O) / 1,000,000` 換算。Azure 通用 REST 文件的 usage 說明僅保證 GPT Image 1，而同專案曾收到 Sunburst usage，現行 client 也以可選欄位解析。每次回傳或細項可用性須實測。自動尺寸的新輸出沒有已查證的計費 token 上界。 [Microsoft Sunburst 定價公告](https://techcommunity.microsoft.com/blog/azure-ai-foundry-blog/create-multimodal-applications-with-openai-models-in-microsoft-foundry/4543593) · [Azure Image Edit 參考](https://learn.microsoft.com/en-us/azure/foundry/reference/rest/images-create-image-edit-multipart-images-create-image-edit-json) · [OpenAI 圖片計費說明](https://developers.openai.com/api/docs/guides/image-generation#cost-and-latency)
+- **請求數硬上限**由程式執行。**預留額**須以有據的單次計費上界設定，Pilot 要求 `28V + 16I ≤ US$30`。擴充時才按同一帳本，以累計金額加上餘下四輪的預留額核對 US$40。**實際費用**以 Azure 可歸屬帳單為準。歷史樣本或 US$2.73 試算不作為單次預留額，現有證據無法保證 Azure 帳單不超過 US$30。
+- 最小校準先由帳務讀取者核對現有 Deployment 的價目表與上述歷史時窗的 Meter 資料。若仍缺現行 usage，另行申請校準授權，於可歸屬時窗最多送 **1 次 Terra、1 次 Sunburst**，沿用相同提示、影像、品質和模型，各送一次且不重試。保存 Usage、計量分類及帳單對帳，再審核 Pilot 的預留標準及可接受的計費風險。校準不計入六輪統計，也不以兩次樣本推導絕對上界。
 
 順序為 **A、B、B、A、A、B**。每輪完整重跑 VLM，不使用其他輪次的 AI 結果。使用者若只授權 Pilot，停在第二輪。
 
 ## 原始數據與統計
 
-私有 `requests.jsonl` 記下 dispatch、起送間隔、節流等待、到回應標頭的時間、HTTP 狀態與預留額。`run-N.json` 記下 Worker 計時、影格、證據、Token 與程式品質驗證。以 Azure 計費資料核對可歸屬的費用後，用 `verified-billing.json` 記錄輪次字串對 USD micros 整數。缺少單輪可歸屬費用就保留待測，不將預留額當成帳單。
+私有 `requests.jsonl` 記下 dispatch、起送間隔、節流等待、到回應標頭的時間、HTTP 狀態與預留額。`run-N.json` 記下 Worker 計時、影格、證據、Token 與程式品質驗證。以 Azure 計費資料核對可歸屬的費用後，用 `verified-billing.json` 記錄輪次字串對 USD micros 整數。尚未對帳的輪次保留待測。開啟第三輪時必須已有 `"1"`、`"2"` 的已確認帳單數字，已驗證的零費用可填 0。後續可補錄第三至六輪。
 
 | 輪次 | 路數 | 本機 Pipeline | FFmpeg／VLM／改圖／PDF／HTML | VLM／改圖請求、429、Timeout、Retry | Token／費用／累積 | 產物／品質 |
 | --- | --- | --- | --- | --- | --- | --- |

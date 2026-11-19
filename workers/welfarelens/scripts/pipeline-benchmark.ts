@@ -6,7 +6,7 @@ import { dirname, join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { parseArgs, promisify } from 'node:util';
 import { z } from 'zod';
-import { BenchmarkConfig, openBenchmarkRun } from '../src/server/video/benchmark-guard.ts';
+import { BenchmarkConfig, maximumBenchmarkRound, openBenchmarkRun } from '../src/server/video/benchmark-guard.ts';
 import { executeLiveJob, privateRoot } from '../src/server/video/standalone.ts';
 import { validateIntegrationArtifacts } from '../src/server/video/integration-job.ts';
 import { buildMeowhoResult, prepareMeowhoItems } from '../src/server/video/meowho-worker.ts';
@@ -91,10 +91,9 @@ async function main(){
     ||!process.env.AZURE_OPENAI_API_KEY||process.env.AZURE_OPENAI_DEPLOYMENT!==config.vlm.deployment
     ||new URL(image.url).hostname!==config.image.host||image.deployment!==config.image.deployment)
     throw Error('Configuration mismatch');
-  const maximumRoundUsdMicros=14*config.vlm.reserveUsdMicros+8*config.image.reserveUsdMicros;
-  if(maximumRoundUsdMicros*2>config.pilotUsdMicros||maximumRoundUsdMicros*6>config.batchUsdMicros)
-    throw Error('Budget cannot support the complete envelope');
   if(values.preflight){
+    const maximumRoundUsdMicros=maximumBenchmarkRound(config);
+    if(maximumRoundUsdMicros*2>config.pilotUsdMicros)throw Error('Budget cannot support the pilot envelope');
     await verifyRuntime(directory,input,browser);
     console.log(JSON.stringify({event:'benchmark_preflight',ok:true,metadata,maximumRoundUsdMicros,
       commit:config.commit,digest:config.digest,imageId:identity.imageId,ociRevision:identity.revision}));

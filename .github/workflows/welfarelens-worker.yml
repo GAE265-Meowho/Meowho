@@ -84,7 +84,7 @@ jobs:
             sku:'fixture', confirmedRpm:6, gapMs:12000, reserveUsdMicros:1};
           writeFileSync(process.argv[2] + '/approval.json', JSON.stringify({
             approvalRef:'offline-ci-fixture', commit:BENCH_REVISION, digest, inputSha256:BENCH_INPUT_SHA,
-            pilotUsdMicros:10000000, batchUsdMicros:40000000, vlm:model, image:model,
+            pilotUsdMicros:30000000, batchUsdMicros:40000000, vlm:model, image:model,
           }));
           writeFileSync(process.argv[2] + '/identity.json', JSON.stringify({
             ref:'ghcr.io/gae265-meowho/meowho/welfarelens-worker@' + digest,

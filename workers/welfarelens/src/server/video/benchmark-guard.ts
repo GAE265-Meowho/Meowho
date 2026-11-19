@@ -22,7 +22,7 @@ export const BenchmarkConfig = z.object({
   commit: z.string().regex(/^[a-f0-9]{40}$/),
   digest: z.string().regex(/^sha256:[a-f0-9]{64}$/),
   inputSha256: z.string().regex(/^[a-f0-9]{64}$/),
-  pilotUsdMicros: positive.max(10_000_000),
+  pilotUsdMicros: positive.max(30_000_000),
   batchUsdMicros: positive.max(40_000_000),
   vlm: model,
   image: model,
@@ -33,9 +33,16 @@ export const BenchmarkConfig = z.object({
 export type BenchmarkConfig = z.infer<typeof BenchmarkConfig>;
 export const benchmarkOrder = [1, 2, 2, 1, 1, 2] as const;
 const caps = {vlm: 14, image: 8};
+export function maximumBenchmarkRound(config:BenchmarkConfig){
+  return caps.vlm*config.vlm.reserveUsdMicros + caps.image*config.image.reserveUsdMicros;
+}
+const billedMicros = z.number().int().nonnegative();
+const reconciliationSchema = z.tuple([billedMicros,billedMicros]);
+const billingSchema = z.object({'1':billedMicros,'2':billedMicros});
 const eventSchema = z.discriminatedUnion('event', [
   z.object({event:z.literal('batch'),fingerprint:z.string()}),
-  z.object({event:z.literal('run_start'),run:positive,concurrency:z.union([z.literal(1),z.literal(2)]),at:z.iso.datetime(),expansionApproval:z.string().optional()}),
+  z.object({event:z.literal('run_start'),run:positive,concurrency:z.union([z.literal(1),z.literal(2)]),at:z.iso.datetime(),
+    expansionApproval:z.string().optional(),pilotBillingUsdMicros:reconciliationSchema.optional()}),
   z.object({event:z.literal('dispatch'),run:positive,kind:kindSchema,atMs:positive,waitMs:z.number().nonnegative(),reservedUsdMicros:positive}),
   z.object({event:z.literal('response'),dispatch:positive,status:z.number().int().min(100).max(599).nullable(),elapsedMs:z.number().nonnegative(),failure:z.enum(['network','timeout','cancelled']).nullable()}),
   z.object({event:z.literal('run_end'),run:positive,ok:z.boolean(),at:z.iso.datetime()}),
@@ -73,8 +80,8 @@ export async function openBenchmarkRun(directory:string,config:BenchmarkConfig,r
     });
     if(existing&&!existing.endsWith('\n'))throw Error('benchmark_incomplete_journal');
     const entries = existing ? existing.trimEnd().split('\n').map(line=>eventSchema.parse(JSON.parse(line))) : [];
-    if(!entries.length && run===1){durableAppend(path,{event:'batch',fingerprint});}
-    else if(entries[0]?.event!=='batch'||entries[0].fingerprint!==fingerprint)throw Error('benchmark_config_changed');
+    if(entries.length && (entries[0]?.event!=='batch'||entries[0].fingerprint!==fingerprint))
+      throw Error('benchmark_config_changed');
     const starts = entries.filter(e=>e.event==='run_start');
     const ends = entries.filter(e=>e.event==='run_end');
     const dispatched = entries.filter(e=>e.event==='dispatch');
@@ -91,14 +98,38 @@ export async function openBenchmarkRun(directory:string,config:BenchmarkConfig,r
       spent += entry.reservedUsdMicros;
     }
     const budget = run<=2 ? config.pilotUsdMicros : config.batchUsdMicros;
-    // Refuse to start a round if it cannot afford its maximum request envelope.
-    if(spent + caps.vlm*config.vlm.reserveUsdMicros + caps.image*config.image.reserveUsdMicros > budget)
+    let pilotBillingUsdMicros:z.infer<typeof reconciliationSchema>|undefined;
+    if(run>2){
+      const billingPath=join(directory,'verified-billing.json');
+      const billing=await lstat(billingPath).then(info=>{
+        if(!info.isFile()||info.isSymbolicLink()||info.size>4096)throw Error('invalid billing file');
+        return readFile(billingPath,'utf8');
+      }).then(raw=>billingSchema.parse(JSON.parse(raw))).catch(()=>{
+        throw Error('benchmark_pilot_reconciliation');
+      });
+      pilotBillingUsdMicros=[billing['1'],billing['2']];
+      const prior=starts[2]?.pilotBillingUsdMicros;
+      if(run>3 && (!prior || prior.some((value,index)=>value!==pilotBillingUsdMicros?.[index])))
+        throw Error('benchmark_pilot_reconciliation');
+      let pilotExposure=0;
+      for(const [index,billed] of pilotBillingUsdMicros.entries()){
+        const reserved=dispatched.reduce((sum,entry)=>sum+(entry.run===index+1?entry.reservedUsdMicros:0),0);
+        const increase=Math.max(0,billed-reserved);
+        spent+=increase;
+        pilotExposure+=reserved+increase;
+      }
+      if(pilotExposure>config.pilotUsdMicros)throw Error('benchmark_pilot_budget_exceeded');
+    }
+    const remainingRounds=(run<=2 ? 2 : benchmarkOrder.length)-run+1;
+    if(spent + remainingRounds*maximumBenchmarkRound(config) > budget)
       throw Error('benchmark_budget');
     const counts = {vlm:0,image:0};
     const lastMonotonic = {vlm:-Infinity,image:-Infinity};
     const tail = {vlm:Promise.resolve(),image:Promise.resolve()};
     let stopped = false, finished = false, blocked = false, active = 0;
-    durableAppend(path,{event:'run_start',run,concurrency,at:new Date().toISOString(),expansionApproval});
+    if(!entries.length)durableAppend(path,{event:'batch',fingerprint});
+    durableAppend(path,{event:'run_start',run,concurrency,at:new Date().toISOString(),expansionApproval,
+      pilotBillingUsdMicros:run===3?pilotBillingUsdMicros:undefined});
 
     function makeRequest(kind:Kind):typeof fetch{
       return async (input,init)=>{

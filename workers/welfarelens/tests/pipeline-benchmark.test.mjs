@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
 import { execFileSync } from 'node:child_process';
-import { BenchmarkConfig, openBenchmarkRun } from '../src/server/video/benchmark-guard.ts';
+import { BenchmarkConfig, maximumBenchmarkRound, openBenchmarkRun } from '../src/server/video/benchmark-guard.ts';
 import { benchmarkAzureEnv, verifyBenchmarkImage } from '../scripts/run-pipeline-benchmark.mjs';
 
 const vlm={host:'vlm.openai.azure.com',deployment:'test-vlm',version:'test',sku:'test',confirmedRpm:60001,gapMs:1,reserveUsdMicros:10};
@@ -59,10 +59,50 @@ test('the batch is locked, order is fixed and an existing round is never reset',
  await second.close(true);
  await assert.rejects(openBenchmarkRun(folder,config,3,'pilot'),/run_number/);
  await assert.rejects(openBenchmarkRun(folder,config,3,'remaining'),/expansion_approval/);
+ await assert.rejects(openBenchmarkRun(folder,config,3,'remaining',fetch,'reviewed-pilot'),/reconciliation/);
+ await writeFile(join(folder,'verified-billing.json'),'{"1":10,"2":0}');
  const third=await openBenchmarkRun(folder,config,3,'remaining',fetch,'reviewed-pilot');
  assert.equal(third.concurrency,2);
  await third.close(true);
  await assert.rejects(openBenchmarkRun(folder,config,4,'remaining',fetch,'other-review'),/requires_review/);
+ await writeFile(join(folder,'verified-billing.json'),'{"1":9,"2":0}');
+ await assert.rejects(openBenchmarkRun(folder,config,4,'remaining',fetch,'reviewed-pilot'),/reconciliation/);
+});
+
+test('the $30 pilot is independent of the $40 expansion envelope',async t=>{
+ const folder=await workspace(t);
+ const staged=BenchmarkConfig.parse({...config,pilotUsdMicros:30_000_000,batchUsdMicros:40_000_000,
+  vlm:{...vlm,reserveUsdMicros:500_000},image:{...image,reserveUsdMicros:1_000_000}});
+ assert.equal(maximumBenchmarkRound(staged),15_000_000);
+ assert.equal(BenchmarkConfig.safeParse({...staged,pilotUsdMicros:30_000_001}).success,false);
+ assert.equal(BenchmarkConfig.safeParse({...staged,batchUsdMicros:40_000_001}).success,false);
+ const first=await openBenchmarkRun(folder,staged,1,'pilot',async()=>new Response('{}'));
+ await invoke(first);
+ await first.close(true);
+ const second=await openBenchmarkRun(folder,staged,2,'pilot');
+ await second.close(true);
+ await writeFile(join(folder,'verified-billing.json'),'{"1":500000,"2":0}');
+ await assert.rejects(openBenchmarkRun(folder,staged,3,'remaining',fetch,'approved'),/benchmark_budget/);
+});
+
+test('expansion counts all four future rounds and carries the higher of billed and reserved amounts',async t=>{
+ const folder=await workspace(t);
+ const staged={...config,batchUsdMicros:1540};
+ const first=await openBenchmarkRun(folder,staged,1,'pilot',async()=>new Response('{}'));
+ await invoke(first);
+ await first.close(true);
+ const second=await openBenchmarkRun(folder,staged,2,'pilot',async()=>new Response('{}'));
+ await invoke(second);
+ await second.close(true);
+ await writeFile(join(folder,'verified-billing.json'),'{"1":0}');
+ await assert.rejects(openBenchmarkRun(folder,staged,3,'remaining',fetch,'approved'),/reconciliation/);
+ await writeFile(join(folder,'verified-billing.json'),'{"1":0,"2":11}');
+ await assert.rejects(openBenchmarkRun(folder,staged,3,'remaining',fetch,'approved'),/benchmark_budget/);
+ await writeFile(join(folder,'verified-billing.json'),'{"1":0,"2":10}');
+ const third=await openBenchmarkRun(folder,staged,3,'remaining',fetch,'approved');
+ await third.close(true);
+ const fourth=await openBenchmarkRun(folder,staged,4,'remaining',fetch,'approved');
+ await fourth.close(true);
 });
 
 test('budget rejects a round before any network request',async t=>{
