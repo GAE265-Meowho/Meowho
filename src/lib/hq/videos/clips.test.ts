@@ -27,6 +27,16 @@ describe("前導影片：產生影片", () => {
     for (const sec of SHOT_SECTIONS) expect(sec.range, sec.key).toBe(`${sec.shots[0].time.split("–")[0]}–${sec.shots[sec.shots.length - 1].time.split("–")[1]}`);
   });
 
+  it("鏡 27 小傑坐沙發抱小橘，prompt 寫明套房家具位置並掛小傑定角", () => {
+    const s27 = SHOT_SECTIONS.flatMap(x => x.shots).find(s => s.no === 27)!;
+    expect(s27.picture).toMatch(/^小傑坐在沙發抱著小橘/);
+    const f = s27.frames[0];
+    expect(f.refs).toEqual(["char-xiaoju", "char-xiaojie", "scene-studio"]);
+    expect(f.prompt).toMatch(/gray .*sofa against the left wall/);
+    expect(f.prompt).toMatch(/floor lamp/);
+    expect(f.prompt).toMatch(/desk under the window/);
+  });
+
   it("每一鏡都不超過 10 秒（#517 Tina 確認）", () => {
     for (const s of SHOT_SECTIONS.flatMap(x => x.shots)) expect(shotSeconds(s), `鏡 ${s.no}`).toBeLessThanOrEqual(10);
   });
