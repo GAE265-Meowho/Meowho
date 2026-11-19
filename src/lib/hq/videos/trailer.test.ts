@@ -7,8 +7,8 @@ import {
 const shots = SHOT_SECTIONS.flatMap(s => s.shots);
 
 describe("前導影片 v3 分鏡資料", () => {
-  it("26 顆鏡頭依序編號，每顆至少一格分鏡圖（#515 縮為 3 分鐘）", () => {
-    expect(shots.map(s => s.no)).toEqual(Array.from({ length: 26 }, (_, i) => i + 1));
+  it("27 顆鏡頭依序編號，每顆至少一格分鏡圖（#515 縮為 3 分鐘）", () => {
+    expect(shots.map(s => s.no)).toEqual(Array.from({ length: 27 }, (_, i) => i + 1));
     for (const s of shots) expect(s.frames.length).toBeGreaterThan(0);
   });
 
@@ -20,15 +20,15 @@ describe("前導影片 v3 分鏡資料", () => {
     expect(shots[8].frames.map(f => f.label)).toEqual(["9-1 查養貓注意事項", "9-2 看腳邊電線"]);
   });
 
-  it("需要產生 32 格：AI 生成 25、系統錄影截圖 5、剪輯字卡 2", () => {
-    expect(frameCounts()).toEqual({ ai: 25, record: 5, edit: 2, total: 32 });
+  it("需要產生 35 格：AI 生成 28、系統錄影截圖 5、剪輯字卡 2", () => {
+    expect(frameCounts()).toEqual({ ai: 28, record: 5, edit: 2, total: 35 });
   });
 
   it("每一格上傳的代號都不重複，且只用小寫英數與減號（存檔路徑用）", () => {
     const ids = allSlotIds();
     expect(new Set(ids).size).toBe(ids.length);
     for (const id of ids) expect(id).toMatch(/^[a-z0-9-]+$/);
-    expect(ids).toHaveLength(CHARACTERS.length + SCENES.length + 32);
+    expect(ids).toHaveLength(CHARACTERS.length + SCENES.length + 35);
   });
 
   it("每一格 AI 分鏡都有參考圖，最多 4 張，而且都是存在的定角／定景；非 AI 的格子沒有參考圖", () => {
@@ -91,7 +91,7 @@ describe("上傳與進度", () => {
     expect(p).toEqual({
       characters: { done: 0, total: 4 },
       scenes: { done: 1, total: 3 },
-      frames: { done: 1, total: 32 },
+      frames: { done: 1, total: 35 },
     });
   });
 
