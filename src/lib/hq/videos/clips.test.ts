@@ -14,8 +14,8 @@ describe("前導影片：產生影片", () => {
     }
   });
 
-  it("清單只有 AI 生成的 25 格，系統錄影與字卡不列", () => {
-    expect(clipSections().flatMap(s => s.items)).toHaveLength(25);
+  it("清單只有 AI 生成的 28 格，系統錄影與字卡不列", () => {
+    expect(clipSections().flatMap(s => s.items)).toHaveLength(28);
     expect(clipSections().flatMap(s => s.items).every(i => i.frame.make === "ai")).toBe(true);
   });
 
@@ -47,8 +47,8 @@ describe("前導影片：產生影片", () => {
     expect(clipLength(s5)).toEqual({ cut: 4, generate: 5 });
     const s9 = shots[8]; // 0:58–1:08，查資料＋看電線兩格
     expect(clipLength(s9)).toEqual({ cut: 5, generate: 5 });
-    const s14 = shots[13]; // 1:37–1:45，只有 1 格 AI
-    expect(clipLength(s14)).toEqual({ cut: 8, generate: 10 });
+    const s15 = shots[14]; // 鏡 15 1:37–1:45，只有 1 格 AI
+    expect(clipLength(s15)).toEqual({ cut: 8, generate: 10 });
   });
 
   it("圖生影片 prompt 有起始畫面檔名、依序的參考圖、動作與運鏡", () => {
