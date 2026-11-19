@@ -79,4 +79,34 @@ node workers/welfarelens/scripts/run-controlled-image-benchmark.mjs --image $ima
 
 逐輪檢視 `ok`、六件 PNG、請求結果與預留額後，才將 `--run` 依序改為 2 至 6。每輪放行前會驗證前一輪的案例、原圖／提示雜湊與輸出雜湊，並核對所有已完成輪次的帳本。遇到 429、逾時、中止、未知回應或費用異常，停止整批並保留證據。
 
-每輪保存 `slotWaitMs`、`throttleWaitMs`（guard 總等待，含排隊）、`pacingSleepMs`（已起送請求的節流等待）及 `inFlightMs`（依同時在途數分組的 dispatch-to-header 時間）。各等待總和可能在時間上重疊，不可加總成 Wall Time。用每組兩輪的 Wall Time、中位數、最慢值、成功率、請求錯誤及最高在途數判斷差異。六輪實測與雲端費用目前待獨立驗收。
+每輪保存 `slotWaitMs`、`throttleWaitMs`（guard 總等待，含排隊）、`pacingSleepMs`（已起送請求的節流等待）及 `inFlightMs`（依同時在途數分組的 dispatch-to-header 時間）。各等待總和可能在時間上重疊，不可加總成 Wall Time。用每組兩輪的 Wall Time、中位數、最慢值、成功率、請求錯誤及最高在途數判斷差異。
+
+## 同時段 1／2／3 路比較
+
+使用 `--study concurrency-123` 取代 `--six-round`，依 1、2、3、3、2、1 執行。兩個參數互斥。保留原先 2／3／4 路作為補充證據。Frozen Manifest、36 次改圖上限、零 VLM、12 秒跨輪最小起送間隔及每次 US$0.75 預留均沿用。US$52.25 歷史預留曝險保留在新批次的預算基準。本批新增 US$27 須另行授權，屆時以 `study: "concurrency-123"`、新映像身分及新批次路徑雜湊建立私有批准檔。
+
+若已有經核對的映像 ID、revision 及私有輸入目錄，可先離線演練。新建獨立空目錄給 `$dryBatch`，以下每輪均在斷網容器內執行，不需要批准檔或 Azure 憑證。
+
+```powershell
+foreach ($run in 1..6) {
+  node workers/welfarelens/scripts/run-controlled-image-benchmark.mjs --image $image --commit $rev --frozen "$private/frozen" --batch $dryBatch --run $run --study concurrency-123 --dry-run
+  if ($LASTEXITCODE -ne 0) { throw "Dry run $run failed" }
+}
+```
+
+### Azure Monitor 交通量核對
+
+上次 2／3／4 路的事後比對中，完整 36 次請求的 Azure Monitor 分鐘標籤比本機起送分鐘晚一格。這是該批次的觀察結果。Azure 的 PT1M 計數無法逐筆識別呼叫來源。真實批次仍須確認共用時段，並在開始前重查最近流量。若部署在使用中、監測資料缺失或其他異常無法釐清，先停止。
+
+從 `AzureOpenAIRequests` 的 `Total`、`PT1M` 和精確的 `ModelDeploymentName` 篩選取得單一序列，保留原始快照於私有目錄。將該序列的 `data` 陣列另存為 `$metrics`；保留缺值，且在匯出前確認只有一條序列。以 UTC 整分鐘指定 `$startUtc`（含）與 `$endUtc`（不含）。必須包含測試開始前至少一個完整分鐘，以及最後起送分鐘和可能偏移一分鐘後的至少一個零流量桶。等結束時間已過至少兩分鐘再核對。每輪結束後，在開始下一輪之前，用同一個起點查含所有先前輪次的序列。最近仍在延遲中的時間由共用時段與即時查詢雙重把關。
+
+```powershell
+# 測試前驗證完整視窗沒有流量，略去 --journal。
+node workers/welfarelens/scripts/check-controlled-image-traffic.mjs --metrics $metrics --start $startUtc --end $endUtc --label-offset 1
+# 每輪完畢，以同一個預先記錄的分箱假設比對完整帳本。
+node workers/welfarelens/scripts/check-controlled-image-traffic.mjs --metrics $metrics --journal "$liveBatch/requests.jsonl" --start $startUtc --end $endUtc --label-offset 1
+```
+
+`1` 是上次事後比對支持的假設。實測前先用既有證據核對並固定偏移；比對失敗時停止，不改參數求通過。計數未完全填入時回傳 `incomplete`，只可重新查詢監測資料；確認額外或無法用該分箱解釋的流量時回傳 `unexplained`，停止後續付費輪次。這個工具需由操作者逐輪執行，與 Benchmark Guard 的請求上限、節流、429、逾時和未知回應停止機制併用。`matched` 只表示完整視窗的逐桶計數與帳本相符。
+
+在所有六輪成功後，用每組兩輪 Wall Time 的中位數計算 2 對 1、3 對 2、3 對 1。耗時降幅為 `(基準中位數 - 比較中位數) / 基準中位數`，加速倍數為 `基準中位數 / 比較中位數`。保留最慢一輪和各件 API 延遲、工作槽等待、節流等待、在途峰值、失敗率、預留與按 Usage 估算的費用。Azure 帳單另行對帳。

@@ -6,7 +6,7 @@ import { pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
 import { z } from 'zod';
 import { editAzureImage, imageEditConfig } from '../src/server/image-edit-client.ts';
-import { BenchmarkConfig, ControlledImageApproval, ControlledImageDeployment, controlledConcurrencyOrder, openControlledImageRun } from '../src/server/video/benchmark-guard.ts';
+import { BenchmarkConfig, ControlledImageApproval, ControlledImageDeployment, controlledOrder, openControlledImageRun } from '../src/server/video/benchmark-guard.ts';
 import { runImageEditPool } from '../src/server/video/image-edit-pool.ts';
 import { command } from '../src/server/video/media.ts';
 
@@ -82,7 +82,7 @@ export async function executeControlledImages(directory:string,frozen:Frozen,app
   signal?:AbortSignal, provenance?:{containerHost:string;hostPlatform:string;hostArch:string},
   offlineSleep?:(ms:number,signal?:AbortSignal)=>Promise<void>) {
   if(approval.manifestSha256!==frozen.sha256)throw Error('benchmark_frozen_manifest');
-  const order='study' in approval?controlledConcurrencyOrder:[1,2];
+  const order=controlledOrder('study' in approval?approval.study:undefined);
   if(!order[run-1])throw Error('benchmark_run_number');
   const {manifest,inputs}=frozen;
   let referenceWallMs:number|undefined;
@@ -209,10 +209,11 @@ async function privateDirectory(path:string){
 async function main(){
   const {values}=parseArgs({options:{
     frozen:{type:'string'},batch:{type:'string'},approval:{type:'string'},run:{type:'string'},
-    'dry-run':{type:'boolean'},'six-round':{type:'boolean'},identity:{type:'string'},'host-platform':{type:'string'},'host-arch':{type:'string'},
+    'dry-run':{type:'boolean'},'six-round':{type:'boolean'},study:{type:'string'},identity:{type:'string'},'host-platform':{type:'string'},'host-arch':{type:'string'},
   }});
-  const sixRound=values['six-round']===true;
-  if(!values.frozen||!values.batch||!values.run||!(sixRound?/^[1-6]$/:/^[12]$/).test(values.run)
+  const study=values['six-round']?'concurrency-234':values.study;
+  if((values.study!==undefined&&(values.study!=='concurrency-123'||values['six-round']))||
+    !values.frozen||!values.batch||!values.run||!(study?/^[1-6]$/:/^[12]$/).test(values.run)
     ||Boolean(values.approval)===Boolean(values['dry-run']))throw Error('benchmark_arguments');
   const frozenDir=await privateDirectory(values.frozen);
   const directory=await privateDirectory(values.batch);
@@ -222,10 +223,10 @@ async function main(){
     .parse(JSON.parse(values.identity??'null'));
   const mode=values['dry-run']?'offline':'live';
   const approval=ControlledImageApproval.parse(mode==='offline'?{...identity,approvalRef:'offline',
-    manifestSha256:frozen.sha256,...(sixRound?{study:'concurrency-234',batchPathSha256:hash(directory),approvedUsdMicros:27000000}
+    manifestSha256:frozen.sha256,...(study?{study,batchPathSha256:hash(directory),approvedUsdMicros:27000000}
       :{approvedUsdMicros:9000000})}
     :JSON.parse((await readPrivateFile(values.approval!,4096)).toString('utf8')));
-  if(approval.imageId!==identity.imageId||approval.commit!==identity.commit||('study' in approval)!==sixRound)
+  if(approval.imageId!==identity.imageId||approval.commit!==identity.commit||('study' in approval?approval.study:undefined)!==study)
     throw Error('benchmark_image_identity');
   let transport:typeof fetch;
   let key='offline';

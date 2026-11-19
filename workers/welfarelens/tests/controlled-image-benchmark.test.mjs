@@ -120,16 +120,16 @@ test('manifest identity and the exact two-round spending envelope fail closed',a
   await assert.rejects(executeControlledImages(dir,frozen,approval,3,'offline',assert.fail,assert.fail),/run_number/);
 });
 
-function expanded(approval){
-  return {...approval,study:'concurrency-234',approvedUsdMicros:27000000,batchPathSha256:'1'.repeat(64)};
+function expanded(approval,study='concurrency-234'){
+  return {...approval,study,approvedUsdMicros:27000000,batchPathSha256:'1'.repeat(64)};
 }
 
-test('six rounds reuse the payload, enforce a shared start gap, and reach each requested concurrency',async t=>{
+for(const [study,order] of [['concurrency-234',[2,3,4,4,3,2]],['concurrency-123',[1,2,3,3,2,1]]]){
+test(study+' reuses all payloads, enforces a cross-round gap, and reaches each requested concurrency',async t=>{
   clock(t);
   const {dir,frozen,approval}=await fixture(t);
-  const approved=expanded(approval);
+  const approved=expanded(approval,study);
   const starts=[];
-  const order=[2,3,4,4,3,2];
   for(const [index,concurrency] of order.entries()){
     let active=0,peak=0,next=0;
     const result=await drive(t,executeControlledImages(dir,frozen,approved,index+1,'offline',async(_url,{body})=>{
@@ -156,6 +156,16 @@ test('six rounds reuse the payload, enforce a shared start gap, and reach each r
   assert.equal(events.filter(e=>e.event==='dispatch').reduce((sum,e)=>sum+e.reservedUsdMicros,0),27000000);
   await assert.rejects(executeControlledImages(dir,frozen,approved,6,'offline',assert.fail,assert.fail),/requires_review/);
   await assert.rejects(executeControlledImages(dir,frozen,approved,7,'offline',assert.fail,assert.fail),/run_number/);
+});
+}
+
+test('the 1/2/3 batch refuses a 2/3/4 approval before the next request',async t=>{
+  clock(t);
+  const {dir,frozen,approval}=await fixture(t);
+  const result=await drive(t,executeControlledImages(dir,frozen,expanded(approval,'concurrency-123'),1,'offline',async()=>
+    Response.json({data:[{b64_json:png.toString('base64')}]}),async()=>{},dir,'offline',undefined,undefined,sleep));
+  assert.ok(result.ok);
+  await assert.rejects(executeControlledImages(dir,frozen,expanded(approval),2,'offline',assert.fail,assert.fail),/requires_review/);
 });
 
 test('the expanded approval rejects other budgets and pacing before any requests',async t=>{

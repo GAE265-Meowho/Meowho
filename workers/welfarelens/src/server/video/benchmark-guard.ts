@@ -40,18 +40,22 @@ const controlledIdentity = {
 export const ControlledImageApproval = z.union([
   z.object({...controlledIdentity,approvedUsdMicros:z.literal(9_000_000)}).strict(),
   z.object({...controlledIdentity,approvedUsdMicros:z.literal(27_000_000),
-    study:z.literal('concurrency-234'),batchPathSha256:BenchmarkConfig.shape.inputSha256}).strict(),
+    study:z.enum(['concurrency-234','concurrency-123']),batchPathSha256:BenchmarkConfig.shape.inputSha256}).strict(),
 ]);
 export const ControlledImageDeployment = model.extend({
   reserveUsdMicros: z.literal(750_000),
 }).refine(c => c.confirmedRpm > 1 && c.gapMs >= Math.max(12_000, Math.ceil(60_000 / (c.confirmedRpm - 1))));
 type ControlledPolicy = z.infer<typeof ControlledImageApproval> & {
   image: z.infer<typeof ControlledImageDeployment>;
-  priorReservedUsdMicros: 16_250_000|25_250_000;
+  priorReservedUsdMicros: number;
   mode: 'offline'|'live';
 };
 export const benchmarkOrder = [1, 2, 2, 1, 1, 2] as const;
-export const controlledConcurrencyOrder = [2, 3, 4, 4, 3, 2] as const;
+export function controlledOrder(study?: 'concurrency-234'|'concurrency-123'){
+  if(study==='concurrency-123')return [1, 2, 3, 3, 2, 1] as const;
+  if(study==='concurrency-234')return [2, 3, 4, 4, 3, 2] as const;
+  return [1, 2] as const;
+}
 const caps = {vlm: 14, image: 8};
 export function maximumBenchmarkRound(config:BenchmarkConfig){
   return caps.vlm*config.vlm.reserveUsdMicros + caps.image*config.image.reserveUsdMicros;
@@ -95,8 +99,9 @@ export async function openControlledImageRun(directory:string,approval:z.infer<t
   const deployment=ControlledImageDeployment.parse(image);
   const expanded='study' in approved;
   if(expanded&&(deployment.confirmedRpm!==6||deployment.gapMs!==12_000))throw Error('benchmark_study_pacing');
+  const priorReservedUsdMicros=expanded?(approved.study==='concurrency-123'?52_250_000:25_250_000):16_250_000;
   return openRun(directory,{...approved,image:deployment,
-    mode,priorReservedUsdMicros:expanded?25_250_000:16_250_000},run,'pilot',request,undefined,verifyPayload,offlineSleep);
+    mode,priorReservedUsdMicros},run,'pilot',request,undefined,verifyPayload,offlineSleep);
 }
 
 async function openRun(directory:string,config:BenchmarkConfig|ControlledPolicy,run:number,phase:'pilot'|'remaining',
@@ -104,7 +109,7 @@ async function openRun(directory:string,config:BenchmarkConfig|ControlledPolicy,
   sleep:(ms:number,signal?:AbortSignal)=>Promise<void>=(ms,signal)=>timers.setTimeout(ms,undefined,{signal})){
   const controlled='manifestSha256' in config;
   const runCaps=controlled?{vlm:0,image:6}:caps;
-  const order=controlled?('study' in config?controlledConcurrencyOrder:[1,2] as const):benchmarkOrder;
+  const order=controlled?controlledOrder('study' in config?config.study:undefined):benchmarkOrder;
   const concurrency = order[run-1];
   if(!concurrency || (!controlled&&(run<=2 ? phase!=='pilot' : phase!=='remaining')))throw Error('benchmark_run_number');
   if(!controlled&&run>2?!/^[a-zA-Z0-9._-]{1,100}$/.test(expansionApproval??''):expansionApproval!==undefined)

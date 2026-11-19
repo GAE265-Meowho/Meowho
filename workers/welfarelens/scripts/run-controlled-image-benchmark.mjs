@@ -9,12 +9,13 @@ function main(){
   try{
     const {values}=parseArgs({options:{
       image:{type:'string'},commit:{type:'string'},frozen:{type:'string'},batch:{type:'string'},
-      run:{type:'string'},approval:{type:'string'},'azure-env':{type:'string'},'dry-run':{type:'boolean'},'six-round':{type:'boolean'},
+      run:{type:'string'},approval:{type:'string'},'azure-env':{type:'string'},'dry-run':{type:'boolean'},'six-round':{type:'boolean'},study:{type:'string'},
     }});
     const dry=values['dry-run']===true;
-    const sixRound=values['six-round']===true;
-    if(!/^sha256:[a-f0-9]{64}$/.test(values.image??'')||!/^[a-f0-9]{40}$/.test(values.commit??'')||
-      !(sixRound?/^[1-6]$/:/^[12]$/).test(values.run??'')||!values.frozen||!values.batch||
+    const study=values['six-round']?'concurrency-234':values.study;
+    if((values.study!==undefined&&(values.study!=='concurrency-123'||values['six-round']))||
+      !/^sha256:[a-f0-9]{64}$/.test(values.image??'')||!/^[a-f0-9]{40}$/.test(values.commit??'')||
+      !(study?/^[1-6]$/:/^[12]$/).test(values.run??'')||!values.frozen||!values.batch||
       (dry ? values.approval||values['azure-env'] : !values.approval||!values['azure-env']))throw Error('arguments');
     const checked=(name,directory)=>{
       const path=realpathSync(values[name]);
@@ -44,18 +45,19 @@ function main(){
       '--mount',`type=bind,src=${batch},dst=/batch`];
     if(process.getuid&&process.getgid)args.push('--user',`${process.getuid()}:${process.getgid()}`);
     const flags=[];
-    if(sixRound)flags.push('--six-round');
+    if(values['six-round'])flags.push('--six-round');
+    if(values.study)flags.push('--study',values.study);
     if(dry){
       args.push('--network','none');
       flags.push('--dry-run');
     }else{
       stage='private approval and image credentials';
       const approval=checked('approval',false);
-      if(sixRound){
+      if(study){
         if(statSync(approval).size>4096)throw Error('invalid approval');
         const approved=JSON.parse(readFileSync(approval,'utf8'));
         const batchPathSha256=createHash('sha256').update(batch).digest('hex');
-        if(approved.study!=='concurrency-234'||approved.approvedUsdMicros!==27000000||
+        if(approved.study!==study||approved.approvedUsdMicros!==27000000||
           approved.batchPathSha256!==batchPathSha256||approved.commit!==commit||approved.imageId!==image.Id)
           throw Error('approval must match the batch path and image');
       }
