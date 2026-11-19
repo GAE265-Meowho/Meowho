@@ -31,6 +31,21 @@ export const BenchmarkConfig = z.object({
   && c.vlm.gapMs >= Math.ceil(60_000 / (c.vlm.confirmedRpm - 1))
   && c.image.gapMs >= Math.max(12_000, Math.ceil(60_000 / (c.image.confirmedRpm - 1))));
 export type BenchmarkConfig = z.infer<typeof BenchmarkConfig>;
+export const ControlledImageApproval = z.object({
+  approvalRef: BenchmarkConfig.shape.approvalRef,
+  commit: BenchmarkConfig.shape.commit,
+  imageId: z.string().regex(/^sha256:[a-f0-9]{64}$/),
+  manifestSha256: BenchmarkConfig.shape.inputSha256,
+  approvedUsdMicros: z.literal(9_000_000),
+}).strict();
+export const ControlledImageDeployment = model.extend({
+  reserveUsdMicros: z.literal(750_000),
+}).refine(c => c.confirmedRpm > 1 && c.gapMs >= Math.max(12_000, Math.ceil(60_000 / (c.confirmedRpm - 1))));
+type ControlledPolicy = z.infer<typeof ControlledImageApproval> & {
+  image: z.infer<typeof ControlledImageDeployment>;
+  priorReservedUsdMicros: 16_250_000;
+  mode: 'offline'|'live';
+};
 export const benchmarkOrder = [1, 2, 2, 1, 1, 2] as const;
 const caps = {vlm: 14, image: 8};
 export function maximumBenchmarkRound(config:BenchmarkConfig){
@@ -44,7 +59,8 @@ const eventSchema = z.discriminatedUnion('event', [
   z.object({event:z.literal('run_start'),run:positive,concurrency:z.union([z.literal(1),z.literal(2)]),at:z.iso.datetime(),
     expansionApproval:z.string().optional(),pilotBillingUsdMicros:reconciliationSchema.optional()}),
   z.object({event:z.literal('dispatch'),run:positive,kind:kindSchema,atMs:positive,waitMs:z.number().nonnegative(),reservedUsdMicros:positive}),
-  z.object({event:z.literal('response'),dispatch:positive,status:z.number().int().min(100).max(599).nullable(),elapsedMs:z.number().nonnegative(),failure:z.enum(['network','timeout','cancelled']).nullable()}),
+  z.object({event:z.literal('response'),dispatch:positive,status:z.number().int().min(100).max(599).nullable(),elapsedMs:z.number().nonnegative(),failure:z.enum(['network','timeout','cancelled']).nullable(),
+    transportAtMs:positive.optional(),headerAtMs:positive.optional()}),
   z.object({event:z.literal('run_end'),run:positive,ok:z.boolean(),at:z.iso.datetime()}),
 ]);
 type Event = z.infer<typeof eventSchema>;
@@ -62,8 +78,24 @@ function durableAppend(path:string,event:Event){
 /** One local private batch directory, with a persistent lock on abnormal termination. */
 export async function openBenchmarkRun(directory:string,config:BenchmarkConfig,run:number,phase:'pilot'|'remaining',
   request:typeof fetch=fetch,expansionApproval?:string){
+  return openRun(directory,config,run,phase,request,expansionApproval);
+}
+
+export async function openControlledImageRun(directory:string,approval:z.infer<typeof ControlledImageApproval>,
+  image:z.infer<typeof ControlledImageDeployment>,mode:ControlledPolicy['mode'],run:number,request:typeof fetch,
+  verifyPayload:(body:FormData,index:number)=>Promise<void>,offlineSleep?:(ms:number,signal?:AbortSignal)=>Promise<void>){
+  if(mode!=='offline'&&offlineSleep)throw Error('benchmark_live_clock');
+  return openRun(directory,{...ControlledImageApproval.parse(approval),image:ControlledImageDeployment.parse(image),
+    mode,priorReservedUsdMicros:16_250_000},run,'pilot',request,undefined,verifyPayload,offlineSleep);
+}
+
+async function openRun(directory:string,config:BenchmarkConfig|ControlledPolicy,run:number,phase:'pilot'|'remaining',
+  request:typeof fetch,expansionApproval?:string,verifyPayload?:(body:FormData,index:number)=>Promise<void>,
+  sleep:(ms:number,signal?:AbortSignal)=>Promise<void>=(ms,signal)=>timers.setTimeout(ms,undefined,{signal})){
+  const controlled='manifestSha256' in config;
+  const runCaps=controlled?{vlm:0,image:6}:caps;
   const concurrency = benchmarkOrder[run-1];
-  if(!concurrency || (run<=2 ? phase!=='pilot' : phase!=='remaining'))throw Error('benchmark_run_number');
+  if(!concurrency || (controlled&&run>2) || (run<=2 ? phase!=='pilot' : phase!=='remaining'))throw Error('benchmark_run_number');
   if(run>2?!/^[a-zA-Z0-9._-]{1,100}$/.test(expansionApproval??''):expansionApproval!==undefined)
     throw Error('benchmark_expansion_approval');
   const lock = join(directory,'active.lock');
@@ -90,16 +122,21 @@ export async function openBenchmarkRun(directory:string,config:BenchmarkConfig,r
       ||(index>=2&&e.expansionApproval!==expansionApproval))
       ||ends.length!==starts.length||ends.some((e,index)=>!e.ok||e.run!==index+1)
       ||responses.length!==dispatched.length||new Set(responses.map(e=>e.dispatch)).size!==dispatched.length
-      ||responses.some(e=>e.dispatch>dispatched.length||e.status===429))throw Error('benchmark_batch_requires_review');
+      ||responses.some(e=>e.dispatch>dispatched.length||e.status===429)
+      ||(controlled&&(dispatched.length!==(run-1)*6||dispatched.some(e=>e.run!==1||e.kind!=='image'||e.reservedUsdMicros!==750_000)
+        ||responses.some(e=>e.status===null||e.status<200||e.status>=300||e.failure!==null||
+          e.headerAtMs===undefined||e.transportAtMs===undefined))))throw Error('benchmark_batch_requires_review');
     const last = {vlm:0,image:0};
-    let spent = 0, dispatchCount = dispatched.length;
+    let spent = controlled?config.priorReservedUsdMicros:0, dispatchCount = dispatched.length;
     for(const entry of dispatched){
       last[entry.kind] = Math.max(last[entry.kind],entry.atMs);
       spent += entry.reservedUsdMicros;
     }
-    const budget = run<=2 ? config.pilotUsdMicros : config.batchUsdMicros;
+    if(controlled)for(const response of responses)last.image=Math.max(last.image,response.transportAtMs!);
+    const budget = controlled?config.priorReservedUsdMicros+config.approvedUsdMicros
+      :run<=2 ? config.pilotUsdMicros : config.batchUsdMicros;
     let pilotBillingUsdMicros:z.infer<typeof reconciliationSchema>|undefined;
-    if(run>2){
+    if(!controlled&&run>2){
       const billingPath=join(directory,'verified-billing.json');
       const billing=await lstat(billingPath).then(info=>{
         if(!info.isFile()||info.isSymbolicLink()||info.size>4096)throw Error('invalid billing file');
@@ -121,7 +158,8 @@ export async function openBenchmarkRun(directory:string,config:BenchmarkConfig,r
       if(pilotExposure>config.pilotUsdMicros)throw Error('benchmark_pilot_budget_exceeded');
     }
     const remainingRounds=(run<=2 ? 2 : benchmarkOrder.length)-run+1;
-    if(spent + remainingRounds*maximumBenchmarkRound(config) > budget)
+    const roundReserve=controlled?runCaps.image*config.image.reserveUsdMicros:maximumBenchmarkRound(config);
+    if(spent + remainingRounds*roundReserve > budget)
       throw Error('benchmark_budget');
     const counts = {vlm:0,image:0};
     const lastMonotonic = {vlm:-Infinity,image:-Infinity};
@@ -133,12 +171,14 @@ export async function openBenchmarkRun(directory:string,config:BenchmarkConfig,r
 
     function makeRequest(kind:Kind):typeof fetch{
       return async (input,init)=>{
-        const expected = new URL(kind==='image'?'/openai/v1/images/edits':'/openai/v1/chat/completions',`https://${config[kind].host}`).href;
+        const settings=kind==='image'?config.image:controlled?null:config.vlm;
+        if(!settings){blocked=true;throw Error('benchmark_unexpected_request');}
+        const expected = new URL(kind==='image'?'/openai/v1/images/edits':'/openai/v1/chat/completions',`https://${settings.host}`).href;
         const body = init?.body;
         let deployment:unknown;
         try{deployment=body instanceof FormData ? body.get('model') : typeof body==='string' ? JSON.parse(body)?.model : null;}
         catch{blocked=true;throw Error('benchmark_unexpected_request');}
-        if(String(input)!==expected || init?.method!=='POST'||init.redirect!=='error'||deployment!==config[kind].deployment){
+        if(String(input)!==expected || init?.method!=='POST'||init.redirect!=='error'||deployment!==settings.deployment){
           blocked=true;
           throw Error('benchmark_unexpected_request');
         }
@@ -150,9 +190,14 @@ export async function openBenchmarkRun(directory:string,config:BenchmarkConfig,r
         let dispatchedRequest!:Promise<Response>;
         let dispatch!:number;
         let started!:number;
+        let transportAtMs:number|undefined;
         try{
           await previous;
-          const gap = config[kind].gapMs;
+          if(controlled){
+            if(!(body instanceof FormData)||!verifyPayload||counts[kind]>=runCaps[kind])throw Error('benchmark_limit');
+            await verifyPayload(body,counts.image);
+          }
+          const gap = settings.gapMs;
           let previousWall = last[kind];
           let previousMonotonic = lastMonotonic[kind];
           let atMs: number;
@@ -168,10 +213,10 @@ export async function openBenchmarkRun(directory:string,config:BenchmarkConfig,r
             // A timer can wake before the monotonic deadline. Recheck both clocks before dispatch.
             previousWall = atMs;
             previousMonotonic = monotonic;
-            await timers.setTimeout(Math.ceil(remaining),undefined,{signal});
+            await sleep(Math.ceil(remaining),signal);
           }
-          const cost = config[kind].reserveUsdMicros;
-          if(counts[kind]>=caps[kind]||spent+cost>budget){
+          const cost = settings.reserveUsdMicros;
+          if(counts[kind]>=runCaps[kind]||spent+cost>budget){
             blocked=true;
             throw Error('benchmark_limit');
           }
@@ -183,7 +228,17 @@ export async function openBenchmarkRun(directory:string,config:BenchmarkConfig,r
           dispatch = ++dispatchCount;
           started = performance.now();
           active++;
-          dispatchedRequest = Promise.resolve().then(()=>request(input,init));
+          dispatchedRequest = Promise.resolve().then(()=>{
+            if(controlled){
+              // The durable record holds dispatch intent. Pace from the actual start,
+              // after the prior fsync, so variable write latency cannot compress starts.
+              transportAtMs=Date.now();
+              if(transportAtMs<last[kind])throw Error('benchmark_clock');
+              last[kind]=transportAtMs;
+              started=lastMonotonic[kind]=performance.now();
+            }
+            return request(input,init);
+          });
         } catch(error) {
           blocked=true;
           throw error;
@@ -191,18 +246,24 @@ export async function openBenchmarkRun(directory:string,config:BenchmarkConfig,r
           release();
         }
         let status:number|null = null;
+        let headerAtMs:number|undefined;
         let failure:'timeout'|'cancelled'|'network'|null = null;
         try {
           const response = await dispatchedRequest;
+          if(controlled)headerAtMs=Date.now();
           status = response.status;
-          if(status===429)blocked=true;
+          if(status===429||(controlled&&!response.ok))blocked=true;
           return response;
         } catch(error){
           failure=signal?.aborted ? (signal.reason?.name==='TimeoutError'?'timeout':'cancelled') : 'network';
+          if(controlled){
+            blocked=true;
+            if(error instanceof Error&&error.name==='TimeoutError')failure='timeout';
+          }
           throw error;
         } finally {
           active--;
-          try{durableAppend(path,{event:'response',dispatch,status,elapsedMs:Math.round(performance.now()-started),failure});}
+          try{durableAppend(path,{event:'response',dispatch,status,elapsedMs:Math.round(performance.now()-started),failure,transportAtMs,headerAtMs});}
           catch(error){blocked=true;throw error;}
         }
       };
@@ -213,7 +274,7 @@ export async function openBenchmarkRun(directory:string,config:BenchmarkConfig,r
       async close(ok:boolean){
         if(finished||active)throw Error('benchmark_run_active');
         stopped=true;
-        durableAppend(path,{event:'run_end',run,ok:ok&&!blocked,at:new Date().toISOString()});
+        durableAppend(path,{event:'run_end',run,ok:ok&&!blocked&&(!controlled||counts.image===6),at:new Date().toISOString()});
         finished=true;
         await rmdir(lock);
       },

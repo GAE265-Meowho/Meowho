@@ -9,6 +9,7 @@ import {editAzureImage,imageEditConfig} from '../image-edit-client.ts';
 import {command} from './media.ts';
 import type {ReportViewIdentity} from './report-view-model.ts';
 import {measure,type JobProfile} from './job-profile.ts';
+import {runImageEditPool} from './image-edit-pool.ts';
 
 const hash=(b:Buffer)=>createHash('sha256').update(b).digest('hex');
 type Editor=typeof editAzureImage;
@@ -30,7 +31,6 @@ export async function renderVideoAfter(input:RiskObjectReport,visual:VisualRepor
  if(r.visual_comparisons.some(v=>v.after_generation_status.status!=='not_requested'))throw Error('Job already attempted image editing');
  const entries=planVisualCases(r,visual).filter(entry=>entry.reason==='selected');
  const failures:string[][]=entries.map(()=>[]);
- let cursor=0;
  async function processCase(entry:typeof entries[number],index:number){
   const recordFailure=(code:string)=>failures[index].push(code);
   const target=r.risk_objects.find(object=>object.object_id===entry.object_id)!;
@@ -74,14 +74,8 @@ export async function renderVideoAfter(input:RiskObjectReport,visual:VisualRepor
   pair.after_generation_status={status:'failed',model,input_sha256,error:deadline.aborted?'cancelled':'invalid_output'};
  }
  }
- const workers=Array.from({length:Math.min(concurrency,entries.length)},async()=>{
-  while(!signal.aborted&&cursor<entries.length){
-   const index=cursor++;
-   await measure(profile,'image_case',()=>processCase(entries[index],index),index);
-  }
- });
- const settled=await Promise.allSettled(workers);
- for(const result of settled)if(result.status==='rejected')throw result.reason;
+ await runImageEditPool(entries.length,concurrency,signal,index=>
+  measure(profile,'image_case',()=>processCase(entries[index],index),index));
  for(const code of failures.flat())recordFailure?.(code);
  return RiskObjectReportSchema.parse(r);
 }

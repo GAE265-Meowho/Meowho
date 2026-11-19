@@ -1,6 +1,6 @@
 # WelfareLens 影片分析效能驗收
 
-**狀態：已準備離線工具。真實 Pilot、六輪計時、計費、品質審查與並行決策均待測。**
+**狀態：完整 Pipeline 的 A／B Pilot 已完成。** 後續輪次與實際帳務仍待驗證。要分離改圖並行的影響，請使用 [固定六件改圖 Benchmark](./controlled-image-benchmark.md)。
 
 ## 問題與比較對象
 

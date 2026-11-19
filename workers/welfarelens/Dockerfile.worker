@@ -20,6 +20,7 @@ COPY src/server ./src/server
 COPY scripts/standalone-worker.ts ./scripts/standalone-worker.ts
 COPY scripts/meowho-worker.ts ./scripts/meowho-worker.ts
 COPY scripts/pipeline-benchmark.ts ./scripts/pipeline-benchmark.ts
+COPY scripts/controlled-image-benchmark.ts scripts/freeze-controlled-image-benchmark.ts ./scripts/
 COPY scripts/meowho-blob-smoke.ts ./scripts/meowho-blob-smoke.ts
 COPY evals/fixtures/worker-scene.json ./evals/fixtures/worker-scene.json
 ENV NODE_ENV=production ENABLE_CLOUD_ANALYSIS=false WELFARELENS_PDF_BROWSER=/usr/bin/chromium WELFARELENS_PDF_NO_SANDBOX=true HOME=/tmp
