@@ -86,6 +86,19 @@ describe("前導影片：產生影片", () => {
     expect(shots.find(s => s.no === 22)!.picture).toContain("呼應鏡 11：這次拇指沒有停");
   });
 
+  it("鏡 11 片段卡拆成 4 支短片，第 ① 支用計畫圖第 2 格（#545）", () => {
+    const s15 = SHOT_SECTIONS.flatMap(x => x.shots).flatMap(s => s.frames).find(f => f.id === "s15")!;
+    expect(CLIP_MOTION.s15.cuts).toHaveLength(4);
+    const p = motionPrompt(s15);
+    expect(p).toContain("Clip ① start frame = panel 2");
+    expect(p).toContain("Clip ② start frame = panel 5");
+    expect(p).toContain("Clip ③ start frame = panel 13");
+    expect(p).toContain("Clip ④ start frame = panel 15");
+    expect(p).toContain("Generate each clip for 5 seconds");
+    expect(p).toContain("rain ambience only");
+    expect(p).not.toContain("no scene cuts");
+  });
+
   it("每一鏡都不超過 10 秒（#517 Tina 確認）", () => {
     for (const s of SHOT_SECTIONS.flatMap(x => x.shots)) expect(shotSeconds(s), `鏡 ${s.no}`).toBeLessThanOrEqual(10);
   });

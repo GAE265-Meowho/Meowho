@@ -4,7 +4,7 @@
 // 最上方完整影片；每一段有段落影片與 (P) 生成紀錄；每格 AI 分鏡一張卡，主角是片段影片，
 // 圖生影片要用的起始畫面、參考圖、prompt 收在「生成素材」摺疊區。剪輯字卡不用生成，不列。
 // 第三段另有「系統錄影」（#529）：scripts/trailer-rec 在正式站照分鏡錄的真實產品畫面，剪輯與 AI 生圖時當參考。
-import { NEGATIVE_PROMPT, clipSections, motionPrompt, startFrameFileName, type ClipItem } from "@/lib/hq/videos/clips";
+import { CLIP_MOTION, NEGATIVE_PROMPT, clipSections, motionPrompt, startFrameFileName, type ClipItem } from "@/lib/hq/videos/clips";
 import { frameCounts } from "@/lib/hq/videos/trailer";
 import { videoSlotLabel } from "@/lib/hq/videos/trailer-video";
 import { VIDEO_AUDIO_RULE } from "@/lib/hq/videos/voice";
@@ -122,7 +122,7 @@ function ClipCard({ item, urlOf, copy, videos, edits }: { item: ClipItem; urlOf:
             <DownloadRef id={frame.id} url={url} fileName={startFrameFileName(frame.id)} />
           </div>
           <dl className="hq-video-shotinfo">
-            <div><dt>建議生成</dt><dd>{generate} 秒</dd></div>
+            <div><dt>建議生成</dt><dd>{CLIP_MOTION[frame.id]?.cuts ? `5 秒 × ${CLIP_MOTION[frame.id]!.cuts!.length} 支，各剪約 ${(cut / CLIP_MOTION[frame.id]!.cuts!.length).toFixed(1)} 秒` : `${generate} 秒`}</dd></div>
             <div><dt>畫面</dt><dd>{shotValue(shot, "picture", edits.eff)}</dd></div>
           </dl>
           <RefChips refs={frame.refs} urlOf={urlOf} />
