@@ -449,7 +449,7 @@ Worker 選用的 `report.html` 與 `html-assets/` 位於既有 attempt 前綴。
 
 ### WelfareLens 私有結構化報告（#273）
 
-效能驗收採本機 Docker。Pilot 兩輪的預算政策為 US$30，六輪暫留 US$40。後四輪須核對 Pilot 帳單並另行核准，原本的預留額持續計入。真實呼叫需先確認發布映像及成本。詳見 [Benchmark 紀錄](../../workers/welfarelens/docs/benchmarks/2026-11-pipeline-performance.md)。
+效能驗收採本機 Docker。已核准兩輪 US$30 Pilot，六輪暫留 US$40。後四輪須核對 Pilot 帳單並另行核准，原本的預留額持續計入。真實呼叫需先確認發布映像及成本。詳見 [Benchmark 紀錄](../../workers/welfarelens/docs/benchmarks/2026-11-pipeline-performance.md)。
 
 效能驗收使用獨立本機入口，可在不領取 Supabase 工作的情況下測量真實模型與本機報告。主機啟動器檢查 GHCR Digest、OCI revision、Image ID 及平台，並提供不建立請求帳本的斷網預檢。配額、預算、原始紀錄及人工品質標準見 [WelfareLens 效能驗收](../../workers/welfarelens/docs/benchmarks/2026-11-pipeline-performance.md)。雲端佇列、Blob 和租約恢復需獨立驗收。
 
