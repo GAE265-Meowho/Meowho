@@ -24,6 +24,8 @@ MeowHQ（`/MeowHQ`，取代舊隱藏後台）開發中：階段 0（#18）、db�
 2026-11-02（#93）：虛擬體驗元件管理「室內空間」新增**影片轉換**：管理員上傳影片建立工作，本機 worker 轉換後在後台查看 3D 房間，貓咪可走路、跳上床、推倒杯子。檢視器 `src/components/hq/assets/RoomViewer.tsx`，互動 `src/lib/hq/rooms/world.ts`（`cat.js`、`physics.js`、`audio.js` 來自影片轉 3D 專案）。
 
 ## 資料表（Supabase）
+- `meow_trailer_voice_specs`（0039，#504）：前導影片兩個角色的聲音規格（speaker＝xiaoju／xiaojie、tool、voice、settings、note、created_by、created_at），最新一筆＝目前規格。權限繼承影片頁（`meow_is_admin()` 查看、新增、刪除，不能修改）。測試 `node supabase/tests/run-pglite-0039.mjs`。**0039 須經 Tina 確認後執行。**
+- `meow_trailer_gen_logs`（0038，#494）：前導影片每一段的生成紀錄（section＝opening／cross／product／ending、tool、settings、inputs、prompt、negative_prompt、note、created_by、created_at）。權限繼承「影片」頁：`meow_is_admin()` 可查看、新增、刪除；不開放修改；新增時 created_by 必須是自己。測試 `node supabase/tests/run-pglite-0038.mjs`。**0038 已於 2026-11-18 22:49 前由 Tina 執行。**
 - `0014_meow_room_models.sql`（**尚未執行，須 Tina 確認**）：`meow_room_models`、`meow_room_jobs`；只有 `virtual_assets` 能讀寫，worker 用 service role。Bucket：`meow-room-videos`（私有）、`meow-room-models`（公開），見決策 008。
 - 已建立（`0001_meow.sql`）：`meow_shelter_verifications`（同一貓戶同時只能一筆審核中）、`meow_notifications`、`meow_site_settings`（key/value，公開讀、管理員寫）
 - `meow_profiles.role`（0001：member/admin；0002 起：member/admin/system_admin）、`meow_profiles.email`
@@ -102,6 +104,11 @@ MeowHQ（`/MeowHQ`，取代舊隱藏後台）開發中：階段 0（#18）、db�
 - **改母體的順序**：改 `stepB`／`stepC` → 在 Meow 用 Blender 5.2 跑 B、C（PowerShell 指令前要加 `&`）→ 複製 `base_clips.glb` 到 repo `public/hq-cat-models/base/` → 跑 `eat_drink.mjs` → 成貓再上傳 Storage。直接從 Blender 匯出會蓋掉 eat／drink 的修改；只換單一動作用 `scripts/clips/splice_clip.py`。
 
 ## 決策
+- 2026-11-19｜#504：旁白另外用 TTS 做，不用影片工具自帶的聲音；兩個角色各固定一組聲音規格（存 0039，保留歷史）。旁白音檔與影片共用 `/api/hq/trailer-videos`：格 n01–n27 收 MP3／WAV／M4A，其他格收影片。`NARRATION` 加 `shots`（每句落在哪幾鏡）。
+- 2026-11-18｜#501：完成的影片存 Azure Blob 私有容器（決策 006），路徑 `videos/trailer/<格>/<UTC 時間戳>.<副檔名>`，格＝full、四段代號、AI 片段 id；不建資料表，列出資料夾得知版本。`/api/hq/trailer-videos` GET 列版本並簽 1 小時播放／下載網址、POST 檢查（MP4／WebM／MOV、1 GB 內）後簽 15 分鐘上傳網址，瀏覽器直接 PUT。權限繼承影片頁（`meow_is_admin`）。不開放刪除（舊版保留）。**課程 Azure 額度 11/29 到期，最終版要另外備份。**
+- 2026-11-18｜#498：腳本 .md 下載內容以 `docs/video/前導影片分鏡腳本_v3.md` 為唯一來源，建置時包進前端；改原稿後跑 `npm run video:md`（predev／prebuild 也會跑）。
+- 2026-11-18｜#494：每段標題旁 (P) 開生成紀錄（原生 `<dialog>`）。紀錄不能改，要改就「再用一次」帶入舊內容新增一筆，保留每次嘗試的歷史。權限依 Tina 指示繼承頁面，不區分本人。
+- 2026-11-18｜#493：產生影片 tab 只列 AI 分鏡（27 段）；系統錄影、字卡不用生成。成片長度由分鏡表時間算（同一顆鏡頭多格平分），建議生成長度取 5／10／15 秒（Kling 3.0 單段最長 15 秒）。起始畫面固定檔名 `<格>.webp`。Canva 的影片生成需要付費方案，目前不接。
 - 2026-11-18｜#491：每格 AI 分鏡要掛的參考圖寫在 `FRAME_REFS`（角色在前、場景在後、最多 4 張），「用在哪些鏡頭」由它算出，不再手寫；參考圖對外的檔名固定為 `<id>.webp`（例如 `char-xiaoju.webp`），和 Storage 裡帶時間戳的檔名分開，prompt 只寫固定檔名。
 - 2026-11-18｜#489：「影片」和系統操作流程圖一樣是不需授權的側欄項目（`HQ_OPEN_ITEMS`）。分鏡圖存既有的 `meow-site-assets` bucket（`videos/trailer/<格>__<UTC 時間戳>.webp`），不新增資料表、不用執行 SQL；上傳前在瀏覽器縮到最長邊 1920px 的 WebP（bucket 上限 1 MB）。同一格重傳留舊版，畫面取最新。Tina 決定所有管理員都能上傳與查看：`0037_meow_trailer_frames.sql` 在 `storage.objects` 加兩條只限 `videos/trailer/%` 的 select／insert policy（`meow_is_admin()`），不開放刪除與更新；測試 `node supabase/tests/run-pglite-0037.mjs`。**0037 須經 Tina 確認後執行**，執行前只有系統管理員傳得上去。定景照依 Tina 確認共 3 張（中途之家門口＝阿芳家）；阿芳一律咖啡色針織外套。
 - 2026-11-13｜#409：幼貓貼圖改用「照片投影烘焙」（`Meow\cat_base_kitten\photo_bake\`）：原照片去背後找正交相機對位，依法線、遮擋加權投到 UV；AI 貼圖只當底圖（肚子、腿內側、眼鼻嘴）。網格、UV、動作不變，只換 `albedo_filled.png`。
@@ -147,6 +154,15 @@ ole === "admin" 判斷管理員，而現有 admin 會升為 system_admin；舊�
 | 2026-10-28 | Tina × Cursor | MeowHQ 階段 0：`src/lib/hq/types.ts` 與測試（8 種處置含 `unban`）、0002 資料表草案 | #18 |
 | 2026-10-29 | Tina × Cursor | MeowHQ 階段 1 db：`0002_meow_hq.sql`、`supabase/tests/`（SQL 測試與本機執行器） | #19 |
 | 2026-11-04 | Tina × Claude Code | MeowHQ 新增「貓戶管理」模組：依類別查看貓戶、貓咪卡片；0020 授權現有管理員 | #179 |
+| 2026-11-19 | Tina × Claude Code | 場景一縮短：鏡 2 改 0:06–0:10，其後鏡頭、段落、概要時間整批提前 20 秒（全片約 4:40）；測試檢查時間軸首尾相接 | #507 |
+| 2026-11-19 | Tina × Claude Code | 「前導影片：配音」tab（`?tab=trailer-voice`）：兩個角色聲音規格（0039）、27 句旁白音檔 n01–n27（Azure，同 `/api/hq/trailer-videos`）；影片 tab 加「生成時關掉聲音」提醒，圖生影片 prompt 加 Audio 指示；修 #501 API 測試型別錯誤 | #504 |
+| 2026-11-18 | Tina × Claude Code | 阿芳家定景加入中途貓短耳貓、灰寶（背景角色）；鏡 7、11、18 對應修改；鏡 2 prompt 指定上蓋兩片之間的縫、禁止側邊開口 | #502 |
+| 2026-11-18 | Tina × Claude Code | 「前導影片：產生影片」改名「前導影片：影片」：完整影片、段落影片、27 段片段的上傳／播放／下載／版本，存 Azure Blob（`/api/hq/trailer-videos`、`TrailerVideos.tsx`、`trailer-video.ts`）；生成素材收進摺疊區 | #501 |
+| 2026-11-18 | Tina × Claude Code | 同一鏡多格的標籤改「7-1 拍小橘吃飯」這類寫法（鏡 7、12、14、16、26），卡片標題與圖片說明一起改；`docs/video` 原稿同步 | #499 |
+| 2026-11-18 | Tina × Claude Code | 小橘移除左耳缺口設定；影片頁「下載最新腳本（.md）」：`scripts/gen-trailer-md.mjs`（predev／prebuild）把 `docs/video` 原稿包成 `trailer-md.generated.ts`，`trailer-md.test.ts` 擋未同步 | #495（#498） |
+| 2026-11-18 | Tina × Claude Code | 前導影片 v3 修訂：小傑改正常上下班（設定、鏡 4、鏡 19）、鏡 1 縮為 0:00–0:06（鏡 2 0:06–0:16、鏡 3 0:16–0:30）；`docs/video` 原稿的角色／定景表改由頁面資料產生，補小橘左耳缺口、小傑與情侶 prompt、套房鏡頭清單 | #495（#497） |
+| 2026-11-18 | Tina × Claude Code | 前導影片每段 (P) 生成紀錄：`meow_trailer_gen_logs`（0038）、`GenLog.tsx`、`src/lib/hq/videos/gen-log.ts`；補回 PR #492 合併時漏掉的 #493 產生影片 tab | #494 |
+| 2026-11-18 | Tina × Claude Code | 影片頁分 tab：「前導影片：分鏡」「前導影片：產生影片」（`?tab=trailer-clips`）；27 格圖生影片 prompt（動作、運鏡、起始畫面檔名、參考圖）、共用負面 prompt、成片／建議生成長度（`src/lib/hq/videos/clips.ts`） | #494（#493 原在 #492，合併時漏掉，改由 #494 帶入） |
 | 2026-11-18 | Tina × Claude Code | 前導影片：每格 AI 分鏡註明要掛的定角／定景（`FRAME_REFS`），完整 prompt 開頭寫「Image 1 = 檔名」；參考圖固定檔名下載（`<id>.webp`） | #491 |
 | 2026-11-18 | Tina × Claude Code | MeowHQ 新增「影片 › 前導影片」（`/MeowHQ/videos`）：v3 分鏡腳本、定角 4／定景 4、分鏡圖 35 格上傳與進度 | #489 |
 | 2026-11-18 | Tina × Claude Code | MeowHQ 新增「系統操作流程圖」（`/MeowHQ/flows`，貓戶／領養人分頁，所有管理員可看；內容在 `src/lib/hq/system-flows.ts`） | #468 |

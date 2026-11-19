@@ -751,3 +751,67 @@
 .hq-video-refchips b { font-weight: 500; }
 .hq-video-refthumb { flex: none; width: 36px; height: 36px; border-radius: 6px; overflow: hidden; background: var(--hq-bg); border: 1px solid var(--hq-line); display: grid; place-items: center; color: var(--hq-sub); font-size: .8rem; }
 .hq-video-refthumb img { width: 100%; height: 100%; object-fit: cover; }
+/* 前導影片：產生影片（#493） */
+.hq-video-sec h2 .hq-sub { font-weight: 400; font-size: .85rem; margin-left: .3rem; }
+.hq-video-steps { margin: 0; padding-left: 1.4rem; display: flex; flex-direction: column; gap: .25rem; font-size: .92rem; }
+.hq-video-clips { display: grid; gap: .85rem; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+.hq-video-clip { border: 1px solid var(--hq-line); border-radius: 10px; padding: .75rem .85rem; display: flex; flex-direction: column; gap: .5rem; min-width: 0; }
+.hq-video-clip .hq-h3 { margin: 0; }
+/* 前導影片生成紀錄（#494）：段落標題旁的 (P) 與紀錄對話框 */
+.hq-video-pbtn { display: inline-flex; align-items: center; gap: .25rem; min-height: 32px; padding: 0 .55rem; margin-left: .35rem; border: 1px solid var(--hq-line); border-radius: 999px; background: var(--hq-card); color: var(--hq-sage-ink); font-size: .85rem; font-weight: 500; vertical-align: middle; cursor: pointer; }
+.hq-video-pbtn:hover { border-color: var(--hq-sage); }
+.hq-video-pbtn:focus-visible { outline: 2px solid var(--hq-sage); outline-offset: 2px; }
+.hq-video-pcount { min-width: 1.2rem; height: 1.2rem; border-radius: 999px; background: var(--hq-sage); color: #fff; font-size: .72rem; display: inline-grid; place-items: center; padding: 0 .3rem; }
+.hq-video-dialog { width: min(720px, calc(100vw - 1.5rem)); max-height: calc(100dvh - 2rem); padding: 0; border: 1px solid var(--hq-line); border-radius: 12px; background: var(--hq-card); color: inherit; }
+.hq-video-dialog::backdrop { background: rgba(40, 36, 30, .45); }
+.hq-video-dialog-in { padding: 1rem 1.1rem 1.2rem; display: flex; flex-direction: column; gap: .8rem; }
+.hq-video-dialog-in > header { justify-content: space-between; flex-wrap: nowrap; position: sticky; top: 0; background: var(--hq-card); padding-bottom: .4rem; z-index: 1; }
+.hq-video-dialog-in h2 { margin: 0; font-size: 1rem; }
+.hq-video-logs { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .7rem; }
+.hq-video-log { border: 1px solid var(--hq-line); border-radius: 10px; padding: .7rem .8rem; display: flex; flex-direction: column; gap: .4rem; font-size: .9rem; }
+.hq-video-log p { margin: 0; overflow-wrap: anywhere; }
+.hq-video-logprompt { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; font-family: inherit; font-size: .85rem; line-height: 1.5; background: var(--hq-bg); border-radius: 8px; padding: .5rem .65rem; max-height: 14rem; overflow: auto; }
+.hq-video-logform { display: flex; flex-direction: column; gap: .6rem; border-top: 1px dashed var(--hq-line); padding-top: .8rem; }
+.hq-video-logform .hq-h3 { margin: 0; }
+.hq-video-field { display: flex; flex-direction: column; gap: .25rem; }
+.hq-video-field label { font-size: .88rem; font-weight: 500; }
+.hq-video-field input, .hq-video-field textarea { width: 100%; font: inherit; font-size: 16px; border: 1px solid var(--hq-line); border-radius: 8px; padding: .5rem .6rem; background: #fff; min-height: 44px; }
+.hq-video-field textarea { resize: vertical; }
+.hq-video-field [aria-invalid="true"] { border-color: #B4533A; }
+.hq-video-field .hq-error { margin: 0; }
+.hq-video-sechead { display: flex; align-items: center; flex-wrap: wrap; gap: .3rem; }
+.hq-video-sechead .hq-h3, .hq-video-sechead h2 { margin: 0; }
+.hq-video-sechead .hq-video-pbtn { margin-left: 0; }
+.hq-video-dialog-in > header .hq-btn { flex: none; white-space: nowrap; }
+/* 下載最新腳本（#498） */
+.hq-video-download { margin: -.25rem 0 .75rem; flex-wrap: wrap; }
+.hq-video-download .hq-sub { overflow-wrap: anywhere; }
+/* 同一鏡多格的標籤（#499） */
+.hq-video-framelabel { font-size: .88rem; font-weight: 600; color: var(--hq-ink, inherit); }
+/* 前導影片：影片（#501）：完整影片、段落影片、片段播放與上傳 */
+.hq-video-vslot { display: flex; flex-direction: column; gap: .45rem; min-width: 0; }
+.hq-video-player { background: #1f1c18; border-style: solid; }
+.hq-video-player video { width: 100%; height: 100%; display: block; object-fit: contain; background: #000; }
+.hq-video-player .hq-sub { color: #cfc8bd; }
+.hq-video-full { max-width: 960px; }
+.hq-video-section { display: flex; flex-direction: column; gap: .45rem; max-width: 560px; padding-bottom: .4rem; }
+.hq-video-section .hq-h3, .hq-video-sec > .hq-h3 { margin: 0; font-size: .95rem; }
+.hq-video-version { display: inline-flex; align-items: center; gap: .35rem; }
+.hq-video-version select { font: inherit; font-size: 16px; min-height: 36px; border: 1px solid var(--hq-line); border-radius: 8px; padding: 0 .4rem; background: #fff; }
+.hq-video-material { border-top: 1px dashed var(--hq-line); padding-top: .35rem; }
+.hq-video-material > summary { cursor: pointer; min-height: 36px; display: flex; align-items: center; color: var(--hq-sage-ink); font-size: .9rem; }
+.hq-video-material-in { display: flex; flex-direction: column; gap: .5rem; padding-top: .3rem; }
+.hq-video-clip h4.hq-h3 { margin: 0; font-size: .98rem; }
+/* 前導影片：配音（#504）與影片 tab 的聲音提醒 */
+.hq-video-callout { border: 1px solid var(--hq-caramel); background: var(--hq-caramel-soft); color: var(--hq-caramel-ink); border-radius: 10px; padding: .75rem .9rem; display: flex; flex-direction: column; gap: .25rem; font-size: .95rem; }
+.hq-video-callout .hq-sub { color: inherit; opacity: .85; }
+.hq-video-speakers { display: grid; gap: .85rem; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+.hq-video-speaker { border: 1px solid var(--hq-line); border-radius: 10px; padding: .75rem .85rem; display: flex; flex-direction: column; gap: .45rem; font-size: .92rem; min-width: 0; }
+.hq-video-speaker .hq-h3 { margin: 0; }
+.hq-video-speaker p { margin: 0; overflow-wrap: anywhere; }
+.hq-video-current { background: var(--hq-bg); border-radius: 8px; padding: .55rem .7rem; display: flex; flex-direction: column; gap: .3rem; }
+.hq-video-material-sum { cursor: pointer; min-height: 36px; display: flex; align-items: center; color: var(--hq-sage-ink); font-size: .9rem; }
+.hq-video-lines { list-style: none; margin: 0; padding: 0; display: grid; gap: .6rem; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+.hq-video-line-row { border: 1px solid var(--hq-line); border-radius: 10px; padding: .6rem .75rem; display: flex; flex-direction: column; gap: .4rem; min-width: 0; }
+.hq-video-line-text { margin: 0; font-size: .95rem; line-height: 1.6; }
+.hq-video-audio { width: 100%; height: 40px; }
