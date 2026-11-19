@@ -13,7 +13,7 @@ import { getBrowserSupabase } from "@/lib/supabase/client";
 import {
   CHARACTERS, FRAME_MAKE_LABELS, FRAME_MAX_BYTES, LINE_LOOK, MATCH_CUTS, NARRATION, SCENES, SHOT_SECTIONS,
   TRAILER_BUCKET, TRAILER_DIR, TRAILER_FACTS, TRAILER_SUMMARY, TRAILER_TITLE,
-  fitWithin, frameCounts, frameStoragePath, fullPrompt, latestBySlot, refById, refFileName, uploadProgress, usedInShots, validateFrameFile,
+  fitWithin, frameCounts, frameStoragePath, fullPrompt, latestBySlot, refById, refFileName, uploadProgress, usedInShots, validateFrameFile, withoutVersion,
   type Frame, type FrameMake, type RefSlot, type Shot, type SlotUpload,
 } from "@/lib/hq/videos/trailer";
 
@@ -54,12 +54,12 @@ export function useTrailerUploads() {
     setLoaded(true);
   }, [canList]);
   useEffect(() => { void load(); }, [load]);
-  const urlOf = useCallback((id: string) => {
-    const u = uploads[id];
+  const urlOfName = useCallback((name: string) => {
     const sb = getBrowserSupabase();
-    return u && sb ? sb.storage.from(TRAILER_BUCKET).getPublicUrl(`${TRAILER_DIR}/${u.name}`).data.publicUrl : null;
-  }, [uploads]);
-  return { uploads, setUploads, loaded, canUpload: canList, urlOf };
+    return sb ? sb.storage.from(TRAILER_BUCKET).getPublicUrl(`${TRAILER_DIR}/${name}`).data.publicUrl : null;
+  }, []);
+  const urlOf = useCallback((id: string) => (uploads[id] ? urlOfName(uploads[id].name) : null), [uploads, urlOfName]);
+  return { uploads, setUploads, loaded, canUpload: canList, urlOf, urlOfName };
 }
 
 /** 複製到剪貼簿並提示 */
@@ -72,7 +72,7 @@ export function useCopy() {
 }
 
 export function TrailerBoard() {
-  const { uploads, setUploads, loaded, canUpload, urlOf } = useTrailerUploads();
+  const { uploads, setUploads, loaded, canUpload, urlOf, urlOfName } = useTrailerUploads();
   const toast = useHqToast();
   const [filter, setFilter] = useState<Filter>("all");
   const counts = frameCounts();
@@ -89,8 +89,17 @@ export function TrailerBoard() {
     const { error } = await sb.storage.from(TRAILER_BUCKET).upload(path, blob, { contentType: "image/webp", upsert: false });
     if (error) return "上傳失敗，請稍後再試；一直失敗請確認 0037 已執行";
     const name = path.slice(TRAILER_DIR.length + 1);
-    setUploads(u => ({ ...u, [slotId]: { name, versions: (u[slotId]?.versions ?? 0) + 1 } }));
+    setUploads(u => { const all = [name, ...(u[slotId]?.all ?? [])]; return { ...u, [slotId]: { name, versions: all.length, all } }; });
     toast.show({ message: "已上傳" });
+    return null;
+  }, [setUploads, toast]);
+
+  // 刪掉某一版（#547）：bucket 不給前端刪，走 /api/hq/trailer-frames（伺服器再檢查一次管理員）
+  const remove = useCallback(async (name: string): Promise<string | null> => {
+    const res = await fetch("/api/hq/trailer-frames", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name }) }).catch(() => null);
+    if (!res?.ok) return res?.status === 403 ? "只有管理員可以刪除" : "刪除失敗，請稍後再試";
+    setUploads(u => withoutVersion(u, name));
+    toast.show({ message: "已刪除" });
     return null;
   }, [setUploads, toast]);
 
@@ -98,7 +107,7 @@ export function TrailerBoard() {
   const genLogs = useGenLogs();
   const edits = useScriptEdits();
 
-  const slot = { urlOf, uploads, canUpload, upload, copy };
+  const slot = { urlOf, urlOfName, uploads, canUpload, upload, remove, copy };
   const showShot = (s: Shot) => s.frames.some(f => filter === "all" || (filter === "missing" ? !uploads[f.id] : f.make === filter));
 
   return (
@@ -200,14 +209,16 @@ function Progress({ label, done, total }: { label: string; done: number; total: 
 
 export type SlotProps = {
   urlOf: (id: string) => string | null;
+  urlOfName: (name: string) => string | null;
+  remove: (name: string) => Promise<string | null>;
   uploads: Uploads;
   canUpload: boolean;
   upload: (id: string, file: File) => Promise<string | null>;
   copy: (text: string) => void;
 };
 
-/** 一格圖片：固定比例框、有圖顯示最新版（點開看原圖），可上傳或換一張 */
-function ImageSlot({ id, alt, ratio, urlOf, uploads, canUpload, upload }: SlotProps & { id: string; alt: string; ratio: "wide" | "square" }) {
+/** 一格圖片：固定比例框、有圖顯示最新版（點開看原圖），可上傳或換一張；每一版都保留成縮圖，可個別刪除（#547） */
+function ImageSlot({ id, alt, ratio, urlOf, urlOfName, uploads, canUpload, upload, remove }: SlotProps & { id: string; alt: string; ratio: "wide" | "square" }) {
   const input = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
@@ -235,8 +246,27 @@ function ImageSlot({ id, alt, ratio, urlOf, uploads, canUpload, upload }: SlotPr
             </button>
           </>
         )}
-        {versions > 1 && <span className="hq-sub">第 {versions} 版</span>}
+        {versions > 1 && <span className="hq-sub">共 {versions} 版</span>}
       </div>
+      {canUpload && versions > 0 && (
+        <ul className="hq-video-versions" aria-label={`${alt}的所有版本`}>
+          {(uploads[id]?.all ?? []).map((name, i) => {
+            const u = urlOfName(name);
+            const no = versions - i;
+            return (
+              <li key={name}>
+                {u && <a href={u} target="_blank" rel="noopener" aria-label={`開啟第 ${no} 版`}><img src={u} alt={`${alt} 第 ${no} 版`} loading="lazy" /></a>}
+                <span className="hq-sub">第 {no} 版{i === 0 ? "（顯示中）" : ""}</span>
+                <button type="button" className="hq-btn ghost small hq-btn-del" disabled={busy}
+                  onClick={async () => {
+                    if (!window.confirm(`確定刪除「${alt}」第 ${no} 版？刪除後無法復原。`)) return;
+                    setBusy(true); setMsg(await remove(name)); setBusy(false);
+                  }}>刪除</button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
       {msg && <p className="hq-error" role="alert">{msg}</p>}
     </div>
   );

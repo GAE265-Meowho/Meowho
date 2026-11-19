@@ -351,18 +351,36 @@ export function frameStoragePath(slotId: string, now: Date): string {
   return `${TRAILER_DIR}/${slotId}__${ts}.webp`;
 }
 
-export type SlotUpload = { name: string; versions: number };
-/** 由資料夾裡的檔名找出每一格的最新版（檔名時間戳可以直接比字串） */
+/** all：這一格的每一版檔名，新到舊（#547：舊版保留顯示，可以個別刪除） */
+export type SlotUpload = { name: string; versions: number; all: string[] };
+const FRAME_FILE = /^([a-z0-9-]+)__(\d{14})\.webp$/;
+/** 是不是某一格的分鏡圖檔名（刪除 API 用，擋掉路徑與不認得的格） */
+export function isFrameFileName(name: string): boolean {
+  const m = FRAME_FILE.exec(name);
+  return Boolean(m && allSlotIds().includes(m[1]));
+}
+/** 由資料夾裡的檔名找出每一格的最新版與所有版本（檔名時間戳可以直接比字串） */
 export function latestBySlot(names: readonly string[]): Record<string, SlotUpload> {
   const known = new Set(allSlotIds());
-  const out: Record<string, SlotUpload> = {};
+  const all: Record<string, string[]> = {};
   for (const name of names) {
-    const m = /^([a-z0-9-]+)__(\d{14})\.webp$/.exec(name);
+    const m = FRAME_FILE.exec(name);
     if (!m || !known.has(m[1])) continue;
-    const prev = out[m[1]];
-    out[m[1]] = { name: !prev || name > prev.name ? name : prev.name, versions: (prev?.versions ?? 0) + 1 };
+    (all[m[1]] ??= []).push(name);
   }
-  return out;
+  return Object.fromEntries(Object.entries(all).map(([id, list]) => {
+    const sorted = [...list].sort().reverse();
+    return [id, { name: sorted[0], versions: sorted.length, all: sorted }];
+  }));
+}
+/** 刪掉一版後的狀態：那一格沒有版本了就整格拿掉 */
+export function withoutVersion(uploads: Record<string, SlotUpload>, name: string): Record<string, SlotUpload> {
+  const id = FRAME_FILE.exec(name)?.[1];
+  if (!id || !uploads[id]) return uploads;
+  const rest = uploads[id].all.filter(n => n !== name);
+  const { [id]: _gone, ...others } = uploads;
+  void _gone;
+  return rest.length ? { ...others, [id]: { name: rest[0], versions: rest.length, all: rest } } : others;
 }
 
 /** 進度：哪一類完成幾格 */
