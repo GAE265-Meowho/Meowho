@@ -1,5 +1,11 @@
 # Azure VM Worker 操作
 
+## 私有 GHCR 發布（#519）
+
+發布者從已通過 CI 的 main 提交建立尚未使用的 `welfarelens-v*` Tag，並先確認 `WELFARELENS_GHCR_RELEASE=true`。團隊應限制可建立發布標籤的人員，並維持 GHCR Package 為 Private。發布工作會在建置前確認提交已進入 main。一般 PR 和 main CI 只具備 `contents: read`，只有符合發布條件的 Tag 工作可使用 `packages: write`。
+
+發布工作在同一 runner 內建置 Linux AMD64、測試並推送同一個本機 Image ID。以 Actions 摘要列出的 GHCR Digest、Image ID 和 OCI Revision 驗收。完整映像封存檔只可由授權的人員在私有環境製作與傳輸，勿上傳公開 repo 的 Actions Artifacts。既有 Tag 的重跑仍會使用當時的 Workflow，請勿重跑舊版發布流程。
+
 ## 離線驗證及回復
 
 從 `workers/welfarelens/` 操作。更新前記下現行映像的完整 digest 或本機 ID、容器名稱及啟動參數。保留上一版本。在獲准的測試 VM 核對新映像：

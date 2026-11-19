@@ -13,6 +13,7 @@
 - AI 居家安全報告首屏與圖片載入（Jerry0808 × Codex）：分支 `codex/home-safety-report-ux`，審查中。沿用 #273 報告授權；待驗收 Preview 的真實 Owner 登入及 Azure 延遲。
 
 - AI 居家安全報告與 WelfareLens Benchmark（Jerry0808 × Codex，#273）：#496、#509 已合併。Benchmark 計時器修正審查中。已核准發布私有 GHCR RC 及本機兩輪 US$30 Pilot，須先由修正後的 main 通過 Worker CI 並驗證 Registry Digest。六輪暫留 US$40，後四輪需 Pilot 對帳及另行核准。
+- WelfareLens 私有映像發布（Jerry0808 × Codex，#519，審查中）：RC.1 已發布。修正未來的完整映像封存流程，待審查及後續受信任 Tag 實際驗收。
 - AI 居家安全報告 V3 主線整合（Jerry0808 × Codex，#273）：分支 `codex/home-safety-v3-main`，審查中。
 - AI 居家環境安全檢測對外命名（Jerry0808 × Codex，關聯 #424）：分支 `chore/meowhome-home-safety-naming`，審查中。
 
