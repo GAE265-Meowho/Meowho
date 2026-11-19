@@ -763,6 +763,7 @@
 .hq-video-steps { margin: 0; padding-left: 1.4rem; display: flex; flex-direction: column; gap: .25rem; font-size: .92rem; }
 .hq-video-clips { display: grid; gap: .85rem; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
 .hq-video-clip { border: 1px solid var(--hq-line); border-radius: 10px; padding: .75rem .85rem; display: flex; flex-direction: column; gap: .5rem; min-width: 0; }
+.hq-video-composite { border-style: dashed; border-color: var(--hq-accent, #b8742a); background: rgba(184, 116, 42, .05); }
 .hq-video-clip .hq-h3 { margin: 0; }
 /* 前導影片生成紀錄（#494）：段落標題旁的 (P) 與紀錄對話框 */
 .hq-video-pbtn { display: inline-flex; align-items: center; gap: .25rem; min-height: 32px; padding: 0 .55rem; margin-left: .35rem; border: 1px solid var(--hq-line); border-radius: 999px; background: var(--hq-card); color: var(--hq-sage-ink); font-size: .85rem; font-weight: 500; vertical-align: middle; cursor: pointer; }

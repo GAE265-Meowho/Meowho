@@ -1,9 +1,17 @@
 import { describe, expect, it } from "vitest";
 import {
-  MAX_TRAILER_VIDEO_BYTES, checkTrailerVideo, groupTrailerVideos, isVideoSlot, trailerVideoFileName, trailerVideoPath, videoSlotLabel, videoSlots,
+  MAX_TRAILER_VIDEO_BYTES, checkTrailerVideo, compositeShots, groupTrailerVideos, isVideoSlot, trailerVideoFileName, trailerVideoPath, videoSlotLabel, videoSlots,
 } from "./trailer-video";
 
 describe("前導影片的影片檔（#501）", () => {
+  it("兩格以上或拆成多支短片的鏡頭有整鏡成品格 m-<第一格代號>（#548）", () => {
+    const m = videoSlots().filter(x => x.kind === "shot");
+    expect(m.map(x => x.id)).toEqual(["m-s07", "m-s12", "m-s10", "m-s14", "m-s15", "m-s16", "m-s26"]);
+    expect(videoSlotLabel("m-s16")).toBe("鏡 12 整鏡成品");
+    expect(compositeShots().find(c => c.id === "m-s16")!.shot.no).toBe(12);
+    expect(isVideoSlot("m-s16")).toBe(true);
+  });
+
   it("可放影片的格：完整影片 1、四段 4、AI 片段 26、旁白 25", () => {
     const s = videoSlots();
     expect(s.filter(x => x.kind === "full")).toHaveLength(1);

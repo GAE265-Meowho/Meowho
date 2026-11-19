@@ -6,7 +6,7 @@
 // 第三段另有「系統錄影」（#529）：scripts/trailer-rec 在正式站照分鏡錄的真實產品畫面，剪輯與 AI 生圖時當參考。
 import { CLIP_MOTION, NEGATIVE_PROMPT, clipSections, motionPrompt, startFrameFileName, type ClipItem } from "@/lib/hq/videos/clips";
 import { frameCounts } from "@/lib/hq/videos/trailer";
-import { videoSlotLabel } from "@/lib/hq/videos/trailer-video";
+import { compositeShots, videoSlotLabel } from "@/lib/hq/videos/trailer-video";
 import { VIDEO_AUDIO_RULE } from "@/lib/hq/videos/voice";
 import { REC_CLIPS } from "@/lib/hq/videos/rec-clips";
 import { GenLogButton, useGenLogs } from "./GenLog";
@@ -68,7 +68,13 @@ export function ClipsBoard() {
           </div>
           <h3 className="hq-h3">片段</h3>
           <div className="hq-video-clips">
-            {sec.items.map(item => <ClipCard key={item.frame.id} item={item} urlOf={urlOf} copy={copy} videos={videos} edits={edits} />)}
+            {sec.items.flatMap((item, i) => {
+              const cards = [<ClipCard key={item.frame.id} item={item} urlOf={urlOf} copy={copy} videos={videos} edits={edits} />];
+              // #548：多格（或拆成多支短片）的鏡頭，最後一張片段卡後面接「整鏡成品」
+              const comp = COMPOSITES.get(item.shot.no);
+              if (comp && sec.items[i + 1]?.shot.no !== item.shot.no) cards.push(<CompositeCard key={comp} slot={comp} item={item} videos={videos} edits={edits} />);
+              return cards;
+            })}
           </div>
           {sec.key === "product" && <RecClips videos={videos} />}
         </section>
@@ -96,6 +102,25 @@ function RecClips({ videos }: { videos: TrailerVideosState }) {
         ))}
       </div>
     </>
+  );
+}
+
+const COMPOSITES = new Map(compositeShots().map(c => [c.shot.no, c.id]));
+
+/** 整鏡成品（#548）：把這一鏡的幾支片段剪好／合成（例如分割畫面）後上傳 */
+function CompositeCard({ slot, item, videos, edits }: { slot: string; item: ClipItem; videos: TrailerVideosState; edits: ScriptEditsState }) {
+  const { shot, cut } = item;
+  const title = videoSlotLabel(slot);
+  const parts = shot.frames.length >= 2 ? shot.frames.map(f => videoSlotLabel(f.id)).join("＋") : `鏡 ${shot.no} 的 ${CLIP_MOTION[shot.frames[0].id]?.cuts?.length ?? 0} 支短片`;
+  return (
+    <article className="hq-video-clip hq-video-composite" aria-label={title}>
+      <header className="hq-row">
+        <h4 className="hq-h3">{title}</h4>
+        <span className="hq-sub">{shot.time}・成片 {cut} 秒</span>
+      </header>
+      <VideoSlot slot={slot} label={title} state={videos} emptyText="把這一鏡剪好或合成後上傳" />
+      <p className="hq-sub">由 {parts} 剪接／合成：{shotValue(shot, "picture", edits.eff)}</p>
+    </article>
   );
 }
 
