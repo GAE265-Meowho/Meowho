@@ -6,7 +6,9 @@ import {
 } from "./trailer";
 import { VIDEO_AUDIO_PROMPT } from "./voice";
 
-export type ClipMotion = { action: string; camera: string };
+/** cuts（#545）：一鏡太短、要拆成幾支短片分別生成時用；每支用分鏡計畫圖的某一格當起始畫面 */
+export type ClipCut = { panel: number; title: string; action: string; camera: string };
+export type ClipMotion = { action: string; camera: string; cuts?: ClipCut[]; cutNote?: string };
 
 /** 每格 AI 分鏡的動作與運鏡（英文，直接貼進圖生影片工具） */
 export const CLIP_MOTION: Record<string, ClipMotion> = {
@@ -23,7 +25,17 @@ export const CLIP_MOTION: Record<string, ClipMotion> = {
   s13: { action: "He slowly looks down at the cable tangle under his desk and frowns; he nudges one cable with his foot.", camera: "Same doorway framing as 9-1; slow push-in toward the cables under the desk. Do not move any furniture." },
   "s14-1": { action: "A cat paw steps onto the pile of bills; the papers shift slightly.", camera: "Static top-down shot." },
   "s14-2": { action: "The cat hides under the sofa with wide eyes; the out-of-focus couple argues and gestures in the background.", camera: "Static low shot from under the sofa." },
-  s15: { action: "He leaves the desk, sits down on the sofa and picks up his phone; his thumb hovers over the button, trembles slightly and pulls back; he locks the screen and the dark screen reflects his face.", camera: "Start on the wide doorway shot matching 9-1, then close-ups of the phone, his thumb and his face (cut together in editing; the planned panel sequence is kept)." },
+  s15: {
+    action: "He sits on the sofa holding his phone; his thumb hovers over the button and pulls back; he locks the screen and the dark screen reflects his face.",
+    camera: "Four short clips cut together in editing (see below).",
+    cuts: [
+      { panel: 2, title: "medium shot on the sofa", action: "The man sits on the edge of the sofa leaning forward, holding his phone in both hands; he stops scrolling and stares at the screen, completely still except for slow breathing. Rain runs down the window behind him.", camera: "Static medium shot from the side, very slow push-in toward his face and the phone. Keep the sofa, the floor lamp, the coffee table with the mug and the book, and the rainy window exactly as in the start frame; do not add or move any furniture." },
+      { panel: 5, title: "thumb hovering", action: "His thumb hovers just above the phone screen, trembles slightly, almost touches it, then slowly pulls back without tapping. The screen stays blurred with no readable text.", camera: "Static extreme close-up on the thumb and screen, shallow depth of field." },
+      { panel: 13, title: "his face", action: "He looks down at the phone, swallows, his eyes lower and he lets out a quiet breath; a faint frown.", camera: "Static close-up on his face, very slow push-in." },
+      { panel: 15, title: "dark screen reflection", action: "He presses the side button and the screen goes dark; his face and glasses become faintly reflected on the black glass; he holds still.", camera: "Static close-up on the phone in his hands, focus shifts slightly onto the reflection." },
+    ],
+    cutNote: "Shot 11 is only 6 seconds: take about 1.5 seconds from each clip, in the order ① ② ③ ④. The adoption page with the 我想領養 button is composited onto clip ② in editing; the voice-over starts on clip ③. Extra negative prompt: readable text on screen, extra fingers, deformed hands, furniture moving, daylight, camera shake.",
+  },
   "s16-1": { action: "Afang opens the box, lifts the wet cat into her arms and holds it tight, tears in her eyes.", camera: "Slow push-in." },
   "s16-2": { action: "Xiaojie stands still by the window watching the rain, breathing slowly.", camera: "Static silhouette shot with a slow push-in." },
   s18: { action: "Afang films the cat playing with a toy on the floor and smiles at her phone screen.", camera: "Gentle handheld shot at eye level." },
@@ -65,6 +77,7 @@ export function motionPrompt(frame: Frame): string {
   const m = CLIP_MOTION[frame.id];
   if (frame.make !== "ai" || !m) return "";
   const refs = frame.refs.map(refById).filter((r): r is RefSlot => Boolean(r));
+  if (m.cuts?.length) return cutsPrompt(frame, m, refs);
   const lines = [
     `Image-to-video. Start frame = ${startFrameFileName(frame.id)} (the storyboard image of this shot).`,
     ...(refs.length ? ["Reference images (attach in this order):", ...refs.map((r, i) => `Image ${i + 1} = ${refFileName(r.id)}: ${r.en}.`)] : []),
@@ -74,6 +87,19 @@ export function motionPrompt(frame: Frame): string {
     VIDEO_AUDIO_PROMPT, // #504：旁白、配樂、字幕都在剪輯時才加
   ];
   return lines.join("\n");
+}
+
+/** 拆成幾支短片的鏡頭（#545）：共用開頭＋每支一段，起始畫面是分鏡計畫圖的第幾格 */
+function cutsPrompt(frame: Frame, m: ClipMotion, refs: RefSlot[]): string {
+  const marks = ["①", "②", "③", "④", "⑤", "⑥"];
+  return [
+    `Image-to-video, ${m.cuts!.length} separate short clips. The start frames are panels of the storyboard plan for this shot (${startFrameFileName(frame.id)}). Generate each clip for 5 seconds.`,
+    ...(refs.length ? ["Reference images (attach in this order):", ...refs.map((r, i) => `Image ${i + 1} = ${refFileName(r.id)}: ${r.en}.`)] : []),
+    "For every clip: keep the man's face, glasses, gray T-shirt, the room and the lighting exactly as in the start frame. Rainy night, warm lamp light mixed with cool blue window light. Natural, gentle motion. Audio: rain ambience only.",
+    VIDEO_AUDIO_PROMPT,
+    ...m.cuts!.flatMap((c, i) => ["", `Clip ${marks[i]} start frame = panel ${c.panel} (${c.title})`, `Action: ${c.action}`, `Camera: ${c.camera}`]),
+    ...(m.cutNote ? ["", m.cutNote] : []),
+  ].join("\n");
 }
 
 export type ClipItem = { shot: Shot; frame: Frame; cut: number; generate: 5 | 10 | 15 };
