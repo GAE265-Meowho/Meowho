@@ -158,6 +158,7 @@ ole === "admin" 判斷管理員，而現有 admin 會升為 system_admin；舊�
 | 2026-10-28 | Tina × Cursor | MeowHQ 階段 0：`src/lib/hq/types.ts` 與測試（8 種處置含 `unban`）、0002 資料表草案 | #18 |
 | 2026-10-29 | Tina × Cursor | MeowHQ 階段 1 db：`0002_meow_hq.sql`、`supabase/tests/`（SQL 測試與本機執行器） | #19 |
 | 2026-11-04 | Tina × Claude Code | MeowHQ 新增「貓戶管理」模組：依類別查看貓戶、貓咪卡片；0020 授權現有管理員 | #179 |
+| 2026-11-19 | Tina × Claude Code | 鏡 5-2 改為夜間吹風機、小橘躲進貓床；英文與動作 prompt 去除衝突（沙發、日光、筆記本字跡）（#530） |
 | 2026-11-19 | Tina × Claude Code | 前導影片腳本進版 v4（`docs/video/前導影片分鏡腳本_v4.md`，下載檔名同步）：鏡 2 旁白採珮瑜在頁面的修改，s02 動作 prompt 補發抖、舔嘴唇（#526） |
 | 2026-11-19 | Tina × Claude Code | 鏡 27 改為小傑坐沙發抱小橘；英文 prompt 依套房定景寫明家具位置，參考圖加小傑定角（#524） |
 | 2026-11-19 | Tina × Claude Code | 前導影片每鏡不超過 10 秒；鏡 2 小橘心聲加長（0:06–0:15），鏡 3、4、12 縮短，全片仍 3:00（#517） |
