@@ -99,6 +99,19 @@ export function VideoSlot({ slot, label, state, emptyText = "還沒有影片", m
     await state.reload();
   }
 
+  /** #553：刪除目前選的版本，刪除前再確認一次；無法復原 */
+  async function remove() {
+    if (!v || !window.confirm(`確定刪除「${label}」${formatLogTime(v.at)} 這個版本？刪除後無法復原。`)) return;
+    setMsg(null);
+    const res = await fetch("/api/hq/trailer-videos", {
+      method: "DELETE", headers: { "content-type": "application/json" }, body: JSON.stringify({ path: v.path }),
+    }).catch(() => null);
+    if (!res?.ok) { setMsg("刪除失敗，請重新整理後再試"); return; }
+    toast.show({ message: `已刪除：${label} ${formatLogTime(v.at)}` });
+    setPick(0);
+    await state.reload();
+  }
+
   return (
     <div className="hq-video-vslot">
       {media === "audio" ? (
@@ -125,6 +138,10 @@ export function VideoSlot({ slot, label, state, emptyText = "還沒有影片", m
           </>
         )}
         {v && <a className="hq-btn ghost small" href={v.downloadUrl}>下載</a>}
+        {enabled && v && (
+          <button type="button" className="hq-btn ghost small" disabled={progress !== null}
+            aria-label={`刪除這個版本：${label} ${formatLogTime(v.at)}`} onClick={() => void remove()}>刪除這個版本</button>
+        )}
         {versions.length > 1 && (
           <label className="hq-video-version">
             <span className="hq-sub">版本</span>
