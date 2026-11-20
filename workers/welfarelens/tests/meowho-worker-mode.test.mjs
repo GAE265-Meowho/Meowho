@@ -23,6 +23,18 @@ test('service fails closed for a shared, mismatched or bounded queue',()=>{
  assert.throws(()=>assertContinuousQueueScope({...mode,maxJobs:3},isolated));
 });
 
+test('shared continuous service requires an explicit household and cannot fall back to legacy claims',()=>{
+ const mode={once:false,pollMs:10000};
+ const env={MEOWHO_SUPABASE_URL:'https://onebpkbkrnnwamwsoelo.supabase.co',MEOWHO_QUEUE_ENABLED:'true',
+  MEOWHO_BLOB_CONTAINER:'media-dev',MEOWHO_QUEUE_HOUSEHOLD_ID:'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'};
+ assert.equal(assertContinuousQueueScope(mode,env),env.MEOWHO_QUEUE_HOUSEHOLD_ID);
+ for(const overrides of [{MEOWHO_QUEUE_HOUSEHOLD_ID:''},{MEOWHO_QUEUE_ENABLED:'false'},
+  {MEOWHO_SUPABASE_URL:'https://example.test'},{MEOWHO_DEDICATED_QUEUE_PROJECT_REF:'abcdefghijklmnopqrst'}]){
+  assert.throws(()=>assertContinuousQueueScope(mode,{...env,...overrides}));
+ }
+ assert.throws(()=>assertContinuousQueueScope({once:true},env));
+});
+
 test('three attempts run serially, continue after failure and stop before a fourth claim',async()=>{
  const signal=new AbortController().signal;
  const outcomes=['ready','failed','ready'];

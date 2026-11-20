@@ -8,6 +8,13 @@ services:
       MEOWHO_BLOB_CONTAINER: media-dev
       MEOWHO_WORKER_TMP: /data
       MEOWHO_WORKER_SERVICE: 'true'
+      MEOWHO_QUEUE_LEDGER_DIR: /model-ledgers
+    volumes:
+      - type: bind
+        source: ${WELFARELENS_QUEUE_LEDGER_HOST:?Set the persistent private ledger directory}
+        target: /model-ledgers
+        bind:
+          create_host_path: false
     tmpfs:
       - /data:uid=1000,gid=1000,mode=0700
     entrypoint: [node, --experimental-strip-types, scripts/meowho-worker.ts]

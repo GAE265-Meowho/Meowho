@@ -28,6 +28,8 @@ jobs:
       - run: npm ci
       - run: npm run typecheck
       - run: bash -n scripts/queue-service.sh
+      - run: npm ci --ignore-scripts
+        working-directory: .
       - uses: docker/setup-buildx-action@v3
       - name: Build linux/amd64
         env:
@@ -52,6 +54,12 @@ jobs:
           run_test run worker:test-fixture
           run_test test
       - run: docker run --rm --network none welfarelens-worker:ci --self-test
+      - name: Verify automatic queue and report publication with isolated PGlite
+        working-directory: .
+        run: |
+          docker run --rm --network none --mount "type=bind,src=$PWD,dst=/workspace,readonly" \
+            --workdir /workspace -e WELFARELENS_TEST_PDF_BROWSER=/usr/bin/chromium \
+            --entrypoint node welfarelens-worker:ci supabase/tests/0042_welfarelens_queue.integration.mjs
       - name: Test report stack without network
         run: |
           mkdir -p "${{ runner.temp }}/welfarelens-offline"

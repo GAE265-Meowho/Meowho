@@ -21,7 +21,16 @@ docker run --rm --network none "$WELFARELENS_QUEUE_IMAGE" --self-test
 
 `meow_env_claim(p_worker)` 使用 `queued_at` 與 `FOR UPDATE SKIP LOCKED`，可接手租約逾期的工作。續租、完成與失敗回報由既有 RPC 檢查租約、attempt 及工作狀態。容器 `media-dev` 共用，RPC 無原子 Job ID 或環境篩選。即使設 `MEOWHO_WORKER_MAX_JOBS=1`，其他入列工作仍可能先被領取。
 
-共用佇列維持人工受控模式。經批准後先暫停其他上傳入口與競爭 consumer，再重查待領 queued 和過期 lease 清單。獲准 Job ID 清單需要符合所有可領工作，且管制需持續到 Worker 停止。若無法管制入列，延後真實驗收。預設的常駐服務檢查會拒絕團隊共用專案，本次也不建立新專案。若日後需在共用專案同時處理非測試工作，先另行審核以指定 Job ID 限定的原子 claim 方案，保留既有函式相容性。
+### 自動領件啟用清單
+
+1. 組長審查並執行 `0042_meow_env_scoped_queue.sql`，再核對 service role 的 RPC 權限。共用專案由資料庫管理員在 `meow_env_queue_households` 為測試喵戶建立核准記錄，預設生效時間為登記當下。請在核准後送出新工作。核准期間該喵戶後續符合條件的工作皆可領取，請用專用測試喵戶。
+2. 確認網站與 Worker 指向相同專案、Azure 帳戶及私有 `media-dev`，並協調模型部署、操作時段與總費用。停止仍可能領取同一批工作的舊版無範圍 Worker。舊 RPC 仍可操作整個專案，service role 也具備廣泛權限，需以私有環境檔及部署管理保護。
+3. 私有環境檔設定 `MEOWHO_QUEUE_ENABLED=true`、`WELFARELENS_PRIVATE_HTML=true`、`WELFARELENS_PRIVATE_REPORT_VIEW=true`。共用專案設定 `MEOWHO_QUEUE_HOUSEHOLD_ID`，獨占專案改設 `MEOWHO_DEDICATED_QUEUE_PROJECT_REF`。常駐模式省略 `MEOWHO_WORKER_MAX_JOBS` 及一次性 M6 設定。指定獲准映像及 `WELFARELENS_QUEUE_LEDGER_HOST`，後者必須為 Worker UID 1000 擁有、模式 0700 的絕對路徑。
+4. 執行 `bash scripts/queue-service.sh verify`。取得啟用及費用批准後執行 `bash scripts/queue-service.sh start`，從網站送出兩筆測試工作，以 `logs` 及網站核對逐筆完成和四份產物。使用 `stop` 停止服務。停用共用喵戶範圍時，由管理員移除核准記錄並停止 Worker，讓已在途請求收尾；移除核准只阻止新 Claim 和新額度登記。
+
+每筆 Job 在第一個模型請求前，先由資料庫依有效租約、Worker 及 attempt 登記一次額度，再用獨立 JSONL 記錄起送。上限為 VLM 14 次、改圖 8 次，合計預留 US$13，並保留每程序 12 秒改圖間隔。這是逐筆預留，實際帳單及隊列總量需另行控管。中斷後可在額度登記前接手；已登記的 Job 不會自動重新使用模型。遇到逾時、429 或不明結果，保留日誌並核對 Azure Usage。回退時先停服務，保留報告與帳本，再由管理員核准舊版和受控領件範圍。
+
+舊版 `--once` 路徑仍適用既有人工驗收。使用共用佇列前，須管制其他上傳及領件，重新核對待領工作和過期租約。
 
 確認管制、費用和上傳來源後，先採單次執行。以下指令會真正領件，平時只執行前節離線檢查。
 
