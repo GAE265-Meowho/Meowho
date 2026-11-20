@@ -8,9 +8,6 @@ export const metadata: Metadata = { title: "MeoWho｜喵戶總部", robots: { in
 export default function HqLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="hq-root">
-      {/* Nordic Meow 字型 Noto Sans TC 400／500／700（前台已載入 500／700，這裡補 400） */}
-      {/* eslint-disable-next-line @next/next/no-page-custom-font */}
-      <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet" />
       <HqGate>{children}</HqGate>
     </div>
   );

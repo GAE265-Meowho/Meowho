@@ -1,6 +1,7 @@
 # PLAN — 計畫與任務管理
 
 - WelfareLens M4 受控改圖（Jerry0808 × Codex，#273，審查中）：1／2／3 路六輪已完成。Worker 預設 2，1 為明確回退值，3 為明確啟用的選項。M6 真實驗收待另行批准。
+- #273 網站正式建置改用本機字型（Jerry0808 × Codex，完成）：PR #555 已合併至 main，保留正式網站字型與 Unicode 子集。
 
 - 前導影片產生影片 tab、(P) 生成紀錄、v3 修訂、腳本下載（Tina × Claude Code，#493、#494、#497、#498）：PR #495 已合併，完成。
 - 前導影片同一鏡多格標籤（Tina × Claude Code，#499）：PR #500 已合併，完成。
@@ -19,7 +20,9 @@
 - 前導影片鏡 9 兩格家具連戲（Tina × Claude Code，#539）：PR #540 已合併，完成。
 - 前導影片鏡 11 延續 9-2 雨夜書桌、後續套房鏡頭對齊 9-1（Tina × Claude Code，#541）：PR #542 已合併；#543 改為沙發拿手機，PR #544 已合併，完成。
 - 前導影片鏡 11 片段卡拆成 4 支短片（Tina × Claude Code，#545）：PR #546 已合併，完成。
-- 前導影片影片 tab 多格鏡頭加「整鏡成品」上傳格（Tina × Claude Code，#548）：分支 `feat/548-shot-composite`，審查中。
+- 前導影片影片 tab 多格鏡頭加「整鏡成品」上傳格（Tina × Claude Code，#548）：PR #549 已合併，完成。
+- 前導影片影片 tab 可刪除單一版本（Tina × Claude Code，#553）：PR #554 已合併，完成。
+- 前導影片鏡 9-2 改為蹲在桌下查看電線特寫（Tina × Claude Code，#556）：分支 `feat/556-shot9-crouch`，審查中。
 
 - AI 居家安全報告首屏與圖片載入（Jerry0808 × Codex）：分支 `codex/home-safety-report-ux`，審查中。沿用 #273 報告授權；待驗收 Preview 的真實 Owner 登入及 Azure 延遲。
 

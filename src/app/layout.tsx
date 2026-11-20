@@ -1,14 +1,9 @@
 import type { Metadata, Viewport } from "next";
-import { Quicksand, Zen_Maru_Gothic, Noto_Sans_TC } from "next/font/google";
+import "./site-fonts.css";
 import "./globals.css";
 import "./template.css";
 import { Providers } from "@/components/Providers";
 import { AuthProvider } from "@/components/Auth";
-
-const quicksand = Quicksand({ variable: "--font-quicksand", subsets: ["latin"], weight: ["500", "600", "700"] });
-// CJK fonts are large, so skip preloading and let unicode-range split them.
-const zenMaru = Zen_Maru_Gothic({ variable: "--font-zen-maru", weight: ["500", "700"], preload: false });
-const notoTC = Noto_Sans_TC({ variable: "--font-noto-tc", weight: ["400", "500", "700"], preload: false });
 
 export const metadata: Metadata = {
   title: "Meowho喵戶",
@@ -25,7 +20,10 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="zh-Hant">
-      <body className={`${quicksand.variable} ${zenMaru.variable} ${notoTC.variable}`}>
+      <head>
+        <link rel="preload" href="/fonts/site/a74fb1607b845cb0-s.p.woff2" as="font" type="font/woff2" crossOrigin="anonymous" />
+      </head>
+      <body className="site-fonts">
         <AuthProvider><Providers>{children}</Providers></AuthProvider>
       </body>
     </html>
