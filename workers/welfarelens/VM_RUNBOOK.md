@@ -41,6 +41,8 @@ docker run --name welfarelens-approved-attempt --restart no \
 
 ### M6 首筆真人工作
 
+如果獨占佇列仍待確認，可先使用 [本機完整 Pipeline 預檢與單筆實測](./docs/benchmarks/m6-local-pipeline.md)。這條路徑使用本機影片和真實模型，只把報告寫到本機。網站授權、Blob、Queue 及 Lease 另外驗收。
+
 1. 管理員先提供已隔離的 Supabase 專案、相同專案的受保護網站 Preview、兩個測試帳號及專用 Azure 儲存帳戶下的私有 `media-dev`。核對 Preview 的 `NEXT_PUBLIC_SUPABASE_URL`、伺服器服務角色、`MEDIA_STORAGE=azure`、儲存帳戶與容器、Preview 網域的上傳 CORS 與報告旗標。核對 Worker 的專案網址、專用專案 ref、儲存帳戶與容器、測試身分權限及模型部署。只記錄安全的識別資訊與核對結果。
 2. 使用經同意的擺拍 MP4／MOV，包含至少兩個有各自可見證據且可安全模擬的改善案例。Owner 用手機走主站影片上傳與 3D 房間送出流程。送出會一起建立 Room Job，驗收期間保留未處理。由管理員關閉其餘測試入列及確認無競爭 consumer，核對影片、喵戶、Job 和 Report ID。以唯讀方式確認唯一可領取項目是指定、尚未嘗試的 queued Job，且沒有逾期租約。M6 會在 Claim 回傳後檢查 Job ID 和 attempt；若不符，立即停止且不觸碰 Blob。這項檢查仍晚於 Claim，必須有獨占佇列及入列管制。
 3. 使用同時包含 M4 與 M6 的已審查 Commit。驗證本機映像 ID 或獲准的私有 GHCR digest、OCI Revision、Linux AMD64 及斷網 Self-test。若採本機 Docker，VM 維持解除配置，私有環境檔需要有效且已隔離的 SAS。以下為授權後的 PowerShell 指令，使用管理員已填好的變數與目錄。先確認 `$M6AuditDir` 是本次核准的 Git 外持久目錄，容器能寫入，且沒有舊的 `model-requests.jsonl`。環境檔必須設定 `MEOWHO_DEDICATED_QUEUE_PROJECT_REF` 並省略 `WELFARELENS_IMAGE_EDIT_CONCURRENCY`。

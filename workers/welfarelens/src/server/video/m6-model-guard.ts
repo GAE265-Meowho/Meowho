@@ -73,5 +73,6 @@ export function openM6ModelGuard(path:string,transport:typeof fetch=fetch){
   stopped='m6_vlm_response_unusable';
   record({event:'stop',kind:'vlm',code:stopped});
  }
- return {requests:{vlm:wrap('vlm'),image:wrap('image')},assertHealthy,stopAfterVlmFailure,close:()=>closeSync(fd)};
+ return {requests:{vlm:wrap('vlm'),image:wrap('image')},assertHealthy,stopAfterVlmFailure,
+  counts:()=>({...counts}),close:()=>closeSync(fd)};
 }
