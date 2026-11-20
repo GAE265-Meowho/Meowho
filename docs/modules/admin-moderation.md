@@ -161,6 +161,7 @@ ole === "admin" 判斷管理員，而現有 admin 會升為 system_admin；舊�
 | 2026-10-28 | Tina × Cursor | MeowHQ 階段 0：`src/lib/hq/types.ts` 與測試（8 種處置含 `unban`）、0002 資料表草案 | #18 |
 | 2026-10-29 | Tina × Cursor | MeowHQ 階段 1 db：`0002_meow_hq.sql`、`supabase/tests/`（SQL 測試與本機執行器） | #19 |
 | 2026-11-04 | Tina × Claude Code | MeowHQ 新增「貓戶管理」模組：依類別查看貓戶、貓咪卡片；0020 授權現有管理員 | #179 |
+| 2026-11-20 | Tina × Claude Code | 鏡 9-2 改為蹲在桌下查看電線的低角度特寫（只框書桌下方），9-1 → 9-2 剪接；s10、s13 動作同步（#556） |
 | 2026-11-20 | Tina × Claude Code | 影片／音檔格可「刪除這個版本」：`DELETE /api/hq/trailer-videos`，管理員限定、只刪單一版本、刪前確認（#553） |
 | 2026-11-19 | Tina × Claude Code | 影片 tab：兩格以上或拆成多支短片的鏡頭（5、8、9、10、11、12、23）在片段後加「整鏡成品」卡，可上傳剪好／合成的整鏡（Blob 格 `m-<第一格代號>`）（#548） |
 | 2026-11-19 | Tina × Claude Code | `CLIP_MOTION` 新增 `cuts`：一鏡拆成幾支短片分別生成；鏡 11 片段卡改為 4 支（計畫圖第 2、5、13、15 格），建議生成顯示「5 秒 × 4 支」（#545） |
