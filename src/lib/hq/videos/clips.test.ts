@@ -57,16 +57,18 @@ describe("前導影片：產生影片", () => {
     expect(CLIP_MOTION.s11.action).not.toMatch(/into her arms/);
   });
 
-  it("鏡 9 兩格寫同一段套房家具位置，9-2 用 9-1 成品改圖（#539）", () => {
+  it("鏡 9：9-1 門口廣角寫家具位置；9-2 改為蹲在桌下的特寫、只框書桌下方，9-1 → 9-2 剪接（#556）", () => {
     const [f1, f2] = SHOT_SECTIONS.flatMap(x => x.shots).find(s => s.no === 9)!.frames;
-    for (const f of [f1, f2]) {
-      expect(f.prompt).toContain("do not move, add or remove any furniture");
-      expect(f.prompt).toMatch(/desk under the right side of the window/);
-      expect(f.prompt).toMatch(/sofa against the left wall/);
-    }
-    expect(f2.prompt).toMatch(/Edit the 9-1 image \(s10\.webp\)/);
+    expect(f1.prompt).toContain("do not move, add or remove any furniture");
     expect(f1.prompt).toMatch(/unreadable/);
+    expect(f2.label).toBe("9-2 蹲下查看電線");
+    expect(f2.prompt).toMatch(/9-1 image \(s10\.webp\) as the reference/);
+    expect(f2.prompt).toMatch(/crouches on the floor/);
+    expect(f2.prompt).toMatch(/only the area under the desk/);
+    expect(f2.prompt).toMatch(/lower-left third/);
+    expect(CLIP_MOTION.s10.action).toMatch(/pushes the chair back/);
   });
+
 
   it("鏡 11 同一雨夜坐到沙發拿手機、拇指懸著；第一格書桌照 9-1；後續套房鏡頭以 9-1 擺設為準（#543）", () => {
     const shots = SHOT_SECTIONS.flatMap(x => x.shots);

@@ -17,7 +17,7 @@ describe("前導影片 v3 分鏡資料", () => {
       s.frames.forEach((f, i) => expect(f.label, f.id).toMatch(new RegExp(`^${s.no}-${i + 1} \\S`)));
     }
     expect(shots[4].frames.map(f => f.label)).toEqual(["5-1 拍小橘吃飯", "5-2 吹風機嚇到"]);
-    expect(shots[8].frames.map(f => f.label)).toEqual(["9-1 查養貓注意事項", "9-2 看腳邊電線"]);
+    expect(shots[8].frames.map(f => f.label)).toEqual(["9-1 查養貓注意事項", "9-2 蹲下查看電線"]);
   });
 
   it("需要產生 33 格：AI 生成 26、系統錄影截圖 5、剪輯字卡 2", () => {

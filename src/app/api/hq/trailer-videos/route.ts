@@ -1,5 +1,6 @@
 // MeowHQ 前導影片的影片檔（#501、決策 006）：存 Azure Blob 私有容器 videos/trailer/。
 // GET：列出每一格的所有版本，附有時效的播放與下載網址。POST：檢查後簽短效上傳網址，瀏覽器直接 PUT 到 Azure，不經過 Vercel。
+// DELETE（#553）：刪除單一版本；只接受目前列得到的路徑，不能刪資料夾或其他前綴。
 // 權限繼承「影片」頁：登入且 meow_is_admin() 才可以。
 import { NextResponse } from "next/server";
 import {
@@ -57,5 +58,22 @@ export async function POST(req: Request) {
     return NextResponse.json({ path, upload: await g.store.uploadUrl(path, body!.mime as string, UPLOAD_TTL_SEC) });
   } catch {
     return NextResponse.json({ error: "upload_url_failed" }, { status: 500 });
+  }
+}
+
+export async function DELETE(req: Request) {
+  const g = await guard();
+  if (!g.ok) return g.res;
+  const body = await req.json().catch(() => null) as { path?: unknown } | null;
+  const path = typeof body?.path === "string" ? body.path : "";
+  if (!path.startsWith(TRAILER_VIDEO_PREFIX) || !Object.keys(groupTrailerVideos([path])).length) {
+    return NextResponse.json({ error: "invalid_path" }, { status: 400 });
+  }
+  try {
+    if (!(await g.store.list(TRAILER_VIDEO_PREFIX)).includes(path)) return NextResponse.json({ error: "not_found" }, { status: 404 });
+    await g.store.remove(path);
+    return NextResponse.json({ ok: true });
+  } catch {
+    return NextResponse.json({ error: "delete_failed" }, { status: 502 });
   }
 }
