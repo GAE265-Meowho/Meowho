@@ -200,9 +200,9 @@ export const SHOT_SECTIONS: ShotSection[] = [
   {
     key: "cross", title: "第二段：交叉敘事", range: "0:15–1:32",
     shots: [
-      { no: 3, line: "人", time: "0:15–0:21", picture: "同一個雨夜，小傑下班回家打開套房的門，屋裡沒開燈，窗外是同一場雨", voice: "小傑：「我想養一隻貓，想了兩年。」", sfx: "雨聲延續（聲音橋接）、開門聲",
+      { no: 3, line: "人", time: "0:15–0:21", picture: "同一個雨夜，小傑下班回家打開套房的門，屋裡沒開燈，窗外是同一場雨", voice: "小傑：「我想養一隻貓，想了兩年。」字卡（左下約 2 秒）：「同一個雨夜．台北」", sfx: "雨聲延續（聲音橋接）、開門聲",
         frames: [ai("s04", "Rainy night, a young man with round glasses wearing a light blue button-up shirt opening the door of a dark small studio apartment after work, tired, rain streaking down the large window, city lights outside, cool blue-gray tones")] },
-      { no: 4, line: "貓", time: "0:21–0:28", picture: "倒敘：半年前寒夜，阿芳在路邊機車下蹲下，伸手接小橘", voice: "小橘：「第一次遇見阿芳，是在一個很冷的晚上。」", sfx: "音樂轉溫暖",
+      { no: 4, line: "貓", time: "0:21–0:28", picture: "倒敘：半年前寒夜，阿芳在路邊機車下蹲下，伸手接小橘", voice: "小橘：「第一次遇見阿芳，是在一個很冷的晚上。」字卡（左下約 2 秒，倒敘）：「半年前」", sfx: "音樂轉溫暖",
         frames: [ai("s05", "Flashback, cold winter night on a Taiwanese street, a woman in a brown knitted cardigan crouches down beside a small orange tabby kitten under a scooter, reaching out gently, warm street light, soft film grain")] },
       { no: 5, line: "貓", time: "0:28–0:36", picture: "白天阿芳家，阿芳用手機拍小橘吃飯、睡覺，短耳貓和灰寶在旁邊吃飯、打盹。夜間阿芳洗完澡，開吹風機要吹頭髮，吹風機一響，只有小橘嚇得跑到貓床躲起來，另外兩隻照睡；阿芳拿起桌上的筆記本，記下小橘這個事件", voice: "小橘：「她每天幫我拍照，記下我吃多少、睡多久、怕什麼聲音。」", sfx: "快門聲、吹風機聲",
         frames: [
