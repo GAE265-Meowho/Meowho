@@ -42,7 +42,7 @@ export function ClipsBoard() {
           <VideoSlot slot="full" label={videoSlotLabel("full")} state={videos} emptyText="完整影片還沒上傳" />
         </div>
         <p className="hq-sub">
-          段落影片 {sectionsDone}／{sections.length}、片段 {clipsDone}／{items.length}。系統錄影 {counts.record} 格、剪輯字卡 {counts.edit} 格在剪輯時加入，不用生成。
+          段落影片 {sectionsDone}／{sections.length}、片段 {clipsDone}／{items.length}。剪輯字卡 {counts.edit} 格在剪輯時加入，不用生成。
         </p>
         <details className="hq-video-prompt">
           <summary>怎麼產生片段</summary>
@@ -151,7 +151,10 @@ function ClipCard({ item, urlOf, copy, videos, edits }: { item: ClipItem; urlOf:
             <div><dt>畫面</dt><dd>{shotValue(shot, "picture", edits.eff)}</dd></div>
           </dl>
           <RefChips refs={frame.refs} urlOf={urlOf} />
-          <Prompt text={motionPrompt(frame)} copy={copy} title="圖生影片 prompt（動作與運鏡）" />
+          {frame.make === "record"
+            // #547：系統錄影格的分鏡是真人＋真實 UI，用 Kling 綠幕生成動作再合成真實錄影，prompt 依 SOP 每格自己寫
+            ? <p className="hq-sub">這一格照「前導影片第三段片段製作 SOP」（docs/video）做：素材包的綠幕底圖當起始畫面，螢幕換成真實系統錄影。</p>
+            : <Prompt text={motionPrompt(frame)} copy={copy} title="圖生影片 prompt（動作與運鏡）" />}
         </div>
       </details>
     </article>
