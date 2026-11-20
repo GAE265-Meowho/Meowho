@@ -32,7 +32,7 @@ docs/video/第三段素材包/
 ├─ 讀我.md
 ├─ 共用/
 │  ├─ 參考圖/         定角、定景照（char-afang、char-xiaoju、char-xiaojie、scene-afang-home、scene-studio）
-│  └─ 系統錄影/       rec-*.mp4，已還原成方形像素（電腦版 1600x900、手機版 612x844）
+│  └─ 系統錄影/       rec-*.mp4 電腦版（1600x900）；rec-*-phone.mp4 小傑手機版（780x1688）
 └─ 鏡NN/
    ├─ 分鏡計畫圖.jpg  子哲定版的 6 格分鏡（UI 已合成，當作「畫面要長這樣」的依據）
    ├─ 素材清單.md      這一鏡要的所有東西：秒數、旁白、每格用哪些圖、哪支錄影、要掛哪些參考圖
@@ -58,7 +58,7 @@ docs/video/第三段素材包/
 3. **錄影裡沒有要的動作就補錄**，例如打字的過程、照片出現的過程、3D 轉一圈。用 `scripts/trailer-rec/rec.mjs` 改一段來錄：手機版加 `{ phone: true }`。只操作、不按儲存，就不會改到正式站資料。補錄做法見 `前導影片/鏡15_生成素材/UI錄影/鏡15_UI片段清單.md` 的 11/20 紀錄。
 4. 每格挑一段 2 秒的錄影，記下開始秒數。
 
-> 地雷：錄影的 mp4 存的是**非方形像素**（例如存成 1592x434，實際畫面是 1600x900）。素材包 `共用/系統錄影/` 已經還原過，可以直接用；如果用 MeowHQ 或 `rec.mjs` 剛錄好的檔，`green-composite.sh` 會在合成時還原。不要自己另外縮放，否則 UI 會被壓扁。
+> 地雷：小傑手機格一律用 `rec-*-phone.mp4`（11/20 用連續截圖錄，畫面完整；手機版不要用 CDP 畫面串流錄，會只拍到左上角）。錄影的 mp4 存的是**非方形像素**（例如存成 1592x434，實際畫面是 1600x900）。素材包 `共用/系統錄影/` 已經還原過，可以直接用；如果用 MeowHQ 或 `rec.mjs` 剛錄好的檔，`green-composite.sh` 會在合成時還原。不要自己另外縮放，否則 UI 會被壓扁。
 
 ## 4. 生成人物動作（花點數／額度）
 
@@ -123,7 +123,7 @@ node scripts/trailer-board/green-corners.mjs 鏡NN-格X_<工具>_綠幕_v1.mp4 1
 scripts/trailer-board/green-composite.sh <AI片段> 1.0 <錄影.mp4> <錄影開始秒> <desktop|phone> <建議四角> <鏡NN-格X_合成.mp4> 2
 ```
 
-- `desktop`：筆電螢幕（錄影裁成 16:10）；`phone`：手機螢幕；`desktop-full`：不裁。
+- `desktop`：筆電螢幕（錄影裁成 16:10）；`phone`：手機螢幕，用 `rec-*-phone.mp4`；`desktop-full`：不裁；`phone-legacy`：只有舊的 `rec-phone.mp4`（鏡 15）用。
 - 腳本會還原錄影的真實比例、降一點亮度、加微柔焦、摳綠、去綠邊、裁 16:9、切掉浮水印（Kling 在右下角；其他工具浮水印位置不同時，用第 9 個參數調整裁切框的上緣），輸出 1280x720。
 - **抽一格放大檢查**：UI 裡的圓形按鈕要是正圓，字不能扁；螢幕邊緣不能有綠邊；手要在螢幕前面。
   ```
@@ -145,15 +145,15 @@ scripts/trailer-board/join-shot.sh 鏡NN_整鏡_v1.mp4 格A_合成.mp4 格B_合�
 | 鏡 | 時間 | 秒數 | 後台格 | 錄影（rec-clips.ts） | 備註 |
 |---|---|---|---|---|---|
 | 15 | 1:37–1:45 | 8 | s18 | rec-build、rec-phone | **已完成**（4 格×2 秒），範例 |
-| 16 | 1:45–1:52 | 7 | s19 | rec-find | 分鏡是手機；rec-find 是電腦版，要補錄手機版 |
-| 17 | 1:52–2:00 | 8 | s20 | rec-home | |
+| 16 | 1:45–1:52 | 7 | s19 | rec-find-phone | 小傑手機 |
+| 17 | 1:52–2:00 | 8 | s20 | rec-home-phone（手機格）、rec-home | |
 | 18 | 2:00–2:05 | 5 | s21 | rec-play | |
 | 19 | 2:05–2:12 | 7 | s22 | rec-play | |
 | 20 | 2:12–2:19 | 7 | s23 | rec-play | 五年後要帶到獸醫提示文字 |
 | 21 | 2:19–2:23 | 4 | s24 | rec-play | |
-| 22 | 2:23–2:26 | 3 | s25 | rec-apply | 分鏡是手機；rec-apply 是電腦版，要補錄手機版 |
-| 23 | 2:26–2:35 | 9 | s26-1、s26-2 | rec-chat-mid、rec-chat-adopter | 分割畫面：阿芳（a）、小傑（x）兩組 |
-| 24 | 2:35–2:40 | 5 | s27 | rec-transfer-mid、rec-transfer-adopter | 阿芳（a）、小傑（x）兩組 |
+| 22 | 2:23–2:26 | 3 | s25 | rec-apply-phone | 小傑手機 |
+| 23 | 2:26–2:35 | 9 | s26-1、s26-2 | rec-chat-mid（阿芳筆電）、rec-chat-adopter-phone（小傑手機） | 分割畫面：阿芳、小傑兩組 |
+| 24 | 2:35–2:40 | 5 | s27 | rec-transfer-mid（阿芳筆電）、rec-transfer-adopter-phone（小傑手機） | 阿芳、小傑兩組 |
 
 ## 9. 鏡 15 的教訓（不要再犯）
 
