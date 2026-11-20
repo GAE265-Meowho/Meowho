@@ -14,7 +14,7 @@ describe("前導影片的影片檔（#501）", () => {
 
   it("可放影片的格：完整影片 1、四段 4、片段 33（AI 28＋第三段系統錄影 5，#547）、旁白 25", () => {
     const s = videoSlots();
-    expect(s.filter(x => x.kind === "full")).toHaveLength(1);
+    expect(s.filter(x => x.kind === "full").map(x => x.id)).toEqual(["full", "demo"]); // #565
     expect(s.filter(x => x.kind === "section").map(x => x.id)).toEqual(["opening", "cross", "product", "ending"]);
     expect(s.filter(x => x.kind === "clip")).toHaveLength(33);
     for (const id of ["s21", "s23", "s24", "s25", "s27"]) expect(isVideoSlot(id), id).toBe(true);
@@ -55,7 +55,9 @@ describe("前導影片的影片檔（#501）", () => {
   });
 
   it("顯示名稱", () => {
-    expect(videoSlotLabel("full")).toBe("完整版");
+    expect(videoSlotLabel("full")).toBe("前導影片");
+    expect(videoSlotLabel("demo")).toBe("系統 Demo 影片");
+    expect(isVideoSlot("demo")).toBe(true);
     expect(videoSlotLabel("rec-find")).toBe("鏡 16 系統錄影 幫我找貓");
     expect(trailerVideoPath("rec-play", "video/mp4", new Date("2026-11-19T08:00:00Z"))).toBe("videos/trailer/rec-play/20261119080000.mp4");
     expect(videoSlotLabel("opening")).toBe("第一段遺棄開場");

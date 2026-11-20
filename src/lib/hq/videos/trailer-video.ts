@@ -38,7 +38,8 @@ export function compositeShots(): { id: string; shot: Shot }[] {
 /** 可以放影片的格：完整影片、四段、每一格片段（AI 分鏡＋第三段系統錄影格，#547）、旁白、第三段的系統錄影（#529） */
 export function videoSlots(): { id: string; kind: VideoSlotKind }[] {
   return [
-    { id: "full", kind: "full" as const },
+    { id: "full", kind: "full" as const }, // 前導影片＝第一段＋第二段（沿用原 full 格）
+    { id: "demo", kind: "full" as const }, // #565 系統 Demo 影片＝第三段＋第四段
     ...SHOT_SECTIONS.map(s => ({ id: s.key as string, kind: "section" as const })),
     ...SHOT_SECTIONS.flatMap(s => s.shots.flatMap(sh => sh.frames.filter(isClipFrame).map(f => ({ id: f.id, kind: "clip" as const })))),
     ...compositeShots().map(c => ({ id: c.id, kind: "shot" as const })),
@@ -92,7 +93,8 @@ export function groupTrailerVideos(paths: readonly string[]): Record<string, Vid
 
 /** 每一格的顯示名稱：完整版、第一段遺棄開場、鏡 7-1 拍小橘吃飯、鏡 1 */
 export function videoSlotLabel(slot: string): string {
-  if (slot === "full") return "完整版";
+  if (slot === "full") return "前導影片";
+  if (slot === "demo") return "系統 Demo 影片";
   const rec = recClip(slot);
   if (rec) return `鏡 ${rec.shot} 系統錄影 ${rec.title}`;
   const line = VOICE_LINES.find(l => l.id === slot);
@@ -112,5 +114,6 @@ export function trailerVideoFileName(slot: string, label: string, v: VideoVersio
   const ext = v.path.split(".").pop();
   const line = VOICE_LINES.find(l => l.id === slot);
   if (line) return `${slot}_${speakerName(line.speaker)}.${ext}`; // 旁白照編號：n03_小橘.mp3
+  if (slot === "full" || slot === "demo") return `${label.replace(/\s+/g, "")}_${v.at.slice(0, 10)}.${ext}`; // #565
   return `前導影片_${label.replace(/[\\/:*?"<>|\s]+/g, "")}_${v.at.slice(0, 10)}.${ext}`;
 }

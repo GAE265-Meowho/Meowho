@@ -41,7 +41,8 @@
   | 24 | 5 | | 待辦 | 阿芳／小傑兩組 |
 
 - 前導影片鏡 9-2 改為蹲在桌下查看電線特寫（Tina × Claude Code，#556）：PR #557 已合併，完成。
-- 前導影片鏡 6 改為 AI 兩格（Tina × Claude Code，#562）：分支 `feat/562-shot6-ai`，審查中。
+- 前導影片鏡 6 改為 AI 兩格（Tina × Claude Code，#562）：PR #563 已合併，完成。
+- 影片 tab 完整影片拆成前導影片／系統 Demo 影片（Tina × Claude Code，#565）：分支 `feat/565-full-split`，審查中。
 
 - AI 居家安全報告首屏與圖片載入（Jerry0808 × Codex）：分支 `codex/home-safety-report-ux`，審查中。沿用 #273 報告授權；待驗收 Preview 的真實 Owner 登入及 Azure 延遲。
 
