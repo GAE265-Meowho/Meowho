@@ -98,7 +98,7 @@
 3. PLAN.md 其餘任務的 Issue 尚未建立。
 
 ## 地雷與注意
-- **前導影片第三段片段（#547，2026-11-20，子哲 × Claude Code）**：鏡 15 已完成（MeowHQ 鏡 15 片段卡 11/20 10:59 版），是品質標準。鏡 16–24 由組員認領（`PLAN.md` 有分工表），照 `docs/video/前導影片第三段_片段製作SOP.md` 做，素材在 `docs/video/第三段素材包/`。開工引導詞在 `docs/video/第三段素材包/開工引導詞.md`，影片生成工具不限（要能指定首幀）。坑：系統錄影 mp4 是非方形像素，不還原 UI 會被壓扁（`green-composite.sh` 會處理）；用 Kling 的話只用 2.5 Turbo 720p 5 秒（15 點），免費帳號一次只能跑一個任務；rec-play 採買頁有真實飼料品牌，不能進成品；鏡 16、22 要先補錄手機版。
+- **前導影片第三段片段（#547，2026-11-20，子哲 × Claude Code）**：鏡 15 已完成（MeowHQ 鏡 15 片段卡 11/20 10:59 版），是品質標準。鏡 16–24 由組員認領（`PLAN.md` 有分工表），照 `docs/video/前導影片第三段_片段製作SOP.md` 做，素材在 `docs/video/第三段素材包/`。開工引導詞在 `docs/video/第三段素材包/開工引導詞.md`，影片生成工具不限（要能指定首幀）。坑：系統錄影 mp4 是非方形像素，不還原 UI 會被壓扁（`green-composite.sh` 會處理）；用 Kling 的話只用 2.5 Turbo 720p 5 秒（15 點），免費帳號一次只能跑一個任務；rec-play 採買頁有真實飼料品牌，不能進成品；小傑手機格用 `rec-*-phone.mp4`（11/20 補錄，連續截圖錄）。
 - **虛擬飼養畫面改版（#354，2026-11-13，渝茜 × Claude Code）**：8 個分支／PR（字體、對話框、上一步與存檔、擺用品俯視、採買、報告、審稿、補貨），詳見 `docs/modules/readiness.md` 最後一節。都還沒在真機走過；俯視鏡頭要在真的掃描房間依 `OVERVIEW` 調參數；`feat/354-play-restock` 疊在整合分支 `integ/354-play-ui` 上，前 7 個合併後要 rebase 到 main。第二批（光線與跑酷、診間與劇情鏡頭、尿漬與結局）接在補貨分支後面做。
 - **照片**：來自 Google Stitch 設計稿的外部網址（`src/lib/photo-urls.json`），可能失效。展示前執行 `npm run photos:download`，並設 `NEXT_PUBLIC_LOCAL_PHOTOS=1`。雲端 agent 的環境可能連不到這些網址，截圖驗證時看到空白屬正常。
 - **字型**：從 Google Fonts 以 `<link>` 載入（Quicksand、Zen Maru Gothic、Noto Sans TC）；離線時退回系統字。
