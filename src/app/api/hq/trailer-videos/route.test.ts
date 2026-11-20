@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   paths: [] as string[],
   uploads: [] as string[],
   reads: [] as { path: string; cd?: string }[],
+  removed: [] as string[],
 }));
 
 vi.mock("@/lib/supabase/server", () => ({
@@ -23,6 +24,7 @@ vi.mock("@/lib/storage/server", () => ({
       mocks.reads.push({ path, cd: o?.contentDisposition });
       return `https://blob.example/${path}${o?.contentDisposition ? "?dl" : ""}`;
     },
+    remove: async (path: string) => { mocks.removed.push(path); },
     uploadUrl: async (path: string, mime: string) => {
       mocks.uploads.push(path);
       return { url: `https://blob.example/${path}?sas`, headers: { "x-ms-blob-type": "BlockBlob", "content-type": mime } };
@@ -30,11 +32,12 @@ vi.mock("@/lib/storage/server", () => ({
   }),
 }));
 
-const { GET, POST } = await import("./route");
+const { DELETE, GET, POST } = await import("./route");
+const del = (body: unknown) => DELETE(new Request("http://x/api/hq/trailer-videos", { method: "DELETE", body: JSON.stringify(body) }));
 const post = (body: unknown) => POST(new Request("http://x/api/hq/trailer-videos", { method: "POST", body: JSON.stringify(body) }));
 
 beforeEach(() => {
-  mocks.user = "u1"; mocks.isAdmin = true; mocks.paths = []; mocks.uploads = []; mocks.reads = [];
+  mocks.user = "u1"; mocks.isAdmin = true; mocks.paths = []; mocks.uploads = []; mocks.reads = []; mocks.removed = [];
 });
 
 describe("/api/hq/trailer-videos", () => {
@@ -75,5 +78,19 @@ describe("/api/hq/trailer-videos", () => {
     expect(json.videos.full[0].downloadUrl).toContain("?dl");
     const cd = mocks.reads.find(r => r.cd)?.cd ?? "";
     expect(decodeURIComponent(cd)).toContain("前導影片_完整版_2026-11-19.mp4");
+  });
+  it("刪除單一版本（#553）：只刪存在的那一版；不是管理員 403；路徑不對 400、不存在 404", async () => {
+    const keep = "videos/trailer/rec-chat-adopter/20261119083600.mp4";
+    const gone = "videos/trailer/rec-chat-adopter/20261120011100.mp4";
+    mocks.paths = [keep, gone];
+    mocks.isAdmin = false;
+    expect((await del({ path: gone })).status).toBe(403);
+    mocks.isAdmin = true;
+    expect((await del({ path: "videos/other/x.mp4" })).status).toBe(400);
+    expect((await del({ path: "videos/trailer/rec-chat-adopter/20991231000000.mp4" })).status).toBe(404);
+    expect(mocks.removed).toEqual([]);
+    const res = await del({ path: gone });
+    expect(res.status).toBe(200);
+    expect(mocks.removed).toEqual([gone]);
   });
 });
