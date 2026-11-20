@@ -4,6 +4,7 @@
 > 最後更新：2026-11-18｜渝茜 × Claude Code（試養報告、過敏題、小遊戲說明疊字）
 
 ## 目前狀態
+- **#273 WelfareLens 自動領件（Jerry0808 × Codex）**：待組長審查 scoped Claim、持久模型額度與啟用步驟。共享 Supabase 尚未套用 `0042`。受控環境依 `workers/welfarelens/VM_RUNBOOK.md` 核對遷移、喵戶、舊 Worker、私有儲存及費用。
 - **#273 WelfareLens M6-B（Jerry0808 × Codex）**：本機操作見 `workers/welfarelens/docs/benchmarks/m6-local-pipeline.md`。先取得本次影片與單筆付費核准，沿用 M6 帳本及正式節流。隔離 Queue 環境另行驗收。
 - **#273 WelfareLens M6-A（Jerry0808 × Codex）**：單筆驗收新增模型出口硬上限與一次性帳本。登入可見的 Supabase 僅團隊共用專案，Preview API 403，VM 已解除配置。先取得獨占測試專案、Preview 與私有儲存，再依 `workers/welfarelens/VM_RUNBOOK.md` 啟動一次測試。不操作團隊共用 Queue。
 - **#273 WelfareLens M4（Jerry0808 × Codex，#528）**：固定六件的 1／2／3 路六輪已完成，36 次 HTTP 200。Worker 支援 1／2／3、預設 2，程序內跨 Job 保留 12 秒起送間隔。M6 真人、隔離佇列、租約及部署驗收待批准。見 `workers/welfarelens/ENVIRONMENT.md`。

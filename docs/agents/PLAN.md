@@ -1,5 +1,7 @@
 # PLAN — 計畫與任務管理
 
+- WelfareLens 自動領件（Jerry0808 × Codex，#273，審查中）：共用專案限定資料庫核准喵戶，沿用原有上傳與結案，自動產出雙 JSON／HTML／PDF。正式 Migration、範圍設定、模型費用及 Worker 啟用待組長批准。
+
 - WelfareLens M6-B（Jerry0808 × Codex，#273，審查中）：PR #552 提供本機單筆完整模型流程與離線預檢。實測待授權影片、模型測試時段與額度批准。
 - WelfareLens M6-A（Jerry0808 × Codex，#273，審查中）：單筆測試請求上限、一次性私有帳本、隔離與操作預檢。真實佇列待管理員提供隔離資源並批准費用。
 

@@ -6,6 +6,8 @@ on:
       - '.github/workflows/welfarelens-worker.yml'
       - '.github/workflows/welfarelens-worker-image.yml'
       - 'src/lib/home-safety/report-view*.ts'
+      - 'supabase/migrations/0042_meow_env_scoped_queue.sql'
+      - 'supabase/tests/0042_welfarelens_queue.integration.mjs'
   push:
     branches: [main]
     paths:
@@ -13,6 +15,8 @@ on:
       - '.github/workflows/welfarelens-worker.yml'
       - '.github/workflows/welfarelens-worker-image.yml'
       - 'src/lib/home-safety/report-view*.ts'
+      - 'supabase/migrations/0042_meow_env_scoped_queue.sql'
+      - 'supabase/tests/0042_welfarelens_queue.integration.mjs'
     tags: ['welfarelens-v*']
 permissions:
   contents: read

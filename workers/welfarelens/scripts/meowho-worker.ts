@@ -1,6 +1,7 @@
 import {hostname} from 'node:os';
+import {randomUUID} from 'node:crypto';
 import {mkdtemp, rm} from 'node:fs/promises';
-import {resolve, join} from 'node:path';
+import {resolve, join, sep} from 'node:path';
 import {meowhoBlob} from '../src/server/video/meowho-blob.ts';
 import {MeowhoError, meowhoRpc, processMeowhoJob, readMeowhoQueueWait} from '../src/server/video/meowho-worker.ts';
 import {privateRoot} from '../src/server/video/standalone.ts';
@@ -18,7 +19,7 @@ try{
  const container=env.MEOWHO_BLOB_CONTAINER;
  if(container!=='media-dev')throw new MeowhoError('config_error');
  const mode=parseMeowhoMode(process.argv.slice(2),container,env);
- assertContinuousQueueScope(mode,env);
+ const householdId=assertContinuousQueueScope(mode,env);
  if(!env.MEOWHO_WORKER_TMP||!env.MEOWHO_SUPABASE_URL||!env.MEOWHO_SUPABASE_SERVICE_ROLE_KEY||
   env.ENABLE_CLOUD_ANALYSIS!=='true'||env.ENABLE_IMAGE_EDITING!=='true'||!env.WELFARELENS_PDF_BROWSER||
   !env.AZURE_OPENAI_ENDPOINT||!env.AZURE_OPENAI_API_KEY||!env.AZURE_OPENAI_DEPLOYMENT)throw new MeowhoError('config_error');
@@ -30,7 +31,7 @@ try{
  await privateRoot(parent);
  const workerRoot=await mkdtemp(join(parent,'meowho-worker-'));
  root=workerRoot;
- const workerId=`${hostname()}:${process.pid}`,blob=meowhoBlob(container);
+ const workerId=`${hostname()}:${randomUUID()}`,blob=meowhoBlob(container);
  const rpc=meowhoRpc(env.MEOWHO_SUPABASE_URL,env.MEOWHO_SUPABASE_SERVICE_ROLE_KEY);
  const queueWait=readMeowhoQueueWait(env.MEOWHO_SUPABASE_URL,env.MEOWHO_SUPABASE_SERVICE_ROLE_KEY);
  const ledger=env.MEOWHO_M6_MODEL_LEDGER;
@@ -41,8 +42,20 @@ try{
   guard=openM6ModelGuard(ledger);
   m6={jobId,guard};
  }
+ let automatic:Parameters<typeof processMeowhoJob>[0]['automatic'];
+ if(householdId!==undefined||(!mode.once&&mode.maxJobs===undefined)){
+  if(!env.MEOWHO_QUEUE_LEDGER_DIR||env.WELFARELENS_PRIVATE_HTML!=='true'||
+   env.WELFARELENS_PRIVATE_REPORT_VIEW!=='true')throw new MeowhoError('config_error');
+  const ledgerDirectory=resolve(env.MEOWHO_QUEUE_LEDGER_DIR);
+  if(ledgerDirectory===parent||ledgerDirectory.startsWith(parent+sep))throw new MeowhoError('config_error');
+  await privateRoot(ledgerDirectory);
+  // Confirm the reservation RPC exists before touching an isolated legacy queue.
+  if(await rpc('meow_env_reserve_models',{p_job:null,p_attempt:null,p_worker:workerId,p_household:null},
+   shutdown.signal)!==false)throw new MeowhoError('config_error');
+  automatic={householdId,ledgerDirectory};
+ }
  const processNext=()=>processMeowhoJob({root:workerRoot,workerId,rpc,blob,env,queueWait,signal:shutdown.signal,
-  m6,onProfile:profile=>console.log(JSON.stringify(profile))});
+  m6,automatic,onProfile:profile=>console.log(JSON.stringify(profile))});
  console.log(JSON.stringify({event:'meowho_worker_start',image_edit_concurrency:editConcurrency}));
  if(mode.once){
   const outcome=await processNext();

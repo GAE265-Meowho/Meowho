@@ -4,7 +4,7 @@ import {join} from 'node:path';
 import {z} from 'zod';
 import {processIntegrationJob} from './integration-job.ts';
 import {executeLiveJob, MEOWHO_MAX_BYTES} from './standalone.ts';
-import type {openM6ModelGuard} from './m6-model-guard.ts';
+import {openM6ModelGuard} from './m6-model-guard.ts';
 import {probeVideo} from './media.ts';
 import {buildMeowhoItemProposals,MeowhoHazardKeySchema} from '../../domain/meowho-hazards.ts';
 import {createMeowhoEvidenceCrop} from './meowho-crop.ts';
@@ -146,8 +146,13 @@ export async function processMeowhoJob(options:{
  onProfile?:(profile:ReturnType<JobProfile['snapshot']>)=>void;
  analyze?:(input:string,root:string,signal:AbortSignal)=>ReturnType<Analyze>;
  m6?:{jobId:string; guard:ReturnType<typeof openM6ModelGuard>};
+ automatic?:{householdId?:string;ledgerDirectory:string;modelTransport?:typeof fetch};
 }){
- const {rpc,blob}=options, controller=new AbortController();
+ const {rpc,blob,automatic}=options, controller=new AbortController();
+ const env=options.env??process.env;
+ if(automatic&&(options.m6||env.WELFARELENS_PRIVATE_HTML!=='true'||
+  env.WELFARELENS_PRIVATE_REPORT_VIEW!=='true'))throw new MeowhoError('config_error');
+ let jobGuard:ReturnType<typeof openM6ModelGuard>|undefined;
  const profile=new JobProfile();
  let outcome='error';
  let queueWait:Promise<void>|undefined;
@@ -201,9 +206,13 @@ export async function processMeowhoJob(options:{
  try{
   outcome=await processIntegrationJob(options.root,{
    async claim(){
-    const result=await profile.measure('claim',()=>rpc('meow_env_claim',{p_worker:options.workerId},signal));
+    const household=automatic?.householdId;
+    const result=await profile.measure('claim',()=>household
+     ?rpc('meow_env_claim_household',{p_worker:options.workerId,p_household:household},signal)
+     :rpc('meow_env_claim',{p_worker:options.workerId},signal));
     if(result===null)return undefined;
     claim=ClaimSchema.parse(result);
+    if(household&&claim.household_id!==household)throw new MeowhoError('config_error');
     if(options.m6&&(claim.job_id!==options.m6.jobId||claim.attempt!==1))throw new MeowhoError('config_error');
     profile.claimed();
     if(claim.attempt===1&&options.queueWait)queueWait=options.queueWait(claim.job_id,signal).then(ms=>profile.queuedFor(ms),()=>{});
@@ -222,16 +231,23 @@ export async function processMeowhoJob(options:{
    },
    async analyze(input,root){
     ensure();step='analysis';
+    if(automatic){
+     const reserved=await rpc('meow_env_reserve_models',{...rpcIds(),p_worker:options.workerId,
+      p_household:automatic.householdId??null},signal);
+     ensure();
+     if(reserved!==true)throw Object.assign(new MeowhoError('config_error'),{retryable:false});
+     jobGuard=openM6ModelGuard(join(automatic.ledgerDirectory,`${claim.job_id}.jsonl`),automatic.modelTransport);
+    }
     if(options.analyze)return options.analyze(input,root,signal);
-    const env=options.env??process.env;
+    const guard=jobGuard??options.m6?.guard;
     if(!env.WELFARELENS_PDF_BROWSER||env.ENABLE_IMAGE_EDITING!=='true')throw new MeowhoError('config_error');
     const bundle=await executeLiveJob({input,root,profile,signal,meowhoInput:true,live:true,
-     env:options.m6?{...env,WELFARELENS_VIDEO_MAX_RETRIES:'0'}:env,providerRequests:options.m6?.guard.requests,
-     onVlmFailure:options.m6?.guard.stopAfterVlmFailure,
+     env:guard?{...env,WELFARELENS_VIDEO_MAX_RETRIES:'0'}:env,providerRequests:guard?.requests,
+     onVlmFailure:guard?.stopAfterVlmFailure,
      allowImageEditing:true,pdfBrowser:env.WELFARELENS_PDF_BROWSER,
      reportViewIdentity:env.WELFARELENS_PRIVATE_REPORT_VIEW==='true'?{report_id:claim.report_id,attempt:claim.attempt}:undefined});
-    options.m6?.guard.assertHealthy();
-    if(options.m6&&bundle.diagnostics?.some(entry=>entry.error_type))throw new MeowhoError('result_invalid');
+    guard?.assertHealthy();
+    if(guard&&bundle.diagnostics?.some(entry=>entry.error_type))throw new MeowhoError('result_invalid');
     return bundle;
    },
    async preparePublication(_job,dir,bundle,canonical,summary){
@@ -239,7 +255,7 @@ export async function processMeowhoJob(options:{
     const {items,warnings}=await prepareMeowhoItems({canonical,bundle,directory:dir,outputPrefix:claim.output_prefix,signal,
      upload,ensure});
     const result=buildMeowhoResult({jobId:claim.job_id,reportId:claim.report_id,attempt:claim.attempt,workerId:options.workerId,
-     modelVersion:options.env?.WELFARELENS_MODEL_VERSION??'unknown',bundle,canonical,summary,publication:{items,warnings}});
+     modelVersion:env.WELFARELENS_MODEL_VERSION??'unknown',bundle,canonical,summary,publication:{items,warnings}});
     const jsonFile=join(dir,'result.json'),jsonPath=claim.output_prefix+'result.json',pdfPath=claim.output_prefix+'report.pdf';
     await profile.measure('json_generate',()=>writeFile(jsonFile,JSON.stringify(result),{flag:'wx',mode:0o600}));
     // Keep the exact payload for idempotent acknowledgement retry.
@@ -247,15 +263,15 @@ export async function processMeowhoJob(options:{
      p_warnings:result.warnings,p_json_path:jsonPath,p_pdf_path:pdfPath};
     ensure();await upload(jsonPath,jsonFile,'application/json',signal);
     ensure();await upload(pdfPath,join(dir,'before-after.pdf'),'application/pdf',signal);
-    if((options.env??process.env).WELFARELENS_PRIVATE_HTML==='true'){
+    if(env.WELFARELENS_PRIVATE_HTML==='true'){
      const htmlSignal=AbortSignal.any([signal,AbortSignal.timeout(45_000)]);
      try{
       await uploadReportHtml(dir,claim.output_prefix,(path,file,mime)=>{
        ensure();htmlSignal.throwIfAborted();
        return upload(path,file,mime,htmlSignal);
-      },(options.env??process.env).WELFARELENS_PRIVATE_REPORT_VIEW==='true');
+      },env.WELFARELENS_PRIVATE_REPORT_VIEW==='true',!!automatic);
      }catch(error){
-      if(options.m6)throw error;
+      if(options.m6||automatic)throw error;
       console.warn('welfarelens: optional HTML upload unavailable');
      }
     }
@@ -270,7 +286,7 @@ export async function processMeowhoJob(options:{
     const mapped=failureCodes.has(code)?code:errors.has('credentials')?'permission_denied':
      errors.has('quota')?'rate_limited':errors.has('timeout')?'timeout':errors.has('provider_unavailable')?'service_unavailable':
      errors.has('configuration')||errors.has('disabled')?'config_error':stage==='analysis'&&!observed?.diagnostics?'config_error':'result_invalid';
-    return finish('meow_env_fail',{p_code:mapped,p_detail:`${stage}: ${mapped}`,p_retryable:!options.m6&&observed?.retryable!==false&&retryable.has(mapped)&&claim.attempt<3});
+    return finish('meow_env_fail',{p_code:mapped,p_detail:`${stage}: ${mapped}`,p_retryable:!options.m6&&!jobGuard&&observed?.retryable!==false&&retryable.has(mapped)&&claim.attempt<3});
    },
    async save(){throw new MeowhoError('config_error');},
    async complete(){throw new MeowhoError('config_error');},
@@ -281,6 +297,7 @@ export async function processMeowhoJob(options:{
   await queueWait;
   controller.abort();
   await renewal;
+  jobGuard?.close();
   if(outcome!=='idle')options.onProfile?.(profile.snapshot(outcome));
  }
 }

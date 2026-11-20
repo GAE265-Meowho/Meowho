@@ -19,8 +19,10 @@ MeowHome 及 WelfareLens 現階段共用私有 Azure Blob 容器 `media-dev`。�
 | `WELFARELENS_PRIVATE_HTML`、`WELFARELENS_PRIVATE_REPORT_VIEW` | Worker 私有 HTML 及新版 Writer 開關 | 否 | 選填，兩者皆為 `true` 才上傳新版 JSON |
 | `WELFARELENS_IMAGE_EDIT_CONCURRENCY`、`WELFARELENS_VIDEO_CONCURRENCY`、`WELFARELENS_VIDEO_MAX_RETRIES` | AI 並行及 VLM 傳輸重試 | 否 | 選填，預設 2、2、2。改圖只接受 1／2／3，空字串為設定錯誤 |
 | `MEOWHO_WORKER_POLL_MS`、`MEOWHO_WORKER_MAX_JOBS` | Worker 輪詢間隔與本次最多處理的嘗試數 | 否 | 有界輪詢須設定上限。預設間隔 10 秒 |
-| `MEOWHO_WORKER_SERVICE`、`MEOWHO_QUEUE_ENABLED`、`MEOWHO_DEDICATED_QUEUE_PROJECT_REF` | 長期服務的部署模式、批准開關及已驗證獨占佇列專案 | 否 | 僅限獲准的獨占佇列。共用專案維持關閉 |
-| `WELFARELENS_QUEUE_IMAGE`、`WELFARELENS_QUEUE_ENV_FILE` | Compose 映像 digest 與 VM 私有設定檔位置 | 否 | 使用 Queue Compose 時必填 |
+| `MEOWHO_WORKER_SERVICE`、`MEOWHO_QUEUE_ENABLED` | 長期服務的部署模式及批准開關 | 否 | 長期服務使用 `--poll`，批准後才啟用 |
+| `MEOWHO_DEDICATED_QUEUE_PROJECT_REF`、`MEOWHO_QUEUE_HOUSEHOLD_ID` | 獨占專案或共用專案核准的喵戶 UUID，二擇一 | 否 | 共用專案需另有資料庫核准記錄 |
+| `MEOWHO_QUEUE_LEDGER_DIR` | 容器內持久帳本目錄 | 否 | Compose 固定為 `/model-ledgers`，與暫存目錄分離 |
+| `WELFARELENS_QUEUE_IMAGE`、`WELFARELENS_QUEUE_ENV_FILE`、`WELFARELENS_QUEUE_LEDGER_HOST` | Compose 映像 digest、私有環境檔及主機帳本目錄 | 否 | 使用 Queue Compose 時必填 |
 | `MEOWHO_M6_JOB_ID`、`MEOWHO_M6_MODEL_LEDGER` | 首筆 E2E 預期 Job ID 與容器內持久帳本絕對路徑 | 否 | 僅限隔離專案，兩者皆須設定，只允許 `--once`，設過相同帳本即拒絕重啟 |
 | `GITHUB_TOKEN`、`WELFARELENS_GHCR_RELEASE` | GitHub Actions 內建權杖及 Registry 發布開關 | 權杖是 | 一般 CI 僅讀原始碼。發布工作另有套件寫入權限 |
 

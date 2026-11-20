@@ -12,9 +12,15 @@ esac
 
 : "${WELFARELENS_QUEUE_IMAGE:?Set the approved image reference}"
 : "${WELFARELENS_QUEUE_ENV_FILE:?Set the private environment file path}"
+: "${WELFARELENS_QUEUE_LEDGER_HOST:?Set the persistent private ledger directory}"
 if [[ ! $WELFARELENS_QUEUE_IMAGE =~ ^ghcr\.io/[a-z0-9_./-]+@sha256:[0-9a-f]{64}$ ]] &&
    [[ ! $WELFARELENS_QUEUE_IMAGE =~ ^sha256:[0-9a-f]{64}$ ]]; then
  echo 'Use a GHCR digest or a verified local image ID.' >&2
+ exit 2
+fi
+if [[ $WELFARELENS_QUEUE_LEDGER_HOST != /* || ! -d $WELFARELENS_QUEUE_LEDGER_HOST ||
+      -L $WELFARELENS_QUEUE_LEDGER_HOST || $(stat -c %a:%u "$WELFARELENS_QUEUE_LEDGER_HOST") != 700:1000 ]]; then
+ echo 'The persistent ledger directory must be private (0700) and owned by the Worker user (UID 1000).' >&2
  exit 2
 fi
 if [[ ! -f $WELFARELENS_QUEUE_ENV_FILE || -L $WELFARELENS_QUEUE_ENV_FILE ]] ||

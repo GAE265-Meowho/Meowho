@@ -32,21 +32,29 @@ export async function writeReportHtml(directory:string, prepared:ProfessionalRep
  }
 }
 
-export async function uploadReportHtml(directory:string,prefix:string,upload:(path:string,file:string,mime:string)=>Promise<void>,publishView=false) {
+export async function uploadReportHtml(directory:string,prefix:string,upload:(path:string,file:string,mime:string)=>Promise<void>,publishView=false,required=false) {
  const html=join(directory,'report.html');
  const names=await readdir(join(directory,'html-assets')).catch((e:NodeJS.ErrnoException)=>{
   if(e.code==='ENOENT')return [];
   throw e;
  });
- if(!names.length)return;
+ if(!names.length){
+  if(required)throw Error('Required report assets missing');
+  return;
+ }
  // A failed local export must never trigger a partial upload.
- if(!await stat(html).then(s=>s.isFile(),()=>false))return;
+ if(!await stat(html).then(s=>s.isFile(),()=>false)){
+  if(required)throw Error('Required report HTML missing');
+  return;
+ }
+ const view=join(directory,'report-view.json');
+ const hasView=publishView&&await stat(view).then(s=>s.isFile(),()=>false);
+ if(required&&!hasView)throw Error('Required report view missing');
  for(const name of names.sort()){
   if(!/^[a-f0-9]{64}\.(jpg|png)$/.test(name))throw Error('Invalid report image');
   const path='html-assets/'+name;
   await upload(prefix+path,join(directory,path),name.endsWith('.jpg')?'image/jpeg':'image/png');
  }
  await upload(prefix+'report.html',html,'text/html; charset=utf-8');
- const view=join(directory,'report-view.json');
- if(publishView&&await stat(view).then(s=>s.isFile(),()=>false))await upload(prefix+'report-view.json',view,'application/json');
+ if(hasView)await upload(prefix+'report-view.json',view,'application/json');
 }

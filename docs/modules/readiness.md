@@ -457,6 +457,8 @@ Worker 選用的 `report.html` 與 `html-assets/` 位於既有 attempt 前綴。
 
 [M6 本機 Pipeline](../../workers/welfarelens/docs/benchmarks/m6-local-pipeline.md) 可先獨立驗收模型與報告：經授權的影片透過同一分析核心處理，使用一次性私有帳本及正式節流，產物留在本機。網站權限、Blob 與佇列仍需另行端到端驗收。
 
+自動領件方案沿用網站排程與 Docker 輪詢，新增由資料庫管理員核准喵戶的原子 Claim 及每 Job 一次的持久模型額度登記。共用專案啟用前須審查 Migration、確認沒有競爭舊 Worker、核對隔離儲存和費用授權。操作見 [Worker 啟用清單](../../workers/welfarelens/VM_RUNBOOK.md#自動領件啟用清單)。
+
 效能驗收採本機 Docker。已核准兩輪 US$30 Pilot，六輪暫留 US$40。後四輪須核對 Pilot 帳單並另行核准，原本的預留額持續計入。真實呼叫需先確認發布映像及成本。詳見 [Benchmark 紀錄](../../workers/welfarelens/docs/benchmarks/2026-11-pipeline-performance.md)。
 
 效能驗收使用獨立本機入口，可在不領取 Supabase 工作的情況下測量真實模型與本機報告。主機啟動器檢查 GHCR Digest、OCI revision、Image ID 及平台，並提供不建立請求帳本的斷網預檢。配額、預算、原始紀錄及人工品質標準見 [WelfareLens 效能驗收](../../workers/welfarelens/docs/benchmarks/2026-11-pipeline-performance.md)。雲端佇列、Blob 和租約恢復需獨立驗收。
