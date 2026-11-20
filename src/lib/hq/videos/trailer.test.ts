@@ -20,15 +20,15 @@ describe("前導影片 v3 分鏡資料", () => {
     expect(shots[8].frames.map(f => f.label)).toEqual(["9-1 查養貓注意事項", "9-2 蹲下查看電線"]);
   });
 
-  it("需要產生 33 格：AI 生成 26、系統錄影截圖 5、剪輯字卡 2", () => {
-    expect(frameCounts()).toEqual({ ai: 26, record: 5, edit: 2, total: 33 });
+  it("需要產生 34 格：AI 生成 28、系統錄影截圖 5、剪輯字卡 1（#562 鏡 6 改 AI 兩格）", () => {
+    expect(frameCounts()).toEqual({ ai: 28, record: 5, edit: 1, total: 34 });
   });
 
   it("每一格上傳的代號都不重複，且只用小寫英數與減號（存檔路徑用）", () => {
     const ids = allSlotIds();
     expect(new Set(ids).size).toBe(ids.length);
     for (const id of ids) expect(id).toMatch(/^[a-z0-9-]+$/);
-    expect(ids).toHaveLength(CHARACTERS.length + SCENES.length + 33);
+    expect(ids).toHaveLength(CHARACTERS.length + SCENES.length + 34);
   });
 
   it("每一格 AI 分鏡都有參考圖，最多 4 張，而且都是存在的定角／定景；非 AI 的格子沒有參考圖", () => {
@@ -65,7 +65,7 @@ describe("前導影片 v3 分鏡資料", () => {
     expect(p2).toContain("Image 2 = scene-afang-home.webp: Afang's ground-floor apartment");
     expect(p2).toContain(s2.frames[0].prompt);
     expect(refFileName("scene-studio")).toBe("scene-studio.webp");
-    const s6 = shots[5]; // 鏡 6 群組分割畫面（非 AI）
+    const s6 = shots.find(s => s.no === 14)!; // 鏡 14 Logo 字卡（非 AI）
     expect(fullPrompt(s6.frames[0], s6.line)).toBe(s6.frames[0].prompt);
   });
 });
@@ -105,7 +105,7 @@ describe("上傳與進度", () => {
     expect(p).toEqual({
       characters: { done: 0, total: 4 },
       scenes: { done: 1, total: 3 },
-      frames: { done: 1, total: 33 },
+      frames: { done: 1, total: 34 },
     });
   });
 

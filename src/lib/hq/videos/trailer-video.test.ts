@@ -6,22 +6,22 @@ import {
 describe("前導影片的影片檔（#501）", () => {
   it("兩格以上或拆成多支短片的鏡頭有整鏡成品格 m-<第一格代號>（#548）", () => {
     const m = videoSlots().filter(x => x.kind === "shot");
-    expect(m.map(x => x.id)).toEqual(["m-s07", "m-s12", "m-s10", "m-s14", "m-s15", "m-s16", "m-s26"]);
+    expect(m.map(x => x.id)).toEqual(["m-s07", "m-s08", "m-s12", "m-s10", "m-s14", "m-s15", "m-s16", "m-s26"]);
     expect(videoSlotLabel("m-s16")).toBe("鏡 12 整鏡成品");
     expect(compositeShots().find(c => c.id === "m-s16")!.shot.no).toBe(12);
     expect(isVideoSlot("m-s16")).toBe(true);
   });
 
-  it("可放影片的格：完整影片 1、四段 4、片段 31（AI 26＋第三段系統錄影 5，#547）、旁白 25", () => {
+  it("可放影片的格：完整影片 1、四段 4、片段 33（AI 28＋第三段系統錄影 5，#547）、旁白 25", () => {
     const s = videoSlots();
     expect(s.filter(x => x.kind === "full")).toHaveLength(1);
     expect(s.filter(x => x.kind === "section").map(x => x.id)).toEqual(["opening", "cross", "product", "ending"]);
-    expect(s.filter(x => x.kind === "clip")).toHaveLength(31);
+    expect(s.filter(x => x.kind === "clip")).toHaveLength(33);
     for (const id of ["s21", "s23", "s24", "s25", "s27"]) expect(isVideoSlot(id), id).toBe(true);
     expect(s.filter(x => x.kind === "voice")).toHaveLength(25);
     expect(s.filter(x => x.kind === "rec")).toHaveLength(10); // 第三段系統錄影（#529）
     expect(isVideoSlot("s07-2")).toBe(true);
-    expect(isVideoSlot("s08")).toBe(false); // 字卡不用生成
+    expect(isVideoSlot("s08-1")).toBe(true); // #562 鏡 6 改 AI 生成
     expect(isVideoSlot("../x")).toBe(false);
   });
 

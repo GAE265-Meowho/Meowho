@@ -25,7 +25,8 @@
 - 前導影片鏡 11 片段卡拆成 4 支短片（Tina × Claude Code，#545）：PR #546 已合併，完成。
 - 前導影片影片 tab 多格鏡頭加「整鏡成品」上傳格（Tina × Claude Code，#548）：PR #549 已合併，完成。
 - 前導影片影片 tab 可刪除單一版本（Tina × Claude Code，#553）：PR #554 已合併，完成。
-- 前導影片鏡 9-2 改為蹲在桌下查看電線特寫（Tina × Claude Code，#556）：分支 `feat/556-shot9-crouch`，審查中。
+- 前導影片鏡 9-2 改為蹲在桌下查看電線特寫（Tina × Claude Code，#556）：PR #557 已合併，完成。
+- 前導影片鏡 6 改為 AI 兩格（Tina × Claude Code，#562）：分支 `feat/562-shot6-ai`，審查中。
 
 - AI 居家安全報告首屏與圖片載入（Jerry0808 × Codex）：分支 `codex/home-safety-report-ux`，審查中。沿用 #273 報告授權；待驗收 Preview 的真實 Owner 登入及 Azure 延遲。
 

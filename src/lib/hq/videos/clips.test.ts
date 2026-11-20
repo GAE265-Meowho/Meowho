@@ -14,10 +14,10 @@ describe("前導影片：產生影片", () => {
     }
   });
 
-  it("清單有 AI 生成的 26 格，加上第三段系統錄影的 5 格（真人＋真實 UI 合成，#547）；字卡不列", () => {
+  it("清單有 AI 生成的 28 格（#562 鏡 6 改 AI 兩格），加上第三段系統錄影的 5 格（真人＋真實 UI 合成，#547）；字卡不列", () => {
     const items = clipSections().flatMap(s => s.items);
-    expect(items).toHaveLength(31);
-    expect(items.filter(i => i.frame.make === "ai")).toHaveLength(26);
+    expect(items).toHaveLength(33);
+    expect(items.filter(i => i.frame.make === "ai")).toHaveLength(28);
     expect(items.filter(i => i.frame.make === "record").map(i => i.frame.id)).toEqual(["s21", "s23", "s24", "s25", "s27"]);
     expect(items.some(i => i.frame.make === "edit")).toBe(false);
   });
@@ -110,6 +110,17 @@ describe("前導影片：產生影片", () => {
     expect(p).not.toContain("no scene cuts");
   });
 
+  it("鏡 6 改為 AI 兩格（6-1 阿芳發群組、6-2 小傑睡前滑群組），螢幕不讓 AI 畫字（#562）", () => {
+    const s6 = SHOT_SECTIONS.flatMap(x => x.shots).find(s => s.no === 6)!;
+    expect(s6.frames.map(f => [f.id, f.make, f.label])).toEqual([["s08-1", "ai", "6-1 阿芳發群組"], ["s08-2", "ai", "6-2 小傑睡前滑群組"]]);
+    expect(s6.frames[0].refs).toEqual(["char-afang", "scene-afang-home"]);
+    expect(s6.frames[1].refs).toEqual(["char-xiaojie", "scene-studio"]);
+    for (const f of s6.frames) {
+      expect(f.prompt).toMatch(/no readable text/);
+      expect(CLIP_MOTION[f.id].action.length).toBeGreaterThan(0);
+    }
+  });
+
   it("每一鏡都不超過 10 秒（#517 Tina 確認）", () => {
     for (const s of SHOT_SECTIONS.flatMap(x => x.shots)) expect(shotSeconds(s), `鏡 ${s.no}`).toBeLessThanOrEqual(10);
   });
@@ -148,6 +159,6 @@ describe("前導影片：產生影片", () => {
   });
 
   it("非 AI 的格子沒有圖生影片 prompt", () => {
-    expect(motionPrompt(shots[5].frames[0])).toBe(""); // 鏡 6 群組分割畫面（動態設計，非 AI）
+    expect(motionPrompt(shots.find(s => s.no === 14)!.frames[0])).toBe(""); // 鏡 14 Logo 字卡（非 AI）
   });
 });
