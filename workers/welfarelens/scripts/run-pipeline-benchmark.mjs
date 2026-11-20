@@ -31,7 +31,7 @@ export function benchmarkAzureEnv(contents) {
   }));
 }
 
-function assertPrivatePath(path) {
+export function assertPrivatePath(path) {
   for (let directory = path;; directory = dirname(directory)) {
     if (existsSync(resolve(directory, '.git'))) throw Error('Keep Benchmark input, config and batch outside Git');
     if (dirname(directory) === directory) return;

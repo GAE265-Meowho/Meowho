@@ -90,7 +90,8 @@ export async function processIntegrationJob(root:string,ports:IntegrationPorts,p
    if(!standaloneSucceeded(bundle,true)||bundle.stages.aggregation!=='completed'||!required.every(name=>bundle.artifacts.includes(name))){
     const failures=bundle.imageFailures??[];
     const code=failures.find(f=>['permission_denied','result_invalid'].includes(f))??failures[0];
-    throw Object.assign(Error('Required artifacts missing'),{code});
+    // An image request may already have incurred a charge even if its result is unknown.
+    throw Object.assign(Error('Required artifacts missing'),{code,...(code?{retryable:false}:{})});
    }
    const dir=join(jobs,bundle.job_id);
    const {canonical,meowho,needsImages}=await measure(profile,'validation',()=>validateIntegrationArtifacts(dir,bundle,!!(job.requireImages||job.requireApprovedImages)));

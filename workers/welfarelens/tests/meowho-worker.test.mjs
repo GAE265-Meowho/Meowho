@@ -100,6 +100,24 @@ test('source, size, decode and duration failures report exact v0.4 codes before 
  }
 });
 
+test('a failed required image edit cannot requeue a charged job or publish artifacts',async t=>{
+ const root=await rootFor(t);
+ for(const code of ['rate_limited','timeout','network','result_invalid']){
+  const result=await processMeowhoJob({root,workerId:'mock',
+   rpc:async(name,body)=>{
+    if(name==='meow_env_claim')return claim();
+    assert.equal(name,'meow_env_fail');
+    assert.equal(body.p_code,code);
+    assert.equal(body.p_retryable,false);
+    return 'failed';
+   },
+   blob:{download:(_path,file)=>copyFile(fixture,file),upload:()=>assert.fail('Unexpected report upload')},
+   analyze:async()=>({outcome:'completed',stages:{analysis:'completed',aggregation:'completed',pdf:'failed',json:'completed'},artifacts:[],imageFailures:[code]}),
+  });
+  assert.equal(result,'failed');
+ }
+});
+
 test('Blob SDK port streams to exclusive local files and rejects oversize or truncated bodies',async t=>{
  const root=await rootFor(t),signal=new AbortController().signal;
  const port=(length,chunks)=>createBlobPort({getBlobClient:()=>({

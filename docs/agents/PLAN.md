@@ -1,6 +1,7 @@
 # PLAN — 計畫與任務管理
 
-- #273 網站正式建置改用本機字型（Jerry0808 × Codex，審查中）。保留正式網站字型與 Unicode 子集，修改與 WelfareLens Worker 分開審查。
+- WelfareLens M4 受控改圖（Jerry0808 × Codex，#273，審查中）：1／2／3 路六輪已完成。Worker 預設 2，1 為明確回退值，3 為明確啟用的選項。M6 真實驗收待另行批准。
+- #273 網站正式建置改用本機字型（Jerry0808 × Codex，完成）：PR #555 已合併至 main，保留正式網站字型與 Unicode 子集。
 
 - 前導影片產生影片 tab、(P) 生成紀錄、v3 修訂、腳本下載（Tina × Claude Code，#493、#494、#497、#498）：PR #495 已合併，完成。
 - 前導影片同一鏡多格標籤（Tina × Claude Code，#499）：PR #500 已合併，完成。
