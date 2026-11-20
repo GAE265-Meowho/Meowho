@@ -39,7 +39,9 @@ export function ClipsBoard() {
         <h2 id="vid-full">完整影片</h2>
         <TrailerVideosNotice state={videos} />
         <div className="hq-video-full">
-          <VideoSlot slot="full" label={videoSlotLabel("full")} state={videos} emptyText="完整影片還沒上傳" />
+          {/* #565：完整影片拆成兩支 */}
+          <div><h3 className="hq-h3">{videoSlotLabel("full")}<span className="hq-sub">（第一段＋第二段）</span></h3><VideoSlot slot="full" label={videoSlotLabel("full")} state={videos} emptyText="前導影片還沒上傳" /></div>
+          <div><h3 className="hq-h3">{videoSlotLabel("demo")}<span className="hq-sub">（第三段＋第四段）</span></h3><VideoSlot slot="demo" label={videoSlotLabel("demo")} state={videos} emptyText="系統 Demo 影片還沒上傳" /></div>
         </div>
         <p className="hq-sub">
           段落影片 {sectionsDone}／{sections.length}、片段 {clipsDone}／{items.length}。剪輯字卡 {counts.edit} 格在剪輯時加入，不用生成。

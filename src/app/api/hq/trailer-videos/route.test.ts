@@ -77,7 +77,7 @@ describe("/api/hq/trailer-videos", () => {
     expect(json.videos.full[0].url).toBe("https://blob.example/videos/trailer/full/20261119100000.mp4");
     expect(json.videos.full[0].downloadUrl).toContain("?dl");
     const cd = mocks.reads.find(r => r.cd)?.cd ?? "";
-    expect(decodeURIComponent(cd)).toContain("前導影片_完整版_2026-11-19.mp4");
+    expect(decodeURIComponent(cd)).toContain("前導影片_2026-11-19.mp4");
   });
   it("刪除單一版本（#553）：只刪存在的那一版；不是管理員 403；路徑不對 400、不存在 404", async () => {
     const keep = "videos/trailer/rec-chat-adopter/20261119083600.mp4";
