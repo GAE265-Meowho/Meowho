@@ -137,6 +137,7 @@
 ## 5. Typography Rules
 
 - **字體堆疊：** `Quicksand`（英數）→ `Zen Maru Gothic`（日系圓體）→ `Noto Sans TC`（繁中）。和主程式現在的設定相同，不需要改。
+- **網站字型來源：** 正式網站使用[版本固定的本機 WOFF2](fonts/README.md)，保留各字重的 Unicode 子集。
 - **字重：** 標題、按鈕、標籤用 700；內文用 400 到 500。
 - **數字：** 大數字用 Quicksand，比較圓、比較可愛。
 - **字距：** 中文標題加 `letter-spacing: 0.04–0.08em`。
