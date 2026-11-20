@@ -64,10 +64,17 @@ export function shotSeconds(shot: Pick<Shot, "time">): number {
 
 /** 這一格在成片裡用幾秒（同一顆鏡頭多格就平分）、建議生成幾秒（5／10／15，剪接時再裁） */
 export function clipLength(shot: Shot): { cut: number; generate: 5 | 10 | 15 } {
-  const ai = shot.frames.filter(f => f.make === "ai").length || 1;
+  const ai = shot.frames.filter(isClipFrame).length || 1;
   const cut = Math.round((shotSeconds(shot) / ai) * 10) / 10;
   return { cut, generate: cut <= 5 ? 5 : cut <= 10 ? 10 : 15 };
 }
+
+/**
+ * 影片 tab 有片段卡的格：AI 分鏡，加上第三段的系統錄影格（#547）。
+ * 系統錄影格的分鏡也是真人＋真實 UI，成品照 docs/video/前導影片第三段_片段製作SOP.md 做（Kling 綠幕＋真實錄影合成），一樣要有上傳格。
+ * 剪輯字卡不用生成，沒有片段卡。
+ */
+export const isClipFrame = (f: Pick<Frame, "make">) => f.make !== "edit";
 
 /** 起始畫面（分鏡圖）的固定下載檔名 */
 export const startFrameFileName = (frameId: string) => `${frameId}.webp`;
@@ -103,12 +110,12 @@ function cutsPrompt(frame: Frame, m: ClipMotion, refs: RefSlot[]): string {
 }
 
 export type ClipItem = { shot: Shot; frame: Frame; cut: number; generate: 5 | 10 | 15 };
-/** 產生影片 tab 的清單：只有 AI 生成的格子；系統錄影與剪輯字卡不用生成 */
+/** 產生影片 tab 的清單：AI 生成的格子與第三段系統錄影格（#547）；剪輯字卡不用生成 */
 export function clipSections(): { key: ShotSection["key"]; title: string; range: string; items: ClipItem[] }[] {
   return SHOT_SECTIONS.map(sec => ({
     key: sec.key,
     title: sec.title,
     range: sec.range,
-    items: sec.shots.flatMap(shot => shot.frames.filter(f => f.make === "ai").map(frame => ({ shot, frame, ...clipLength(shot) }))),
+    items: sec.shots.flatMap(shot => shot.frames.filter(isClipFrame).map(frame => ({ shot, frame, ...clipLength(shot) }))),
   })).filter(sec => sec.items.length);
 }

@@ -3,7 +3,7 @@
 import { SHOT_SECTIONS, type SectionKey } from "./trailer";
 import { VOICE_LINES, speakerName } from "./voice";
 import { REC_CLIPS, recClip } from "./rec-clips";
-import { CLIP_MOTION } from "./clips";
+import { CLIP_MOTION, isClipFrame } from "./clips";
 import type { Shot } from "./trailer";
 
 export const TRAILER_VIDEO_PREFIX = "videos/trailer/";
@@ -35,12 +35,12 @@ export function compositeShots(): { id: string; shot: Shot }[] {
     .map(sh => ({ id: `m-${sh.frames[0].id.replace(/-\d+$/, "")}`, shot: sh }));
 }
 
-/** 可以放影片的格：完整影片、四段、每一格 AI 分鏡（片段）、旁白、第三段的系統錄影（#529） */
+/** 可以放影片的格：完整影片、四段、每一格片段（AI 分鏡＋第三段系統錄影格，#547）、旁白、第三段的系統錄影（#529） */
 export function videoSlots(): { id: string; kind: VideoSlotKind }[] {
   return [
     { id: "full", kind: "full" as const },
     ...SHOT_SECTIONS.map(s => ({ id: s.key as string, kind: "section" as const })),
-    ...SHOT_SECTIONS.flatMap(s => s.shots.flatMap(sh => sh.frames.filter(f => f.make === "ai").map(f => ({ id: f.id, kind: "clip" as const })))),
+    ...SHOT_SECTIONS.flatMap(s => s.shots.flatMap(sh => sh.frames.filter(isClipFrame).map(f => ({ id: f.id, kind: "clip" as const })))),
     ...compositeShots().map(c => ({ id: c.id, kind: "shot" as const })),
     ...VOICE_LINES.map(l => ({ id: l.id, kind: "voice" as const })),
     ...REC_CLIPS.map(c => ({ id: c.id, kind: "rec" as const })),

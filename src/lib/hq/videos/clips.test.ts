@@ -14,9 +14,18 @@ describe("前導影片：產生影片", () => {
     }
   });
 
-  it("清單只有 AI 生成的 26 格，系統錄影與字卡不列", () => {
-    expect(clipSections().flatMap(s => s.items)).toHaveLength(26);
-    expect(clipSections().flatMap(s => s.items).every(i => i.frame.make === "ai")).toBe(true);
+  it("清單有 AI 生成的 26 格，加上第三段系統錄影的 5 格（真人＋真實 UI 合成，#547）；字卡不列", () => {
+    const items = clipSections().flatMap(s => s.items);
+    expect(items).toHaveLength(31);
+    expect(items.filter(i => i.frame.make === "ai")).toHaveLength(26);
+    expect(items.filter(i => i.frame.make === "record").map(i => i.frame.id)).toEqual(["s21", "s23", "s24", "s25", "s27"]);
+    expect(items.some(i => i.frame.make === "edit")).toBe(false);
+  });
+
+  it("系統錄影格沒有圖生影片 prompt，改看 SOP（#547）", () => {
+    const rec = clipSections().flatMap(s => s.items).find(i => i.frame.id === "s21")!;
+    expect(motionPrompt(rec.frame)).toBe("");
+    expect(rec.cut).toBe(5);
   });
 
   it("全片時間軸連續：鏡頭首尾相接，最後一鏡在 3:00 結束（#515）", () => {
