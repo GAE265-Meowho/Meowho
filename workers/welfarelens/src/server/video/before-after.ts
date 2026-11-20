@@ -27,7 +27,7 @@ export function imageEditConcurrency(value:string|undefined):1|2|3 {
  throw Error('Invalid image edit concurrency');
 }
 
-export async function renderVideoAfter(input:RiskObjectReport,visual:VisualReport,dir:string,config:ReturnType<typeof imageEditConfig>,signal:AbortSignal,edit:Editor=editAzureImage,recordFailure?:(code:string)=>void,concurrency=imageEditConcurrency(undefined),profile?:JobProfile,pace=paceWorkerImageEdit){
+export async function renderVideoAfter(input:RiskObjectReport,visual:VisualReport,dir:string,config:ReturnType<typeof imageEditConfig>,signal:AbortSignal,edit:Editor=editAzureImage,recordFailure?:(code:string)=>void,concurrency=imageEditConcurrency(undefined),profile?:JobProfile,pace=paceWorkerImageEdit,transport:typeof fetch=fetch){
  const r=RiskObjectReportSchema.parse(input);
  if(r.source!=='azure')throw Error('Offline fixture cannot request editing');
  if(r.visual_comparisons.some(v=>v.after_generation_status.status!=='not_requested'))throw Error('Job already attempted image editing');
@@ -54,7 +54,7 @@ export async function renderVideoAfter(input:RiskObjectReport,visual:VisualRepor
  const request:typeof fetch=(url,init)=>pace(waiting,async()=>{
   sent=true;
   try{
-   const response=await fetch(url,init);
+   const response=await transport(url,init);
    if(response.status===429||response.status===408)stopNew.abort();
    return response;
   }catch(error){

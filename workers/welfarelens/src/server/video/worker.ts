@@ -19,7 +19,7 @@ export async function analyzeVideoImage(image:string,plant:boolean,env:Record<st
  const result=await response.json();if(!response.ok)throw Error(['credentials','quota','timeout','invalid_output','disabled','configuration'].includes(result.code)?result.code:'provider_unavailable');
  return {candidate:CandidateSchema.parse(result.candidate),usage:result.usage,deployment:result.deployment};
 }
-export async function runVideoScan(store:VideoStore,id:string,options:{env:Record<string,string|undefined>;signal:AbortSignal;analyze?:typeof analyzeVideoImage;providerRequest?:typeof fetch;experimentalMaxSeconds?:number}){
+export async function runVideoScan(store:VideoStore,id:string,options:{env:Record<string,string|undefined>;signal:AbortSignal;analyze?:typeof analyzeVideoImage;providerRequest?:typeof fetch;onProviderFailure?:()=>void;experimentalMaxSeconds?:number}){
  const begin=performance.now(),cpuStart=process.cpuUsage(),dir=await store.directory(id),input=join(dir,'original.bin'),signal=options.signal;
  // Existing two-call ceiling remains the safe default; operators may reduce it for quota pressure.
  const concurrency=options.env.WELFARELENS_VIDEO_CONCURRENCY==='1'?1:2;
@@ -50,6 +50,7 @@ export async function runVideoScan(store:VideoStore,id:string,options:{env:Recor
    metrics.prompt_tokens+=result.usage?.prompt_tokens??0;metrics.completion_tokens+=result.usage?.completion_tokens??0;deployment=result.deployment;
    logs.push({frame_id:frameId,processing_stage:plant?'plant_recheck':'scene',inference_latency:performance.now()-started,queue_wait_ms:queueWait,error_type:null,token_usage:result.usage});return result.candidate;
   }catch(e){
+   options.onProviderFailure?.();
    if(auditFailed){fatal='audit_failed';e=Error('audit_failed');}
    const code=e instanceof Error&&['credentials','configuration','disabled','quota','timeout','invalid_output','provider_unavailable'].includes(e.message)?e.message as NonNullable<VideoJob['diagnostics']>[number]['error_type']:'analysis_failed';
    logs.push({frame_id:frameId,processing_stage:plant?'plant_recheck':'scene',inference_latency:performance.now()-started,queue_wait_ms:queueWait,error_type:code,token_usage:null});throw e;

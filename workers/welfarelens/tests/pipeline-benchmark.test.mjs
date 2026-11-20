@@ -5,12 +5,23 @@ import { join } from 'node:path';
 import { test } from 'node:test';
 import { execFileSync } from 'node:child_process';
 import { BenchmarkConfig, maximumBenchmarkRound, openBenchmarkRun } from '../src/server/video/benchmark-guard.ts';
-import { benchmarkAzureEnv, verifyBenchmarkImage } from '../scripts/run-pipeline-benchmark.mjs';
+import { benchmarkAzureEnv, verifyBenchmarkImage, verifyLocalM6Image } from '../scripts/run-pipeline-benchmark.mjs';
 
 const vlm={host:'vlm.openai.azure.com',deployment:'test-vlm',version:'test',sku:'test',confirmedRpm:60001,gapMs:1,reserveUsdMicros:10};
 const image={...vlm,host:'image.openai.azure.com',deployment:'test-image',confirmedRpm:6,gapMs:12000,reserveUsdMicros:30};
 const config=BenchmarkConfig.parse({approvalRef:'test',commit:'a'.repeat(40),digest:'sha256:'+'b'.repeat(64),
  inputSha256:'c'.repeat(64),pilotUsdMicros:800,batchUsdMicros:3000,vlm,image});
+
+test('M6 local launcher accepts only the approved image ID, OCI revision and Linux AMD64',()=>{
+ const imageId='sha256:'+'1'.repeat(64);
+ const approved={commit:config.commit,imageId};
+ const inspected={Id:imageId,Os:'linux',Architecture:'amd64',
+  Config:{Labels:{'org.opencontainers.image.revision':config.commit}}};
+ assert.deepEqual(verifyLocalM6Image(approved,inspected),{ref:imageId,imageId,revision:config.commit});
+ assert.throws(()=>verifyLocalM6Image(approved,{...inspected,Id:config.digest}),/mismatch/);
+ assert.throws(()=>verifyLocalM6Image(approved,{...inspected,Architecture:'arm64'}),/mismatch/);
+ assert.throws(()=>verifyLocalM6Image(approved,{...inspected,Config:{Labels:{}}}),/mismatch/);
+});
 
 test('Docker launcher pins the inspected Linux AMD64 image and rejects mismatched release evidence',()=>{
  const ref='ghcr.io/gae265-meowho/meowho/welfarelens-worker@'+config.digest;

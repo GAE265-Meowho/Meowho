@@ -20,15 +20,18 @@ export function parseMeowhoMode(args:readonly string[],container:string,env:Node
 
 
 /** The shared claim RPC has no scope filter. Unbounded workers require a separate queue. */
+export function isDedicatedQueue(env:NodeJS.ProcessEnv){
+ const ref=env.MEOWHO_DEDICATED_QUEUE_PROJECT_REF;
+ return !!ref&&/^[a-z0-9]{20}$/.test(ref)&&ref!=='onebpkbkrnnwamwsoelo'&&
+  env.MEOWHO_SUPABASE_URL===`https://${ref}.supabase.co`&&env.MEOWHO_BLOB_CONTAINER==='media-dev';
+}
+
 export function assertContinuousQueueScope(mode:Mode,env:NodeJS.ProcessEnv){
  if(mode.once||mode.maxJobs!==undefined){
   if(env.MEOWHO_WORKER_SERVICE==='true')throw Error('bounded_mode_cannot_restart_as_service');
   return;
  }
- const ref=env.MEOWHO_DEDICATED_QUEUE_PROJECT_REF;
- if(!ref||!/^[a-z0-9]{20}$/.test(ref)||ref==='onebpkbkrnnwamwsoelo'||
-  env.MEOWHO_SUPABASE_URL!==`https://${ref}.supabase.co`||
-  env.MEOWHO_BLOB_CONTAINER!=='media-dev'||env.MEOWHO_QUEUE_ENABLED!=='true'){
+ if(!isDedicatedQueue(env)||env.MEOWHO_QUEUE_ENABLED!=='true'){
   throw Error('unverified_continuous_queue_scope');
  }
 }

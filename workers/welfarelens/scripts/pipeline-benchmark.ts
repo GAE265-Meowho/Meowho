@@ -7,7 +7,9 @@ import { pathToFileURL } from 'node:url';
 import { parseArgs, promisify } from 'node:util';
 import { z } from 'zod';
 import { BenchmarkConfig, maximumBenchmarkRound, openBenchmarkRun } from '../src/server/video/benchmark-guard.ts';
-import { executeLiveJob, privateRoot } from '../src/server/video/standalone.ts';
+import { executeLiveJob, MEOWHO_MAX_BYTES, privateRoot } from '../src/server/video/standalone.ts';
+import { openM6ModelGuard } from '../src/server/video/m6-model-guard.ts';
+import { imageEditConcurrency } from '../src/server/video/before-after.ts';
 import { validateIntegrationArtifacts } from '../src/server/video/integration-job.ts';
 import { buildMeowhoResult, prepareMeowhoItems } from '../src/server/video/meowho-worker.ts';
 import { JobProfile } from '../src/server/video/job-profile.ts';
@@ -17,9 +19,22 @@ import { reportViewAssetNames, ReportViewSchema } from '../src/domain/report-vie
 
 const runCommand = promisify(execFile);
 const ImageIdentity = z.object({
-  ref:z.string().regex(/^ghcr\.io\/gae265-meowho\/meowho\/welfarelens-worker@sha256:[a-f0-9]{64}$/),
+  ref:z.string().regex(/^(?:ghcr\.io\/gae265-meowho\/meowho\/welfarelens-worker@)?sha256:[a-f0-9]{64}$/),
   revision:z.string().regex(/^[a-f0-9]{40}$/),
   imageId:z.string().regex(/^sha256:[a-f0-9]{64}$/),
+}).strict();
+const LocalModel=z.object({
+  host:z.string().regex(/^[a-z0-9-]+\.openai\.azure\.com$/),
+  deployment:z.string().min(1),
+  version:z.string().min(1),
+}).strict();
+const LocalConfig=z.object({
+  approvalRef:z.string().min(1),
+  commit:ImageIdentity.shape.revision,
+  imageId:ImageIdentity.shape.imageId,
+  inputSha256:z.string().regex(/^[a-f0-9]{64}$/),
+  vlm:LocalModel,
+  image:LocalModel,
 }).strict();
 
 async function verifyRuntime(directory:string,input:string,browser:string){
@@ -73,13 +88,22 @@ async function main(){
   const {values}=parseArgs({options:{
     config:{type:'string'},input:{type:'string'},batch:{type:'string'},run:{type:'string'},
     phase:{type:'string'},preflight:{type:'boolean'},'expansion-approval':{type:'string'},'image-identity':{type:'string'},
+    'm6-local':{type:'boolean'},'m6-approval':{type:'string'},
   }});
   if(!values.config||!values.input||!values.batch)throw Error('Arguments');
-  const config=BenchmarkConfig.parse(JSON.parse(await readFile(values.config,'utf8')));
+  const raw:unknown=JSON.parse(await readFile(values.config,'utf8'));
+  const local=values['m6-local']?LocalConfig.parse(raw):undefined;
+  const benchmark=local?undefined:BenchmarkConfig.parse(raw);
+  const config=(local??benchmark)!;
   const identity=ImageIdentity.parse(JSON.parse(values['image-identity']??'null'));
-  if(identity.revision!==config.commit||!identity.ref.endsWith('@'+config.digest))throw Error('Image identity mismatch');
+  if(identity.revision!==config.commit||(local
+    ? identity.ref!==local.imageId||identity.imageId!==local.imageId
+    : !identity.ref.endsWith('@'+benchmark!.digest)))throw Error('Image identity mismatch');
+  if(local&&(values.run||values.phase||values['expansion-approval']||
+    (values.preflight?values['m6-approval']!==undefined:values['m6-approval']!==local.approvalRef)))
+    throw Error('M6 local arguments or approval');
   const input=resolve(values.input),directory=resolve(values.batch),info=await lstat(input);
-  if(!info.isFile()||info.isSymbolicLink()||await realpath(input)!==input||info.size>300_000_000
+  if(!info.isFile()||info.isSymbolicLink()||await realpath(input)!==input||info.size>MEOWHO_MAX_BYTES
     ||await hashFile(input)!==config.inputSha256)throw Error('Unexpected input');
   await keepOutsideGit(directory);
   await privateRoot(directory);
@@ -92,16 +116,19 @@ async function main(){
     ||new URL(image.url).hostname!==config.image.host||image.deployment!==config.image.deployment)
     throw Error('Configuration mismatch');
   if(values.preflight){
-    const maximumRoundUsdMicros=maximumBenchmarkRound(config);
-    if(maximumRoundUsdMicros*2>config.pilotUsdMicros)throw Error('Budget cannot support the pilot envelope');
+    const maximumRoundUsdMicros=local?13_000_000:maximumBenchmarkRound(benchmark!);
+    if(benchmark&&maximumRoundUsdMicros*2>benchmark.pilotUsdMicros)throw Error('Budget cannot support the pilot envelope');
     await verifyRuntime(directory,input,browser);
-    console.log(JSON.stringify({event:'benchmark_preflight',ok:true,metadata,maximumRoundUsdMicros,
-      commit:config.commit,digest:config.digest,imageId:identity.imageId,ociRevision:identity.revision}));
+    console.log(JSON.stringify({event:local?'m6_local_preflight':'benchmark_preflight',ok:true,metadata,maximumRoundUsdMicros,
+      commit:config.commit,digest:benchmark?.digest,imageId:identity.imageId,ociRevision:identity.revision}));
     return;
   }
-  const run=Number(values.run),phase=values.phase;
-  if(!Number.isInteger(run)||(phase!=='pilot'&&phase!=='remaining'))throw Error('Arguments');
-  const guard=await openBenchmarkRun(directory,config,run,phase,fetch,values['expansion-approval']);
+  const run=local?1:Number(values.run),phase=values.phase;
+  if(!local&&(!Number.isInteger(run)||(phase!=='pilot'&&phase!=='remaining')))throw Error('Arguments');
+  const benchmarkRun=benchmark&&await openBenchmarkRun(directory,benchmark,run,phase as 'pilot'|'remaining',fetch,values['expansion-approval']);
+  const localRun=local&&openM6ModelGuard(join(directory,'model-requests.jsonl'));
+  const concurrency=benchmarkRun?.concurrency??imageEditConcurrency(undefined);
+  const counts=()=>benchmarkRun?.counts()??localRun!.counts();
   const profile=new JobProfile(),abort=new AbortController();
   const stop=()=>abort.abort();
   process.once('SIGINT',stop);
@@ -109,23 +136,29 @@ async function main(){
   let ok=false;
   let stage='pipeline';
   let checks:unknown=null;
+  let artifacts:string|undefined;
   const root=join(directory,`run-${run}`);
   const reportId=randomUUID();
   try{
+    if(local)console.log(JSON.stringify({event:'m6_local_start',image_edit_concurrency:concurrency}));
     await mkdir(root,{mode:0o700});
     const bundle=await profile.measure('local_pipeline',()=>executeLiveJob({
       live:true,input,root,profile,signal:abort.signal,pdfBrowser:browser,meowhoInput:true,allowImageEditing:true,
-      providerRequests:guard.providerRequests,reportViewIdentity:{report_id:reportId,attempt:1},
+      providerRequests:benchmarkRun?.providerRequests??localRun!.requests,imageTransportOwnsPacing:!!benchmarkRun,
+      onVlmFailure:localRun?.stopAfterVlmFailure,reportViewIdentity:{report_id:reportId,attempt:1},
       env:{...process.env,ENABLE_CLOUD_ANALYSIS:'true',ENABLE_IMAGE_EDITING:'true',WELFARELENS_PRIVATE_HTML:'true',
-        WELFARELENS_VIDEO_CONCURRENCY:'2',WELFARELENS_VIDEO_MAX_RETRIES:'0',WELFARELENS_IMAGE_EDIT_CONCURRENCY:String(guard.concurrency)},
+        WELFARELENS_VIDEO_CONCURRENCY:'2',WELFARELENS_VIDEO_MAX_RETRIES:'0',
+        WELFARELENS_IMAGE_EDIT_CONCURRENCY:benchmarkRun?String(concurrency):undefined},
     }));
     stage='validation';
     abort.signal.throwIfAborted();
-    if(guard.blocked()||bundle.outcome!=='completed'||bundle.stages.analysis!=='completed'
+    localRun?.assertHealthy();
+    if(benchmarkRun?.blocked()||bundle.outcome!=='completed'||bundle.stages.analysis!=='completed'
       ||bundle.stages.editing!=='generated'||bundle.imageFailures.length
       ||bundle.evidence.length!==8||bundle.metrics?.failedFrames||bundle.metrics?.refinementFailures)
       throw Error('Incomplete benchmark');
     const artifactDir=join(root,bundle.job_id);
+    artifacts=`run-${run}/${bundle.job_id}`;
     await profile.measure('validation',async()=>{
       const {canonical,meowho}=await validateIntegrationArtifacts(artifactDir,bundle,true);
       const html=await verifyHtml(artifactDir,reportId);
@@ -136,7 +169,7 @@ async function main(){
       await writeFile(join(artifactDir,'result.json'),JSON.stringify(result),{flag:'wx',mode:0o600});
       const risk=JSON.parse(await readFile(join(artifactDir,'welfarelens-risk-objects.v1.json'),'utf8'));
       const generated=risk.visual_comparisons.filter((pair:{after_generation_status:{status:string}})=>pair.after_generation_status.status==='generated');
-      if(generated.length!==guard.counts().image)throw Error('Unexpected image count');
+      if(generated.length!==counts().image||(local&&generated.length<2))throw Error('Unexpected image count');
       checks={schema:result.schema,htmlImages:html.images,statistics:html.statistics,video:metadata,
         frameTimes:bundle.evidence.map(f=>f.timestamp),frameHashes:bundle.evidence.map(f=>f.sha256),
         cases:generated.length,
@@ -156,16 +189,17 @@ async function main(){
     let recorded=false;
     try{
       await writeFile(join(directory,`run-${run}.json`),JSON.stringify({
-        run,concurrency:guard.concurrency,at:new Date().toISOString(),commit:config.commit,digest:config.digest,
+        run,concurrency,at:new Date().toISOString(),commit:config.commit,digest:benchmark?.digest,
         imageId:identity.imageId,ociRevision:identity.revision,
-        ok,stage,counts:guard.counts(),checks,profile:profile.snapshot(ok?'local_validated':'failed'),
+        ok,stage,counts:counts(),checks,...(local?{artifacts}:{}),profile:profile.snapshot(ok?'local_validated':'failed'),
       },null,2),{flag:'wx',mode:0o600});
       recorded=true;
     }finally{
-      await guard.close(ok&&recorded);
+      localRun?.close();
+      await benchmarkRun?.close(ok&&recorded);
     }
   }
-  console.log(JSON.stringify({event:'benchmark_run',run,ok}));
+  console.log(JSON.stringify({event:local?'m6_local_run':'benchmark_run',run,ok,image_edit_concurrency:concurrency}));
 }
 
 await main().catch(()=>{

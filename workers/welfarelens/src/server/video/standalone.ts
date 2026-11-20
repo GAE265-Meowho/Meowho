@@ -1,7 +1,7 @@
 import {loadRoomViews} from './room-views.ts';
 import {buildRiskObjects,RiskObjectReportSchema} from '../../domain/risk-objects.ts';
 import {imageEditConcurrency,planVisualCases,renderComparisonPdf,renderVideoAfter} from './before-after.ts';
-import {editAzureImage,imageEditConfig} from '../image-edit-client.ts';
+import {imageEditConfig} from '../image-edit-client.ts';
 import {createReadStream} from 'node:fs';
 import {lstat,realpath,mkdir,mkdtemp,writeFile,readFile} from 'node:fs/promises';
 import {Readable} from 'node:stream';
@@ -27,7 +27,7 @@ import type {JobProfile} from './job-profile.ts';
 import type {ReportViewIdentity} from './report-view-model.ts';
 type Input={profile?:JobProfile;reportViewIdentity?:ReportViewIdentity;input:string;root:string;signal?:AbortSignal;pdfBrowser?:string;meowhoInput?:boolean};
 export const MEOWHO_MAX_BYTES=300_000_000;
-type Mode={fixture:unknown}|{live:true;allowImageEditing?:boolean;env:Record<string,string|undefined>;providerRequests?:{vlm:typeof fetch;image:typeof fetch}};
+type Mode={fixture:unknown}|{live:true;allowImageEditing?:boolean;env:Record<string,string|undefined>;providerRequests?:{vlm:typeof fetch;image:typeof fetch};onVlmFailure?:()=>void;imageTransportOwnsPacing?:boolean};
 /** Fixture mode has no cloud adapter: even inherited credentials cannot trigger inference. */
 export function executeFixtureJob(options:Input&{fixture:unknown}){return executeJob(options);}
 export function executeLiveJob(options:Input&Extract<Mode,{live:true}>){return executeJob(options);}
@@ -74,7 +74,7 @@ async function executeJob(options:Input&Mode){
  // Reuse the production core, injecting only the analyzer at its existing test seam.
  const {runVideoScan}=await import('./worker.ts');
  const experimentalMaxSeconds=options.meowhoInput||live?.env.WELFARELENS_LOCAL_LONG_VIDEO==='true'?180:undefined;
- const result=await runClaimedVideoScan(store,job.video_id,{env,signal,work:(s:VideoStore,id:string,o:Parameters<typeof runVideoScan>[2])=>runVideoScan(s,id,{...o,experimentalMaxSeconds,providerRequest:live?.providerRequests?.vlm,...(fixture?{analyze:async()=>({candidate:structuredClone(fixture.candidate),deployment:'fixture-not-azure',usage:null})}:{})})});
+ const result=await runClaimedVideoScan(store,job.video_id,{env,signal,work:(s:VideoStore,id:string,o:Parameters<typeof runVideoScan>[2])=>runVideoScan(s,id,{...o,experimentalMaxSeconds,providerRequest:live?.providerRequests?.vlm,onProviderFailure:live?.onVlmFailure,...(fixture?{analyze:async()=>({candidate:structuredClone(fixture.candidate),deployment:'fixture-not-azure',usage:null})}:{})})});
  timings.analysisMs=performance.now()-analysisStarted;
  const finished=await store.read(job.video_id),dir=await store.directory(job.video_id);
  const imageFailures:string[]=[];
@@ -93,11 +93,11 @@ async function executeJob(options:Input&Mode){
   if(edit){
    const editStarted=performance.now();
    const editSignal=AbortSignal.any([signal,AbortSignal.timeout(Math.max(1,finished.expires_at-Date.now()))]);
-   const request=live?.providerRequests?.image;
-   const editor:typeof editAzureImage|undefined=request
-    ?(config,bytes,prompt,size,deadline,_request,quality,mask)=>editAzureImage(config,bytes,prompt,size,deadline,request,quality,mask)
+   // The benchmark transport already shares its own per-run rate limiter.
+   const pace=live?.providerRequests&&live.imageTransportOwnsPacing
+    ?async<T>(waiting:AbortSignal,send:()=>Promise<T>)=>{waiting.throwIfAborted();return send();}
     :undefined;
-   risk=await renderVideoAfter(risk,visual,dir,edit,editSignal,editor,code=>imageFailures.push(code),editConcurrency,options.profile);
+   risk=await renderVideoAfter(risk,visual,dir,edit,editSignal,undefined,code=>imageFailures.push(code),editConcurrency,options.profile,pace,live?.providerRequests?.image);
    const attempts=risk.visual_comparisons.filter(p=>p.after_generation_status.status!=='not_requested');
    manifest.stages.editing=attempts.length&&attempts.every(p=>p.after_generation_status.status==='generated')?'generated':attempts.length?'failed':'no_eligible_object';
    for(const attempt of attempts)if(attempt.after_image_ref)manifest.artifacts.push(attempt.after_image_ref);

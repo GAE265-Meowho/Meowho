@@ -41,11 +41,30 @@ docker run --name welfarelens-approved-attempt --restart no \
 
 ### M6 首筆真人工作
 
-1. 在隔離的 Supabase 專案與網站 Preview 建立兩個測試帳號，配置專用 Azure 儲存帳戶下的私有 `media-dev`，使用測試喵戶的 `homes/<household_id>/` 前綴。預檢網站與 Worker 的專案 ID、容器、前綴、Blob 存取、模型部署與服務身分。只核對設定及權限，不記錄機密。
-2. 用手機以 Owner 上傳經同意或擺拍的影片，包含至少兩個可獨立驗證的改善案例。確認隔離佇列只有這筆可領取且沒有競爭 Worker。使用上方 `--once`，從私有設定省略改圖並行數，驗證啟動值為 2。測試可顯式設 `WELFARELENS_VIDEO_MAX_RETRIES=0`，避免 VLM 重試增加請求數。
-3. 擬議硬上限為 VLM 14 次（8 格加最多 6 次植物複查）、改圖 8 次。須在批准前以隔離模型出口在實際起送前計數並限制花費，含失敗與結果不確定的嘗試。正式 Worker 尚無每 Job 的改圖硬上限，既有 Benchmark 帳本只適用於 Benchmark。現有 profile 的 `image_edit_request` span 含節流等待，另記實際模型出口起送與結束的單調時鐘時間以核對間距與重疊。
-4. 以[歷史用量與公告價試算](./docs/benchmarks/2026-11-pipeline-performance.md) 為參考：先前同類單輪約 US$0.50–0.55；依 14＋8 次工作負載約 US$1.37。按同份文件的每次預留估算，建議送審 US$13 模型預留（14 × US$0.50 ＋ 8 × US$0.75），VM 和 Blob 另計。這些金額需依實際 SKU、使用量及當前費率核對，並非帳單上界。
-5. 保存單筆 Claim、Lease、Attempt、Complete、模型請求時間／用量與結果檢核。兩次起送須相隔至少 12 秒；只有請求實際重疊才算驗證在途雙路。比對各案例證據及圖片，驗證 JSON、HTML、PDF，並由隔離測試戶確認 Owner 可讀及另一帳號被拒絕。遇到 429、逾時、Abort、未知回應、租約失效、超出預算或觀測不到起送時停止。用斷網替身注入失敗，驗證不錯誤發布或重排；不要用付費請求製造故障。
+如果獨占佇列仍待確認，可先使用 [本機完整 Pipeline 預檢與單筆實測](./docs/benchmarks/m6-local-pipeline.md)。這條路徑使用本機影片和真實模型，只把報告寫到本機。網站授權、Blob、Queue 及 Lease 另外驗收。
+
+1. 管理員先提供已隔離的 Supabase 專案、相同專案的受保護網站 Preview、兩個測試帳號及專用 Azure 儲存帳戶下的私有 `media-dev`。核對 Preview 的 `NEXT_PUBLIC_SUPABASE_URL`、伺服器服務角色、`MEDIA_STORAGE=azure`、儲存帳戶與容器、Preview 網域的上傳 CORS 與報告旗標。核對 Worker 的專案網址、專用專案 ref、儲存帳戶與容器、測試身分權限及模型部署。只記錄安全的識別資訊與核對結果。
+2. 使用經同意的擺拍 MP4／MOV，包含至少兩個有各自可見證據且可安全模擬的改善案例。Owner 用手機走主站影片上傳與 3D 房間送出流程。送出會一起建立 Room Job，驗收期間保留未處理。由管理員關閉其餘測試入列及確認無競爭 consumer，核對影片、喵戶、Job 和 Report ID。以唯讀方式確認唯一可領取項目是指定、尚未嘗試的 queued Job，且沒有逾期租約。M6 會在 Claim 回傳後檢查 Job ID 和 attempt；若不符，立即停止且不觸碰 Blob。這項檢查仍晚於 Claim，必須有獨占佇列及入列管制。
+3. 使用同時包含 M4 與 M6 的已審查 Commit。驗證本機映像 ID 或獲准的私有 GHCR digest、OCI Revision、Linux AMD64 及斷網 Self-test。若採本機 Docker，VM 維持解除配置，私有環境檔需要有效且已隔離的 SAS。以下為授權後的 PowerShell 指令，使用管理員已填好的變數與目錄。先確認 `$M6AuditDir` 是本次核准的 Git 外持久目錄，容器能寫入，且沒有舊的 `model-requests.jsonl`。環境檔必須設定 `MEOWHO_DEDICATED_QUEUE_PROJECT_REF` 並省略 `WELFARELENS_IMAGE_EDIT_CONCURRENCY`。
+
+   ```powershell
+   docker image inspect $M6Image --format '{{.Id}} {{.Os}}/{{.Architecture}} {{index .Config.Labels "org.opencontainers.image.revision"}}'
+   docker run --rm --pull never --network none $M6Image --self-test
+   docker run --name welfarelens-m6-once --restart no --pull never --platform linux/amd64 `
+     --env-file "$M6EnvFile" --mount "type=bind,source=$M6AuditDir,target=/audit" `
+     --tmpfs /data:uid=1000,gid=1000,mode=0700 `
+     -e MEOWHO_BLOB_CONTAINER=media-dev -e MEOWHO_WORKER_TMP=/data `
+     -e WELFARELENS_PRIVATE_HTML=true -e "MEOWHO_M6_JOB_ID=$M6JobId" `
+     -e MEOWHO_M6_MODEL_LEDGER=/audit/model-requests.jsonl `
+     --entrypoint node $M6Image --experimental-strip-types scripts/meowho-worker.ts --once
+   docker inspect welfarelens-m6-once --format '{{.State.Status}} {{.State.ExitCode}}'
+   ```
+
+4. 模型出口在每次起送之前寫入並同步持久帳本。上限為 VLM 14 次和改圖 8 次，含非 2xx、逾時及結果不確定的請求。測試模式強制關閉 VLM 重試及失敗重排。每次 VLM 預留 US$0.50，改圖 US$0.75，累積最多 US$13。依[歷史工作負載與公告價](./docs/benchmarks/2026-11-pipeline-performance.md)試算約 US$1.37，實際費用以部署 SKU、Usage 及帳單為準。US$13 是預留硬上限，Azure 帳單上界未經證明。Blob 傳輸與交易另外計費，本機 Docker 不需 VM 運算費。
+5. 核對啟動日誌 `image_edit_concurrency=2`。帳本中的 `dispatch_ms` 是程序內單調時間，`response` 表示收到 HTTP 回應標頭；`in_flight_at_dispatch` 可證明標頭前重疊。影像回應完整性、延遲及模型用量另用 Worker profile 和產出檔核對。若間隔不足 12 秒、可用案例少於兩件，或沒有觀察到重疊，分別記為失敗或未觀察到。核對 Claim、Renew 與 Complete 及同一 attempt 的 JSON／HTML／PDF、裁切與 Before／After、Owner 讀取和另一帳號被拒絕。以各 Blob 檔案存在且可解析及網站可讀取為成功條件；有必要時讓測試素材及工作時間足以觸發續租，否則續租另列未觀察到。
+6. 隔離／權限不一致、模型非 2xx、逾時、Abort、未知結果、租約失效、超出限額、帳本失效或必要產物缺漏時停止。必要時用 `docker stop -t 30 welfarelens-m6-once`，保留帳本及測試產物，不重啟同一輪、不換帳本、不重新排隊。失敗時可能在該 attempt 前綴留下部分檔案，未成功 Complete 的結果不得對外驗收。確認容器已退出後，依測試資料保留政策由管理員清除測試喵戶資料與該前綴，保留去識別驗收結果；清除資料需另行核准。
+
+若目前沒有隔離佇列，最小作法是由管理員提供既有測試專案，補齊 Preview、儲存與測試帳號；開發端約半天核對及離線準備，權限、部署與資源交付時間另計。若暫時無法取得，可在另行批准後用本機有界 Pipeline 執行器驗證模型與完整報告，停在本機產物。此替代方案不驗證手機上傳、Claim／Lease、Blob 或網站授權。
 
 ## A/B 驗收
 
