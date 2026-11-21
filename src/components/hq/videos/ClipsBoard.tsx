@@ -1,12 +1,13 @@
 "use client";
 /* eslint-disable @next/next/no-img-element */
 // 前導影片：影片（#493 產生影片 → #501 改以影片為主）。
-// 最上方完整影片，下方是已配音的影片（加上旁白、音效、配樂的成品，跟無聲剪輯版分開放）；每一段有段落影片與 (P) 生成紀錄；每格 AI 分鏡一張卡，主角是片段影片，
+// 最上方完整影片；完整影片與段落影片各一張卡，切換已配音版／無聲剪輯版（#599，兩種檔案分開存）；每一段有段落影片與 (P) 生成紀錄；每格 AI 分鏡一張卡，主角是片段影片，
 // 圖生影片要用的起始畫面、參考圖、prompt 收在「生成素材」摺疊區。剪輯字卡不用生成，不列。
 // 第三段另有「系統錄影」（#529）：scripts/trailer-rec 在正式站照分鏡錄的真實產品畫面，剪輯與 AI 生圖時當參考。
+import { useState } from "react";
 import { CLIP_MOTION, NEGATIVE_PROMPT, clipSections, motionPrompt, startFrameFileName, type ClipItem } from "@/lib/hq/videos/clips";
 import { frameCounts } from "@/lib/hq/videos/trailer";
-import { DUB_SLOTS, SUB_SLOTS, compositeShots, videoSlotLabel } from "@/lib/hq/videos/trailer-video";
+import { SUB_SLOTS, compositeShots, videoSlotLabel } from "@/lib/hq/videos/trailer-video";
 import { VIDEO_AUDIO_RULE } from "@/lib/hq/videos/voice";
 import { REC_CLIPS } from "@/lib/hq/videos/rec-clips";
 import { GenLogButton, useGenLogs } from "./GenLog";
@@ -15,29 +16,29 @@ import { TrailerVideosNotice, VideoSlot, useTrailerVideos, type TrailerVideosSta
 import { useScriptEdits, type ScriptEditsState } from "./ScriptEdits";
 import { shotValue } from "@/lib/hq/videos/script-edits";
 
-/** 已配音的影片：完整影片兩支在上，四段在下；兩支完整影片下面各一格字幕檔（#586、#592） */
-export function DubbedVideos({ videos }: { videos: TrailerVideosState }) {
-  const done = DUB_SLOTS.filter(d => videos.videos[d.id]?.length).length;
-  const slot = (d: (typeof DUB_SLOTS)[number]) => (
-    <div key={d.id}>
-      <h3 className="hq-h3">{videoSlotLabel(d.of)}<span className="hq-sub">（{d.range}）</span></h3>
-      <VideoSlot slot={d.id} label={videoSlotLabel(d.id)} state={videos} emptyText="配好音後上傳" />
-      {SUB_SLOTS.some(x => x.of === d.of) && (
+/** #599：無聲剪輯版（of）與已配音版（dub-<of>）合成一張卡，切換鈕選版本，預設已配音版；兩支完整影片下面接字幕檔（sub-<of>） */
+export function DualVideo({ of, videos, emptyText }: { of: string; videos: TrailerVideosState; emptyText: string }) {
+  const dub = `dub-${of}`;
+  const hasDub = Boolean(videos.videos[dub]?.length);
+  const [mode, setMode] = useState<"dub" | "raw" | null>(null);
+  const cur = mode ?? (hasDub ? "dub" : "raw");
+  const slot = cur === "dub" ? dub : of;
+  const sub = SUB_SLOTS.find(x => x.of === of);
+  return (
+    <div>
+      <div className="hq-chips" role="group" aria-label={`${videoSlotLabel(of)}的版本`}>
+        {([["dub", "已配音版"], ["raw", "無聲剪輯版"]] as const).map(([k, l]) => (
+          <button key={k} type="button" className={cur === k ? "on" : undefined} aria-pressed={cur === k} onClick={() => setMode(k)}>{l}</button>
+        ))}
+      </div>
+      <VideoSlot key={slot} slot={slot} label={videoSlotLabel(slot)} state={videos} emptyText={cur === "dub" ? "配好音後上傳" : emptyText} />
+      {sub && (
         <>
           <h4 className="hq-sub">字幕檔（.srt／.vtt）</h4>
-          <VideoSlot slot={`sub-${d.of}`} label={videoSlotLabel(`sub-${d.of}`)} state={videos} media="subtitle" emptyText="還沒有字幕檔" />
+          <VideoSlot slot={sub.id} label={videoSlotLabel(sub.id)} state={videos} media="subtitle" emptyText="還沒有字幕檔" />
         </>
       )}
     </div>
-  );
-  return (
-    <section className="hq-video-sec" aria-labelledby="vid-dub">
-      <h2 id="vid-dub">已配音的影片<span className="hq-sub">（{done}／{DUB_SLOTS.length}）</span></h2>
-      <p className="hq-sub">剪好的影片加上旁白、音效和配樂後放這裡；上方完整影片和各段的段落影片保留無聲剪輯版。兩支完整影片下面放對應的字幕檔，時間以那一支影片為準。</p>
-      <div className="hq-video-full">{DUB_SLOTS.slice(0, 2).map(slot)}</div>
-      <h3 className="hq-h3">各段</h3>
-      <div className="hq-video-full">{DUB_SLOTS.slice(2).map(slot)}</div>
-    </section>
   );
 }
 
@@ -66,8 +67,8 @@ export function ClipsBoard() {
         <TrailerVideosNotice state={videos} />
         <div className="hq-video-full">
           {/* #565：完整影片拆成兩支 */}
-          <div><h3 className="hq-h3">{videoSlotLabel("full")}<span className="hq-sub">（第一段＋第二段）</span></h3><VideoSlot slot="full" label={videoSlotLabel("full")} state={videos} emptyText="前導影片還沒上傳" /></div>
-          <div><h3 className="hq-h3">{videoSlotLabel("demo")}<span className="hq-sub">（第三段＋第四段）</span></h3><VideoSlot slot="demo" label={videoSlotLabel("demo")} state={videos} emptyText="系統 Demo 影片還沒上傳" /></div>
+          <div><h3 className="hq-h3">{videoSlotLabel("full")}<span className="hq-sub">（第一段＋第二段）</span></h3><DualVideo of="full" videos={videos} emptyText="前導影片還沒上傳" /></div>
+          <div><h3 className="hq-h3">{videoSlotLabel("demo")}<span className="hq-sub">（第三段＋第四段）</span></h3><DualVideo of="demo" videos={videos} emptyText="系統 Demo 影片還沒上傳" /></div>
         </div>
         <p className="hq-sub">
           段落影片 {sectionsDone}／{sections.length}、片段 {clipsDone}／{items.length}。剪輯字卡 {counts.edit} 格在剪輯時加入，不用生成。
@@ -84,8 +85,6 @@ export function ClipsBoard() {
         <Prompt text={NEGATIVE_PROMPT} copy={copy} title="負面 prompt（每一格共用）" />
       </section>
 
-      <DubbedVideos videos={videos} />
-
       {sections.map(sec => (
         <section key={sec.key} className="hq-video-sec" aria-label={sec.title}>
           <div className="hq-video-sechead">
@@ -94,7 +93,7 @@ export function ClipsBoard() {
           </div>
           <div className="hq-video-section">
             <h3 className="hq-h3">段落影片</h3>
-            <VideoSlot slot={sec.key} label={videoSlotLabel(sec.key)} state={videos} emptyText="這一段剪好後上傳" />
+            <DualVideo of={sec.key} videos={videos} emptyText="這一段剪好後上傳" />
           </div>
           <h3 className="hq-h3">片段</h3>
           <div className="hq-video-clips">

@@ -53,7 +53,8 @@
 - 前導影片鏡 13 三人各念一句、新增阿芳聲線（Tina × Claude Code，#588）：PR #589 已合併，0043 已執行，完成。
 - 前導影片配音 tab 移除「更新規格」表單（Tina × Claude Code，#590）：PR #591 已合併，完成。
 - 前導影片字幕檔格只留兩支完整影片（Tina × Claude Code，#592）：PR #593 已合併，完成。
-- 前導影片鏡 14 配音 n30（Tina × Claude Code，#597）：審查中。
+- 前導影片鏡 14 配音 n30（Tina × Claude Code，#597）：PR #598 已合併，完成。
+- 前導影片無聲版與已配音版合成一張卡（Tina × Claude Code，#599）：審查中。
 - 前導影片配音 tab 配樂與音效格（Tina × Claude Code，#596）：待辦（素材已在 ElevenLabs 生成）。
 - 前導影片鏡 3、4 時間字卡（Tina × Claude Code，#568）：分支 `feat/568-time-cards`，審查中。
 
