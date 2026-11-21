@@ -15,19 +15,21 @@ import { TrailerVideosNotice, VideoSlot, useTrailerVideos, type TrailerVideosSta
 import { useScriptEdits, type ScriptEditsState } from "./ScriptEdits";
 import { shotValue } from "@/lib/hq/videos/script-edits";
 
-/** 已配音的影片：完整影片兩支在上，四段在下 */
+/** 已配音的影片：完整影片兩支在上，四段在下；每支下面一格字幕檔（#586） */
 export function DubbedVideos({ videos }: { videos: TrailerVideosState }) {
   const done = DUB_SLOTS.filter(d => videos.videos[d.id]?.length).length;
   const slot = (d: (typeof DUB_SLOTS)[number]) => (
     <div key={d.id}>
       <h3 className="hq-h3">{videoSlotLabel(d.of)}<span className="hq-sub">（{d.range}）</span></h3>
       <VideoSlot slot={d.id} label={videoSlotLabel(d.id)} state={videos} emptyText="配好音後上傳" />
+      <h4 className="hq-sub">字幕檔（.srt／.vtt）</h4>
+      <VideoSlot slot={`sub-${d.of}`} label={videoSlotLabel(`sub-${d.of}`)} state={videos} media="subtitle" emptyText="還沒有字幕檔" />
     </div>
   );
   return (
     <section className="hq-video-sec" aria-labelledby="vid-dub">
       <h2 id="vid-dub">已配音的影片<span className="hq-sub">（{done}／{DUB_SLOTS.length}）</span></h2>
-      <p className="hq-sub">剪好的影片加上旁白、音效和配樂後放這裡；上方完整影片和各段的段落影片保留無聲剪輯版。</p>
+      <p className="hq-sub">剪好的影片加上旁白、音效和配樂後放這裡；上方完整影片和各段的段落影片保留無聲剪輯版。每支影片下面放對應的字幕檔，時間以那一支影片為準。</p>
       <div className="hq-video-full">{DUB_SLOTS.slice(0, 2).map(slot)}</div>
       <h3 className="hq-h3">各段</h3>
       <div className="hq-video-full">{DUB_SLOTS.slice(2).map(slot)}</div>

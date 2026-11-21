@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  DUB_SLOTS, MAX_TRAILER_VIDEO_BYTES, checkTrailerVideo, compositeShots, groupTrailerVideos, isVideoSlot, trailerVideoFileName, trailerVideoPath, videoSlotLabel, videoSlots,
+  DUB_SLOTS, MAX_TRAILER_VIDEO_BYTES, SUB_SLOTS, subtitleMime, checkTrailerVideo, compositeShots, groupTrailerVideos, isVideoSlot, trailerVideoFileName, trailerVideoPath, videoSlotLabel, videoSlots,
 } from "./trailer-video";
 
 describe("前導影片的影片檔（#501）", () => {
@@ -85,5 +85,34 @@ describe("前導影片的影片檔（#501）", () => {
     expect(trailerVideoFileName("s07-1", "鏡 6-1 拍小橘吃飯", { path: "videos/trailer/s07-1/20261118100000.mp4", at: "2026-11-18T10:00:00Z" }))
       .toBe("前導影片_鏡6-1拍小橘吃飯_2026-11-18.mp4");
     expect(trailerVideoFileName("n03", "旁白 n03 小橘", { path: "videos/trailer/n03/20261118100000.mp3", at: "2026-11-18T10:00:00Z" })).toBe("n03_小橘.mp3");
+  });
+});
+
+describe("字幕檔（#586）", () => {
+  it("已配音的六支影片各有一格字幕 sub-<格>，收 SRT／VTT", () => {
+    expect(SUB_SLOTS.map(s => s.id)).toEqual(["sub-full", "sub-demo", "sub-opening", "sub-cross", "sub-product", "sub-ending"]);
+    for (const s of SUB_SLOTS) expect(isVideoSlot(s.id)).toBe(true);
+    expect(checkTrailerVideo({ slot: "sub-ending", mime: "application/x-subrip", sizeBytes: 282 })).toBeNull();
+    expect(checkTrailerVideo({ slot: "sub-ending", mime: "text/vtt", sizeBytes: 282 })).toBeNull();
+    expect(checkTrailerVideo({ slot: "sub-ending", mime: "video/mp4", sizeBytes: 282 })).toBe("unsupported_type");
+    expect(checkTrailerVideo({ slot: "dub-ending", mime: "application/x-subrip", sizeBytes: 282 })).toBe("unsupported_type");
+    expect(trailerVideoPath("sub-ending", "application/x-subrip", new Date("2026-11-21T11:40:00Z"))).toBe("videos/trailer/sub-ending/20261121114000.srt");
+  });
+
+  it("瀏覽器讀不到 .srt 的類型時，依副檔名補上", () => {
+    expect(subtitleMime({ name: "第四段_相遇結尾.srt", type: "" })).toBe("application/x-subrip");
+    expect(subtitleMime({ name: "a.VTT", type: "" })).toBe("text/vtt");
+    expect(subtitleMime({ name: "a.srt", type: "application/x-subrip" })).toBe("application/x-subrip");
+    expect(subtitleMime({ name: "a.txt", type: "text/plain" })).toBe("text/plain");
+  });
+
+  it("版本、名稱、下載檔名", () => {
+    const g = groupTrailerVideos(["videos/trailer/sub-ending/20261121114000.srt", "videos/trailer/sub-full/20261121114000.vtt"]);
+    expect(Object.keys(g).sort()).toEqual(["sub-ending", "sub-full"]);
+    expect(videoSlotLabel("sub-ending")).toBe("第四段相遇結尾（字幕）");
+    expect(videoSlotLabel("sub-full")).toBe("前導影片（字幕）");
+    const v = { path: "videos/trailer/sub-ending/20261121114000.srt", at: "2026-11-21T11:40:00Z" };
+    expect(trailerVideoFileName("sub-ending", videoSlotLabel("sub-ending"), v)).toBe("前導影片_第四段相遇結尾_字幕_2026-11-21.srt");
+    expect(trailerVideoFileName("sub-full", videoSlotLabel("sub-full"), { ...v, path: "videos/trailer/sub-full/20261121114000.srt" })).toBe("前導影片_字幕_2026-11-21.srt");
   });
 });

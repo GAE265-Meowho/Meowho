@@ -25,4 +25,15 @@ describe("DubbedVideos", () => {
     expect(within(sec).getByRole("button", { name: "播放：前導影片（已配音）" })).toBeInTheDocument();
     expect(within(sec).getAllByText("配好音後上傳")).toHaveLength(5);
   });
+
+  it("每支影片下面一格字幕檔（#586），已上傳的可展開看內容", () => {
+    render(<DubbedVideos videos={state({
+      "sub-ending": [{ path: "videos/trailer/sub-ending/20261121114000.srt", at: "2026-11-21T11:40:00Z", url: "https://blob/s.srt", downloadUrl: "https://blob/s.srt?dl" }],
+    })} />);
+    const sec = screen.getByRole("region", { name: /已配音的影片/ });
+    expect(within(sec).getAllByText("字幕檔（.srt／.vtt）")).toHaveLength(6);
+    expect(within(sec).getAllByText("還沒有字幕檔")).toHaveLength(5);
+    expect(within(sec).getByText("看字幕內容")).toBeInTheDocument();
+    expect(within(sec).getAllByRole("button", { name: "上傳字幕檔" })).toHaveLength(5);
+  });
 });

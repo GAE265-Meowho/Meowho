@@ -4,7 +4,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useHqActor } from "@/components/hq/HqActor";
 import { useHqToast } from "@/components/hq/HqToast";
-import { TRAILER_VIDEO_ERROR, checkTrailerVideo, slotMimes, type TrailerVideoError } from "@/lib/hq/videos/trailer-video";
+import { TRAILER_VIDEO_ERROR, checkTrailerVideo, slotKind, slotMimes, subtitleMime, type TrailerVideoError } from "@/lib/hq/videos/trailer-video";
 import { formatLogTime } from "@/lib/hq/videos/gen-log";
 
 /** 影片不預先載入（#532）：一頁有幾十格影片，進頁面只放播放鈕；按下才放 <video> 並自動播放 */
@@ -52,11 +52,12 @@ export type TrailerVideosState = ReturnType<typeof useTrailerVideos>;
 
 /** 拿上傳網址後用 XHR 直接 PUT 到 Azure（要進度條，所以不用 fetch） */
 async function uploadVideo(slot: string, file: File, onProgress: (pct: number) => void): Promise<string | null> {
-  const check: TrailerVideoError | null = checkTrailerVideo({ slot, mime: file.type, sizeBytes: file.size });
+  const mime = slotKind(slot) === "sub" ? subtitleMime(file) : file.type; // #586 .srt 常讀不到類型
+  const check: TrailerVideoError | null = checkTrailerVideo({ slot, mime, sizeBytes: file.size });
   if (check) return TRAILER_VIDEO_ERROR[check];
   const res = await fetch("/api/hq/trailer-videos", {
     method: "POST", headers: { "content-type": "application/json" },
-    body: JSON.stringify({ slot, mime: file.type, sizeBytes: file.size }),
+    body: JSON.stringify({ slot, mime, sizeBytes: file.size }),
   }).catch(() => null);
   const json = await res?.json().catch(() => null) as { upload?: { url: string; headers: Record<string, string> }; error?: string } | null;
   if (!res?.ok || !json?.upload) {
@@ -76,8 +77,8 @@ async function uploadVideo(slot: string, file: File, onProgress: (pct: number) =
 }
 
 /** 一格影片：16:9 播放器、版本切換、上傳新版本、下載 */
-/** media＝audio 時是旁白音檔（#504）：不放 16:9 框，用 audio 播放器 */
-export function VideoSlot({ slot, label, state, emptyText = "還沒有影片", media = "video" }: { slot: string; label: string; state: TrailerVideosState; emptyText?: string; media?: "video" | "audio" }) {
+/** media＝audio 時是旁白音檔（#504）：不放 16:9 框，用 audio 播放器；media＝subtitle 是字幕檔（#586）：可展開看內容 */
+export function VideoSlot({ slot, label, state, emptyText = "還沒有影片", media = "video" }: { slot: string; label: string; state: TrailerVideosState; emptyText?: string; media?: "video" | "audio" | "subtitle" }) {
   const toast = useHqToast();
   const input = useRef<HTMLInputElement>(null);
   const versions = state.videos[slot] ?? [];
@@ -114,7 +115,10 @@ export function VideoSlot({ slot, label, state, emptyText = "還沒有影片", m
 
   return (
     <div className="hq-video-vslot">
-      {media === "audio" ? (
+      {media === "subtitle" ? (
+        v ? <SubtitlePreview key={v.path} url={v.url} label={label} />
+          : <span className="hq-sub">{state.status === "loading" ? "讀取中…" : emptyText}</span>
+      ) : media === "audio" ? (
         v ? <audio key={v.path} src={v.url} controls preload="none" aria-label={`${label}音檔`} className="hq-video-audio" />
           : <span className="hq-sub">{state.status === "loading" ? "讀取中…" : emptyText}</span>
       ) : (
@@ -131,9 +135,9 @@ export function VideoSlot({ slot, label, state, emptyText = "還沒有影片", m
       <div className="hq-row hq-row-tight">
         {enabled && (
           <>
-            <input ref={input} type="file" accept={Object.keys(slotMimes(slot)).join(",")} hidden onChange={e => void choose(e.target.files?.[0])} />
+            <input ref={input} type="file" accept={[...(media === "subtitle" ? [".srt", ".vtt"] : []), ...Object.keys(slotMimes(slot))].join(",")} hidden onChange={e => void choose(e.target.files?.[0])} />
             <button type="button" className="hq-btn ghost small" disabled={progress !== null} onClick={() => input.current?.click()}>
-              {progress !== null ? `上傳中 ${progress}%` : v ? "上傳新版本" : media === "audio" ? "上傳音檔" : "上傳影片"}
+              {progress !== null ? `上傳中 ${progress}%` : v ? "上傳新版本" : media === "audio" ? "上傳音檔" : media === "subtitle" ? "上傳字幕檔" : "上傳影片"}
             </button>
           </>
         )}
@@ -153,6 +157,22 @@ export function VideoSlot({ slot, label, state, emptyText = "還沒有影片", m
       </div>
       {msg && <p className="hq-error" role="alert">{msg}</p>}
     </div>
+  );
+}
+
+/** 字幕檔內容（#586）：展開時才讀 */
+function SubtitlePreview({ url, label }: { url: string; label: string }) {
+  const [text, setText] = useState<string | null>(null);
+  async function load(open: boolean) {
+    if (!open || text !== null) return;
+    const t = await fetch(url).then(r => (r.ok ? r.text() : null)).catch(() => null);
+    setText(t ?? "讀不到字幕內容，請重新整理後再試");
+  }
+  return (
+    <details className="hq-video-sub" onToggle={e => void load((e.currentTarget as HTMLDetailsElement).open)}>
+      <summary className="hq-sub">看字幕內容</summary>
+      <pre className="hq-video-logprompt" aria-label={`${label}內容`}>{text ?? "讀取中…"}</pre>
+    </details>
   );
 }
 
