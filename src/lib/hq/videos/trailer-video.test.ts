@@ -12,11 +12,12 @@ describe("前導影片的影片檔（#501）", () => {
     expect(isVideoSlot("m-s16")).toBe(true);
   });
 
-  it("可放影片的格：完整影片 1、四段 4、片段 33（AI 28＋第三段系統錄影 5，#547）、旁白 30（#578 n26、#588 n27–n29、#597 n30）", () => {
+  it("可放影片的格：完整影片 1、四段 4、片段 34（AI 28＋第三段系統錄影 5，#547＋鏡 14 Logo 字卡 1）、旁白 30（#578 n26、#588 n27–n29、#597 n30）", () => {
     const s = videoSlots();
     expect(s.filter(x => x.kind === "full").map(x => x.id)).toEqual(["full", "demo"]); // #565
     expect(s.filter(x => x.kind === "section").map(x => x.id)).toEqual(["opening", "cross", "product", "ending"]);
-    expect(s.filter(x => x.kind === "clip")).toHaveLength(33);
+    expect(s.filter(x => x.kind === "clip")).toHaveLength(34);
+    expect(isVideoSlot("s17")).toBe(true); // 鏡 14 Logo 動畫片段
     for (const id of ["s21", "s23", "s24", "s25", "s27"]) expect(isVideoSlot(id), id).toBe(true);
     expect(s.filter(x => x.kind === "voice")).toHaveLength(30);
     expect(isVideoSlot("n26")).toBe(true);
