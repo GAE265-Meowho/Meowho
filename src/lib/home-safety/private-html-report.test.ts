@@ -117,6 +117,42 @@ it("does not reuse an image whitelist across report attempts", async () => {
   expect((await readPrivateReport({ id, reportId }, asset)).status).toBe(404);
   expect(mock.download).not.toHaveBeenCalledWith(prefix + "html-assets/" + asset);
 });
+it("shares a cold manifest read, skips HTML for listed images, and preserves fallback", async () => {
+  vi.stubEnv("MEOWHOME_PRIVATE_REPORT_VIEW", "true");
+  try {
+    const detail = { name: asset, sha256: asset.slice(0, 64), mime: "image/jpeg", width: 640, height: 360 };
+    const after = { ...detail, name: "b".repeat(64) + ".jpg", sha256: "b".repeat(64) };
+    const view = { schema: "meow_report_view/1", report_id: reportId, attempt: 1, confirmations: [],
+      improvements: [{ id: "cord", label: "電線", action: "固定", hazard_category: null,
+        facts: [], inferences: [], unverified: [],
+        evidence: [{ observation_id: "obs", frame_id: "f0", timestamp: 0, frame_sha256: detail.sha256 }],
+        comparisons: [{ id: "pair", observation_id: "obs", before: detail, after, before_detail: detail,
+          after_detail: after, before_region: null, after_region: null, status: "ai_simulated_not_verified" }],
+      }], statistics: { improvements: 1, confirmations: 0, evidence_frames: 1, hazards: [] } };
+    const legacyImage = Buffer.from("legacy image");
+    const legacyAsset = createHash("sha256").update(legacyImage).digest("hex") + ".jpg";
+    mock.download.mockImplementation(async (path: string) => {
+      if (path.endsWith("report-view.json")) return Buffer.from(JSON.stringify(view));
+      if (path.endsWith("report.html")) return Buffer.from(`<!doctype html><body><img src="html-assets/${legacyAsset}"></body>`);
+      return path.endsWith(legacyAsset) ? legacyImage : image;
+    });
+    const results = await Promise.all([
+      readPrivateReport({ id, reportId }, asset), readPrivateReport({ id, reportId }, asset),
+    ]);
+    expect(results.map(result => result.status)).toEqual([200, 200]);
+    expect(mock.download.mock.calls.filter(([path]) => path.endsWith("report-view.json"))).toHaveLength(1);
+    expect(mock.download.mock.calls.filter(([path]) => path.endsWith("report.html"))).toHaveLength(0);
+    expect((await readPrivateReport({ id, reportId }, legacyAsset)).status).toBe(200);
+    expect(mock.download.mock.calls.filter(([path]) => path.endsWith("report-view.json"))).toHaveLength(1);
+    expect(mock.download.mock.calls.filter(([path]) => path.endsWith("report.html"))).toHaveLength(1);
+    mock.owner = false;
+    expect((await readPrivateReport({ id, reportId }, asset)).status).toBe(404);
+    expect(mock.download).toHaveBeenCalledTimes(5);
+  } finally {
+    vi.unstubAllEnvs();
+  }
+});
+
 it("uses an authorized optional view without fetching historical HTML, then falls back on an invalid version", async () => {
   vi.stubEnv("MEOWHOME_PRIVATE_REPORT_VIEW", "true");
   try {
@@ -132,10 +168,12 @@ it("uses an authorized optional view without fetching historical HTML, then fall
     expect((await readPrivateReport({ id, reportId })).status).toBe(404);
     expect(mock.download).toHaveBeenCalledTimes(1);
     mock.owner = true;
+    vi.spyOn(Date, "now").mockReturnValue(Date.now() + 30_001);
     mock.download.mockResolvedValueOnce(Buffer.from(JSON.stringify({ ...view, schema: "meow_report_view/2" })));
     const fallback = await readPrivateReport({ id, reportId });
     expect(await fallback.text()).toContain("歷史完整報告");
   } finally {
+    vi.restoreAllMocks();
     vi.unstubAllEnvs();
   }
 });

@@ -451,6 +451,8 @@ Worker 選用的 `report.html` 與 `html-assets/` 位於既有 attempt 前綴。
 
 ### WelfareLens 私有結構化報告（#273）
 
+圖片載入效能見 [#473 驗證紀錄](../daily/2026-11-21/1620-Jerry0808-473.md)。Owner 與目前 attempt 驗證通過後，同一伺服器實例可短暫重用新版報告清單。清單未包含的資產仍由完整 HTML 確認。
+
 固定六件的 [M4 改圖 Benchmark](../../workers/welfarelens/docs/benchmarks/controlled-image-benchmark.md) 已完成 1／2／3 路六輪比較。Worker 只接受 1／2／3，預設 2，程序內跨 Job 的 Image Edit 起送間隔至少 12 秒。多程序共用部署與 M6 真人驗收見 [Worker 環境設定](../../workers/welfarelens/ENVIRONMENT.md)。
 
 [M6 單筆驗收](../../workers/welfarelens/VM_RUNBOOK.md#m6-首筆真人工作) 使用隔離佇列及私有帳本，模型上限為 VLM 14 次與改圖 8 次。共用 Claim RPC 沒有指定 Job 的原子篩選，測試模式拒絕團隊共用專案。網站與 Queue 契約沿用既有版本，真實驗收待隔離資源與費用核准。

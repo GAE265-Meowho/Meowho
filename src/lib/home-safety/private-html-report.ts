@@ -15,9 +15,28 @@ const headers = {
   "Content-Security-Policy": "default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; sandbox allow-same-origin allow-downloads",
 };
 const referenceCache = new Map<string, { expires: number; assets: Promise<Set<string>> }>();
-const viewCache = new Map<string, { expires: number; assets: Set<string> }>();
+const viewCache = new Map<string, {
+  expires: number;
+  result: Promise<{ view: NonNullable<Awaited<ReturnType<typeof readReportView>>>; assets: Set<string> } | null>;
+}>();
 const referenceLifetime = 30_000;
 const referenceLimit = 32;
+
+function cachedReportView(store: NonNullable<ReturnType<typeof getMediaStore>>, prefix: string, reportId: string, attempt: number) {
+  const key = prefix + "report-view/1";
+  const previous = viewCache.get(key);
+  if (previous && previous.expires > Date.now()) return previous.result;
+  viewCache.delete(key);
+  if (viewCache.size >= referenceLimit) {
+    const oldest = viewCache.keys().next().value;
+    if (oldest) viewCache.delete(oldest);
+  }
+  const result = readReportView(store, prefix, reportId, attempt)
+    .then(view => view ? { view, assets: reportViewAssetNames(view) } : null);
+  // Cache optional-view misses briefly too, so legacy images cannot each repeat the same lookup.
+  viewCache.set(key, { expires: Date.now() + referenceLifetime, result });
+  return result;
+}
 
 async function readReportHtml(store: NonNullable<ReturnType<typeof getMediaStore>>, prefix: string) {
   const document = await store.download(prefix + "report.html");
@@ -71,15 +90,10 @@ export async function readPrivateReport({ id, reportId }: {
     if (!store) return empty(503);
     if (!asset) {
       if (!full && process.env.MEOWHOME_PRIVATE_REPORT_VIEW === "true") {
-        const view = await readReportView(store, prefix, reportId, report.attempt);
-        if (view) {
-          if (viewCache.size >= referenceLimit) {
-            const oldest = viewCache.keys().next().value;
-            if (oldest) viewCache.delete(oldest);
-          }
-          viewCache.set(prefix, { expires: Date.now() + referenceLifetime, assets: reportViewAssetNames(view) });
+        const cached = await cachedReportView(store, prefix, reportId, report.attempt);
+        if (cached) {
           if (availabilityOnly) return empty(204);
-          return new Response(renderPrivateReportView(id, view, itemIndex), { headers: { ...headers, "Content-Type": "text/html; charset=utf-8" } });
+          return new Response(renderPrivateReportView(id, cached.view, itemIndex), { headers: { ...headers, "Content-Type": "text/html; charset=utf-8" } });
         }
       }
       const html = await readReportHtml(store, prefix);
@@ -102,13 +116,8 @@ export async function readPrivateReport({ id, reportId }: {
       }
       return new Response(renderReportPresentation(page, full, presentation, itemIndex), { headers: { ...headers, "Content-Type": "text/html; charset=utf-8" } });
     }
-    const cached = viewCache.get(prefix);
-    let viewHasAsset = process.env.MEOWHOME_PRIVATE_REPORT_VIEW === "true"
-      && cached !== undefined && cached.expires > Date.now() && cached.assets.has(asset);
-    if (!viewHasAsset && process.env.MEOWHOME_PRIVATE_REPORT_VIEW === "true" && (!cached || cached.expires <= Date.now())) {
-      const view = await readReportView(store, prefix, reportId, report.attempt);
-      viewHasAsset = !!view && reportViewAssetNames(view).has(asset);
-    }
+    const viewHasAsset = process.env.MEOWHOME_PRIVATE_REPORT_VIEW === "true"
+      && (await cachedReportView(store, prefix, reportId, report.attempt))?.assets.has(asset);
     if (!viewHasAsset && !(await referencedImages(store, prefix)).has(asset)) return empty(404);
     const image = await store.download(prefix + "html-assets/" + asset);
     if (!image || image.length > 4 * 1024 * 1024
