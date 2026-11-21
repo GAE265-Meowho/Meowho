@@ -1,14 +1,14 @@
 "use client";
-// 前導影片：配音（#504）。旁白另外用 TTS 做，兩個角色各固定一組聲音規格，補錄時照同一組設定做，聲音才會前後一致。
-// 聲音規格：meow_trailer_voice_specs（0039，最新一筆＝目前規格，保留歷史）；26 句旁白音檔：Azure Blob（/api/hq/trailer-videos 的 n01–n26）。
-import { useCallback, useEffect, useId, useState } from "react";
+// 前導影片：配音（#504）。旁白另外用 TTS 做，每個角色各固定一組聲音規格（只顯示，#590 移除頁面上的更新表單），補錄時照同一組設定做，聲音才會前後一致。
+// 聲音規格：meow_trailer_voice_specs（0039，最新一筆＝目前規格，保留歷史）；29 句旁白音檔：Azure Blob（/api/hq/trailer-videos 的 n01–n29）。
+import { useCallback, useEffect, useState } from "react";
 import { useHqActor } from "@/components/hq/HqActor";
 import { useHqToast } from "@/components/hq/HqToast";
 import { hqErrorMessage } from "@/components/hq/errors";
 import { formatLogTime } from "@/lib/hq/videos/gen-log";
 import {
-  EMPTY_VOICE_DRAFT, SPEAKERS, speakerName, VOICE_LINES, VOICE_SPEC_LIMITS, VOICE_SPEC_TABLE, VOICE_TOOL_SUGGESTIONS, prepareVoiceSpec,
-  type Speaker, type VoiceSpec, type VoiceSpecDraft,
+  SPEAKERS, speakerName, VOICE_LINES, VOICE_SPEC_TABLE,
+  type Speaker, type VoiceSpec,
 } from "@/lib/hq/videos/voice";
 import { videoSlotLabel } from "@/lib/hq/videos/trailer-video";
 import { getBrowserSupabase } from "@/lib/supabase/client";
@@ -54,7 +54,7 @@ export function VoiceBoard() {
         <p>旁白不要用影片工具自動產生的聲音，每段都會換人。兩個角色各用一組固定的 TTS 聲音另外做，剪輯時再對齊畫面。</p>
         <ol className="hq-video-steps">
           <li>每個角色只用一個聲音（記下 Voice ID 或聲音名稱），整支片都不換。</li>
-          <li>語速、穩定度、音調試好後記在下方「聲音規格」，之後每一句都用同一組。</li>
+          <li>每一句都用下方「聲音規格」的同一組設定。</li>
           <li>同一個角色的台詞同一天、用同一組設定一次做完；補錄某一句也照目前的規格。</li>
           <li>音檔照編號上傳到對應的那一句，下載時檔名會是「n03_小橘.mp3」這樣，剪輯時照順序排。</li>
         </ol>
@@ -64,7 +64,7 @@ export function VoiceBoard() {
 
       <section className="hq-video-sec" aria-labelledby="voice-spec">
         <h2 id="voice-spec">聲音規格</h2>
-        {!voice.available && <p className="hq-note">示範模式不能讀寫聲音規格。</p>}
+        {!voice.available && <p className="hq-note">示範模式不能讀取聲音規格。</p>}
         {voice.error && <p className="hq-error" role="alert">{voice.error}</p>}
         <div className="hq-video-speakers">
           {SPEAKERS.map(s => <SpeakerCard key={s.id} speaker={s} specs={voice.specs.filter(x => x.speaker === s.id)} state={voice} />)}
@@ -101,26 +101,7 @@ export function VoiceBoard() {
 
 function SpeakerCard({ speaker, specs, state }: { speaker: (typeof SPEAKERS)[number]; specs: VoiceSpec[]; state: ReturnType<typeof useVoiceSpecs> }) {
   const toast = useHqToast();
-  const formId = useId();
-  const [draft, setDraft] = useState<VoiceSpecDraft>(EMPTY_VOICE_DRAFT);
-  const [errors, setErrors] = useState<Partial<Record<keyof VoiceSpecDraft, string>>>({});
-  const [busy, setBusy] = useState(false);
   const current = specs[0];
-
-  async function save(e: React.FormEvent) {
-    e.preventDefault();
-    const r = prepareVoiceSpec(speaker.id, draft);
-    if (!r.ok) { setErrors(r.errors); return; }
-    const sb = getBrowserSupabase();
-    if (!sb) return;
-    setBusy(true);
-    const { error } = await sb.from(VOICE_SPEC_TABLE).insert(r.row);
-    setBusy(false);
-    if (error) { toast.show({ message: hqErrorMessage(error) }); return; }
-    setDraft(EMPTY_VOICE_DRAFT); setErrors({});
-    toast.show({ message: `已更新${speaker.name}的聲音規格` });
-    await state.reload();
-  }
 
   async function remove(s: VoiceSpec) {
     if (!window.confirm(`刪除 ${formatLogTime(s.created_at)} 的這筆規格？`)) return;
@@ -130,13 +111,6 @@ function SpeakerCard({ speaker, specs, state }: { speaker: (typeof SPEAKERS)[num
     if (error) { toast.show({ message: hqErrorMessage(error) }); return; }
     await state.reload();
   }
-
-  const fields: { key: keyof VoiceSpecDraft; label: string; placeholder: string; multiline?: boolean }[] = [
-    { key: "tool", label: "工具", placeholder: "例：Azure TTS" },
-    { key: "voice", label: "聲音名稱／Voice ID", placeholder: "例：zh-TW-YunJheNeural" },
-    { key: "settings", label: "參數", placeholder: "例：語速 0.9、音調 -2%、句間停頓 600ms", multiline: true },
-    { key: "note", label: "備註", placeholder: "例：n05 句尾要再慢一點" },
-  ];
 
   return (
     <article className="hq-video-speaker" aria-label={`${speaker.name}的聲音規格`}>
@@ -152,7 +126,7 @@ function SpeakerCard({ speaker, specs, state }: { speaker: (typeof SPEAKERS)[num
             {current.note && <p className="hq-sub">{current.note}</p>}
             <p className="hq-sub">{formatLogTime(current.created_at)}{current.author ? `・${current.author}` : ""}</p>
           </>
-        ) : <p className="hq-sub">還沒有規格，試好聲音後記在下面。</p>}
+        ) : <p className="hq-sub">還沒有規格。</p>}
       </div>
       {specs.length > 1 && (
         <details>
@@ -169,32 +143,6 @@ function SpeakerCard({ speaker, specs, state }: { speaker: (typeof SPEAKERS)[num
               </li>
             ))}
           </ol>
-        </details>
-      )}
-      {state.available && (
-        <details>
-          <summary className="hq-video-material-sum">{current ? "更新規格" : "記錄規格"}</summary>
-          <form className="hq-video-logform" onSubmit={e => void save(e)} noValidate>
-            <datalist id={`${formId}-tools`}>{VOICE_TOOL_SUGGESTIONS.map(t => <option key={t} value={t} />)}</datalist>
-            {fields.map(f => {
-              const id = `${formId}-${f.key}`;
-              const common = {
-                id, value: draft[f.key], placeholder: f.placeholder, maxLength: VOICE_SPEC_LIMITS[f.key],
-                "aria-invalid": Boolean(errors[f.key]) || undefined, "aria-describedby": errors[f.key] ? `${id}-err` : undefined,
-                onChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => setDraft(d => ({ ...d, [f.key]: e.target.value })),
-              };
-              return (
-                <div key={f.key} className="hq-video-field">
-                  <label htmlFor={id}>{f.label}{(f.key === "tool" || f.key === "voice") && <span aria-hidden="true">＊</span>}</label>
-                  {f.multiline ? <textarea rows={3} {...common} /> : <input type="text" list={f.key === "tool" ? `${formId}-tools` : undefined} {...common} />}
-                  {errors[f.key] && <p id={`${id}-err`} className="hq-error">{errors[f.key]}</p>}
-                </div>
-              );
-            })}
-            <div className="hq-row hq-row-tight">
-              <button type="submit" className="hq-btn" disabled={busy}>{busy ? "儲存中…" : "儲存規格"}</button>
-            </div>
-          </form>
         </details>
       )}
     </article>
