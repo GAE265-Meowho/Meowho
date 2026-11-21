@@ -193,7 +193,7 @@ export const SHOT_SECTIONS: ShotSection[] = [
     shots: [
       { no: 1, line: "貓", time: "0:00–0:06", picture: "雨夜，中途之家門口放著紙箱。鏡頭從遠處緩慢推近，只有雨聲。", voice: "—", sfx: "只有雨聲",
         frames: [ai("s01", "Rainy night, a closed cardboard box sitting alone on a wet doorstep of an old Taiwanese apartment, dim yellow street light, raindrops, slow dolly-in, cold blue tones, melancholic mood")] },
-      { no: 2, line: "貓", time: "0:06–0:15", picture: "接續鏡 1 同一個雨夜紙箱：鏡頭進到箱子裡，小橘縮在角落，肚子餓（輕舔嘴唇／空食碗意象），雨聲持續", voice: "小橘：「我是不是哪裡做錯了……好冷……肚子好餓。我只想要一個，不會再把我送走的家。」", sfx: "肚子餓的喵叫、下雨聲",
+      { no: 2, line: "貓", time: "0:06–0:15", picture: "接續鏡 1 同一個雨夜紙箱：鏡頭進到箱子裡，小橘縮在角落，肚子餓（輕舔嘴唇／空食碗意象），雨聲持續", voice: "小橘：「這是我第二次被送回來……我是不是……不討人喜歡？」", sfx: "肚子餓的喵叫、下雨聲",
         frames: [ai("s02", "Continuity from the previous shot (s01): looking down into the SAME sealed shipping cardboard box from that rainy Taiwanese doorstep — a top-loading carton with clear packing tape on the top flaps, now slightly open from above. Inside, a SMALL young orange tabby cat curled up in the corner (slim, fits in one corner, NOT oversized), ears down, looking up at the camera, hungry and weak — empty food dish nearby and licking its lips, soft rain light from the open top flaps, wet cardboard walls, melancholic mood")] },
     ],
   },
@@ -302,7 +302,7 @@ export const MATCH_CUTS: { name: string; from: string; to: string; meaning: stri
 /** 旁白完整稿：兩個聲線各自生成一支音檔，再依分鏡表切段對齊 */
 /** 旁白順序＝播放順序；後來新增的句子給固定 id（n26 起），既有 n01–n25 不重編，已上傳的音檔才不會錯位（#578） */
 export const NARRATION: { who: "橘" | "傑"; text: string; id?: string }[] = [
-  { who: "橘", text: "我是不是哪裡做錯了……好冷……肚子好餓。我只想要一個，不會再把我送走的家。" },
+  { who: "橘", text: "這是我第二次被送回來……我是不是……不討人喜歡？" },
   { who: "傑", text: "我想養一隻貓，想了兩年。" },
   { who: "橘", text: "第一次遇見阿芳，是在一個很冷的晚上。" },
   { who: "橘", text: "她每天幫我拍照，記下我吃多少、睡多久，還有我很怕吹風機的聲音。" },
