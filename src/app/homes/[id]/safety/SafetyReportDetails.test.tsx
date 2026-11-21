@@ -95,13 +95,13 @@ describe("SafetyReportDetails native report and summary fallback states", () => 
       ok: true, json: async () => ({ ...ready, report: { ...ready.report, status: "queued" }, pdfUrl: null }),
     } as Response);
     const queued = render(<SafetyReportDetails householdId="home-1" reportId="report-1" />);
-    expect((await screen.findByRole("status")).textContent).toContain("安全報告仍在處理中");
+    expect((await screen.findByText(/安全報告仍在處理中/)).getAttribute("role")).toBe("status");
     queued.unmount();
     vi.mocked(fetch).mockResolvedValueOnce({
       ok: true, json: async () => ({ ...ready, report: { ...ready.report, status: "running" }, pdfUrl: null }),
     } as Response);
     const first = render(<SafetyReportDetails householdId="home-1" reportId="report-1" />);
-    expect((await screen.findByRole("status")).textContent).toContain("安全報告仍在處理中");
+    expect((await screen.findByText(/安全報告仍在處理中/)).getAttribute("role")).toBe("status");
     first.unmount();
     vi.mocked(fetch).mockResolvedValueOnce({
       ok: true,

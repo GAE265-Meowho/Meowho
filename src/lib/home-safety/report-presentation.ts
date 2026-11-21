@@ -260,7 +260,7 @@ export function renderReportPresentation(html: string, full: boolean, presentati
     <p>${region ? region.estimated ? "紅色虛線為 AI 估計位置。" : "紅框為人工確認位置。" : "畫面中的具體位置待確認。"}</p>
     <p>${escape(selected.observation)}</p>${!selected.cropped && selected.detailBefore ? `<a href="${selected.detailBefore}">查看原始局部放大</a>` : ""}</figure>` : "";
   const after = selected?.before ? `<figure class="meow-after">${selected.after ? `<figcaption>${selected.cropped ? "改善後局部｜AI 模擬示意" : "改善後｜AI 模擬示意"}</figcaption>
-    <div class="meow-photo"><div class="evidence"><img src="${selected.after}" alt="${escape(selected.name)}的 AI 改善示意" fetchpriority="low">${marker(afterRegion, " simulated-region")}</div></div>
+    <div class="meow-photo"><div class="evidence"><img src="${selected.after}" alt="${escape(selected.name)}的 AI 改善示意" loading="lazy" fetchpriority="low">${marker(afterRegion, " simulated-region")}</div></div>
     ${selected.cropped ? "" : `<p>${afterRegion ? "綠色虛線為 AI 模擬對應區域。" : "這張 AI 示意圖的對應位置待確認。"}</p>`}
     <p>實際改善情形仍待現場確認。</p>` : "<p>這個項目沒有可展示的 AI 改善示意。</p>"}</figure>` : "";
   const collapse = `<a class="meow-report-toggle" href="html#report-view" id="report-view-return">收合完整報告${icon("up")}</a>`;

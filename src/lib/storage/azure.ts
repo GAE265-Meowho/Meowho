@@ -32,8 +32,16 @@ export function createAzureStore(cfg: StorageConfig): MediaStore {
     readUrl: async (path, ttlSec = READ_TTL_SEC, options) => sasUrl(path, "r", ttlSec, undefined, options?.contentDisposition),
     download: async (path) => {
       const blob = container.getBlockBlobClient(path);
-      if (!(await blob.exists())) return null;
-      return new Uint8Array(await blob.downloadToBuffer());
+      try {
+        const { readableStreamBody } = await blob.download();
+        if (!readableStreamBody) throw new Error("Azure Blob download returned no stream");
+        const chunks: Buffer[] = [];
+        for await (const chunk of readableStreamBody) chunks.push(Buffer.from(chunk));
+        return new Uint8Array(Buffer.concat(chunks));
+      } catch (error) {
+        if (typeof error === "object" && error !== null && "statusCode" in error && error.statusCode === 404) return null;
+        throw error;
+      }
     },
     remove: async (path) => { await container.getBlockBlobClient(path).deleteIfExists(); },
     put: async (path, bytes, contentType) => {
