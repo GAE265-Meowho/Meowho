@@ -51,7 +51,8 @@
 - 前導影片鏡 2 旁白改為新台詞（Tina × Claude Code，#584）：PR #585 已合併，完成。
 - 前導影片已配音影片加字幕檔格（Tina × Claude Code，#586）：PR #587 已合併，完成。
 - 前導影片鏡 13 三人各念一句、新增阿芳聲線（Tina × Claude Code，#588）：PR #589 已合併，0043 已執行，完成。
-- 前導影片配音 tab 移除「更新規格」表單（Tina × Claude Code，#590）：審查中。
+- 前導影片配音 tab 移除「更新規格」表單（Tina × Claude Code，#590）：PR #591 已合併，完成。
+- 前導影片字幕檔格只留兩支完整影片（Tina × Claude Code，#592）：審查中。
 - 前導影片鏡 3、4 時間字卡（Tina × Claude Code，#568）：分支 `feat/568-time-cards`，審查中。
 
 - AI 居家安全報告首屏與圖片載入（Jerry0808 × Codex）：分支 `codex/home-safety-report-ux`，審查中。沿用 #273 報告授權；待驗收 Preview 的真實 Owner 登入及 Azure 延遲。

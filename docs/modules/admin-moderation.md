@@ -171,6 +171,7 @@ ole === "admin" 判斷管理員，而現有 admin 會升為 system_admin；舊�
 | 2026-11-21 | Tina × Claude Code | 「前導影片：影片」已配音區塊每支影片下加字幕檔格 `sub-<格>`（SRT／VTT，6 格）（#586） |
 | 2026-11-21 | Tina × Claude Code | 鏡 13 三人各念一句；配音新增阿芳聲線 `afang`（n27–n29）；migration 0043 讓 `meow_trailer_voice_specs.speaker` 允許 afang（待執行）（#588） |
 | 2026-11-21 | Tina × Claude Code | 配音 tab 移除聲音規格的「更新規格」表單，只顯示目前與過去規格；0043 已執行、阿芳規格已存（#590） |
+| 2026-11-21 | Tina × Claude Code | 字幕檔格只留兩支完整影片（`sub-full`、`sub-demo`），四段不需要（#592） |
 | 2026-11-20 | Tina × Claude Code | 鏡 6 由剪輯字卡改為 AI 兩格（s08-1 阿芳發群組、s08-2 小傑睡前滑群組），影片 tab 有片段與整鏡成品格（#562） |
 | 2026-11-20 | Tina × Claude Code | 鏡 9-2 改為蹲在桌下查看電線的低角度特寫（只框書桌下方），9-1 → 9-2 剪接；s10、s13 動作同步（#556） |
 | 2026-11-20 | Tina × Claude Code | 影片／音檔格可「刪除這個版本」：`DELETE /api/hq/trailer-videos`，管理員限定、只刪單一版本、刪前確認（#553） |

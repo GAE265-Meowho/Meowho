@@ -48,8 +48,8 @@ export const DUB_SLOTS: { id: string; of: string; range: string }[] = [
   ...SHOT_SECTIONS.map(s => ({ id: `dub-${s.key}`, of: s.key as string, range: s.range })),
 ];
 
-/** 字幕檔（#586）：每支已配音影片一格，代號 sub-<格>（sub-full、sub-opening…） */
-export const SUB_SLOTS: { id: string; of: string; range: string }[] = DUB_SLOTS.map(d => ({ id: `sub-${d.of}`, of: d.of, range: d.range }));
+/** 字幕檔（#586）：只給兩支完整影片，代號 sub-full、sub-demo（#592 四段不需要） */
+export const SUB_SLOTS: { id: string; of: string; range: string }[] = DUB_SLOTS.slice(0, 2).map(d => ({ id: `sub-${d.of}`, of: d.of, range: d.range }));
 
 /** 整鏡成品（#548）：兩格以上、或拆成多支短片生成的鏡頭，剪好／合成後的整鏡影片放這裡。
  *  代號用 m-<第一格代號>（存檔路徑），不跟著鏡號變 */
