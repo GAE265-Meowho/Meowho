@@ -74,9 +74,9 @@ export function clipLength(shot: Shot): { cut: number; generate: 5 | 10 | 15 } {
 /**
  * 影片 tab 有片段卡的格：AI 分鏡，加上第三段的系統錄影格（#547）。
  * 系統錄影格的分鏡也是真人＋真實 UI，成品照 docs/video/前導影片第三段_片段製作SOP.md 做（Kling 綠幕＋真實錄影合成），一樣要有上傳格。
- * 剪輯字卡不用生成，沒有片段卡。
+ * 剪輯字卡（鏡 6 社群畫面、鏡 14 Logo）也有片段卡：成品用剪輯軟體或程式動畫做好後上傳到這裡（子哲 2026-11-21，鏡 14 Logo 動畫片段）。
  */
-export const isClipFrame = (f: Pick<Frame, "make">) => f.make !== "edit";
+export const isClipFrame = (f: Pick<Frame, "make">) => ["ai", "record", "edit"].includes(f.make);
 
 /** 起始畫面（分鏡圖）的固定下載檔名 */
 export const startFrameFileName = (frameId: string) => `${frameId}.webp`;

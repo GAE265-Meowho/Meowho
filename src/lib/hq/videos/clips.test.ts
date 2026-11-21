@@ -14,12 +14,12 @@ describe("前導影片：產生影片", () => {
     }
   });
 
-  it("清單有 AI 生成的 28 格（#562 鏡 6 改 AI 兩格），加上第三段系統錄影的 5 格（真人＋真實 UI 合成，#547）；字卡不列", () => {
+  it("清單有 AI 生成的 28 格（#562 鏡 6 改 AI 兩格），加上第三段系統錄影的 5 格（真人＋真實 UI 合成，#547），再加鏡 14 Logo 字卡 1 格（成品上傳）", () => {
     const items = clipSections().flatMap(s => s.items);
-    expect(items).toHaveLength(33);
+    expect(items).toHaveLength(34);
     expect(items.filter(i => i.frame.make === "ai")).toHaveLength(28);
     expect(items.filter(i => i.frame.make === "record").map(i => i.frame.id)).toEqual(["s21", "s23", "s24", "s25", "s27"]);
-    expect(items.some(i => i.frame.make === "edit")).toBe(false);
+    expect(items.filter(i => i.frame.make === "edit").map(i => i.frame.id)).toEqual(["s17"]);
   });
 
   it("系統錄影格沒有圖生影片 prompt，改看 SOP（#547）", () => {

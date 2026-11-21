@@ -180,7 +180,10 @@ function ClipCard({ item, urlOf, copy, videos, edits }: { item: ClipItem; urlOf:
             <div><dt>畫面</dt><dd>{shotValue(shot, "picture", edits.eff)}</dd></div>
           </dl>
           <RefChips refs={frame.refs} urlOf={urlOf} />
-          {frame.make === "record"
+          {frame.make === "edit"
+            // 剪輯字卡：不用 AI 生成，用剪輯軟體或程式動畫做好後上傳成品
+            ? <p className="hq-sub">這一格是剪輯字卡，不用 AI 生成：用剪輯軟體或程式動畫做好成品後上傳到這張卡。</p>
+            : frame.make === "record"
             // #547：系統錄影格的分鏡是真人＋真實 UI，用 Kling 綠幕生成動作再合成真實錄影，prompt 依 SOP 每格自己寫
             ? <p className="hq-sub">這一格照「前導影片第三段片段製作 SOP」（docs/video）做：素材包的綠幕底圖當起始畫面，螢幕換成真實系統錄影。</p>
             : <Prompt text={motionPrompt(frame)} copy={copy} title="圖生影片 prompt（動作與運鏡）" />}
