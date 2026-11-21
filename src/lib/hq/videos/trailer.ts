@@ -246,7 +246,7 @@ export const SHOT_SECTIONS: ShotSection[] = [
     key: "product", title: "第三段：匯聚與產品登場", range: "1:32–2:40",
     note: "每一顆鏡頭都要同時照到兩條線：功能是「替誰解決了什麼」，旁白就由那個人說。鏡 18–21 的畫面主體是小傑 3D 房間裡的 3D 小橘，右上角一直放著信任、壓力、花費三個數值。",
     shots: [
-      { no: 14, line: "—", time: "1:32–1:37", picture: "黑畫面，Meowho喵戶 門口貓頭 Logo 浮現", voice: "字幕：「貓在找準備好的你。」", sfx: "一聲貓叫，音樂重新進來",
+      { no: 14, line: "—", time: "1:32–1:37", picture: "黑畫面，Meowho喵戶 門口貓頭 Logo 浮現", voice: "小橘：「貓在找準備好的你。」（字幕同旁白）", sfx: "一聲貓叫，音樂重新進來",
         frames: [edit("s17", "用剪輯軟體做 Logo 動畫，用向量的門口貓頭款 Logo")] },
       { no: 15, line: "產品", time: "1:37–1:45", picture: "① 建貓：阿芳的喵戶裡有三隻貓（小橘、短耳貓、灰寶），她點進小橘，上傳小橘的影片和照片、寫下個性；系統生成像本尊的 3D 小橘。切到小傑手機上打開同一張介紹頁", voice: "小橘：「這一次，我的樣子和個性，都被好好記下來。」", sfx: "明亮音樂",
         frames: [ai("s18", "The woman in a brown knitted cardigan filming the orange tabby cat with her phone as it plays on the floor, the short-eared cat and the gray cat lounging nearby, warm afternoon light", "穿插")] },
@@ -316,6 +316,7 @@ export const NARRATION: { who: "橘" | "傑" | "芳"; text: string; id?: string 
   { who: "芳", text: "一個怕再送錯人。", id: "n27" },
   { who: "橘", text: "一個怕再被送回來。喵～", id: "n28" },
   { who: "傑", text: "一個怕自己做不好。", id: "n29" },
+  { who: "橘", text: "貓在找準備好的你。", id: "n30" },
   { who: "橘", text: "這一次，我的樣子和個性，都被好好記下來。" },
   { who: "傑", text: "我只說了我怎麼生活，" },
   { who: "橘", text: "適合我的人，就找到了我。" },
