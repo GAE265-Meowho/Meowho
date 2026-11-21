@@ -7,7 +7,7 @@ import { useHqToast } from "@/components/hq/HqToast";
 import { hqErrorMessage } from "@/components/hq/errors";
 import { formatLogTime } from "@/lib/hq/videos/gen-log";
 import {
-  EMPTY_VOICE_DRAFT, SPEAKERS, VOICE_LINES, VOICE_SPEC_LIMITS, VOICE_SPEC_TABLE, VOICE_TOOL_SUGGESTIONS, prepareVoiceSpec,
+  EMPTY_VOICE_DRAFT, SPEAKERS, speakerName, VOICE_LINES, VOICE_SPEC_LIMITS, VOICE_SPEC_TABLE, VOICE_TOOL_SUGGESTIONS, prepareVoiceSpec,
   type Speaker, type VoiceSpec, type VoiceSpecDraft,
 } from "@/lib/hq/videos/voice";
 import { videoSlotLabel } from "@/lib/hq/videos/trailer-video";
@@ -74,7 +74,7 @@ export function VoiceBoard() {
       <section className="hq-video-sec" aria-labelledby="voice-lines">
         <h2 id="voice-lines">旁白音檔</h2>
         <div className="hq-chips" role="group" aria-label="篩選聲線">
-          {([["all", "全部"], ["xiaoju", "小橘"], ["xiaojie", "小傑"]] as [Filter, string][]).map(([v, l]) => (
+          {([["all", "全部"], ...SPEAKERS.map(s => [s.id, s.name])] as [Filter, string][]).map(([v, l]) => (
             <button key={v} className={filter === v ? "on" : ""} aria-pressed={filter === v} onClick={() => setFilter(v)}>{l}</button>
           ))}
         </div>
@@ -83,7 +83,7 @@ export function VoiceBoard() {
             <li key={l.id} className="hq-video-line-row">
               <div className="hq-row hq-row-tight">
                 <b>{l.id}</b>
-                <span className={`hq-video-line ${l.speaker === "xiaoju" ? "l-cat" : "l-human"}`}>{l.speaker === "xiaoju" ? "小橘" : "小傑"}</span>
+                <span className={`hq-video-line ${l.speaker === "xiaoju" ? "l-cat" : "l-human"}`}>{speakerName(l.speaker)}</span>
                 <span className="hq-sub">鏡 {l.shots}</span>
               </div>
               <p className="hq-video-line-text">{l.text}</p>

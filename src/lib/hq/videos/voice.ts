@@ -2,13 +2,14 @@
 // 聲音規格存 meow_trailer_voice_specs（0039，最新一筆就是目前規格）；26 句旁白音檔存 Azure Blob（同影片，經 /api/hq/trailer-videos）。
 import { NARRATION, SHOT_SECTIONS } from "./trailer";
 
-export type Speaker = "xiaoju" | "xiaojie";
+export type Speaker = "xiaoju" | "xiaojie" | "afang";
 export const VOICE_SPEC_TABLE = "meow_trailer_voice_specs";
 
 /** 兩個角色的聲音方向（腳本「小橘聲線／小傑聲線」）與建議工具 */
-export const SPEAKERS: { id: Speaker; who: "橘" | "傑"; name: string; direction: string; suggestion: string }[] = [
+export const SPEAKERS: { id: Speaker; who: "橘" | "傑" | "芳"; name: string; direction: string; suggestion: string }[] = [
   { id: "xiaoju", who: "橘", name: "小橘", direction: "台灣口音的中文，偏年輕、溫柔、帶一點童聲，語速慢，句子之間留停頓", suggestion: "先試 ElevenLabs（童聲與情緒較好做）；口音不自然再改 Azure TTS 台灣女聲並調高音調、放慢語速" },
   { id: "xiaojie", who: "傑", name: "小傑", direction: "台灣口音的中文，28 歲男聲，偏低、偏慢，像在自言自語，不要播音腔", suggestion: "Azure TTS 台灣男聲（例：zh-TW-YunJheNeural），用 SSML 控制停頓與語速" },
+  { id: "afang", who: "芳", name: "阿芳", direction: "台灣口音的中文，36 歲女聲，溫柔、帶一點疲憊，語速中慢（只在鏡 13 說一句，#588）", suggestion: "ElevenLabs" },
 ];
 
 export const VOICE_TOOL_SUGGESTIONS = ["Azure TTS", "ElevenLabs"];
@@ -34,7 +35,7 @@ export function shotsOfLine(text: string): string {
 const plain = NARRATION.filter(n => !n.id);
 export const VOICE_LINES = NARRATION.map(n => ({
   id: n.id ?? `n${String(plain.indexOf(n) + 1).padStart(2, "0")}`,
-  speaker: (n.who === "橘" ? "xiaoju" : "xiaojie") as Speaker,
+  speaker: SPEAKERS.find(s => s.who === n.who)!.id,
   text: n.text,
   shots: shotsOfLine(n.text),
 }));
