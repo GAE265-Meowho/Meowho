@@ -187,7 +187,7 @@ export function TrailerBoard() {
 
       <section className="hq-video-sec" aria-labelledby="tv-voice">
         <h2 id="tv-voice">旁白完整稿</h2>
-        <p className="hq-sub">兩個聲線各自生成一支音檔，再依分鏡表切段對齊畫面。鏡 23 的對話串只用畫面文字呈現，不配音；鏡 13 三人齊聲那句不在 26 句裡，另外錄。</p>
+        <p className="hq-sub">兩個聲線各自生成一支音檔，再依分鏡表切段對齊畫面。鏡 23 的對話串只用畫面文字呈現，不配音；鏡 13、14 只上字幕，不配音。</p>
         <ol className="hq-video-voice">
           {NARRATION.map((n, i) => <li key={i}><b className={n.who === "橘" ? "cat" : "human"}>{n.who === "橘" ? "小橘" : "小傑"}</b>{n.text}</li>)}
         </ol>
