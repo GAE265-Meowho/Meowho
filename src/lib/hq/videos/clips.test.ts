@@ -125,12 +125,12 @@ describe("前導影片：產生影片", () => {
     for (const s of SHOT_SECTIONS.flatMap(x => x.shots)) expect(shotSeconds(s), `鏡 ${s.no}`).toBeLessThanOrEqual(10);
   });
 
-  it("鏡 2 小橘的心聲：冷、餓、想要一個長久的家（#526 珮瑜修改版）", () => {
+  it("鏡 2 小橘的心聲：第二次被送回來（#584，取代 #526 珮瑜版）", () => {
     const s2 = SHOT_SECTIONS[0].shots[1];
-    expect(s2.voice).toBe("小橘：「我是不是哪裡做錯了……好冷……肚子好餓。我只想要一個，不會再把我送走的家。」");
+    expect(s2.voice).toBe("小橘：「這是我第二次被送回來……我是不是……不討人喜歡？」");
     expect(CLIP_MOTION.s02.action).toMatch(/shiver/);
     expect(CLIP_MOTION.s02.action).toMatch(/licks its lips/);
-    expect(s2.voice).toContain("不會再把我送走的家");
+    expect(s2.voice).toContain("第二次被送回來");
     expect(shotSeconds(s2)).toBeGreaterThanOrEqual(8);
   });
 
