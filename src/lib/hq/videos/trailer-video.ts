@@ -25,7 +25,20 @@ export const TRAILER_AUDIO_MIME: Record<string, string> = {
   "audio/x-m4a": "m4a",
 };
 
-export type VideoSlotKind = "full" | "dub" | "section" | "clip" | "shot" | "voice" | "rec";
+/** 字幕檔（#586）：已配音影片旁的 .srt／.vtt */
+export const TRAILER_SUB_MIME: Record<string, string> = {
+  "application/x-subrip": "srt",
+  "text/vtt": "vtt",
+};
+
+/** 瀏覽器常讀不到 .srt 的類型（空字串），依副檔名補上；其他檔案照原本類型 */
+export function subtitleMime(file: { name: string; type: string }): string {
+  if (file.type && file.type !== "application/octet-stream") return file.type;
+  const ext = file.name.split(".").pop()?.toLowerCase();
+  return ext === "srt" ? "application/x-subrip" : ext === "vtt" ? "text/vtt" : file.type;
+}
+
+export type VideoSlotKind = "full" | "dub" | "sub" | "section" | "clip" | "shot" | "voice" | "rec";
 
 /** 已配音的影片：完整影片下方的區塊，放加上旁白、音效、配樂後的成品；跟無聲的剪輯版分開放，兩邊都保留。
  *  代號 dub-<格>，對應完整影片兩支與四段 */
@@ -34,6 +47,9 @@ export const DUB_SLOTS: { id: string; of: string; range: string }[] = [
   { id: "dub-demo", of: "demo", range: "第三段＋第四段" },
   ...SHOT_SECTIONS.map(s => ({ id: `dub-${s.key}`, of: s.key as string, range: s.range })),
 ];
+
+/** 字幕檔（#586）：每支已配音影片一格，代號 sub-<格>（sub-full、sub-opening…） */
+export const SUB_SLOTS: { id: string; of: string; range: string }[] = DUB_SLOTS.map(d => ({ id: `sub-${d.of}`, of: d.of, range: d.range }));
 
 /** 整鏡成品（#548）：兩格以上、或拆成多支短片生成的鏡頭，剪好／合成後的整鏡影片放這裡。
  *  代號用 m-<第一格代號>（存檔路徑），不跟著鏡號變 */
@@ -49,6 +65,7 @@ export function videoSlots(): { id: string; kind: VideoSlotKind }[] {
     { id: "full", kind: "full" as const }, // 前導影片＝第一段＋第二段（沿用原 full 格）
     { id: "demo", kind: "full" as const }, // #565 系統 Demo 影片＝第三段＋第四段
     ...DUB_SLOTS.map(d => ({ id: d.id, kind: "dub" as const })),
+    ...SUB_SLOTS.map(d => ({ id: d.id, kind: "sub" as const })),
     ...SHOT_SECTIONS.map(s => ({ id: s.key as string, kind: "section" as const })),
     ...SHOT_SECTIONS.flatMap(s => s.shots.flatMap(sh => sh.frames.filter(isClipFrame).map(f => ({ id: f.id, kind: "clip" as const })))),
     ...compositeShots().map(c => ({ id: c.id, kind: "shot" as const })),
@@ -60,15 +77,18 @@ export function videoSlots(): { id: string; kind: VideoSlotKind }[] {
 const SLOT_KIND = new Map(videoSlots().map(s => [s.id, s.kind]));
 const SLOT_IDS = new Set(SLOT_KIND.keys());
 export const slotKind = (slot: string) => SLOT_KIND.get(slot);
-/** 這一格收的格式：旁白收音檔，其他收影片 */
-export const slotMimes = (slot: string) => (SLOT_KIND.get(slot) === "voice" ? TRAILER_AUDIO_MIME : TRAILER_VIDEO_MIME);
+/** 這一格收的格式：旁白收音檔、字幕格收 SRT／VTT，其他收影片 */
+export const slotMimes = (slot: string) => {
+  const k = SLOT_KIND.get(slot);
+  return k === "voice" ? TRAILER_AUDIO_MIME : k === "sub" ? TRAILER_SUB_MIME : TRAILER_VIDEO_MIME;
+};
 export const isVideoSlot = (v: unknown): v is string => typeof v === "string" && SLOT_IDS.has(v);
 export const sectionSlot = (key: SectionKey) => key;
 
 export type TrailerVideoError = "invalid_slot" | "unsupported_type" | "too_large" | "invalid_size";
 export const TRAILER_VIDEO_ERROR: Record<TrailerVideoError, string> = {
   invalid_slot: "找不到這一格",
-  unsupported_type: "格式不對：影片收 MP4、WebM、MOV；旁白收 MP3、WAV、M4A",
+  unsupported_type: "格式不對：影片收 MP4、WebM、MOV；旁白收 MP3、WAV、M4A；字幕收 SRT、VTT",
   too_large: "影片超過 1 GB，請先壓縮再上傳",
   invalid_size: "讀不到檔案大小，請重新選擇檔案",
 };
@@ -92,7 +112,7 @@ export type VideoVersion = { path: string; at: string };
 export function groupTrailerVideos(paths: readonly string[]): Record<string, VideoVersion[]> {
   const out: Record<string, VideoVersion[]> = {};
   for (const path of paths) {
-    const m = /^videos\/trailer\/([a-z0-9-]+)\/(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})\.(mp4|webm|mov|mp3|wav|m4a)$/.exec(path);
+    const m = /^videos\/trailer\/([a-z0-9-]+)\/(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})\.(mp4|webm|mov|mp3|wav|m4a|srt|vtt)$/.exec(path);
     if (!m || !SLOT_IDS.has(m[1])) continue;
     (out[m[1]] ??= []).push({ path, at: `${m[2]}-${m[3]}-${m[4]}T${m[5]}:${m[6]}:${m[7]}Z` });
   }
@@ -106,6 +126,8 @@ export function videoSlotLabel(slot: string): string {
   if (slot === "demo") return "系統 Demo 影片";
   const dub = DUB_SLOTS.find(d => d.id === slot);
   if (dub) return `${videoSlotLabel(dub.of)}（已配音）`;
+  const sub = SUB_SLOTS.find(d => d.id === slot);
+  if (sub) return `${videoSlotLabel(sub.of)}（字幕）`;
   const rec = recClip(slot);
   if (rec) return `鏡 ${rec.shot} 系統錄影 ${rec.title}`;
   const line = VOICE_LINES.find(l => l.id === slot);
@@ -130,6 +152,11 @@ export function trailerVideoFileName(slot: string, label: string, v: VideoVersio
   if (dub) { // 前導影片_已配音_2026-11-20.mp4、前導影片_第二段交叉敘事_已配音_2026-11-20.mp4
     const base = label.replace(/（已配音）$/, "").replace(/[\\/:*?"<>|\s]+/g, "");
     return `${dub.of === "full" || dub.of === "demo" ? "" : "前導影片_"}${base}_已配音_${v.at.slice(0, 10)}.${ext}`;
+  }
+  const sub = SUB_SLOTS.find(d => d.id === slot);
+  if (sub) { // 前導影片_字幕_2026-11-21.srt、前導影片_第四段相遇結尾_字幕_2026-11-21.srt
+    const base = label.replace(/（字幕）$/, "").replace(/[\\/:*?"<>|\s]+/g, "");
+    return `${sub.of === "full" ? "" : sub.of === "demo" ? "" : "前導影片_"}${base}_字幕_${v.at.slice(0, 10)}.${ext}`;
   }
   return `前導影片_${label.replace(/[\\/:*?"<>|\s]+/g, "")}_${v.at.slice(0, 10)}.${ext}`;
 }
