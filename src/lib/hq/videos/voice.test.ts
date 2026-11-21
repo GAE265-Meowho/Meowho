@@ -3,12 +3,17 @@ import { EMPTY_VOICE_DRAFT, SPEAKERS, VOICE_LINES, prepareVoiceSpec, voiceFileNa
 import { SHOT_SECTIONS } from "./trailer";
 
 describe("前導影片：配音（#504）", () => {
-  it("26 句旁白：小橘 15 句、小傑 11 句；編號固定，新句往後加不重編（#578 鏡 22 新增 n26）", () => {
-    expect(VOICE_LINES).toHaveLength(26);
+  it("29 句旁白：小橘 16、小傑 12、阿芳 1；編號固定，新句往後加不重編（#578 n26、#588 n27–n29）", () => {
+    expect(VOICE_LINES).toHaveLength(29);
     expect(VOICE_LINES[0].id).toBe("n01");
-    expect(new Set(VOICE_LINES.map(l => l.id)).size).toBe(26);
-    expect(VOICE_LINES.filter(l => l.speaker === "xiaoju")).toHaveLength(15);
-    expect(VOICE_LINES.filter(l => l.speaker === "xiaojie")).toHaveLength(11);
+    expect(new Set(VOICE_LINES.map(l => l.id)).size).toBe(29);
+    expect(VOICE_LINES.filter(l => l.speaker === "xiaoju")).toHaveLength(16);
+    expect(VOICE_LINES.filter(l => l.speaker === "xiaojie")).toHaveLength(12);
+    expect(VOICE_LINES.filter(l => l.speaker === "afang")).toHaveLength(1);
+    // 鏡 13 三人各念一句：排在鏡 12（n11）後面、鏡 15（n12）前面
+    const k = VOICE_LINES.findIndex(l => l.id === "n27");
+    expect(VOICE_LINES.slice(k - 1, k + 4).map(l => l.id)).toEqual(["n11", "n27", "n28", "n29", "n12"]);
+    expect(VOICE_LINES.slice(k, k + 3).map(l => [l.speaker, l.shots])).toEqual([["afang", "13"], ["xiaoju", "13"], ["xiaojie", "13"]]);
     // 鏡 22 的新句排在鏡 21 後面，但用 n26，既有 n20–n25 的音檔不會錯位
     const i = VOICE_LINES.findIndex(l => l.id === "n26");
     expect(VOICE_LINES[i - 1].id).toBe("n19");
@@ -33,8 +38,9 @@ describe("前導影片：配音（#504）", () => {
     }
   });
 
-  it("只有兩個聲線", () => {
-    expect(SPEAKERS.map(s => s.id)).toEqual(["xiaoju", "xiaojie"]);
+  it("三個聲線：小橘、小傑、阿芳（#588）", () => {
+    expect(SPEAKERS.map(s => s.id)).toEqual(["xiaoju", "xiaojie", "afang"]);
+    expect(voiceFileName("n27", "afang", "mp3")).toBe("n27_阿芳.mp3");
   });
 
   it("聲音規格：工具與聲音必填、去空白", () => {

@@ -238,7 +238,7 @@ export const SHOT_SECTIONS: ShotSection[] = [
           ai("s16-1", "Rainy night doorstep, the woman in a brown knitted cardigan opens the cardboard box and lifts the wet orange tabby cat into her arms, teary eyes, cold blue light with warm light from the door behind her", "12-1 阿芳抱起小橘"),
           ai("s16-2", `The same rainy night in the same studio apartment. ${STUDIO_LAYOUT} The young man with round glasses in a gray T-shirt stands at the large window, looking out at the rain and the city lights, the desk with the open laptop and the lit desk lamp beside him on the right, his phone in his hand, silhouette, cold blue tones with warm lamp light`, "12-2 小傑窗邊看雨"),
         ] },
-      { no: 13, line: "匯", time: "1:27–1:32", picture: "同一個畫面切成三格子畫面（左＝阿芳、中＝小橘、右＝小傑），三人同時在苦惱：阿芳在門口空紙箱旁扶額、小橘裹著毛巾耳朵垂下、小傑在窗邊拿著手機皺眉。接鏡 12 並排的兩格，中間再推開一格放小橘", voice: "字幕（不配音）：「一個怕再送錯人，一個怕再被送回來，一個怕自己做不好。」", sfx: "雨聲收掉，三人的聲音疊在一起，說完停一拍",
+      { no: 13, line: "匯", time: "1:27–1:32", picture: "同一個畫面切成三格子畫面（左＝阿芳、中＝小橘、右＝小傑），三人同時在苦惱：阿芳在門口空紙箱旁扶額、小橘裹著毛巾耳朵垂下、小傑在窗邊拿著手機皺眉。接鏡 12 並排的兩格，中間再推開一格放小橘", voice: "阿芳：「一個怕再送錯人。」小橘：「一個怕再被送回來。喵～」小傑：「一個怕自己做不好。」（三人各念一句，字幕同旁白）", sfx: "雨聲收掉，三人的聲音疊在一起，說完停一拍",
         frames: [ai("s31", "ONE single 16:9 frame divided into three vertical split-screen panels of equal width separated by thin dark lines, all three characters troubled at the same moment, same rainy-night cold blue tone and same eye-line height across panels. LEFT panel: the woman in a brown knitted cardigan at the shelter apartment doorstep beside the empty wet cardboard box, rubbing her forehead, tired and worried. CENTER panel: the small orange tabby cat wrapped in a towel on the doormat, ears down, looking up anxiously. RIGHT panel: the young man with round glasses by the rain-streaked window of his dark studio apartment, holding his phone, frowning and hesitant. Medium close-ups, each subject centered in its panel")] },
     ],
   },
@@ -301,7 +301,7 @@ export const MATCH_CUTS: { name: string; from: string; to: string; meaning: stri
 
 /** 旁白完整稿：兩個聲線各自生成一支音檔，再依分鏡表切段對齊 */
 /** 旁白順序＝播放順序；後來新增的句子給固定 id（n26 起），既有 n01–n25 不重編，已上傳的音檔才不會錯位（#578） */
-export const NARRATION: { who: "橘" | "傑"; text: string; id?: string }[] = [
+export const NARRATION: { who: "橘" | "傑" | "芳"; text: string; id?: string }[] = [
   { who: "橘", text: "這是我第二次被送回來……我是不是……不討人喜歡？" },
   { who: "傑", text: "我想養一隻貓，想了兩年。" },
   { who: "橘", text: "第一次遇見阿芳，是在一個很冷的晚上。" },
@@ -313,6 +313,9 @@ export const NARRATION: { who: "橘" | "傑"; text: string; id?: string }[] = [
   { who: "橘", text: "他們不是壞人，只是還沒準備好。" },
   { who: "傑", text: "我怕的不是麻煩，是我會讓牠失望。" },
   { who: "橘", text: "所以，他們又把我送回來了。" },
+  { who: "芳", text: "一個怕再送錯人。", id: "n27" },
+  { who: "橘", text: "一個怕再被送回來。喵～", id: "n28" },
+  { who: "傑", text: "一個怕自己做不好。", id: "n29" },
   { who: "橘", text: "這一次，我的樣子和個性，都被好好記下來。" },
   { who: "傑", text: "我只說了我怎麼生活，" },
   { who: "橘", text: "適合我的人，就找到了我。" },

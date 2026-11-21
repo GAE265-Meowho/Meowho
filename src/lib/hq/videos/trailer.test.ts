@@ -50,8 +50,9 @@ describe("前導影片 v3 分鏡資料", () => {
     expect(usedInShots("scene-couple-home")).toEqual([8, 10]);
   });
 
-  it("旁白只有小橘與小傑兩個聲線", () => {
-    expect(new Set(NARRATION.map(n => n.who))).toEqual(new Set(["橘", "傑"]));
+  it("旁白聲線：小橘、小傑，鏡 13 另有阿芳一句（#588）", () => {
+    expect(new Set(NARRATION.map(n => n.who))).toEqual(new Set(["橘", "傑", "芳"]));
+    expect(NARRATION.filter(n => n.who === "芳").map(n => n.text)).toEqual(["一個怕再送錯人。"]);
   });
 
   it("AI 鏡頭的完整 prompt 加上風格尾巴，貓線再加低機位；非 AI 的格子原樣", () => {
