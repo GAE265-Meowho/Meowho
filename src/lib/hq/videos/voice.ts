@@ -1,5 +1,5 @@
 // 前導影片：配音（#504）。旁白另外用 TTS 做，不用影片工具自帶的聲音，才能確保兩個角色的聲音前後一致。
-// 聲音規格存 meow_trailer_voice_specs（0039，最新一筆就是目前規格）；27 句旁白音檔存 Azure Blob（同影片，經 /api/hq/trailer-videos）。
+// 聲音規格存 meow_trailer_voice_specs（0039，最新一筆就是目前規格）；26 句旁白音檔存 Azure Blob（同影片，經 /api/hq/trailer-videos）。
 import { NARRATION, SHOT_SECTIONS } from "./trailer";
 
 export type Speaker = "xiaoju" | "xiaojie";
@@ -30,9 +30,10 @@ export function shotsOfLine(text: string): string {
   return list.length > 1 ? `${list[0]}–${list[list.length - 1]}` : String(list[0] ?? "—");
 }
 
-/** 27 句旁白，各有固定編號 n01–n27（檔名、上傳格都用這個） */
-export const VOICE_LINES = NARRATION.map((n, i) => ({
-  id: `n${String(i + 1).padStart(2, "0")}`,
+/** 旁白各有固定編號（檔名、上傳格都用這個）：沒有指定 id 的依序 n01–n25；後來新增的句子自帶 id（n26 起），既有編號不重排（#578） */
+const plain = NARRATION.filter(n => !n.id);
+export const VOICE_LINES = NARRATION.map(n => ({
+  id: n.id ?? `n${String(plain.indexOf(n) + 1).padStart(2, "0")}`,
   speaker: (n.who === "橘" ? "xiaoju" : "xiaojie") as Speaker,
   text: n.text,
   shots: shotsOfLine(n.text),

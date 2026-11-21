@@ -12,13 +12,14 @@ describe("前導影片的影片檔（#501）", () => {
     expect(isVideoSlot("m-s16")).toBe(true);
   });
 
-  it("可放影片的格：完整影片 1、四段 4、片段 33（AI 28＋第三段系統錄影 5，#547）、旁白 25", () => {
+  it("可放影片的格：完整影片 1、四段 4、片段 33（AI 28＋第三段系統錄影 5，#547）、旁白 26（#578 新增 n26）", () => {
     const s = videoSlots();
     expect(s.filter(x => x.kind === "full").map(x => x.id)).toEqual(["full", "demo"]); // #565
     expect(s.filter(x => x.kind === "section").map(x => x.id)).toEqual(["opening", "cross", "product", "ending"]);
     expect(s.filter(x => x.kind === "clip")).toHaveLength(33);
     for (const id of ["s21", "s23", "s24", "s25", "s27"]) expect(isVideoSlot(id), id).toBe(true);
-    expect(s.filter(x => x.kind === "voice")).toHaveLength(25);
+    expect(s.filter(x => x.kind === "voice")).toHaveLength(26);
+    expect(isVideoSlot("n26")).toBe(true);
     expect(s.filter(x => x.kind === "rec")).toHaveLength(10); // 第三段系統錄影（#529）
     expect(isVideoSlot("s07-2")).toBe(true);
     expect(isVideoSlot("s08-1")).toBe(true); // #562 鏡 6 改 AI 生成
