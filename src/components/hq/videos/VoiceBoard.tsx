@@ -1,6 +1,6 @@
 "use client";
 // 前導影片：配音（#504）。旁白另外用 TTS 做，兩個角色各固定一組聲音規格，補錄時照同一組設定做，聲音才會前後一致。
-// 聲音規格：meow_trailer_voice_specs（0039，最新一筆＝目前規格，保留歷史）；27 句旁白音檔：Azure Blob（/api/hq/trailer-videos 的 n01–n27）。
+// 聲音規格：meow_trailer_voice_specs（0039，最新一筆＝目前規格，保留歷史）；26 句旁白音檔：Azure Blob（/api/hq/trailer-videos 的 n01–n26）。
 import { useCallback, useEffect, useId, useState } from "react";
 import { useHqActor } from "@/components/hq/HqActor";
 import { useHqToast } from "@/components/hq/HqToast";

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  MAX_TRAILER_VIDEO_BYTES, checkTrailerVideo, compositeShots, groupTrailerVideos, isVideoSlot, trailerVideoFileName, trailerVideoPath, videoSlotLabel, videoSlots,
+  DUB_SLOTS, MAX_TRAILER_VIDEO_BYTES, checkTrailerVideo, compositeShots, groupTrailerVideos, isVideoSlot, trailerVideoFileName, trailerVideoPath, videoSlotLabel, videoSlots,
 } from "./trailer-video";
 
 describe("前導影片的影片檔（#501）", () => {
@@ -12,17 +12,32 @@ describe("前導影片的影片檔（#501）", () => {
     expect(isVideoSlot("m-s16")).toBe(true);
   });
 
-  it("可放影片的格：完整影片 1、四段 4、片段 33（AI 28＋第三段系統錄影 5，#547）、旁白 25", () => {
+  it("可放影片的格：完整影片 1、四段 4、片段 33（AI 28＋第三段系統錄影 5，#547）、旁白 26（#578 新增 n26）", () => {
     const s = videoSlots();
     expect(s.filter(x => x.kind === "full").map(x => x.id)).toEqual(["full", "demo"]); // #565
     expect(s.filter(x => x.kind === "section").map(x => x.id)).toEqual(["opening", "cross", "product", "ending"]);
     expect(s.filter(x => x.kind === "clip")).toHaveLength(33);
     for (const id of ["s21", "s23", "s24", "s25", "s27"]) expect(isVideoSlot(id), id).toBe(true);
-    expect(s.filter(x => x.kind === "voice")).toHaveLength(25);
+    expect(s.filter(x => x.kind === "voice")).toHaveLength(26);
+    expect(isVideoSlot("n26")).toBe(true);
     expect(s.filter(x => x.kind === "rec")).toHaveLength(10); // 第三段系統錄影（#529）
     expect(isVideoSlot("s07-2")).toBe(true);
     expect(isVideoSlot("s08-1")).toBe(true); // #562 鏡 6 改 AI 生成
     expect(isVideoSlot("../x")).toBe(false);
+  });
+
+  it("已配音的影片：完整影片兩支＋四段各一格，跟無聲剪輯版分開", () => {
+    const d = videoSlots().filter(x => x.kind === "dub").map(x => x.id);
+    expect(d).toEqual(["dub-full", "dub-demo", "dub-opening", "dub-cross", "dub-product", "dub-ending"]);
+    expect(DUB_SLOTS.map(x => x.id)).toEqual(d);
+    expect(videoSlotLabel("dub-full")).toBe("前導影片（已配音）");
+    expect(videoSlotLabel("dub-cross")).toBe("第二段交叉敘事（已配音）");
+    expect(checkTrailerVideo({ slot: "dub-full", mime: "video/mp4", sizeBytes: 70_000_000 })).toBeNull();
+    expect(checkTrailerVideo({ slot: "dub-full", mime: "audio/mpeg", sizeBytes: 100_000 })).toBe("unsupported_type");
+    const g = groupTrailerVideos(["videos/trailer/dub-full/20261120090000.mp4"]);
+    expect(trailerVideoFileName("dub-full", videoSlotLabel("dub-full"), g["dub-full"][0])).toBe("前導影片_已配音_2026-11-20.mp4");
+    expect(trailerVideoFileName("dub-cross", videoSlotLabel("dub-cross"), { path: "videos/trailer/dub-cross/20261120090000.mp4", at: "2026-11-20T09:00:00Z" }))
+      .toBe("前導影片_第二段交叉敘事_已配音_2026-11-20.mp4");
   });
 
   it("上傳檢查：格、格式、大小", () => {

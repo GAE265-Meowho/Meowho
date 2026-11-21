@@ -25,7 +25,15 @@ export const TRAILER_AUDIO_MIME: Record<string, string> = {
   "audio/x-m4a": "m4a",
 };
 
-export type VideoSlotKind = "full" | "section" | "clip" | "shot" | "voice" | "rec";
+export type VideoSlotKind = "full" | "dub" | "section" | "clip" | "shot" | "voice" | "rec";
+
+/** 已配音的影片：完整影片下方的區塊，放加上旁白、音效、配樂後的成品；跟無聲的剪輯版分開放，兩邊都保留。
+ *  代號 dub-<格>，對應完整影片兩支與四段 */
+export const DUB_SLOTS: { id: string; of: string; range: string }[] = [
+  { id: "dub-full", of: "full", range: "第一段＋第二段" },
+  { id: "dub-demo", of: "demo", range: "第三段＋第四段" },
+  ...SHOT_SECTIONS.map(s => ({ id: `dub-${s.key}`, of: s.key as string, range: s.range })),
+];
 
 /** 整鏡成品（#548）：兩格以上、或拆成多支短片生成的鏡頭，剪好／合成後的整鏡影片放這裡。
  *  代號用 m-<第一格代號>（存檔路徑），不跟著鏡號變 */
@@ -40,6 +48,7 @@ export function videoSlots(): { id: string; kind: VideoSlotKind }[] {
   return [
     { id: "full", kind: "full" as const }, // 前導影片＝第一段＋第二段（沿用原 full 格）
     { id: "demo", kind: "full" as const }, // #565 系統 Demo 影片＝第三段＋第四段
+    ...DUB_SLOTS.map(d => ({ id: d.id, kind: "dub" as const })),
     ...SHOT_SECTIONS.map(s => ({ id: s.key as string, kind: "section" as const })),
     ...SHOT_SECTIONS.flatMap(s => s.shots.flatMap(sh => sh.frames.filter(isClipFrame).map(f => ({ id: f.id, kind: "clip" as const })))),
     ...compositeShots().map(c => ({ id: c.id, kind: "shot" as const })),
@@ -95,6 +104,8 @@ export function groupTrailerVideos(paths: readonly string[]): Record<string, Vid
 export function videoSlotLabel(slot: string): string {
   if (slot === "full") return "前導影片";
   if (slot === "demo") return "系統 Demo 影片";
+  const dub = DUB_SLOTS.find(d => d.id === slot);
+  if (dub) return `${videoSlotLabel(dub.of)}（已配音）`;
   const rec = recClip(slot);
   if (rec) return `鏡 ${rec.shot} 系統錄影 ${rec.title}`;
   const line = VOICE_LINES.find(l => l.id === slot);
@@ -115,5 +126,10 @@ export function trailerVideoFileName(slot: string, label: string, v: VideoVersio
   const line = VOICE_LINES.find(l => l.id === slot);
   if (line) return `${slot}_${speakerName(line.speaker)}.${ext}`; // 旁白照編號：n03_小橘.mp3
   if (slot === "full" || slot === "demo") return `${label.replace(/\s+/g, "")}_${v.at.slice(0, 10)}.${ext}`; // #565
+  const dub = DUB_SLOTS.find(d => d.id === slot);
+  if (dub) { // 前導影片_已配音_2026-11-20.mp4、前導影片_第二段交叉敘事_已配音_2026-11-20.mp4
+    const base = label.replace(/（已配音）$/, "").replace(/[\\/:*?"<>|\s]+/g, "");
+    return `${dub.of === "full" || dub.of === "demo" ? "" : "前導影片_"}${base}_已配音_${v.at.slice(0, 10)}.${ext}`;
+  }
   return `前導影片_${label.replace(/[\\/:*?"<>|\s]+/g, "")}_${v.at.slice(0, 10)}.${ext}`;
 }
