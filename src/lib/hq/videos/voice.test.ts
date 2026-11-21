@@ -3,12 +3,18 @@ import { EMPTY_VOICE_DRAFT, SPEAKERS, VOICE_LINES, prepareVoiceSpec, voiceFileNa
 import { SHOT_SECTIONS } from "./trailer";
 
 describe("前導影片：配音（#504）", () => {
-  it("25 句旁白編號 n01–n25：小橘 15 句、小傑 10 句（#515 縮為 3 分鐘）", () => {
-    expect(VOICE_LINES).toHaveLength(25);
+  it("26 句旁白：小橘 15 句、小傑 11 句；編號固定，新句往後加不重編（#578 鏡 22 新增 n26）", () => {
+    expect(VOICE_LINES).toHaveLength(26);
     expect(VOICE_LINES[0].id).toBe("n01");
-    expect(VOICE_LINES[24].id).toBe("n25");
+    expect(new Set(VOICE_LINES.map(l => l.id)).size).toBe(26);
     expect(VOICE_LINES.filter(l => l.speaker === "xiaoju")).toHaveLength(15);
-    expect(VOICE_LINES.filter(l => l.speaker === "xiaojie")).toHaveLength(10);
+    expect(VOICE_LINES.filter(l => l.speaker === "xiaojie")).toHaveLength(11);
+    // 鏡 22 的新句排在鏡 21 後面，但用 n26，既有 n20–n25 的音檔不會錯位
+    const i = VOICE_LINES.findIndex(l => l.id === "n26");
+    expect(VOICE_LINES[i - 1].id).toBe("n19");
+    expect(VOICE_LINES[i + 1].id).toBe("n20");
+    expect(VOICE_LINES[i]).toMatchObject({ speaker: "xiaojie", shots: "22" });
+    expect(VOICE_LINES.find(l => l.id === "n25")!.text).toBe("也謝謝你，等我準備好。");
   });
 
   it("每句都找得到所在鏡頭（由旁白欄自動對應），對應到新編號", () => {
