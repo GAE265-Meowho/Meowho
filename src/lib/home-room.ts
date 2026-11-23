@@ -69,7 +69,7 @@ export function safetyBusyLabel(hasReadyReport: boolean): string {
   return hasReadyReport ? "另有安全檢測處理中" : "安全檢測處理中";
 }
 
-/** 首頁只對已發布的真實報告直接開啟完整 HTML；示範與未完成的報告仍走摘要頁。 */
+/** 首頁只對有正式產物欄位的 ready 報告開啟 HTML；API 仍會逐次驗權並回退舊版摘要。 */
 export interface HomeReportLinkRow {
   id: string;
   status: string;
