@@ -397,3 +397,9 @@ code{font:500 .92em ui-monospace,Menlo,monospace;background:var(--cream-d);borde
 .rres .pc{background:rgba(255,248,236,.08);border-radius:18px;padding:18px 20px;display:flex;flex-direction:column;gap:10px}
 .rres .pc .k{font:400 40px/1.1 var(--font-display);color:var(--honey)}
 .rres .pc .p{font:400 21px/1.5 var(--font-body);color:#e9dccb}
+
+
+/* 08 中途建貓頁：進入 Demo 按鈕，開正式站首頁 */
+.go-demo{display:flex;justify-content:center;margin-top:34px}
+.demo-btn{display:inline-flex;align-items:center;gap:14px;padding:16px 44px;border-radius:999px;background:var(--honey);color:var(--cocoa);text-decoration:none;font:800 32px var(--font-body);box-shadow:0 10px 24px rgba(60,40,20,.18)}
+.demo-btn .ic{font-size:34px}
