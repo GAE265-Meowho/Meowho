@@ -43,9 +43,13 @@ const EDIT_ICON = (
 /** 處理中的按鈕停用、不能點；其他狀態連到對應頁面 */
 function ToolButton({ tool, href, icon, variant }: { tool: HomeTool; href: string; icon: "scan" | "check"; variant: "primary" | "ghost" }) {
   const inner = <><Icon name={icon} size={18} />{tool.label}</>;
-  return tool.state === "busy"
-    ? <CatButton variant={variant} size="sm" ears={false} disabled>{inner}</CatButton>
-    : <CatButton variant={variant} size="sm" ears={false} href={href}>{inner}</CatButton>;
+  if (tool.state === "busy") return <CatButton variant={variant} size="sm" ears={false} disabled>{inner}</CatButton>;
+  // The private HTML report is a full document, not a Next.js page. Use a hard
+  // navigation rather than next/link's client-side RSC router.
+  if (href.startsWith("/api/homes/")) return (
+    <CatButton variant={variant} size="sm" ears={false} onClick={() => window.location.assign(href)}>{inner}</CatButton>
+  );
+  return <CatButton variant={variant} size="sm" ears={false} href={href}>{inner}</CatButton>;
 }
 
 /** 舊資料可能缺欄位（#82 早期格式），一律補預設值再顯示 */
