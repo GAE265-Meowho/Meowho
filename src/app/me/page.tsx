@@ -47,7 +47,7 @@ export default function MyHomePage() {
         sb.from("meow_cats").select("id, household_id, origin_household_id, name, sex, life_stage, coat, breed, personality_tags, photo_url, status").in("household_id", ids).order("created_at"),
         sb.from("meow_shelter_verifications").select("id, household_id, status, review_note, created_at").in("household_id", ids).order("created_at", { ascending: false }),
         sb.from("meow_room_models").select("owner_household_id, status, completed_at").in("owner_household_id", ids),
-        sb.from("meow_env_reports").select("household_id, status").in("household_id", ids),
+        sb.from("meow_env_reports").select("id, household_id, status, created_at, attempt, pdf_path, json_path").in("household_id", ids),
         // 一般飼主的「收藏貓」分頁
         list.some(x => x.caretaker_type === "cat_owner")
           ? sb.from("meow_cat_favorites").select("cat:meow_cats(id, name, photo_url)").eq("user_id", user.id).order("created_at", { ascending: false })
