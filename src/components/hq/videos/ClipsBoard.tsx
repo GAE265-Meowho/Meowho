@@ -4,7 +4,7 @@
 // 最上方完整影片；完整影片與段落影片各一張卡，切換已配音版／無聲剪輯版（#599，兩種檔案分開存）；每一段有段落影片與 (P) 生成紀錄；每格 AI 分鏡一張卡，主角是片段影片，
 // 圖生影片要用的起始畫面、參考圖、prompt 收在「生成素材」摺疊區。剪輯字卡不用生成，不列。
 // 第三段另有「系統錄影」（#529）：scripts/trailer-rec 在正式站照分鏡錄的真實產品畫面，剪輯與 AI 生圖時當參考。
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { CLIP_MOTION, NEGATIVE_PROMPT, clipSections, motionPrompt, startFrameFileName, type ClipItem } from "@/lib/hq/videos/clips";
 import { frameCounts } from "@/lib/hq/videos/trailer";
 import { SUB_SLOTS, compositeShots, videoSlotLabel } from "@/lib/hq/videos/trailer-video";
@@ -91,10 +91,10 @@ export function ClipsBoard() {
             <h2>{sec.title}<span className="hq-sub">（{sec.range}）</span></h2>
             <GenLogButton section={sec} state={genLogs} copy={copy} />
           </div>
-          <div className="hq-video-section">
+          <SectionBody video={<>
             <h3 className="hq-h3">段落影片</h3>
             <DualVideo of={sec.key} videos={videos} emptyText="這一段剪好後上傳" />
-          </div>
+          </>}>
           <h3 className="hq-h3">片段</h3>
           <div className="hq-video-clips">
             {sec.items.flatMap((item, i) => {
@@ -106,8 +106,19 @@ export function ClipsBoard() {
             })}
           </div>
           {sec.key === "product" && <RecClips videos={videos} />}
+          </SectionBody>
         </section>
       ))}
+    </div>
+  );
+}
+
+/** 一段的內容（#601）：段落影片在左欄、片段在右欄；寬螢幕並排、窄螢幕上下排（hq.css 的 .hq-video-secbody） */
+export function SectionBody({ video, children }: { video: ReactNode; children: ReactNode }) {
+  return (
+    <div className="hq-video-secbody">
+      <div className="hq-video-section">{video}</div>
+      <div className="hq-video-secclips">{children}</div>
     </div>
   );
 }
