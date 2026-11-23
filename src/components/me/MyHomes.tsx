@@ -10,7 +10,7 @@ import f from "@/components/onboarding/intake.module.css";
 import CatButton from "@/components/ui/CatButton";
 import Icon from "@/components/ui/Icon";
 import type { LifeStage } from "@/lib/cat-profile/life-stage";
-import { homeTools, type HomeTool, type ReportRow, type RoomRow } from "@/lib/home-room";
+import { homeSafetyReportHref, homeTools, type HomeReportLinkRow, type HomeTool, type RoomRow } from "@/lib/home-room";
 import { catsForTab, homeAvatar, tabsFor, type HomeTab } from "@/lib/my-homes";
 import type { CaretakerType } from "@/lib/onboarding/household";
 import { ALONE, DWELLINGS, EXPERIENCE, LIVING, NO_PETS, ROLE_INFO, emptyHouseholdForm, type Home } from "@/lib/onboarding/household-rules";
@@ -31,7 +31,7 @@ export interface FavCat { id: string; name: string; photo_url: string | null }
 
 /** 喵戶卡片上每個喵戶的 3D 房間與環境報告（只讀狀態，判斷在 lib/home-room.ts 的 homeTools） */
 export type HomeRoomRow = RoomRow & { owner_household_id: string };
-export type HomeReportRow = Pick<ReportRow, "status"> & { household_id: string };
+export type HomeReportRow = HomeReportLinkRow & { household_id: string };
 
 const EDIT_ICON = (
   <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true">
@@ -81,9 +81,9 @@ function CatCard({ cat, editable }: { cat: { id: string; name: string; photo_url
   );
 }
 
-function HomeSection({ home, cats, favorites, verifs, tools, googleAvatar, onVerification }: {
+function HomeSection({ home, cats, favorites, verifs, tools, reportHref, googleAvatar, onVerification }: {
   home: Household; cats: CatRow[]; favorites: FavCat[]; verifs: VerificationRow[]; tools: ReturnType<typeof homeTools>;
-  googleAvatar: string | null; onVerification: (row: VerificationRow) => void;
+  reportHref: string; googleAvatar: string | null; onVerification: (row: VerificationRow) => void;
 }) {
   const owner = home.caretaker_type === "cat_owner";
   const tabs = tabsFor(home.caretaker_type);
@@ -117,7 +117,7 @@ function HomeSection({ home, cats, favorites, verifs, tools, googleAvatar, onVer
           <>
             {/* 兩顆按鈕依規格 09 §7.2 狀態表切換；建模期間仍可查看已完成的安全報告（決策 007：只給一般飼主看自己的家） */}
             <ToolButton tool={tools.scene} href={`/homes/${home.id}/scene`} icon="scan" variant="primary" />
-            <ToolButton tool={tools.safety} href={`/homes/${home.id}/safety`} icon="check" variant="ghost" />
+            <ToolButton tool={tools.safety} href={reportHref} icon="check" variant="ghost" />
           </>
         ) : (
           <>
@@ -153,11 +153,15 @@ export function MyHomes({ homes, cats, favorites = [], verifs, rooms = [], repor
 }) {
   return (
     <>
-      {homes.map(home => (
-        <HomeSection key={home.id} home={home} cats={cats.filter(c => c.household_id === home.id)} favorites={favorites} verifs={verifs}
-          tools={homeTools(rooms.filter(r => r.owner_household_id === home.id), reports.filter(r => r.household_id === home.id))}
-          googleAvatar={googleAvatar} onVerification={onVerification} />
-      ))}
+      {homes.map(home => {
+        const homeReports = reports.filter(r => r.household_id === home.id);
+        return (
+          <HomeSection key={home.id} home={home} cats={cats.filter(c => c.household_id === home.id)} favorites={favorites} verifs={verifs}
+            tools={homeTools(rooms.filter(r => r.owner_household_id === home.id), homeReports)}
+            reportHref={homeSafetyReportHref(home.id, homeReports)}
+            googleAvatar={googleAvatar} onVerification={onVerification} />
+        );
+      })}
     </>
   );
 }
