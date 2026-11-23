@@ -122,7 +122,7 @@ export async function readPrivateReport({ id, reportId }: {
     if (!image || image.length > 4 * 1024 * 1024
       || createHash("sha256").update(image).digest("hex") !== asset.slice(0, 64)) return empty(404);
     return new Response(Uint8Array.from(image), { headers: {
-      ...headers, "Content-Type": asset.endsWith(".png") ? "image/png" : "image/jpeg",
+      ...headers, "Content-Type": asset.endsWith(".webp") ? "image/webp" : asset.endsWith(".png") ? "image/png" : "image/jpeg",
     } });
   } catch {
     return empty(503);

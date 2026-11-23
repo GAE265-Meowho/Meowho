@@ -1,5 +1,7 @@
 # PLAN — 計畫與任務管理
 
+- #473 安全報告 WebP（Jerry0808 × Codex，審查中）：新發布報告另產生原尺寸 WebP，保留 #625 手風琴、原圖、PDF 與舊報告，待正式 Azure 資產驗收。
+
 - #473 安全報告手風琴（Jerry0808 × Codex，審查中）：原生多項展開與按需圖片，保留 #624 直達報告。Chrome fixture 已驗證，正式 Owner 實測待完成。
 
 - WelfareLens 自動領件（Jerry0808 × Codex，#273，審查中）：共用專案限定資料庫核准喵戶，沿用原有上傳與結案，自動產出雙 JSON／HTML／PDF。正式 Migration、範圍設定、模型費用及 Worker 啟用待組長批准。

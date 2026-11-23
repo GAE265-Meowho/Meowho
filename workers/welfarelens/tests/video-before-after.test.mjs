@@ -136,7 +136,7 @@ test('all three concurrency settings preserve case indices and report contracts'
   for(const [index,entry] of entries.entries()){
    byLabel.set(risk.risk_objects.find(o=>o.object_id===entry.object_id).display_name_zh,index);
    const file=join(dir,`mock-${index}.png`);
-   await command(ffmpeg,['-v','error','-i',ppm,'-vf',`drawbox=x=270:y=130:w=105:h=84:color=0x${index+1}0aa80:t=fill`,'-frames:v','1','-threads','1',file],signal);
+   await command(ffmpeg,['-v','error','-i',ppm,'-vf',`drawbox=x=270:y=130:w=105:h=84:color=0x${index+1}0aa80:t=fill`,'-frames:v','1','-threads','1','-compression_level','0',file],signal);
    pngs.push(await readFile(file));
   }
   let generated;
@@ -302,8 +302,18 @@ test('all three concurrency settings preserve case indices and report contracts'
   const browser=process.env.WELFARELENS_TEST_PDF_BROWSER;
   if(browser){
    const artifacts=await renderComparisonPdf(visual,generated,dir,browser,signal,dir,false,undefined,true,undefined,true,undefined,{report_id:id,attempt:1});
-   assert.deepEqual(JSON.parse(await readFile(join(dir,'report-view.json'),'utf8')),view);
+   const publishedView=JSON.parse(await readFile(join(dir,'report-view.json'),'utf8'));
+   const pngDerivative=publishedView.improvements.flatMap(i=>i.comparisons).find(c=>c.after.webp_name)?.after;
+   assert.ok(pngDerivative,'a generated PNG has a WebP derivative');
+   for(const item of publishedView.improvements)for(const c of item.comparisons)for(const asset of [c.before,c.after,c.before_detail,c.after_detail]){
+    if(!asset.webp_name)continue;
+    const derivative=await readFile(join(dir,'html-assets',asset.webp_name));
+    assert.equal(asset.webp_name,createHash('sha256').update(derivative).digest('hex')+'.webp');
+    delete asset.webp_name;
+   }
+   assert.deepEqual(publishedView,view);
    const publishedHtml=await readFile(join(dir,'report.html'),'utf8');
+   assert.match(publishedHtml,/data-webp="html-assets\/[a-f0-9]{64}\.webp"/);
    assert.match(publishedHtml,/<h1>貓咪居家環境健檢報告<\/h1>/);
    assert.equal((publishedHtml.match(/id="case-/g)??[]).length,6);
    const assetPaths=[...publishedHtml.matchAll(/src="(html-assets\/([a-f0-9]{64})\.(?:jpg|png))"/g)];

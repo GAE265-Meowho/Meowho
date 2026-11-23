@@ -6,6 +6,7 @@ const digest=z.string().regex(/^[a-f0-9]{64}$/);
 const box=z.tuple([z.number(),z.number(),z.number(),z.number()]).refine(([x,y,r,b])=>x>=0&&y>=0&&r<=1&&b<=1&&r>x&&b>y);
 const asset=z.object({
  name:z.string().regex(/^[a-f0-9]{64}\.(jpg|png)$/),
+ webp_name:z.string().regex(/^[a-f0-9]{64}\.webp$/).optional(),
  sha256:digest,
  mime:z.enum(['image/jpeg','image/png']),
  width:z.number().int().min(1).max(16000),
@@ -58,5 +59,5 @@ export const ReportViewSchema=z.object({
 export type ReportView=z.infer<typeof ReportViewSchema>;
 export const REPORT_VIEW_MAX_BYTES=1024*1024;
 export function reportViewAssetNames(report:ReportView){
- return new Set(report.improvements.flatMap(i=>i.comparisons.flatMap(c=>[c.before.name,c.after.name,c.before_detail.name,c.after_detail.name])));
+ return new Set(report.improvements.flatMap(i=>i.comparisons.flatMap(c=>[c.before,c.after,c.before_detail,c.after_detail].flatMap(a=>a.webp_name?[a.name,a.webp_name]:[a.name]))));
 }

@@ -177,3 +177,19 @@ it("uses an authorized optional view without fetching historical HTML, then fall
     vi.unstubAllEnvs();
   }
 });
+
+it("serves only referenced, hash-verified WebP with the correct private MIME", async () => {
+  const webp = createHash("sha256").update(image).digest("hex") + ".webp";
+  mock.download.mockImplementation(async (path: string) =>
+    path.endsWith("report.html")
+      ? Buffer.from(`<!doctype html><body><img src="html-assets/${asset}" data-webp="html-assets/${webp}"></body>`)
+      : path.endsWith(webp) ? image : Buffer.from("corrupt"));
+  const response = await readPrivateReport({ id, reportId }, webp);
+  expect(response.status).toBe(200);
+  expect(response.headers.get("Content-Type")).toBe("image/webp");
+  expect(response.headers.get("Cache-Control")).toBe("private, no-store");
+  mock.download.mockResolvedValue(Buffer.from("corrupt"));
+  expect((await readPrivateReport({ id, reportId }, webp)).status).toBe(404);
+  mock.owner = false;
+  expect((await readPrivateReport({ id, reportId }, webp)).status).toBe(404);
+});
