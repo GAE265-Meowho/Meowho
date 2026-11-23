@@ -22,9 +22,9 @@ function marker(box: readonly [number, number, number, number]) {
   return [x * 100, y * 100, (right - x) * 100, (bottom - y) * 100];
 }
 
-export function renderPrivateReportView(homeId: string, view: ReportView, itemIndex?: number) {
+export function renderPrivateReportView(_homeId: string, view: ReportView, itemIndex?: number) {
   const shell = '<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>貓咪居家環境健檢報告</title></head><body>'
-    + '<nav aria-label="MeowHome"><a class="back-link" href="/homes/' + homeId + '/safety#records-title">返回居家安全檢測紀錄</a></nav><header></header></body></html>';
+    + '<nav aria-label="MeowHome"><a class="back-link" href="/me">返回我的喵戶</a></nav><header></header></body></html>';
   const items = view.improvements.map(item => {
     const comparison = item.comparisons[0];
     const evidence = item.evidence.find(entry => entry.observation_id === comparison?.observation_id) ?? item.evidence[0];

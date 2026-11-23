@@ -44,6 +44,7 @@ describe("private report view v1", () => {
     const summary = renderPrivateReportView(household, view);
     const detail = renderPrivateReportView(household, view, 0);
     expect(summary).toContain("需要改善（1）");
+    expect(summary).toContain('href="/me">返回我的喵戶');
     expect(summary).toContain("查核防墜設施");
     expect(summary).not.toContain("<img");
     expect(detail.match(/<img /g)).toHaveLength(4);

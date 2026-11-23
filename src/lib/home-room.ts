@@ -69,6 +69,23 @@ export function safetyBusyLabel(hasReadyReport: boolean): string {
   return hasReadyReport ? "另有安全檢測處理中" : "安全檢測處理中";
 }
 
+/** 首頁只對 ready 且經 Worker 處理的報告開啟 HTML；API 仍會驗證產物與 Owner 權限。 */
+export interface HomeReportLinkRow {
+  id: string;
+  status: string;
+  created_at: string;
+  attempt: number | null;
+}
+export function homeSafetyReportHref(householdId: string, reports: readonly HomeReportLinkRow[]): string {
+  const fallback = `/homes/${encodeURIComponent(householdId)}/safety`;
+  const latest = reports
+    .filter(r => r.status === "ready" && Number.isInteger(r.attempt) && (r.attempt as number) > 0)
+    .sort((a, b) => b.created_at.localeCompare(a.created_at))[0];
+  return latest
+    ? `/api/homes/${encodeURIComponent(householdId)}/reports/${encodeURIComponent(latest.id)}/html`
+    : fallback;
+}
+
 /** 喵戶卡片兩顆按鈕的狀態（§7.2 狀態表）：建模中暫停新檢測；已完成的安全報告仍可查看 */
 export function homeTools(rooms: RoomRow[], reports: Pick<ReportRow, "status">[]): { scene: HomeTool; safety: HomeTool } {
   const roomBusy = rooms.some(r => BUSY.has(r.status));
