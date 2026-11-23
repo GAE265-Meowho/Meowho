@@ -1,1 +1,4 @@
-assets/video/
+assets/video/*
+!assets/video/cat3d.mp4
+!assets/video/room3d.mp4
+!assets/video/trailer_poster.jpg
