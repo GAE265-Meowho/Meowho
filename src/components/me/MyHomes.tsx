@@ -29,7 +29,7 @@ export interface CatRow {
 /** 收藏貓分頁用（一般飼主），收藏屬於帳號，每個一般飼主喵戶都顯示同一份 */
 export interface FavCat { id: string; name: string; photo_url: string | null }
 
-/** 喵戶卡片上每個喵戶的 3D 房間與環境報告（只讀狀態，判斷在 lib/home-room.ts 的 homeTools） */
+/** 喵戶卡片的 3D 狀態，以及直達最新正式安全報告所需的資料 */
 export type HomeRoomRow = RoomRow & { owner_household_id: string };
 export type HomeReportRow = HomeReportLinkRow & { household_id: string };
 
