@@ -764,7 +764,7 @@
 /* 前導影片：產生影片（#493） */
 .hq-video-sec h2 .hq-sub { font-weight: 400; font-size: .85rem; margin-left: .3rem; }
 .hq-video-steps { margin: 0; padding-left: 1.4rem; display: flex; flex-direction: column; gap: .25rem; font-size: .92rem; }
-.hq-video-clips { display: grid; gap: .85rem; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+.hq-video-clips { display: grid; gap: .75rem; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
 .hq-video-clip { border: 1px solid var(--hq-line); border-radius: 10px; padding: .75rem .85rem; display: flex; flex-direction: column; gap: .5rem; min-width: 0; }
 .hq-video-composite { border-style: dashed; border-color: var(--hq-accent, #b8742a); background: rgba(184, 116, 42, .05); }
 .hq-video-clip .hq-h3 { margin: 0; }
@@ -809,7 +809,14 @@
 .hq-video-playbtn:hover span, .hq-video-playbtn:focus-visible span { background: #fff; }
 .hq-video-full { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
 .hq-video-section { display: flex; flex-direction: column; gap: .45rem; max-width: 560px; padding-bottom: .4rem; }
-.hq-video-section .hq-h3, .hq-video-sec > .hq-h3 { margin: 0; font-size: .95rem; }
+.hq-video-section .hq-h3, .hq-video-sec > .hq-h3, .hq-video-secclips > .hq-h3 { margin: 0; font-size: .95rem; }
+/* 段落影片與片段並排（#601）：窄螢幕上下排；寬螢幕段落影片左欄、片段右欄，減少右側空白 */
+.hq-video-secbody { display: grid; gap: .85rem; min-width: 0; }
+.hq-video-secclips { display: flex; flex-direction: column; gap: .6rem; min-width: 0; }
+@media (min-width: 1100px) {
+  .hq-video-secbody { grid-template-columns: minmax(320px, 2fr) minmax(0, 3fr); align-items: start; gap: 1.25rem; }
+  .hq-video-secbody > .hq-video-section { max-width: none; }
+}
 .hq-video-version { display: inline-flex; align-items: center; gap: .35rem; }
 .hq-video-version select { font: inherit; font-size: 16px; min-height: 36px; border: 1px solid var(--hq-line); border-radius: 8px; padding: 0 .4rem; background: #fff; }
 .hq-video-material { border-top: 1px dashed var(--hq-line); padding-top: .35rem; }
