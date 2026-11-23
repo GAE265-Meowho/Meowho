@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import * as homeRoom from "./home-room";
-import { checkHomeVideo, homeTools, homeVideoPath, isHomeVideoPath, MAX_HOME_VIDEO_BYTES, MAX_HOME_VIDEO_SEC, safetyBusyLabel, safetyRecords, UPLOAD_PRIVACY, demoReportRow, envShareOptions } from "./home-room";
+import { checkHomeVideo, homeSafetyReportHref, homeTools, homeVideoPath, isHomeVideoPath, MAX_HOME_VIDEO_BYTES, MAX_HOME_VIDEO_SEC, safetyBusyLabel, safetyRecords, UPLOAD_PRIVACY, demoReportRow, envShareOptions } from "./home-room";
 
 const room = (status: string, completed_at: string | null = null) => ({ status, completed_at });
 const report = (status: string, room_model_id: string | null = null, created_at = "2026-11-04T00:00:00Z", items: unknown[] = []) =>
@@ -54,6 +54,34 @@ describe("喵戶卡片的兩顆按鈕（規格 09 §7.2 狀態表）", () => {
   });
   it("房間處理失敗：回到生成 3D 環境", () => {
     expect(homeTools([room("failed")], []).scene).toEqual({ label: "生成 3D 環境", state: "start" });
+  });
+});
+
+describe("從我的喵戶直接查看安全報告", () => {
+  const homeId = "11111111-2222-3333-4444-555555555555";
+  const entry = (id: string, created_at: string, status = "ready") => ({
+    id, created_at, status, attempt: 1, pdf_path: "published.pdf", json_path: "result.json",
+  });
+  it("開啟最新可用真實報告的授權 HTML，不需再點一次查看報告", () => {
+    const rows = [
+      entry("old", "2026-11-14T00:00:00Z"),
+      entry("new", "2026-11-20T00:00:00Z"),
+      entry("busy", "2026-11-23T00:00:00Z", "running"),
+    ];
+    expect(homeSafetyReportHref(homeId, rows)).toBe(`/api/homes/${homeId}/reports/new/html`);
+  });
+  it("只有舊版或示範報告時維持摘要，避免把假資料當成 AI 報告", () => {
+    const sample = entry("demo", "2026-11-20T00:00:00Z");
+    expect(homeSafetyReportHref(homeId, [{ ...sample, attempt: null, pdf_path: null, json_path: null }]))
+      .toBe(`/homes/${homeId}/safety`);
+    expect(homeSafetyReportHref(homeId, [{ ...sample, json_path: null }]))
+      .toBe(`/homes/${homeId}/safety`);
+    expect(homeSafetyReportHref(homeId, [])).toBe(`/homes/${homeId}/safety`);
+  });
+  it("新示範報告不會遮蔽較早的真實報告", () => {
+    const real = entry("real", "2026-11-14T00:00:00Z");
+    const demo = { ...entry("demo", "2026-11-23T00:00:00Z"), attempt: null, pdf_path: null, json_path: null };
+    expect(homeSafetyReportHref(homeId, [real, demo])).toBe(`/api/homes/${homeId}/reports/real/html`);
   });
 });
 
