@@ -671,13 +671,13 @@ code{font:500 .92em ui-monospace,Menlo,monospace;background:var(--cream-d);borde
       電線、拉繩等日常物品，可能是貓咪的潛在風險。<b style="color:var(--caramel)">WelfareLens 把提醒變成具體改善行動。</b>
     </p>
     <div class="g reveal d2" style="grid-template-columns:1.08fr .92fr;gap:28px;height:477px">
-      <div class="card cream eared" style="height:477px;padding:29px 36px">
+      <div class="card cream eared" style="height:477px;padding:26px 34px">
         <div class="k" style="font-size:24px;margin-bottom:14px">產品價值｜一段影片，知道先改善哪裡</div>
-        <div style="font:400 52px/1.26 var(--font-display);color:var(--cocoa);margin-bottom:27px">先看見風險，<br><span style="color:var(--caramel)">再知道怎麼改善。</span></div>
-        <div style="display:grid;gap:13px">
-          <div style="background:#fff;border-radius:17px;padding:14px 20px;font:500 24px/1.4 var(--font-body)"><b style="color:var(--caramel);margin-right:13px">01</b>上傳居家影片</div>
-          <div style="background:#fff;border-radius:17px;padding:14px 20px;font:500 24px/1.4 var(--font-body)"><b style="color:var(--caramel);margin-right:13px">02</b>辨識風險與對應位置</div>
-          <div style="background:#fff;border-radius:17px;padding:14px 20px;font:500 24px/1.4 var(--font-body)"><b style="color:var(--caramel);margin-right:13px">03</b>提供改善建議及待確認事項</div>
+        <div style="font:400 47px/1.23 var(--font-display);color:var(--cocoa);margin-bottom:23px">先看見風險，<br><span style="color:var(--caramel)">再知道怎麼改善。</span></div>
+        <div style="display:grid;gap:11px">
+          <div style="background:#fff;border-radius:17px;padding:12px 20px;font:500 23px/1.4 var(--font-body)"><b style="color:var(--caramel);margin-right:13px">01</b>上傳居家影片</div>
+          <div style="background:#fff;border-radius:17px;padding:12px 20px;font:500 23px/1.4 var(--font-body)"><b style="color:var(--caramel);margin-right:13px">02</b>辨識風險與對應位置</div>
+          <div style="background:#fff;border-radius:17px;padding:12px 20px;font:500 23px/1.4 var(--font-body)"><b style="color:var(--caramel);margin-right:13px">03</b>提供改善建議及待確認事項</div>
         </div>
       </div>
       <div class="card eared" style="height:477px;padding:20px 24px">
@@ -720,27 +720,27 @@ code{font:500 .92em ui-monospace,Menlo,monospace;background:var(--cream-d);borde
       AI 會分析還不夠；真正的挑戰是 <b style="color:var(--caramel)">結果有證據</b>、<b style="color:var(--caramel)">長任務不阻塞網站</b>。
     </p>
     <div class="g g2 reveal d2" style="height:436px;gap:28px">
-      <div class="card cream eared" style="height:436px;padding:26px 35px">
-        <div class="k" style="font-size:23px;margin-bottom:13px">工程決策 01｜證據可追溯</div>
-        <div class="t" style="font-size:41px;line-height:1.26;margin-bottom:13px">AI 說有風險，<br>能回到原始畫面確認嗎？</div>
-        <p style="font:400 23px/1.45 var(--font-body);color:var(--cocoa-2);margin-bottom:20px">不只輸出一段文字；分析結果要能對回影片中的來源影格。</p>
-        <div style="background:#fff;border-radius:18px;padding:19px 22px;font:500 22px/1.57 var(--font-body)">
+      <div class="card cream eared" style="height:436px;padding:24px 32px">
+        <div class="k" style="font-size:22px;margin-bottom:10px">工程決策 01｜證據可追溯</div>
+        <div class="t" style="font-size:35px;line-height:1.2;margin-bottom:10px">AI 說有風險，<br>能回到原始畫面確認嗎？</div>
+        <p style="font:400 20px/1.4 var(--font-body);color:var(--cocoa-2);margin-bottom:12px">不只輸出一段文字；分析結果要能對回影片中的來源影格。</p>
+        <div style="background:#fff;border-radius:18px;padding:14px 19px;font:500 19px/1.48 var(--font-body)">
           <b style="color:var(--caramel)">FFmpeg</b> 選最多 8 張代表影格<br>
           <b style="color:var(--caramel)">Azure VLM</b> 分析與結構化驗證<br>
           <b style="color:var(--caramel)">時間戳＋SHA-256</b> 對應圖片證據
         </div>
-        <p style="font:700 20px var(--font-body);color:var(--caramel);margin-top:14px">成果：風險可回看，不把推測當確定事實</p>
+        <p style="font:700 18px/1.35 var(--font-body);color:var(--caramel);margin-top:10px">成果：風險可回看，不把推測當確定事實</p>
       </div>
-      <div class="card eared" style="height:436px;padding:26px 35px">
-        <div class="k" style="font-size:23px;margin-bottom:13px">工程決策 02｜背景非同步</div>
-        <div class="t" style="font-size:41px;line-height:1.26;margin-bottom:13px">AI 要跑幾分鐘，<br>網頁不能一直等。</div>
-        <p style="font:400 23px/1.45 var(--font-body);color:var(--cocoa-2);margin-bottom:20px">網站先建立工作，Worker 在背景排隊、分析並產生授權報告。</p>
-        <div style="background:var(--cream-d);border-radius:18px;padding:19px 22px;font:500 22px/1.57 var(--font-body)">
+      <div class="card eared" style="height:436px;padding:24px 32px">
+        <div class="k" style="font-size:22px;margin-bottom:10px">工程決策 02｜背景非同步</div>
+        <div class="t" style="font-size:35px;line-height:1.2;margin-bottom:10px">AI 要跑幾分鐘，<br>網頁不能一直等。</div>
+        <p style="font:400 20px/1.4 var(--font-body);color:var(--cocoa-2);margin-bottom:12px">網站先建立工作，Worker 在背景排隊、分析並產生授權報告。</p>
+        <div style="background:var(--cream-d);border-radius:18px;padding:14px 19px;font:500 19px/1.48 var(--font-body)">
           <b style="color:var(--caramel)">Next.js</b> 建立工作<br>
           <b style="color:var(--caramel)">PostgreSQL Queue</b> 管理工作狀態<br>
           <b style="color:var(--caramel)">Docker Worker</b> 背景處理＋授權檢查
         </div>
-        <p style="font:700 20px var(--font-body);color:var(--caramel);margin-top:14px">成果：使用者可離開等待，完成後查看報告</p>
+        <p style="font:700 18px/1.35 var(--font-body);color:var(--caramel);margin-top:10px">成果：使用者可離開等待，完成後查看報告</p>
       </div>
     </div>
     <div class="reveal d3" style="background:var(--cocoa);color:var(--slide-bg);border-radius:24px;padding:24px 34px;margin-top:25px;min-height:167px;display:flex;align-items:center;justify-content:space-between;gap:30px">
