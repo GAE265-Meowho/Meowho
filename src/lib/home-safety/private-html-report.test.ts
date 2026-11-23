@@ -42,7 +42,7 @@ beforeEach(() => {
 it("serves the owner document and referenced current-attempt image with private headers", async () => {
   const response = await readPrivateReport({ id, reportId });
   expect(response.status).toBe(200);
-  expect(await response.text()).toContain('/safety#records-title');
+  expect(await response.text()).toContain('href="/me">返回我的喵戶');
   const head = await readPrivateReport({ id, reportId }, undefined, true);
   expect(head.status).toBe(204);
   expect(await head.text()).toBe("");
