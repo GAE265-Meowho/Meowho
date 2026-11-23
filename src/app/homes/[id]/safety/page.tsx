@@ -10,7 +10,7 @@ import s from "@/components/me/me.module.css";
 import f from "@/components/onboarding/intake.module.css";
 import CatButton from "@/components/ui/CatButton";
 import Icon from "@/components/ui/Icon";
-import { SAFETY_ONLY_PRIVACY, SHOOTING_TIPS, demoReportRow, safetyBusyLabel, safetyRecords, type ReportRow } from "@/lib/home-room";
+import { SAFETY_ONLY_PRIVACY, SHOOTING_TIPS, demoReportRow, safetyRecords, type ReportRow } from "@/lib/home-room";
 import { getBrowserSupabase } from "@/lib/supabase/client";
 import { SafetyReportDetails } from "./SafetyReportDetails";
 import r from "../scene/scene.module.css";
@@ -32,7 +32,6 @@ export default function SafetyPage() {
     setPicked(report);
     setFallbackReport(query.get("view") === "summary" ? report : null);
   }, [id]);
-  const [again, setAgain] = useState(false);
   const [making, setMaking] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -59,7 +58,7 @@ export default function SafetyPage() {
       if (!res?.reportId) { setError("安全檢測失敗，請再試一次。"); setMaking(false); return; }
       await load();
     }
-    setPicked(null); setAgain(false); setMaking(false);
+    setPicked(null); setMaking(false);
   }
 
   const records = rows ? safetyRecords(rows) : [];
@@ -74,14 +73,14 @@ export default function SafetyPage() {
     </section>
   );
   else if (rows === undefined) body = <p className={f.lead} role="status">載入中…</p>;
-  else if (making || (busy && (again || !shown))) body = (
+  else if (making || (busy && !shown)) body = (
     <section className={`${f.card} ${f.center}`} role="status">
       <h2>正在產生你家的安全報告</h2>
       <p className={f.lead}>你可以先離開，好了會通知你。</p>
       <div className={f.actions} style={{ justifyContent: "center" }}><CatButton variant="ghost" href="/me">回到我的喵戶</CatButton></div>
     </section>
   );
-  else if (shown && !again) {
+  else if (shown) {
     body = (
       <>
         <section className={f.card} aria-labelledby="report-title">
@@ -101,27 +100,6 @@ export default function SafetyPage() {
               </ul>
             </div>
           ) : <SafetyReportDetails key={shown.id} householdId={id} reportId={shown.id} summaryOnly={fallbackReport === shown.id} />}
-          <div className={f.actions}>
-            {busy
-              ? <CatButton disabled>{safetyBusyLabel(shown.status === "ready")}</CatButton>
-              : <CatButton onClick={() => setAgain(true)}><Icon name="check" size={18} />再檢測一次</CatButton>}
-            <CatButton variant="ghost" href="/me">回到我的喵戶</CatButton>
-          </div>
-        </section>
-
-        <section className={f.card} aria-labelledby="records-title">
-          <h2 id="records-title">檢測紀錄（{records.length}）</h2>
-          <ul className={k.records}>
-            {records.map(x => (
-              <li key={x.id}>
-                <button type="button" className={k.record} aria-current={x.id === shown.id ? "true" : undefined} onClick={() => { setFallbackReport(null); setPicked(x.id); }}>
-                  <span>{day(x.created_at)}</span>
-                  <span>{x.source}</span>
-                  <span>已完成</span>
-                </button>
-              </li>
-            ))}
-          </ul>
         </section>
       </>
     );
@@ -150,7 +128,6 @@ export default function SafetyPage() {
         <CatButton variant="ghost" onClick={check}><Icon name="plus" size={18} />上傳影片或照片</CatButton>
       </div>
       <div className={f.actions}><CatButton variant="ghost" href={`/homes/${id}/scene`}>前往我的 3D 房間（真實影片上傳）</CatButton></div>
-      {again && <div className={f.actions}><CatButton variant="ghost" onClick={() => setAgain(false)}>回到報告</CatButton></div>}
     </>
   );
 
