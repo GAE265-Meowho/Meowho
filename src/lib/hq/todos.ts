@@ -28,8 +28,8 @@ export const TODO_DEFS: Record<AdminModule, TodoDef[]> = {
   admin_authorization: [],
 };
 
-/** 沒有待辦概念、待辦總覽不顯示卡片的模組 */
-export const NO_TODO_MODULES: readonly AdminModule[] = ["households"];
+/** 待辦總覽要顯示卡片的模組（#620：只保留用戶權限管理；其他模組的待辦到各自頁面處理） */
+export const TODO_MODULES: readonly AdminModule[] = ["user_management"];
 
 export type TodoCounts = Partial<Record<string, number>>;
 export interface TodoItem extends TodoDef { count: number }
@@ -42,10 +42,10 @@ export interface TodoCard {
   statusText: string;
 }
 
-/** 依登入者權限產生卡片（UT-HQ-29、30）：順序同側欄，只含有權限的模組 */
+/** 依登入者權限產生卡片（UT-HQ-29、30）：只含 TODO_MODULES 中登入者有權限的模組 */
 export function buildTodoCards(actor: HqActor | null | undefined, counts: TodoCounts): TodoCard[] {
   return getVisibleSidebar(actor)
-    .filter((i): i is AdminModule => !isOpenItem(i) && !NO_TODO_MODULES.includes(i as AdminModule))
+    .filter((i): i is AdminModule => !isOpenItem(i) && TODO_MODULES.includes(i as AdminModule))
     .map(module => {
       const defs = TODO_DEFS[module];
       const label = ADMIN_MODULE_LABELS[module];

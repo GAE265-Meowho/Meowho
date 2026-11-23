@@ -135,12 +135,13 @@ MeowHQ（`/MeowHQ`，取代舊隱藏後台）開發中：階段 0（#18）、db�
 
 - 2026-10-29｜0002（Issue #19）：停權狀態只存在 `meow_user_suspensions`（profiles 不加欄位）；黑名單同時記 `auth_user_id`；角色只能經 `meow_set_role` 變更（`meow.hq_fn` 旗標，僅在該 update 期間有效）；稽核日誌連資料表擁有者都不能改刪；錯誤以代碼回報；收回 `anon`／`PUBLIC` 執行權的同時，把會被匿名訪客觸發的 policy 改為 `to authenticated`，避免 `meow_is_admin` 等被收回後匿名讀取公開貓戶出錯。
 
-- 2026-11-04｜新增後台模組 `households`（貓戶管理，排在側欄「營運與社群」第一個）；上線時現有管理員全部授權，之後由系統管理員調整。沒有待辦，待辦總覽不顯示卡片（`NO_TODO_MODULES`）（Tina，#179）。
+- 2026-11-04｜新增後台模組 `households`（貓戶管理，排在側欄「營運與社群」第一個）；上線時現有管理員全部授權，之後由系統管理員調整。沒有待辦，待辦總覽不顯示卡片（Tina，#179）。
 - 2026-11-04｜側欄樣式（#183）：群組標題 12.5px 粗體＋字距、項目 14px（選中 600＋底色＋左側色條）、群組間距 24px；「虛擬體驗元件管理」改為可收合樹狀選單（在模組內自動展開，子項目縮排＋左側引導線）（Tina）。
 
 - 2026-11-04｜頂列加「前往前台」（鈴鐺左邊，新分頁開前台首頁；手機只顯示圖示）（Tina，#191）。
 
 - 2026-11-04｜側欄收合：頂列「☰」所有寬度都顯示；手機是抽屜，平板與電腦按下收起整個側欄（記在瀏覽器 `meowhq:sidebar-collapsed`）（Tina，#193）。
+- 2026-11-23｜MeowHQ 首頁待辦總覽只保留「用戶權限管理」（待審中途認證）；其他模組的待辦到各自頁面處理。白名單 `TODO_MODULES`（`src/lib/hq/todos.ts`）；沒有此權限的管理員顯示「目前沒有需要你處理的待辦」（Tina，#620）。
 
 ## 待確認
 - 黑名單加入「已登入的現有會員」後是否同時強制登出或停權？目前只擋新建會員資料（UT-HQDB-11）；登入阻擋屬前端／Auth 層，待 #21 或另案。
@@ -263,6 +264,7 @@ ole === "admin" 判斷管理員，而現有 admin 會升為 system_admin；舊�
 | 2026-11-16 | Tina × Claude Code | #354 成貓、幼貓新增動作「磨爪」`scratch`（平放在地上的貓抓板）：後腳踩穩、前半身壓低、兩隻前腳輪流往前伸搭上板面再扒回胸口、頭低下看前爪。新腳本 `scripts/clips/scratch.mjs`（同 `eat_drink.mjs` 的側面平面 IK，多一步肩胛往前轉，不然手伸不到），通道照 idle 複製、眨眼沿用 idle。用 CPU 蒙皮畫剪影確認：前腳掌跟得上目標、最低點不低於地板 0.4 公分；其他 14 個動作逐格不變。`CLIP_LIBRARY_VERSION` 11。預覽圖 `docs/play-tasks/scratch-clip-preview.png`。**成貓 `base_clips.glb` 合併後要手動上傳覆蓋 Storage** `meow-cat-models/base/v1/base_clips.glb`；還沒在 3D 畫面上看過 |
 | 2026-11-23 | Tina × Claude Code | 幼貓母體 `base_clips_kitten.glb` 補上鬍鬚 `whiskers`（從成貓搬到 `head0` 下）；`clips.test.ts` 檢查成貓、幼貓母體都有鬍鬚 | #610 |
 | 2026-11-23 | Tina × Claude Code | 影片 tab：寬螢幕（≥1100px）每段的段落影片放左欄、片段放右欄並排（`SectionBody`、`.hq-video-secbody`），片段卡最小寬 300→240px 一列放更多；窄螢幕維持上下排 | #601 |
+| 2026-11-23 | Tina × Claude Code | 首頁待辦總覽只保留用戶權限管理（`TODO_MODULES`），移除虛擬體驗元件紋理待確認、Admin 授權最近變更的查詢 | #620 |
 - 2026-10-29｜#24：前端呼叫 `meow_suspend_user`／`meow_unsuspend_user`／`meow_ban_email`／`meow_unban_email`／`meow_review_verification`／`meow_revoke_badge`；「要求補件」不另設狀態，用退回＋快選原因「退回並要求補件」；黑名單狀態只有系統管理員讀得到（RLS），其他管理員看不到黑名單欄與操作。
 
 - 2026-10-31｜#75：虛擬體驗元件分四個區塊（貓咪、室內空間、生活用品、其他），R3 已改寫；貓咪模型的貼圖由 cat_studio/paint_worker.py 產生，網頁只建任務與預覽（共用母體 ase_clips.glb 換 cat_fur 貼圖，不需每隻貓各一個 glb）；動作屬母體，補入新動作後所有貓自動擁有；本機模式（可新增／產生）只在非 production 且設了 CAT_STUDIO_ROOT 時啟用；正式站改讀 `public/hq-cat-models/` 示範貓（已完成的 bb）供預覽，寫入仍關閉。004_meow_cat_models.sql（資料表 meow_cat_models、meow_cat_model_jobs、bucket meow-cat-photos／meow-cat-models）在 PR 3，執行前須經 Tina 確認。
