@@ -39,15 +39,17 @@ describe("private report view v1", () => {
     }
   });
 
-  it("renders zero detailed requests when closed, then exactly the four named assets when selected", () => {
+  it("keeps four deferred assets inside a native disclosure and honors old item links", () => {
     const view = ReportViewSchema.parse(fixture);
     const summary = renderPrivateReportView(household, view);
     const detail = renderPrivateReportView(household, view, 0);
     expect(summary).toContain("需要改善（1）");
     expect(summary).toContain('href="/me">返回我的喵戶');
     expect(summary).toContain("查核防墜設施");
-    expect(summary).not.toContain("<img");
-    expect(detail.match(/<img /g)).toHaveLength(4);
+    expect(summary).toContain('<details class="meow-item">');
+    expect(summary.match(/style="--evidence-image:url/g)).toHaveLength(4);
+    expect(detail).toContain('<details class="meow-item" open>');
+    expect(detail.match(/role="img"/g)).toHaveLength(4);
     expect(detail).toContain("綠色虛線為 AI 模擬對應區域");
     expect(detail).not.toContain("<script>");
     expect(detail).toContain('href="pdf"');

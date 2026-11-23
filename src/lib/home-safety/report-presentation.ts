@@ -165,13 +165,17 @@ body:has(.meow-priority){max-width:1120px;color:#183247}
 .meow-hero,.meow-card,.meow-limits{display:flex;align-items:center;gap:clamp(12px,2vw,20px)}
 .meow-hero{background:white;border:1px solid var(--line);border-radius:var(--radius);padding:clamp(12px,2.2vw,24px);margin-bottom:14px}
 .meow-hero .meow-icon{width:clamp(49px,6vw,78px);color:var(--red);background:var(--red-soft);border-radius:14px;padding:7px;box-sizing:border-box}
-.meow-item h3{margin:12px 0}
+.meow-item{margin:12px 0}
+.meow-hero{cursor:pointer;list-style:none}
+.meow-hero::-webkit-details-marker{display:none}
 .meow-item .meow-hero{margin:0;color:var(--ink);text-decoration:none;font-size:clamp(19px,3vw,26px);min-height:44px;overflow-wrap:anywhere}
 .meow-item .meow-hero span{flex:1;min-width:0}
 .meow-item .meow-hero .meow-icon:last-child{width:24px;background:none;padding:0}
 .meow-item .meow-hero:focus-visible{outline:2px solid var(--navy);outline-offset:3px}
-.meow-item [aria-expanded=true]{border-color:var(--navy)}
-.meow-item h3+div{margin-top:12px}
+.meow-item[open]>.meow-hero{border-color:var(--navy)}
+.meow-item[open]>.meow-hero .meow-icon:last-child{transform:rotate(180deg)}
+.meow-item:not([open])>.meow-hero+div{display:none}
+.meow-hero+div{margin-top:12px}
 .meow-priority h2{font-size:clamp(22px,3.5vw,36px);line-height:1.2;margin:2px 0 0}
 .meow-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-template-areas:"impact action" "before after";gap:14px}
 .meow-grid.with-details{grid-template-areas:"impact action" "before after" "before-detail after-detail"}
@@ -183,8 +187,9 @@ body:has(.meow-priority){max-width:1120px;color:#183247}
 .meow-priority .meow-before-detail{grid-area:before-detail}
 .meow-priority .meow-after-detail{grid-area:after-detail}
 .meow-photo{display:grid;place-items:center;aspect-ratio:16/9;container-type:size;background:white;border-radius:8px}
+.meow-item[open] .meow-evidence-image{content:var(--evidence-image)}
 .meow-photo .evidence{position:relative;max-width:100%;line-height:0}
-.meow-photo img{display:block;width:auto;height:auto;max-width:100%;max-height:100cqh;object-fit:contain;border-radius:8px}
+.meow-photo img,.meow-photo .meow-evidence-image{display:block;width:auto;height:auto;max-width:100%;max-height:100cqh;object-fit:contain;border-radius:8px}
 .meow-priority .region{position:absolute;box-sizing:border-box;border:3px solid var(--red);pointer-events:none;box-shadow:0 0 0 1px white}
 .meow-priority .estimated{border-style:dashed}
 .meow-priority .simulated-region{border-style:dashed;border-color:var(--green)}
@@ -238,9 +243,16 @@ function marker(values: number[] | undefined, variant: string) {
   return `<span aria-hidden="true" class="region${variant}" style="${style}"></span>`;
 }
 
+// The sandbox disables native img lazy loading in Chrome. A CSS image is
+// requested only once its open panel applies content, without adding scripts.
+function evidenceImage(path: string, alt: string) {
+  if (!assetPath.test(path)) return "";
+  return `<span class="meow-evidence-image" role="img" aria-label="${escape(alt)}" style="--evidence-image:url('${path}')"></span>`;
+}
+
 function detailFigure(side: "before" | "after", caption: string, image: string | undefined) {
   return `<figure class="meow-${side}-detail"><figcaption>${caption}</figcaption>${image
-    ? `<div class="meow-photo"><img src="${image}" alt="${caption}" loading="lazy"></div>`
+    ? `<div class="meow-photo">${evidenceImage(image, caption)}</div>`
     : "<p>此報告未提供這張局部影像。</p>"}</figure>`;
 }
 
@@ -248,40 +260,37 @@ export function renderReportPresentation(html: string, full: boolean, presentati
   const { items, headerStart, headerEnd, bodyEnd, images } = presentation;
   if (headerStart === undefined || headerEnd === undefined || bodyEnd === undefined || headerEnd > bodyEnd) return html;
 
-  const selected = !full && itemIndex !== undefined ? items[itemIndex] : undefined;
-  const impact = selected && summarizeImpact(selected.impact);
-  const limits = [...new Set([...(impact?.limits ?? []), selected?.uncertainty]
-    .filter(Boolean).map(text => text!.replace(/。$/, "")))];
-  const region = selected?.region;
-  const afterRegion = selected?.afterRegion;
-  const showDetails = Boolean(selected?.before && !selected.cropped);
-  const before = selected?.before ? `<figure class="meow-before"><figcaption>${selected.cropped ? "改善前｜危害局部" : "改善前｜原始影格"}</figcaption>
-    <div class="meow-photo"><div class="evidence"><img src="${selected.before}" alt="${escape(selected.name)}的${selected.cropped ? "原始局部" : "原始影格"}" fetchpriority="high">${marker(region?.values, region?.estimated ? " estimated" : "")}</div></div>
-    <p>${region ? region.estimated ? "紅色虛線為 AI 估計位置。" : "紅框為人工確認位置。" : "畫面中的具體位置待確認。"}</p>
-    <p>${escape(selected.observation)}</p>${!selected.cropped && selected.detailBefore ? `<a href="${selected.detailBefore}">查看原始局部放大</a>` : ""}</figure>` : "";
-  const after = selected?.before ? `<figure class="meow-after">${selected.after ? `<figcaption>${selected.cropped ? "改善後局部｜AI 模擬示意" : "改善後｜AI 模擬示意"}</figcaption>
-    <div class="meow-photo"><div class="evidence"><img src="${selected.after}" alt="${escape(selected.name)}的 AI 改善示意" loading="lazy" fetchpriority="low">${marker(afterRegion, " simulated-region")}</div></div>
-    ${selected.cropped ? "" : `<p>${afterRegion ? "綠色虛線為 AI 模擬對應區域。" : "這張 AI 示意圖的對應位置待確認。"}</p>`}
-    <p>實際改善情形仍待現場確認。</p>` : "<p>這個項目沒有可展示的 AI 改善示意。</p>"}</figure>` : "";
   const collapse = `<a class="meow-report-toggle" href="html#report-view" id="report-view-return">收合完整報告${icon("up")}</a>`;
   const pdf = `<a class="meow-report-pdf" href="pdf">${icon("file")}下載完整 PDF</a>`;
   const toggle = `<a class="meow-report-toggle" href="?view=full#report-view-return">展開完整圖文報告${icon("down")}</a>`;
   const banner = `<header class="meow-banner"><div><p>MeowHome｜AI 居家環境安全檢測</p>
     <h1>你的居家安全檢測結果</h1></div>${icon("shield")}</header>`;
   const rows = items.map((item, index) => {
-    const open = item === selected;
+    const impact = summarizeImpact(item.impact);
+    const limits = [...new Set([...(impact?.limits ?? []), item.uncertainty]
+      .filter(Boolean).map(text => text!.replace(/。$/, "")))];
+    const region = item.region;
+    const afterRegion = item.afterRegion;
+    const showDetails = Boolean(item.before && !item.cropped);
+    const before = item.before ? `<figure class="meow-before"><figcaption>${item.cropped ? "改善前｜危害局部" : "改善前｜原始影格"}</figcaption>
+      <div class="meow-photo"><div class="evidence">${evidenceImage(item.before, item.name + (item.cropped ? "的原始局部" : "的原始影格"))}${marker(region?.values, region?.estimated ? " estimated" : "")}</div></div>
+      <p>${region ? region.estimated ? "紅色虛線為 AI 估計位置。" : "紅框為人工確認位置。" : "畫面中的具體位置待確認。"}</p>
+      <p>${escape(item.observation)}</p>${!item.cropped && item.detailBefore ? `<a href="${item.detailBefore}">查看原始局部放大</a>` : ""}</figure>` : "";
+    const after = item.before ? `<figure class="meow-after">${item.after ? `<figcaption>${item.cropped ? "改善後局部｜AI 模擬示意" : "改善後｜AI 模擬示意"}</figcaption>
+      <div class="meow-photo"><div class="evidence">${evidenceImage(item.after, item.name + "的 AI 改善示意")}${marker(afterRegion, " simulated-region")}</div></div>
+      ${item.cropped ? "" : `<p>${afterRegion ? "綠色虛線為 AI 模擬對應區域。" : "這張 AI 示意圖的對應位置待確認。"}</p>`}
+      <p>實際改善情形仍待現場確認。</p>` : "<p>這個項目沒有可展示的 AI 改善示意。</p>"}</figure>` : "";
     const panelId = `improvement-${index + 1}`;
-    const href = open ? `html#${panelId}` : `?item=${index + 1}#${panelId}`;
-    return `<section class="meow-item"><h3><a class="meow-hero" id="${panelId}" href="${href}" aria-expanded="${open}" aria-controls="${panelId}-panel">
-      ${icon(hazardIcon("hazard" in item && typeof item.hazard === "string" ? item.hazard : item.name))}<span>${escape(item.name)}</span>${icon(open ? "up" : "down")}</a></h3>
-      <div id="${panelId}-panel"${open ? "" : " hidden"}>${open ? `${!before && item.observation ? `<p>${escape(item.observation)}</p>` : ""}<div class="meow-grid${before ? "" : " solo"}${showDetails ? " with-details" : ""}">
+    return `<details class="meow-item"${index === itemIndex ? " open" : ""}><summary class="meow-hero" id="${panelId}">
+      ${icon(hazardIcon("hazard" in item && typeof item.hazard === "string" ? item.hazard : item.name))}<span>${escape(item.name)}</span>${icon("down")}</summary>
+      <div id="${panelId}-panel">${!before && item.observation ? `<p>${escape(item.observation)}</p>` : ""}<div class="meow-grid${before ? "" : " solo"}${showDetails ? " with-details" : ""}">
         ${impact?.consequence ? `<div class="meow-card meow-impact">${icon("alert")}<div><h4>可能後果</h4><p>${escape(impact.consequence)}</p></div></div>` : ""}
         ${before}
         ${showDetails ? detailFigure("before", "改善前局部｜原圖", item.detailBefore) : ""}
         <div class="meow-card meow-action">${icon("action")}<div><h4>建議行動</h4><p>${escape(item.action)}</p></div></div>
         ${after}
         ${showDetails ? detailFigure("after", "改善後局部｜AI 模擬示意", item.detailAfter) : ""}</div>
-        ${limits.length ? `<div class="meow-limits">${icon("info")}<p><strong>需要現場確認</strong> ${limits.map(escape).join("。")}。</p></div>` : ""}` : ""}</div></section>`;
+        ${limits.length ? `<div class="meow-limits">${icon("info")}<p><strong>需要現場確認</strong> ${limits.map(escape).join("。")}。</p></div>` : ""}</div></details>`;
   });
   const statistics = view ? `<p>${view.statistics.confirmations} 項需要現場確認 · ${view.statistics.hazards.length} 種已分類危害 · ${view.statistics.evidence_frames} 張原始證據影格</p>
     ${view.statistics.hazards.length ? `<ul>${view.statistics.hazards.map(hazard => `<li>${escape(hazard.label)}（${hazard.count}）</li>`).join("")}</ul>` : ""}` : "";
