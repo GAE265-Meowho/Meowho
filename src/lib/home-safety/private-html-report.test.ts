@@ -188,6 +188,13 @@ it("serves only referenced, hash-verified WebP with the correct private MIME", a
   expect(response.status).toBe(200);
   expect(response.headers.get("Content-Type")).toBe("image/webp");
   expect(response.headers.get("Cache-Control")).toBe("private, no-store");
+  mock.user = "";
+  expect((await readPrivateReport({ id, reportId }, webp)).status).toBe(401);
+  mock.user = "another-owner";
+  mock.owner = false;
+  expect((await readPrivateReport({ id, reportId }, webp)).status).toBe(404);
+  mock.user = "owner";
+  mock.owner = true;
   mock.download.mockResolvedValue(Buffer.from("corrupt"));
   expect((await readPrivateReport({ id, reportId }, webp)).status).toBe(404);
   mock.owner = false;

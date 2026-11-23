@@ -259,6 +259,21 @@ function detailFigure(side: "before" | "after", caption: string, image: string |
     : "<p>此報告未提供這張局部影像。</p>"}</figure>`;
 }
 
+function preloadEvidence(items: ReturnType<typeof parseReportPresentation>["items"]) {
+  const images = new Set<string>();
+  for (const item of items) {
+    if (!item.before) continue;
+    const paths = item.cropped
+      ? [item.before, item.after]
+      : [item.before, item.after, item.detailBefore, item.detailAfter];
+    for (const path of paths) {
+      if (path?.endsWith(".webp") && assetPath.test(path)) images.add(path);
+    }
+  }
+  // Match the CSS image request so Chromium can reuse the response within this report.
+  return [...images].map(path => `<link rel="preload" as="image" href="${path}" type="image/webp" media="(min-width: 651px)" fetchpriority="low">`).join("");
+}
+
 export function renderReportPresentation(html: string, full: boolean, presentation = parseReportPresentation(html), itemIndex?: number, view?: ReportView) {
   const { items, headerStart, headerEnd, bodyEnd, images } = presentation;
   if (headerStart === undefined || headerEnd === undefined || bodyEnd === undefined || headerEnd > bodyEnd) return html;
@@ -302,8 +317,7 @@ export function renderReportPresentation(html: string, full: boolean, presentati
     <h2 id="priority-title">需要改善（${items.length}）</h2>${statistics}
     ${rows.length ? rows.join("") : "<p>目前無法從這份報告整理改善項目。可查看完整報告中的查核建議。</p>"}
     ${checks}<div id="report-view" tabindex="-1">${toggle}${pdf}</div></section>`;
-  const start = html.slice(0, headerStart) + summaryStyles + banner + intro;
-  if (!full) return start + html.slice(bodyEnd);
+  if (!full) return html.slice(0, headerStart) + preloadEvidence(items) + summaryStyles + banner + intro + html.slice(bodyEnd);
 
   // Apply lazy loading to the existing detail images without rewriting evidence markup.
   let detail = html.slice(headerEnd, bodyEnd);

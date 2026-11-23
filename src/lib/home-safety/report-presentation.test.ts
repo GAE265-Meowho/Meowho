@@ -56,6 +56,22 @@ const localizedComparison = () => candidate("書桌附近", "a", "b")
   .replace(img("d"), `<figure><figcaption>改善前局部｜原圖</figcaption>${img("d")}</figure>
 <figure><figcaption>改善後局部｜AI 模擬示意</figcaption>${img("e")}</figure>`);
 
+it("preloads each referenced WebP once for desktop, with no preload in the full view", () => {
+  const webp = "html-assets/" + "f".repeat(64) + ".webp";
+  const html = report(localizedComparison()
+    .replace(img("a"), `<img src="${path("a")}" data-webp="${webp}">`)
+    .replace(img("b"), `<img src="${path("b")}" data-webp="${webp}">`));
+  const output = renderReportPresentation(html, false);
+  const preloads = output.match(/<link rel="preload"[^>]+>/g) ?? [];
+  expect(preloads).toHaveLength(1);
+  expect(preloads[0]).toContain(`href="${webp}"`);
+  expect(preloads[0]).toContain('as="image"');
+  expect(preloads[0]).toContain('fetchpriority="low"');
+  expect(preloads[0]).toContain('media="(min-width: 651px)"');
+  expect(renderReportPresentation(html, true)).not.toContain('rel="preload"');
+  expect(renderReportPresentation(report(localizedComparison()), false)).not.toContain('rel="preload"');
+});
+
 it("uses the case's independent After coordinates and its two deferred detail assets", () => {
   const html = report(localizedComparison() + candidate("其他房間", "c", "f"));
   const output = openedPanel(renderReportPresentation(html, false, undefined, 0));
