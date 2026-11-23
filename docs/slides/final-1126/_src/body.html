@@ -251,22 +251,28 @@
   <!--SPK:Tina-->
   <div class="head"><span class="tag"><b>04</b>DEMO 流程</span><!--DEMO:2--></div>
   <h2 class="reveal">一張照片，變成<em>像本尊的 3D 貓</em></h2>
-  <div class="body" style="top:250px">
-    <div class="lsteps reveal d1" style="grid-template-columns:repeat(5,1fr)">
-      <div class="ls"><span class="ib xs"><svg class="ic"><use href="#i-photo"/></svg></span><div class="t">中途上傳照片</div><p class="p">1～3 張</p></div>
-      <div class="ls"><span class="ib xs"><svg class="ic"><use href="#i-eye"/></svg></span><div class="t">檢查照片</div><p class="p">是不是貓、幼貓成貓</p></div>
-      <div class="ls"><span class="ib xs"><svg class="ic"><use href="#i-spark"/></svg></span><div class="t">補三視角</div><p class="p">AI 生成左、前、背</p></div>
-      <div class="ls"><span class="ib xs"><svg class="ic"><use href="#i-gpu"/></svg></span><div class="t">畫花紋</div><p class="p">Hunyuan3D-Paint・T4</p></div>
-      <div class="ls hl"><span class="ib xs h"><svg class="ic"><use href="#i-cat"/></svg></span><div class="t">套上骨架</div><p class="p">走、坐、跳、理毛</p></div>
-    </div>
-    <div class="g reveal d2" style="grid-template-columns:1.5fr 1fr;height:auto;margin-top:26px">
-      <div class="shot vshot" style="height:430px"><div class="bar"><i></i><i></i><i></i><span>正式站・3D 的灰寶</span></div><video src="assets/video/cat3d.mp4" autoplay loop muted playsinline></video></div>
-      <div style="display:grid;gap:18px;align-content:center">
-        <div class="box honey irow"><span class="ib xs w"><svg class="ic"><use href="#i-clock"/></svg></span><div><b>3～6 分鐘</b>背景完成，中途不用等</div></div>
-        <div class="box irow"><span class="ib xs"><svg class="ic"><use href="#i-check"/></svg></span><div><b>中途確認才公開</b>可補拍其他角度</div></div>
+  <div class="body" style="top:236px">
+    <div class="ck-flow reveal d1">
+      <div class="ck-cap">虛擬體驗元件管理｜貓咪製作・製作流程</div>
+      <div class="ck-fork">
+        <div class="ck-shared"><h3>共用<small>成貓、幼貓用同一組</small></h3><div class="ck-row"><div class="ck-step"><span class="ck-n">1</span><span class="ib xs"><svg class="ic"><use href="#i-photo"/></svg></span><div><div class="t">上傳照片</div><p class="p">原始照片與基本資料</p></div></div><div class="ck-step"><span class="ck-n">2</span><span class="ib xs"><svg class="ic"><use href="#i-spark"/></svg></span><div><div class="t">AI 三視角</div><p class="p">AI 產生左側面、正面、背部照片</p></div></div></div></div>
+        <svg class="ck-split" viewBox="0 0 56 100" preserveAspectRatio="none" aria-hidden="true"><path d="M0 50H24V25H56M24 50V75H56"/></svg>
+        <div class="ck-lanes"><div class="ck-lane"><h3>成貓模型<small>自動產生</small></h3><div class="ck-row"><div class="ck-step"><span class="ck-n">3</span><span class="ib xs"><svg class="ic"><use href="#i-gpu"/></svg></span><div><div class="t">產生紋理貼圖</div><p class="p">AI 上色，完成後自動套用</p></div></div><div class="ck-step hl"><span class="ck-n">4</span><span class="ib xs"><svg class="ic"><use href="#i-cat"/></svg></span><div><div class="t">製作動作 glb</div><p class="p">套用到 3D 動作貓</p></div></div></div></div><div class="ck-lane"><h3>幼貓模型<small>自動產生</small></h3><div class="ck-row"><div class="ck-step"><span class="ck-n">3</span><span class="ib xs"><svg class="ic"><use href="#i-gpu"/></svg></span><div><div class="t">產生紋理貼圖</div><p class="p">AI 上色，完成後自動套用</p></div></div><div class="ck-step hl"><span class="ck-n">4</span><span class="ib xs"><svg class="ic"><use href="#i-cat"/></svg></span><div><div class="t">製作動作 glb</div><p class="p">套用到 3D 動作貓</p></div></div></div></div></div>
       </div>
     </div>
-    <div class="tech reveal d3" style="margin-top:22px"><svg class="ic"><use href="#i-cube"/></svg><span><b>程式亮點</b>每隻貓共用固定 UV 骨架，只換貼圖，所以動作全部通用；成貓、幼貓一對自動接續排程</span></div>
+    <div class="ck-demo reveal d2">
+      <a class="ck-link" href="https://meowho.vercel.app/MeowHQ/assets/cats/cat_20261106_072135" target="_blank" rel="noopener"><svg class="ic"><use href="#i-cat"/></svg>正式站・Cookie 的製作頁<svg class="ic"><use href="#i-arrow"/></svg></a>
+      <div class="ck-media">
+        <figure class="ck-fig"><img src="assets/demo/cookie_photo.jpg" alt="Cookie 原始照片"><figcaption>原始照片</figcaption></figure>
+        <span class="ck-to"><svg class="ic"><use href="#i-arrow"/></svg></span>
+        <figure class="ck-fig"><img src="assets/demo/cookie_3d.gif" alt="Cookie 的 3D 貓"><figcaption>3D 貓・瞳孔寬窄 0.67・環境亮度 0.77</figcaption></figure>
+        <div class="ck-side">
+          <div class="box honey irow"><span class="ib xs w"><svg class="ic"><use href="#i-clock"/></svg></span><div><b>3～6 分鐘</b>背景完成，中途不用等</div></div>
+          <div class="box irow"><span class="ib xs"><svg class="ic"><use href="#i-check"/></svg></span><div><b>中途確認才公開</b>可補拍其他角度</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="tech reveal d3" style="margin-top:18px"><svg class="ic"><use href="#i-cube"/></svg><span><b>程式亮點</b>每隻貓共用固定 UV 骨架，只換貼圖，所以動作全部通用；成貓、幼貓一對自動接續排程</span></div>
   </div>
   <!--PG-->
 </section>
