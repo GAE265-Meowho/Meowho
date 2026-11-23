@@ -69,20 +69,17 @@ export function safetyBusyLabel(hasReadyReport: boolean): string {
   return hasReadyReport ? "另有安全檢測處理中" : "安全檢測處理中";
 }
 
-/** 首頁只對有正式產物欄位的 ready 報告開啟 HTML；API 仍會逐次驗權並回退舊版摘要。 */
+/** 首頁只對 ready 且經 Worker 處理的報告開啟 HTML；API 仍會驗證產物與 Owner 權限。 */
 export interface HomeReportLinkRow {
   id: string;
   status: string;
   created_at: string;
   attempt: number | null;
-  pdf_path: string | null;
-  json_path: string | null;
 }
 export function homeSafetyReportHref(householdId: string, reports: readonly HomeReportLinkRow[]): string {
   const fallback = `/homes/${encodeURIComponent(householdId)}/safety`;
   const latest = reports
-    .filter(r => r.status === "ready" && Number.isInteger(r.attempt) && (r.attempt as number) > 0
-      && Boolean(r.pdf_path) && Boolean(r.json_path))
+    .filter(r => r.status === "ready" && Number.isInteger(r.attempt) && (r.attempt as number) > 0)
     .sort((a, b) => b.created_at.localeCompare(a.created_at))[0];
   return latest
     ? `/api/homes/${encodeURIComponent(householdId)}/reports/${encodeURIComponent(latest.id)}/html`
