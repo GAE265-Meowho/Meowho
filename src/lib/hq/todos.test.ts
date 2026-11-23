@@ -7,13 +7,14 @@ const SA = { role: "system_admin" as const, modules: [] };
 const ADP = { role: "admin" as const, modules: ["products", "knowledge"] as const };
 
 describe("UT-HQ-29 只顯示有權限的模組", () => {
-  it("AD-P 只有商品、知識管理兩張卡片", () => {
-    expect(buildTodoCards(ADP, {}).map(c => c.module)).toEqual(["products", "knowledge"]);
+  it("#620 待辦總覽只保留用戶權限管理：系統管理員只有這一張卡片", () => {
+    expect(buildTodoCards(SA, {}).map(c => c.module)).toEqual(["user_management"]);
   });
-  it("系統管理員看到全部模組，依側欄順序，Admin 授權在最後", () => {
-    expect(buildTodoCards(SA, {}).map(c => c.module)).toEqual([
-      "report_moderation", "user_management", "products", "knowledge", "virtual_assets", "admin_authorization",
-    ]);
+  it("#620 沒有用戶權限管理的管理員（AD-P）沒有卡片", () => {
+    expect(buildTodoCards(ADP, {}).map(c => c.module)).toEqual([]);
+  });
+  it("有用戶權限管理的管理員看到這張卡片", () => {
+    expect(buildTodoCards({ role: "admin", modules: ["user_management", "products"] }, {}).map(c => c.module)).toEqual(["user_management"]);
   });
   it("非管理員沒有任何卡片", () => expect(buildTodoCards({ role: "member", modules: [] }, {})).toEqual([]));
 });
@@ -30,15 +31,10 @@ describe("UT-HQ-30 待辦 0 筆", () => {
     expect(card.total).toBe(3);
     expect(card.status).toBe("todo");
   });
-  it("資料來源尚未建立的模組標示「模組開發中」，不當成 0 筆", () => {
-    const card = buildTodoCards(SA, {}).find(c => c.module === "products")!;
+  it("資料來源尚未建立時標示「模組開發中」，不當成 0 筆", () => {
+    const card = buildTodoCards(SA, {}).find(c => c.module === "user_management")!;
     expect(card.status).toBe("unavailable");
     expect(card.statusText).toBe("模組開發中");
-  });
-  it("Admin 授權不顯示待辦數", () => {
-    const card = buildTodoCards(SA, {}).find(c => c.module === "admin_authorization")!;
-    expect(card.items).toEqual([]);
-    expect(card.status).toBe("info");
   });
 });
 

@@ -1,27 +1,23 @@
 "use client";
 // MeowHQ 首頁：KPI Dashboard（#218）＋待辦總覽（T-HQ-07）
 // #222 移除「我最近的管理動作」；#224 進頁只載一次；#226 頂部全域抓取時間＋卡片去雜訊
+// #620 待辦總覽只保留用戶權限管理（待審中途認證）
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { DashboardView } from "@/components/hq/dashboard/DashboardView";
 import { useHqActor } from "@/components/hq/HqActor";
 import { HqLoadError, HqSkeleton } from "@/components/hq/HqStates";
-import { describeAudit, formatTaipei, type AuditLog } from "@/lib/hq/audit";
 import { formatUpdatedAt } from "@/lib/hq/dashboard/format";
 import type { DashboardPayload } from "@/lib/hq/dashboard/types";
 import { hasModule, type HqActor } from "@/lib/hq/permissions";
-import { countTexturePending, textureInfo } from "@/lib/hq/cat-models/types";
 import { buildTodoCards, type TodoCounts } from "@/lib/hq/todos";
 import { getBrowserSupabase } from "@/lib/supabase/client";
-
-const LOG_COLS = "id, actor_id, action, target_type, target_id, reason, detail, created_at";
 
 export default function HqHomePage() {
   const { actor, userId, preview } = useHqActor();
   const [dash, setDash] = useState<DashboardPayload | null>(null);
   const [dashState, setDashState] = useState<"loading" | "ok" | "error" | "forbidden">("loading");
   const [counts, setCounts] = useState<TodoCounts>({});
-  const [grantLog, setGrantLog] = useState<AuditLog[]>([]);
   const [todoState, setTodoState] = useState<"loading" | "ok" | "error">("loading");
   const actorRef = useRef<HqActor | null>(actor);
   const userIdRef = useRef(userId);
@@ -66,23 +62,6 @@ export default function HqHomePage() {
         const r = await sb.from("meow_shelter_verifications").select("id", { count: "exact", head: true }).eq("status", "pending");
         if (r.error) throw r.error;
         next.verifications_pending = r.count ?? 0;
-      }
-      if (hasModule(a, "virtual_assets")) {
-        const r = await sb.from("meow_cat_models").select("albedo_path,prev_albedo_path,base_version,meta,profile");
-        if (!r.error) {
-          next.textures_pending = countTexturePending((r.data ?? []).map(row => ({
-            hasAlbedo: Boolean(row.albedo_path), body: "adult" as const,
-            texture: textureInfo({
-              albedo: row.albedo_path, prev: row.prev_albedo_path, confirmed: row.profile?.confirmed_albedo,
-              baseVersion: row.base_version, prevBaseVersion: row.meta?.prev_base_version, ageMonths: null,
-            }),
-          })));
-        }
-      }
-      if (a.role === "system_admin") {
-        const g = await sb.from("meow_audit_logs").select(LOG_COLS).in("action", ["grant_module", "revoke_grant", "set_role"]).order("created_at", { ascending: false }).limit(3);
-        if (g.error) throw g.error;
-        setGrantLog((g.data ?? []) as AuditLog[]);
       }
       setCounts(next);
       setTodoState("ok");
@@ -132,10 +111,11 @@ export default function HqHomePage() {
 
       <section className="hq-section" aria-label="待辦總覽">
         <h2>待辦總覽</h2>
-        <p className="hq-hint" style={{ marginTop: 0 }}>只顯示你有權限的模組。</p>
+        <p className="hq-hint" style={{ marginTop: 0 }}>用戶權限管理的待審事項。</p>
         {todoState === "loading" && <HqSkeleton rows={2} />}
         {todoState === "error" && <HqLoadError onRetry={() => void loadTodos()} />}
-        {todoState === "ok" && (
+        {todoState === "ok" && cards.length === 0 && <p className="hq-hint">目前沒有需要你處理的待辦。</p>}
+        {todoState === "ok" && cards.length > 0 && (
           <div className="hq-cards">
             {cards.map(c => (
               <section key={c.module} className="hq-tcard" aria-label={c.label}>
@@ -144,11 +124,6 @@ export default function HqHomePage() {
                 {(c.status === "empty" || c.status === "unavailable") && <div className="hq-total zero">{c.statusText}</div>}
                 {c.items.length > 0 && (
                   <ul>{c.items.map(i => <li key={i.key}><Link href={i.href}><span>{i.label}</span><b>{i.count}</b></Link></li>)}</ul>
-                )}
-                {c.status === "info" && (
-                  grantLog.length ? (
-                    <ul>{grantLog.map(l => <li key={l.id}><Link href="/MeowHQ/admin?tab=audit"><span>{describeAudit(l)}</span><span className="hq-hint">{formatTaipei(l.created_at).slice(5)}</span></Link></li>)}</ul>
-                  ) : <div className="hq-total zero">最近沒有授權變更</div>
                 )}
               </section>
             ))}
