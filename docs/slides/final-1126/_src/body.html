@@ -119,7 +119,8 @@
   <h2 class="reveal">先看喵戶怎麼<em>陪一隻貓找到家</em></h2>
   <div class="body" style="top:240px">
     <div class="vid reveal d1">
-      <video src="assets/video/trailer_part34.mp4" poster="assets/video/trailer_poster.jpg" controls preload="metadata" playsinline></video>
+      <!-- 前導影片直接內嵌：翻到這頁自動從頭播放（有聲），翻走就暫停 -->
+      <video src="assets/video/trailer.mp4" poster="assets/video/trailer_poster.jpg" class="autoplay-on-slide" controls preload="auto" playsinline></video>
     </div>
   </div>
   <!--PG-->
@@ -201,8 +202,9 @@
       <div class="mem"><!--AV:Tina--><div><div class="who">Tina</div><span class="role">類本尊 3D 貓・後台</span><p class="p">幼貓成貓骨架、貼圖 worker、MeowHQ 後台建置</p></div></div>
       <div class="mem"><!--AV:世安--><div><div class="who">世安</div><span class="role">居家安全檢測</span><p class="p">安全檢測 worker、私有報告、刷牙摸貓</p></div></div>
       <div class="mem"><!--AV:珮瑜--><div><div class="who">珮瑜</div><span class="role">影片轉 3D 房間</span><p class="p">上傳與拍攝教練、3D 房間、家具切割</p></div></div>
-      <div class="mem"><!--AV:清俊--><div><div class="who">清俊</div><span class="role">帶我回家地圖</span><p class="p">全島喵戶地圖、縮放聚合、點貓進介紹頁</p></div></div>
+      <div class="mem"><!--AV:清俊--><div><div class="who">清俊</div><span class="role">搜尋找貓・帶我回家地圖</span><p class="p">首頁搜尋到貓卡、全島喵戶地圖、點貓進介紹頁</p></div></div>
     </div>
+    <div class="go-demo reveal d2"><a class="demo-btn" href="https://meowho.vercel.app/" target="_blank" rel="noopener"><svg class="ic"><use href="#i-home"/></svg>進入 Demo<svg class="ic"><use href="#i-arrow"/></svg></a></div>
   </div>
   <!--PG-->
 </section>
@@ -218,15 +220,15 @@
     <div class="lsteps reveal d1" style="grid-template-columns:repeat(7,1fr)">
       <div class="ls"><span class="ib xs"><svg class="ic"><use href="#i-home"/></svg></span><div class="t">中途建貓</div><p class="p">子哲</p></div>
       <div class="ls"><span class="ib xs"><svg class="ic"><use href="#i-cat"/></svg></span><div class="t">3D 貓</div><p class="p">Tina</p></div>
-      <div class="ls"><span class="ib xs"><svg class="ic"><use href="#i-cube"/></svg></span><div class="t">3D 房間</div><p class="p">珮瑜</p></div>
-      <div class="ls"><span class="ib xs"><svg class="ic"><use href="#i-shield"/></svg></span><div class="t">安全檢測</div><p class="p">世安</p></div>
-      <div class="ls hl"><span class="ib xs h"><svg class="ic"><use href="#i-pin"/></svg></span><div class="t">地圖找貓</div><p class="p">清俊</p></div>
+      <div class="ls hl"><span class="ib xs h"><svg class="ic"><use href="#i-search"/></svg></span><div class="t">搜尋找貓</div><p class="p">清俊</p></div>
+      <div class="ls hl"><span class="ib xs h"><svg class="ic"><use href="#i-cube"/></svg></span><div class="t">3D 房間</div><p class="p">珮瑜</p></div>
+      <div class="ls hl"><span class="ib xs h"><svg class="ic"><use href="#i-shield"/></svg></span><div class="t">安全檢測</div><p class="p">世安</p></div>
       <div class="ls hl"><span class="ib xs h"><svg class="ic"><use href="#i-calendar"/></svg></span><div class="t">領養任務</div><p class="p">渝茜</p></div>
       <div class="ls hl"><span class="ib xs h"><svg class="ic"><use href="#i-swap"/></svg></span><div class="t">領養移轉</div><p class="p">子哲</p></div>
     </div>
     <div class="g g2 reveal d2" style="height:auto;margin-top:46px">
-      <div class="card eared irow"><span class="ib"><svg class="ic"><use href="#i-flag"/></svg></span><div><div class="t">前半：從零開始</div><p class="p">新帳號建貓、拍影片</p></div></div>
-      <div class="card honey eared irow"><span class="ib w"><svg class="ic"><use href="#i-clock"/></svg></span><div><div class="t">後半：切到已完成帳號</div><p class="p">3D 房間約 20 分、3D 貓 3～6 分在背景完成</p></div></div>
+      <div class="card eared irow"><span class="ib"><svg class="ic"><use href="#i-flag"/></svg></span><div><div class="t">中途：登入、建貓</div><p class="p">子哲建貓，Tina 接著做 3D 貓</p></div></div>
+      <div class="card honey eared irow"><span class="ib w"><svg class="ic"><use href="#i-clock"/></svg></span><div><div class="t">領養人：找貓到做任務</div><p class="p">搜尋、建房間、看報告、領養任務</p></div></div>
     </div>
   </div>
   <!--PG-->
@@ -293,11 +295,53 @@
 </section>
 
 <!-- =========================================================
+     12a 搜尋找貓：首頁一句話 → 貓卡 → 領養（清俊）
+     ========================================================= -->
+<section class="slide" data-label="12a 搜尋找貓">
+  <!--SPK:清俊-->
+  <div class="head"><span class="tag"><b>04</b>DEMO 流程</span><!--DEMO:3--></div>
+  <h2 class="reveal">換成領養人：<em>說一句話</em>，找到合得來的貓</h2>
+  <div class="body" style="top:250px">
+    <div class="g" style="grid-template-columns:1.25fr 1fr;height:auto">
+      <div class="shot reveal d1" style="height:600px"><div class="bar"><i></i><i></i><i></i><span>首頁・幫我找貓</span></div><img src="assets/demo/find-crop.png" alt="輸入上班族白天不在家，推薦貓卡並說明理由" style="object-position:top"></div>
+      <div class="reveal d2" style="display:grid;gap:22px;align-content:start">
+        <div class="box honey irow"><span class="ib xs w"><svg class="ic"><use href="#i-search"/></svg></span><div><b>① 首頁一句話搜尋</b>說說你的生活，例如白天不在家</div></div>
+        <div class="box irow"><span class="ib xs"><svg class="ic"><use href="#i-cat"/></svg></span><div><b>② 看貓卡</b>每張卡都寫為什麼推薦、哪裡要注意</div></div>
+        <div class="box cocoa irow"><span class="ib xs c" style="background:rgba(255,248,236,.14)"><svg class="ic"><use href="#i-heart"/></svg></span><div><b>③ 點進貓咪頁，按領養</b>開始這隻貓的領養流程</div></div>
+      </div>
+    </div>
+    <div class="tech reveal d3" style="margin-top:22px"><svg class="ic"><use href="#i-search"/></svg><span><b>程式亮點</b>LLM 從一句話抓出條件，再用 Embedding＋pgvector 排序；推薦理由由 AI 依貓咪資料撰寫</span></div>
+  </div>
+  <!--PG-->
+</section>
+
+<!-- =========================================================
+     13 帶我回家地圖（清俊）
+     ========================================================= -->
+<section class="slide" data-label="13 地圖">
+  <!--SPK:清俊-->
+  <div class="head"><span class="tag"><b>04</b>DEMO 流程</span><!--DEMO:3--></div>
+  <h2 class="reveal">也能用地圖：<em>從你家附近</em>找到貓</h2>
+  <div class="body" style="top:250px">
+    <div class="g" style="grid-template-columns:1.5fr 1fr;height:auto">
+      <div class="shot reveal d1" style="height:560px"><div class="bar"><i></i><i></i><i></i><span>帶我回家・正式站</span></div><img src="assets/demo/adopt-map.jpg" alt="放大到桃園與北北基，行政區名錯開，喵戶標出等家的貓"></div>
+      <div class="reveal d2" style="display:grid;gap:22px;align-content:start">
+        <div class="box honey irow"><span class="ib xs w"><svg class="ic"><use href="#i-pin"/></svg></span><div><b>從你的區開場</b>依上網位置對準行政區</div></div>
+        <div class="box irow"><span class="ib xs"><svg class="ic"><use href="#i-home"/></svg></span><div><b>一戶一個點</b>點開看這家的貓，再進介紹頁</div></div>
+        <div class="box cocoa irow"><span class="ib xs c" style="background:rgba(255,248,236,.14)"><svg class="ic"><use href="#i-search"/></svg></span><div><b>放大仍然清楚</b>區名直排或橫排，彼此錯開</div></div>
+      </div>
+    </div>
+    <div class="tech reveal d3" style="margin-top:22px"><svg class="ic"><use href="#i-pin"/></svg><span><b>程式亮點</b>不靠地圖套件，台灣、縣市、行政區都是向量圖；縮放時喵戶標籤釘在座標上，字不會漂走</span></div>
+  </div>
+  <!--PG-->
+</section>
+
+<!-- =========================================================
      11 領養人：影片轉 3D 房間（珮瑜）
      ========================================================= -->
 <section class="slide" data-label="11 3D 房間">
   <!--SPK:珮瑜-->
-  <div class="head"><span class="tag"><b>04</b>DEMO 流程</span><!--DEMO:3--></div>
+  <div class="head"><span class="tag"><b>04</b>DEMO 流程</span><!--DEMO:4--></div>
   <h2 class="reveal">一支影片，<em>怎麼變成 3D 房間</em></h2>
   <div class="body" style="top:250px">
     <div class="rflow">
@@ -328,7 +372,7 @@
      ========================================================= -->
 <section class="slide" data-label="12 安全檢測">
   <!--SPK:世安-->
-  <div class="head"><span class="tag"><b>04</b>DEMO 流程</span><!--DEMO:4--></div>
+  <div class="head"><span class="tag"><b>04</b>DEMO 流程</span><!--DEMO:5--></div>
   <h2 class="reveal">AI 居家安全健檢：<em>從風險到改善證據</em></h2>
   <div class="body" style="top:255px">
     <div class="reveal d1" style="display:flex;align-items:center;justify-content:space-between;gap:24px;margin-bottom:18px">
@@ -371,7 +415,7 @@
      ========================================================= -->
 <section class="slide" data-label="12b WelfareLens 工程">
   <!--SPK:世安-->
-  <div class="head"><span class="tag"><b>04</b>DEMO 流程</span><!--DEMO:4--></div>
+  <div class="head"><span class="tag"><b>04</b>DEMO 流程</span><!--DEMO:5--></div>
   <h2 class="reveal">非同步處理，<em>改圖耗時降低 45.34%</em></h2>
   <div class="body" style="top:267px">
     <div class="g reveal d1" style="grid-template-columns:1fr 1fr;gap:30px;height:auto">
@@ -425,27 +469,6 @@
       <svg class="ic"><use href="#i-check"/></svg>
       <span><b>程式亮點</b>Scoped Claim＋Lease／Attempt 防止重複領件與過期覆寫；單筆 E2E 已於本機 Linux AMD64 Docker 串接正式站驗收。</span>
     </div>
-  </div>
-  <!--PG-->
-</section>
-
-<!-- =========================================================
-     13 帶我回家地圖（清俊）
-     ========================================================= -->
-<section class="slide" data-label="13 地圖">
-  <!--SPK:清俊-->
-  <div class="head"><span class="tag"><b>04</b>DEMO 流程</span><!--DEMO:5--></div>
-  <h2 class="reveal">帶我回家：<em>從你家附近</em>找到貓</h2>
-  <div class="body" style="top:250px">
-    <div class="g" style="grid-template-columns:1.5fr 1fr;height:auto">
-      <div class="shot reveal d1" style="height:560px"><div class="bar"><i></i><i></i><i></i><span>帶我回家・正式站</span></div><img src="assets/demo/adopt-map.jpg" alt="放大到桃園與北北基，行政區名錯開，喵戶標出等家的貓"></div>
-      <div class="reveal d2" style="display:grid;gap:22px;align-content:start">
-        <div class="box honey irow"><span class="ib xs w"><svg class="ic"><use href="#i-pin"/></svg></span><div><b>從你的區開場</b>依上網位置對準行政區</div></div>
-        <div class="box irow"><span class="ib xs"><svg class="ic"><use href="#i-home"/></svg></span><div><b>一戶一個點</b>點開看這家的貓，再進介紹頁</div></div>
-        <div class="box cocoa irow"><span class="ib xs c" style="background:rgba(255,248,236,.14)"><svg class="ic"><use href="#i-search"/></svg></span><div><b>放大仍然清楚</b>區名直排或橫排，彼此錯開</div></div>
-      </div>
-    </div>
-    <div class="tech reveal d3" style="margin-top:22px"><svg class="ic"><use href="#i-pin"/></svg><span><b>程式亮點</b>不靠地圖套件，台灣、縣市、行政區都是向量圖；縮放時喵戶標籤釘在座標上，字不會漂走</span></div>
   </div>
   <!--PG-->
 </section>
@@ -563,30 +586,6 @@
 </section>
 
 <!-- =========================================================
-     17 五個 AI 模組（移到 Demo 後）
-     ========================================================= -->
-<section class="slide" data-label="17 AI 模組">
-  <!--SPK:子哲-->
-  <div class="head"><span class="tag"><b>05</b>技術架構</span></div>
-  <h2 class="reveal">五個 AI 模組，<em>各自負責一段主線</em></h2>
-  <div class="body" style="top:270px">
-    <div class="ai5 reveal d1">
-      <div class="card eared icard"><span class="ib"><svg class="ic"><use href="#i-search"/></svg></span><div class="t">幫我找貓</div><p class="io">一句話<svg class="ic"><use href="#i-arrow"/></svg>推薦貓＋理由</p><p class="m">LLM 擷取條件<br>Embedding＋pgvector</p></div>
-      <div class="card eared icard"><span class="ib"><svg class="ic"><use href="#i-cat"/></svg></span><div class="t">類本尊 3D 貓</div><p class="io">照片<svg class="ic"><use href="#i-arrow"/></svg>會動的 3D 貓</p><p class="m">視覺模型・影像生成<br>Hunyuan3D-Paint</p></div>
-      <div class="card honey eared icard"><span class="ib w"><svg class="ic"><use href="#i-cube"/></svg></span><div class="t">3D 房間</div><p class="io">居家影片<svg class="ic"><use href="#i-arrow"/></svg>3D 房間＋家具</p><p class="m">COLMAP・Brush 3DGS<br>Grounding DINO・SAM 2</p></div>
-      <div class="card honey eared icard"><span class="ib w"><svg class="ic"><use href="#i-shield"/></svg></span><div class="t">安全檢測</div><p class="io">同一支影片<svg class="ic"><use href="#i-arrow"/></svg>風險報告</p><p class="m">FFmpeg・GPT 視覺<br>影像編輯改善示意</p></div>
-      <div class="card eared icard"><span class="ib"><svg class="ic"><use href="#i-doc"/></svg></span><div class="t">試養報告</div><p class="io">任務選擇<svg class="ic"><use href="#i-arrow"/></svg>報告＋意外劇情</p><p class="m">規則與公式算數字<br>AI 只寫摘要</p></div>
-    </div>
-    <div class="g g3 reveal d2" style="height:auto;margin-top:36px">
-      <div class="card cream eared irow"><span class="ib w"><svg class="ic"><use href="#i-coin"/></svg></span><div><div class="t">數字不由 AI 產生</div><p class="p">花費、年齡只來自資料或公式</p></div></div>
-      <div class="card cream eared irow"><span class="ib w"><svg class="ic"><use href="#i-lock"/></svg></span><div><div class="t">輸入防護</div><p class="p">使用者的話只當資料，防注入</p></div></div>
-      <div class="card cream eared irow"><span class="ib w"><svg class="ic"><use href="#i-swap"/></svg></span><div><div class="t">供應商可切換</div><p class="p">LangChain 接 Azure、OpenAI、Gemini</p></div></div>
-    </div>
-  </div>
-  <!--PG-->
-</section>
-
-<!-- =========================================================
      19 系統架構
      ========================================================= -->
 <section class="slide" data-label="19 系統架構">
@@ -671,12 +670,12 @@
       <div class="card eared icard reveal d1">
         <span class="ib"><svg class="ic"><use href="#i-users"/></svg></span>
         <div class="t">誰會用</div>
-        <p class="p">中途與愛媽社群<br>公私立收容所<br>校園、社區飼養課</p>
+        <p class="p">中途與愛媽社群<br>公私立收容所</p>
       </div>
       <div class="card honey eared icard reveal d2">
         <span class="ib w"><svg class="ic"><use href="#i-coin"/></svg></span>
         <div class="t">怎麼賺</div>
-        <p class="p">認證中途進階方案<br>依報告推薦新手用品<br>企業 CSR 贊助收容所</p>
+        <p class="p">認證中途進階方案<br>依報告推薦新手用品</p>
       </div>
       <div class="card cocoa eared icard reveal d3">
         <span class="ib c" style="background:rgba(255,248,236,.14)"><svg class="ic"><use href="#i-chart"/></svg></span>
@@ -699,18 +698,23 @@
   <!--SPK:子哲-->
   <div class="head"><span class="tag"><b>06</b>商業與風險</span></div>
   <h2 class="reveal">風險與因應：<em>誠實面對 AI 做不到的地方</em></h2>
-  <div class="body" style="top:270px">
-    <div class="g g3 reveal d1" style="height:auto;gap:24px">
-      <div class="card eared irow"><span class="ib"><svg class="ic"><use href="#i-cube"/></svg></span><div><div class="t">房間破洞</div><p class="p">上傳前檢查長度；失敗通知重拍</p></div></div>
-      <div class="card eared irow"><span class="ib"><svg class="ic"><use href="#i-cat"/></svg></span><div><div class="t">貓不夠像</div><p class="p">中途確認後才公開；定位「像本尊」</p></div></div>
-      <div class="card eared irow"><span class="ib"><svg class="ic"><use href="#i-eye"/></svg></span><div><div class="t">虛擬≠真實</div><p class="p">報告是面談參考，不取代中途判斷</p></div></div>
-      <div class="card eared irow"><span class="ib"><svg class="ic"><use href="#i-heart"/></svg></span><div><div class="t">健康被誤解</div><p class="p">只當照護提醒；金額只來自公式</p></div></div>
-      <div class="card eared irow"><span class="ib"><svg class="ic"><use href="#i-lock"/></svg></span><div><div class="t">居家隱私</div><p class="p">私有儲存、處理完清除、報告分層</p></div></div>
-      <div class="card eared irow"><span class="ib"><svg class="ic"><use href="#i-gpu"/></svg></span><div><div class="t">GPU 排隊</div><p class="p">工作佇列排隊、GPU 隨開隨關</p></div></div>
-    </div>
-    <div class="vet reveal d2" style="margin-top:30px">
-      <svg viewBox="0 0 30 30" aria-hidden="true"><circle cx="15" cy="15" r="13" fill="none" stroke="#a5602a" stroke-width="2.5"/><path d="M15 8v9M15 21v1.5" stroke="#a5602a" stroke-width="3" stroke-linecap="round"/></svg>
-      <span>本作品提供之資訊僅供輔助參考，不能取代獸醫師之診斷、治療或專業建議。如有健康疑慮，請諮詢合格獸醫師。</span>
+  <div class="body" style="top:300px">
+    <div class="g g3" style="height:auto">
+      <div class="card eared icard reveal d1" style="padding:48px 36px 44px">
+        <span class="ib"><svg class="ic"><use href="#i-cube"/></svg></span>
+        <div class="t">房間破洞</div>
+        <p class="p">上傳前先檢查影片<br>失敗就通知重拍</p>
+      </div>
+      <div class="card honey eared icard reveal d2" style="padding:48px 36px 44px">
+        <span class="ib w"><svg class="ic"><use href="#i-cat"/></svg></span>
+        <div class="t">貓不夠像</div>
+        <p class="p">中途確認後才公開<br>定位是「像本尊」</p>
+      </div>
+      <div class="card cocoa eared icard reveal d3" style="padding:48px 36px 44px">
+        <span class="ib c" style="background:rgba(255,248,236,.14)"><svg class="ic"><use href="#i-eye"/></svg></span>
+        <div class="t">虛擬≠真實</div>
+        <p class="p">試養報告是面談參考<br>不取代中途的判斷</p>
+      </div>
     </div>
   </div>
   <!--PG-->
