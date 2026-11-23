@@ -184,3 +184,15 @@ it("condenses a stated mitigation goal without losing uncertainty from the sourc
   expect(output).toContain("貓可能纏住繩圈而受傷。");
   expect(output).toContain("影片不能確認線材是否通電");
 });
+
+it("prefers a validated WebP in disclosures and the full view while retaining legacy authorization", () => {
+  const webp = "html-assets/" + "f".repeat(64) + ".webp";
+  const html = report(candidate("書桌附近", "a", "b").replace(img("b"), `<img src="${path("b")}" data-webp="${webp}">`));
+  const parsed = parseReportPresentation(html);
+  expect(parsed.items[0]?.after).toBe(webp);
+  expect(parsed.assets).toContain(path("b").split("/")[1]);
+  expect(parsed.assets).toContain(webp.split("/")[1]);
+  expect(renderReportPresentation(html, false)).toContain(`url('${webp}')`);
+  expect(renderReportPresentation(html, true)).toContain(`src="${webp}"`);
+  expect(parseReportPresentation(html.replace(webp, "../invalid.webp")).items[0]?.after).toBe(path("b"));
+});

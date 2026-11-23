@@ -28,7 +28,7 @@ export function renderPrivateReportView(_homeId: string, view: ReportView, itemI
   const items = view.improvements.map(item => {
     const comparison = item.comparisons[0];
     const evidence = item.evidence.find(entry => entry.observation_id === comparison?.observation_id) ?? item.evidence[0];
-    const path = (asset?: { name: string }) => asset && "html-assets/" + asset.name;
+    const path = (asset?: { name: string; webp_name?: string }) => asset && "html-assets/" + (asset.webp_name ?? asset.name);
     return {
       caseId: comparison?.id, name: item.label, action: item.action, hazard: item.hazard_category,
       observation: [...item.facts, `影片時間 ${evidence.timestamp.toFixed(2)} 秒`].join(" "), impact: item.inferences.join(" "),

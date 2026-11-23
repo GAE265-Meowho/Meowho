@@ -127,7 +127,7 @@ export async function renderComparisonPdf(visual:VisualReport,risk:RiskObjectRep
   const filename=reviewDraft?'private-review.pdf':'before-after.pdf';
   await writeFile(join(dir,filename),bytes,{flag:'wx',mode:0o600});
   if(includeHtml){
-   try{signal.throwIfAborted();await measure(profile,'html_generate',()=>writeReportHtml(dir,prepared,viewIdentity));}
+   try{signal.throwIfAborted();await measure(profile,'html_generate',()=>writeReportHtml(dir,prepared,viewIdentity,signal));}
    catch{console.warn('welfarelens: optional HTML generation unavailable');}
   }
   return [...assets,filename];

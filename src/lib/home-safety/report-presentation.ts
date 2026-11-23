@@ -4,8 +4,8 @@ import { parse, type DefaultTreeAdapterTypes } from "parse5";
 type Node = DefaultTreeAdapterTypes.Node;
 type Element = DefaultTreeAdapterTypes.Element;
 
-export const reportImageName = /^[a-f0-9]{64}\.(jpg|png)$/;
-const assetPath = /^html-assets\/([a-f0-9]{64}\.(jpg|png))$/;
+export const reportImageName = /^[a-f0-9]{64}\.(jpg|png|webp)$/;
+const assetPath = /^html-assets\/([a-f0-9]{64}\.(jpg|png|webp))$/;
 
 function elements(node: Node, predicate: (element: Element) => boolean): Element[] {
   const result: Element[] = [];
@@ -23,8 +23,12 @@ const content = (node: Node): string => "value" in node ? node.value
 const escape = (value: string) => value.replace(/[&<>"']/g, char => ({
   "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
 }[char]!));
-const source = (node: Element | undefined) => node
-  ? assetPath.exec(attr(node, "src") ?? "")?.[0] : undefined;
+const originalSource = (node: Element) => assetPath.exec(attr(node, "src") ?? "")?.[0];
+const webpSource = (node: Element) => {
+  const candidate = attr(node, "data-webp");
+  return originalSource(node) && candidate?.endsWith(".webp") && assetPath.test(candidate) ? candidate : undefined;
+};
+const source = (node: Element | undefined) => node && (webpSource(node) ?? originalSource(node));
 
 function labeledText(article: Element, label: string) {
   const paragraph = elements(article, node => node.tagName === "p").find(node => {
@@ -50,8 +54,7 @@ export function parseReportPresentation(html: string) {
   const doc = parse(html, { sourceCodeLocationInfo: true });
   const images = elements(doc, node => node.tagName === "img");
   const assets = new Set(images.flatMap(img => {
-    const path = source(img);
-    return path ? [path.slice("html-assets/".length)] : [];
+    return [originalSource(img), webpSource(img)].flatMap(path => path ? [path.slice("html-assets/".length)] : []);
   }));
   const body = elements(doc, node => node.tagName === "body")[0];
   const header = body?.childNodes.find(node => "tagName" in node && node.tagName === "header");
@@ -306,7 +309,13 @@ export function renderReportPresentation(html: string, full: boolean, presentati
   let detail = html.slice(headerEnd, bodyEnd);
   for (const image of [...images].reverse()) {
     const start = image.sourceCodeLocation?.startOffset;
-    if (start === undefined || start < headerEnd || start >= bodyEnd || attr(image, "loading")) continue;
+    if (start === undefined || start < headerEnd || start >= bodyEnd) continue;
+    const derivative = webpSource(image);
+    const src = image.sourceCodeLocation?.attrs?.src;
+    if (derivative && src) {
+      detail = detail.slice(0, src.startOffset - headerEnd) + `src="${derivative}"` + detail.slice(src.endOffset - headerEnd);
+    }
+    if (attr(image, "loading")) continue;
     const offset = start - headerEnd + "<img".length;
     detail = detail.slice(0, offset) + ' loading="lazy"' + detail.slice(offset);
   }

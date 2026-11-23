@@ -23,7 +23,7 @@ export function professionalStatistics({visual,cases}:ProfessionalReport,placeme
   improvements.map(i=>({hazard_category:hazardCategory(i.key),evidence:i.evidence})),confirmations.length)};
 }
 export type ReportViewIdentity={report_id:string;attempt:number};
-export function reportViewFromPrepared(prepared:ProfessionalReport,identity:ReportViewIdentity){
+export function reportViewFromPrepared(prepared:ProfessionalReport,identity:ReportViewIdentity,webpNames?:ReadonlyMap<string,string>){
  if(prepared.reviewDraft)throw Error('Draft cannot publish');
  const {improvements,confirmations,statistics,hazardCategory}=professionalStatistics(prepared);
  const observations=new Map(prepared.visual.observations.map(o=>[o.observation_id,o]));
@@ -41,7 +41,9 @@ export function reportViewFromPrepared(prepared:ProfessionalReport,identity:Repo
     const metadata=(url:string,index:number)=>{
      const sha256=createHash('sha256').update(Buffer.from(url.split(',')[1],'base64')).digest('hex');
      const mime=index===1?'image/png':'image/jpeg';
-     return {name:sha256+(index===1?'.png':'.jpg'),sha256,mime,...c.dimensions![index]};
+     const name=sha256+(index===1?'.png':'.jpg');
+     const webp_name=webpNames?.get(name);
+     return {name,sha256,mime,...c.dimensions![index],...(webp_name?{webp_name}:{})};
     };
     const before=s.before_region;
     return [{id:s.comparison_id,observation_id:s.evidence_observation_id,
