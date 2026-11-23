@@ -1,7 +1,7 @@
 # HANDOFF — 接手的 agent 需要知道的事
 
 > 寫給「完全沒有上下文的下一個 agent」。只保留**現在仍然成立**的內容。
-> 最後更新：2026-11-18｜渝茜 × Claude Code（試養報告、過敏題、小遊戲說明疊字）
+> 最後更新：2026-11-23｜清俊 × Cursor（成果報告第 13 頁帶我回家地圖）
 
 ## 目前狀態
 - **#273 WelfareLens 自動領件（Jerry0808 × Codex）**：待組長審查 scoped Claim、持久模型額度與啟用步驟。共享 Supabase 尚未套用 `0042`。受控環境依 `workers/welfarelens/VM_RUNBOOK.md` 核對遷移、喵戶、舊 Worker、私有儲存及費用。
@@ -33,7 +33,7 @@
 - **#387 成貓休息改蜷曲（Tina × Claude Code，分支 `feat/387-curl-rest`）**：`base_clips.glb` 只換 rest（其他 13 個動作逐格相同）。腳本在 Tina 電腦 `Meow/cat_base/stepC_clips.py` 的 `clip_curl_rest`（`CURL_*`）；幼貓 rest 不變。**合併後要上傳 Storage** `meow-cat-models/base/v1/base_clips.glb`。
 - **#373 幼貓母體四腳對齊（Tina × Claude Code，分支 `fix/373-kitten-leg-align`）**：`base_clips_kitten.glb` 已重做（幼貓不在 Storage，合併即生效）。改的是 Tina 電腦 `Meow/cat_base_kitten/stepB_rig.py` 的 `align_legs`、`match_right_legs`、`symmetrize_side`（右半身照左半身鏡像）與 `stepC_clips.py` 的 `SLEEP_FRONT`；網頁 `PAW_AHEAD_M.kitten` 已改 0.053；重做幼貓母體一律 B → C → `eat_drink.mjs … kitten`。舊製作檔備份在 `Meow/cat_base_kitten/work/backup_before_leg_align/`；`.blend` 是 Blender 5.3 存的，5.2 開不了就重跑 B、C。
 - **#365 成貓母體拉直＋鬍鬚（Tina × Claude Code）**：`base_clips.glb` 脊椎與尾巴已拉直、多了 `whiskers` 網格（掛 `head0`），eat／drink 已用 `eat_drink.mjs adult` 重做。**合併後要上傳 Storage** `meow-cat-models/base/v1/base_clips.glb`。新工具 `workers/cat-paint/cat_studio/project_views.py`（AI 三視角投影成貓貼圖），尚未接進 `paint_worker.py --supabase`；目前在 Tina 電腦用 `run_tabby1.bat` 跑。
-- **帶我回家地圖（清俊 × Cursor，#390 已合併）**：後續在分支 `feat/adopt-map-labels`，PR [#401](https://github.com/GAE265-Meowho/Meowho/pull/401)，尚未建 Issue。首頁 `#adopt` 仍是一張全島。點喵戶裡的貓進 `/cats/[id]` 介紹頁（有資料庫才連過去，示範模式留在首頁）。行政區名依形狀直排或橫排，縮進區內，並跟鄰近名稱錯開；縣市名若蓋到區名只縮小、不挪位。縣市界與行政區界各減半。台中虛線指西岸靠北的清水一帶。喵戶標籤底邊貼住座標。舊的分區畫布首頁不再用。
+- **帶我回家地圖（清俊 × Cursor，#390、#401 已合併）**：首頁 `#adopt` 一張全島，依上網位置對準行政區。點喵戶裡的貓進 `/cats/[id]`（有資料庫才連過去，示範模式留在首頁）。區名依地形直排或橫排並錯開；縣市名蓋到區名時只縮小。界線已減半。台中虛線指西岸靠北的清水一帶。縮放時喵戶標籤底邊貼住座標。成果報告第 13 頁在 #607，分支 `docs/deck-chingjun`。
 - **虛擬飼養讀真實資料＋試養報告給中途看（渝茜 × Claude Code，分支 `feat/play-real-data`，審查中）**：`/cats/[id]/play` 讀這隻貓（`source.ts` 的 `loadPlayCat`）、喵戶（`usePlayData.ts`）、預算、最新 3D 房間、環境報告；玩完報告存 `meow_task_runs.game_report`，按鈕附給中途，對話串 `TaskProof` 顯示。**`0033_meow_play_report.sql` 尚未執行，須子哲確認**；執行前報告頁會顯示「沒有存成功」。細節在 `docs/modules/readiness.md`「虛擬飼養讀真實資料與試養報告給中途」。
 - **安全報告 V3 主線整合（Jerry0808 × Codex，#273）**：`codex/home-safety-v3-main` 補上 #475、#476 留在堆疊分支的程式差異。已用真實 Worker HTML 核對六項改善與 24 張圖，Owner 網站與 Vercel Production 待驗收。
 - **WelfareLens #326 安全報告終態通知（Jerry0808 × Codex，PR #327，審查中）**：Draft PR 分支 `feat/326-env-report-notifications`，migration `0034_meow_env_notifications.sql`。通知只在 job 首次終態時送給該報告所屬 Household Owner，dedupe key 防止重複；PGlite 驗證通過。尚未部署共用 Supabase，部署須由子哲按團隊流程確認。#326 佇列隔離只有設計，待子哲批准後另開實作；不得改 #277、0031 或 Worker v05。
