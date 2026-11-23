@@ -102,8 +102,7 @@ export async function readPrivateReport({ id, reportId }: {
       });
       if (!html) return empty(404);
       if (availabilityOnly) return empty(204);
-      const back = '<nav aria-label="MeowHome"><a class="back-link" href="/homes/' + id
-        + '/safety#records-title">返回居家安全檢測紀錄</a></nav>';
+      const back = '<nav aria-label="MeowHome"><a class="back-link" href="/me">返回我的喵戶</a></nav>';
       const reportHeader = '<body><header><p class="kicker">WelfareLens × MeowHome</p><h1>貓咪居家環境健檢</h1>';
       const brandedHeader = '<body><header><p class="kicker">MeowHome｜AI 居家環境安全檢測</p><h1>貓咪居家環境健檢報告</h1>';
       const page = html.replace(reportHeader, brandedHeader).replace("<body>", "<body>" + back);
