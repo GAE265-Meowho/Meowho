@@ -264,7 +264,7 @@ code{font:500 .92em ui-monospace,Menlo,monospace;background:var(--cream-d);borde
 
 /* ===== 11/23 第三輪 ===== */
 /* Agenda */
-.agenda{display:grid;grid-template-columns:repeat(3,1fr);gap:28px}
+.agenda{display:flex;flex-direction:column;gap:14px;width:1400px;margin:-40px auto 0}
 .ag{position:relative;display:flex;align-items:center;gap:22px;background:#fff;border:2px solid var(--line);border-radius:28px;padding:34px 30px 34px 30px}
 .ag .agn{position:absolute;right:26px;top:18px;font:400 40px var(--font-display);color:var(--honey-l)}
 .ag .t{font:400 34px/1.25 var(--font-display)}
@@ -332,3 +332,11 @@ code{font:500 .92em ui-monospace,Menlo,monospace;background:var(--cream-d);borde
 .sbox.sup .srow{font-size:20px}
 .sbox.sup .srow .ib.xs{width:42px;height:42px;font-size:22px}
 .swg p{font-size:17px}
+
+/* Agenda 單欄由上往下：大標左、說明右，整體置中 */
+.agenda .ag{padding:16px 40px;border-radius:24px;gap:28px}
+.agenda .ag .ib{width:64px;height:64px;flex:none}
+.agenda .ag>div{flex:1;display:flex;align-items:center;justify-content:space-between;gap:40px}
+.agenda .ag .t{font-size:36px;line-height:1.2}
+.agenda .ag .p{margin-top:0;font-size:24px;text-align:right}
+.agenda .ag .agn{position:static;order:-1;font-size:40px;min-width:60px}
