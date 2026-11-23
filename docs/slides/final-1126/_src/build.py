@@ -36,6 +36,8 @@ def demo(m):
 sections = re.split(r'(?=<!-- =+\n)', body)
 out, total = [], body.count('<section ')
 page = 0
+# 頁尾頁碼從封面後開始算：開場影片和封面都不算
+skip = 2 if 'data-label="開場影片"' in body else 1
 for s in sections:
     if '<section' not in s:
         out.append(s); continue
@@ -46,7 +48,7 @@ for s in sections:
     s = re.sub(r'<!--SPK:([^>]+)-->', spk, s)
     s = re.sub(r'<!--DEMO:(\d+)-->', demo, s)
     s = re.sub(r'<!--AV:([^>]+)-->', lambda mm: av(mm.group(1)), s)
-    s = s.replace('<!--PG-->', f'<div class="pg"><img src="assets/meowho-symbol.svg" alt="">{page-1:02d} / {total-1:02d}</div>')
+    s = s.replace('<!--PG-->', f'<div class="pg"><img src="assets/meowho-symbol.svg" alt="">{page-skip:02d} / {total-skip:02d}</div>')
     out.append(s)
 
 html = head + ''.join(out) + tail

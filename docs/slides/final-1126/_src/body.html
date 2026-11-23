@@ -40,9 +40,16 @@
 </svg>
 
 <!-- =========================================================
+     開場影片（第一二段）：打開不自動播放，按播放鍵才開始；不算頁碼
+     ========================================================= -->
+<section class="slide opening active" data-label="開場影片">
+  <video src="assets/video/opening.mp4" poster="assets/video/opening_poster.jpg" controls preload="metadata" playsinline></video>
+</section>
+
+<!-- =========================================================
      00 封面
      ========================================================= -->
-<section class="slide cover active" data-label="封面">
+<section class="slide cover" data-label="封面">
   <!--SPK:子哲-->
   <div class="yard">
     <svg class="ears" viewBox="0 0 440 120" aria-hidden="true"><path fill="#f6b53b" d="M0 120L40 18Q50 -4 66 14L150 120ZM290 120L374 14Q390 -4 400 18L440 120Z"/></svg>
@@ -528,7 +535,9 @@
     var on=v.closest('.slide').classList.contains('active');
     if(on&&!v.dataset.on){v.dataset.on='1';v.currentTime=0;v.play().catch(function(){});}
     else if(!on&&v.dataset.on){delete v.dataset.on;v.pause();}
-  });}
+  });
+  /* 開場影片不自動播放；翻走時暫停 */
+  document.querySelectorAll('.slide.opening video').forEach(function(v){if(!v.closest('.slide').classList.contains('active'))v.pause();});}
   new MutationObserver(sync).observe(document.body,{subtree:true,attributes:true,attributeFilter:['class']});
   document.addEventListener('DOMContentLoaded',sync); sync();
 })();
