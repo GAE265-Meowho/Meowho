@@ -46,6 +46,7 @@ export default function CatPage() {
   const [cat, setCat] = useState<(CatFields & { rawStatus: string; fromFoster: boolean }) | null | undefined>(undefined);
   const [home, setHome] = useState<Home | null>(null);
   const [formOpen, setFormOpen] = useState(false);
+  const [requireTask, setRequireTask] = useState(false);
   const [videos, setVideos] = useState<{ path: string; url: string }[]>([]);
   const [favCount, setFavCount] = useState<number | null>(null);
   const [view, setView] = useState<ProfileView | null>(null);
@@ -55,7 +56,7 @@ export default function CatPage() {
     (async () => {
       const [{ data: row }, { data: fm }] = await Promise.all([
         sb.from("meow_cats").select("*, household:meow_households!meow_cats_household_id_fkey(id, name, city, district, owner_id, adoption_terms, caretaker_type)").eq("id", id).maybeSingle(),
-        sb.from("meow_adoption_forms").select("is_open").eq("cat_id", id).maybeSingle(),
+        sb.from("meow_adoption_forms").select("*").eq("cat_id", id).maybeSingle(),
       ]);
       if (!row) { setCat(null); return; }
       // #206 起照片分成角度照（photo_angles）和生活照（photo_paths），封面由 cover 指定：都放進來，封面排第一張
@@ -64,6 +65,7 @@ export default function CatPage() {
       const scaleSaved = Boolean(row.personality_scale && typeof row.personality_scale === "object");
       setView(profileView(formFromRow(row), { scaleSaved }));
       setFormOpen(Boolean(fm?.is_open));
+      setRequireTask(Boolean(fm?.require_task));
       fetch(`/api/cats/${id}/videos`).then(r => r.json()).then(d => setVideos(d.videos ?? [])).catch(() => {});
       if (user && row.household?.owner_id === user.id) {
         const { data: n } = await sb.rpc("meow_cat_favorite_count", { p_cat_id: id });
@@ -124,6 +126,7 @@ export default function CatPage() {
               {!isOwner && <FavoriteButton catId={id} />}
               {isOwner && <CatButton variant="ghost" size="sm" ears={false} href={`/cats/${id}/edit`}>修改這隻貓</CatButton>}
             </div>
+            {adoptable && formOpen && requireTask && !isOwner && <p className={f.lead}>中途希望先完成領養任務，再填寫領養問卷。</p>}
             {isOwner && favCount !== null && <p className={f.lead}>有 {favCount} 人收藏</p>}
           </div>
         </section>

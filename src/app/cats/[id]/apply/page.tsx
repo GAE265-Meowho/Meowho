@@ -2,6 +2,7 @@
 /* eslint-disable @next/next/no-img-element */
 // 領養人填寫領養問卷（#89）：分段填（愛貓網建議一段一段問）、每換一段自動存草稿、送出前看一次全部答案。
 // 居住相關題目從自己的喵戶帶入；照片放私人 bucket 自己的資料夾，只有這隻貓的中途看得到。
+// 中途在問卷設定「必須完成領養任務」（0044 require_task）時，沒完成任務就不能填，資料庫送出時也會再擋一次。
 import { useParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/components/Auth";
@@ -29,6 +30,7 @@ export default function ApplyPage() {
   const [submitted, setSubmitted] = useState(false);
   const [hasHome, setHasHome] = useState(true);
   const [taskDone, setTaskDone] = useState(true);
+  const [requireTask, setRequireTask] = useState(false);
   const [answers, setAnswers] = useState<Answers>({});
   const [previews, setPreviews] = useState<Record<string, string>>({});
   const [step, setStep] = useState(0);
@@ -40,14 +42,15 @@ export default function ApplyPage() {
     (async () => {
       const [{ data: c }, { data: fm }, { data: homes }] = await Promise.all([
         sb.from("meow_cats").select("name").eq("id", catId).maybeSingle(),
-        sb.from("meow_adoption_forms").select("id, questions, is_open").eq("cat_id", catId).maybeSingle(),
+        sb.from("meow_adoption_forms").select("*").eq("cat_id", catId).maybeSingle(),
         sb.from("meow_households").select("city, district, home, caretaker_type").eq("owner_id", user.id).order("created_at"),
       ]);
       setCat(c);
       setHasHome(Boolean(homes?.length));
-      // 沒完成領養任務也能申請，送出前再提醒一次（規格 09 §7.4）
+      // 預設沒完成領養任務也能申請，送出前再提醒一次（規格 09 §7.4）；中途設定必須完成時就先擋下
       const { count: runs } = await sb.from("meow_task_runs").select("id", { count: "exact", head: true }).eq("cat_id", catId).eq("member_id", user.id).eq("status", "completed");
       setTaskDone((runs ?? 0) > 0);
+      setRequireTask(Boolean(fm?.require_task));
       if (!fm) { setForm(null); return; }
       const { data: mine } = await sb.from("meow_adoption_responses").select("id, status, answers, photo_paths").eq("form_id", fm.id).eq("respondent_id", user.id).neq("status", "declined").maybeSingle();
       if (!fm.is_open && !mine) { setForm(null); return; }
@@ -80,7 +83,10 @@ export default function ApplyPage() {
     const res = responseId
       ? await sb.from("meow_adoption_responses").update(row).eq("id", responseId).select("id").single()
       : await sb.from("meow_adoption_responses").insert({ ...row, form_id: form.id, respondent_id: user.id }).select("id").single();
-    if (res.error) { setError(`存檔失敗：${res.error.message}`); return false; }
+    if (res.error) {
+      setError(res.error.message.includes("response_task_required") ? `要先完成${cat?.name ?? "這隻貓"}的領養任務，才能送出問卷。` : `存檔失敗：${res.error.message}`);
+      return false;
+    }
     setResponseId(res.data.id);
     return true;
   }
@@ -150,6 +156,17 @@ export default function ApplyPage() {
     <section className={`${f.card} ${f.center}`}>
       <h2>{cat ? `${cat.name}目前沒有開放領養問卷` : "找不到這份問卷"}</h2>
       <div className={f.actions} style={{ justifyContent: "center" }}><CatButton variant="ghost" href="/">回首頁</CatButton></div>
+    </section>
+  );
+  // 中途要求先完成領養任務（0044）：草稿已經填過的也先擋，做完任務再回來接著填
+  else if (requireTask && !taskDone && !submitted) body = (
+    <section className={`${f.card} ${f.center}`}>
+      <h2>先完成{cat?.name ?? "這隻貓"}的領養任務</h2>
+      <p className={f.lead}>{cat?.name ?? "這隻貓"}的中途希望你先體驗過領養任務，再提出領養。完成後回到這裡就能填問卷。</p>
+      <div className={f.actions} style={{ justifyContent: "center" }}>
+        <CatButton href={`/cats/${catId}/play`}>去做領養任務</CatButton>
+        <CatButton variant="ghost" ears={false} href={`/cats/${catId}`}>回到{cat?.name ?? "貓咪"}的頁面</CatButton>
+      </div>
     </section>
   );
   else if (submitted) body = (
