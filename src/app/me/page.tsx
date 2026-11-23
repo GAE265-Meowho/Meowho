@@ -42,7 +42,7 @@ export default function MyHomePage() {
       setHomes(list);
       if (!list.length) return;
       const ids = list.map(x => x.id);
-      // 3D 房間與環境報告只讀狀態，給喵戶卡片的兩顆按鈕用（規格 09 §7.2）；RLS 只讓本人讀到自己喵戶的
+      // 3D 房間讀狀態，安全報告另讀 ID 與已發布產物欄位，讓喵戶卡片直接開啟原生報告；RLS 只讓本人讀到自己的喵戶
       const [{ data: c, error: cErr }, { data: v }, { data: rm }, { data: rp }, { data: fav }] = await Promise.all([
         sb.from("meow_cats").select("id, household_id, origin_household_id, name, sex, life_stage, coat, breed, personality_tags, photo_url, status").in("household_id", ids).order("created_at"),
         sb.from("meow_shelter_verifications").select("id, household_id, status, review_note, created_at").in("household_id", ids).order("created_at", { ascending: false }),
