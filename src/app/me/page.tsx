@@ -42,12 +42,12 @@ export default function MyHomePage() {
       setHomes(list);
       if (!list.length) return;
       const ids = list.map(x => x.id);
-      // 3D 房間讀狀態，安全報告另讀 ID 與已發布產物欄位，讓喵戶卡片直接開啟原生報告；RLS 只讓本人讀到自己的喵戶
+      // 3D 房間讀狀態，安全報告只讀 ID／狀態／時間／Worker 批次以開啟授權原生報告，不向前端取私有 Blob 路徑
       const [{ data: c, error: cErr }, { data: v }, { data: rm }, { data: rp }, { data: fav }] = await Promise.all([
         sb.from("meow_cats").select("id, household_id, origin_household_id, name, sex, life_stage, coat, breed, personality_tags, photo_url, status").in("household_id", ids).order("created_at"),
         sb.from("meow_shelter_verifications").select("id, household_id, status, review_note, created_at").in("household_id", ids).order("created_at", { ascending: false }),
         sb.from("meow_room_models").select("owner_household_id, status, completed_at").in("owner_household_id", ids),
-        sb.from("meow_env_reports").select("id, household_id, status, created_at, attempt, pdf_path, json_path").in("household_id", ids),
+        sb.from("meow_env_reports").select("id, household_id, status, created_at, attempt").in("household_id", ids),
         // 一般飼主的「收藏貓」分頁
         list.some(x => x.caretaker_type === "cat_owner")
           ? sb.from("meow_cat_favorites").select("cat:meow_cats(id, name, photo_url)").eq("user_id", user.id).order("created_at", { ascending: false })
