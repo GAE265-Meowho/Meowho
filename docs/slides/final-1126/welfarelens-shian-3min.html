@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>WelfareLens｜世安 3 分鐘個人技術簡報</title>
+<title>AI 居家安全檢測模組｜世安 2 分鐘：產品 Demo × 工程 × 實測</title>
 <!-- 字型：標題用 Huninn（圓體，貼近網站與 logo 的溫度），內文用 Noto Sans TC -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Huninn&family=JetBrains+Mono:wght@400;600&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
@@ -582,6 +582,35 @@ code{font:500 .92em ui-monospace,Menlo,monospace;background:var(--cream-d);borde
 .ck-fig figcaption{font:500 17px var(--font-body);color:var(--cocoa-2);text-align:center;padding:6px 0 8px}
 .ck-to{font-size:52px;color:var(--caramel);text-align:center}
 .ck-side{display:grid;gap:18px;align-content:center}
+/* 11 3D 房間：六步流程 */
+.rflow{display:grid;grid-template-columns:repeat(6,1fr);gap:20px}
+.rstep{padding:24px 20px 22px;display:flex;flex-direction:column;gap:12px}
+.rstep .n{font:400 40px/1 var(--font-display);color:var(--caramel);display:flex;align-items:center;gap:12px}
+.rstep .aitag{font:700 20px/1 var(--font-body);color:#fff;background:var(--cocoa);border-radius:999px;padding:6px 14px}
+.rstep .t{font:400 36px/1.15 var(--font-display);color:var(--cocoa)}
+.rstep .w{font:400 22px/1.45 var(--font-body);color:var(--cocoa-2);flex:1}
+.rstep .m{font:400 19px/1.4 var(--font-body);color:var(--cocoa-2);background:var(--cream-d);border-radius:14px;padding:8px 10px}
+.rstep.honey .w,.rstep.honey .m{color:var(--cocoa)}
+.rstep.honey .m{background:rgba(255,255,255,.55)}
+.rres{display:grid;grid-template-columns:1fr 520px;gap:24px;margin-top:24px;align-items:stretch}
+.rres .chain{display:flex;align-items:center;justify-content:center;gap:22px;background:var(--cocoa);color:var(--slide-bg);border-radius:22px;padding:0 30px;font:500 30px/1.3 var(--font-body)}
+.rres .chain .ic{font-size:34px;color:var(--honey);flex:none}
+.rres .chain b{font:400 44px/1 var(--font-display);color:var(--cocoa);background:var(--honey);border-radius:16px;padding:12px 20px;white-space:nowrap}
+.rres .shot{height:300px}
+.rstep .tm{display:inline-flex;align-items:center;gap:8px;align-self:flex-start;font:700 22px/1 var(--font-body);color:var(--caramel);background:var(--honey-l);border-radius:999px;padding:8px 14px}
+.rstep .tm .ic{font-size:24px}
+.rstep.honey .tm{background:#fff}
+.rstep .gputag{font:700 20px/1 var(--font-body);color:#fff;background:var(--caramel);border-radius:999px;padding:6px 14px}
+.rstep .n{gap:10px}
+.rres .pri{background:var(--cocoa);border-radius:22px;padding:22px 26px 24px;display:flex;flex-direction:column;gap:16px}
+.rres .ph2{display:flex;align-items:center;justify-content:space-between}
+.rres .eb{font:700 26px/1 var(--font-body);color:var(--honey)}
+.rres .tot{display:inline-flex;align-items:center;gap:10px;font:400 30px/1 var(--font-display);color:var(--cocoa);background:var(--honey);border-radius:999px;padding:10px 20px}
+.rres .tot .ic{font-size:28px}
+.rres .pcs{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;flex:1}
+.rres .pc{background:rgba(255,248,236,.08);border-radius:18px;padding:18px 20px;display:flex;flex-direction:column;gap:10px}
+.rres .pc .k{font:400 40px/1.1 var(--font-display);color:var(--honey)}
+.rres .pc .p{font:400 21px/1.5 var(--font-body);color:#e9dccb}
 </style>
 </head>
 <body>
@@ -632,42 +661,51 @@ code{font:500 .92em ui-monospace,Menlo,monospace;background:var(--cream-d);borde
      00 封面
      ========================================================= -->
 
-<!-- WelfareLens 世安專屬兩頁；來源為同分支總簡報，保持團隊一致版型 -->
+<!-- 世安 WelfareLens：與 11/26 團隊總簡報同步的 2 頁 -->
 <section class="slide has-spk" data-label="12 安全檢測">
   <div class="spk"><span class="nm">世安</span><div class="avs"><div class="av"><img src="assets/avatars/世安_2026.svg" alt="世安" onerror="this.remove()"></div></div></div>
   <div class="head"><span class="tag"><b>04</b>DEMO 流程</span><div class="dbar"><span class="whob w-ado"><svg class="ic"><use href="#i-user"/></svg>領養人視角</span><span class="dnodes"><span class="dn r-mid done">中途建貓</span><span class="dn r-mid done">3D 貓</span><span class="dn r-ado done">3D 房間</span><span class="dn r-ado now">安全檢測</span><span class="dn r-ado">地圖找貓</span><span class="dn r-ado">領養任務</span><span class="dn r-both">領養移轉</span></span></div></div>
-  <h2 class="reveal">AI 居家安全健檢：<em>從風險到改善證據</em></h2>
-  <div class="body" style="top:255px">
-    <div class="reveal d1" style="display:flex;align-items:center;justify-content:space-between;gap:24px;margin-bottom:18px">
-      <div style="display:flex;align-items:center;gap:18px">
-        <span class="chip" style="margin:0;padding:9px 20px;font-size:23px;font-weight:700">實際 PDF 案例 · 63.05 秒</span>
-        <span style="font:500 26px var(--font-body);color:var(--cocoa)">左側牆面垂落的線材 · 可能被貓接觸或纏繞</span>
+  <h2 class="reveal">領養前，<em>你家真的準備好了嗎？</em></h2>
+  <div class="body" style="top:266px">
+    <p class="reveal d1" style="font:500 27px/1.4 var(--font-body);color:var(--cocoa-2);margin:0 0 20px">
+      電線、拉繩等日常物品，可能是貓咪的潛在風險。<b style="color:var(--caramel)">AI 居家安全檢測模組，讓飼主知道怎麼改善。</b>
+    </p>
+    <div class="g reveal d2" style="grid-template-columns:1.08fr .92fr;gap:28px;height:445px">
+      <div class="card cream eared" style="height:445px;padding:24px 32px">
+        <div class="k" style="font-size:24px;margin-bottom:14px">產品價值｜一段影片，知道先改善哪裡</div>
+        <div style="font:400 47px/1.23 var(--font-display);color:var(--cocoa);margin-bottom:23px">先看見風險，<br><span style="color:var(--caramel)">再知道怎麼改善。</span></div>
+        <div style="display:grid;gap:11px">
+          <div style="background:#fff;border-radius:17px;padding:12px 20px;font:500 23px/1.4 var(--font-body)"><b style="color:var(--caramel);margin-right:13px">01</b>上傳居家影片</div>
+          <div style="background:#fff;border-radius:17px;padding:12px 20px;font:500 23px/1.4 var(--font-body)"><b style="color:var(--caramel);margin-right:13px">02</b>辨識風險與對應位置</div>
+          <div style="background:#fff;border-radius:17px;padding:12px 20px;font:500 23px/1.4 var(--font-body)"><b style="color:var(--caramel);margin-right:13px">03</b>提供改善建議及待確認事項</div>
+        </div>
       </div>
-      <span style="font:700 21px var(--font-body);color:var(--caramel);white-space:nowrap">改善後為 AI 模擬，並非實際完工</span>
+      <div class="card eared" style="height:445px;padding:18px 22px">
+        <div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:16px">
+          <div class="k" style="font-size:23px;margin:0">完整 PDF 的證據案例</div>
+          <span class="chip" style="margin:0;font:700 18px var(--font-body);white-space:nowrap">63.05 秒</span>
+        </div>
+        <div class="g g2" style="height:auto;gap:12px">
+          <div class="shot" style="height:266px">
+            <div class="bar"><i></i><i></i><i></i><span>原始影格｜橘框標示</span></div>
+            <img src="assets/demo/welfarelens_desk_before.svg" alt="PDF 原始影格，橘色實線框代表 AI 估計的線材危害範圍" style="object-fit:contain;background:#fff">
+          </div>
+          <div class="shot" style="height:266px">
+            <div class="bar"><i></i><i></i><i></i><span>AI 模擬｜綠框對位</span></div>
+            <img src="assets/demo/welfarelens_desk_after.svg" alt="PDF AI 改善模擬，綠色虛線框代表場景對位區" style="object-fit:contain;background:#fff">
+          </div>
+        </div>
+        <p style="font:500 18px/1.4 var(--font-body);color:var(--cocoa-2);margin-top:13px">
+          此處為獨立 PDF 案例圖，<b style="color:var(--caramel)">不是主站截圖</b>；改善後仍需現場確認。
+        </p>
+      </div>
     </div>
-    <div class="g g2 reveal d1" style="height:auto;gap:22px">
-      <div class="shot" style="height:370px">
-        <div class="bar"><i></i><i></i><i></i><span>改善前｜原始影格 · 63.05 秒</span></div>
-        <img src="assets/demo/welfarelens_desk_before.svg" alt="PDF 案例 3：左側牆面垂落線材（橘色實線框）" style="object-fit:cover;object-position:center center">
+    <div class="tech reveal d3" style="margin-top:18px;min-height:112px;padding:17px 29px;display:flex;align-items:center;justify-content:space-between;gap:25px">
+      <div style="display:flex;align-items:center;gap:20px">
+        <svg class="ic" style="font-size:39px;flex:none"><use href="#i-eye"/></svg>
+        <div style="font:400 32px/1.3 var(--font-display)">LIVE DEMO｜切換已預先開好的<span style="color:var(--honey)">主網站安全摘要</span></div>
       </div>
-      <div class="shot" style="height:370px">
-        <div class="bar"><i></i><i></i><i></i><span>改善後｜AI 模擬示意</span></div>
-        <img src="assets/demo/welfarelens_desk_after.svg" alt="PDF 案例 3：AI 模擬固定左側牆面線材（綠色虛線框）" style="object-fit:cover;object-position:center center">
-      </div>
-    </div>
-    <div class="g g2 reveal d2" style="height:auto;gap:22px;margin-top:16px">
-      <div class="shot" style="height:184px">
-        <div class="bar"><i></i><i></i><i></i><span>局部細節｜原始垂落線材</span></div>
-        <img src="assets/demo/welfarelens_desk_detail_before.svg" alt="PDF 案例 3：牆面外露線材局部原圖" style="object-fit:cover;object-position:center 46%">
-      </div>
-      <div class="shot" style="height:184px">
-        <div class="bar"><i></i><i></i><i></i><span>局部細節｜AI 模擬固定理線槽</span></div>
-        <img src="assets/demo/welfarelens_desk_detail_after.svg" alt="PDF 案例 3：線材固定入理線槽局部 AI 模擬" style="object-fit:cover;object-position:center 46%">
-      </div>
-    </div>
-    <div class="tech reveal d3" style="margin-top:20px;min-height:80px">
-      <svg class="ic"><use href="#i-shield"/></svg>
-      <span><b>程式亮點</b>FFmpeg 選出最多 8 張影格 → Azure VLM 結構化分析 → SHA-256 證據配對 → AI 改善模擬</span>
+      <span style="font:500 20px/1.4 var(--font-body);color:#ead9c5;white-space:nowrap">只看一項風險＋建議<br>不重新上傳或等待生成</span>
     </div>
   </div>
   <div class="pg"><img src="assets/meowho-symbol.svg" alt="">01 / 02</div>
@@ -676,62 +714,50 @@ code{font:500 .92em ui-monospace,Menlo,monospace;background:var(--cream-d);borde
 <section class="slide has-spk" data-label="12b WelfareLens 工程">
   <div class="spk"><span class="nm">世安</span><div class="avs"><div class="av"><img src="assets/avatars/世安_2026.svg" alt="世安" onerror="this.remove()"></div></div></div>
   <div class="head"><span class="tag"><b>04</b>DEMO 流程</span><div class="dbar"><span class="whob w-ado"><svg class="ic"><use href="#i-user"/></svg>領養人視角</span><span class="dnodes"><span class="dn r-mid done">中途建貓</span><span class="dn r-mid done">3D 貓</span><span class="dn r-ado done">3D 房間</span><span class="dn r-ado now">安全檢測</span><span class="dn r-ado">地圖找貓</span><span class="dn r-ado">領養任務</span><span class="dn r-both">領養移轉</span></span></div></div>
-  <h2 class="reveal">非同步處理，<em>改圖耗時降低 45.34%</em></h2>
-  <div class="body" style="top:267px">
-    <div class="g reveal d1" style="grid-template-columns:1fr 1fr;gap:30px;height:auto">
-      <div class="card eared" style="height:603px;padding:26px 30px">
-        <div class="k" style="font-size:25px">非同步架構｜不讓網頁等待 AI 執行</div>
-        <div style="display:grid;gap:12px">
-          <div class="box irow" style="padding:12px 20px">
-            <span class="ib xs"><svg class="ic"><use href="#i-server"/></svg></span>
-            <div><b>Next.js API</b><span style="font:400 21px var(--font-body);color:var(--cocoa-2)">驗證使用者，建立處理工作</span></div>
-          </div>
-          <div class="box irow" style="padding:12px 20px">
-            <span class="ib xs"><svg class="ic"><use href="#i-db"/></svg></span>
-            <div><b>PostgreSQL Scoped Queue</b><span style="font:400 21px var(--font-body);color:var(--cocoa-2)">授權喵戶領件，鎖定並管理租約</span></div>
-          </div>
-          <div class="box irow" style="padding:12px 20px">
-            <span class="ib xs"><svg class="ic"><use href="#i-gpu"/></svg></span>
-            <div><b>Docker Worker × Azure AI</b><span style="font:400 21px var(--font-body);color:var(--cocoa-2)">背景分析影片、改善模擬、產報告</span></div>
-          </div>
-          <div class="box irow" style="padding:12px 20px">
-            <span class="ib xs"><svg class="ic"><use href="#i-lock"/></svg></span>
-            <div><b>私有報告</b><span style="font:400 21px var(--font-body);color:var(--cocoa-2)">檢查完整性後發布，閱讀時再驗權</span></div>
-          </div>
+  <h2 class="reveal">兩個工程決策，<em>讓 AI 真正能交付</em></h2>
+  <div class="body" style="top:265px">
+    <p class="reveal d1" style="font:500 27px/1.4 var(--font-body);color:var(--cocoa-2);margin:0 0 20px">
+      AI 會分析還不夠；真正的挑戰是 <b style="color:var(--caramel)">結果有證據</b>、<b style="color:var(--caramel)">長任務不阻塞網站</b>。
+    </p>
+    <div class="g g2 reveal d2" style="height:420px;gap:28px">
+      <div class="card cream eared" style="height:420px;padding:22px 30px">
+        <div class="k" style="font-size:22px;margin-bottom:10px">工程決策 01｜證據可追溯</div>
+        <div class="t" style="font-size:35px;line-height:1.2;margin-bottom:10px">AI 說有風險，<br>能回到原始畫面確認嗎？</div>
+        <p style="font:400 20px/1.4 var(--font-body);color:var(--cocoa-2);margin-bottom:12px">不只輸出一段文字；分析結果要能對回影片中的來源影格。</p>
+        <div style="background:#fff;border-radius:18px;padding:14px 19px;font:500 19px/1.48 var(--font-body)">
+          <b style="color:var(--caramel)">FFmpeg</b> 選最多 8 張代表影格<br>
+          <b style="color:var(--caramel)">Azure VLM</b> 分析與結構化驗證<br>
+          <b style="color:var(--caramel)">時間戳＋SHA-256</b> 對應圖片證據
         </div>
-        <div class="box honey" style="margin-top:18px;padding:14px 20px;font:700 22px var(--font-body)">
-          正式站單筆驗收：2.4 秒領件 · Worker 約 4 分 22 秒
-        </div>
+        <p style="font:700 18px/1.35 var(--font-body);color:var(--caramel);margin-top:10px">成果：風險可回看，不把推測當確定事實</p>
       </div>
-      <div class="card honey eared" style="height:603px;padding:26px 36px">
-        <div class="k" style="color:var(--cocoa);font-size:25px">受控 Benchmark｜固定六件改圖</div>
-        <div style="display:flex;align-items:baseline;gap:12px;margin:2px 0 8px">
-          <span style="font:400 92px/1.08 var(--font-display);color:var(--cocoa)">−45.34%</span>
-          <span style="font:700 24px var(--font-body);color:var(--cocoa)">耗時</span>
+      <div class="card eared" style="height:420px;padding:22px 30px">
+        <div class="k" style="font-size:22px;margin-bottom:10px">工程決策 02｜背景非同步</div>
+        <div class="t" style="font-size:35px;line-height:1.2;margin-bottom:10px">AI 要跑幾分鐘，<br>網頁不能一直等。</div>
+        <p style="font:400 20px/1.4 var(--font-body);color:var(--cocoa-2);margin-bottom:12px">網站先建立工作，Worker 在背景排隊、分析並產生授權報告。</p>
+        <div style="background:var(--cream-d);border-radius:18px;padding:14px 19px;font:500 19px/1.48 var(--font-body)">
+          <b style="color:var(--caramel)">Next.js</b> 建立工作<br>
+          <b style="color:var(--caramel)">PostgreSQL Queue</b> 管理工作狀態<br>
+          <b style="color:var(--caramel)">Docker Worker</b> 背景處理＋授權檢查
         </div>
-        <p style="font:500 23px var(--font-body);margin:0 0 28px">從單路改成雙路並行，重疊等待模型回應</p>
-        <div style="margin:0 0 28px">
-          <div style="display:flex;justify-content:space-between;font:700 23px var(--font-body);margin-bottom:8px"><span>單路串行</span><span>185.154 秒</span></div>
-          <div style="height:38px;background:rgba(255,255,255,.65);border-radius:999px;overflow:hidden"><div style="width:100%;height:100%;background:var(--cocoa);border-radius:999px"></div></div>
-        </div>
-        <div style="margin:0 0 28px">
-          <div style="display:flex;justify-content:space-between;font:700 23px var(--font-body);margin-bottom:8px"><span>雙路並行</span><span>101.207 秒</span></div>
-          <div style="height:38px;background:rgba(255,255,255,.65);border-radius:999px;overflow:hidden"><div style="width:54.7%;height:100%;background:var(--caramel);border-radius:999px"></div></div>
-        </div>
-        <div style="background:#fff;border-radius:18px;padding:16px 20px;font:500 22px/1.48 var(--font-body)">
-          <svg class="ic" style="font-size:29px;color:var(--caramel);vertical-align:-5px;margin-right:6px"><use href="#i-clock"/></svg>
-          至少 12 秒起送間隔 · 對應 6 RPM 配額
-        </div>
-        <p style="font:400 19px/1.4 var(--font-body);color:var(--cocoa-2);margin-top:14px">效能數字僅代表固定六件 Image Edit；不是全流程加速率。</p>
+        <p style="font:700 18px/1.35 var(--font-body);color:var(--caramel);margin-top:10px">成果：使用者可離開等待，完成後查看報告</p>
       </div>
     </div>
-    <div class="tech reveal d2" style="margin-top:22px;min-height:80px">
-      <svg class="ic"><use href="#i-check"/></svg>
-      <span><b>程式亮點</b>Scoped Claim＋Lease／Attempt 防止重複領件與過期覆寫；單筆 E2E 已於本機 Linux AMD64 Docker 串接正式站驗收。</span>
+    <div class="reveal d3" style="background:var(--cocoa);color:var(--slide-bg);border-radius:24px;padding:20px 32px;margin-top:21px;min-height:150px;display:flex;align-items:center;justify-content:space-between;gap:30px">
+      <div>
+        <div style="font:700 19px var(--font-body);color:var(--honey);margin-bottom:6px">受控實測｜固定六件 AI 改圖</div>
+        <div style="font:400 40px/1.1 var(--font-display)">185 秒 <span style="color:var(--honey)">→</span> 101 秒</div>
+        <p style="font:400 17px/1.4 var(--font-body);color:#ead9c5;margin-top:6px">單路改雙路並行；數字僅限 Image Edit 階段。</p>
+      </div>
+      <div style="text-align:right;flex:none">
+        <div style="font:400 74px/1 var(--font-display);color:var(--honey)">−45.34%</div>
+        <div style="font:500 22px var(--font-body);margin-top:8px">改圖階段耗時</div>
+      </div>
     </div>
   </div>
   <div class="pg"><img src="assets/meowho-symbol.svg" alt="">02 / 02</div>
 </section>
+
 </main>
 </div>
 
@@ -773,7 +799,7 @@ const deck=new SlidePresentation();
 /* ===========================================
    編輯模式：按 E 或左上角，直接改文字；自動存在這台電腦的瀏覽器
    =========================================== */
-const KEY='welfarelens-shian-3min-1126-v1';
+const KEY='welfarelens-shian-2min-20261123';
 const editor={isActive:false,
   targets(){return document.querySelectorAll('.slide h1,.slide h2,.slide .lead,.slide .p,.slide li,.slide td,.slide th,.slide .t,.slide .k,.slide .cap,.slide .foot,.slide .what,.slide .when,.slide .meta')},
   toggleEditMode(){this.isActive=!this.isActive;document.body.classList.toggle('editing',this.isActive);
