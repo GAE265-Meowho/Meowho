@@ -95,7 +95,7 @@ MeowHQ（`/MeowHQ`，取代舊隱藏後台）開發中：階段 0（#18）、db�
 | 幼貓（`kitten`） | `public/hq-cat-models/base/base_clips_kitten.glb` | 不在 Storage，直接用 repo 檔 | `Meow\cat_base_kitten\work\`：`base_rig.blend`、`base_clips.blend` | `Meow\cat_base_kitten\stepB_rig.py`（含四腳對齊 `align_legs`，#373）→ `stepC_clips.py` → repo `node scripts/clips/eat_drink.mjs <glb> <glb> kitten` |
 | 大貓（預覽用） | `public/hq-cat-models/base/base_clips_large.glb` | 不在 Storage | `Meow\配件模型\cat_base_large\cat_base_large.blend` | `Meow\配件模型\cat_base_large\scripts\` |
 
-- **怎麼認**：Blender 裡骨架物件叫 `cat_rig`、身體網格叫 `cat_base`、眼球 `eye_L`／`eye_R`、鬍鬚 `whiskers`（成貓，#365 起）。`Meow` 裡其他資料夾（`rig_output\`、`black_cat#0000\`、`output_models\`、各 `backup_*`）都是舊版或備份，不是母體。
+- **怎麼認**：Blender 裡骨架物件叫 `cat_rig`、身體網格叫 `cat_base`、眼球 `eye_L`／`eye_R`、鬍鬚 `whiskers`（成貓 #365 起；幼貓 #610 起，從成貓搬過來，見下方地雷）。`Meow` 裡其他資料夾（`rig_output\`、`black_cat#0000\`、`output_models\`、各 `backup_*`）都是舊版或備份，不是母體。
 - **上色用的網格**：`workers/cat-paint/cat_base/work/base_uv.glb`（Tina 電腦 `Meow\cat_base\work\base_uv.glb`）是綁骨前、照片姿勢的網格，Hunyuan 上色與 `step3b_fill.py` 用它；UV 與母體相同，貼圖可直接套回母體。
 - **三視角投影**：`workers/cat-paint/cat_studio/project_views.py` 用拉直後的母體（Tina 電腦 `Meow\cat_base\work\base_rig.glb`，沒有時用 repo 的 `base_clips.glb`）。
 - **每隻貓的貼圖**：本機 `Meow\adoption_cats\<貓咪ID>\paint_albedo.png`；線上 `meow-cat-models/cats/<貓咪ID>/`。
@@ -148,6 +148,7 @@ MeowHQ（`/MeowHQ`，取代舊隱藏後台）開發中：階段 0（#18）、db�
 - 規格書 §4.7 只列停權、下架、撤銷的快選原因；解除停權、重新上架、加入／移出黑名單目前為空清單。
 
 ## 地雷
+- **幼貓鬍鬚不在 Blender 原始檔（#610）**：`base_clips_kitten.glb` 的 `whiskers` 是直接在 glb 裡從成貓母體搬過來的（掛在 `head0` 下，鼻尖對齊、依兩眼距離縮放 0.417，材質 `cat_whisker`）。之後若從 `Meow\cat_base_kitten` 重新匯出幼貓母體，鬍鬚會消失；`clips.test.ts` 的「鬍鬚（#610）」會擋下，要把鬍鬚加回 Blender（或重跑搬移）再匯出。
 - **執行 0002 後，舊隱藏後台 `/mh-console-8k2p` 與前台 `isAdmin` 會失效**：`src/components/Auth.tsx` 以 `role === "admin"` 判斷管理員，而現有 admin 會升為 `system_admin`；舊後台列管理員的查詢也是 `.eq("role", "admin")`。在 #21（shell）把前端改成新角色之前，不建議在正式環境執行 0002，或由 Tina 決定先接受舊後台暫時不可用。
 ole === "admin" 判斷管理員，而現有 admin 會升為 system_admin；舊後台列管理員的查詢也是 eq("role", "admin")。在 #21（shell）把前端改成新角色之前，不建議在正式環境執行 0002，或由 Tina 決定先接受舊後台暫時不可用。
 - 隱藏網址若外流，非管理員仍讀不到任何資料，但要避免在文件、聊天群組外公開。
@@ -260,6 +261,7 @@ ole === "admin" 判斷管理員，而現有 admin 會升為 system_admin；舊�
 | 2026-11-12 | Tina × Claude Code | #379 追加：四腳朝天肚子中間有斷層——大腿往後轉太多（約 90°），綁在大腿上的肚皮被拉起來。改成四腳伸直往上往外、只微往後（大腿約轉 35°），肚皮平順 | （見 PR） |
 | 2026-11-12 | Tina × Claude Code | #387 成貓「休息」換成蜷曲休息（參考 Tina 照片）：臀部倒向左側、脊椎 C 字（扭轉分散在 root／body／body_bot，胸口反向扶正，避免腰部摺痕），前腳收在胸前、右前腳略前，後腳收向肚子（膝、踝彎 90～140°，再彎大腿內側會擠出尖刺），尾巴貼地沿右側繞到前面；頭直立、眼睛張開。8 秒循環：呼吸 3 次（深淺有變化）、慢眨眼＋半眨眼、頭轉一下、兩耳各轉一次、尾尖抽兩下；腳掌滑動 < 2 mm、首尾相同。`clip_curl_rest`（`CURL_*`），`splice_clip.py` 只換 rest；CLIP_LIBRARY_VERSION 10、`cat-actions.ts` rest 停留 8～16 秒；幼貓不變；**Storage 母體待重新上傳** | （見 PR） |
 | 2026-11-16 | Tina × Claude Code | #354 成貓、幼貓新增動作「磨爪」`scratch`（平放在地上的貓抓板）：後腳踩穩、前半身壓低、兩隻前腳輪流往前伸搭上板面再扒回胸口、頭低下看前爪。新腳本 `scripts/clips/scratch.mjs`（同 `eat_drink.mjs` 的側面平面 IK，多一步肩胛往前轉，不然手伸不到），通道照 idle 複製、眨眼沿用 idle。用 CPU 蒙皮畫剪影確認：前腳掌跟得上目標、最低點不低於地板 0.4 公分；其他 14 個動作逐格不變。`CLIP_LIBRARY_VERSION` 11。預覽圖 `docs/play-tasks/scratch-clip-preview.png`。**成貓 `base_clips.glb` 合併後要手動上傳覆蓋 Storage** `meow-cat-models/base/v1/base_clips.glb`；還沒在 3D 畫面上看過 |
+| 2026-11-23 | Tina × Claude Code | 幼貓母體 `base_clips_kitten.glb` 補上鬍鬚 `whiskers`（從成貓搬到 `head0` 下）；`clips.test.ts` 檢查成貓、幼貓母體都有鬍鬚 | #610 |
 - 2026-10-29｜#24：前端呼叫 `meow_suspend_user`／`meow_unsuspend_user`／`meow_ban_email`／`meow_unban_email`／`meow_review_verification`／`meow_revoke_badge`；「要求補件」不另設狀態，用退回＋快選原因「退回並要求補件」；黑名單狀態只有系統管理員讀得到（RLS），其他管理員看不到黑名單欄與操作。
 
 - 2026-10-31｜#75：虛擬體驗元件分四個區塊（貓咪、室內空間、生活用品、其他），R3 已改寫；貓咪模型的貼圖由 cat_studio/paint_worker.py 產生，網頁只建任務與預覽（共用母體 ase_clips.glb 換 cat_fur 貼圖，不需每隻貓各一個 glb）；動作屬母體，補入新動作後所有貓自動擁有；本機模式（可新增／產生）只在非 production 且設了 CAT_STUDIO_ROOT 時啟用；正式站改讀 `public/hq-cat-models/` 示範貓（已完成的 bb）供預覽，寫入仍關閉。004_meow_cat_models.sql（資料表 meow_cat_models、meow_cat_model_jobs、bucket meow-cat-photos／meow-cat-models）在 PR 3，執行前須經 Tina 確認。

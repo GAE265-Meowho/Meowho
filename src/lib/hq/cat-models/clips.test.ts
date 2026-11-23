@@ -91,4 +91,13 @@ describe("clipPupil", () => {
       expect(buildClipItems(names).find(i => i.code === "scratch"), f).toMatchObject({ label: "磨爪", status: "ready", available: true });
     }
   });
+  it("鬍鬚（#610）：成貓、幼貓母體都有 whiskers 網格，掛在 head0 骨頭下跟著頭動", () => {
+    for (const f of ["base_clips.glb", "base_clips_kitten.glb"]) {
+      const b = readFileSync(join(process.cwd(), "public/hq-cat-models/base", f));
+      const gltf = JSON.parse(b.subarray(20, 20 + b.readUInt32LE(12)).toString("utf8")) as { nodes: { name?: string; mesh?: number; children?: number[] }[] };
+      const w = gltf.nodes.findIndex(n => n.name === "whiskers" && n.mesh !== undefined);
+      expect(w, f).toBeGreaterThanOrEqual(0);
+      expect(gltf.nodes.find(n => n.children?.includes(w))?.name, f).toBe("head0");
+    }
+  });
 });
