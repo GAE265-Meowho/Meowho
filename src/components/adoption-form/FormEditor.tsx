@@ -1,6 +1,7 @@
 "use client";
 // 中途在待領養貓的 profile 裡建立與管理領養問卷（#89）。規則在 lib/adoption-form/questionnaire.ts。
 // 沒有問卷時：產生基本問卷，或從同一個喵戶的另一隻貓複製。有問卷時：編輯題目、開放或暫停、看收到的回覆。
+// 設定「是否必須完成領養任務？」（0044 require_task）：選是，領養人要先完成這隻貓的領養任務才能送出問卷。
 import { useEffect, useState } from "react";
 import {
   QUESTION_TYPES, SECTIONS, addCustom, baseQuestionnaire, canOpenForm, moveQuestion, removeQuestion, updateQuestion, validateQuestions,
@@ -14,12 +15,13 @@ import Icon from "../ui/Icon";
 import { Responses } from "./Responses";
 import s from "./form.module.css";
 
-interface FormRow { id: string; questions: Question[]; is_open: boolean }
+interface FormRow { id: string; questions: Question[]; is_open: boolean; require_task?: boolean }
 
 export function FormEditor({ catId, catStatus, householdId }: { catId: string; catStatus: string; householdId: string }) {
   const sb = getBrowserSupabase();
   const [form, setForm] = useState<FormRow | null | undefined>(undefined);
   const [draft, setDraft] = useState<Question[] | null>(null);
+  const [requireTask, setRequireTask] = useState(false);
   const [others, setOthers] = useState<{ cat_id: string; name: string; questions: Question[] }[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -30,7 +32,7 @@ export function FormEditor({ catId, catStatus, householdId }: { catId: string; c
     if (!sb) return;
     (async () => {
       const [{ data }, { data: siblings }] = await Promise.all([
-        sb.from("meow_adoption_forms").select("id, questions, is_open").eq("cat_id", catId).maybeSingle(),
+        sb.from("meow_adoption_forms").select("*").eq("cat_id", catId).maybeSingle(),
         sb.from("meow_adoption_forms").select("cat_id, questions, cat:meow_cats!inner(name, household_id)").neq("cat_id", catId).eq("cat.household_id", householdId),
       ]);
       setForm((data as FormRow | null) ?? null);
@@ -45,14 +47,16 @@ export function FormEditor({ catId, catStatus, householdId }: { catId: string; c
     if (loaded && window.location.hash === "#form-editor") document.getElementById("form-editor")?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [loaded]);
 
-  async function save(questions: Question[], isOpen = form?.is_open ?? true) {
+  async function save(questions: Question[], isOpen = form?.is_open ?? true, mustTask = form?.require_task ?? false) {
     if (!sb) return;
     const errs = validateQuestions(questions);
     if (errs.length) { setError(errs.join("、")); return; }
     setSaving(true); setError(null);
+    // 0044 還沒執行時資料表沒有 require_task：沒開這個設定就不寫，讀取用 *，舊資料庫也不會壞
+    const row = { cat_id: catId, questions, is_open: isOpen && adoptable, ...(mustTask || form?.require_task !== undefined ? { require_task: mustTask } : {}) };
     const { data, error: err } = await sb.from("meow_adoption_forms")
-      .upsert({ cat_id: catId, questions, is_open: isOpen && adoptable }, { onConflict: "cat_id" })
-      .select("id, questions, is_open").single();
+      .upsert(row, { onConflict: "cat_id" })
+      .select("*").single();
     setSaving(false);
     if (err) { setError(err.message.includes("form_cat_not_adoptable") ? "只有待領養的貓能開放問卷。" : `儲存失敗：${err.message}`); return; }
     setForm(data as FormRow);
@@ -65,6 +69,8 @@ export function FormEditor({ catId, catStatus, householdId }: { catId: string; c
   const editing = draft ?? null;
   const list = editing ?? form?.questions ?? [];
   const set = (next: Question[]) => setDraft(next);
+  // 開始編輯（產生、複製、編輯題目）時，任務設定從目前的問卷帶入
+  const startEdit = (next: Question[]) => { setRequireTask(form?.require_task ?? false); setDraft(next); };
 
   return (
     <section className={f.card} aria-labelledby="form-editor">
@@ -77,9 +83,9 @@ export function FormEditor({ catId, catStatus, householdId }: { catId: string; c
           <>
             <p className={f.lead}>想領養的人申請時會填這份問卷。可以先產生常見題目，再刪改成你要的樣子。</p>
             <div className={f.actions}>
-              <CatButton onClick={() => set(baseQuestionnaire())}>產生基本問卷</CatButton>
+              <CatButton onClick={() => startEdit(baseQuestionnaire())}>產生基本問卷</CatButton>
               {others.map(o => (
-                <CatButton key={o.cat_id} variant="ghost" size="sm" ears={false} onClick={() => set(o.questions.map(q => ({ ...q })))}>複製「{o.name}」的問卷</CatButton>
+                <CatButton key={o.cat_id} variant="ghost" size="sm" ears={false} onClick={() => startEdit(o.questions.map(q => ({ ...q })))}>複製「{o.name}」的問卷</CatButton>
               ))}
             </div>
           </>
@@ -91,12 +97,13 @@ export function FormEditor({ catId, catStatus, householdId }: { catId: string; c
           <div className={s.statusRow}>
             <span className={`${s.badge} ${form.is_open ? s.open : ""}`}>{form.is_open ? "開放填寫中" : "已暫停"}</span>
             <span className={f.lead}>{form.questions.length} 題</span>
+            <span className={f.lead}>{form.require_task ? "・須先完成領養任務才能送出" : "・不用先做領養任務"}</span>
           </div>
           {form.is_open && (
             <p className={f.lead}>填寫網址：<a className={s.link} href={`/cats/${catId}/apply`}>/cats/{catId.slice(0, 8)}…/apply</a></p>
           )}
           <div className={f.actions}>
-            <CatButton size="sm" onClick={() => set(form.questions.map(q => ({ ...q })))}>編輯題目</CatButton>
+            <CatButton size="sm" onClick={() => startEdit(form.questions.map(q => ({ ...q })))}>編輯題目</CatButton>
             {adoptable && (
               <CatButton variant="ghost" size="sm" ears={false} disabled={saving} onClick={() => save(form.questions, !form.is_open)}>
                 {form.is_open ? "暫停接受填寫" : "重新開放"}
@@ -109,6 +116,17 @@ export function FormEditor({ catId, catStatus, householdId }: { catId: string; c
 
       {editing && (
         <>
+          <div className={s.section}>
+            <h3 id="require-task">是否必須完成領養任務？</h3>
+            <div className={f.chips} role="radiogroup" aria-labelledby="require-task">
+              {([true, false] as const).map(b => (
+                <button key={String(b)} type="button" role="radio" aria-checked={requireTask === b} className={f.chip} onClick={() => setRequireTask(b)}>{b ? "是" : "否"}</button>
+              ))}
+            </div>
+            <p className={f.lead}>{requireTask
+              ? "領養人要先完成這隻貓的領養任務，才能送出問卷、提出領養。"
+              : "沒做領養任務也能送出問卷，送出前會提醒領養人先去做。"}</p>
+          </div>
           {(Object.keys(SECTIONS) as Section[]).map(sec => {
             const qs = list.filter(q => q.section === sec);
             if (!qs.length) return null;
@@ -177,7 +195,7 @@ export function FormEditor({ catId, catStatus, householdId }: { catId: string; c
 
           {error && <p className={f.error} role="alert">{error}</p>}
           <div className={f.actions}>
-            <CatButton disabled={saving} onClick={() => save(list)}>{saving ? "儲存中…" : form ? "儲存問卷" : "建立並開放問卷"}</CatButton>
+            <CatButton disabled={saving} onClick={() => save(list, form?.is_open ?? true, requireTask)}>{saving ? "儲存中…" : form ? "儲存問卷" : "建立並開放問卷"}</CatButton>
             <button type="button" className={f.linkBtn} onClick={() => { setDraft(null); setError(null); }}>取消</button>
           </div>
         </>
