@@ -234,7 +234,7 @@ function dashboard(presentation: ReturnType<typeof parseReportPresentation>, ite
   const back = '<a class="meow-dashboard-back" href="https://meowho.vercel.app/me"><span aria-hidden="true">←</span> 返回我的喵戶</a>';
   const banner = `<header class="meow-banner"><div class="meow-hero-art" aria-hidden="true"></div>
     <div class="meow-banner-heading"><span class="meow-icon-tile">${icon("shield")}</span><div><h1>你的居家安全檢測結果</h1>
-    <p class="meow-improvement-total">需要改善 <strong>${items.length}</strong> 項</p></div></div>
+    <p class="meow-improvement-total">${icon("alert")}<span>需要改善 <strong>${items.length}</strong> 項</span></p></div></div>
     <div class="meow-banner-actions">${toggle("down")}${pdf}</div></header>`;
   const rows = items.map((item, index) => improvement(item, index, index === itemIndex)).join("");
   const empty = "<p>目前未列出改善項目。可查看完整報告及查核建議。</p>";
@@ -261,7 +261,7 @@ function improvement(item: ReturnType<typeof parseReportPresentation>["items"][n
     : "畫面中的具體位置待確認。";
   const simulatedPosition = afterRegion ? "綠色虛線為 AI 模擬對應區域。" : "這張 AI 示意圖的對應位置待確認。";
   const position = item.before ? `<p>${originalPosition}${item.after ? simulatedPosition + "實際改善情形仍待現場確認。" : ""}</p>` : "";
-  const analysis = `<details class="meow-analysis"><summary>查看詳細說明${icon("down")}</summary><div class="meow-analysis-body">${original}${position}</div></details>`;
+  const analysis = `<details class="meow-analysis"><summary>${icon("info")}查看詳細說明${icon("down")}</summary><div class="meow-analysis-body">${original}${position}</div></details>`;
   const titleIcon = hazardIcon(item.name);
   const symbol = titleIcon === "alert" && "hazard" in item && typeof item.hazard === "string" ? hazardIcon(item.hazard) : titleIcon;
   return `<details class="meow-item"${open ? " open" : ""}><summary class="meow-hero" id="${panelId}">
