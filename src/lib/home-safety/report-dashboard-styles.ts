@@ -14,7 +14,10 @@ body:has(.meow-dashboard)>nav{display:none}
 .meow-dashboard .meow-icon-tile{display:grid;place-items:center;width:76px;aspect-ratio:1;border-radius:20px;background:var(--mint-soft);color:var(--green);flex:none}
 .meow-icon-tile .meow-icon{width:47px}
 .meow-banner{position:relative;isolation:isolate;overflow:hidden;min-height:235px;box-sizing:border-box;background:#fffaf3;border:1px solid var(--white);border-radius:var(--radius);box-shadow:var(--shadow);padding:29px 36px 20px}
-.meow-hero-art{position:absolute;z-index:-1;inset:0 0 0 auto;width:100%;height:100%;background:linear-gradient(90deg,#fffaf3 58%,transparent 76%),url('/home/safety-report/cover.webp') right 24%/clamp(245px,42%,460px) auto no-repeat}
+.meow-hero-art{position:absolute;z-index:-1;inset:0;overflow:hidden}
+.meow-hero-art::before,.meow-hero-art::after{content:"";position:absolute}
+.meow-hero-art::before{inset:-20px;background:linear-gradient(90deg,#fffaf3f7 5%,#fffaf3dd 55%,#fffaf380),url('/home/safety-report/cover.webp') right 40%/cover no-repeat;filter:blur(16px)}
+.meow-hero-art::after{inset:0 0 0 auto;width:clamp(300px,49%,540px);background:url('/home/safety-report/cover.webp') right 27%/100% auto no-repeat;mask-image:linear-gradient(90deg,transparent,black 48%)}
 .meow-banner-heading,.meow-title,.meow-banner-actions,.meow-section-heading,.meow-footer-copy{display:flex;align-items:center}
 .meow-banner-heading,.meow-footer-copy{gap:22px}
 .meow-banner .meow-icon-tile{width:84px}
@@ -100,7 +103,7 @@ body:has(.meow-dashboard)>nav{display:none}
 @media(max-width:900px){.meow-dashboard{padding-inline:22px}.meow-hero{grid-template-columns:46px minmax(0,210px) minmax(0,1fr) 21px}.meow-panel{gap:15px;padding-inline:18px}.meow-footer-art{opacity:.55;inset-inline:48% 14%}}
 @media(max-width:650px){
  .meow-dashboard{padding:0 12px 20px}.meow-banner{min-height:205px;padding:18px 13px 12px}.meow-banner-heading,.meow-footer-copy{gap:9px}.meow-banner .meow-icon-tile{width:47px;border-radius:13px}.meow-banner .meow-icon-tile .meow-icon{width:31px}
- .meow-hero-art{background:linear-gradient(90deg,#fffaf3 23%,#fffaf3e8 56%,#fffaf368 100%),url('/home/safety-report/cover.webp') right center/auto 112% no-repeat}
+ .meow-hero-art::after{width:78%;background-size:cover;mask-image:linear-gradient(90deg,transparent 15%,#0008 72%,#000a)}
  .meow-banner-actions{gap:10px}.meow-banner-actions .meow-report-toggle::after{display:none}.meow-banner .meow-improvement-total{padding-inline:9px}
  .meow-section-heading{margin:20px 1px 8px;gap:6px}.meow-section-heading .meow-icon{width:25px}.meow-order{font-size:12px}
  .meow-item>.meow-hero,.meow-item[open]>.meow-hero{grid-template-columns:36px minmax(0,1fr) 20px;gap:1px 9px;padding:8px 10px}
