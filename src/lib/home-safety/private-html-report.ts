@@ -113,7 +113,7 @@ export async function readPrivateReport({ id, reportId }: {
           assets: Promise.resolve(presentation.assets),
         });
       }
-      return new Response(renderReportPresentation(page, full, presentation, itemIndex), { headers: { ...headers, "Content-Type": "text/html; charset=utf-8" } });
+      return new Response(renderReportPresentation(page, full, presentation, itemIndex, undefined, id), { headers: { ...headers, "Content-Type": "text/html; charset=utf-8" } });
     }
     const viewHasAsset = process.env.MEOWHOME_PRIVATE_REPORT_VIEW === "true"
       && (await cachedReportView(store, prefix, reportId, report.attempt))?.assets.has(asset);

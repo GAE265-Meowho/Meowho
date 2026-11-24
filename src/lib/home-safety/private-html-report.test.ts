@@ -162,7 +162,7 @@ it("uses an authorized optional view without fetching historical HTML, then fall
       ? Buffer.from(JSON.stringify(view)) : Buffer.from("<!doctype html><body>歷史完整報告</body>"));
     const response = await readPrivateReport({ id, reportId });
     expect(response.status).toBe(200);
-    expect(await response.text()).toContain("需要改善（0）");
+    expect(await response.text()).toContain("共 0 項");
     expect(mock.download.mock.calls).toEqual([[prefix + "report-view.json"]]);
     mock.owner = false;
     expect((await readPrivateReport({ id, reportId })).status).toBe(404);
