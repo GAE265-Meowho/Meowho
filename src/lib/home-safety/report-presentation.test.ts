@@ -111,7 +111,7 @@ it.each([0, 1, 2, 3, 5])("renders %i independent native disclosures with deferre
   expect(closed).not.toMatch(/\?item=|<details[^>]+(?: name=| open)/);
   expect(closed).not.toContain("<img ");
   expect(closed).toContain(".meow-item[open] .meow-evidence-image{content:var(--evidence-image)}");
-  expect(closed).toContain(`共 ${count} 項`);
+  expect(closed).toContain(`需要改善 <strong>${count}</strong> 項`);
 });
 
 it("keeps an evidenced legacy priority action even if no comparison is available", () => {
@@ -140,7 +140,7 @@ it("uses the Worker summary as the source of truth and keeps text-only rows", ()
     + '<ol id="report-improvements" hidden><li data-label="書桌附近" data-action="固定線材" data-case="case-1"></li>'
     + '<li data-label="沙發旁" data-observation="可見線材" data-action="整理電線"></li></ol>');
   const opened = renderReportPresentation(html, false, undefined, 1);
-  expect(opened).toContain("共 2 項");
+  expect(opened).toContain("需要改善 <strong>2</strong> 項");
   expect(opened).toContain("整理電線");
   expect(openedPanel(opened)).not.toContain('role="img"');
 });
@@ -170,13 +170,14 @@ it("shows only reported counts, with a terse consequence and complete source tex
     .replace("若接觸可能纏繞", impact).replace("固定線材", "收高拉繩；固定線材"));
   const html = base.replace("</body>", '<section class="report-statistics"><dl><div><dt>需要現場確認</dt><dd>0</dd></div><div><dt>已分類危害類型</dt><dd>2</dd></div></dl></section></body>');
   const output = renderReportPresentation(html, false);
-  expect(output).toContain("<span>待現場確認</span> <strong>0</strong>");
-  expect(output).toContain("<span>危害類型</span> <strong>2</strong>");
+  expect(output).toContain("需要改善 <strong>1</strong> 項");
+  expect(output).not.toContain("<dt>需要現場確認</dt>");
+  expect(output).not.toContain("<dt>已分類危害類型</dt>");
   expect(output).not.toMatch(/高風險|中風險/);
   expect(output).toContain('<span class="meow-risk">貓可能咬線或被拉繩纏住。</span>');
   expect(output).toContain("<ol><li>收高拉繩</li><li>固定線材</li></ol>");
   expect(output).toContain(impact);
-  expect(renderReportPresentation(base, false)).not.toContain('class="meow-stat meow-stat-confirm"');
+  expect(output).toContain("<li>請確認實際可及程度。</li>");
 });
 
 it("escapes markup-like text in the header and guidance", () => {

@@ -14,5 +14,11 @@ export function reportDashboardCopy(impact: string, action: string, uncertainty?
   ).slice(0, 2);
   const checks = localChecks.length ? localChecks : clauses(uncertainty ?? "").slice(0, 1);
 
-  return { consequence, actions: clauses(action), checks };
+  const questions = checks.map(check => {
+    const condition = check.replace(/^(?:影片)?(?:無法|不能)確認/, "").replace(/(?:不明|待確認|未確認)$/, "").trim();
+    const question = condition.endsWith("？") ? condition : `${condition}？`;
+    return condition.includes("是否") || condition.includes("能否") ? question : `請確認${condition}。`;
+  });
+
+  return { consequence, actions: [...new Set(clauses(action))], checks: [...new Set(questions)] };
 }

@@ -143,17 +143,7 @@ export function parseReportPresentation(html: string) {
     }];
   }) : legacyItems.sort((a, b) => legacyRank(a.name) - legacyRank(b.name));
 
-  const overview = elements(doc, node => node.tagName === "section" && !!hasClass(node, "report-statistics"))[0];
-  const counts = new Map<string, number>();
-  if (overview) {
-    for (const entry of elements(overview, node => node.tagName === "dt")) {
-      const siblings = entry.parentNode?.childNodes.filter((child): child is Element => "tagName" in child);
-      const value = siblings?.[siblings.indexOf(entry) + 1];
-      const raw = value?.tagName === "dd" ? content(value).trim() : "";
-      if (/^\d{1,5}$/.test(raw)) counts.set(content(entry).trim(), Number(raw));
-    }
-  }
-  return { assets, items, headerStart, headerEnd, bodyEnd, images, counts };
+  return { assets, items, headerStart, headerEnd, bodyEnd, images };
 }
 
 const iconPaths = {
@@ -239,24 +229,16 @@ export function renderReportPresentation(html: string, full: boolean, presentati
     + renderFullEvidence(html, headerEnd, bodyEnd, images) + '</main>' + html.slice(bodyEnd);
 }
 
-function stat(label: string, count: number | undefined, symbol: keyof typeof iconPaths, kind: string, unit: string) {
-  if (count === undefined) return "";
-  return `<div class="meow-stat meow-stat-${kind}">${icon(symbol)}<div><span>${label}</span> <strong>${count}</strong> ${unit}</div></div>`;
-}
-
 function dashboard(presentation: ReturnType<typeof parseReportPresentation>, itemIndex: number | undefined, view: ReportView | undefined, homeId: string | undefined, pdf: string) {
-  const { items, counts } = presentation;
+  const { items } = presentation;
   const history = homeId && isReportUuid(homeId) ? `/homes/${homeId}/safety` : "/me";
   const toggle = (symbol: "down" | "arrow") => `<a class="meow-report-toggle" href="?view=full#report-view-return">展開完整圖文報告${icon(symbol)}</a>`;
   const nav = `<nav class="meow-nav" aria-label="MeowHome 居家安全檢測">
     <a class="meow-brand" href="/me">${icon("cat")}MeowHome｜AI 居家環境安全檢測</a>
     <div class="meow-nav-links"><a href="#report-view" aria-current="page">檢測報告</a><a href="${history}">歷史紀錄</a><a href="/me">我的空間</a><a class="meow-profile" href="/me" aria-label="返回我的喵戶">${icon("profile")}</a></div></nav>`;
-  const statistics = stat("需要改善", items.length, "alert", "primary", "項")
-    + stat("待現場確認", view?.statistics.confirmations ?? counts.get("需要現場確認"), "search", "confirm", "項")
-    + stat("危害類型", view?.statistics.hazards.length ?? counts.get("已分類危害類型"), "info", "types", "種");
   const banner = `<header class="meow-banner"><div class="meow-hero-art" aria-hidden="true"></div>
     <div class="meow-banner-heading"><span class="meow-icon-tile">${icon("shield")}</span><div><h1>你的居家安全檢測結果</h1>
-    <p>先處理貓可能接觸的居家風險。</p></div></div><div class="meow-stats">${statistics}</div>
+    <p class="meow-improvement-total">需要改善 <strong>${items.length}</strong> 項</p></div></div>
     <div class="meow-banner-actions">${toggle("down")}${pdf}</div></header>`;
   const rows = items.map((item, index) => improvement(item, index, index === itemIndex)).join("");
   const empty = "<p>目前未列出改善項目。可查看完整報告及查核建議。</p>";
@@ -264,7 +246,7 @@ function dashboard(presentation: ReturnType<typeof parseReportPresentation>, ite
     <ul>${view.confirmations.map(check => `<li><strong>${escape(check.label)}</strong>　${check.conditions.map(escape).join("；")}</li>`).join("")}</ul></details>` : "";
   return `${nav}<main class="meow-dashboard" id="report-view" tabindex="-1">${banner}
     <section class="meow-priority" aria-labelledby="priority-title"><div class="meow-section-heading">
-    ${icon("paw")}<h2 id="priority-title">優先改善項目</h2><span class="meow-count">共 ${items.length} 項</span>
+    ${icon("paw")}<h2 id="priority-title">優先改善項目</h2>
     ${items.length ? '<span class="meow-order">依報告順序</span>' : ""}</div>${rows || empty}${confirmations}</section>
     <section class="meow-footer" aria-labelledby="meow-full-title"><div class="meow-footer-art" aria-hidden="true"></div>
     <div class="meow-footer-copy"><span class="meow-icon-tile">${icon("file")}</span><div><h2 id="meow-full-title">完整詳細報告</h2>
@@ -276,7 +258,7 @@ function improvement(item: ReturnType<typeof parseReportPresentation>["items"][n
   const { region, afterRegion } = item;
   const panelId = `improvement-${index + 1}`;
   const actions = `<section class="meow-card meow-action"><h3>${icon("action")}建議行動</h3><ol>${copy.actions.map(action => `<li>${escape(action)}</li>`).join("")}</ol></section>`;
-  const checks = copy.checks.length ? `<section class="meow-limits"><h3>${icon("search")}需要現場確認</h3><p>${copy.checks.map(escape).join("；")}。</p></section>` : "";
+  const checks = copy.checks.length ? `<section class="meow-limits"><h3>${icon("search")}需要現場確認</h3><ul>${copy.checks.map(check => `<li>${escape(check)}</li>`).join("")}</ul></section>` : "";
   const original = [
     ["直接觀察", item.observation], ["可能後果", item.impact], ["建議行動", item.action], ["需要現場確認", item.uncertainty],
   ].filter((entry): entry is [string, string] => Boolean(entry[1]))

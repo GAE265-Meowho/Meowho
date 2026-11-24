@@ -43,7 +43,7 @@ describe("private report view v1", () => {
     const view = ReportViewSchema.parse(fixture);
     const summary = renderPrivateReportView(household, view);
     const detail = renderPrivateReportView(household, view, 0);
-    expect(summary).toContain("共 1 項");
+    expect(summary).toContain("需要改善 <strong>1</strong> 項");
     expect(summary).toContain('href="/me">返回我的喵戶');
     expect(summary).toContain("查核防墜設施");
     expect(summary).toContain('<details class="meow-item">');
