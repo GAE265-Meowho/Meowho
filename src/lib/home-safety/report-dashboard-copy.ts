@@ -1,6 +1,6 @@
 const clauses = (text: string) => text.split(/[；;。\n]+/).map(part => part.trim()).filter(Boolean);
 
-export function reportDashboardCopy(impact: string, action: string, uncertainty?: string) {
+export function reportDashboardCopy(impact: string, action: string) {
   const statements = clauses(impact);
   // The report may end with an explicitly stated mitigation goal. Earlier
   // clauses can mix observations and qualifications and are kept verbatim.
@@ -9,16 +9,5 @@ export function reportDashboardCopy(impact: string, action: string, uncertainty?
   const consequence = goal
     ? subject ? `${subject[1]}可能${subject[2]}。` : `可能後果：${goal[1]}。`
     : impact.length <= 70 && statements.length === 1 ? impact.trim() : "";
-  const localChecks = statements.filter(part =>
-    part.length <= 32 && /不明$|待確認$|未確認$/.test(part),
-  ).slice(0, 2);
-  const checks = localChecks.length ? localChecks : clauses(uncertainty ?? "").slice(0, 1);
-
-  const questions = checks.map(check => {
-    const condition = check.replace(/^(?:影片)?(?:無法|不能)確認/, "").replace(/(?:不明|待確認|未確認)$/, "").trim();
-    const question = condition.endsWith("？") ? condition : `${condition}？`;
-    return condition.includes("是否") || condition.includes("能否") ? question : `請確認${condition}。`;
-  });
-
-  return { consequence, actions: [...new Set(clauses(action))], checks: [...new Set(questions)] };
+  return { consequence, actions: [...new Set(clauses(action))] };
 }

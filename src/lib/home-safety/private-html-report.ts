@@ -89,12 +89,11 @@ export async function readPrivateReport({ id, reportId }: {
     const store = getMediaStore();
     if (!store) return empty(503);
     if (!asset) {
-      if (!full && process.env.MEOWHOME_PRIVATE_REPORT_VIEW === "true") {
-        const cached = await cachedReportView(store, prefix, reportId, report.attempt);
-        if (cached) {
-          if (availabilityOnly) return empty(204);
-          return new Response(renderPrivateReportView(id, cached.view, itemIndex), { headers: { ...headers, "Content-Type": "text/html; charset=utf-8" } });
-        }
+      const cached = process.env.MEOWHOME_PRIVATE_REPORT_VIEW === "true" && (!full || !availabilityOnly)
+        ? await cachedReportView(store, prefix, reportId, report.attempt) : null;
+      if (!full && cached) {
+        if (availabilityOnly) return empty(204);
+        return new Response(renderPrivateReportView(cached.view, itemIndex), { headers: { ...headers, "Content-Type": "text/html; charset=utf-8" } });
       }
       const html = await readReportHtml(store, prefix);
       if (html === null) return availabilityOnly ? empty(404) : new Response(null, {
@@ -113,7 +112,7 @@ export async function readPrivateReport({ id, reportId }: {
           assets: Promise.resolve(presentation.assets),
         });
       }
-      return new Response(renderReportPresentation(page, full, presentation, itemIndex, undefined, id), { headers: { ...headers, "Content-Type": "text/html; charset=utf-8" } });
+      return new Response(renderReportPresentation(page, full, presentation, itemIndex, cached?.view), { headers: { ...headers, "Content-Type": "text/html; charset=utf-8" } });
     }
     const viewHasAsset = process.env.MEOWHOME_PRIVATE_REPORT_VIEW === "true"
       && (await cachedReportView(store, prefix, reportId, report.attempt))?.assets.has(asset);

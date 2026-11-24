@@ -177,7 +177,9 @@ it("shows only reported counts, with a terse consequence and complete source tex
   expect(output).toContain('<span class="meow-risk">貓可能咬線或被拉繩纏住。</span>');
   expect(output).toContain("<ol><li>收高拉繩</li><li>固定線材</li></ol>");
   expect(output).toContain(impact);
-  expect(output).toContain("<li>請確認實際可及程度。</li>");
+  expect(output).not.toContain('class="meow-limits"');
+  expect(output).toContain('href="https://meowho.vercel.app/me"');
+  expect(output).not.toContain("查看所有待現場確認事項");
 });
 
 it("escapes markup-like text in the header and guidance", () => {

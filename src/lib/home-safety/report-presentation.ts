@@ -1,6 +1,5 @@
 import type { ReportView } from "./report-view-contract";
 import { parse, type DefaultTreeAdapterTypes } from "parse5";
-import { isReportUuid } from "./report-access";
 import { reportDashboardCopy } from "./report-dashboard-copy";
 import { reportDashboardStyles } from "./report-dashboard-styles";
 
@@ -162,8 +161,6 @@ const iconPaths = {
   arrow: '<path d="M4 12h15m-6-6 6 6-6 6"/>',
   download: '<path d="M12 3v12m-4-4 4 4 4-4M4 15v5h16v-5"/>',
   search: '<circle cx="10" cy="10" r="6"/><path d="m15 15 5 5m-10-13v6m-3-3h6"/>',
-  profile: '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
-  cat: '<path d="M3 13 4 3l5 5a13 13 0 0 1 6 0l5-5 1 10c2 8-4 9-9 9s-11-1-9-9Z"/>',
   paw: '<path fill="currentColor" stroke="none" d="M12 10c3 0 3.8 3 6 5 3 4-1 7-4 5a4 4 0 0 0-4 0c-3 2-7-1-4-5 2.2-2 3-5 6-5Z"/><ellipse cx="3.5" cy="10" rx="2.1" ry="2.7" fill="currentColor" stroke="none"/><ellipse cx="8.5" cy="5.7" rx="2.1" ry="2.7" fill="currentColor" stroke="none"/><ellipse cx="15.5" cy="5.7" rx="2.1" ry="2.7" fill="currentColor" stroke="none"/><ellipse cx="20.5" cy="10" rx="2.1" ry="2.7" fill="currentColor" stroke="none"/>',
 } as const;
 
@@ -215,50 +212,46 @@ function preloadEvidence(items: ReturnType<typeof parseReportPresentation>["item
 }
 
 
-export function renderReportPresentation(html: string, full: boolean, presentation = parseReportPresentation(html), itemIndex?: number, view?: ReportView, homeId?: string) {
+export function renderReportPresentation(html: string, full: boolean, presentation = parseReportPresentation(html), itemIndex?: number, view?: ReportView) {
   const { items, headerStart, headerEnd, bodyEnd, images } = presentation;
   if (headerStart === undefined || headerEnd === undefined || bodyEnd === undefined || headerEnd > bodyEnd) return html;
 
   const pdf = `<a class="meow-report-pdf" href="pdf">${icon("download")}下載完整 PDF</a>`;
   if (!full) return html.slice(0, headerStart) + preloadEvidence(items) + reportDashboardStyles
-    + dashboard(presentation, itemIndex, view, homeId, pdf) + html.slice(bodyEnd);
+    + dashboard(presentation, itemIndex, pdf) + html.slice(bodyEnd);
 
   const collapse = `<a class="meow-report-toggle" href="html#report-view" id="report-view-return">收合完整報告${icon("up")}</a>`;
   const toolbarStyle = '<style>#full-report>.meow-report-toggle,#full-report>.meow-report-pdf{display:inline-flex;align-items:center;gap:8px;min-height:44px}#full-report>.meow-report-toggle .meow-icon,#full-report>.meow-report-pdf .meow-icon{width:21px}</style>';
   return html.slice(0, headerEnd) + toolbarStyle + '<main id="full-report">' + collapse + "　" + pdf
+    + (view?.confirmations.length ? `<section aria-labelledby="report-confirmations-title"><h2 id="report-confirmations-title">待現場確認事項</h2><ul>${view.confirmations.map(check =>
+      `<li><strong>${escape(check.label)}</strong>　${check.conditions.map(escape).join("；")}</li>`).join("")}</ul></section>` : "")
     + renderFullEvidence(html, headerEnd, bodyEnd, images) + '</main>' + html.slice(bodyEnd);
 }
 
-function dashboard(presentation: ReturnType<typeof parseReportPresentation>, itemIndex: number | undefined, view: ReportView | undefined, homeId: string | undefined, pdf: string) {
+function dashboard(presentation: ReturnType<typeof parseReportPresentation>, itemIndex: number | undefined, pdf: string) {
   const { items } = presentation;
-  const history = homeId && isReportUuid(homeId) ? `/homes/${homeId}/safety` : "/me";
   const toggle = (symbol: "down" | "arrow") => `<a class="meow-report-toggle" href="?view=full#report-view-return">展開完整圖文報告${icon(symbol)}</a>`;
-  const nav = `<nav class="meow-nav" aria-label="MeowHome 居家安全檢測">
-    <a class="meow-brand" href="/me">${icon("cat")}MeowHome｜AI 居家環境安全檢測</a>
-    <div class="meow-nav-links"><a href="#report-view" aria-current="page">檢測報告</a><a href="${history}">歷史紀錄</a><a href="/me">我的空間</a><a class="meow-profile" href="/me" aria-label="返回我的喵戶">${icon("profile")}</a></div></nav>`;
+  const back = '<a class="meow-dashboard-back" href="https://meowho.vercel.app/me"><span aria-hidden="true">←</span> 返回我的喵戶</a>';
   const banner = `<header class="meow-banner"><div class="meow-hero-art" aria-hidden="true"></div>
     <div class="meow-banner-heading"><span class="meow-icon-tile">${icon("shield")}</span><div><h1>你的居家安全檢測結果</h1>
     <p class="meow-improvement-total">需要改善 <strong>${items.length}</strong> 項</p></div></div>
     <div class="meow-banner-actions">${toggle("down")}${pdf}</div></header>`;
   const rows = items.map((item, index) => improvement(item, index, index === itemIndex)).join("");
   const empty = "<p>目前未列出改善項目。可查看完整報告及查核建議。</p>";
-  const confirmations = view?.confirmations.length ? `<details class="meow-analysis meow-report-checks"><summary>查看所有待現場確認事項${icon("down")}</summary>
-    <ul>${view.confirmations.map(check => `<li><strong>${escape(check.label)}</strong>　${check.conditions.map(escape).join("；")}</li>`).join("")}</ul></details>` : "";
-  return `${nav}<main class="meow-dashboard" id="report-view" tabindex="-1">${banner}
+  return `<main class="meow-dashboard" id="report-view" tabindex="-1">${back}${banner}
     <section class="meow-priority" aria-labelledby="priority-title"><div class="meow-section-heading">
     ${icon("paw")}<h2 id="priority-title">優先改善項目</h2>
-    ${items.length ? '<span class="meow-order">依報告順序</span>' : ""}</div>${rows || empty}${confirmations}</section>
+    ${items.length ? '<span class="meow-order">依報告順序</span>' : ""}</div>${rows || empty}</section>
     <section class="meow-footer" aria-labelledby="meow-full-title"><div class="meow-footer-art" aria-hidden="true"></div>
     <div class="meow-footer-copy"><span class="meow-icon-tile">${icon("file")}</span><div><h2 id="meow-full-title">完整詳細報告</h2>
     <p>查看完整分析、風險說明與改善建議。</p></div></div>${toggle("arrow")}</section></main>`;
 }
 
 function improvement(item: ReturnType<typeof parseReportPresentation>["items"][number], index: number, open: boolean) {
-  const copy = reportDashboardCopy(item.impact, item.action, item.uncertainty);
+  const copy = reportDashboardCopy(item.impact, item.action);
   const { region, afterRegion } = item;
   const panelId = `improvement-${index + 1}`;
   const actions = `<section class="meow-card meow-action"><h3>${icon("action")}建議行動</h3><ol>${copy.actions.map(action => `<li>${escape(action)}</li>`).join("")}</ol></section>`;
-  const checks = copy.checks.length ? `<section class="meow-limits"><h3>${icon("search")}需要現場確認</h3><ul>${copy.checks.map(check => `<li>${escape(check)}</li>`).join("")}</ul></section>` : "";
   const original = [
     ["直接觀察", item.observation], ["可能後果", item.impact], ["建議行動", item.action], ["需要現場確認", item.uncertainty],
   ].filter((entry): entry is [string, string] => Boolean(entry[1]))
@@ -274,7 +267,7 @@ function improvement(item: ReturnType<typeof parseReportPresentation>["items"][n
   return `<details class="meow-item"${open ? " open" : ""}><summary class="meow-hero" id="${panelId}">
     <span class="meow-hazard-icon">${icon(symbol)}</span><span class="meow-title">${escape(item.name)}</span>
     ${copy.consequence ? `<span class="meow-risk">${escape(copy.consequence)}</span>` : ""}${icon("down")}</summary>
-    <div id="${panelId}-panel" class="meow-panel${item.before ? "" : " solo"}"><div class="meow-instructions">${actions}${checks}${analysis}</div>${comparison(item)}</div></details>`;
+    <div id="${panelId}-panel" class="meow-panel${item.before ? "" : " solo"}"><div class="meow-instructions">${actions}${analysis}</div>${comparison(item)}</div></details>`;
 }
 
 function comparison(item: ReturnType<typeof parseReportPresentation>["items"][number]) {
