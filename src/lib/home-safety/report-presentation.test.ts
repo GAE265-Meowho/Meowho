@@ -46,7 +46,7 @@ it("preserves the evidence without a fabricated box or After image", () => {
   expect(output).not.toContain('class="region estimated"');
   expect(output).not.toContain("改善後｜AI 模擬示意");
   expect(output).toContain("這個項目沒有可展示的 AI 改善示意。");
-  expect(output).toContain("此報告未提供這張局部影像。");
+  expect(output).not.toContain('<section class="meow-closeups">');
   expect(output.match(/role="img"/g)).toHaveLength(1);
 });
 

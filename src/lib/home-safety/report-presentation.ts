@@ -193,7 +193,7 @@ function evidenceImage(path: string, alt: string) {
 }
 
 function detailFigure(side: "before" | "after", caption: string, image: string | undefined) {
-  const label = side === "before" ? "改善前" : "改善後";
+  const label = side === "before" ? "改善前" : "改善後｜AI 模擬示意";
   return `<figure class="meow-${side}-detail">${image && assetPath.test(image)
     ? `<figcaption>${label}</figcaption><a href="${image}" aria-label="放大${caption}"><div class="meow-photo">${evidenceImage(image, caption)}</div></a>`
     : "<p>此報告未提供這張局部影像。</p>"}</figure>`;
@@ -286,10 +286,10 @@ function comparison(item: ReturnType<typeof parseReportPresentation>["items"][nu
     <div class="meow-photo"><div class="evidence">${evidenceImage(item.after, item.name + "的 AI 改善示意")}${marker(afterRegion, " simulated-region")}</div></div>`
     : "<p>這個項目沒有可展示的 AI 改善示意。</p>"}</figure>`;
   const between = `<span class="meow-between">${icon("arrow")}</span>`;
-  const closeups = !item.cropped ? `<section class="meow-closeups"><h3>${icon("search")}局部對照</h3><div class="meow-compare">
+  const closeups = !item.cropped && (item.detailBefore || item.detailAfter) ? `<section class="meow-closeups"><h3>${icon("search")}局部對照</h3><div class="meow-compare">
     ${detailFigure("before", "改善前局部｜原圖", item.detailBefore)}${item.detailBefore && item.detailAfter ? between : ""}
     ${detailFigure("after", "改善後局部｜AI 模擬示意", item.detailAfter)}</div></section>` : "";
-  return `<div class="meow-evidence-grid"><div class="meow-compare">${before}${item.after ? between : ""}${after}</div>${closeups}</div>`;
+  return `<div class="meow-evidence-grid"><div class="meow-compare">${before}${item.after ? between : ""}${after}</div></div>${closeups}`;
 }
 
 function renderFullEvidence(html: string, headerEnd: number, bodyEnd: number, images: ReturnType<typeof parseReportPresentation>["images"]) {

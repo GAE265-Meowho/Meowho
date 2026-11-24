@@ -474,3 +474,5 @@ Worker 原始碼、測試、Docker、[環境設定](../../workers/welfarelens/EN
 `MEOWHOME_PRIVATE_REPORT_VIEW=true` 時，現有 Owner HTML 路由優先讀取當前 attempt 的可選 `report-view.json`。伺服器直接用已驗證資料產生手風琴；首屏無案例圖片標記。視圖缺失、版本不符、損壞或關閉時沿用歷史 HTML 與摘要回退。完整版 HTML 與 PDF 仍走原本授權路徑。Keeper 分享範圍、共用 `meow_env_reports.items` 和 RPC 保持原樣。
 
 安全報告頁首只呈現需要改善的項目總數。待現場確認保留於各案例與詳細說明，局部證據在各欄等寬呈現並保留原始比例。
+
+安全報告精修：新版影片分析 Prompt 在現有請求內要求物品與位置明確的標題、單句條件式風險、逐行行動與現場問句。保留風險推論、理由及影響的既有資料契約；歷史報告仍使用已儲存的文字。

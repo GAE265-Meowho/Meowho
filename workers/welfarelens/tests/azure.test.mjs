@@ -38,7 +38,7 @@ const response = (data = candidate) =>
   });
 
 test('video wire contract limits each generic condition to one boolean/null fact and stays under Azure property budget',async()=>{
- let schema;await createAnalyzeHandler(env,async(_u,init)=>{schema=JSON.parse(init.body).response_format.json_schema.schema;return response();},120000,true)(req());
+ let schema;await createAnalyzeHandler(env,async(_u,init)=>{const body=JSON.parse(init.body);schema=body.response_format.json_schema.schema;assert.match(body.messages[0].content,/one concrete verb-led action per line/);assert.match(body.messages[0].content,/complete question a person can check on site/);return response();},120000,true)(req());
  const resolve=x=>x.$ref?x.$ref.split('/').slice(1).reduce((a,k)=>a[k],schema):x;
  const cases=resolve(schema.properties.assessments.items).anyOf.map(resolve),h05=cases.find(x=>x.properties.rule_id.enum?.includes('H05')),facts=resolve(h05.properties.facts),fact=resolve(facts.items);
  assert.equal(facts.maxItems,1);assert.deepEqual(fact.properties.value.type,['boolean','null']);
