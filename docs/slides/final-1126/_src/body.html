@@ -59,6 +59,7 @@
   <img class="logo reveal" src="assets/meowho-horizontal-color.svg" alt="Meowho喵戶">
   <h1 class="reveal d2">貓在找<br><span>準備好</span>的你</h1>
   <p class="theme reveal d3">掃描房間 3D 試養：讓貓先住進你家</p>
+  <div class="qr reveal d4"><img src="assets/qr-meowho.svg" alt="Meowho喵戶前台 QR code"><div><b>掃描進入喵戶</b>meowho.vercel.app</div></div>
   <p class="meta reveal d4">AI 團隊專題｜Meowho喵戶<br>子哲・渝茜・Tina・世安・珮瑜・清俊</p>
 </section>
 
@@ -126,8 +127,8 @@
   <h2 class="reveal">先看喵戶怎麼<em>陪一隻貓找到家</em></h2>
   <div class="body" style="top:240px">
     <div class="vid reveal d1">
-      <!-- 前導影片直接內嵌：翻到這頁自動從頭播放（有聲），翻走就暫停 -->
-      <video src="assets/video/trailer.mp4" poster="assets/video/trailer_poster.jpg" class="autoplay-on-slide" controls preload="auto" playsinline></video>
+      <!-- 前導影片直接內嵌：按播放才開始（不自動播放），翻走就暫停 -->
+      <video src="assets/video/trailer.mp4" poster="assets/video/trailer_poster.jpg" class="pause-on-leave" controls preload="auto" playsinline></video>
     </div>
   </div>
   <!--PG-->
@@ -315,6 +316,7 @@
         <div class="box honey irow"><span class="ib xs w"><svg class="ic"><use href="#i-search"/></svg></span><div><b>① 首頁一句話搜尋</b>說說你的生活，例如白天不在家</div></div>
         <div class="box irow"><span class="ib xs"><svg class="ic"><use href="#i-cat"/></svg></span><div><b>② 看貓卡</b>每張卡都寫為什麼推薦、哪裡要注意</div></div>
         <div class="box cocoa irow"><span class="ib xs c" style="background:rgba(255,248,236,.14)"><svg class="ic"><use href="#i-heart"/></svg></span><div><b>③ 點進貓咪頁，按領養</b>開始這隻貓的領養流程</div></div>
+        <div class="go-demo" style="justify-content:flex-start;margin-top:12px"><a class="demo-btn" href="https://meowho.vercel.app/" target="_blank" rel="noopener"><svg class="ic"><use href="#i-home"/></svg>到首頁找貓<svg class="ic"><use href="#i-arrow"/></svg></a></div>
       </div>
     </div>
     <div class="tech reveal d3" style="margin-top:22px"><svg class="ic"><use href="#i-search"/></svg><span><b>程式亮點</b>LLM 從一句話抓出條件，再用 Embedding＋pgvector 排序；推薦理由由 AI 依貓咪資料撰寫</span></div>
@@ -513,8 +515,8 @@
     if(on&&!v.dataset.on){v.dataset.on='1';v.currentTime=0;v.play().catch(function(){});}
     else if(!on&&v.dataset.on){delete v.dataset.on;v.pause();}
   });
-  /* 開場影片不自動播放；翻走時暫停 */
-  document.querySelectorAll('.slide.opening video').forEach(function(v){if(!v.closest('.slide').classList.contains('active'))v.pause();});}
+  /* 開場影片、前導影片不自動播放；翻走時暫停 */
+  document.querySelectorAll('.slide.opening video, video.pause-on-leave').forEach(function(v){if(!v.closest('.slide').classList.contains('active'))v.pause();});}
   new MutationObserver(sync).observe(document.body,{subtree:true,attributes:true,attributeFilter:['class']});
   document.addEventListener('DOMContentLoaded',sync); sync();
 })();
