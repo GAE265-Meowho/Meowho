@@ -407,3 +407,9 @@ code{font:500 .92em ui-monospace,Menlo,monospace;background:var(--cream-d);borde
 /* 開場影片：整頁黑底播放，不自動播放 */
 .slide.opening{background:#000;padding:0}
 .slide.opening video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000;display:block}
+
+/* 封面：前台 QR code（深咖啡色），點了也能開首頁 */
+.cover .qr{position:absolute;left:122px;top:736px;display:flex;align-items:center;gap:26px;background:#fff;border:3px solid var(--cocoa);border-radius:28px;padding:18px 34px 18px 18px;z-index:2}
+.cover .qr img{width:150px;height:150px;display:block}
+.cover .qr div{font:500 24px/1.5 var(--font-body);color:var(--cocoa-2)}
+.cover .qr b{display:block;font:800 32px/1.4 var(--font-body);color:var(--cocoa)}
