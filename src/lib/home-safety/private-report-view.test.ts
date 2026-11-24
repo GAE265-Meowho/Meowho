@@ -3,10 +3,10 @@ import { describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 
 import { readReportView, renderPrivateReportView } from "./private-report-view";
+import { renderReportPresentation } from "./report-presentation";
 import { ReportViewSchema } from "./report-view-contract";
 
 const reportId = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
-const household = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const asset = (digit: string, mime: "image/jpeg" | "image/png" = "image/jpeg") => ({
   sha256: digit.repeat(64), name: digit.repeat(64) + (mime === "image/png" ? ".png" : ".jpg"),
   mime, width: 640, height: 360,
@@ -41,11 +41,15 @@ describe("private report view v1", () => {
 
   it("keeps four deferred assets inside a native disclosure and honors old item links", () => {
     const view = ReportViewSchema.parse(fixture);
-    const summary = renderPrivateReportView(household, view);
-    const detail = renderPrivateReportView(household, view, 0);
-    expect(summary).toContain("需要改善（1）");
-    expect(summary).toContain('href="/me">返回我的喵戶');
-    expect(summary).toContain("查核防墜設施");
+    const summary = renderPrivateReportView(view);
+    const detail = renderPrivateReportView(view, 0);
+    expect(summary).toContain("需要改善 <strong>1</strong> 項");
+    expect(summary).toContain('href="https://meowho.vercel.app/me"');
+    expect(summary).not.toContain("查核防墜設施");
+    expect(summary).toMatch(/<details class="meow-analysis">[\s\S]*?再次檢查可接近範圍[\s\S]*?<\/details>/);
+    const full = renderReportPresentation("<html><body><header></header><p>完整原文</p></body></html>", true, undefined, undefined, view);
+    expect(full).toContain("查核防墜設施");
+    expect(full).toContain("完整原文");
     expect(summary).toContain('<details class="meow-item">');
     expect(summary.match(/style="--evidence-image:url/g)).toHaveLength(4);
     expect(detail).toContain('<details class="meow-item" open>');

@@ -1,5 +1,7 @@
 import type { ReportView } from "./report-view-contract";
 import { parse, type DefaultTreeAdapterTypes } from "parse5";
+import { reportDashboardCopy } from "./report-dashboard-copy";
+import { reportDashboardStyles } from "./report-dashboard-styles";
 
 type Node = DefaultTreeAdapterTypes.Node;
 type Element = DefaultTreeAdapterTypes.Element;
@@ -143,76 +145,6 @@ export function parseReportPresentation(html: string) {
   return { assets, items, headerStart, headerEnd, bodyEnd, images };
 }
 
-function summarizeImpact(impact: string) {
-  // This Worker format can append a consequence as a mitigation goal after
-  // the observation and its limits. Reuse the stated consequence only.
-  const goal = /(?:^|[；。])\s*降低貓([^；。]+)的可能。?$/.exec(impact);
-  if (!goal) return { consequence: impact, limits: [] };
-  const limits = impact.slice(0, goal.index).split(/[；。]/)
-    .map(clause => clause.trim())
-    .filter(clause => /未確認|無法確認|不能確認|無法判定/.test(clause));
-  return { consequence: "貓可能" + goal[1].trim() + "。", limits };
-}
-
-const summaryStyles = `<style>
-html:has(.meow-priority){background:#f0f6f9}
-body:has(.meow-priority){max-width:1120px;color:#183247}
-.meow-banner,.meow-priority{--navy:#103b5b;--blue:#edf6fb;--ink:#183247;--red:#a62218;--red-soft:#fff0ee;--green:#285929;--green-soft:#eef7e7;--line:#d5e3ec;--radius:16px}
-.meow-banner{display:flex;align-items:center;justify-content:space-between;gap:14px;background:var(--navy);color:white;padding:clamp(16px,3vw,32px);border:0;border-radius:var(--radius)}
-.meow-banner h1{font-size:clamp(23px,3.8vw,40px);line-height:1.25;margin:4px 0 6px}
-.meow-banner p{font-size:14px;margin:0;color:#d9ebf5}
-.meow-banner .meow-icon{width:clamp(50px,7vw,84px);color:#c9e8f8}
-.meow-icon{display:block;width:clamp(42px,5vw,60px);height:auto;flex:none}
-.meow-priority{margin:clamp(12px,2vw,24px) 0;color:var(--ink);font-size:16px}
-.meow-priority p{margin:0}
-.meow-hero,.meow-card,.meow-limits{display:flex;align-items:center;gap:clamp(12px,2vw,20px)}
-.meow-hero{background:white;border:1px solid var(--line);border-radius:var(--radius);padding:clamp(12px,2.2vw,24px);margin-bottom:14px}
-.meow-hero .meow-icon{width:clamp(49px,6vw,78px);color:var(--red);background:var(--red-soft);border-radius:14px;padding:7px;box-sizing:border-box}
-.meow-item{margin:12px 0}
-.meow-hero{cursor:pointer;list-style:none}
-.meow-hero::-webkit-details-marker{display:none}
-.meow-item .meow-hero{margin:0;color:var(--ink);text-decoration:none;font-size:clamp(19px,3vw,26px);min-height:44px;overflow-wrap:anywhere}
-.meow-item .meow-hero span{flex:1;min-width:0}
-.meow-item .meow-hero .meow-icon:last-child{width:24px;background:none;padding:0}
-.meow-item .meow-hero:focus-visible{outline:2px solid var(--navy);outline-offset:3px}
-.meow-item[open]>.meow-hero{border-color:var(--navy)}
-.meow-item[open]>.meow-hero .meow-icon:last-child{transform:rotate(180deg)}
-.meow-item:not([open])>.meow-hero+div{display:none}
-.meow-hero+div{margin-top:12px}
-.meow-priority h2{font-size:clamp(22px,3.5vw,36px);line-height:1.2;margin:2px 0 0}
-.meow-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-template-areas:"impact action" "before after";gap:14px}
-.meow-grid.with-details{grid-template-areas:"impact action" "before after" "before-detail after-detail"}
-.meow-grid.solo{grid-template-columns:minmax(0,1fr);grid-template-areas:"impact" "action"}
-.meow-priority figure{min-width:0;margin:0;background:var(--blue);border-radius:var(--radius);padding:12px}
-.meow-priority figcaption{font-size:15px;margin:0 0 8px}
-.meow-priority .meow-before{grid-area:before}
-.meow-priority .meow-after{grid-area:after}
-.meow-priority .meow-before-detail{grid-area:before-detail}
-.meow-priority .meow-after-detail{grid-area:after-detail}
-.meow-photo{display:grid;place-items:center;aspect-ratio:16/9;container-type:size;background:white;border-radius:8px}
-.meow-item[open] .meow-evidence-image{content:var(--evidence-image)}
-.meow-photo .evidence{position:relative;max-width:100%;line-height:0}
-.meow-photo img,.meow-photo .meow-evidence-image{display:block;width:auto;height:auto;max-width:100%;max-height:100cqh;object-fit:contain;border-radius:8px}
-.meow-priority .region{position:absolute;box-sizing:border-box;border:3px solid var(--red);pointer-events:none;box-shadow:0 0 0 1px white}
-.meow-priority .estimated{border-style:dashed}
-.meow-priority .simulated-region{border-style:dashed;border-color:var(--green)}
-.meow-priority figure p{margin-top:8px;font-size:14px}
-.meow-card{border-radius:var(--radius);padding:clamp(12px,2vw,20px)}
-.meow-card h4{margin:0 0 4px;font-size:14px}
-.meow-card p{font-size:clamp(17px,2vw,21px);font-weight:700;line-height:1.45}
-.meow-impact{grid-area:impact;background:var(--red-soft);color:var(--red)}
-.meow-action{grid-area:action;background:var(--green-soft);color:var(--green)}
-.meow-limits{background:var(--blue);padding:12px 16px;border-radius:12px;margin-top:14px}
-.meow-limits .meow-icon{width:28px;color:var(--navy)}
-.meow-limits strong{display:block}
-.meow-report-toggle,.meow-report-pdf{display:inline-flex;align-items:center;gap:8px;min-height:44px;margin:8px 12px 4px 0}
-.meow-report-toggle{padding:0 16px;border-radius:999px;background:#103b5b;color:white;text-decoration:none;font-weight:700}
-.meow-report-pdf{color:#103b5b}
-.meow-report-toggle .meow-icon,.meow-report-pdf .meow-icon{width:21px}
-.meow-report-toggle:focus-visible,.meow-report-pdf:focus-visible{outline:2px solid #103b5b;outline-offset:3px}
-@media(max-width:650px){.meow-grid{grid-template-columns:minmax(0,1fr);grid-template-areas:"impact" "before" "action" "after"}.meow-grid.with-details{grid-template-areas:"impact" "before" "before-detail" "action" "after" "after-detail"}.meow-priority figure{padding:8px}.meow-banner{gap:8px}}
-</style>`;
-
 const iconPaths = {
   shield: '<path d="M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11Z"/><path d="m8.5 12 2.4 2.4 4.6-4.8"/>',
   alert: '<path d="M10.3 4a2 2 0 0 1 3.4 0l8 14A2 2 0 0 1 20 21H4a2 2 0 0 1-1.7-3l8-14Z"/><path d="M12 9v4m0 4h.01"/>',
@@ -226,6 +158,10 @@ const iconPaths = {
   file: '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Zm0 0v6h6M8 13h8m-8 4h8"/>',
   down: '<path d="m6 9 6 6 6-6"/>',
   up: '<path d="m6 15 6-6 6 6"/>',
+  arrow: '<path d="M4 12h15m-6-6 6 6-6 6"/>',
+  download: '<path d="M12 3v12m-4-4 4 4 4-4M4 15v5h16v-5"/>',
+  search: '<circle cx="10" cy="10" r="6"/><path d="m15 15 5 5m-10-13v6m-3-3h6"/>',
+  paw: '<path fill="currentColor" stroke="none" d="M12 10c3 0 3.8 3 6 5 3 4-1 7-4 5a4 4 0 0 0-4 0c-3 2-7-1-4-5 2.2-2 3-5 6-5Z"/><ellipse cx="3.5" cy="10" rx="2.1" ry="2.7" fill="currentColor" stroke="none"/><ellipse cx="8.5" cy="5.7" rx="2.1" ry="2.7" fill="currentColor" stroke="none"/><ellipse cx="15.5" cy="5.7" rx="2.1" ry="2.7" fill="currentColor" stroke="none"/><ellipse cx="20.5" cy="10" rx="2.1" ry="2.7" fill="currentColor" stroke="none"/>',
 } as const;
 
 function hazardIcon(name: string): keyof typeof iconPaths {
@@ -254,8 +190,9 @@ function evidenceImage(path: string, alt: string) {
 }
 
 function detailFigure(side: "before" | "after", caption: string, image: string | undefined) {
-  return `<figure class="meow-${side}-detail"><figcaption>${caption}</figcaption>${image
-    ? `<div class="meow-photo">${evidenceImage(image, caption)}</div>`
+  const label = side === "before" ? "改善前" : "改善後｜AI 模擬示意";
+  return `<figure class="meow-${side}-detail">${image && assetPath.test(image)
+    ? `<figcaption>${label}</figcaption><a href="${image}" aria-label="放大${caption}"><div class="meow-photo">${evidenceImage(image, caption)}</div></a>`
     : "<p>此報告未提供這張局部影像。</p>"}</figure>`;
 }
 
@@ -274,51 +211,81 @@ function preloadEvidence(items: ReturnType<typeof parseReportPresentation>["item
   return [...images].map(path => `<link rel="preload" as="image" href="${path}" type="image/webp" media="(min-width: 651px)" fetchpriority="low">`).join("");
 }
 
+
 export function renderReportPresentation(html: string, full: boolean, presentation = parseReportPresentation(html), itemIndex?: number, view?: ReportView) {
   const { items, headerStart, headerEnd, bodyEnd, images } = presentation;
   if (headerStart === undefined || headerEnd === undefined || bodyEnd === undefined || headerEnd > bodyEnd) return html;
 
-  const collapse = `<a class="meow-report-toggle" href="html#report-view" id="report-view-return">收合完整報告${icon("up")}</a>`;
-  const pdf = `<a class="meow-report-pdf" href="pdf">${icon("file")}下載完整 PDF</a>`;
-  const toggle = `<a class="meow-report-toggle" href="?view=full#report-view-return">展開完整圖文報告${icon("down")}</a>`;
-  const banner = `<header class="meow-banner"><div><p>MeowHome｜AI 居家環境安全檢測</p>
-    <h1>你的居家安全檢測結果</h1></div>${icon("shield")}</header>`;
-  const rows = items.map((item, index) => {
-    const impact = summarizeImpact(item.impact);
-    const limits = [...new Set([...(impact?.limits ?? []), item.uncertainty]
-      .filter(Boolean).map(text => text!.replace(/。$/, "")))];
-    const region = item.region;
-    const afterRegion = item.afterRegion;
-    const showDetails = Boolean(item.before && !item.cropped);
-    const before = item.before ? `<figure class="meow-before"><figcaption>${item.cropped ? "改善前｜危害局部" : "改善前｜原始影格"}</figcaption>
-      <div class="meow-photo"><div class="evidence">${evidenceImage(item.before, item.name + (item.cropped ? "的原始局部" : "的原始影格"))}${marker(region?.values, region?.estimated ? " estimated" : "")}</div></div>
-      <p>${region ? region.estimated ? "紅色虛線為 AI 估計位置。" : "紅框為人工確認位置。" : "畫面中的具體位置待確認。"}</p>
-      <p>${escape(item.observation)}</p>${!item.cropped && item.detailBefore ? `<a href="${item.detailBefore}">查看原始局部放大</a>` : ""}</figure>` : "";
-    const after = item.before ? `<figure class="meow-after">${item.after ? `<figcaption>${item.cropped ? "改善後局部｜AI 模擬示意" : "改善後｜AI 模擬示意"}</figcaption>
-      <div class="meow-photo"><div class="evidence">${evidenceImage(item.after, item.name + "的 AI 改善示意")}${marker(afterRegion, " simulated-region")}</div></div>
-      ${item.cropped ? "" : `<p>${afterRegion ? "綠色虛線為 AI 模擬對應區域。" : "這張 AI 示意圖的對應位置待確認。"}</p>`}
-      <p>實際改善情形仍待現場確認。</p>` : "<p>這個項目沒有可展示的 AI 改善示意。</p>"}</figure>` : "";
-    const panelId = `improvement-${index + 1}`;
-    return `<details class="meow-item"${index === itemIndex ? " open" : ""}><summary class="meow-hero" id="${panelId}">
-      ${icon(hazardIcon("hazard" in item && typeof item.hazard === "string" ? item.hazard : item.name))}<span>${escape(item.name)}</span>${icon("down")}</summary>
-      <div id="${panelId}-panel">${!before && item.observation ? `<p>${escape(item.observation)}</p>` : ""}<div class="meow-grid${before ? "" : " solo"}${showDetails ? " with-details" : ""}">
-        ${impact?.consequence ? `<div class="meow-card meow-impact">${icon("alert")}<div><h4>可能後果</h4><p>${escape(impact.consequence)}</p></div></div>` : ""}
-        ${before}
-        ${showDetails ? detailFigure("before", "改善前局部｜原圖", item.detailBefore) : ""}
-        <div class="meow-card meow-action">${icon("action")}<div><h4>建議行動</h4><p>${escape(item.action)}</p></div></div>
-        ${after}
-        ${showDetails ? detailFigure("after", "改善後局部｜AI 模擬示意", item.detailAfter) : ""}</div>
-        ${limits.length ? `<div class="meow-limits">${icon("info")}<p><strong>需要現場確認</strong> ${limits.map(escape).join("。")}。</p></div>` : ""}</div></details>`;
-  });
-  const statistics = view ? `<p>${view.statistics.confirmations} 項需要現場確認 · ${view.statistics.hazards.length} 種已分類危害 · ${view.statistics.evidence_frames} 張原始證據影格</p>
-    ${view.statistics.hazards.length ? `<ul>${view.statistics.hazards.map(hazard => `<li>${escape(hazard.label)}（${hazard.count}）</li>`).join("")}</ul>` : ""}` : "";
-  const checks = view?.confirmations.length ? `<section aria-labelledby="report-checks"><h3 id="report-checks">需要現場確認</h3><ul>${view.confirmations.map(check => `<li><strong>${escape(check.label)}</strong>　${check.conditions.map(escape).join("；")}</li>`).join("")}</ul></section>` : "";
-  const intro = `<section class="meow-priority" aria-labelledby="priority-title">
-    <h2 id="priority-title">需要改善（${items.length}）</h2>${statistics}
-    ${rows.length ? rows.join("") : "<p>目前無法從這份報告整理改善項目。可查看完整報告中的查核建議。</p>"}
-    ${checks}<div id="report-view" tabindex="-1">${toggle}${pdf}</div></section>`;
-  if (!full) return html.slice(0, headerStart) + preloadEvidence(items) + summaryStyles + banner + intro + html.slice(bodyEnd);
+  const pdf = `<a class="meow-report-pdf" href="pdf">${icon("download")}下載完整 PDF</a>`;
+  if (!full) return html.slice(0, headerStart) + preloadEvidence(items) + reportDashboardStyles
+    + dashboard(presentation, itemIndex, pdf) + html.slice(bodyEnd);
 
+  const collapse = `<a class="meow-report-toggle" href="html#report-view" id="report-view-return">收合完整報告${icon("up")}</a>`;
+  const toolbarStyle = '<style>#full-report>.meow-report-toggle,#full-report>.meow-report-pdf{display:inline-flex;align-items:center;gap:8px;min-height:44px}#full-report>.meow-report-toggle .meow-icon,#full-report>.meow-report-pdf .meow-icon{width:21px}</style>';
+  return html.slice(0, headerEnd) + toolbarStyle + '<main id="full-report">' + collapse + "　" + pdf
+    + (view?.confirmations.length ? `<section aria-labelledby="report-confirmations-title"><h2 id="report-confirmations-title">待現場確認事項</h2><ul>${view.confirmations.map(check =>
+      `<li><strong>${escape(check.label)}</strong>　${check.conditions.map(escape).join("；")}</li>`).join("")}</ul></section>` : "")
+    + renderFullEvidence(html, headerEnd, bodyEnd, images) + '</main>' + html.slice(bodyEnd);
+}
+
+function dashboard(presentation: ReturnType<typeof parseReportPresentation>, itemIndex: number | undefined, pdf: string) {
+  const { items } = presentation;
+  const toggle = (symbol: "down" | "arrow") => `<a class="meow-report-toggle" href="?view=full#report-view-return">展開完整圖文報告${icon(symbol)}</a>`;
+  const back = '<a class="meow-dashboard-back" href="https://meowho.vercel.app/me"><span aria-hidden="true">←</span> 返回我的喵戶</a>';
+  const banner = `<header class="meow-banner"><div class="meow-hero-art" aria-hidden="true"></div>
+    <div class="meow-banner-heading"><span class="meow-icon-tile">${icon("shield")}</span><div><h1>你的居家安全檢測結果</h1>
+    <p class="meow-improvement-total">${icon("alert")}<span>需要改善 <strong>${items.length}</strong> 項</span></p></div></div>
+    <div class="meow-banner-actions">${toggle("down")}${pdf}</div></header>`;
+  const rows = items.map((item, index) => improvement(item, index, index === itemIndex)).join("");
+  const empty = "<p>目前未列出改善項目。可查看完整報告及查核建議。</p>";
+  return `<main class="meow-dashboard" id="report-view" tabindex="-1">${back}${banner}
+    <section class="meow-priority" aria-labelledby="priority-title"><div class="meow-section-heading">
+    ${icon("paw")}<h2 id="priority-title">優先改善項目</h2>
+    ${items.length ? '<span class="meow-order">依報告順序</span>' : ""}</div>${rows || empty}</section>
+    <section class="meow-footer" aria-labelledby="meow-full-title"><div class="meow-footer-art" aria-hidden="true"></div>
+    <div class="meow-footer-copy"><span class="meow-icon-tile">${icon("file")}</span><div><h2 id="meow-full-title">完整詳細報告</h2>
+    <p>查看完整分析、風險說明與改善建議。</p></div></div>${toggle("arrow")}</section></main>`;
+}
+
+function improvement(item: ReturnType<typeof parseReportPresentation>["items"][number], index: number, open: boolean) {
+  const copy = reportDashboardCopy(item.impact, item.action);
+  const { region, afterRegion } = item;
+  const panelId = `improvement-${index + 1}`;
+  const actions = `<section class="meow-card meow-action"><h3>${icon("action")}建議行動</h3><ol>${copy.actions.map(action => `<li>${escape(action)}</li>`).join("")}</ol></section>`;
+  const original = [
+    ["直接觀察", item.observation], ["可能後果", item.impact], ["建議行動", item.action], ["需要現場確認", item.uncertainty],
+  ].filter((entry): entry is [string, string] => Boolean(entry[1]))
+    .map(([label, value]) => `<p><strong>${label}</strong>　${escape(value)}</p>`).join("");
+  const originalPosition = region
+    ? region.estimated ? "紅色虛線為 AI 估計位置。" : "紅框為人工確認位置。"
+    : "畫面中的具體位置待確認。";
+  const simulatedPosition = afterRegion ? "綠色虛線為 AI 模擬對應區域。" : "這張 AI 示意圖的對應位置待確認。";
+  const position = item.before ? `<p>${originalPosition}${item.after ? simulatedPosition + "實際改善情形仍待現場確認。" : ""}</p>` : "";
+  const analysis = `<details class="meow-analysis"><summary>${icon("info")}查看詳細說明${icon("down")}</summary><div class="meow-analysis-body">${original}${position}</div></details>`;
+  const titleIcon = hazardIcon(item.name);
+  const symbol = titleIcon === "alert" && "hazard" in item && typeof item.hazard === "string" ? hazardIcon(item.hazard) : titleIcon;
+  return `<details class="meow-item"${open ? " open" : ""}><summary class="meow-hero" id="${panelId}">
+    <span class="meow-hazard-icon">${icon(symbol)}</span><span class="meow-title">${escape(item.name)}</span>
+    ${copy.consequence ? `<span class="meow-risk">${escape(copy.consequence)}</span>` : ""}${icon("down")}</summary>
+    <div id="${panelId}-panel" class="meow-panel${item.before ? "" : " solo"}"><div class="meow-instructions">${actions}${analysis}</div>${comparison(item)}</div></details>`;
+}
+
+function comparison(item: ReturnType<typeof parseReportPresentation>["items"][number]) {
+  if (!item.before) return "";
+  const { region, afterRegion } = item;
+  const before = `<figure class="meow-before"><figcaption>${item.cropped ? "改善前｜危害局部" : "改善前｜原始影格"}</figcaption>
+    <div class="meow-photo"><div class="evidence">${evidenceImage(item.before, item.name + (item.cropped ? "的原始局部" : "的原始影格"))}${marker(region?.values, region?.estimated ? " estimated" : "")}</div></div></figure>`;
+  const after = `<figure class="meow-after">${item.after ? `<figcaption>${item.cropped ? "改善後局部｜AI 模擬示意" : "改善後｜AI 模擬示意"}</figcaption>
+    <div class="meow-photo"><div class="evidence">${evidenceImage(item.after, item.name + "的 AI 改善示意")}${marker(afterRegion, " simulated-region")}</div></div>`
+    : "<p>這個項目沒有可展示的 AI 改善示意。</p>"}</figure>`;
+  const between = `<span class="meow-between">${icon("arrow")}</span>`;
+  const closeups = !item.cropped && (item.detailBefore || item.detailAfter) ? `<section class="meow-closeups"><h3>${icon("search")}局部對照</h3><div class="meow-compare">
+    ${detailFigure("before", "改善前局部｜原圖", item.detailBefore)}${item.detailBefore && item.detailAfter ? between : ""}
+    ${detailFigure("after", "改善後局部｜AI 模擬示意", item.detailAfter)}</div></section>` : "";
+  return `<div class="meow-evidence-grid"><div class="meow-compare">${before}${item.after ? between : ""}${after}</div>${closeups}</div>`;
+}
+
+function renderFullEvidence(html: string, headerEnd: number, bodyEnd: number, images: ReturnType<typeof parseReportPresentation>["images"]) {
   // Apply lazy loading to the existing detail images without rewriting evidence markup.
   let detail = html.slice(headerEnd, bodyEnd);
   for (const image of [...images].reverse()) {
@@ -333,5 +300,5 @@ export function renderReportPresentation(html: string, full: boolean, presentati
     const offset = start - headerEnd + "<img".length;
     detail = detail.slice(0, offset) + ' loading="lazy"' + detail.slice(offset);
   }
-  return html.slice(0, headerEnd) + summaryStyles + '<main id="full-report">' + collapse + pdf + detail + '</main>' + html.slice(bodyEnd);
+  return detail;
 }

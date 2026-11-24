@@ -1,7 +1,7 @@
 import { expect, it } from "vitest";
 import { parseReportPresentation, renderReportPresentation } from "./report-presentation";
 
-const openedPanel = (html: string) => html.match(/<details class="meow-item" open>[\s\S]*?<\/details>/)?.[0] ?? "";
+const openedPanel = (html: string) => html.match(/<details class="meow-item" open>([\s\S]*?)(?=<details class="meow-item"|<\/section>\s*<section class="meow-footer")/)?.[1] ?? "";
 const path = (char: string) => "html-assets/" + char.repeat(64) + ".jpg";
 const img = (char: string) => '<img src="' + path(char) + '">';
 const candidate = (name: string, before: string, after: string, coordinate = "12") => `<article class="comparison"><h2>${name}</h2>
@@ -46,7 +46,7 @@ it("preserves the evidence without a fabricated box or After image", () => {
   expect(output).not.toContain('class="region estimated"');
   expect(output).not.toContain("改善後｜AI 模擬示意");
   expect(output).toContain("這個項目沒有可展示的 AI 改善示意。");
-  expect(output).toContain("此報告未提供這張局部影像。");
+  expect(output).not.toContain('<section class="meow-closeups">');
   expect(output.match(/role="img"/g)).toHaveLength(1);
 });
 
@@ -98,7 +98,7 @@ it.each([
 
 it("retains independently evidenced cases and escapes their labels", () => {
   const output = renderReportPresentation(report(candidate("&lt;線材&gt;", "a", "b")), false);
-  expect(output).toContain("<span>&lt;線材&gt;</span>");
+  expect(output).toContain('<span class="meow-title">&lt;線材&gt;</span>');
   expect(output).not.toContain('<details class="meow-item" open>');
 });
 
@@ -107,11 +107,11 @@ it.each([0, 1, 2, 3, 5])("renders %i independent native disclosures with deferre
   const closed = renderReportPresentation(html, false);
   expect(parseReportPresentation(html).items).toHaveLength(count);
   expect(closed.match(/<details class="meow-item">/g) ?? []).toHaveLength(count);
-  expect(closed.match(/<summary /g) ?? []).toHaveLength(count);
+  expect(closed.match(/<summary class="meow-hero"/g) ?? []).toHaveLength(count);
   expect(closed).not.toMatch(/\?item=|<details[^>]+(?: name=| open)/);
   expect(closed).not.toContain("<img ");
   expect(closed).toContain(".meow-item[open] .meow-evidence-image{content:var(--evidence-image)}");
-  expect(closed).toContain(`需要改善（${count}）`);
+  expect(closed).toContain(`需要改善 <strong>${count}</strong> 項`);
 });
 
 it("keeps an evidenced legacy priority action even if no comparison is available", () => {
@@ -140,7 +140,7 @@ it("uses the Worker summary as the source of truth and keeps text-only rows", ()
     + '<ol id="report-improvements" hidden><li data-label="書桌附近" data-action="固定線材" data-case="case-1"></li>'
     + '<li data-label="沙發旁" data-observation="可見線材" data-action="整理電線"></li></ol>');
   const opened = renderReportPresentation(html, false, undefined, 1);
-  expect(opened).toContain("需要改善（2）");
+  expect(opened).toContain("需要改善 <strong>2</strong> 項");
   expect(opened).toContain("整理電線");
   expect(openedPanel(opened)).not.toContain('role="img"');
 });
@@ -159,9 +159,27 @@ it.each([
   expect(output).not.toMatch(/極高風險|危險指數|<script/);
   expect(output.match(/role="img"/g)).toHaveLength(2);
   expect(output.match(/style="--evidence-image:url/g)).toHaveLength(2);
-  expect(output.indexOf("可能後果")).toBeLessThan(output.indexOf(path("a")));
-  expect(output.indexOf(path("a"))).toBeLessThan(output.indexOf("建議行動"));
+  expect(output.indexOf("建議行動")).toBeLessThan(output.indexOf(path("a")));
+  expect(output.indexOf("查看詳細說明")).toBeLessThan(output.indexOf(path("a")));
   expect(output.indexOf("建議行動")).toBeLessThan(output.indexOf(path("b")));
+});
+
+it("shows only reported counts, with a terse consequence and complete source text", () => {
+  const impact = "線材靠近地面，從照片無法確認通電。；實際可及程度不明。；降低貓咬線或被拉繩纏住的可能。";
+  const base = report(candidate("書桌附近", "a", "b")
+    .replace("若接觸可能纏繞", impact).replace("固定線材", "收高拉繩；固定線材"));
+  const html = base.replace("</body>", '<section class="report-statistics"><dl><div><dt>需要現場確認</dt><dd>0</dd></div><div><dt>已分類危害類型</dt><dd>2</dd></div></dl></section></body>');
+  const output = renderReportPresentation(html, false);
+  expect(output).toContain("需要改善 <strong>1</strong> 項");
+  expect(output).not.toContain("<dt>需要現場確認</dt>");
+  expect(output).not.toContain("<dt>已分類危害類型</dt>");
+  expect(output).not.toMatch(/高風險|中風險/);
+  expect(output).toContain('<span class="meow-risk">貓可能咬線或被拉繩纏住。</span>');
+  expect(output).toContain("<ol><li>收高拉繩</li><li>固定線材</li></ol>");
+  expect(output).toContain(impact);
+  expect(output).not.toContain('class="meow-limits"');
+  expect(output).toContain('href="https://meowho.vercel.app/me"');
+  expect(output).not.toContain("查看所有待現場確認事項");
 });
 
 it("escapes markup-like text in the header and guidance", () => {

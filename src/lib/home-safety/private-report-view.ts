@@ -22,9 +22,9 @@ function marker(box: readonly [number, number, number, number]) {
   return [x * 100, y * 100, (right - x) * 100, (bottom - y) * 100];
 }
 
-export function renderPrivateReportView(_homeId: string, view: ReportView, itemIndex?: number) {
+export function renderPrivateReportView(view: ReportView, itemIndex?: number) {
   const shell = '<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>貓咪居家環境健檢報告</title></head><body>'
-    + '<nav aria-label="MeowHome"><a class="back-link" href="/me">返回我的喵戶</a></nav><header></header></body></html>';
+    + '<header></header></body></html>';
   const items = view.improvements.map(item => {
     const comparison = item.comparisons[0];
     const evidence = item.evidence.find(entry => entry.observation_id === comparison?.observation_id) ?? item.evidence[0];
@@ -41,5 +41,5 @@ export function renderPrivateReportView(_homeId: string, view: ReportView, itemI
       afterRegion: comparison?.after_region ? marker(comparison.after_region.bbox) : undefined,
     };
   });
-  return renderReportPresentation(shell, false, { ...parseReportPresentation(shell), items }, itemIndex, view);
+  return renderReportPresentation(shell, false, { ...parseReportPresentation(shell), items }, itemIndex);
 }
