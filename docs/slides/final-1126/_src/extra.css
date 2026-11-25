@@ -519,3 +519,30 @@ code{font:500 .92em ui-monospace,Menlo,monospace;background:var(--cream-d);borde
 .rv-step{padding-left:20px}
 .rv-n{margin-left:0}
 .rv-flow:before{left:52px}
+
+/* 封面／結尾右側：仿首頁 hero 的中途貓屋＋3D Cookie */
+.heroroom{position:absolute;right:0;top:170px;width:820px;height:910px;border-radius:60px 0 0 0;overflow:hidden;background:linear-gradient(180deg,#fdf3df 0%,#f9ebd6 100%)}
+.hr-window{position:absolute;top:9%;right:28%;width:230px;height:auto}
+.hr-plant{position:absolute;right:6%;bottom:24%;width:120px;height:auto}
+.hr-floor{position:absolute;inset:auto 0 0 0;height:26%;background:#f3d9b2;border-top:10px solid #efcd9e}
+.hr-sun{position:absolute;right:12%;bottom:6%;width:60%;height:14%;border-radius:50%;background:rgba(255,250,235,.55);transform:skewX(-24deg)}
+.hr-cushion{position:absolute;left:24%;bottom:7%;width:300px;height:auto}
+.hr-ball{position:absolute;left:62%;bottom:9%;width:56px;height:56px}
+.hero3d{position:absolute;inset:0;cursor:default}
+.hero3d canvas{display:block;width:100%!important;height:100%!important}
+.hero3d-tag{position:absolute;transform:translate(-50%,-120%);white-space:nowrap;background:#fff;color:var(--cocoa);border-radius:999px;padding:10px 24px;font:700 24px var(--font-body);box-shadow:0 6px 16px rgba(60,40,20,.12);opacity:0;transition:opacity .4s}
+/* 結尾：文字留在左半邊 */
+.end h1{width:900px;white-space:normal;top:220px}
+.end .cta{top:590px}
+.end .sub{top:720px}
+.end .vet{right:900px;align-items:flex-start}
+/* 右側房間拉大：佔滿右半邊、上下貼齊 */
+.heroroom{left:920px;right:0;top:0;width:auto;height:auto;bottom:0;border-radius:0}
+.hr-window{top:20%;right:30%;width:260px}
+.hr-plant{right:7%;bottom:24%;width:140px}
+.hr-cushion{left:26%;bottom:7%;width:340px}
+.hr-ball{left:64%;bottom:9%;width:64px;height:64px}
+/* 左邊的波浪與獸醫提示不要壓進右側房間 */
+.cover .wave{width:920px}
+.heroroom{z-index:1}
+.end .vet{right:auto;left:120px;width:760px;bottom:110px}
