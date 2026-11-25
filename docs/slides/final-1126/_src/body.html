@@ -1,6 +1,12 @@
 <!-- 圖示（線條風，用 <svg class="ic"><use href="#i-名稱"/></svg> 引用；禁用 emoji） -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <symbol id="i-cat" viewBox="0 0 24 24"><path d="M4 20V10L3.5 4l4.5 3h8l4.5-3L20 10v10z"/><path d="M9 13h.01M15 13h.01M10.5 16.5h3"/></symbol>
+  <symbol id="i-cable" viewBox="0 0 24 24"><path d="M7 3v4M11 3v4M5 7h8v3a4 4 0 01-8 0zM9 14v2c0 3 2 4 4 4h2c2 0 3-1 3-3V5"/></symbol>
+  <symbol id="i-window" viewBox="0 0 24 24"><path d="M5 3h14v18H5zM12 3v18M5 12h14"/></symbol>
+  <symbol id="i-rope" viewBox="0 0 24 24"><path d="M4 3h16M12 3v9M12 12c-3 1-3 4 0 5s3 4 0 4"/><circle cx="12" cy="12" r="1.5"/></symbol>
+  <symbol id="i-plant" viewBox="0 0 24 24"><path d="M12 21V10M12 13c0-4-3-7-8-7 0 5 3 7 8 7zM12 10c0-4 3-6 8-6 0 4-3 6-8 6zM7 21h10"/></symbol>
+  <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 16V4M7 9l5-5 5 5M4 20h16"/></symbol>
+  <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 2L4 14h7l-1 8 9-12h-7z"/></symbol>
   <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 11l9-7 9 7v9H3z"/><path d="M10 20v-6h4v6"/></symbol>
   <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></symbol>
   <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-4 8-8 9-4-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></symbol>
@@ -93,17 +99,17 @@
   <div class="body" style="top:290px">
     <div class="g g3" style="height:auto">
       <div class="card eared icard reveal d1">
-        <span class="ib"><svg class="ic"><use href="#i-home"/></svg></span>
-        <div class="t">中途・愛媽</div>
+        <img class="pa-av" src="assets/avatars/char_afang.jpg" alt="阿芳（中途）">
+        <div class="t">中途</div>
         <p class="p">表單照標準答案填<br>最後只能靠面談和直覺</p>
       </div>
       <div class="card honey eared icard reveal d2">
-        <span class="ib w"><svg class="ic"><use href="#i-cat"/></svg></span>
+        <img class="pa-av" src="assets/avatars/char_xiaoju.jpg" alt="小橘（流浪貓）">
         <div class="t">流浪貓</div>
         <p class="p">「跟想像的不一樣」<br>被退回，一切重來</p>
       </div>
       <div class="card eared icard reveal d3">
-        <span class="ib"><svg class="ic"><use href="#i-user"/></svg></span>
+        <img class="pa-av" src="assets/avatars/char_xiaojie.jpg" alt="小傑（想養貓的人）">
         <div class="t">想養貓的人</div>
         <p class="p">看照片選貓<br>養了才發現自己沒準備好</p>
       </div>
@@ -176,21 +182,22 @@
         <path d="M496 510H1500" stroke="#f6b53b" stroke-width="6" stroke-linecap="round"/>
         <path d="M611 214V424" stroke="#a5602a" stroke-width="4" stroke-dasharray="4 10" stroke-linecap="round" fill="none" marker-end="url(#f2A)"/>
         <path d="M1379 424V214" stroke="#a5602a" stroke-width="4" stroke-dasharray="4 10" stroke-linecap="round" fill="none" marker-end="url(#f2A)"/>
-        <path d="M1494 130C1540 130 1540 300 1572 306M1494 510C1540 510 1540 340 1572 334" stroke="#a5602a" stroke-width="5" fill="none" stroke-linecap="round" marker-end="url(#f2A)"/>
+        <path d="M1494 130C1540 130 1540 300 1576 300" stroke="#a5602a" stroke-width="5" fill="none" stroke-linecap="round"/>
+        <path d="M1494 510C1540 510 1540 340 1576 340" stroke="#a5602a" stroke-width="5" fill="none" stroke-linecap="round"/>
       </svg>
-      <div class="f2who" style="top:50px"><span class="ib sm"><svg class="ic"><use href="#i-home"/></svg></span>中途</div>
-      <div class="f2who b" style="top:430px"><span class="ib sm"><svg class="ic"><use href="#i-user"/></svg></span>領養人</div>
-      <div class="f2s" style="left:240px;top:50px"><span class="ib xs"><svg class="ic"><use href="#i-home"/></svg></span><div class="t">建喵戶</div><p class="p">Google 登入</p></div>
-      <div class="f2s" style="left:496px;top:50px"><span class="ftag"><svg class="ic"><use href="#i-spark"/></svg>AI 類本尊 3D 貓</span><span class="ib xs"><svg class="ic"><use href="#i-photo"/></svg></span><div class="t">建貓</div><p class="p">照片→3D 貓</p></div>
-      <div class="f2s" style="left:752px;top:50px"><span class="ftag"><svg class="ic"><use href="#i-spark"/></svg>可要求先做任務</span><span class="ib xs"><svg class="ic"><use href="#i-list"/></svg></span><div class="t">設問卷</div><p class="p">可要求先做任務</p></div>
-      <div class="f2s hl" style="left:1264px;top:50px"><span class="ftag"><svg class="ic"><use href="#i-spark"/></svg>看得到試養過程</span><span class="ib xs h"><svg class="ic"><use href="#i-doc"/></svg></span><div class="t">看試養報告</div><p class="p">決定送不送</p></div>
-      <div class="f2s" style="left:496px;top:430px"><span class="ftag"><svg class="ic"><use href="#i-spark"/></svg>AI 幫我找貓</span><span class="ib xs"><svg class="ic"><use href="#i-search"/></svg></span><div class="t">找貓</div><p class="p">一句話或地圖</p></div>
-      <div class="f2s" style="left:752px;top:430px"><span class="ftag"><svg class="ic"><use href="#i-spark"/></svg>3D 房間＋AI 安全檢測</span><span class="ib xs"><svg class="ic"><use href="#i-video"/></svg></span><div class="t">拍自家</div><p class="p">3D 房間＋安全報告</p></div>
-      <div class="f2s" style="left:1008px;top:430px"><span class="ftag"><svg class="ic"><use href="#i-spark"/></svg>一生 7 個時刻</span><span class="ib xs"><svg class="ic"><use href="#i-cube"/></svg></span><div class="t">領養任務</div><p class="p">一生 7 個時刻</p></div>
-      <div class="f2s hl" style="left:1264px;top:430px"><span class="ftag"><svg class="ic"><use href="#i-spark"/></svg>自動產生試養報告</span><span class="ib xs h"><svg class="ic"><use href="#i-chat"/></svg></span><div class="t">提出領養</div><p class="p">附試養報告</p></div>
+      <div class="f2who" style="top:50px"><img class="f2av" src="assets/avatars/char_afang.jpg" alt="阿芳">中途</div>
+      <div class="f2who b" style="top:430px"><img class="f2av" src="assets/avatars/char_xiaojie.jpg" alt="小傑">領養人</div>
+      <div class="f2s" style="left:240px;top:50px"><span class="ib xs"><svg class="ic"><use href="#i-home"/></svg></span><div class="t">建喵戶</div></div>
+      <div class="f2s" style="left:496px;top:50px"><span class="ftag"><svg class="ic"><use href="#i-spark"/></svg>AI 類本尊 3D 貓</span><span class="ib xs"><svg class="ic"><use href="#i-photo"/></svg></span><div class="t">建貓</div></div>
+      <div class="f2s" style="left:752px;top:50px"><span class="ftag"><svg class="ic"><use href="#i-spark"/></svg>可要求先做任務</span><span class="ib xs"><svg class="ic"><use href="#i-list"/></svg></span><div class="t">設問卷</div></div>
+      <div class="f2s hl" style="left:1264px;top:50px"><span class="ftag"><svg class="ic"><use href="#i-spark"/></svg>看得到試養過程</span><span class="ib xs h"><svg class="ic"><use href="#i-doc"/></svg></span><div class="t">看試養報告</div></div>
+      <div class="f2s" style="left:496px;top:430px"><span class="ftag"><svg class="ic"><use href="#i-spark"/></svg>AI 幫我找貓</span><span class="ib xs"><svg class="ic"><use href="#i-search"/></svg></span><div class="t">找貓</div></div>
+      <div class="f2s" style="left:752px;top:430px"><span class="ftag"><svg class="ic"><use href="#i-spark"/></svg>3D 房間＋AI 安全檢測</span><span class="ib xs"><svg class="ic"><use href="#i-video"/></svg></span><div class="t">拍自家</div></div>
+      <div class="f2s" style="left:1008px;top:430px"><span class="ftag"><svg class="ic"><use href="#i-spark"/></svg>一生 7 個時刻</span><span class="ib xs"><svg class="ic"><use href="#i-cube"/></svg></span><div class="t">領養任務</div></div>
+      <div class="f2s hl" style="left:1264px;top:430px"><span class="ftag"><svg class="ic"><use href="#i-spark"/></svg>自動產生試養報告</span><span class="ib xs h"><svg class="ic"><use href="#i-chat"/></svg></span><div class="t">提出領養</div></div>
       <span class="elabel" style="left:611px;top:320px">貓上架，被找到</span>
       <span class="elabel" style="left:1379px;top:320px">試養報告送到中途</span>
-      <div class="f2merge"><svg class="ic"><use href="#i-swap"/></svg><b>移轉</b><span>紀錄延續到新家</span></div>
+      <div class="f2merge"><img class="f2av" src="assets/avatars/char_xiaoju.jpg" alt="小橘"><b>移轉</b></div>
     </div>
   </div>
   <!--PG-->
@@ -225,17 +232,17 @@
   <h2 class="reveal">DEMO 流程：<em>中途建貓到貓咪移轉</em></h2>
   <div class="body" style="top:290px">
     <div class="lsteps reveal d1" style="grid-template-columns:repeat(7,1fr)">
-      <div class="ls"><span class="ib xs"><svg class="ic"><use href="#i-home"/></svg></span><div class="t">中途建貓</div><p class="p">子哲</p></div>
-      <div class="ls"><span class="ib xs"><svg class="ic"><use href="#i-cat"/></svg></span><div class="t">3D 貓</div><p class="p">Tina</p></div>
-      <div class="ls hl"><span class="ib xs h"><svg class="ic"><use href="#i-search"/></svg></span><div class="t">搜尋找貓</div><p class="p">清俊</p></div>
-      <div class="ls hl"><span class="ib xs h"><svg class="ic"><use href="#i-cube"/></svg></span><div class="t">3D 房間</div><p class="p">珮瑜</p></div>
-      <div class="ls hl"><span class="ib xs h"><svg class="ic"><use href="#i-shield"/></svg></span><div class="t">安全檢測</div><p class="p">世安</p></div>
-      <div class="ls hl"><span class="ib xs h"><svg class="ic"><use href="#i-calendar"/></svg></span><div class="t">領養任務</div><p class="p">渝茜</p></div>
-      <div class="ls hl"><span class="ib xs h"><svg class="ic"><use href="#i-swap"/></svg></span><div class="t">領養移轉</div><p class="p">子哲</p></div>
+      <div class="ls"><span class="ib xs"><svg class="ic"><use href="#i-home"/></svg></span><div class="t">中途建貓</div></div>
+      <div class="ls"><span class="ib xs"><svg class="ic"><use href="#i-cat"/></svg></span><div class="t">3D 貓</div></div>
+      <div class="ls hl"><span class="ib xs h"><svg class="ic"><use href="#i-search"/></svg></span><div class="t">搜尋找貓</div></div>
+      <div class="ls hl"><span class="ib xs h"><svg class="ic"><use href="#i-cube"/></svg></span><div class="t">3D 房間</div></div>
+      <div class="ls hl"><span class="ib xs h"><svg class="ic"><use href="#i-shield"/></svg></span><div class="t">安全檢測</div></div>
+      <div class="ls hl"><span class="ib xs h"><svg class="ic"><use href="#i-calendar"/></svg></span><div class="t">領養任務</div></div>
+      <div class="ls hl"><span class="ib xs h"><svg class="ic"><use href="#i-swap"/></svg></span><div class="t">領養移轉</div></div>
     </div>
     <div class="g g2 reveal d2" style="height:auto;margin-top:46px">
-      <div class="card eared irow"><span class="ib"><svg class="ic"><use href="#i-flag"/></svg></span><div><div class="t">中途：登入、建貓</div><p class="p">子哲建貓，Tina 接著做 3D 貓</p></div></div>
-      <div class="card honey eared irow"><span class="ib w"><svg class="ic"><use href="#i-clock"/></svg></span><div><div class="t">領養人：找貓到做任務</div><p class="p">搜尋、建房間、看報告、領養任務</p></div></div>
+      <div class="card eared irow"><span class="ib"><svg class="ic"><use href="#i-flag"/></svg></span><div><div class="t">中途：登入、建貓</div></div></div>
+      <div class="card honey eared irow"><span class="ib w"><svg class="ic"><use href="#i-clock"/></svg></span><div><div class="t">領養人：找貓到做任務</div></div></div>
     </div>
   </div>
   <!--PG-->
@@ -259,7 +266,7 @@
         <p class="cap"><b>自訂問卷</b>，可要求先做領養任務</p>
       </div>
       <div class="reveal d3">
-        <div class="shot" style="height:440px"><div class="bar"><i></i><i></i><i></i><span>③ 放照片，準備 3D</span></div><img src="assets/demo/d_cat.png" alt="貓的介紹頁，含照片與 3D 貓" style="object-position:left top"></div>
+        <div class="shot" style="height:440px"><div class="bar"><i></i><i></i><i></i><span>③ 放照片，準備 3D</span></div><img src="assets/demo/cookie_page.jpg" alt="Cookie 的介紹頁：照片與 3D Cookie" style="object-fit:contain;background:#fbf5ec"></div>
         <p class="cap"><b>放入照片</b>，背景開始做 3D 分身</p>
       </div>
     </div>
@@ -310,16 +317,22 @@
   <div class="head"><span class="tag"><b>04</b>DEMO 流程</span><!--DEMO:3--></div>
   <h2 class="reveal">換成領養人：<em>說一句話</em>，找到合得來的貓</h2>
   <div class="body" style="top:250px">
-    <div class="g" style="grid-template-columns:1.25fr 1fr;height:auto">
-      <div class="shot reveal d1" style="height:600px"><div class="bar"><i></i><i></i><i></i><span>首頁・幫我找貓</span></div><img src="assets/demo/find-crop.png" alt="輸入上班族白天不在家，推薦貓卡並說明理由" style="object-position:top"></div>
-      <div class="reveal d2" style="display:grid;gap:22px;align-content:start">
-        <div class="box honey irow"><span class="ib xs w"><svg class="ic"><use href="#i-search"/></svg></span><div><b>① 首頁一句話搜尋</b>說說你的生活，例如白天不在家</div></div>
-        <div class="box irow"><span class="ib xs"><svg class="ic"><use href="#i-cat"/></svg></span><div><b>② 看貓卡</b>每張卡都寫為什麼推薦、哪裡要注意</div></div>
-        <div class="box cocoa irow"><span class="ib xs c" style="background:rgba(255,248,236,.14)"><svg class="ic"><use href="#i-heart"/></svg></span><div><b>③ 點進貓咪頁，按領養</b>開始這隻貓的領養流程</div></div>
-        <div class="go-demo" style="justify-content:flex-start;margin-top:12px"><a class="demo-btn" href="https://meowho.vercel.app/" target="_blank" rel="noopener"><svg class="ic"><use href="#i-home"/></svg>到首頁找貓<svg class="ic"><use href="#i-arrow"/></svg></a></div>
+    <div class="g g3" style="height:auto">
+      <div class="reveal d1">
+        <div class="shot" style="height:440px"><div class="bar"><i></i><i></i><i></i><span>① 首頁一句話搜尋</span></div><img src="assets/demo/home_search.jpg" alt="首頁：一句話 AI 配對搜尋框" style="object-position:center bottom"></div>
+        <p class="cap"><b>說說你的生活</b>，AI 幫你找貓</p>
+      </div>
+      <div class="reveal d2">
+        <div class="shot" style="height:440px"><div class="bar"><i></i><i></i><i></i><span>② 看貓卡</span></div><img src="assets/demo/find_cards_ai.jpg" alt="搜尋結果貓卡，下方黃框是 AI 寫的推薦理由" style="object-position:center bottom"></div>
+        <p class="cap"><b>AI 寫出為什麼推薦</b>，也提醒哪裡要注意</p>
+      </div>
+      <div class="reveal d3">
+        <div class="shot" style="height:440px"><div class="bar"><i></i><i></i><i></i><span>③ 貓咪頁，按領養</span></div><img src="assets/demo/cookie_adopt.jpg" alt="Cookie 的貓咪頁，有領養任務按鈕" style="object-position:center"></div>
+        <p class="cap"><b>點進貓咪頁</b>，開始領養任務</p>
       </div>
     </div>
-    <div class="tech reveal d3" style="margin-top:22px"><svg class="ic"><use href="#i-search"/></svg><span><b>程式亮點</b>LLM 從一句話抓出條件，再用 Embedding＋pgvector 排序；推薦理由由 AI 依貓咪資料撰寫</span></div>
+    <div class="tech reveal d4" style="margin-top:22px"><svg class="ic"><use href="#i-search"/></svg><span><b>程式亮點</b>LLM 從一句話抓出條件，再用 Embedding＋pgvector 排序；推薦理由由 AI 依貓咪資料撰寫</span></div>
+    <div class="go-demo reveal d4" style="margin-top:22px"><a class="demo-btn" href="https://meowho.vercel.app/" target="_blank" rel="noopener"><svg class="ic"><use href="#i-home"/></svg>到首頁找貓<svg class="ic"><use href="#i-arrow"/></svg></a></div>
   </div>
   <!--PG-->
 </section>
@@ -353,24 +366,22 @@
   <div class="head"><span class="tag"><b>04</b>DEMO 流程</span><!--DEMO:4--></div>
   <h2 class="reveal">一支影片，<em>怎麼變成 3D 房間</em></h2>
   <div class="body" style="top:250px">
-    <div class="rflow">
-      <div class="card eared rstep reveal d1"><p class="n">1</p><div class="t">拍攝教練</div><p class="tm"><svg class="ic"><use href="#i-clock"/></svg>拍 1～3 分鐘</p><p class="w">先教怎麼拍<br>上傳前檢查影片</p><p class="m">插圖＋路線動畫<br>清晰度・亮度</p></div>
-      <div class="card eared rstep reveal d2"><p class="n">2<span class="gputag">GPU＋CPU</span></p><div class="t">相機定位</div><p class="tm"><svg class="ic"><use href="#i-clock"/></svg>約 6 分鐘</p><p class="w">算出每張照片<br>在哪裡拍</p><p class="m">COLMAP<br>GLOMAP</p></div>
-      <div class="card eared rstep reveal d3"><p class="n">3<span class="gputag">GPU</span></p><div class="t">3D 重建</div><p class="tm"><svg class="ic"><use href="#i-clock"/></svg>約 4 分鐘</p><p class="w">幾十萬顆橢球<br>堆出房間</p><p class="m">Brush<br>3D Gaussian Splatting</p></div>
-      <div class="card honey eared rstep reveal d4"><p class="n">4<span class="aitag">AI</span><span class="gputag">GPU</span></p><div class="t">認物品</div><p class="tm"><svg class="ic"><use href="#i-clock"/></svg>約 3～4 分鐘</p><p class="w">找出床、書桌<br>在哪裡</p><p class="m">Gemini<br>Grounding DINO<br>SAM 2</p></div>
-      <div class="card eared rstep reveal d5"><p class="n">5</p><div class="t">組場景</div><p class="tm"><svg class="ic"><use href="#i-clock"/></svg>不到 5 秒</p><p class="w">家具外框、床面高度<br>寫成一份檔案</p><p class="m">scene.json</p></div>
-      <div class="card eared rstep reveal d5"><p class="n">6</p><div class="t">看房間</div><p class="tm"><svg class="ic"><use href="#i-clock"/></svg>上傳約 15 秒</p><p class="w">網頁走進房間<br>任務換成你家家具</p><p class="m">gaussian-splats-3d<br>Three.js</p></div>
-    </div>
-    <div class="rres reveal d5">
-      <div class="pri">
-        <div class="ph2"><span class="eb">設計流程的關鍵</span><span class="tot"><svg class="ic"><use href="#i-clock"/></svg>全程 15～20 分鐘</span></div>
-        <div class="pcs">
-          <div class="pc"><div class="k">質感優先</div><p class="p">快速模式 26 → 13 分鐘<br>但畫面太糊，刪掉</p></div>
-          <div class="pc"><div class="k">開 GPU 快 15%</div><p class="p">COLMAP 原本沒打開 GPU<br>打開不用加錢，GPU 已算在租金裡</p></div>
-          <div class="pc"><div class="k">一間 NT$6</div><p class="p">VM 只開約 15 分鐘<br>最慢的 GLOMAP 只能用 CPU<br>換貴的 GPU 也沒用</p></div>
+    <div class="rv">
+      <div class="rv-flow reveal d1">
+        <div class="rv-step"><span class="rv-n">1</span><div class="rv-tx"><div class="rv-t">拍攝教練</div><p class="rv-w">先教怎麼拍，上傳前檢查影片</p></div><span class="rv-m">插圖＋路線動畫</span></div>
+        <div class="rv-step"><span class="rv-n">2</span><div class="rv-tx"><div class="rv-t">相機定位<span class="gputag">GPU＋CPU</span></div><p class="rv-w">算出每張照片在哪裡拍</p></div><span class="rv-m">COLMAP・GLOMAP</span></div>
+        <div class="rv-step"><span class="rv-n">3</span><div class="rv-tx"><div class="rv-t">3D 重建<span class="gputag">GPU</span></div><p class="rv-w">幾十萬顆橢球堆出房間</p></div><span class="rv-m">Brush・3D Gaussian Splatting</span></div>
+        <div class="rv-step"><span class="rv-n">4</span><div class="rv-tx"><div class="rv-t">認物品<span class="aitag">AI</span><span class="gputag">GPU</span></div><p class="rv-w">找出床、書桌在哪裡</p></div><span class="rv-m">Gemini・Grounding DINO・SAM 2</span></div>
+        <div class="rv-step"><span class="rv-n">5</span><div class="rv-tx"><div class="rv-t">組場景</div><p class="rv-w">家具外框、床面高度寫成一份檔案</p></div><span class="rv-m">scene.json</span></div>
+        <div class="rv-step"><span class="rv-n">6</span><div class="rv-tx"><div class="rv-t">看房間</div><p class="rv-w">網頁走進房間，任務換成你家家具</p></div><span class="rv-m">gaussian-splats-3d・Three.js</span></div>
+      </div>
+      <div class="rv-main reveal d2">
+        <div class="shot vshot rv-shot"><div class="bar"><i></i><i></i><i></i><span>我的 3D 房間（正式站）</span></div><video src="assets/video/room3d.mp4" autoplay loop muted playsinline></video></div>
+        <div class="rv-keys">
+          <span class="rv-tot"><svg class="ic"><use href="#i-clock"/></svg>全程 15～20 分鐘</span>
+          <span class="rv-k">質感優先</span><span class="rv-k">開 GPU 快 15%</span><span class="rv-k">一間 NT$6</span>
         </div>
       </div>
-      <div class="shot vshot"><div class="bar"><i></i><i></i><i></i><span>我的 3D 房間（正式站）</span></div><video src="assets/video/room3d.mp4" autoplay loop muted playsinline></video></div>
     </div>
   </div>
   <!--PG-->
@@ -383,41 +394,20 @@
   <!--SPK:世安-->
   <div class="head"><span class="tag"><b>04</b>DEMO 流程</span><!--DEMO:5--></div>
   <h2 class="reveal">準備好貓砂盆和飼料，<em>家裡就安全了嗎？</em></h2>
-  <p class="lead reveal d1">領養貓咪前，容易忽略的往往不是用品，而是每天生活的居家環境。</p>
-  <div class="body" style="top:326px;bottom:75px">
-    <div class="g reveal d2" style="height:490px;grid-template-columns:0.95fr 1.05fr;gap:26px">
-      <div class="card cream eared" style="padding:34px 38px;display:flex;flex-direction:column">
-        <div class="k">飼主的真實痛點</div>
-        <div class="t" style="font-size:43px;line-height:1.38;margin-bottom:20px">有些危險，<br>對人日常，<br><span style="color:var(--caramel)">對貓卻不一定安全。</span></div>
-        <p class="p" style="font-size:25px;line-height:1.55;color:var(--cocoa-2)">從日常環境找出飼主容易忽略的風險，讓改善有明確方向。</p>
-        <div style="margin-top:auto"><span class="chip">AI 居家安全檢測</span></div>
+  <div class="body" style="top:280px">
+    <div class="g reveal d2" style="height:560px;grid-template-columns:0.9fr 1.1fr;gap:26px">
+      <div class="card cream eared sa-pain">
+        <span class="ib w"><svg class="ic"><use href="#i-home"/></svg></span>
+        <div class="t">有些危險，<br>對人日常，<br><span style="color:var(--caramel)">對貓卻不一定安全。</span></div>
       </div>
-      <div class="g" style="height:490px;grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:1fr 1fr;gap:18px">
-        <div class="card" style="padding:24px 27px">
-          <div class="k" style="font-size:25px">01　電線啃咬</div>
-          <p class="p" style="font-size:24px;line-height:1.55">外露線材可能被貓咪碰觸或啃咬。</p>
-        </div>
-        <div class="card" style="padding:24px 27px">
-          <div class="k" style="font-size:25px">02　窗戶防護</div>
-          <p class="p" style="font-size:24px;line-height:1.55">缺乏防護，可能有墜落風險。</p>
-        </div>
-        <div class="card" style="padding:24px 27px">
-          <div class="k" style="font-size:25px">03　繩子纏繞</div>
-          <p class="p" style="font-size:24px;line-height:1.55">垂掛拉繩可能被玩耍時纏住。</p>
-        </div>
-        <div class="card" style="padding:24px 27px">
-          <div class="k" style="font-size:25px">04　有毒植物</div>
-          <p class="p" style="font-size:24px;line-height:1.55">部分常見植物可能危害貓咪健康。</p>
-        </div>
+      <div class="sa-risks">
+        <div class="card sa-risk"><span class="sa-ri"><svg class="ic"><use href="#i-cable"/></svg></span><div class="t">電線啃咬</div></div>
+        <div class="card sa-risk"><span class="sa-ri"><svg class="ic"><use href="#i-window"/></svg></span><div class="t">窗戶防護</div></div>
+        <div class="card sa-risk"><span class="sa-ri"><svg class="ic"><use href="#i-rope"/></svg></span><div class="t">繩子纏繞</div></div>
+        <div class="card sa-risk"><span class="sa-ri"><svg class="ic"><use href="#i-plant"/></svg></span><div class="t">有毒植物</div></div>
       </div>
     </div>
-    <div class="tech reveal d3" style="margin-top:25px;min-height:118px;padding:22px 30px;justify-content:space-between;gap:24px">
-      <div style="display:flex;align-items:center;gap:20px">
-        <svg class="ic" style="font-size:42px;color:var(--honey);flex:none"><use href="#i-shield"/></svg>
-        <span style="font:400 32px/1.4 var(--font-display)">用 AI 找出居家風險，<b style="color:var(--honey)">並提供具體改善建議。</b></span>
-      </div>
-      <span style="font:500 22px var(--font-body);white-space:nowrap;color:#ead9c5">接著看真實網站報告</span>
-    </div>
+    <div class="tech reveal d3 sa-bar"><svg class="ic"><use href="#i-shield"/></svg><span>用 AI 找出居家風險，<b>並提供具體改善建議。</b></span></div>
   </div>
   <!--PG-->
 </section>
@@ -428,36 +418,17 @@
 <section class="slide" data-label="12b WelfareLens 工程">
   <!--SPK:世安-->
   <div class="head"><span class="tag"><b>04</b>DEMO 流程</span><!--DEMO:5--></div>
-  <h2 class="reveal">讓 AI 分析，<em>真正變成好用的產品</em></h2>
-  <p class="lead reveal d1">剛剛的 Demo 背後，我們主要解決了三個實際問題。</p>
-  <div class="body" style="top:326px;bottom:75px">
-    <div class="g g3 reveal d2" style="height:490px;gap:26px">
-      <div class="card eared" style="padding:28px 28px 24px;display:flex;flex-direction:column">
-        <div class="k">01｜風險要有依據</div>
-        <div class="t" style="font-size:37px;line-height:1.3;margin-bottom:18px">AI 說有危險，<br>證據在哪裡？</div>
-        <p class="p" style="font-size:24px;line-height:1.5;color:var(--cocoa-2)">保留影片中的原始照片與時間，讓飼主看得到 AI 判斷的依據。</p>
-        <div style="margin-top:auto"><span class="chip">每項風險都能回看原始畫面</span></div>
-      </div>
-      <div class="card cream eared" style="padding:28px 28px 24px;display:flex;flex-direction:column">
-        <div class="k">02｜分析不阻塞網站</div>
-        <div class="t" style="font-size:37px;line-height:1.3;margin-bottom:18px">分析要幾分鐘，<br>使用者怎麼辦？</div>
-        <p class="p" style="font-size:24px;line-height:1.5;color:var(--cocoa-2)">上傳後交給背景系統處理，完成後再提供可開啟的報告。</p>
-        <div style="margin-top:auto"><span class="chip">已完成正式網站單筆流程驗收</span></div>
-      </div>
-      <div class="card eared" style="padding:28px 28px 24px;display:flex;flex-direction:column">
-        <div class="k">03｜改圖更快完成</div>
-        <div class="t" style="font-size:37px;line-height:1.3;margin-bottom:18px">圖片一張張做，<br>等待時間太久？</div>
-        <p class="p" style="font-size:24px;line-height:1.5;color:var(--cocoa-2)">最多兩張改善圖片同時處理，並控制請求速度。</p>
-        <div style="margin-top:auto;display:flex;align-items:center;gap:14px">
-          <span class="num" style="font-size:56px">−45%</span>
-          <span style="font:500 19px/1.5 var(--font-body);color:var(--cocoa-2)">固定六件改圖測試<br>185 秒 → 101 秒</span>
-        </div>
+  <h2 class="reveal">AI 居家安全檢測｜<em>三大工程亮點</em></h2>
+  <div class="body" style="top:270px">
+    <div class="sa-ui">
+      <div class="shot reveal d1 sa-shot"><div class="bar"><i></i><i></i><i></i><span>居家安全檢測報告（正式站）</span></div><img src="assets/demo/safety_ui.jpg" alt="正式站的居家安全檢測報告：需要改善 6 項，展開後有原始影格與 AI 改善示意"></div>
+      <div class="sa-side reveal d2">
+        <div class="card sa-row"><span class="sa-ri sm"><svg class="ic"><use href="#i-list"/></svg></span><div><div class="k">01｜AI 結果結構化</div><div class="t">將 AI 辨識結果整理成風險與改善建議。</div></div></div>
+        <div class="card cream sa-row"><span class="sa-ri sm"><svg class="ic"><use href="#i-server"/></svg></span><div><div class="k">02｜分析不阻塞網站</div><div class="t">背景處理，好了再開報告</div></div></div>
+        <div class="card sa-row"><span class="sa-ri sm"><svg class="ic"><use href="#i-bolt"/></svg></span><div><div class="k">03｜改圖更快完成</div><div class="t"><span class="num">−45%</span> 185 秒 → 101 秒</div></div></div>
       </div>
     </div>
-    <div class="tech reveal d3" style="margin-top:25px;min-height:118px;padding:22px 30px;gap:22px">
-      <svg class="ic" style="font-size:42px;color:var(--honey);flex:none"><use href="#i-check"/></svg>
-      <span style="font:400 31px/1.4 var(--font-display)">分析結果也會整理成資料，<b style="color:var(--honey)">供後續模擬飼養模組使用。</b></span>
-    </div>
+    <div class="tech reveal d3 sa-bar"><svg class="ic"><use href="#i-check"/></svg><span>分析結果整理成資料，<b>供領養任務使用。</b></span></div>
   </div>
   <!--PG-->
 </section>
@@ -538,13 +509,13 @@
   <div class="head"><span class="tag"><b>04</b>DEMO 流程</span><!--DEMO:6--></div>
   <h2 class="reveal">15 年走完，<em>變成一份只屬於你的試養報告</em></h2>
   <div class="body" style="top:232px">
-    <div class="g reveal d1" style="grid-template-columns:720px 1fr;height:auto;gap:32px;align-items:start">
-      <div class="shot" style="height:640px;background:#fbf3e6;border-width:4px;box-shadow:0 18px 40px rgba(60,40,20,.22)"><video src="assets/demo/life-report.mp4" class="autoplay-on-slide" controls muted loop playsinline preload="auto" style="width:100%;height:100%;object-fit:cover;object-position:top;display:block;max-height:none"></video></div>
-      <div style="display:grid;gap:14px">
-        <div class="box  irow" style="border-width:3px;padding:20px 24px"><span class="ib sm"><svg class="ic"><use href="#i-heart"/></svg></span><div style="font-size:21px;line-height:1.4"><b style="font-size:26px;margin-bottom:4px">一生總結</b>牠最後信不信任你、壓力多大，15 年共花了 573,015 元</div></div>
-        <div class="box honey irow" style="border-width:3px;padding:20px 24px"><span class="ib sm w"><svg class="ic"><use href="#i-eye"/></svg></span><div style="font-size:21px;line-height:1.4"><b style="font-size:26px;margin-bottom:4px">最該注意的一件事</b>第一句就點出來，例如換水只做到一半，貓容易有泌尿道問題</div></div>
-        <div class="box  irow" style="border-width:3px;padding:20px 24px"><span class="ib sm"><svg class="ic"><use href="#i-chart"/></svg></span><div style="font-size:21px;line-height:1.4"><b style="font-size:26px;margin-bottom:4px">四個面向的分數</b>每天的照顧、照顧技巧、讀懂牠、做的選擇；哪天漏做一目了然</div></div>
-        <div class="box cocoa irow" style="border-width:3px;padding:20px 24px"><span class="ib sm c" style="background:rgba(255,248,236,.14)"><svg class="ic"><use href="#i-check"/></svg></span><div style="font-size:21px;line-height:1.4"><b style="font-size:26px;margin-bottom:4px">問問自己</b>急診能拿出 2～3 萬嗎？每天有 30～60 分鐘陪牠嗎？出差有人幫忙嗎？</div></div>
+    <div class="g reveal d1" style="grid-template-columns:2.15fr 1fr;height:auto;gap:28px;align-items:start">
+      <div class="shot" style="height:636px;background:#fbf3e6;border-width:4px;box-shadow:0 18px 40px rgba(60,40,20,.22)"><video src="assets/demo/life-report.mp4" class="autoplay-on-slide" controls muted loop playsinline preload="auto" style="width:100%;height:100%;object-fit:cover;object-position:top;display:block;max-height:none"></video></div>
+      <div class="yq-grid">
+        <div class="box yq"><span class="ib"><svg class="ic"><use href="#i-heart"/></svg></span><b>一生總結</b><span>信任、壓力、總花費</span></div>
+        <div class="box honey yq"><span class="ib w"><svg class="ic"><use href="#i-eye"/></svg></span><b>最該注意的一件事</b><span>第一句就點出來</span></div>
+        <div class="box yq"><span class="ib"><svg class="ic"><use href="#i-chart"/></svg></span><b>四個面向的分數</b><span>哪天漏做一目了然</span></div>
+        <div class="box cocoa yq"><span class="ib c" style="background:rgba(255,248,236,.14)"><svg class="ic"><use href="#i-check"/></svg></span><b>問問自己</b><span>錢、時間、有人幫嗎</span></div>
       </div>
     </div>
     <div class="tech reveal d3" style="margin-top:18px"><svg class="ic"><use href="#i-doc"/></svg><span><b>程式亮點</b>報告內容全部從遊戲紀錄算出來：每個選擇、每天的照顧、每筆花費都有依據</span></div>
@@ -661,12 +632,12 @@
       <div class="card eared icard reveal d1">
         <span class="ib"><svg class="ic"><use href="#i-users"/></svg></span>
         <div class="t">誰會用</div>
-        <p class="p">中途與愛媽社群<br>公私立收容所</p>
+        <p class="p">中途社群<br>公私立收容所</p>
       </div>
       <div class="card honey eared icard reveal d2">
         <span class="ib w"><svg class="ic"><use href="#i-coin"/></svg></span>
         <div class="t">怎麼賺</div>
-        <p class="p">認證中途進階方案<br>依報告推薦新手用品</p>
+        <p class="p">收容所・協會團體方案<br>依報告推薦新手用品</p>
       </div>
       <div class="card cocoa eared icard reveal d3">
         <span class="ib c" style="background:rgba(255,248,236,.14)"><svg class="ic"><use href="#i-chart"/></svg></span>
@@ -674,9 +645,9 @@
         <p class="p">GPU 隨開隨關<br>影片處理完就清<br>AI 供應商可切換</p>
       </div>
     </div>
-    <div class="card cream eared irow reveal d4" style="margin-top:36px;padding:24px 34px">
-      <span class="ib w"><svg class="ic"><use href="#i-flag"/></svg></span>
-      <p class="p" style="font-size:25px">別的平台停在「找到貓」；喵戶處理<b>帶回家之前</b>那一段，用的是<b>這隻貓</b>和<b>你家</b>的真實資料。</p>
+    <div class="biz-hl reveal d4">
+      <svg class="ic"><use href="#i-flag"/></svg>
+      <p>別的平台停在「找到貓」；<br>喵戶處理<b>帶回家之前</b>那一段。</p>
     </div>
   </div>
   <!--PG-->

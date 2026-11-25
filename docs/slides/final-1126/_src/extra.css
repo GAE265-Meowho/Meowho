@@ -413,3 +413,109 @@ code{font:500 .92em ui-monospace,Menlo,monospace;background:var(--cream-d);borde
 .cover .qr img{width:150px;height:150px;display:block}
 .cover .qr div{font:500 24px/1.5 var(--font-body);color:var(--cocoa-2)}
 .cover .qr b{display:block;font:800 32px/1.4 var(--font-body);color:var(--cocoa)}
+
+/* 11 3D 房間（珮瑜）：左邊流程由上往下、右邊大 3D 房間 */
+.rv{display:grid;grid-template-columns:720px 1fr;gap:40px;align-items:start}
+.rv-flow{display:flex;flex-direction:column;gap:12px;position:relative}
+.rv-flow:before{content:"";position:absolute;left:31px;top:40px;bottom:40px;border-left:3px dashed var(--honey-l)}
+.rv-step{position:relative;display:grid;grid-template-columns:64px 1fr auto;align-items:center;gap:18px;background:#fff;border:2px solid var(--line);border-radius:20px;padding:12px 18px 12px 0}
+.rv-step.hl{background:var(--honey);border-color:var(--honey)}
+.rv-n{width:64px;height:64px;margin-left:-2px;border-radius:50%;background:var(--cocoa);color:var(--honey);display:grid;place-items:center;font:400 34px/1 var(--font-display);position:relative;z-index:1}
+.rv-t{font:400 32px/1.2 var(--font-display);color:var(--cocoa);display:flex;align-items:center;gap:10px}
+.rv-t .gputag,.rv-t .aitag{font:700 16px/1 var(--font-body);border-radius:999px;padding:5px 11px}
+.rv-t .aitag{color:#fff;background:var(--cocoa)}
+.rv-t .gputag{color:#fff;background:var(--caramel)}
+.rv-w{font:400 21px/1.4 var(--font-body);color:var(--cocoa-2);margin-top:2px}
+.rv-step.hl .rv-w{color:var(--cocoa)}
+.rv-m{font:500 17px/1.3 var(--font-body);color:var(--cocoa-2);background:var(--cream-d);border-radius:12px;padding:6px 10px;max-width:200px;text-align:right}
+.rv-step.hl .rv-m{background:rgba(255,255,255,.55);color:var(--cocoa)}
+.rv-main{display:flex;flex-direction:column;gap:22px}
+.rv-shot{height:520px;box-shadow:0 18px 40px rgba(60,40,20,.18)}
+.rv-shot video{object-fit:cover}
+.rv-keys{display:flex;flex-wrap:wrap;gap:14px;align-items:center}
+.rv-tot{display:inline-flex;align-items:center;gap:10px;background:var(--honey);color:var(--cocoa);border-radius:999px;padding:12px 26px;font:400 30px/1 var(--font-display)}
+.rv-tot .ic{font-size:30px}
+.rv-k{background:var(--cocoa);color:var(--slide-bg);border-radius:999px;padding:12px 24px;font:700 24px/1 var(--font-body)}
+
+/* Demo 身分標籤：角色頭像（阿芳／小傑） */
+.whob .whoav{width:40px;height:40px;border-radius:50%;object-fit:cover;border:2px solid currentColor;margin-left:-6px;display:block}
+.whob .whoav+.whoav{margin-left:-16px}
+
+/* 世安兩頁：icon 取代小字 */
+.sa-pain{padding:44px 44px;display:flex;flex-direction:column;justify-content:center;gap:30px}
+.sa-pain .ib{width:96px;height:96px}.sa-pain .ib .ic{font-size:52px}
+.sa-pain .t{font:400 52px/1.4 var(--font-display);color:var(--cocoa)}
+.sa-risks{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:18px}
+.sa-risk{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:20px}
+.sa-ri{width:112px;height:112px;border-radius:50%;background:var(--honey-l,#fde9bf);display:grid;place-items:center;color:var(--caramel)}
+.sa-ri .ic{font-size:62px}
+.sa-risk .t{font:400 38px/1.2 var(--font-display);color:var(--cocoa)}
+.sa-bar{margin-top:26px;padding:26px 34px;gap:20px}
+.sa-bar .ic{font-size:44px}
+.sa-bar span{font:400 34px/1.4 var(--font-display)}
+.sa-bar b{color:var(--honey);font-weight:400}
+.sa-q{padding:32px 30px;display:flex;flex-direction:column}
+.sa-q .k{font:700 24px var(--font-body);color:var(--caramel)}
+.sa-q .t{font:400 42px/1.35 var(--font-display);color:var(--cocoa);margin-top:16px}
+.sa-chain{margin-top:auto;display:flex;align-items:center;justify-content:space-between;gap:6px}
+.sa-chain span{display:flex;flex-direction:column;align-items:center;gap:10px;font:700 21px var(--font-body);color:var(--cocoa-2);white-space:nowrap}
+.sa-chain span .ic{font-size:40px;width:76px;height:76px;padding:18px;border-radius:50%;background:#fff;color:var(--caramel);box-shadow:0 0 0 2px var(--line)}
+.sa-q.cream .sa-chain span .ic{background:#fff}
+.sa-chain .sa-ar{font-size:26px;color:var(--honey);margin-bottom:30px}
+.sa-num{margin-top:auto;display:flex;align-items:center;gap:16px}
+.sa-num>.ic{font-size:56px;color:var(--honey)}
+.sa-num .num{font-size:84px;line-height:1}
+.sa-sec{font:700 24px/1.3 var(--font-body);color:var(--cocoa-2)}
+
+/* 世安第二頁微調：icon 放大置中、秒數不換行 */
+.sa-q .sa-chain{margin:auto 0;padding-top:10px}
+.sa-chain span{font-size:24px;gap:14px}
+.sa-chain span .ic{font-size:52px;width:108px;height:108px;padding:26px}
+.sa-chain .sa-ar{font-size:30px;margin-bottom:40px}
+.sa-num{margin:auto 0;flex-wrap:wrap;justify-content:center;column-gap:18px;row-gap:8px}
+.sa-num>.ic{font-size:72px}
+.sa-num .num{font-size:110px}
+.sa-sec{flex-basis:100%;text-align:center;white-space:nowrap;font-size:28px}
+
+/* 世安第二頁：放正式站報告畫面 */
+.sa-ui{display:grid;grid-template-columns:1080px 1fr;gap:28px;align-items:stretch}
+.sa-shot{height:590px;box-shadow:0 18px 40px rgba(60,40,20,.16)}
+.sa-shot img{width:100%;height:calc(100% - 38px);object-fit:cover;object-position:top;display:block}
+.sa-side{display:flex;flex-direction:column;gap:18px}
+.sa-row{flex:1;display:flex;align-items:center;gap:22px;padding:20px 24px}
+.sa-ri.sm{width:84px;height:84px;flex:none}.sa-ri.sm .ic{font-size:44px}
+.sa-row .k{font:700 21px var(--font-body);color:var(--caramel)}
+.sa-row .t{font:400 30px/1.3 var(--font-display);color:var(--cocoa);margin-top:6px}
+.sa-row .num{font-size:46px;line-height:1;margin-right:6px}
+
+/* 渝茜試養報告頁：右側 2×2、每格一句 */
+.yq-grid{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:20px;height:640px}
+.yq{border-width:3px;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;gap:16px;padding:30px 32px}
+.yq .ib{width:84px;height:84px}.yq .ib .ic{font-size:44px}
+.yq b{font:400 36px/1.25 var(--font-display);display:block}
+.yq span:last-child{font:500 26px/1.4 var(--font-body)}
+
+/* 試養報告頁：左側影片與上一頁同大，右側 2×2 縮小字級 */
+.yq-grid{height:636px;gap:14px}
+.yq{padding:22px 18px;gap:12px}
+.yq .ib{width:64px;height:64px}.yq .ib .ic{font-size:34px}
+.yq b{font-size:27px}
+.yq span:last-child{font-size:20px}
+
+/* 現況頁三方卡：角色頭像（阿芳／小橘／小傑） */
+.pa-av{width:120px;height:120px;border-radius:50%;object-fit:cover;display:block;margin:0 auto;border:4px solid #fff;box-shadow:0 6px 16px rgba(60,40,20,.15)}
+
+/* 解決方案流程：角色頭像（阿芳／小傑／小橘） */
+.f2av{width:72px;height:72px;border-radius:50%;object-fit:cover;display:block;border:3px solid rgba(255,255,255,.85)}
+.f2merge .f2av{width:80px;height:80px;margin-bottom:6px}
+
+/* 商業價值頁底部重點句 */
+.biz-hl{margin-top:36px;display:flex;align-items:center;gap:34px;background:var(--cocoa);color:var(--slide-bg);border-radius:32px;padding:34px 52px;box-shadow:0 18px 40px rgba(60,40,20,.2)}
+.biz-hl .ic{font-size:64px;color:var(--honey);flex:none}
+.biz-hl p{margin:0;font:400 46px/1.4 var(--font-display)}
+.biz-hl b{color:var(--honey);font-weight:400}
+
+/* 珮瑜頁：數字圓圈離卡片左緣留空 */
+.rv-step{padding-left:20px}
+.rv-n{margin-left:0}
+.rv-flow:before{left:52px}
