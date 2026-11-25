@@ -4,6 +4,7 @@
 > 最後更新：2026-11-23｜清俊 × Cursor（成果報告第 13 頁帶我回家地圖）
 
 ## 目前狀態
+- #602 11/26 世安簡報：PR #637 已合併，但 h2 因 base 的絕對定位造成重疊，且右上使用字母佔位。修復分支 fix/602-welfarelens-slide-layout-avatar，僅增加 wl-final 內 h2 排版覆寫，引用既有正式肖像。待新 PR 審查。
 - **#273 WelfareLens 自動領件（Jerry0808 × Codex）**：待組長審查 scoped Claim、持久模型額度與啟用步驟。共享 Supabase 尚未套用 `0042`。受控環境依 `workers/welfarelens/VM_RUNBOOK.md` 核對遷移、喵戶、舊 Worker、私有儲存及費用。
 - **#273 WelfareLens M6-B（Jerry0808 × Codex）**：本機操作見 `workers/welfarelens/docs/benchmarks/m6-local-pipeline.md`。先取得本次影片與單筆付費核准，沿用 M6 帳本及正式節流。隔離 Queue 環境另行驗收。
 - **#273 WelfareLens M6-A（Jerry0808 × Codex）**：單筆驗收新增模型出口硬上限與一次性帳本。登入可見的 Supabase 僅團隊共用專案，Preview API 403，VM 已解除配置。先取得獨占測試專案、Preview 與私有儲存，再依 `workers/welfarelens/VM_RUNBOOK.md` 啟動一次測試。不操作團隊共用 Queue。
