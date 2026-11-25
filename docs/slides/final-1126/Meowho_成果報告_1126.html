@@ -705,6 +705,15 @@ code{font:500 .92em ui-monospace,Menlo,monospace;background:var(--cream-d);borde
 .wl-content .simple-handoff .hand-text{font-size:31px;font-weight:850;line-height:1.25}
 .wl-content .simple-handoff .hand-text strong{color:var(--honey)}
 .wl-content .simple-handoff .next{font-size:21px;font-weight:750;white-space:nowrap;color:#efddc6}
+
+/* #602 repair after PR #637: reset inherited absolute h2 only inside the two WelfareLens slides. */
+.wl-final .wl-content h2{
+  position:static;top:auto;right:auto;bottom:auto;left:auto;
+  font-family:'Noto Sans TC','Microsoft JhengHei',sans-serif;
+}
+/* Use the existing approved portrait asset; leave the team's speaker renderer unchanged. */
+.wl-final .wl-content .speaker .avatar{overflow:hidden;padding:0}
+.wl-final .wl-content .speaker .avatar img{display:block;width:100%;height:100%;object-fit:cover;border-radius:50%}
 </style>
 </head>
 <body>
@@ -1096,7 +1105,7 @@ code{font:500 .92em ui-monospace,Menlo,monospace;background:var(--cream-d);borde
   <div aria-hidden="true" style="display:none"><div class="dbar"><span class="whob w-ado"><svg class="ic"><use href="#i-user"/></svg>領養人視角</span><span class="dnodes"><span class="dn r-mid done">中途建貓</span><span class="dn r-mid done">3D 貓</span><span class="dn r-ado done">搜尋找貓</span><span class="dn r-ado done">3D 房間</span><span class="dn r-ado now">安全檢測</span><span class="dn r-ado">領養任務</span><span class="dn r-both">領養移轉</span></span></div></div>
   <div class="wl-content">
 <div class="wave"></div><div class="waveleft"></div>
-<div class="header"><div class="kicker"><span class="tag"><i>04</i>DEMO 流程</span>AI 居家安全檢測</div><div class="speaker">MEOWHO <span class="avatar">世</span>世安</div></div>
+<div class="header"><div class="kicker"><span class="tag"><i>04</i>DEMO 流程</span>AI 居家安全檢測</div><div class="speaker">MEOWHO <span class="avatar"><img src="assets/avatars/世安_2026.svg" alt="世安正式肖像照"></span>世安</div></div>
 <div class="breadcrumbs"><span>3D 房間</span><b>›</b><span class="now">安全檢測</span><b>›</b><span>模擬飼養</span></div>
 <h1 class="title">準備好貓砂盆和飼料，<em>家裡就安全了嗎？</em></h1>
 <p class="subtitle">領養貓咪前，容易忽略的往往不是用品，而是每天生活的居家環境。</p>
@@ -1123,7 +1132,7 @@ code{font:500 .92em ui-monospace,Menlo,monospace;background:var(--cream-d);borde
   <div aria-hidden="true" style="display:none"><div class="dbar"><span class="whob w-ado"><svg class="ic"><use href="#i-user"/></svg>領養人視角</span><span class="dnodes"><span class="dn r-mid done">中途建貓</span><span class="dn r-mid done">3D 貓</span><span class="dn r-ado done">搜尋找貓</span><span class="dn r-ado done">3D 房間</span><span class="dn r-ado now">安全檢測</span><span class="dn r-ado">領養任務</span><span class="dn r-both">領養移轉</span></span></div></div>
   <div class="wl-content simple-slide">
 <div class="wave"></div><div class="waveleft"></div>
-<div class="header"><div class="kicker"><span class="tag"><i>04</i>DEMO 流程</span>AI 居家安全檢測</div><div class="speaker">MEOWHO <span class="avatar">世</span>世安</div></div>
+<div class="header"><div class="kicker"><span class="tag"><i>04</i>DEMO 流程</span>AI 居家安全檢測</div><div class="speaker">MEOWHO <span class="avatar"><img src="assets/avatars/世安_2026.svg" alt="世安正式肖像照"></span>世安</div></div>
 <div class="breadcrumbs"><span>3D 房間</span><b>›</b><span class="now">安全檢測</span><b>›</b><span>模擬飼養</span></div>
 <h1 class="title">讓 AI 分析，<em>真正變成好用的產品</em></h1>
 <p class="subtitle">剛剛的 Demo 背後，我們主要解決了三個實際問題。</p>
