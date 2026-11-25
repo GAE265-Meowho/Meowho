@@ -41,3 +41,11 @@
 - [ ] 先登入並打開真實報告，不在現場重新跑 AI。
 - [ ] 確認照片對外展示授權及帳號資訊遮蔽。
 - [ ] 兩次切換畫面與口說合計約兩分鐘。
+
+## AI 維護這兩頁時的規範
+
+簡報唯一權威是 `docs/slides/final-1126/_src/body.html`；請先閱讀同目錄 `README.md`、`_src/build.py`、`_src/base_1118.html` 與 `_src/extra.css`，**不要直接修改成品 HTML**。
+
+只修改 `data-label="12 安全檢測"` 和 `data-label="12b WelfareLens 工程"` 兩張。頁首用 `.head/.tag` 加 `<!--DEMO:5-->`、講者只寫 `<!--SPK:世安-->`、頁碼用 `<!--PG-->`，其餘樣式用原生 `.card/.k/.t/.p/.tech` 與團隊色票。這些會由組長的 build.py 自動產生一致的肖像、字型、流程進度與頁碼。**不要加自製 header/avatar/pageNo，不要使用 `.wl-content` 獨立 CSS**。
+
+完成後執行 `python3 -I docs/slides/final-1126/_src/build.py`，用正式 1920×1080 簡報確認版面與肖像，並比對所有其他 23 張投影片沒有變更。第一頁 → 真實網站 Demo → 第二頁；銜接下一位講者由本人現場介紹。
