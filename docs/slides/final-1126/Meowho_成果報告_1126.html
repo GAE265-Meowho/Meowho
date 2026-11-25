@@ -576,8 +576,8 @@ code{font:500 .92em ui-monospace,Menlo,monospace;background:var(--cream-d);borde
 .ck-demo{margin-top:12px}
 .ck-link{display:inline-flex;align-items:center;gap:10px;padding:6px 20px;border-radius:999px;background:var(--cocoa);color:#fff;text-decoration:none;font:700 21px var(--font-body);margin-bottom:10px}
 .ck-link .ic{font-size:24px;color:var(--honey)}
-.ck-media{display:grid;grid-template-columns:400px 60px 400px 1fr;gap:20px;align-items:center}
-.ck-fig{margin:0;background:#fff;border:2px solid var(--line);border-radius:24px;overflow:hidden;height:296px;display:flex;flex-direction:column}
+.ck-media{display:grid;grid-template-columns:460px 60px 460px 1fr;gap:20px;align-items:center}
+.ck-fig{margin:0;background:#fff;border:2px solid var(--line);border-radius:24px;overflow:hidden;height:370px;display:flex;flex-direction:column}
 .ck-fig img{flex:1;min-height:0;width:100%;object-fit:contain;background:#fff}
 .ck-fig figcaption{font:500 17px var(--font-body);color:var(--cocoa-2);text-align:center;padding:6px 0 8px}
 .ck-to{font-size:52px;color:var(--caramel);text-align:center}
@@ -760,6 +760,9 @@ code{font:500 .92em ui-monospace,Menlo,monospace;background:var(--cream-d);borde
 .cover .wave{width:920px}
 .heroroom{z-index:1}
 .end .vet{right:auto;left:120px;width:760px;bottom:110px}
+
+.ck-step > .t{margin:0;align-self:center}
+.ck-shared .ck-step,.ck-lane .ck-step{min-height:64px}
 </style>
 </head>
 <body>
@@ -1060,9 +1063,9 @@ code{font:500 .92em ui-monospace,Menlo,monospace;background:var(--cream-d);borde
     <div class="ck-flow reveal d1">
       <div class="ck-cap">虛擬體驗元件管理｜貓咪製作・製作流程</div>
       <div class="ck-fork">
-        <div class="ck-shared"><h3>共用<small>成貓、幼貓用同一組</small></h3><div class="ck-row"><div class="ck-step"><span class="ck-n">1</span><span class="ib xs"><svg class="ic"><use href="#i-photo"/></svg></span><div><div class="t">上傳照片</div><p class="p">原始照片與基本資料</p></div></div><div class="ck-step"><span class="ck-n">2</span><span class="ib xs"><svg class="ic"><use href="#i-spark"/></svg></span><div><div class="t">AI 三視角</div><p class="p">AI 產生左側面、正面、背部照片</p></div></div></div></div>
+        <div class="ck-shared"><h3>共用<small>成貓、幼貓用同一組</small></h3><div class="ck-row"><div class="ck-step"><span class="ck-n">1</span><span class="ib xs"><svg class="ic"><use href="#i-photo"/></svg></span><div class="t">上傳照片</div></div><div class="ck-step"><span class="ck-n">2</span><span class="ib xs"><svg class="ic"><use href="#i-spark"/></svg></span><div class="t">AI 三視角</div></div></div></div>
         <svg class="ck-split" viewBox="0 0 56 100" preserveAspectRatio="none" aria-hidden="true"><path d="M0 50H24V25H56M24 50V75H56"/></svg>
-        <div class="ck-lanes"><div class="ck-lane"><h3>成貓模型<small>自動產生</small></h3><div class="ck-row"><div class="ck-step"><span class="ck-n">3</span><span class="ib xs"><svg class="ic"><use href="#i-gpu"/></svg></span><div><div class="t">產生紋理貼圖</div><p class="p">AI 上色，完成後自動套用</p></div></div><div class="ck-step hl"><span class="ck-n">4</span><span class="ib xs"><svg class="ic"><use href="#i-cat"/></svg></span><div><div class="t">製作動作 glb</div><p class="p">套用到 3D 動作貓</p></div></div></div></div><div class="ck-lane"><h3>幼貓模型<small>自動產生</small></h3><div class="ck-row"><div class="ck-step"><span class="ck-n">3</span><span class="ib xs"><svg class="ic"><use href="#i-gpu"/></svg></span><div><div class="t">產生紋理貼圖</div><p class="p">AI 上色，完成後自動套用</p></div></div><div class="ck-step hl"><span class="ck-n">4</span><span class="ib xs"><svg class="ic"><use href="#i-cat"/></svg></span><div><div class="t">製作動作 glb</div><p class="p">套用到 3D 動作貓</p></div></div></div></div></div>
+        <div class="ck-lanes"><div class="ck-lane"><h3>成貓模型<small>自動產生</small></h3><div class="ck-row"><div class="ck-step"><span class="ck-n">3</span><span class="ib xs"><svg class="ic"><use href="#i-gpu"/></svg></span><div class="t">產生紋理貼圖</div></div><div class="ck-step hl"><span class="ck-n">4</span><span class="ib xs"><svg class="ic"><use href="#i-cat"/></svg></span><div class="t">製作動作 glb</div></div></div></div><div class="ck-lane"><h3>幼貓模型<small>自動產生</small></h3><div class="ck-row"><div class="ck-step"><span class="ck-n">3</span><span class="ib xs"><svg class="ic"><use href="#i-gpu"/></svg></span><div class="t">產生紋理貼圖</div></div><div class="ck-step hl"><span class="ck-n">4</span><span class="ib xs"><svg class="ic"><use href="#i-cat"/></svg></span><div class="t">製作動作 glb</div></div></div></div></div>
       </div>
     </div>
     <div class="ck-demo reveal d2">
@@ -1072,12 +1075,11 @@ code{font:500 .92em ui-monospace,Menlo,monospace;background:var(--cream-d);borde
         <span class="ck-to"><svg class="ic"><use href="#i-arrow"/></svg></span>
         <figure class="ck-fig"><img src="assets/demo/cookie_3d.gif" alt="Cookie 的 3D 貓"><figcaption>3D 貓・瞳孔寬窄 0.67・環境亮度 0.77</figcaption></figure>
         <div class="ck-side">
-          <div class="box honey irow"><span class="ib xs w"><svg class="ic"><use href="#i-clock"/></svg></span><div><b>3～6 分鐘</b>背景完成，中途不用等</div></div>
+          <div class="box honey irow"><span class="ib xs w"><svg class="ic"><use href="#i-clock"/></svg></span><div><b>背景完成</b>中途不用等</div></div>
           <div class="box irow"><span class="ib xs"><svg class="ic"><use href="#i-check"/></svg></span><div><b>中途確認才公開</b>可補拍其他角度</div></div>
         </div>
       </div>
     </div>
-    <div class="tech reveal d3" style="margin-top:18px"><svg class="ic"><use href="#i-cube"/></svg><span><b>程式亮點</b>每隻貓共用固定 UV 骨架，只換貼圖，所以動作全部通用；成貓、幼貓一對自動接續排程</span></div>
   </div>
   <div class="pg"><img src="assets/meowho-symbol.svg" alt="">09 / 23</div>
 </section>
