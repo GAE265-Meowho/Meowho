@@ -30,7 +30,10 @@ def demo(m):
     nodes = ''.join(
         f'<span class="dn {"r-mid" if r=="中途" else "r-ado" if r=="領養人" else "r-both"}{" done" if i<n else " now" if i==n else ""}">{name}</span>'
         for i,(name,r) in enumerate(DEMO,1))
-    return (f'<div class="dbar"><span class="whob w-{ {"中途":"mid","領養人":"ado","雙方":"both"}[role] }"><svg class="ic"><use href="#i-{ic}"/></svg>{label}</span>'
+    # 身分標籤用前導影片角色頭像：中途＝阿芳、領養人＝小傑（雙方兩張都放）
+    face = {'中途':['char_afang'],'領養人':['char_xiaojie'],'雙方':['char_xiaojie','char_afang']}[role]
+    faces = ''.join(f'<img class="whoav" src="assets/avatars/{f}.jpg" alt="">' for f in face)
+    return (f'<div class="dbar"><span class="whob w-{ {"中途":"mid","領養人":"ado","雙方":"both"}[role] }">{faces}{label}</span>'
             f'<span class="dnodes">{nodes}</span></div>')
 
 sections = re.split(r'(?=<!-- =+\n)', body)
