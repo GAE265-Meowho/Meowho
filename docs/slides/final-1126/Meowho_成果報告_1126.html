@@ -733,6 +733,33 @@ code{font:500 .92em ui-monospace,Menlo,monospace;background:var(--cream-d);borde
 .rv-step{padding-left:20px}
 .rv-n{margin-left:0}
 .rv-flow:before{left:52px}
+
+/* 封面／結尾右側：仿首頁 hero 的中途貓屋＋3D Cookie */
+.heroroom{position:absolute;right:0;top:170px;width:820px;height:910px;border-radius:60px 0 0 0;overflow:hidden;background:linear-gradient(180deg,#fdf3df 0%,#f9ebd6 100%)}
+.hr-window{position:absolute;top:9%;right:28%;width:230px;height:auto}
+.hr-plant{position:absolute;right:6%;bottom:24%;width:120px;height:auto}
+.hr-floor{position:absolute;inset:auto 0 0 0;height:26%;background:#f3d9b2;border-top:10px solid #efcd9e}
+.hr-sun{position:absolute;right:12%;bottom:6%;width:60%;height:14%;border-radius:50%;background:rgba(255,250,235,.55);transform:skewX(-24deg)}
+.hr-cushion{position:absolute;left:24%;bottom:7%;width:300px;height:auto}
+.hr-ball{position:absolute;left:62%;bottom:9%;width:56px;height:56px}
+.hero3d{position:absolute;inset:0;cursor:default}
+.hero3d canvas{display:block;width:100%!important;height:100%!important}
+.hero3d-tag{position:absolute;transform:translate(-50%,-120%);white-space:nowrap;background:#fff;color:var(--cocoa);border-radius:999px;padding:10px 24px;font:700 24px var(--font-body);box-shadow:0 6px 16px rgba(60,40,20,.12);opacity:0;transition:opacity .4s}
+/* 結尾：文字留在左半邊 */
+.end h1{width:900px;white-space:normal;top:220px}
+.end .cta{top:590px}
+.end .sub{top:720px}
+.end .vet{right:900px;align-items:flex-start}
+/* 右側房間拉大：佔滿右半邊、上下貼齊 */
+.heroroom{left:920px;right:0;top:0;width:auto;height:auto;bottom:0;border-radius:0}
+.hr-window{top:20%;right:30%;width:260px}
+.hr-plant{right:7%;bottom:24%;width:140px}
+.hr-cushion{left:26%;bottom:7%;width:340px}
+.hr-ball{left:64%;bottom:9%;width:64px;height:64px}
+/* 左邊的波浪與獸醫提示不要壓進右側房間 */
+.cover .wave{width:920px}
+.heroroom{z-index:1}
+.end .vet{right:auto;left:120px;width:760px;bottom:110px}
 </style>
 </head>
 <body>
@@ -797,9 +824,15 @@ code{font:500 .92em ui-monospace,Menlo,monospace;background:var(--cream-d);borde
      ========================================================= -->
 <section class="slide has-spk cover" data-label="封面">
   <div class="spk"><span class="nm">子哲</span><div class="avs"><div class="av"><img src="assets/avatars/子哲.jpg" alt="子哲" onerror="this.remove()"></div></div></div>
-  <div class="yard">
-    <svg class="ears" viewBox="0 0 440 120" aria-hidden="true"><path fill="#f6b53b" d="M0 120L40 18Q50 -4 66 14L150 120ZM290 120L374 14Q390 -4 400 18L440 120Z"/></svg>
-    <div class="door"><img src="assets/meowho-symbol.svg" alt="Meowho喵戶 標誌"></div>
+  <!-- 右側：仿首頁 hero 的中途貓屋，3D Cookie 左右散步 -->
+  <div class="heroroom" aria-hidden="true">
+    <svg class="hr-window" viewBox="0 0 200 240"><path d="M10 236V100a90 90 0 0 1 180 0v136Z" fill="#fff"/><path d="M24 226V102a76 76 0 0 1 152 0v124Z" fill="#fff6dc"/><path d="M24 226V102a76 76 0 0 1 76-76v200Z" fill="#fff1cc"/><rect x="96" y="26" width="8" height="200" fill="#fff"/><rect x="24" y="128" width="152" height="8" fill="#fff"/><rect x="0" y="226" width="200" height="14" rx="7" fill="#f3e2c6"/></svg>
+    <svg class="hr-plant" viewBox="0 0 120 200"><path d="M60 120C40 96 22 70 30 34c20 16 32 44 30 86Z" fill="#9cc79a"/><path d="M62 120c6-36 24-62 52-74-2 34-22 60-52 74Z" fill="#b6d8a8"/><path d="M58 122C42 110 16 104 4 86c26-4 46 8 54 36Z" fill="#88b98a"/><path d="M30 120h60l-8 74a6 6 0 0 1-6 6H44a6 6 0 0 1-6-6Z" fill="#e8913a"/><rect x="26" y="114" width="68" height="14" rx="7" fill="#c9701f"/></svg>
+    <div class="hr-floor"></div>
+    <div class="hr-sun"></div>
+    <svg class="hr-cushion" viewBox="0 0 240 90"><ellipse cx="120" cy="54" rx="118" ry="34" fill="#eeaa9c"/><ellipse cx="120" cy="44" rx="112" ry="30" fill="#f6c3b8"/><ellipse cx="120" cy="44" rx="80" ry="18" fill="#f9d3ca"/></svg>
+    <svg class="hr-ball" viewBox="0 0 40 40"><circle cx="20" cy="20" r="18" fill="#f2a5ad"/><path d="M6 14c10 4 20 4 30-4M8 30c8-8 18-12 28-10M18 3c-4 10-2 24 6 34" fill="none" stroke="#e58a95" stroke-width="2"/></svg>
+    <div class="hero3d" data-label="Cookie・在中途貓屋散步"></div>
   </div>
   <svg class="wave" viewBox="0 0 1100 150" preserveAspectRatio="none" aria-hidden="true"><path fill="#f9ead0" d="M0 70C180 10 340 130 560 70S900 20 1100 80V150H0Z"/></svg>
   <img class="logo reveal" src="assets/meowho-horizontal-color.svg" alt="Meowho喵戶">
@@ -1427,8 +1460,18 @@ code{font:500 .92em ui-monospace,Menlo,monospace;background:var(--cream-d);borde
      ========================================================= -->
 <section class="slide has-spk end" data-label="結尾">
   <div class="spk"><span class="nm">子哲</span><div class="avs"><div class="av"><img src="assets/avatars/子哲.jpg" alt="子哲" onerror="this.remove()"></div></div></div>
+  <!-- 右側：仿首頁 hero 的中途貓屋，3D Cookie 左右散步 -->
+  <div class="heroroom" aria-hidden="true">
+    <svg class="hr-window" viewBox="0 0 200 240"><path d="M10 236V100a90 90 0 0 1 180 0v136Z" fill="#fff"/><path d="M24 226V102a76 76 0 0 1 152 0v124Z" fill="#fff6dc"/><path d="M24 226V102a76 76 0 0 1 76-76v200Z" fill="#fff1cc"/><rect x="96" y="26" width="8" height="200" fill="#fff"/><rect x="24" y="128" width="152" height="8" fill="#fff"/><rect x="0" y="226" width="200" height="14" rx="7" fill="#f3e2c6"/></svg>
+    <svg class="hr-plant" viewBox="0 0 120 200"><path d="M60 120C40 96 22 70 30 34c20 16 32 44 30 86Z" fill="#9cc79a"/><path d="M62 120c6-36 24-62 52-74-2 34-22 60-52 74Z" fill="#b6d8a8"/><path d="M58 122C42 110 16 104 4 86c26-4 46 8 54 36Z" fill="#88b98a"/><path d="M30 120h60l-8 74a6 6 0 0 1-6 6H44a6 6 0 0 1-6-6Z" fill="#e8913a"/><rect x="26" y="114" width="68" height="14" rx="7" fill="#c9701f"/></svg>
+    <div class="hr-floor"></div>
+    <div class="hr-sun"></div>
+    <svg class="hr-cushion" viewBox="0 0 240 90"><ellipse cx="120" cy="54" rx="118" ry="34" fill="#eeaa9c"/><ellipse cx="120" cy="44" rx="112" ry="30" fill="#f6c3b8"/><ellipse cx="120" cy="44" rx="80" ry="18" fill="#f9d3ca"/></svg>
+    <svg class="hr-ball" viewBox="0 0 40 40"><circle cx="20" cy="20" r="18" fill="#f2a5ad"/><path d="M6 14c10 4 20 4 30-4M8 30c8-8 18-12 28-10M18 3c-4 10-2 24 6 34" fill="none" stroke="#e58a95" stroke-width="2"/></svg>
+    <div class="hero3d" data-label="Cookie・在中途貓屋散步"></div>
+  </div>
   <img class="logo reveal" src="assets/meowho-horizontal-color.svg" alt="Meowho喵戶">
-  <h1 class="reveal d1">貓在找<span>準備好</span>的你</h1>
+  <h1 class="reveal d1">貓在找<br><span>準備好</span>的你</h1>
   <p class="cta reveal d2">加入喵戶，貓咪入住</p>
   <p class="sub reveal d3">謝謝聆聽</p>
   <div class="vet reveal d3">
@@ -1436,6 +1479,9 @@ code{font:500 .92em ui-monospace,Menlo,monospace;background:var(--cream-d);borde
     <span>本作品提供之資訊僅供輔助參考，不能取代獸醫師之診斷、治療或專業建議。貓犬之健康與營養需求可能因個體狀況而異，如有健康疑慮或需要調整飲食與照護方式，請諮詢合格獸醫師。</span>
   </div>
 </section>
+<!-- 封面與結尾的 3D Cookie（離線可讀） -->
+<script src="assets/cookie3d/data.js"></script>
+<script src="assets/cookie3d/hero.js"></script>
 </main>
 </div>
 
