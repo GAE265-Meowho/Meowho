@@ -88,8 +88,7 @@
       <div class="ag"><span class="agn">02</span><span class="ib"><svg class="ic"><use href="#i-bulb"/></svg></span><div><div class="t">解決方案</div><p class="p">前導影片、角色與流程</p></div></div>
       <div class="ag"><span class="agn">03</span><span class="ib"><svg class="ic"><use href="#i-users"/></svg></span><div><div class="t">小組分工</div><p class="p">六人六段主線</p></div></div>
       <div class="ag"><span class="agn">04</span><span class="ib"><svg class="ic"><use href="#i-route"/></svg></span><div><div class="t">DEMO 流程</div><p class="p">中途建貓到貓咪移轉</p></div></div>
-      <div class="ag"><span class="agn">05</span><span class="ib"><svg class="ic"><use href="#i-server"/></svg></span><div><div class="t">技術架構</div><p class="p">系統架構與背景 worker</p></div></div>
-      <div class="ag"><span class="agn">06</span><span class="ib"><svg class="ic"><use href="#i-chart"/></svg></span><div><div class="t">商業價值與風險</div><p class="p">誰會用、怎麼走下去</p></div></div>
+      <div class="ag"><span class="agn">05</span><span class="ib"><svg class="ic"><use href="#i-chart"/></svg></span><div><div class="t">商業價值與風險</div><p class="p">誰會用、怎麼走下去</p></div></div>
     </div>
   </div>
   <!--PG-->
@@ -310,6 +309,7 @@
         </div>
       </div>
     </div>
+    <div class="tech reveal d3" style="margin-top:18px"><svg class="ic"><use href="#i-gpu"/></svg><span><b>關鍵技術</b>Azure OpenAI 影像模型補出三視角，Hunyuan3D-Paint 在 GPU worker 產生貼圖；貼到已綁骨架的成貓、幼貓母體，動作每隻貓共用</span></div>
   </div>
   <!--PG-->
 </section>
@@ -553,78 +553,11 @@
 </section>
 
 <!-- =========================================================
-     19 系統架構
-     ========================================================= -->
-<section class="slide" data-label="19 系統架構">
-  <!--SPK:Tina-->
-  <div class="head"><span class="tag"><b>05</b>技術架構</span></div>
-  <h2 class="reveal">系統架構：<em>重的 AI 交給背景 worker</em></h2>
-  <div class="body" style="top:236px">
-    <div class="sa reveal d1">
-      <svg class="lines" viewBox="0 0 1728 790" preserveAspectRatio="none" aria-hidden="true">
-        <defs><marker id="saA" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#a5602a"/></marker></defs>
-        <g stroke="#a5602a" stroke-width="4" fill="none" stroke-linecap="round">
-          <path d="M262 190H322" marker-end="url(#saA)"/>
-          <path d="M892 150H992" marker-end="url(#saA)"/>
-          <path d="M780 424V476" marker-start="url(#saA)" marker-end="url(#saA)"/>
-          <path d="M998 620H898" marker-start="url(#saA)" marker-end="url(#saA)"/>
-          <path d="M1210 202V244" marker-end="url(#saA)"/>
-          <path d="M130 424V444H952V174H992" stroke-dasharray="6 10" marker-end="url(#saA)"/>
-        </g>
-      </svg>
-      <div class="sbox" style="left:0;top:20px;width:262px;height:404px">
-        <div class="sh"><span class="sn">1</span>使用者</div>
-        <div class="srow col"><span class="ib xs"><svg class="ic"><use href="#i-phone"/></svg></span><p>手機／電腦瀏覽器</p></div>
-        <div class="srow col"><span class="ib xs"><svg class="ic"><use href="#i-users"/></svg></span><p>中途、領養人、管理員</p></div>
-      </div>
-      <div class="sbox" style="left:330px;top:20px;width:562px;height:404px">
-        <div class="sh"><span class="sn">2</span>網站 Vercel<small>meowho.vercel.app</small></div>
-        <div class="srow"><span class="ib xs"><svg class="ic"><use href="#i-home"/></svg></span><p>前台 Meowho＋後台 MeowHQ</p></div>
-        <div class="srow"><span class="ib xs"><svg class="ic"><use href="#i-cube"/></svg></span><p>Next.js 15、React 19、three.js 3D</p></div>
-        <!-- <div class="srow"><span class="ib xs"><svg class="ic"><use href="#i-plug"/></svg></span><p>API：驗身分、簽上傳網址、建工作</p></div> -->
-        <div class="srow"><span class="ib xs"><svg class="ic"><use href="#i-shield"/></svg></span><p>AI 層 LangChain：輸出驗證、輸入防護</p></div>
-      </div>
-      <div class="sbox sup" style="left:330px;top:480px;width:562px;height:236px">
-        <div class="sh"><span class="sn">3</span>Supabase</div>
-        <div class="sgrid">
-          <div class="srow"><span class="ib xs"><svg class="ic"><use href="#i-lock"/></svg></span><p>Google 登入</p></div>
-          <div class="srow hl"><span class="ib xs h"><svg class="ic"><use href="#i-list"/></svg></span><p>工作佇列</p></div>
-          <div class="srow"><span class="ib xs"><svg class="ic"><use href="#i-db"/></svg></span><p>Postgres＋RLS</p></div>
-          <div class="srow"><span class="ib xs"><svg class="ic"><use href="#i-chat"/></svg></span><p>Realtime 對話串</p></div>
-          <div class="srow"><span class="ib xs"><svg class="ic"><use href="#i-search"/></svg></span><p>pgvector 幫我找貓</p></div>
-          <div class="srow"><span class="ib xs"><svg class="ic"><use href="#i-photo"/></svg></span><p>Storage 照片・3D 檔</p></div>
-        </div>
-      </div>
-      <div class="sbox" style="left:1000px;top:20px;width:728px;height:704px">
-        <div class="sh"><span class="sn">4</span>Azure</div>
-        <div class="srow"><span class="ib xs"><svg class="ic"><use href="#i-spark"/></svg></span><p>Azure OpenAI：對話視覺、影像生成編輯、Embedding</p></div>
-        <div class="srow"><span class="ib xs"><svg class="ic"><use href="#i-lock"/></svg></span><p>Blob 私有儲存：居家影片、安全報告</p></div>
-        <div class="swk">
-          <div class="swh"><svg class="ic"><use href="#i-gpu"/></svg>GPU VM T4・隨開隨關・背景 worker</div>
-          <div class="swg">
-            <div><span class="ib xs w"><svg class="ic"><use href="#i-cat"/></svg></span><b>3D 貓貼圖</b><p>Hunyuan3D-Paint</p></div>
-            <div><span class="ib xs w"><svg class="ic"><use href="#i-cube"/></svg></span><b>3D 房間</b><p>COLMAP・3DGS・SAM 2</p></div>
-            <div><span class="ib xs w"><svg class="ic"><use href="#i-shield"/></svg></span><b>安全檢測</b><p>FFmpeg＋GPT 視覺</p></div>
-          </div>
-        </div>
-      </div>
-      <span class="slab" style="left:292px;top:150px;transform:translateX(-50%)">瀏覽／互動</span>
-      <span class="slab" style="left:942px;top:122px">即時 AI 請求</span>
-      <span class="slab" style="left:792px;top:462px;transform:translateY(-50%)">登入・資料</span>
-      <span class="slab" style="left:948px;top:592px">領件・寫回</span>
-      <span class="slab" style="left:1222px;top:223px;transform:translateY(-50%)">讀取居家影片</span>
-      <span class="slab dash" style="left:150px;top:444px;transform:translateY(-50%)">影片從手機直傳 Blob（不經網站）</span>
-    </div>
-  </div>
-  <!--PG-->
-</section>
-
-<!-- =========================================================
      23 商業價值
      ========================================================= -->
 <section class="slide" data-label="23 商業價值">
   <!--SPK:子哲-->
-  <div class="head"><span class="tag"><b>06</b>商業與風險</span></div>
+  <div class="head"><span class="tag"><b>05</b>商業與風險</span></div>
   <h2 class="reveal">商業價值：<em>領養前準備</em>，成為送養的標準一步</h2>
   <div class="body" style="top:290px">
     <div class="g g3" style="height:auto">
@@ -657,7 +590,7 @@
      ========================================================= -->
 <section class="slide" data-label="24 風險與因應">
   <!--SPK:子哲-->
-  <div class="head"><span class="tag"><b>06</b>商業與風險</span></div>
+  <div class="head"><span class="tag"><b>05</b>商業與風險</span></div>
   <h2 class="reveal">風險與因應：<em>誠實面對 AI 做不到的地方</em></h2>
   <div class="body" style="top:300px">
     <div class="g g3" style="height:auto">
