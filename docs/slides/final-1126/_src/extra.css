@@ -552,12 +552,13 @@ code{font:500 .92em ui-monospace,Menlo,monospace;background:var(--cream-d);borde
 
 /* 珮瑜頁 11a：四個設計目標＋做法比較表 */
 .rd-goals{display:grid;grid-template-columns:repeat(4,1fr);gap:22px}
-.rd-goal{display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto;column-gap:16px;row-gap:6px;align-items:center;background:#fff;border:2px solid var(--line);border-radius:24px;padding:22px 24px}
+.rd-goal{padding:18px 22px!important;display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto;column-gap:16px;row-gap:6px;align-items:center;background:#fff;border:2px solid var(--line);border-radius:24px;padding:22px 24px}
 .rd-goal .ib{grid-row:1}
 .rd-goal .t{font:400 34px/1.2 var(--font-display);color:var(--cocoa)}
 .rd-goal .p{grid-column:1/-1;font:400 22px/1.45 var(--font-body);color:var(--cocoa-2)}
 .rd-cmp{margin-top:24px}
-.rd-cmp th,.rd-cmp td{text-align:center;vertical-align:middle;padding:16px 14px}
+.rd-cmp th,.rd-cmp td{text-align:center;vertical-align:middle;padding:6px 14px}
+.rd-cmp th{padding:12px 14px}
 .rd-cmp th:first-child,.rd-cmp td:first-child{text-align:left}
 .rd-cmp td{font-size:23px}
 .rd-cmp th{font-size:22px}
@@ -608,3 +609,19 @@ code{font:500 .92em ui-monospace,Menlo,monospace;background:var(--cream-d);borde
 .rs-fig .winbar{stroke:var(--line);stroke-width:3}
 .rs-fig .paw circle{fill:var(--cocoa)}
 .rs-fig .key rect{fill:#fff;stroke:var(--cocoa);stroke-width:2}
+.rd-goals{gap:18px}
+.rd-cmp{margin-top:16px}
+.rd-m{display:flex;align-items:center;gap:16px}
+.rd-fig{width:150px;height:80px;flex:none;background:var(--slide-bg);border-radius:10px}
+.rd-cmp tr.me .rd-fig{background:#fff}
+.rd-fig *{stroke-linecap:round;stroke-linejoin:round}
+.rd-fig .fl{fill:var(--cream-d);stroke:var(--line);stroke-width:2}
+.rd-fig .bx{fill:#c9b8a6;stroke:var(--cocoa);stroke-width:1.6}
+.rd-cmp tr.me .rd-fig .bx{fill:var(--honey)}
+.rd-fig .ph{fill:var(--cocoa)}
+.rd-fig .beam{stroke:var(--caramel);stroke-width:1.6;stroke-dasharray:3 4}
+.rd-fig .lump{fill:#c9b8a6;stroke:var(--cocoa);stroke-width:1.6}
+.rd-fig .mesh{fill:none;stroke:var(--cocoa-2);stroke-width:1.4}
+.rd-fig .hole{fill:var(--slide-bg);stroke:#c0503a;stroke-width:1.8;stroke-dasharray:3 3}
+.rd-fig .gs ellipse{fill:var(--caramel);opacity:.55}
+.rd-fig .cup{fill:#fff;stroke:var(--cocoa);stroke-width:1.6}
