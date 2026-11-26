@@ -549,3 +549,55 @@ code{font:500 .92em ui-monospace,Menlo,monospace;background:var(--cream-d);borde
 
 .ck-step > .t{margin:0;align-self:center}
 .ck-shared .ck-step,.ck-lane .ck-step{min-height:64px}
+
+/* ===== 11/26 老師回饋（子哲頁）===== */
+/* 02 角色一句話定義 */
+.icard .def{margin:-4px 0 2px;background:var(--honey-l);border-radius:999px;padding:4px 18px;font:700 22px/1.4 var(--font-body);color:var(--cocoa)}
+.card.honey.icard .def{background:#fff}
+/* 05 以前 vs 喵戶 */
+.ba{display:grid;gap:14px}
+.ba-hd,.ba-row{display:grid;grid-template-columns:360px 1fr 56px 1.3fr;align-items:center;gap:0 18px}
+.ba-hd span{font:400 30px var(--font-display);text-align:center}
+.ba-hd .o{color:var(--cocoa-2)}
+.ba-hd .n{display:flex;align-items:center;justify-content:center;gap:10px;color:var(--caramel)}
+.ba-hd .n img{width:40px;height:40px}
+.ba-step{display:flex;align-items:center;gap:14px;background:#fff;border:2px solid var(--line);border-radius:22px;padding:10px 20px;height:98px;white-space:nowrap}
+.ba-step .t{font:400 34px var(--font-display);flex:1}
+.ba-n{font:700 22px var(--font-body);color:var(--caramel);width:24px}
+.ba-av{width:60px;height:60px;border-radius:50%;object-fit:cover;border:3px solid var(--cocoa)}
+.ba-old{background:#efe6da;color:var(--cocoa-2);border-radius:22px;padding:0 28px;height:98px;display:flex;align-items:center;font:400 27px/1.4 var(--font-body)}
+.ba-new{background:var(--honey-l);color:var(--cocoa);border-radius:22px;padding:0 28px;height:98px;display:flex;align-items:center;font:400 28px/1.4 var(--font-body)}
+.ba-new b{color:var(--caramel);margin:0 4px}
+.ba-ar{font-size:40px;color:var(--caramel);justify-self:center}
+.ba-row.hl .ba-new{background:var(--honey)}
+.ba-row.hl .ba-new b{color:var(--cocoa)}
+.ba-row.end{margin-top:8px}
+.ba-row.end .ba-step{background:var(--cocoa);border-color:var(--cocoa);color:var(--slide-bg)}
+.ba-row.end .ba-step .ib{background:var(--honey);color:var(--cocoa)}
+.ba-row.end .ba-av{border-color:var(--honey)}
+.ba-row.end .ba-old b{color:#b5483a;margin-left:4px}
+.ba-row.end .ba-new{background:var(--cocoa);color:var(--slide-bg);font-size:30px}
+.ba-row.end .ba-new b{color:var(--honey)}
+/* 06 分工：對應步驟 */
+.mem .role{display:block;background:none;padding:0;margin:6px 0 14px;font:400 34px/1.3 var(--font-display);color:var(--caramel)}
+.mem .who{font-size:28px;color:var(--cocoa-2)}
+.team .mem{min-height:300px}
+.stps{display:flex;gap:10px;flex-wrap:wrap}
+.stp{background:var(--honey-l);color:var(--cocoa);border-radius:999px;padding:4px 16px;font:700 21px var(--font-body)}
+.mem.lead-mem .stp{background:#fff}
+/* 08 前後對比 */
+.ba-mini{display:grid;grid-template-columns:1fr 56px 1.2fr;align-items:center;gap:0 14px;margin-top:22px}
+.ba-mini span{border-radius:20px;padding:14px 24px;font:400 24px/1.4 var(--font-body)}
+.ba-mini b{font:400 26px var(--font-display);margin-right:14px}
+.ba-mini .o{background:#efe6da;color:var(--cocoa-2)}
+.ba-mini .n{background:var(--honey-l);color:var(--cocoa)}
+.ba-mini .n b{color:var(--caramel)}
+.ba-mini .ic{font-size:40px;color:var(--caramel);justify-self:center}
+/* 22 目前限制 */
+.lim{display:grid;gap:14px;align-content:start}
+.lim-t{display:flex;align-items:center;gap:14px;font:400 34px var(--font-display);margin-top:6px}
+.lim-row{display:grid;grid-template-columns:96px 1fr;align-items:center;gap:14px;background:#efe6da;border-radius:18px;padding:12px 20px;font:400 23px/1.45 var(--font-body);color:var(--cocoa-2)}
+.lim-row b{font:700 20px var(--font-body);color:var(--cocoa);text-align:center}
+.lim-row.n{background:var(--honey-l);color:var(--cocoa)}
+.lim-row.n b{color:var(--caramel)}
+.lim .shot .bar{position:relative;z-index:2}
