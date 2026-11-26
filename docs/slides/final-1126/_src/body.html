@@ -25,6 +25,8 @@
   <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 018 0v3"/></symbol>
   <symbol id="i-spark" viewBox="0 0 24 24"><path d="M11 3l2 6 6 2-6 2-2 6-2-6-6-2 6-2z"/><path d="M19 3v4M17 5h4"/></symbol>
   <symbol id="i-cube" viewBox="0 0 24 24"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M4 7.5l8 4.5 8-4.5M12 12v9"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+  <symbol id="i-minus" viewBox="0 0 24 24"><path d="M6 12h12"/></symbol>
   <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></symbol>
   <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18v.5"/></symbol>
   <symbol id="i-swap" viewBox="0 0 24 24"><path d="M4 8h15l-4-4M20 16H5l4 4"/></symbol>
@@ -367,27 +369,77 @@
 </section>
 
 <!-- =========================================================
-     11 領養人：影片轉 3D 房間（珮瑜）
+     11a 領養人：3D 房間的設計概念與比較（珮瑜）
+     ========================================================= -->
+<section class="slide" data-label="11a 3D 房間設計">
+  <!--SPK:珮瑜-->
+  <div class="head"><span class="tag"><b>04</b>DEMO 流程</span><!--DEMO:4--></div>
+  <h2 class="reveal">不用專業設備，<em>一支影片就讓貓走進你家</em></h2>
+  <div class="body" style="top:250px">
+    <div class="rd-goals">
+      <div class="rd-goal reveal d1"><span class="ib xs"><svg class="ic"><use href="#i-route"/></svg></span><div class="t">更直覺</div><p class="p">拍之前有教練，手機就能拍</p></div>
+      <div class="rd-goal reveal d1"><span class="ib xs"><svg class="ic"><use href="#i-clock"/></svg></span><div class="t">更快</div><p class="p">上傳後自動完成，不用手動</p></div>
+      <div class="rd-goal reveal d2"><span class="ib xs"><svg class="ic"><use href="#i-eye"/></svg></span><div class="t">更像</div><p class="p">照片等級，認得出自己家</p></div>
+      <div class="rd-goal reveal d2"><span class="ib xs"><svg class="ic"><use href="#i-paw"/></svg></span><div class="t">能互動</div><p class="p">認得床和書桌，任務用你家家具</p></div>
+    </div>
+    <table class="tbl rd-cmp reveal d2">
+      <tr><th>做法（用同一個房間模擬）</th><th>不用專業設備</th><th>自動完成</th><th>像真的家</th><th>家具分得開</th><th>拍攝前教學</th></tr>
+      <tr><td><div class="rd-m"><img class="rd-im" src="assets/demo/room_look_manual.jpg" alt="用 demoroom 的格局模擬家具規劃工具的 3D 房間"><span>手動建模<br>家具規劃工具</span></div></td><td class="y"><svg class="ic"><use href="#i-check"/></svg></td><td class="m">家具要自己一件件擺</td><td class="n"><svg class="ic"><use href="#i-x"/></svg></td><td class="y"><svg class="ic"><use href="#i-check"/></svg></td><td class="m">不需要</td></tr>
+      <tr><td><div class="rd-m"><img class="rd-im" src="assets/demo/room_look_scan.jpg" alt="用 demoroom 模擬掃描 App：家具融成一大塊"><span>掃描 App<br>（LiDAR）</span></div></td><td class="m">多數要 LiDAR 手機</td><td class="y"><svg class="ic"><use href="#i-check"/></svg></td><td class="y"><svg class="ic"><use href="#i-check"/></svg></td><td class="m">多數是一整塊</td><td class="m">只有拍攝中提示</td></tr>
+      <tr><td><div class="rd-m"><img class="rd-im" src="assets/demo/room_look_mesh.jpg" alt="用 demoroom 模擬網格重建：三角形面片與破洞"><span>傳統 3D<br>網格重建</span></div></td><td class="y"><svg class="ic"><use href="#i-check"/></svg></td><td class="y"><svg class="ic"><use href="#i-check"/></svg></td><td class="m">細節糊、反光破洞</td><td class="m">整間連成一整塊</td><td class="n"><svg class="ic"><use href="#i-x"/></svg></td></tr>
+      <tr class="me"><td><div class="rd-m"><img class="rd-im" src="assets/demo/room_look_ours.jpg" alt="demoroom 的 Meowho 3D 房間畫面"><span>Meowho<br>3D 房間</span></div></td><td class="y"><svg class="ic"><use href="#i-check"/></svg></td><td class="y"><svg class="ic"><use href="#i-check"/></svg></td><td class="y"><svg class="ic"><use href="#i-check"/></svg></td><td class="y"><svg class="ic"><use href="#i-check"/></svg></td><td class="y"><svg class="ic"><use href="#i-check"/></svg></td></tr>
+    </table>
+    <div class="rd-foot reveal d3">
+      <div class="rv-keys">
+        <span class="rv-tot"><svg class="ic"><use href="#i-clock"/></svg>全程 15～20 分鐘</span>
+        <span class="rv-k">質感優先</span><span class="rv-k">補開 GPU 快 15%</span><span class="rv-k">一間約 NT$6</span>
+      </div>
+    </div>
+  </div>
+  <!--PG-->
+</section>
+
+<!-- =========================================================
+     11 領養人：影片轉 3D 房間的六個步驟（珮瑜）
      ========================================================= -->
 <section class="slide" data-label="11 3D 房間">
   <!--SPK:珮瑜-->
   <div class="head"><span class="tag"><b>04</b>Demo 流程</span><!--DEMO:3--></div>
   <h2 class="reveal">一支影片，<em>怎麼變成 3D 房間</em></h2>
   <div class="body" style="top:250px">
-    <div class="rv">
-      <div class="rv-flow reveal d1">
-        <div class="rv-step"><span class="rv-n">1</span><div class="rv-tx"><div class="rv-t">拍攝教練</div><p class="rv-w">先教怎麼拍，上傳前檢查影片</p></div><span class="rv-m">插圖＋路線動畫</span></div>
-        <div class="rv-step"><span class="rv-n">2</span><div class="rv-tx"><div class="rv-t">相機定位<span class="gputag">GPU＋CPU</span></div><p class="rv-w">算出每張照片在哪裡拍</p></div><span class="rv-m">COLMAP・GLOMAP</span></div>
-        <div class="rv-step"><span class="rv-n">3</span><div class="rv-tx"><div class="rv-t">3D 重建<span class="gputag">GPU</span></div><p class="rv-w">幾十萬顆橢球堆出房間</p></div><span class="rv-m">Brush・3D Gaussian Splatting</span></div>
-        <div class="rv-step"><span class="rv-n">4</span><div class="rv-tx"><div class="rv-t">認物品<span class="aitag">AI</span><span class="gputag">GPU</span></div><p class="rv-w">找出床、書桌在哪裡</p></div><span class="rv-m">Gemini・Grounding DINO・SAM 2</span></div>
-        <div class="rv-step"><span class="rv-n">5</span><div class="rv-tx"><div class="rv-t">組場景</div><p class="rv-w">家具外框、床面高度寫成一份檔案</p></div><span class="rv-m">scene.json</span></div>
-        <div class="rv-step"><span class="rv-n">6</span><div class="rv-tx"><div class="rv-t">看房間</div><p class="rv-w">網頁走進房間，任務換成你家家具</p></div><span class="rv-m">gaussian-splats-3d・Three.js</span></div>
-      </div>
-      <div class="rv-main reveal d2">
-        <div class="shot vshot rv-shot"><div class="bar"><i></i><i></i><i></i><span>我的 3D 房間（正式站）</span></div><video src="assets/video/room3d.mp4" autoplay loop muted playsinline></video></div>
-        <div class="rv-keys">
-          <span class="rv-tot"><svg class="ic"><use href="#i-clock"/></svg>全程 15～20 分鐘</span>
-          <span class="rv-k">質感優先</span><span class="rv-k">開 GPU 快 15%</span><span class="rv-k">一間 NT$6</span>
+    <div class="rs">
+      <div class="rs-grid">
+        <div class="rs-row">影片 → 3D 房間</div>
+        <div class="rs-card reveal d1">
+          <img class="rs-fig whole" src="assets/demo/room_step_1b.jpg" alt="正式站拍攝教練的拍攝路線">
+          <div class="rs-h"><span class="rs-n">1</span>拍攝教練<span class="rs-g">直覺</span></div>
+          <p class="rs-w">教你繞一圈，上傳前先檢查</p>
+        </div>
+        <div class="rs-card reveal d1">
+          <img class="rs-fig" src="assets/demo/room_step_2b.jpg" alt="demoroom 每張照片的拍攝位置和鏡頭朝向">
+          <div class="rs-h"><span class="rs-n">2</span>相機定位<span class="rs-g">快</span></div>
+          <p class="rs-w">約 300 張照片，算出拍攝位置</p>
+        </div>
+        <div class="rs-card reveal d2">
+          <img class="rs-fig" src="assets/demo/room_step_3.jpg" alt="demoroom 重建好的 3D 房間">
+          <div class="rs-h"><span class="rs-n">3</span>3D 重建<span class="rs-g">像</span></div>
+          <p class="rs-w">幾十萬顆小橢球堆出房間</p>
+        </div>
+        <div class="rs-row cat"><svg class="ic"><use href="#i-paw"/></svg>讓貓走進你家</div>
+        <div class="rs-card cat reveal d2">
+          <img class="rs-fig" src="assets/demo/room_step_4b.jpg" alt="Grounding DINO 框出、SAM 2 描出床、衣櫃、冰箱等家具">
+          <div class="rs-h"><span class="rs-n">4</span>認物品<span class="aitag">AI</span><span class="rs-g">互動</span></div>
+          <p class="rs-w">框出家具、描輪廓，再投回 3D</p>
+        </div>
+        <div class="rs-card cat reveal d3">
+          <img class="rs-fig" src="assets/demo/room_step_5.jpg" alt="demoroom 的家具外框">
+          <div class="rs-h"><span class="rs-n">5</span>組場景<span class="rs-g">互動</span></div>
+          <p class="rs-w">床變貼地方塊，小東西挖出來</p>
+        </div>
+        <div class="rs-card reveal d3">
+          <video class="rs-fig" src="assets/video/room3d.mp4" autoplay loop muted playsinline></video>
+          <div class="rs-h"><span class="rs-n">6</span>看房間<span class="rs-g">互動</span></div>
+          <p class="rs-w">走進房間，任務用你家家具</p>
         </div>
       </div>
     </div>
