@@ -900,6 +900,40 @@ code{font:500 .92em ui-monospace,Menlo,monospace;background:var(--cream-d);borde
 .rs-card.cat{background:var(--honey-l);border-color:var(--honey)}
 .rs-card.cat .rs-m,.rs-card.cat .rs-g{background:#fff}
 .rs-fig.whole{object-fit:contain;background:#fdf6ea}
+/* 第 12 頁：四種做法並排，大圖在上 */
+.rd-goals{gap:16px}
+.rd-goal{grid-template-columns:auto auto 1fr;grid-template-rows:auto;padding:12px 18px!important;border-radius:20px}
+.rd-goal .t{font-size:28px;white-space:nowrap}
+.rd-goal .p{grid-column:auto;font-size:19px;line-height:1.35}
+.rd-t{width:100%;table-layout:fixed;border-collapse:separate;border-spacing:0;margin-top:16px}
+.rd-t .rd-c0{width:190px;text-align:left;font:700 22px/1.3 var(--font-body);color:var(--cocoa);padding:0 12px 0 4px;background:none}
+.rd-th .rd-c0{vertical-align:bottom;padding-bottom:14px;font:500 18px/1.3 var(--font-body);color:var(--cocoa-2)}
+.rd-th th{padding:0 10px 10px;vertical-align:bottom;text-align:center}
+.rd-big{display:block;width:100%;height:178px;object-fit:cover;border-radius:16px;border:2px solid var(--line)}
+.rd-n{display:block;margin-top:10px;font:700 23px/1.25 var(--font-body);color:var(--cocoa)}
+.rd-th th.me{background:var(--honey-l);border:3px solid var(--honey);border-bottom:none;border-radius:22px 22px 0 0;padding-top:10px}
+.rd-th th.me .rd-big{height:186px;border:3px solid var(--honey)}
+.rd-th th.me .rd-n{font-size:27px;color:var(--caramel)}
+.rd-t td{text-align:center;vertical-align:middle;padding:9px 10px;border-top:1.5px solid var(--line);font:400 20px/1.3 var(--font-body);color:var(--cocoa)}
+.rd-t tr:not(.rd-th) .rd-c0{border-top:1.5px solid var(--line);padding:9px 12px 9px 4px}
+.rd-t td .ic{font-size:32px;vertical-align:middle}
+.rd-t td.y .ic{color:#3f8a4f}
+.rd-t td.n .ic{color:#c0503a}
+.rd-t td.m{color:var(--cocoa-2);font-size:19px}
+.rd-t td.me{background:var(--honey-l);border-left:3px solid var(--honey);border-right:3px solid var(--honey)}
+.rd-t td.me .ic{font-size:38px;stroke-width:3}
+.rd-t tr:last-child td.me{border-bottom:3px solid var(--honey);border-radius:0 0 22px 22px}
+.rd-goal{column-gap:12px;padding:12px 14px!important}
+.rd-goal .t{font-size:26px}
+.rd-goal .p{font-size:17px;white-space:nowrap}
+.rd-big{height:222px}
+.rd-th th.me .rd-big{height:232px}
+.rd-win{display:inline-flex;align-items:center;gap:8px;font:700 23px/1.2 var(--font-body);color:var(--cocoa);white-space:nowrap}
+.rd-t td.me .rd-win .ic{font-size:32px}
+.rd-t{margin-top:0}
+.rd-big{height:300px}
+.rd-th th.me .rd-big{height:312px}
+.rd-top{margin:0 0 18px}
 </style>
 </head>
 <body>
@@ -1283,25 +1317,20 @@ code{font:500 .92em ui-monospace,Menlo,monospace;background:var(--cream-d);borde
   <div class="head"><span class="tag"><b>04</b>Demo 流程</span><div class="dbar"><span class="whob w-ado"><img class="whoav" src="assets/avatars/char_xiaojie.jpg" alt="">領養人視角</span><span class="dnodes"><span class="dn r-mid done">建立貓咪</span><span class="dn r-ado done">尋找貓咪</span><span class="dn r-ado now">拍攝居家影片</span><span class="dn r-ado">領養任務</span><span class="dn r-ado">提出領養</span><span class="dn r-both">移轉</span></span></div></div>
   <h2 class="reveal">不用專業設備，<em>一支影片就讓貓走進你家</em></h2>
   <div class="body" style="top:250px">
-    <div class="rd-goals">
-      <div class="rd-goal reveal d1"><span class="ib xs"><svg class="ic"><use href="#i-route"/></svg></span><div class="t">更直覺</div><p class="p">拍之前有教練，手機就能拍</p></div>
-      <div class="rd-goal reveal d1"><span class="ib xs"><svg class="ic"><use href="#i-clock"/></svg></span><div class="t">更快</div><p class="p">上傳後自動完成，不用手動</p></div>
-      <div class="rd-goal reveal d2"><span class="ib xs"><svg class="ic"><use href="#i-eye"/></svg></span><div class="t">更像</div><p class="p">照片等級，認得出自己家</p></div>
-      <div class="rd-goal reveal d2"><span class="ib xs"><svg class="ic"><use href="#i-paw"/></svg></span><div class="t">能互動</div><p class="p">認得床和書桌，任務用你家家具</p></div>
-    </div>
-    <table class="tbl rd-cmp reveal d2">
-      <tr><th>做法（用同一個房間模擬）</th><th>不用專業設備</th><th>自動完成</th><th>像真的家</th><th>家具分得開</th><th>拍攝前教學</th></tr>
-      <tr><td><div class="rd-m"><img class="rd-im" src="assets/demo/room_look_manual.jpg" alt="用 demoroom 的格局模擬家具規劃工具的 3D 房間"><span>手動建模<br>家具規劃工具</span></div></td><td class="y"><svg class="ic"><use href="#i-check"/></svg></td><td class="m">家具要自己一件件擺</td><td class="n"><svg class="ic"><use href="#i-x"/></svg></td><td class="y"><svg class="ic"><use href="#i-check"/></svg></td><td class="m">不需要</td></tr>
-      <tr><td><div class="rd-m"><img class="rd-im" src="assets/demo/room_look_scan.jpg" alt="用 demoroom 模擬掃描 App：家具融成一大塊"><span>掃描 App<br>（LiDAR）</span></div></td><td class="m">多數要 LiDAR 手機</td><td class="y"><svg class="ic"><use href="#i-check"/></svg></td><td class="y"><svg class="ic"><use href="#i-check"/></svg></td><td class="m">多數是一整塊</td><td class="m">只有拍攝中提示</td></tr>
-      <tr><td><div class="rd-m"><img class="rd-im" src="assets/demo/room_look_mesh.jpg" alt="用 demoroom 模擬網格重建：三角形面片與破洞"><span>傳統 3D<br>網格重建</span></div></td><td class="y"><svg class="ic"><use href="#i-check"/></svg></td><td class="y"><svg class="ic"><use href="#i-check"/></svg></td><td class="m">細節糊、反光破洞</td><td class="m">整間連成一整塊</td><td class="n"><svg class="ic"><use href="#i-x"/></svg></td></tr>
-      <tr class="me"><td><div class="rd-m"><img class="rd-im" src="assets/demo/room_look_ours.jpg" alt="demoroom 的 Meowho 3D 房間畫面"><span>Meowho<br>3D 房間</span></div></td><td class="y"><svg class="ic"><use href="#i-check"/></svg></td><td class="y"><svg class="ic"><use href="#i-check"/></svg></td><td class="y"><svg class="ic"><use href="#i-check"/></svg></td><td class="y"><svg class="ic"><use href="#i-check"/></svg></td><td class="y"><svg class="ic"><use href="#i-check"/></svg></td></tr>
-    </table>
-    <div class="rd-foot reveal d3">
+    <div class="rd-foot rd-top reveal d1">
       <div class="rv-keys">
         <span class="rv-tot"><svg class="ic"><use href="#i-clock"/></svg>全程 15～20 分鐘</span>
         <span class="rv-k">質感優先</span><span class="rv-k">補開 GPU 快 15%</span><span class="rv-k">一間約 NT$6</span>
       </div>
     </div>
+    <table class="rd-t reveal d2">
+      <tr class="rd-th"><th class="rd-c0">用同一個房間模擬</th><th><img class="rd-big" src="assets/demo/room_look_manual.jpg" alt="用 demoroom 的格局模擬家具規劃工具的 3D 房間"><span class="rd-n">手動建模、家具規劃工具</span></th><th><img class="rd-big" src="assets/demo/room_look_scan.jpg" alt="用 demoroom 模擬掃描 App：家具融成一大塊"><span class="rd-n">掃描 App（LiDAR）</span></th><th><img class="rd-big" src="assets/demo/room_look_mesh.jpg" alt="用 demoroom 模擬網格重建：三角形面片與破洞"><span class="rd-n">傳統 3D 網格重建</span></th><th class="me"><img class="rd-big" src="assets/demo/room_look_ours.jpg" alt="demoroom 的 Meowho 3D 房間畫面"><span class="rd-n">Meowho 3D 房間</span></th></tr>
+      <tr><th class="rd-c0">不用專業設備</th><td class="y"><svg class="ic"><use href="#i-check"/></svg></td><td class="m">多數要 LiDAR 手機</td><td class="y"><svg class="ic"><use href="#i-check"/></svg></td><td class="y me"><span class="rd-win"><svg class="ic"><use href="#i-check"/></svg>一般手機就能拍</span></td></tr>
+      <tr><th class="rd-c0">自動完成</th><td class="m">家具要自己一件件擺</td><td class="y"><svg class="ic"><use href="#i-check"/></svg></td><td class="y"><svg class="ic"><use href="#i-check"/></svg></td><td class="y me"><span class="rd-win"><svg class="ic"><use href="#i-check"/></svg>上傳後全自動</span></td></tr>
+      <tr><th class="rd-c0">像真的家</th><td class="n"><svg class="ic"><use href="#i-x"/></svg></td><td class="y"><svg class="ic"><use href="#i-check"/></svg></td><td class="m">細節糊、反光破洞</td><td class="y me"><span class="rd-win"><svg class="ic"><use href="#i-check"/></svg>照片等級</span></td></tr>
+      <tr><th class="rd-c0">家具分得開</th><td class="y"><svg class="ic"><use href="#i-check"/></svg></td><td class="m">多數是一整塊</td><td class="m">整間連成一整塊</td><td class="y me"><span class="rd-win"><svg class="ic"><use href="#i-check"/></svg>AI 一件件分開</span></td></tr>
+      <tr><th class="rd-c0">拍攝前教學</th><td class="m">不需要</td><td class="m">只有拍攝中提示</td><td class="n"><svg class="ic"><use href="#i-x"/></svg></td><td class="y me"><span class="rd-win"><svg class="ic"><use href="#i-check"/></svg>拍攝教練帶著拍</span></td></tr>
+    </table>
   </div>
   <div class="pg"><img src="assets/meowho-symbol.svg" alt="">12 / 23</div>
 </section>
