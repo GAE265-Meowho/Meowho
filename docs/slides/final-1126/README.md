@@ -6,5 +6,5 @@
 - 預覽：在本資料夾執行 `python3 -m http.server 4126`，開 http://localhost:4126/Meowho_成果報告_1126.html
 - 每頁講者用 `<!--SPK:名字-->` 標記，頭像在 `assets/avatars/名字.jpg`；Demo 頁左上的身分與進度列用 `<!--DEMO:n-->` 產生
 - 第 4 頁前導影片 `assets/video/trailer_part34.mp4`（52 MB）不進 git，向子哲索取後放進 `assets/video/`；3D 貓、3D 房間循環影片（`cat3d.mp4`、`room3d.mp4`）有進 git
-- 領養任務是頁尾第 15～19 頁（渝茜），第 15 頁是三大設計理念
+- 領養任務是頁尾第 15～19 頁（渝茜），第 15 頁是三大核心理念
 - 規則：不用 emoji、不放附註小字；用語照 `GLOSSARY.md`
