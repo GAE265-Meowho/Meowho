@@ -686,33 +686,3 @@ code{font:500 .92em ui-monospace,Menlo,monospace;background:var(--cream-d);borde
 .rs-card.cat{background:var(--honey-l);border-color:var(--honey)}
 .rs-card.cat .rs-m,.rs-card.cat .rs-g{background:#fff}
 .rs-fig.whole{object-fit:contain;background:#fdf6ea}
-/* 10b 為什麼要 AI 三視角 */
-.wy-why{position:absolute;right:-10px;top:-16px;display:inline-flex;align-items:center;gap:4px;padding:3px 12px;border-radius:999px;background:var(--honey);color:var(--cocoa);text-decoration:none;font:700 16px/1.3 var(--font-body);box-shadow:0 2px 0 rgba(0,0,0,.12)}
-.wy-why .ic{font-size:16px}
-.wy-back{position:absolute;left:96px;bottom:26px;z-index:3;display:inline-flex;align-items:center;gap:8px;padding:6px 18px;border-radius:999px;background:var(--cocoa);color:#fff;text-decoration:none;font:700 19px var(--font-body)}
-.wy-back .ic{font-size:20px;color:var(--honey);transform:scaleX(-1)}
-.wy-row{display:grid;grid-template-columns:200px 340px 48px 1fr 300px;gap:16px;align-items:center;background:#fff;border:2px solid var(--line);border-radius:26px;padding:14px 22px;height:300px;box-sizing:border-box}
-.wy-row+.wy-row{margin-top:16px}
-.wy-row.bad{background:#fbf1ee}
-.wy-row.good{background:var(--honey-l)}
-.wy-lab{display:flex;flex-direction:column;gap:6px}
-.wy-lab b{font:400 28px/1.2 var(--font-display);color:var(--cocoa)}
-.wy-lab small{font:500 17px/1.4 var(--font-body);color:var(--cocoa-2)}
-.wy-pill{align-self:flex-start;padding:2px 14px;border-radius:999px;font:700 17px var(--font-body);color:#fff;background:var(--cocoa)}
-.bad .wy-pill{background:#b5533c}
-.wy-in{margin:0;height:268px;display:flex;flex-direction:column;background:#fff;border:2px solid var(--line);border-radius:18px;overflow:hidden}
-.wy-in img{flex:1;min-height:0;width:100%;object-fit:contain}
-.wy-in figcaption,.wy-views figcaption{font:500 15px var(--font-body);color:var(--cocoa-2);text-align:center;padding:3px 0 5px}
-.wy-views{display:grid;grid-template-columns:1fr;gap:6px;height:268px}
-.wy-views figure{margin:0;display:grid;grid-template-columns:1fr 54px;align-items:center;background:#fff;border:2px solid var(--line);border-radius:14px;overflow:hidden;min-height:0}
-.wy-views img{width:100%;height:100%;object-fit:cover;min-height:0}
-.wy-views figcaption{padding:0}
-.wy-to{font-size:44px;color:var(--caramel);text-align:center}
-.wy-3d{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;align-items:center;height:268px}
-.wy-3d img{width:100%;height:100%;object-fit:contain;min-height:0}
-.wy-note{display:flex;gap:12px;align-items:flex-start;font:400 19px/1.45 var(--font-body);color:var(--cocoa-2)}
-.wy-note b{display:block;font:700 22px/1.35 var(--font-body);color:var(--cocoa);margin-bottom:4px}
-.bad .wy-note .ib{background:#b5533c;color:#fff}
-.ck-shared .ck-step:last-child{position:relative}
-.wy-3d img{background:transparent!important;border:0!important}
-.good .wy-note .ib{background:var(--cocoa);color:var(--honey)}

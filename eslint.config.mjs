@@ -21,8 +21,6 @@ const eslintConfig = [
       // Standalone design prototypes have their own package.json and lint setup.
       "prototypes/**",
       "workers/welfarelens/**",
-      // 簡報打包後的靜態檔（含 three.js 壓縮 bundle），不屬於網站程式碼。
-      "docs/slides/**",
     ],
   },
 ];

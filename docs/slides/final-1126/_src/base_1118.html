@@ -634,8 +634,6 @@ class SlidePresentation{
   }
 }
 const deck=new SlidePresentation();
-// 頁內連結：data-go 指到目標頁的 data-label（不用寫死頁碼，增刪頁不會跑掉）
-document.addEventListener('click',e=>{const a=e.target.closest('[data-go]');if(!a)return;e.preventDefault();const k=deck.slides.findIndex(s=>s.dataset.label===a.dataset.go);if(k>=0)deck.go(k)});
 
 /* ===========================================
    編輯模式：按 E 或左上角，直接改文字；自動存在這台電腦的瀏覽器
