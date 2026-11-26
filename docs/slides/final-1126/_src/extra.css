@@ -363,7 +363,7 @@ code{font:500 .92em ui-monospace,Menlo,monospace;background:var(--cream-d);borde
 .ck-link{display:inline-flex;align-items:center;gap:10px;padding:6px 20px;border-radius:999px;background:var(--cocoa);color:#fff;text-decoration:none;font:700 21px var(--font-body);margin-bottom:10px}
 .ck-link .ic{font-size:24px;color:var(--honey)}
 .ck-media{display:grid;grid-template-columns:460px 60px 460px 1fr;gap:20px;align-items:center}
-.ck-fig{margin:0;background:#fff;border:2px solid var(--line);border-radius:24px;overflow:hidden;height:370px;display:flex;flex-direction:column}
+.ck-fig{margin:0;background:#fff;border:2px solid var(--line);border-radius:24px;overflow:hidden;height:300px;display:flex;flex-direction:column}
 .ck-fig img{flex:1;min-height:0;width:100%;object-fit:contain;background:#fff}
 .ck-fig figcaption{font:500 17px var(--font-body);color:var(--cocoa-2);text-align:center;padding:6px 0 8px}
 .ck-to{font-size:52px;color:var(--caramel);text-align:center}
