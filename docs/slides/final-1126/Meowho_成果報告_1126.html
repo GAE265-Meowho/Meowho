@@ -898,6 +898,8 @@ code{font:500 .92em ui-monospace,Menlo,monospace;background:var(--cream-d);borde
 .rd-goal .p{font-size:17px;white-space:nowrap}
 .rd-big{height:222px}
 .rd-th th.me .rd-big{height:232px}
+.rd-win{display:inline-flex;align-items:center;gap:8px;font:700 23px/1.2 var(--font-body);color:var(--cocoa);white-space:nowrap}
+.rd-t td.me .rd-win .ic{font-size:32px}
 </style>
 </head>
 <body>
@@ -1286,11 +1288,11 @@ code{font:500 .92em ui-monospace,Menlo,monospace;background:var(--cream-d);borde
     </div>
     <table class="rd-t reveal d2">
       <tr class="rd-th"><th class="rd-c0">用同一個房間模擬</th><th><img class="rd-big" src="assets/demo/room_look_manual.jpg" alt="用 demoroom 的格局模擬家具規劃工具的 3D 房間"><span class="rd-n">手動建模、家具規劃工具</span></th><th><img class="rd-big" src="assets/demo/room_look_scan.jpg" alt="用 demoroom 模擬掃描 App：家具融成一大塊"><span class="rd-n">掃描 App（LiDAR）</span></th><th><img class="rd-big" src="assets/demo/room_look_mesh.jpg" alt="用 demoroom 模擬網格重建：三角形面片與破洞"><span class="rd-n">傳統 3D 網格重建</span></th><th class="me"><img class="rd-big" src="assets/demo/room_look_ours.jpg" alt="demoroom 的 Meowho 3D 房間畫面"><span class="rd-n">Meowho 3D 房間</span></th></tr>
-      <tr><th class="rd-c0">不用專業設備</th><td class="y"><svg class="ic"><use href="#i-check"/></svg></td><td class="m">多數要 LiDAR 手機</td><td class="y"><svg class="ic"><use href="#i-check"/></svg></td><td class="y me"><svg class="ic"><use href="#i-check"/></svg></td></tr>
-      <tr><th class="rd-c0">自動完成</th><td class="m">家具要自己一件件擺</td><td class="y"><svg class="ic"><use href="#i-check"/></svg></td><td class="y"><svg class="ic"><use href="#i-check"/></svg></td><td class="y me"><svg class="ic"><use href="#i-check"/></svg></td></tr>
-      <tr><th class="rd-c0">像真的家</th><td class="n"><svg class="ic"><use href="#i-x"/></svg></td><td class="y"><svg class="ic"><use href="#i-check"/></svg></td><td class="m">細節糊、反光破洞</td><td class="y me"><svg class="ic"><use href="#i-check"/></svg></td></tr>
-      <tr><th class="rd-c0">家具分得開</th><td class="y"><svg class="ic"><use href="#i-check"/></svg></td><td class="m">多數是一整塊</td><td class="m">整間連成一整塊</td><td class="y me"><svg class="ic"><use href="#i-check"/></svg></td></tr>
-      <tr><th class="rd-c0">拍攝前教學</th><td class="m">不需要</td><td class="m">只有拍攝中提示</td><td class="n"><svg class="ic"><use href="#i-x"/></svg></td><td class="y me"><svg class="ic"><use href="#i-check"/></svg></td></tr>
+      <tr><th class="rd-c0">不用專業設備</th><td class="y"><svg class="ic"><use href="#i-check"/></svg></td><td class="m">多數要 LiDAR 手機</td><td class="y"><svg class="ic"><use href="#i-check"/></svg></td><td class="y me"><span class="rd-win"><svg class="ic"><use href="#i-check"/></svg>一般手機就能拍</span></td></tr>
+      <tr><th class="rd-c0">自動完成</th><td class="m">家具要自己一件件擺</td><td class="y"><svg class="ic"><use href="#i-check"/></svg></td><td class="y"><svg class="ic"><use href="#i-check"/></svg></td><td class="y me"><span class="rd-win"><svg class="ic"><use href="#i-check"/></svg>上傳後全自動</span></td></tr>
+      <tr><th class="rd-c0">像真的家</th><td class="n"><svg class="ic"><use href="#i-x"/></svg></td><td class="y"><svg class="ic"><use href="#i-check"/></svg></td><td class="m">細節糊、反光破洞</td><td class="y me"><span class="rd-win"><svg class="ic"><use href="#i-check"/></svg>照片等級</span></td></tr>
+      <tr><th class="rd-c0">家具分得開</th><td class="y"><svg class="ic"><use href="#i-check"/></svg></td><td class="m">多數是一整塊</td><td class="m">整間連成一整塊</td><td class="y me"><span class="rd-win"><svg class="ic"><use href="#i-check"/></svg>AI 一件件分開</span></td></tr>
+      <tr><th class="rd-c0">拍攝前教學</th><td class="m">不需要</td><td class="m">只有拍攝中提示</td><td class="n"><svg class="ic"><use href="#i-x"/></svg></td><td class="y me"><span class="rd-win"><svg class="ic"><use href="#i-check"/></svg>拍攝教練帶著拍</span></td></tr>
     </table>
     <div class="rd-foot reveal d3">
       <div class="rv-keys">
