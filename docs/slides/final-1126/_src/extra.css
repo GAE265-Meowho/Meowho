@@ -639,3 +639,10 @@ code{font:500 .92em ui-monospace,Menlo,monospace;background:var(--cream-d);borde
 .rd-ck li.n .ic{color:#c0503a}
 .rd-ck li.m{color:var(--cocoa-2)}
 .rd-ck li.m .ic{color:#c98a1e}
+/* 11a：比較表第一欄放同一房間的模擬畫面 */
+.rd-cmp td{padding:8px 14px}
+.rd-cmp td:first-child{padding:9px 14px}
+.rd-cmp td .ic{font-size:34px}
+.rd-im{width:192px;height:108px;object-fit:cover;border-radius:12px;display:block;flex:none;border:2px solid var(--line)}
+.rd-cmp tr.me .rd-im{border-color:var(--honey)}
+.rd-m span{font:700 23px/1.35 var(--font-body);white-space:normal}
