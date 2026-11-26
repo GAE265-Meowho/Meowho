@@ -579,3 +579,4 @@ code{font:500 .92em ui-monospace,Menlo,monospace;background:var(--cream-d);borde
 .lim-row.n{background:var(--honey-l);color:var(--cocoa)}
 .lim-row.n b{color:var(--caramel)}
 .lim .shot .bar{position:relative;z-index:2}
+.mem .who .lead-tag{display:inline-block;vertical-align:middle;margin-left:12px;background:var(--cocoa);color:#fff;border-radius:999px;padding:2px 14px;font:700 18px/1.5 var(--font-body)}
