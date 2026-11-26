@@ -51,7 +51,7 @@ body:has(.meow-dashboard)>nav{display:none}
 .meow-item[open]>.meow-hero .meow-risk{grid-column:2;grid-row:2;border:0;padding:0;font-size:16px}
 .meow-item[open]>.meow-hero>.meow-icon{grid-column:3;grid-row:1/3;transform:rotate(180deg)}
 .meow-item:not([open])>.meow-panel{display:none}
-.meow-panel{display:grid;grid-template-columns:minmax(0,34%) minmax(0,1fr);gap:17px;padding:18px 20px;border-top:1px solid var(--line)}
+.meow-panel{display:grid;grid-template-columns:minmax(0,28%) minmax(0,1fr);gap:17px;padding:18px 20px;border-top:1px solid var(--line)}
 .meow-panel.solo{grid-template-columns:minmax(0,1fr)}
 .meow-instructions{display:grid;align-content:start;gap:10px;min-width:0}
 .meow-action{padding:17px 24px 20px;border-radius:14px;background:var(--green-soft);color:var(--green)}
@@ -82,16 +82,16 @@ body:has(.meow-dashboard)>nav{display:none}
 .meow-dashboard .simulated-region{border-style:dashed;border-color:var(--green)}
 .meow-between{position:absolute;z-index:1;left:50%;top:calc(50% + 15px);transform:translate(-50%,-50%);display:grid;place-items:center;width:34px;aspect-ratio:1;background:#fffaf3;border-radius:50%;color:var(--brand-ink);box-shadow:0 2px 8px #16394c22;pointer-events:none}
 .meow-between .meow-icon{width:19px}
-.meow-closeups{margin-top:8px;padding-top:6px;border-top:1px solid var(--line)}
-.meow-closeups h3{display:flex;align-items:center;gap:5px;margin:0;font-size:14px;color:var(--brand-ink)}
+.meow-frame-context{max-width:70%;margin:12px auto 0;padding-top:8px;border-top:1px solid var(--line)}
+.meow-closeups h3,.meow-frame-context h3{display:flex;align-items:center;gap:5px;margin:0;font-size:14px;color:var(--brand-ink)}
 .meow-closeups h3 .meow-icon{width:17px}
-.meow-closeups .meow-compare{margin:5px 0 0}
+.meow-closeups .meow-compare{max-width:640px;margin:5px auto 0}
 .meow-closeups figure{position:relative;display:grid;justify-items:center;align-content:start}
-.meow-closeups .meow-photo{max-width:100%}
-.meow-closeups figcaption{margin:0 0 6px;font-size:12px;padding:1px 7px}
-.meow-closeups .meow-photo{aspect-ratio:auto;container-type:normal;overflow:visible;background:transparent}
-.meow-closeups .meow-evidence-image{max-height:clamp(116px,13.5vw,168px);border-radius:9px}
-.meow-closeups a{display:block}
+.meow-frame-context h3{margin-bottom:6px}
+.meow-closeups figcaption{margin:0 0 6px;font-size:14px;padding:1px 7px}
+.meow-closeups .meow-photo{width:100%;height:clamp(155px,26vw,320px);aspect-ratio:auto;container-type:size;background:transparent}
+.meow-closeups .meow-evidence-image{max-width:min(100%,250px);max-height:100cqh;border-radius:9px}
+.meow-closeups a{display:block;width:100%}
 .meow-closeups .meow-between{top:calc(50% + 12px);width:25px;background:var(--mint-soft)}
 .meow-footer{position:relative;isolation:isolate;overflow:hidden;display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:22px;min-height:148px;box-sizing:border-box;padding:20px 25px;border:1px solid white;border-radius:var(--radius);background:linear-gradient(#fffaf3,#fbf5ea);box-shadow:var(--shadow)}
 .meow-footer .meow-icon-tile{width:59px;border-radius:15px}
@@ -112,7 +112,7 @@ body:has(.meow-dashboard)>nav{display:none}
  .meow-item>.meow-hero .meow-title,.meow-item[open]>.meow-hero .meow-title{font-size:17px;grid-column:2}
  .meow-item>.meow-hero .meow-risk,.meow-item[open]>.meow-hero .meow-risk{grid-column:2;grid-row:2;border:0;padding:0;font-size:13px}
  .meow-item>.meow-hero>.meow-icon{grid-column:3;grid-row:1/3}
- .meow-panel{grid-template-columns:minmax(0,1fr);gap:14px;padding:9px 11px 13px}.meow-instructions{gap:8px}.meow-action{padding:13px 14px 15px}.meow-action li{font-size:17px}.meow-action ol{gap:12px}.meow-action li::before{width:28px;line-height:28px;font-size:15px}
+ .meow-frame-context{max-width:86%}.meow-panel{grid-template-columns:minmax(0,1fr);gap:14px;padding:9px 11px 13px}.meow-instructions{gap:8px}.meow-action{padding:13px 14px 15px}.meow-action li{font-size:17px}.meow-action ol{gap:12px}.meow-action li::before{width:28px;line-height:28px;font-size:15px}
  .meow-compare{gap:8px}.meow-compare figcaption,.meow-compare > :is(.meow-before,.meow-after) figcaption{font-size:11px;padding:2px 5px}.meow-between{width:22px}.meow-between .meow-icon{width:14px}
  .meow-footer{flex-wrap:wrap;padding:14px;min-height:133px}.meow-footer-art{display:none}.meow-footer .meow-icon-tile{width:43px}.meow-footer .meow-icon-tile .meow-icon{width:27px}
 }

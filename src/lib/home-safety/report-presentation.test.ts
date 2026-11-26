@@ -75,6 +75,8 @@ it("preloads each referenced WebP once for desktop, with no preload in the full 
 it("uses the case's independent After coordinates and its two deferred detail assets", () => {
   const html = report(localizedComparison() + candidate("其他房間", "c", "f"));
   const output = openedPanel(renderReportPresentation(html, false, undefined, 0));
+  expect(output.indexOf("局部對照</h3>")).toBeGreaterThan(-1);
+  expect(output.indexOf("局部對照</h3>")).toBeLessThan(output.indexOf("完整影格定位</h3>"));
   expect(output).toContain('class="region estimated" style="left:12%;top:25%;width:30%;height:40%"');
   expect(output).toContain('class="region simulated-region" style="left:42%;top:10%;width:18%;height:25%"');
   expect(output).toContain("綠色虛線為 AI 模擬對應區域。");

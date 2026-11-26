@@ -282,7 +282,11 @@ function comparison(item: ReturnType<typeof parseReportPresentation>["items"][nu
   const closeups = !item.cropped && (item.detailBefore || item.detailAfter) ? `<section class="meow-closeups"><h3>${icon("search")}局部對照</h3><div class="meow-compare">
     ${detailFigure("before", "改善前局部｜原圖", item.detailBefore)}${item.detailBefore && item.detailAfter ? between : ""}
     ${detailFigure("after", "改善後局部｜AI 模擬示意", item.detailAfter)}</div></section>` : "";
-  return `<div class="meow-evidence-grid"><div class="meow-compare">${before}${item.after ? between : ""}${after}</div>${closeups}</div>`;
+  const frames = `<div class="meow-compare">${before}${item.after ? between : ""}${after}</div>`;
+  const evidence = closeups
+    ? `${closeups}<section class="meow-frame-context"><h3>完整影格定位</h3>${frames}</section>`
+    : frames;
+  return `<div class="meow-evidence-grid">${evidence}</div>`;
 }
 
 function renderFullEvidence(html: string, headerEnd: number, bodyEnd: number, images: ReturnType<typeof parseReportPresentation>["images"]) {
