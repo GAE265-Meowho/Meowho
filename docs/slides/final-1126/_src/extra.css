@@ -686,3 +686,6 @@ code{font:500 .92em ui-monospace,Menlo,monospace;background:var(--cream-d);borde
 .rd-th th.me .rd-big{height:232px}
 .rd-win{display:inline-flex;align-items:center;gap:8px;font:700 23px/1.2 var(--font-body);color:var(--cocoa);white-space:nowrap}
 .rd-t td.me .rd-win .ic{font-size:32px}
+.rd-t{margin-top:0}
+.rd-big{height:300px}
+.rd-th th.me .rd-big{height:312px}
