@@ -82,8 +82,18 @@ it("uses the case's independent After coordinates and its two deferred detail as
   expect(output).toContain("綠色虛線為 AI 模擬對應區域。");
   expect(output).toContain(`aria-label="改善前局部｜原圖" style="--evidence-image:url('${path("d")}')"`);
   expect(output).toContain(`aria-label="改善後局部｜AI 模擬示意" style="--evidence-image:url('${path("e")}')"`);
+  expect(output).toContain('class="meow-photo-placeholder" aria-hidden="true">影像暫時無法顯示');
   expect(output).not.toContain(path("f"));
   expect(renderReportPresentation(html, false)).not.toContain('<details class="meow-item" open>');
+});
+
+it("keeps the missing crop on its own side and retains the full frame pair", () => {
+  const output = openedPanel(renderReportPresentation(report(localizedComparison().replace(img("e"), "")), false, undefined, 0));
+  expect(output).toContain('<figure class="meow-after-detail"><figcaption>改善後｜AI 模擬示意</figcaption>');
+  expect(output).toContain("此報告未提供這張局部影像。");
+  expect(output).toContain(path("a"));
+  expect(output).toContain(path("b"));
+  expect(output).not.toContain(path("e"));
 });
 
 it.each([
