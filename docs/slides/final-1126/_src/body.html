@@ -26,6 +26,7 @@
   <symbol id="i-spark" viewBox="0 0 24 24"><path d="M11 3l2 6 6 2-6 2-2 6-2-6-6-2 6-2z"/><path d="M19 3v4M17 5h4"/></symbol>
   <symbol id="i-cube" viewBox="0 0 24 24"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M4 7.5l8 4.5 8-4.5M12 12v9"/></symbol>
   <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+  <symbol id="i-minus" viewBox="0 0 24 24"><path d="M6 12h12"/></symbol>
   <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></symbol>
   <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18v.5"/></symbol>
   <symbol id="i-swap" viewBox="0 0 24 24"><path d="M4 8h15l-4-4M20 16H5l4 4"/></symbol>
@@ -378,13 +379,72 @@
       <div class="rd-goal reveal d2"><span class="ib xs"><svg class="ic"><use href="#i-eye"/></svg></span><div class="t">更像</div><p class="p">照片等級，認得出自己家</p></div>
       <div class="rd-goal reveal d2"><span class="ib xs"><svg class="ic"><use href="#i-paw"/></svg></span><div class="t">能互動</div><p class="p">認得床和書桌，任務用你家家具</p></div>
     </div>
-    <table class="tbl rd-cmp reveal d3">
-      <tr><th>做法</th><th>不用專業設備</th><th>不用手動</th><th>像真的家</th><th>家具分得開</th><th>拍攝前教學</th></tr>
-      <tr><td><div class="rd-m"><svg class="rd-fig" viewBox="0 0 120 64" aria-hidden="true"><path class="fl" d="M8 52l22-20h82l-22 20z"/><path class="bx" d="M34 46V34h26v12zM34 34l6-5h26l-6 5zM60 46V34l6-5v12z"/><path class="bx" d="M76 42v-8h12v8zM76 34l4-3h12l-4 3zM88 42v-8l4-3v8z"/></svg><span>手動建模、家具規劃工具</span></div></td><td class="y"><svg class="ic"><use href="#i-check"/></svg></td><td class="n"><svg class="ic"><use href="#i-x"/></svg></td><td class="n"><svg class="ic"><use href="#i-x"/></svg></td><td class="y"><svg class="ic"><use href="#i-check"/></svg></td><td class="m">不需要</td></tr>
-      <tr><td><div class="rd-m"><svg class="rd-fig" viewBox="0 0 120 64" aria-hidden="true"><rect class="ph" x="6" y="14" width="18" height="32" rx="4"/><path class="beam" d="M26 22L62 14M26 30L62 30M26 38L62 46"/><path class="lump" d="M66 50c-2-14 4-30 18-32 10-2 22 4 26 14 4 10 0 18-4 18z"/></svg><span>掃描 App（LiDAR）</span></div></td><td class="m">多數要 LiDAR 手機</td><td class="y"><svg class="ic"><use href="#i-check"/></svg></td><td class="y"><svg class="ic"><use href="#i-check"/></svg></td><td class="m">多數是一整塊</td><td class="m">只有拍攝中提示</td></tr>
-      <tr><td><div class="rd-m"><svg class="rd-fig" viewBox="0 0 120 64" aria-hidden="true"><path class="mesh" d="M10 50L28 18L46 50L64 18L82 50L100 18L112 44M10 50h102M28 18h72M19 34h18M55 34h18M91 34h16"/><path class="hole" d="M62 30l10-4 6 8-8 8-10-4z"/></svg><span>傳統 3D 網格重建</span></div></td><td class="y"><svg class="ic"><use href="#i-check"/></svg></td><td class="y"><svg class="ic"><use href="#i-check"/></svg></td><td class="m">細節糊、反光破洞</td><td class="n"><svg class="ic"><use href="#i-x"/></svg></td><td class="n"><svg class="ic"><use href="#i-x"/></svg></td></tr>
-      <tr class="me"><td><div class="rd-m"><svg class="rd-fig" viewBox="0 0 120 64" aria-hidden="true"><g class="gs"><ellipse cx="18" cy="44" rx="10" ry="6"/><ellipse cx="34" cy="40" rx="9" ry="7"/><ellipse cx="50" cy="44" rx="10" ry="6"/><ellipse cx="26" cy="28" rx="7" ry="5"/><ellipse cx="42" cy="26" rx="8" ry="5"/><ellipse cx="58" cy="30" rx="6" ry="8"/><ellipse cx="66" cy="46" rx="8" ry="5"/></g><path class="bx" d="M82 50V38h24v12zM82 38l4-4h24l-4 4zM106 50V38l4-4v12z"/><path class="cup" d="M92 24h8l-1 8h-6z"/></svg><span>Meowho 3D 房間</span></div></td><td class="y"><svg class="ic"><use href="#i-check"/></svg></td><td class="y"><svg class="ic"><use href="#i-check"/></svg></td><td class="y"><svg class="ic"><use href="#i-check"/></svg></td><td class="y"><svg class="ic"><use href="#i-check"/></svg></td><td class="y"><svg class="ic"><use href="#i-check"/></svg></td></tr>
-    </table>
+    <div class="rd-ways">
+      <div class="rd-way reveal d2">
+        <svg class="rd-pic" viewBox="0 0 400 225" aria-hidden="true">
+          <rect x="0" y="0" width="400" height="150" fill="#e8eef3"/><path d="M0 150h400v75H0z" fill="#d9c7ad"/>
+          <rect x="160" y="28" width="90" height="72" fill="#bcd9ef" stroke="#7a8b99" stroke-width="3"/><path d="M205 28v72M160 64h90" stroke="#7a8b99" stroke-width="3"/>
+          <path d="M140 150v-30h140v30z" fill="#7fa7d9"/><path d="M140 120l12-10h140l-12 10z" fill="#a9c6ea"/><path d="M280 150v-30l12-10v30z" fill="#5f87b8"/>
+          <path d="M150 116h36v-6h-36z" fill="#fff"/>
+          <path d="M18 185v-48h104v48" fill="none" stroke="#8a6a4a" stroke-width="5"/><path d="M14 137h112v-8H14z" fill="#c49a6c"/>
+          <rect x="44" y="100" width="46" height="28" fill="#555"/><path d="M64 128v4" stroke="#555" stroke-width="4"/>
+          <path d="M318 190V60h66v130z" fill="#c49a6c"/><path d="M318 100h66M318 145h66" stroke="#8a6a4a" stroke-width="4"/>
+          <rect x="328" y="80" width="20" height="20" fill="#e57a5a"/><rect x="354" y="122" width="22" height="23" fill="#6dbf8f"/>
+        </svg>
+        <div class="rd-name">手動建模、家具規劃工具</div>
+        <ul class="rd-ck">
+          <li class="y"><svg class="ic"><use href="#i-check"/></svg>不用專業設備</li>
+          <li class="n"><svg class="ic"><use href="#i-x"/></svg>要一件一件擺</li>
+          <li class="n"><svg class="ic"><use href="#i-x"/></svg>像遊戲，不像自己家</li>
+          <li class="y"><svg class="ic"><use href="#i-check"/></svg>家具分得開</li>
+          <li class="m"><svg class="ic"><use href="#i-minus"/></svg>不用拍，也沒有教學</li>
+        </ul>
+      </div>
+      <div class="rd-way reveal d2">
+        <svg class="rd-pic" viewBox="0 0 400 225" aria-hidden="true">
+          <defs><linearGradient id="rdLump" x1="0" x2="1" y1="0" y2="0"><stop offset="0" stop-color="#8a6a4a"/><stop offset=".3" stop-color="#b59a7a"/><stop offset=".45" stop-color="#9fb6d4"/><stop offset=".7" stop-color="#c3cfdc"/><stop offset=".82" stop-color="#a07a55"/><stop offset="1" stop-color="#7d5a3c"/></linearGradient></defs><rect x="0" y="0" width="400" height="150" fill="#e9e1d6"/><path d="M0 150h400v75H0z" fill="#cdb99c"/><rect x="160" y="28" width="90" height="72" fill="#dbe8f2" stroke="#9a8f82" stroke-width="3"/><path d="M205 28v72" stroke="#9a8f82" stroke-width="3"/><path d="M8 190c0-30 6-52 14-58 8-30 50-36 74-26 18 8 30 16 46 10 40-14 100-14 140-4 14-30 30-62 60-62 30 0 44 14 46 40 6 40 4 70 4 100z" fill="url(#rdLump)"/><path d="M44 104h44v22H44z" fill="#3e3e3e" opacity=".8"/><path d="M160 128c30-8 90-10 124 0M150 140c40-6 100-6 140 2" fill="none" stroke="#f2f5f8" stroke-width="4" opacity=".7"/><path d="M326 80h20v18h-20zM350 124h22v20h-22z" fill="#c76b4f" opacity=".7"/><path d="M8 190c0-30 6-52 14-58 8-30 50-36 74-26 18 8 30 16 46 10 40-14 100-14 140-4 14-30 30-62 60-62 30 0 44 14 46 40 6 40 4 70 4 100z" fill="none" stroke="#5a4d40" stroke-width="3"/>
+        </svg>
+        <div class="rd-name">掃描 App（LiDAR）</div>
+        <ul class="rd-ck">
+          <li class="m"><svg class="ic"><use href="#i-minus"/></svg>多數要 LiDAR 手機</li>
+          <li class="y"><svg class="ic"><use href="#i-check"/></svg>不用手動</li>
+          <li class="y"><svg class="ic"><use href="#i-check"/></svg>像真的家</li>
+          <li class="m"><svg class="ic"><use href="#i-minus"/></svg>家具多數黏成一整塊</li>
+          <li class="m"><svg class="ic"><use href="#i-minus"/></svg>只有拍攝中提示</li>
+        </ul>
+      </div>
+      <div class="rd-way reveal d3">
+        <svg class="rd-pic" viewBox="0 0 400 225" aria-hidden="true">
+          <rect x="0" y="0" width="400" height="150" fill="#d8cdbd"/><path d="M0 150h400v75H0z" fill="#b9a68b"/>
+          <g fill="none" stroke="#9c8b74" stroke-width="1.5"><path d="M0 0l60 75L0 150M60 75L130 0M60 75l70 75M130 0l20 75-20 75M150 75h110M260 75L280 0M260 75l20 75M280 0l60 75-60 75M340 75L400 0M340 75l60 75M0 150l70 75 70-75 70 75 70-75 70 75 50-75"/></g>
+          <path d="M162 34l40-8 46 10-6 28 8 34-48 6-34-8 4-30z" fill="#2d2823"/>
+          <path d="M140 150l10-30 40-8 50 6 44-4-8 36z" fill="#c9cfd6" stroke="#9c8b74" stroke-width="2"/>
+          <path d="M150 122l30 20M190 112l10 38M240 118l-10 32" stroke="#9c8b74" stroke-width="1.5"/>
+          <path d="M18 185l6-50 40-6 56 4 2 52" fill="#a88763" stroke="#7d6346" stroke-width="2"/>
+          <path d="M42 100l50-4 2 30-48 2z" fill="#4a4a4a"/>
+          <path d="M316 190l4-128 62-6 6 80-10 54z" fill="#a07a55"/><path d="M340 96l30 14-20 22-16-12z" fill="#2d2823"/>
+        </svg>
+        <div class="rd-name">傳統 3D 網格重建</div>
+        <ul class="rd-ck">
+          <li class="y"><svg class="ic"><use href="#i-check"/></svg>不用專業設備</li>
+          <li class="y"><svg class="ic"><use href="#i-check"/></svg>不用手動</li>
+          <li class="m"><svg class="ic"><use href="#i-minus"/></svg>細節糊、反光處破洞</li>
+          <li class="n"><svg class="ic"><use href="#i-x"/></svg>家具分不開</li>
+          <li class="n"><svg class="ic"><use href="#i-x"/></svg>沒有拍攝教學</li>
+        </ul>
+      </div>
+      <div class="rd-way me reveal d3">
+        <div class="rd-pic"><img src="assets/demo/room_front.jpg" alt="Meowho 3D 房間正式站畫面"></div>
+        <div class="rd-name">Meowho 3D 房間</div>
+        <ul class="rd-ck">
+          <li class="y"><svg class="ic"><use href="#i-check"/></svg>一般手機就能拍</li>
+          <li class="y"><svg class="ic"><use href="#i-check"/></svg>上傳後自動完成</li>
+          <li class="y"><svg class="ic"><use href="#i-check"/></svg>照片等級的畫面</li>
+          <li class="y"><svg class="ic"><use href="#i-check"/></svg>AI 把家具分開</li>
+          <li class="y"><svg class="ic"><use href="#i-check"/></svg>拍攝教練先教怎麼拍</li>
+        </ul>
+      </div>
+    </div>
     <div class="tech reveal d4" style="margin-top:22px"><svg class="ic"><use href="#i-bulb"/></svg><span><b>為什麼選它</b>手動建模不像自己家，掃描 App 多數要 LiDAR 手機、家具黏成一整塊，網格重建遇到反光會破洞；只有 3D Gaussian Splatting 加上 AI 切家具，一般手機就能做到四個目標</span></div>
   </div>
   <!--PG-->
