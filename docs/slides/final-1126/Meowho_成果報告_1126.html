@@ -769,11 +769,13 @@ code{font:500 .92em ui-monospace,Menlo,monospace;background:var(--cream-d);borde
 .icard .def{margin:-4px 0 2px;background:var(--honey-l);border-radius:999px;padding:4px 18px;font:700 22px/1.4 var(--font-body);color:var(--cocoa)}
 .card.honey.icard .def{background:#fff}
 /* 06 分工：對應流程節點 */
-.mem .role{display:block;background:none;padding:0;margin:6px 0 14px;font:400 34px/1.3 var(--font-display);color:var(--caramel)}
+.mem .role{display:block;background:none;padding:0;margin:4px 0 14px;font:400 29px/1.3 var(--font-display);color:var(--caramel);white-space:nowrap}
+.team .mem{grid-template-columns:140px 1fr;gap:22px;padding:28px 26px}
+.team .mem .av{width:140px;height:140px}
 .mem .who{font-size:28px;color:var(--cocoa-2)}
 .team .mem{min-height:300px}
 .stps{display:flex;gap:10px;flex-wrap:wrap}
-.stp{background:var(--honey-l);color:var(--cocoa);border-radius:999px;padding:4px 16px;font:700 21px var(--font-body)}
+.stp{background:var(--honey-l);color:var(--cocoa);border-radius:999px;padding:4px 14px;font:700 19px var(--font-body)}
 .mem.lead-mem .stp{background:#fff}
 /* 08 前後對比 */
 .ba-mini{display:grid;grid-template-columns:1fr 56px 1.2fr;align-items:center;gap:0 14px;margin-top:22px}
@@ -884,7 +886,7 @@ code{font:500 .92em ui-monospace,Menlo,monospace;background:var(--cream-d);borde
     <div class="agenda reveal d1">
       <div class="ag"><span class="agn">01</span><span class="ib"><svg class="ic"><use href="#i-alert"/></svg></span><div><div class="t">現況與痛點</div><p class="p">領養流程哪裡出問題</p></div></div>
       <div class="ag"><span class="agn">02</span><span class="ib"><svg class="ic"><use href="#i-bulb"/></svg></span><div><div class="t">解決方案</div><p class="p">前導影片、角色與流程</p></div></div>
-      <div class="ag"><span class="agn">03</span><span class="ib"><svg class="ic"><use href="#i-users"/></svg></span><div><div class="t">小組分工</div><p class="p">每人對應解決方案一步</p></div></div>
+      <div class="ag"><span class="agn">03</span><span class="ib"><svg class="ic"><use href="#i-users"/></svg></span><div><div class="t">小組分工</div><p class="p">六人六段主線</p></div></div>
       <div class="ag"><span class="agn">04</span><span class="ib"><svg class="ic"><use href="#i-route"/></svg></span><div><div class="t">Demo 流程</div><p class="p">中途建貓到貓咪移轉</p></div></div>
       <div class="ag"><span class="agn">05</span><span class="ib"><svg class="ic"><use href="#i-flag"/></svg></span><div><div class="t">目前限制</div><p class="p">還要持續加強的地方</p></div></div>
     </div>
@@ -1015,15 +1017,15 @@ code{font:500 .92em ui-monospace,Menlo,monospace;background:var(--cream-d);borde
 <section class="slide has-spk" data-label="07 小組分工">
   <div class="spk"><span class="nm">子哲</span><div class="avs"><div class="av"><img src="assets/avatars/子哲.jpg" alt="子哲" onerror="this.remove()"></div></div></div>
   <div class="head"><span class="tag"><b>03</b>小組分工</span></div>
-  <h2 class="reveal">六個人，<em>對應解決方案的每一步</em></h2>
+  <h2 class="reveal">六個人、六段主線，<em>每人從頭做到尾</em></h2>
   <div class="body" style="top:270px">
     <div class="team reveal d1">
-      <div class="mem lead-mem"><div class="av"><img src="assets/avatars/子哲.jpg" alt="子哲" onerror="this.remove()"></div><div><div class="who">子哲</div><div class="role">AI 找貓・領養移轉</div><div class="stps"><span class="stp">尋找貓咪</span><span class="stp">提出領養</span><span class="stp">移轉</span></div></div></div>
-      <div class="mem"><div class="av"><img src="assets/avatars/清俊.jpg" alt="清俊" onerror="this.remove()"></div><div><div class="who">清俊</div><div class="role">搜尋找貓・地圖</div><div class="stps"><span class="stp">尋找貓咪</span></div></div></div>
-      <div class="mem"><div class="av"><img src="assets/avatars/Tina.jpg" alt="Tina" onerror="this.remove()"></div><div><div class="who">Tina</div><div class="role">像本尊的 3D 貓</div><div class="stps"><span class="stp">建立貓咪</span></div></div></div>
-      <div class="mem"><div class="av"><img src="assets/avatars/珮瑜.jpg" alt="珮瑜" onerror="this.remove()"></div><div><div class="who">珮瑜</div><div class="role">影片做成 3D 房間</div><div class="stps"><span class="stp">拍攝居家影片</span></div></div></div>
-      <div class="mem"><div class="av"><img src="assets/avatars/世安_2026.svg" alt="世安" onerror="this.remove()"></div><div><div class="who">世安</div><div class="role">居家安全檢查</div><div class="stps"><span class="stp">拍攝居家影片</span></div></div></div>
-      <div class="mem"><div class="av"><img src="assets/avatars/渝茜.jpg" alt="渝茜" onerror="this.remove()"></div><div><div class="who">渝茜</div><div class="role">領養任務</div><div class="stps"><span class="stp">領養任務</span></div></div></div>
+      <div class="mem lead-mem"><div class="av"><img src="assets/avatars/子哲.jpg" alt="子哲" onerror="this.remove()"></div><div><div class="who">子哲</div><div class="role">整合・幫我找貓</div><div class="stps"><span class="stp">主線串接</span><span class="stp">AI 配對</span><span class="stp">中途建貓</span><span class="stp">領養與移轉</span></div></div></div>
+      <div class="mem"><div class="av"><img src="assets/avatars/渝茜.jpg" alt="渝茜" onerror="this.remove()"></div><div><div class="who">渝茜</div><div class="role">領養任務</div><div class="stps"><span class="stp">一生 7 個時刻</span><span class="stp">場景光線</span><span class="stp">診間</span><span class="stp">試養報告</span></div></div></div>
+      <div class="mem"><div class="av"><img src="assets/avatars/Tina.jpg" alt="Tina" onerror="this.remove()"></div><div><div class="who">Tina</div><div class="role">類本尊 3D 貓・後台</div><div class="stps"><span class="stp">幼貓成貓骨架</span><span class="stp">貼圖 worker</span><span class="stp">MeowHQ 後台建置</span></div></div></div>
+      <div class="mem"><div class="av"><img src="assets/avatars/世安.jpg" alt="世安" onerror="this.remove()"></div><div><div class="who">世安</div><div class="role">居家安全檢測</div><div class="stps"><span class="stp">安全檢測 worker</span><span class="stp">私有報告</span><span class="stp">刷牙摸貓</span></div></div></div>
+      <div class="mem"><div class="av"><img src="assets/avatars/珮瑜.jpg" alt="珮瑜" onerror="this.remove()"></div><div><div class="who">珮瑜</div><div class="role">影片轉 3D 房間</div><div class="stps"><span class="stp">上傳與拍攝教練</span><span class="stp">3D 房間</span><span class="stp">家具切割</span></div></div></div>
+      <div class="mem"><div class="av"><img src="assets/avatars/清俊.jpg" alt="清俊" onerror="this.remove()"></div><div><div class="who">清俊</div><div class="role">搜尋找貓・帶我回家地圖</div><div class="stps"><span class="stp">首頁搜尋到貓卡</span><span class="stp">全島喵戶地圖</span><span class="stp">點貓進介紹頁</span></div></div></div>
     </div>
   </div>
   <div class="pg"><img src="assets/meowho-symbol.svg" alt="">06 / 21</div>
@@ -1197,7 +1199,7 @@ code{font:500 .92em ui-monospace,Menlo,monospace;background:var(--cream-d);borde
      12 AI 居家安全檢測｜產品前導（世安）— 使用團隊共用版型
      ========================================================= -->
 <section class="slide has-spk" data-label="12 安全檢測">
-  <div class="spk"><span class="nm">世安</span><div class="avs"><div class="av"><img src="assets/avatars/世安_2026.svg" alt="世安" onerror="this.remove()"></div></div></div>
+  <div class="spk"><span class="nm">世安</span><div class="avs"><div class="av"><img src="assets/avatars/世安.jpg" alt="世安" onerror="this.remove()"></div></div></div>
   <div class="head"><span class="tag"><b>04</b>Demo 流程</span><div class="dbar"><span class="whob w-ado"><img class="whoav" src="assets/avatars/char_xiaojie.jpg" alt="">領養人視角</span><span class="dnodes"><span class="dn r-mid done">建立貓咪</span><span class="dn r-ado done">尋找貓咪</span><span class="dn r-ado now">拍攝居家影片</span><span class="dn r-ado">領養任務</span><span class="dn r-ado">提出領養</span><span class="dn r-both">移轉</span></span></div></div>
   <h2 class="reveal">準備好貓砂盆和飼料，<em>家裡就安全了嗎？</em></h2>
   <div class="body" style="top:280px">
@@ -1222,7 +1224,7 @@ code{font:500 .92em ui-monospace,Menlo,monospace;background:var(--cream-d);borde
      12b AI 居家安全檢測｜Demo 後技術總結（世安）— 使用團隊共用版型
      ========================================================= -->
 <section class="slide has-spk" data-label="12b WelfareLens 工程">
-  <div class="spk"><span class="nm">世安</span><div class="avs"><div class="av"><img src="assets/avatars/世安_2026.svg" alt="世安" onerror="this.remove()"></div></div></div>
+  <div class="spk"><span class="nm">世安</span><div class="avs"><div class="av"><img src="assets/avatars/世安.jpg" alt="世安" onerror="this.remove()"></div></div></div>
   <div class="head"><span class="tag"><b>04</b>Demo 流程</span><div class="dbar"><span class="whob w-ado"><img class="whoav" src="assets/avatars/char_xiaojie.jpg" alt="">領養人視角</span><span class="dnodes"><span class="dn r-mid done">建立貓咪</span><span class="dn r-ado done">尋找貓咪</span><span class="dn r-ado now">拍攝居家影片</span><span class="dn r-ado">領養任務</span><span class="dn r-ado">提出領養</span><span class="dn r-both">移轉</span></span></div></div>
   <h2 class="reveal">AI 居家安全檢測｜<em>三大工程亮點</em></h2>
   <div class="body" style="top:270px">

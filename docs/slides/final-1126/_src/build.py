@@ -13,8 +13,8 @@ tail = base[base.index('</main>'):]
 tail = tail.replace("meowho-track-1118-v1", "meowho-final-1126-v1").replace("Meowho_執行追蹤_1118.html", "Meowho_成果報告_1126.html")
 
 def av(name, cls='av'):
-    # WelfareLens 講者照片：沿用一般頭像版型，換成 2026 正式肖像照。
-    filename = '世安_2026.svg' if name == '世安' else f'{name}.jpg'
+    # 頭像一律 assets/avatars/<名字>.jpg（世安、清俊 11/26 換新照片）
+    filename = f'{name}.jpg'
     return f'<div class="{cls}"><img src="assets/avatars/{filename}" alt="{name}" onerror="this.remove()"></div>'
 
 def spk(m):
