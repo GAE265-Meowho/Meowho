@@ -655,5 +655,3 @@ code{font:500 .92em ui-monospace,Menlo,monospace;background:var(--cream-d);borde
 .rs-row .ic{font-size:28px}
 .rs-card.cat{background:var(--honey-l);border-color:var(--honey)}
 .rs-card.cat .rs-m{background:#fff}
-.rs-g.cat{display:inline-flex;align-items:center;gap:6px;background:var(--cocoa);color:var(--honey)}
-.rs-g.cat .ic{font-size:18px}
