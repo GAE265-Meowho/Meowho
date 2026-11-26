@@ -654,4 +654,4 @@ code{font:500 .92em ui-monospace,Menlo,monospace;background:var(--cream-d);borde
 .rs-row.cat{color:var(--caramel)}
 .rs-row .ic{font-size:28px}
 .rs-card.cat{background:var(--honey-l);border-color:var(--honey)}
-.rs-card.cat .rs-m{background:#fff}
+.rs-card.cat .rs-m,.rs-card.cat .rs-g{background:#fff}
