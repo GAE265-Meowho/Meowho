@@ -569,10 +569,10 @@ code{font:500 .92em ui-monospace,Menlo,monospace;background:var(--cream-d);borde
 .rd-cmp tr.me td{background:var(--honey-l);font-weight:700;border-top:2px solid var(--honey)}
 
 /* 珮瑜頁 11：六個步驟，每步一張示意圖 */
-.rs{display:grid;grid-template-columns:1fr 560px;gap:32px;align-items:start}
+.rs{display:flex;flex-direction:column;gap:16px}
 .rs-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
 .rs-card{background:#fff;border:2px solid var(--line);border-radius:22px;padding:14px 18px 18px;display:flex;flex-direction:column;gap:8px}
-.rs-fig{width:100%;height:168px;object-fit:cover;background:var(--slide-bg);border-radius:14px;display:block;border:1.5px solid var(--line)}
+.rs-fig{width:100%;height:178px;object-fit:cover;background:var(--slide-bg);border-radius:14px;display:block;border:1.5px solid var(--line)}
 .rs-h{display:flex;align-items:center;gap:10px;font:400 30px/1.2 var(--font-display);color:var(--cocoa);margin-top:4px}
 .rs-n{width:40px;height:40px;border-radius:50%;background:var(--cocoa);color:var(--honey);display:grid;place-items:center;font:400 24px/1 var(--font-display);flex:none}
 .rs-h .aitag{font:700 16px/1 var(--font-body);color:#fff;background:var(--cocoa);border-radius:999px;padding:5px 11px}
@@ -646,3 +646,5 @@ code{font:500 .92em ui-monospace,Menlo,monospace;background:var(--cream-d);borde
 .rd-im{width:192px;height:108px;object-fit:cover;border-radius:12px;display:block;flex:none;border:2px solid var(--line)}
 .rd-cmp tr.me .rd-im{border-color:var(--honey)}
 .rd-m span{font:700 23px/1.35 var(--font-body);white-space:normal}
+
+.rs-foot .rv-keys{margin-top:0}
