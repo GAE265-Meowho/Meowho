@@ -297,7 +297,7 @@
     <div class="ck-flow reveal d1">
       <div class="ck-cap">虛擬體驗元件管理｜貓咪製作・製作流程</div>
       <div class="ck-fork">
-        <div class="ck-shared"><h3>共用<small>成貓、幼貓用同一組</small></h3><div class="ck-row"><div class="ck-step"><span class="ck-n">1</span><span class="ib xs"><svg class="ic"><use href="#i-photo"/></svg></span><div class="t">上傳照片</div></div><div class="ck-step"><span class="ck-n">2</span><span class="ib xs"><svg class="ic"><use href="#i-spark"/></svg></span><div class="t">AI 三視角</div></div></div></div>
+        <div class="ck-shared"><h3>共用<small>成貓、幼貓用同一組</small></h3><div class="ck-row"><div class="ck-step"><span class="ck-n">1</span><span class="ib xs"><svg class="ic"><use href="#i-photo"/></svg></span><div class="t">上傳照片</div></div><div class="ck-step"><span class="ck-n">2</span><span class="ib xs"><svg class="ic"><use href="#i-spark"/></svg></span><div class="t">AI 三視角</div><a class="wy-why" href="#" data-go="10b 為什麼要 AI 三視角">為什麼？<svg class="ic"><use href="#i-arrow"/></svg></a></div></div></div>
         <svg class="ck-split" viewBox="0 0 56 100" preserveAspectRatio="none" aria-hidden="true"><path d="M0 50H24V25H56M24 50V75H56"/></svg>
         <div class="ck-lanes"><div class="ck-lane"><h3>成貓模型<small>自動產生</small></h3><div class="ck-row"><div class="ck-step"><span class="ck-n">3</span><span class="ib xs"><svg class="ic"><use href="#i-gpu"/></svg></span><div class="t">產生紋理貼圖</div></div><div class="ck-step hl"><span class="ck-n">4</span><span class="ib xs"><svg class="ic"><use href="#i-cat"/></svg></span><div class="t">製作動作 glb</div></div></div></div><div class="ck-lane"><h3>幼貓模型<small>自動產生</small></h3><div class="ck-row"><div class="ck-step"><span class="ck-n">3</span><span class="ib xs"><svg class="ic"><use href="#i-gpu"/></svg></span><div class="t">產生紋理貼圖</div></div><div class="ck-step hl"><span class="ck-n">4</span><span class="ib xs"><svg class="ic"><use href="#i-cat"/></svg></span><div class="t">製作動作 glb</div></div></div></div></div>
       </div>
@@ -316,6 +316,34 @@
     </div>
     <div class="tech reveal d3" style="margin-top:18px"><svg class="ic"><use href="#i-gpu"/></svg><span><b>關鍵技術</b>Azure OpenAI 影像模型補出三視角，Hunyuan3D-Paint 在 GPU worker 產生貼圖；貼到已綁骨架的成貓、幼貓母體，動作每隻貓共用</span></div>
   </div>
+  <!--PG-->
+</section>
+
+<!-- =========================================================
+     10b 為什麼要 AI 三視角（從類本尊 3D 貓頁的「為什麼？」連過來）
+     ========================================================= -->
+<section class="slide" data-label="10b 為什麼要 AI 三視角">
+  <!--SPK:Tina-->
+  <div class="head"><span class="tag"><b>04</b>Demo 流程</span><!--DEMO:1--></div>
+  <h2 class="reveal">為什麼要 <em>AI 三視角</em>？補齊照片看不到的毛色</h2>
+  <div class="body" style="top:236px">
+    <div class="wy-row bad reveal d1">
+      <div class="wy-lab"><span class="wy-pill">之前</span><b>照片直接上色</b><small>只有 1 張原始照片</small></div>
+      <figure class="wy-in"><img src="assets/demo/why_photo.jpg" alt="原始照片"><figcaption>原始照片（正面）</figcaption></figure>
+      <span class="wy-to"><svg class="ic"><use href="#i-arrow"/></svg></span>
+      <div class="wy-3d"><img src="assets/demo/why_before_q.png" alt=""><img src="assets/demo/why_before_side.png" alt=""><img src="assets/demo/why_before_lside.png" alt=""><img src="assets/demo/why_before_back.png" alt=""></div>
+      <div class="wy-note"><span class="ib xs"><svg class="ic"><use href="#i-alert"/></svg></span><div><b>側身、背部沒有花紋</b>照片只看得到正面，看不到的地方糊成一片底色</div></div>
+    </div>
+    <div class="wy-row good reveal d2">
+      <div class="wy-lab"><span class="wy-pill">現在</span><b>先補 AI 三視角</b><small>依原始照片補出 3 個角度</small></div>
+      <div class="wy-views"><figure><img src="assets/demo/why_gen_left.jpg" alt=""><figcaption>左側</figcaption></figure><figure><img src="assets/demo/why_gen_front.jpg" alt=""><figcaption>正面</figcaption></figure><figure><img src="assets/demo/why_gen_back.jpg" alt=""><figcaption>背部</figcaption></figure></div>
+      <span class="wy-to"><svg class="ic"><use href="#i-arrow"/></svg></span>
+      <div class="wy-3d"><img src="assets/demo/why_after_q.png" alt=""><img src="assets/demo/why_after_side.png" alt=""><img src="assets/demo/why_after_lside.png" alt=""><img src="assets/demo/why_after_back.png" alt=""></div>
+      <div class="wy-note"><span class="ib xs"><svg class="ic"><use href="#i-check"/></svg></span><div><b>花紋連到側身和背上</b>每個角度都有參考，整隻貓的毛色完整</div></div>
+    </div>
+    <div class="tech reveal d3" style="margin-top:22px"><svg class="ic"><use href="#i-spark"/></svg><span><b>解決的問題</b>中途通常只拍得到一個角度；Hunyuan3D-Paint 只能照著看得到的那一面上色。先用 Azure OpenAI 影像模型依原始照片補出左側、正面、背部，再投影到母體，毛色才完整</span></div>
+  </div>
+  <a class="wy-back" href="#" data-go="10 類本尊 3D 貓"><svg class="ic"><use href="#i-arrow"/></svg>回到虛擬貓咪建置流程</a>
   <!--PG-->
 </section>
 
