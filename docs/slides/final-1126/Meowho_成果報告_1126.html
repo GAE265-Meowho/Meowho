@@ -786,7 +786,7 @@ code{font:500 .92em ui-monospace,Menlo,monospace;background:var(--cream-d);borde
 .rs{display:flex;flex-direction:column;gap:16px}
 .rs-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
 .rs-card{background:#fff;border:2px solid var(--line);border-radius:22px;padding:14px 18px 18px;display:flex;flex-direction:column;gap:8px}
-.rs-fig{width:100%;height:160px;object-fit:cover;background:var(--slide-bg);border-radius:14px;display:block;border:1.5px solid var(--line)}
+.rs-fig{width:100%;height:206px;object-fit:cover;background:var(--slide-bg);border-radius:14px;display:block;border:1.5px solid var(--line)}
 .rs-h{display:flex;align-items:center;gap:10px;font:400 30px/1.2 var(--font-display);color:var(--cocoa);margin-top:4px}
 .rs-n{width:40px;height:40px;border-radius:50%;background:var(--cocoa);color:var(--honey);display:grid;place-items:center;font:400 24px/1 var(--font-display);flex:none}
 .rs-h .aitag{font:700 16px/1 var(--font-body);color:#fff;background:var(--cocoa);border-radius:999px;padding:5px 11px}
@@ -869,6 +869,7 @@ code{font:500 .92em ui-monospace,Menlo,monospace;background:var(--cream-d);borde
 .rs-row .ic{font-size:28px}
 .rs-card.cat{background:var(--honey-l);border-color:var(--honey)}
 .rs-card.cat .rs-m,.rs-card.cat .rs-g{background:#fff}
+.rs-fig.whole{object-fit:contain;background:#fdf6ea}
 </style>
 </head>
 <body>
@@ -1284,41 +1285,35 @@ code{font:500 .92em ui-monospace,Menlo,monospace;background:var(--cream-d);borde
       <div class="rs-grid">
         <div class="rs-row">影片 → 3D 房間</div>
         <div class="rs-card reveal d1">
-          <img class="rs-fig" src="assets/demo/room_step_1.jpg" alt="正式站拍攝教練的拍攝路線">
+          <img class="rs-fig whole" src="assets/demo/room_step_1b.jpg" alt="正式站拍攝教練的拍攝路線">
           <div class="rs-h"><span class="rs-n">1</span>拍攝教練<span class="rs-g">直覺</span></div>
           <p class="rs-w">教你繞一圈，上傳前先檢查</p>
-          <span class="rs-m">瀏覽器影片檢查</span>
         </div>
         <div class="rs-card reveal d1">
           <img class="rs-fig" src="assets/demo/room_step_2b.jpg" alt="demoroom 每張照片的拍攝位置和鏡頭朝向">
           <div class="rs-h"><span class="rs-n">2</span>相機定位<span class="rs-g">快</span></div>
           <p class="rs-w">約 300 張照片，算出拍攝位置</p>
-          <span class="rs-m">COLMAP＋GLOMAP</span>
         </div>
         <div class="rs-card reveal d2">
           <img class="rs-fig" src="assets/demo/room_step_3.jpg" alt="demoroom 重建好的 3D 房間">
           <div class="rs-h"><span class="rs-n">3</span>3D 重建<span class="rs-g">像</span></div>
           <p class="rs-w">幾十萬顆小橢球堆出房間</p>
-          <span class="rs-m">Brush（3D Gaussian Splatting）</span>
         </div>
         <div class="rs-row cat"><svg class="ic"><use href="#i-paw"/></svg>讓貓走進你家</div>
         <div class="rs-card cat reveal d2">
           <img class="rs-fig" src="assets/demo/room_step_4b.jpg" alt="Grounding DINO 框出、SAM 2 描出床、衣櫃、冰箱等家具">
           <div class="rs-h"><span class="rs-n">4</span>認物品<span class="aitag">AI</span><span class="rs-g">互動</span></div>
           <p class="rs-w">框出家具、描輪廓，再投回 3D</p>
-          <span class="rs-m">Gemini＋Grounding DINO＋SAM 2</span>
         </div>
         <div class="rs-card cat reveal d3">
           <img class="rs-fig" src="assets/demo/room_step_5.jpg" alt="demoroom 的家具外框">
           <div class="rs-h"><span class="rs-n">5</span>組場景<span class="rs-g">互動</span></div>
           <p class="rs-w">床變貼地方塊，小東西挖出來</p>
-          <span class="rs-m">Python＋Open3D</span>
         </div>
         <div class="rs-card reveal d3">
           <video class="rs-fig" src="assets/video/room3d.mp4" autoplay loop muted playsinline></video>
           <div class="rs-h"><span class="rs-n">6</span>看房間<span class="rs-g">互動</span></div>
           <p class="rs-w">走進房間，任務用你家家具</p>
-          <span class="rs-m">Three.js＋gaussian-splats-3d</span>
         </div>
       </div>
     </div>
