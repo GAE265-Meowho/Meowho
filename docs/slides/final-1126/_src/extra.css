@@ -781,5 +781,8 @@ h2{top:100px;font-size:48px}
 .end .sub{top:662px}
 .end .vet{bottom:auto;top:740px}
 /* OBS 錄影畫面：整頁圖片（11/27） */
-.slide.obs{padding:0;background:#fff}
+.slide.obs{padding:0;background:transparent}
+/* 一般瀏覽器：透明窗格顯示棋盤格方便辨認；OBS 瀏覽器來源（window.obsstudio）：整頁透明，可疊錄影 */
+html:not(.in-obs) .slide.obs{background:repeating-conic-gradient(#dcdcdc 0 25%,#fff 0 50%) 0 0/40px 40px}
+html.in-obs:has(.slide.obs.active),html.in-obs:has(.slide.obs.active) body,html.in-obs:has(.slide.obs.active) .deck-viewport,html.in-obs:has(.slide.obs.active) .deck-stage{background:transparent!important}
 .slide.obs .obs-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}

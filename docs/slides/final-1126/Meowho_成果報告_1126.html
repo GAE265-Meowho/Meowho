@@ -995,13 +995,17 @@ h2{top:100px;font-size:48px}
 .end .sub{top:662px}
 .end .vet{bottom:auto;top:740px}
 /* OBS 錄影畫面：整頁圖片（11/27） */
-.slide.obs{padding:0;background:#fff}
+.slide.obs{padding:0;background:transparent}
+/* 一般瀏覽器：透明窗格顯示棋盤格方便辨認；OBS 瀏覽器來源（window.obsstudio）：整頁透明，可疊錄影 */
+html:not(.in-obs) .slide.obs{background:repeating-conic-gradient(#dcdcdc 0 25%,#fff 0 50%) 0 0/40px 40px}
+html.in-obs:has(.slide.obs.active),html.in-obs:has(.slide.obs.active) body,html.in-obs:has(.slide.obs.active) .deck-viewport,html.in-obs:has(.slide.obs.active) .deck-stage{background:transparent!important}
 .slide.obs .obs-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
 </style>
 </head>
 <body>
 <div class="deck-viewport">
 <main class="deck-stage" id="deckStage">
+<script>if(window.obsstudio)document.documentElement.classList.add('in-obs')</script>
 <!-- 圖示（線條風，用 <svg class="ic"><use href="#i-名稱"/></svg> 引用；禁用 emoji） -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <symbol id="i-cat" viewBox="0 0 24 24"><path d="M4 20V10L3.5 4l4.5 3h8l4.5-3L20 10v10z"/><path d="M9 13h.01M15 13h.01M10.5 16.5h3"/></symbol>
@@ -1293,14 +1297,14 @@ h2{top:100px;font-size:48px}
      OBS 錄影畫面：01 子哲 建立貓咪（不算頁碼）
      ========================================================= -->
 <section class="slide obs" data-label="OBS 01 子哲 建立貓咪">
-  <img class="obs-img" src="assets/obs/obs01_zihzhe_create.png" alt="">
+  <img class="obs-img" src="assets/obs/obs01_zihzhe_create.png?v=2" alt="">
 </section>
 
 <!-- =========================================================
      OBS 錄影畫面：02 Tina 建立貓咪（不算頁碼）
      ========================================================= -->
 <section class="slide obs" data-label="OBS 02 Tina 建立貓咪">
-  <img class="obs-img" src="assets/obs/obs02_tina_create.png" alt="">
+  <img class="obs-img" src="assets/obs/obs02_tina_create.png?v=2" alt="">
 </section>
 
 <!-- =========================================================
@@ -1366,7 +1370,7 @@ h2{top:100px;font-size:48px}
      OBS 錄影畫面：03 清俊 尋找貓咪（不算頁碼）
      ========================================================= -->
 <section class="slide obs" data-label="OBS 03 清俊 尋找貓咪">
-  <img class="obs-img" src="assets/obs/obs03_qingjun_find.png" alt="">
+  <img class="obs-img" src="assets/obs/obs03_qingjun_find.png?v=2" alt="">
 </section>
 
 <!-- =========================================================
@@ -1394,7 +1398,7 @@ h2{top:100px;font-size:48px}
      OBS 錄影畫面：04 珮瑜 拍攝居家影片（不算頁碼）
      ========================================================= -->
 <section class="slide obs" data-label="OBS 04 珮瑜 拍攝居家影片">
-  <img class="obs-img" src="assets/obs/obs04_peiyu_video.png" alt="">
+  <img class="obs-img" src="assets/obs/obs04_peiyu_video.png?v=2" alt="">
 </section>
 
 <!-- =========================================================
@@ -1427,7 +1431,7 @@ h2{top:100px;font-size:48px}
      OBS 錄影畫面：04 珮瑜 拍攝居家影片（二）（不算頁碼）
      ========================================================= -->
 <section class="slide obs" data-label="OBS 04 珮瑜 拍攝居家影片（二）">
-  <img class="obs-img" src="assets/obs/obs04_peiyu_video.png" alt="">
+  <img class="obs-img" src="assets/obs/obs04_peiyu_video.png?v=2" alt="">
 </section>
 
 <!-- =========================================================
@@ -1527,7 +1531,7 @@ h2{top:100px;font-size:48px}
      OBS 錄影畫面：05 世安 拍攝居家影片（不算頁碼）
      ========================================================= -->
 <section class="slide obs" data-label="OBS 05 世安 拍攝居家影片">
-  <img class="obs-img" src="assets/obs/obs05_shian_video.png" alt="">
+  <img class="obs-img" src="assets/obs/obs05_shian_video.png?v=2" alt="">
 </section>
 
 <!-- =========================================================
