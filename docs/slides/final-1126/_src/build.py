@@ -38,13 +38,16 @@ def demo(m):
             f'<span class="dnodes">{nodes}</span></div>')
 
 sections = re.split(r'(?=<!-- =+\n)', body)
-out, total = [], body.count('<section ')
+out, total = [], body.count('<section ') - body.count('<section class="slide obs"')
+slides_all = body.count('<section ')
 page = 0
 # 頁尾頁碼從封面後開始算：開場影片和封面都不算
 skip = 2 if 'data-label="開場影片"' in body else 1
 for s in sections:
     if '<section' not in s:
         out.append(s); continue
+    if 'class="slide obs"' in s:
+        out.append(s); continue  # OBS 錄影畫面：整頁圖片，不加講者、不算頁碼
     page += 1
     m = re.search(r'<!--SPK:([^>]+)-->', s)
     duo = m and ',' in m.group(1)
@@ -61,6 +64,6 @@ for s in sections:
     out.append(s)
 
 html = head + ''.join(out) + tail
-html = re.sub(r'<span id="pageNo">[^<]*</span>', f'<span id="pageNo">1 / {total}</span>', html)
+html = re.sub(r'<span id="pageNo">[^<]*</span>', f'<span id="pageNo">1 / {slides_all}</span>', html)
 out_path.write_text(html, encoding='utf-8')
-print('slides', total)
+print('slides', slides_all, 'numbered', total)

@@ -7,4 +7,5 @@
 - 每頁講者用 `<!--SPK:名字-->` 標記，頭像在 `assets/avatars/名字.jpg`；Demo 頁左上的身分與進度列用 `<!--DEMO:n-->` 產生
 - 第 4 頁前導影片 `assets/video/trailer_part34.mp4`（52 MB）不進 git，向子哲索取後放進 `assets/video/`；3D 貓、3D 房間循環影片（`cat3d.mp4`、`room3d.mp4`）有進 git
 - 目前 23 頁（頁碼從 Agenda 算起）；3D 貓是第 9 頁（Tina），3D 房間是第 12、13 頁（珮瑜），居家安全檢測是第 14、15 頁（世安），領養任務是第 16～20 頁（渝茜），第 16 頁是三大核心理念
+- Demo 段另插 6 張 OBS 錄影畫面（`assets/obs/`，`<section class="slide obs">`），整頁圖片、不加講者、不算頁碼：中途建貓後接 01 子哲、02 Tina；地圖後接 03 清俊、04 珮瑜；3D 房間設計後接 04 珮瑜；3D 房間後接 05 世安
 - 規則：不用 emoji、不放附註小字；用語照 `GLOSSARY.md`
