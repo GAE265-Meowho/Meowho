@@ -13,8 +13,8 @@ tail = base[base.index('</main>'):]
 tail = tail.replace("meowho-track-1118-v1", "meowho-final-1126-v1").replace("Meowho_執行追蹤_1118.html", "Meowho_成果報告_1126.html")
 
 def av(name, cls='av'):
-    # WelfareLens 講者照片：沿用一般頭像版型，換成 2026 正式肖像照。
-    filename = '世安_2026.svg' if name == '世安' else f'{name}.jpg'
+    # 頭像一律 assets/avatars/<名字>.jpg（世安、清俊 11/26 換新照片）
+    filename = f'{name}.jpg'
     return f'<div class="{cls}"><img src="assets/avatars/{filename}" alt="{name}" onerror="this.remove()"></div>'
 
 def spk(m):
@@ -23,7 +23,8 @@ def spk(m):
             + ''.join(av(n) for n in names) + '</div></div>')
 
 # Demo 頁：左上顯示目前身分與走到第幾個節點（<!--DEMO:n-->，n 從 1 開始）
-DEMO = [('中途建貓','中途'),('3D 貓','中途'),('搜尋找貓','領養人'),('3D 房間','領養人'),('安全檢測','領養人'),('領養任務','領養人'),('領養移轉','雙方')]
+# 節點名稱與第 05 頁解決方案流程一致
+DEMO = [('建立貓咪','中途'),('尋找貓咪','領養人'),('拍攝居家影片','領養人'),('領養任務','領養人'),('提出領養','領養人'),('移轉','雙方')]
 WHO = {'中途':('home','中途視角'),'領養人':('user','領養人視角'),'雙方':('swap','領養人 → 中途')}
 def demo(m):
     n = int(m.group(1)); role = DEMO[n-1][1]; ic, label = WHO[role]
@@ -37,13 +38,16 @@ def demo(m):
             f'<span class="dnodes">{nodes}</span></div>')
 
 sections = re.split(r'(?=<!-- =+\n)', body)
-out, total = [], body.count('<section ')
+out, total = [], body.count('<section ') - body.count('<section class="slide obs"') - body.count('<section class="slide nopg')
+slides_all = body.count('<section ')
 page = 0
 # 頁尾頁碼從封面後開始算：開場影片和封面都不算
 skip = 2 if 'data-label="開場影片"' in body else 1
 for s in sections:
     if '<section' not in s:
         out.append(s); continue
+    if 'class="slide obs"' in s or 'class="slide nopg' in s:
+        out.append(s); continue  # OBS 錄影畫面：整頁圖片，不加講者、不算頁碼
     page += 1
     m = re.search(r'<!--SPK:([^>]+)-->', s)
     duo = m and ',' in m.group(1)
@@ -51,10 +55,15 @@ for s in sections:
     s = re.sub(r'<!--SPK:([^>]+)-->', spk, s)
     s = re.sub(r'<!--DEMO:(\d+)-->', demo, s)
     s = re.sub(r'<!--AV:([^>]+)-->', lambda mm: av(mm.group(1)), s)
+    # 標題以下的內容包進 .stage，方便統一往上縮、底部留字幕空間（11/27）
+    if '<!--PG-->' in s and '</h2>' in s and not re.search(r'data-label="(開場影片|封面|結尾)"', s):
+        i = s.index('</h2>') + len('</h2>')
+        j = s.index('<!--PG-->')
+        s = s[:i] + '<div class="stage">' + s[i:j] + '</div>' + s[j:]
     s = s.replace('<!--PG-->', f'<div class="pg"><img src="assets/meowho-symbol.svg" alt="">{page-skip:02d} / {total-skip:02d}</div>')
     out.append(s)
 
 html = head + ''.join(out) + tail
-html = re.sub(r'<span id="pageNo">[^<]*</span>', f'<span id="pageNo">1 / {total}</span>', html)
+html = re.sub(r'<span id="pageNo">[^<]*</span>', f'<span id="pageNo">1 / {slides_all}</span>', html)
 out_path.write_text(html, encoding='utf-8')
-print('slides', total)
+print('slides', slides_all, 'numbered', total)

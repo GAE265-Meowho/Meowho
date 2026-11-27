@@ -221,9 +221,9 @@ body.editing [contenteditable="true"]{outline:2px dashed rgba(165,96,42,.45);out
    頭像檔放在 assets/avatars/<名字>.jpg（正方形，至少 400×400）。
    檔案不存在時自動顯示貓耳剪影佔位。 */
 .spk{position:absolute;top:26px;right:52px;display:flex;align-items:center;z-index:6}
-.spk .nm{position:relative;z-index:1;background:#fff;border:3px solid var(--cocoa);border-radius:999px;padding:8px 58px 10px 28px;margin-right:-44px;font:400 34px/1.2 var(--font-display);color:var(--cocoa);white-space:nowrap}
+.spk .nm{position:relative;z-index:1;background:#fff;border:3px solid var(--cocoa);border-radius:999px;padding:6px 48px 8px 24px;margin-right:-38px;font:400 28px/1.2 var(--font-display);color:var(--cocoa);white-space:nowrap}
 .spk .avs{display:flex;position:relative;z-index:2}
-.spk .av{position:relative;width:196px;height:196px;border-radius:50%;border:6px solid var(--cocoa);overflow:hidden;
+.spk .av{position:relative;width:150px;height:150px;border-radius:50%;border:5px solid var(--cocoa);overflow:hidden;
   background:var(--cream-d) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cpath fill='%23e7c99a' d='M62 58 70 22 92 46Q100 44 108 46L130 22 138 58Q146 70 146 86 146 122 100 122 54 122 54 86 54 70 62 58Z'/%3E%3Cpath fill='%23e7c99a' d='M24 200Q28 140 100 136 172 140 176 200Z'/%3E%3C/svg%3E") center/100% no-repeat}
 .spk .av + .av{margin-left:-34px}
 .spk .av img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;max-width:none;max-height:none}
@@ -763,11 +763,253 @@ code{font:500 .92em ui-monospace,Menlo,monospace;background:var(--cream-d);borde
 
 .ck-step > .t{margin:0;align-self:center}
 .ck-shared .ck-step,.ck-lane .ck-step{min-height:64px}
+
+/* ===== 11/26 老師回饋（子哲頁）===== */
+/* 02 角色一句話定義 */
+.icard .def{margin:-4px 0 2px;background:var(--honey-l);border-radius:999px;padding:4px 18px;font:700 22px/1.4 var(--font-body);color:var(--cocoa)}
+.card.honey.icard .def{background:#fff}
+/* 06 分工：對應流程節點 */
+.mem .role{display:block;background:none;padding:0;margin:4px 0 14px;font:400 29px/1.3 var(--font-display);color:var(--caramel);white-space:nowrap}
+.team .mem{grid-template-columns:140px 1fr;gap:22px;padding:28px 26px}
+.team .mem .av{width:140px;height:140px}
+.mem .who{font-size:28px;color:var(--cocoa-2)}
+.team .mem{min-height:300px}
+.stps{display:flex;gap:10px;flex-wrap:wrap}
+.stp{background:var(--honey-l);color:var(--cocoa);border-radius:999px;padding:4px 14px;font:700 19px var(--font-body)}
+.mem.lead-mem .stp{background:#fff}
+/* 08 前後對比 */
+.ba-mini{display:grid;grid-template-columns:1fr 56px 1.2fr;align-items:center;gap:0 14px;margin-top:22px}
+.ba-mini span{border-radius:20px;padding:14px 24px;font:400 24px/1.4 var(--font-body)}
+.ba-mini b{font:400 26px var(--font-display);margin-right:14px}
+.ba-mini .o{background:#efe6da;color:var(--cocoa-2)}
+.ba-mini .n{background:var(--honey-l);color:var(--cocoa)}
+.ba-mini .n b{color:var(--caramel)}
+.ba-mini .ic{font-size:40px;color:var(--caramel);justify-self:center}
+/* 22 目前限制 */
+.lim{display:grid;gap:14px;align-content:start}
+.lim-t{display:flex;align-items:center;gap:14px;font:400 34px var(--font-display);margin-top:6px}
+.lim-row{display:grid;grid-template-columns:96px 1fr;align-items:center;gap:14px;background:#efe6da;border-radius:18px;padding:12px 20px;font:400 23px/1.45 var(--font-body);color:var(--cocoa-2)}
+.lim-row b{font:700 20px var(--font-body);color:var(--cocoa);text-align:center}
+.lim-row.n{background:var(--honey-l);color:var(--cocoa)}
+.lim-row.n b{color:var(--caramel)}
+.lim .shot .bar{position:relative;z-index:2}
+.mem .who .lead-tag{display:inline-block;vertical-align:middle;margin-left:12px;background:var(--cocoa);color:#fff;border-radius:999px;padding:2px 14px;font:700 18px/1.5 var(--font-body)}
+/* 珮瑜頁 11a：四個設計目標＋做法比較表 */
+.rd-goals{display:grid;grid-template-columns:repeat(4,1fr);gap:22px}
+.rd-goal{padding:18px 22px!important;display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto;column-gap:16px;row-gap:6px;align-items:center;background:#fff;border:2px solid var(--line);border-radius:24px;padding:22px 24px}
+.rd-goal .ib{grid-row:1}
+.rd-goal .t{font:400 34px/1.2 var(--font-display);color:var(--cocoa)}
+.rd-goal .p{grid-column:1/-1;font:400 22px/1.45 var(--font-body);color:var(--cocoa-2)}
+.rd-cmp{margin-top:24px}
+.rd-cmp th,.rd-cmp td{text-align:center;vertical-align:middle;padding:6px 14px}
+.rd-cmp th{padding:12px 14px}
+.rd-cmp th:first-child,.rd-cmp td:first-child{text-align:left}
+.rd-cmp td{font-size:23px}
+.rd-cmp th{font-size:22px}
+.rd-cmp td .ic{font-size:30px;margin:0;vertical-align:middle}
+.rd-cmp td.y .ic{color:#3f8a4f}
+.rd-cmp td.n .ic{color:#c0503a}
+.rd-cmp td.m{color:var(--cocoa-2);font-size:21px}
+.rd-cmp tr.me td{background:var(--honey-l);font-weight:700;border-top:2px solid var(--honey)}
+
+/* 珮瑜頁 11：六個步驟，每步一張示意圖 */
+.rs{display:flex;flex-direction:column;gap:16px}
+.rs-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.rs-card{background:#fff;border:2px solid var(--line);border-radius:22px;padding:14px 18px 18px;display:flex;flex-direction:column;gap:8px}
+.rs-fig{width:100%;height:206px;object-fit:cover;background:var(--slide-bg);border-radius:14px;display:block;border:1.5px solid var(--line)}
+.rs-h{display:flex;align-items:center;gap:10px;font:400 30px/1.2 var(--font-display);color:var(--cocoa);margin-top:4px}
+.rs-n{width:40px;height:40px;border-radius:50%;background:var(--cocoa);color:var(--honey);display:grid;place-items:center;font:400 24px/1 var(--font-display);flex:none}
+.rs-h .aitag{font:700 16px/1 var(--font-body);color:#fff;background:var(--cocoa);border-radius:999px;padding:5px 11px}
+.rs-g{margin-left:auto;font:700 17px/1 var(--font-body);color:var(--caramel);background:var(--honey-l);border-radius:999px;padding:6px 12px}
+.rs-w{font:400 21px/1.45 var(--font-body);color:var(--cocoa-2)}
+.rs-m{align-self:flex-start;font:500 17px/1.3 var(--font-body);color:var(--cocoa);background:var(--cream-d);border-radius:999px;padding:6px 14px}
+.rs-shot{height:600px;box-shadow:0 18px 40px rgba(60,40,20,.18)}
+.rs-shot video{object-fit:cover}
+/* 示意圖線條與色塊 */
+.rs-fig *{stroke-linecap:round;stroke-linejoin:round}
+.rs-fig .fl{fill:#fff;stroke:var(--line);stroke-width:3}
+.rs-fig .fu{fill:var(--cream-d);stroke:var(--line);stroke-width:2}
+.rs-fig .path{fill:none;stroke:var(--caramel);stroke-width:3;stroke-dasharray:8 7}
+.rs-fig .flag{fill:var(--honey);stroke:var(--cocoa);stroke-width:2.5}
+.rs-fig .ph{fill:var(--cocoa)}
+.rs-fig .ar,.rs-fig .arrow{fill:none;stroke:var(--caramel);stroke-width:3.5}
+.rs-fig .pts circle{fill:var(--caramel)}
+.rs-fig .cam path{fill:var(--honey);stroke:var(--cocoa);stroke-width:2.5}
+.rs-fig .ray path{stroke:var(--caramel);stroke-width:1.6;stroke-dasharray:4 5;opacity:.7}
+.rs-fig .blob ellipse{fill:var(--honey);opacity:.45}
+.rs-fig .fine ellipse{fill:var(--caramel);opacity:.8}
+.rs-fig .fine2 ellipse{fill:var(--honey)}
+.rs-fig .photo{fill:var(--cream-d);stroke:var(--line);stroke-width:3}
+.rs-fig .mask{fill:var(--honey);opacity:.85;stroke:var(--caramel);stroke-width:2.5}
+.rs-fig .bbox{fill:none;stroke:var(--cocoa);stroke-width:3;stroke-dasharray:9 6}
+.rs-fig .lab{fill:var(--cocoa)}
+.rs-fig .labt{fill:#fff;font:700 15px var(--font-body);text-anchor:middle}
+.rs-fig .floor,.rs-fig .floor2{fill:none;stroke:var(--line);stroke-width:4}
+.rs-fig .floor2{fill:var(--cream-d);stroke-width:2}
+.rs-fig .boxf{fill:var(--honey);stroke:var(--cocoa);stroke-width:2.5}
+.rs-fig .boxt{fill:var(--honey-l);stroke:var(--cocoa);stroke-width:2.5}
+.rs-fig .cup{fill:#fff;stroke:var(--cocoa);stroke-width:2.5}
+.rs-fig .win{fill:#fff;stroke:var(--line);stroke-width:3}
+.rs-fig .winbar{stroke:var(--line);stroke-width:3}
+.rs-fig .paw circle{fill:var(--cocoa)}
+.rs-fig .key rect{fill:#fff;stroke:var(--cocoa);stroke-width:2}
+.rd-goals{gap:18px}
+.rd-cmp{margin-top:16px}
+.rd-m{display:flex;align-items:center;gap:16px}
+.rd-fig{width:150px;height:80px;flex:none;background:var(--slide-bg);border-radius:10px}
+.rd-cmp tr.me .rd-fig{background:#fff}
+.rd-fig *{stroke-linecap:round;stroke-linejoin:round}
+.rd-fig .fl{fill:var(--cream-d);stroke:var(--line);stroke-width:2}
+.rd-fig .bx{fill:#c9b8a6;stroke:var(--cocoa);stroke-width:1.6}
+.rd-cmp tr.me .rd-fig .bx{fill:var(--honey)}
+.rd-fig .ph{fill:var(--cocoa)}
+.rd-fig .beam{stroke:var(--caramel);stroke-width:1.6;stroke-dasharray:3 4}
+.rd-fig .lump{fill:#c9b8a6;stroke:var(--cocoa);stroke-width:1.6}
+.rd-fig .mesh{fill:none;stroke:var(--cocoa-2);stroke-width:1.4}
+.rd-fig .hole{fill:var(--slide-bg);stroke:#c0503a;stroke-width:1.8;stroke-dasharray:3 3}
+.rd-fig .gs ellipse{fill:var(--caramel);opacity:.55}
+.rd-fig .cup{fill:#fff;stroke:var(--cocoa);stroke-width:1.6}
+/* 11a：四種做法，上面是做出來的樣子 */
+.rd-ways{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-top:18px}
+.rd-way{background:#fff;border:2px solid var(--line);border-radius:22px;padding:12px 12px 16px;display:flex;flex-direction:column;gap:10px}
+.rd-way.me{background:var(--honey-l);border:3px solid var(--honey)}
+.rd-pic{display:block;width:100%;aspect-ratio:16/9;border-radius:14px;overflow:hidden}
+.rd-pic img{width:100%;height:100%;object-fit:cover;display:block}
+.rd-name{font:400 27px/1.2 var(--font-display);color:var(--cocoa);padding:0 6px}
+.rd-ck{list-style:none;margin:0;padding:0 6px;display:flex;flex-direction:column;gap:6px}
+.rd-ck li{display:flex;align-items:center;gap:10px;font:400 20px/1.3 var(--font-body);color:var(--cocoa)}
+.rd-ck .ic{font-size:24px;stroke-width:2.6}
+.rd-ck li.y .ic{color:#3f8a4f}
+.rd-ck li.n .ic{color:#c0503a}
+.rd-ck li.m{color:var(--cocoa-2)}
+.rd-ck li.m .ic{color:#c98a1e}
+/* 11a：比較表第一欄放同一房間的模擬畫面 */
+.rd-cmp td{padding:8px 14px}
+.rd-cmp td:first-child{padding:9px 14px}
+.rd-cmp td .ic{font-size:34px}
+.rd-im{width:176px;height:99px;object-fit:cover;border-radius:12px;display:block;flex:none;border:2px solid var(--line)}
+.rd-cmp tr.me .rd-im{border-color:var(--honey)}
+.rd-m span{font:700 23px/1.35 var(--font-body);white-space:normal}
+
+.rs-foot .rv-keys{margin-top:0}
+.rd-foot{margin-top:16px}
+.rd-foot .rv-keys{margin-top:0}
+.rs-row{grid-column:1/-1;display:flex;align-items:center;gap:10px;font:400 26px/1 var(--font-display);color:var(--cocoa);margin:2px 0 -6px}
+.rs-row.cat{color:var(--caramel)}
+.rs-row .ic{font-size:28px}
+.rs-card.cat{background:var(--honey-l);border-color:var(--honey)}
+.rs-card.cat .rs-m,.rs-card.cat .rs-g{background:#fff}
+.rs-fig.whole{object-fit:contain;background:#fdf6ea}
+/* 第 12 頁：四種做法並排，大圖在上 */
+.rd-goals{gap:16px}
+.rd-goal{grid-template-columns:auto auto 1fr;grid-template-rows:auto;padding:12px 18px!important;border-radius:20px}
+.rd-goal .t{font-size:28px;white-space:nowrap}
+.rd-goal .p{grid-column:auto;font-size:19px;line-height:1.35}
+.rd-t{width:100%;table-layout:fixed;border-collapse:separate;border-spacing:0;margin-top:16px}
+.rd-t .rd-c0{width:190px;text-align:left;font:700 22px/1.3 var(--font-body);color:var(--cocoa);padding:0 12px 0 4px;background:none}
+.rd-th .rd-c0{vertical-align:bottom;padding-bottom:14px;font:500 18px/1.3 var(--font-body);color:var(--cocoa-2)}
+.rd-th th{padding:0 10px 10px;vertical-align:bottom;text-align:center}
+.rd-big{display:block;width:100%;height:178px;object-fit:cover;border-radius:16px;border:2px solid var(--line)}
+.rd-n{display:block;margin-top:10px;font:700 23px/1.25 var(--font-body);color:var(--cocoa)}
+.rd-th th.me{background:var(--honey-l);border:3px solid var(--honey);border-bottom:none;border-radius:22px 22px 0 0;padding-top:10px}
+.rd-th th.me .rd-big{height:186px;border:3px solid var(--honey)}
+.rd-th th.me .rd-n{font-size:27px;color:var(--caramel)}
+.rd-t td{text-align:center;vertical-align:middle;padding:9px 10px;border-top:1.5px solid var(--line);font:400 20px/1.3 var(--font-body);color:var(--cocoa)}
+.rd-t tr:not(.rd-th) .rd-c0{border-top:1.5px solid var(--line);padding:9px 12px 9px 4px}
+.rd-t td .ic{font-size:32px;vertical-align:middle}
+.rd-t td.y .ic{color:#3f8a4f}
+.rd-t td.n .ic{color:#c0503a}
+.rd-t td.m{color:var(--cocoa-2);font-size:19px}
+.rd-t td.me{background:var(--honey-l);border-left:3px solid var(--honey);border-right:3px solid var(--honey)}
+.rd-t td.me .ic{font-size:38px;stroke-width:3}
+.rd-t tr:last-child td.me{border-bottom:3px solid var(--honey);border-radius:0 0 22px 22px}
+.rd-goal{column-gap:12px;padding:12px 14px!important}
+.rd-goal .t{font-size:26px}
+.rd-goal .p{font-size:17px;white-space:nowrap}
+.rd-big{height:222px}
+.rd-th th.me .rd-big{height:232px}
+.rd-win{display:inline-flex;align-items:center;gap:8px;font:700 23px/1.2 var(--font-body);color:var(--cocoa);white-space:nowrap}
+.rd-t td.me .rd-win .ic{font-size:32px}
+.rd-t{margin-top:0}
+.rd-big{height:300px}
+.rd-th th.me .rd-big{height:312px}
+.rd-top{margin:0 0 18px}
+
+/* 01 現況與痛點：痛點卡加實景照片（11/27 老師建議；照片 CC0／公有領域） */
+.pains-ph .pain{flex-direction:column;align-items:stretch;gap:0;padding:0;overflow:hidden}
+.pains-ph .pph{display:block;width:100%;height:150px;object-fit:cover}
+.pains-ph .pt{display:flex;align-items:center;gap:16px;padding:18px 22px 20px}
+.pains-ph .pn{width:50px;height:50px;font-size:26px}
+.pains-ph .fb{background:#f0f2f5;padding:10px 14px 0;box-sizing:border-box;overflow:hidden;font-family:-apple-system,"Helvetica Neue","PingFang TC","Noto Sans TC",sans-serif}
+.fb .fbp{background:#fff;border-radius:8px 8px 0 0;box-shadow:0 1px 2px rgba(0,0,0,.2);height:200px;overflow:hidden}
+.fb .fh{display:flex;align-items:center;gap:7px;padding:7px 10px 3px}
+.fb .fh img{width:26px;height:26px;border-radius:50%;object-fit:cover}
+.fb .fh b{display:block;font-size:13px;line-height:1.2;color:#050505}
+.fb .fh small{display:block;font-size:11px;line-height:1.2;color:#65676b}
+.fb .dots{margin-left:auto;color:#65676b;font-size:14px;letter-spacing:1px}
+.fb .ft{padding:2px 10px 5px;font-size:13px;line-height:1.3;color:#050505;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fb .fi img{display:block;width:100%;height:60px;object-fit:cover;object-position:50% 58%}
+.fb .fr{display:flex;align-items:center;gap:4px;padding:4px 10px;font-size:11px;color:#65676b}
+.fb .fr .lk,.fb .fr .ht{display:inline-grid;place-items:center;width:15px;height:15px;border-radius:50%;color:#fff;font-size:8px;font-weight:700}
+.fb .fr .lk{background:#1877f2}.fb .fr .ht{background:#f33e58;margin-left:-6px;border:1px solid #fff}
+.fb .fr .cm{margin-left:auto}
+
+/* 字幕安全區：標題以下內容包在 .stage，各頁另設往上移與縮放（11/27） */
+.stage{position:absolute;inset:0;pointer-events:none}
+.stage>*{pointer-events:auto}
+/* 標題縮小上移（11/27）：內容從 192px 開始，最低到 965px（全頁 1080），以下留給字幕 */
+.head{top:38px;height:48px}
+.tag{padding:6px 22px 6px 8px;font-size:20px;gap:12px}
+.tag b{width:34px;height:34px;font-size:19px}
+h2{top:100px;font-size:48px}
+.slide[data-label="Agenda"] .stage{transform-origin:50% 250px;transform:translateY(-58px) scale(1.2)}
+.slide[data-label="01 現況與痛點"] .stage{transform-origin:50% 290px;transform:translateY(-98px) scale(1.076)}
+.slide[data-label="03 前導影片"] .stage{transform-origin:50% 240px;transform:translateY(-48px) scale(1.025)}
+.slide[data-label="03 三個角色"] .stage{transform-origin:50% 250px;transform:translateY(-58px) scale(1.045)}
+.slide[data-label="05 解決方案流程"] .stage{transform-origin:50% 280px;transform:translateY(-88px) scale(1.077)}
+.slide[data-label="07 小組分工"] .stage{transform-origin:50% 270px;transform:translateY(-78px) scale(1.077)}
+.slide[data-label="08 Demo 路線"] .stage{transform-origin:50% 290px;transform:translateY(-98px) scale(1.076)}
+.slide[data-label="09 中途建貓"] .stage{transform-origin:50% 250px;transform:translateY(-58px) scale(1.077)}
+.slide[data-label="10 類本尊 3D 貓"] .stage{transform-origin:50% 236px;transform:translateY(-44px) scale(1.077)}
+.slide[data-label="12a 搜尋找貓"] .stage{transform-origin:50% 250px;transform:translateY(-58px) scale(1.077)}
+.slide[data-label="13 地圖"] .stage{transform-origin:50% 250px;transform:translateY(-58px) scale(1.077)}
+.slide[data-label="11a 3D 房間設計"] .stage{transform-origin:50% 250px;transform:translateY(-58px) scale(1.053)}
+.slide[data-label="11 3D 房間"] .stage{transform-origin:50% 252px;transform:translateY(-60px) scale(1.013)}
+.slide[data-label="12 安全檢測"] .stage{transform-origin:50% 274px;transform:translateY(-82px) scale(1.076)}
+.slide[data-label="12b WelfareLens 工程"] .stage{transform-origin:50% 265px;transform:translateY(-73px) scale(1.077)}
+.slide[data-label="14 三大核心理念"] .stage{transform-origin:50% 220px;transform:translateY(-28px) scale(0.979)}
+.slide[data-label="14 領養任務"] .stage{transform-origin:50% 232px;transform:translateY(-40px) scale(1.066)}
+.slide[data-label="14b 六個小遊戲"] .stage{transform-origin:50% 250px;transform:translateY(-58px) scale(1.077)}
+.slide[data-label="15 一生的後果"] .stage{transform-origin:50% 232px;transform:translateY(-40px) scale(1.066)}
+.slide[data-label="15b 試養報告"] .stage{transform-origin:50% 232px;transform:translateY(-40px) scale(1.066)}
+.slide[data-label="16 領養與移轉"] .stage{transform-origin:50% 250px;transform:translateY(-58px) scale(1.077)}
+.slide[data-label="24 目前限制"] .stage{transform-origin:50% 222px;transform:translateY(-30px) scale(1.077)}
+/* 封面、結尾：左欄內容往上收，底部留給字幕 */
+.cover h1{top:205px;font-size:120px}
+.cover .theme{top:530px;font-size:34px}
+.cover .qr{top:630px;padding:14px 30px 14px 14px}
+.cover .qr img{width:124px;height:124px}
+.cover .meta{bottom:auto;top:810px;font-size:22px}
+.end h1{top:200px}
+.end .cta{top:550px}
+.end .sub{top:662px}
+.end .vet{bottom:auto;top:740px}
+/* OBS 錄影畫面：整頁圖片（11/27） */
+.slide.obs{padding:0;background:transparent}
+/* 一般瀏覽器：透明窗格顯示棋盤格方便辨認；OBS 瀏覽器來源（window.obsstudio）：整頁透明，可疊錄影 */
+html:not(.in-obs) .slide.obs{background:repeating-conic-gradient(#dcdcdc 0 25%,#fff 0 50%) 0 0/40px 40px}
+html.in-obs:has(.slide.obs.active),html.in-obs:has(.slide.obs.active) body,html.in-obs:has(.slide.obs.active) .deck-viewport,html.in-obs:has(.slide.obs.active) .deck-stage{background:transparent!important}
+.slide.obs .obs-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+/* 00 片頭：只有 logo 置中（11/27） */
+.intro-c{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:56px}
+.intro-c img{height:180px;width:auto}
+.intro-c p{margin:0;font:500 40px/1.4 var(--font-body);color:var(--cocoa-2);letter-spacing:.08em}
 </style>
 </head>
 <body>
 <div class="deck-viewport">
 <main class="deck-stage" id="deckStage">
+<script>if(window.obsstudio)document.documentElement.classList.add('in-obs')</script>
 <!-- 圖示（線條風，用 <svg class="ic"><use href="#i-名稱"/></svg> 引用；禁用 emoji） -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <symbol id="i-cat" viewBox="0 0 24 24"><path d="M4 20V10L3.5 4l4.5 3h8l4.5-3L20 10v10z"/><path d="M9 13h.01M15 13h.01M10.5 16.5h3"/></symbol>
@@ -795,6 +1037,8 @@ code{font:500 .92em ui-monospace,Menlo,monospace;background:var(--cream-d);borde
   <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 018 0v3"/></symbol>
   <symbol id="i-spark" viewBox="0 0 24 24"><path d="M11 3l2 6 6 2-6 2-2 6-2-6-6-2 6-2z"/><path d="M19 3v4M17 5h4"/></symbol>
   <symbol id="i-cube" viewBox="0 0 24 24"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M4 7.5l8 4.5 8-4.5M12 12v9"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+  <symbol id="i-minus" viewBox="0 0 24 24"><path d="M6 12h12"/></symbol>
   <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12l5 5 9-10"/></symbol>
   <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18v.5"/></symbol>
   <symbol id="i-swap" viewBox="0 0 24 24"><path d="M4 8h15l-4-4M20 16H5l4 4"/></symbol>
@@ -816,10 +1060,19 @@ code{font:500 .92em ui-monospace,Menlo,monospace;background:var(--cream-d);borde
 </svg>
 
 <!-- =========================================================
+     00 片頭：只有 logo（不算頁碼）
+     ========================================================= -->
+<section class="slide nopg intro" data-label="片頭">
+  <div class="intro-c">
+    <img src="assets/meowho-horizontal-color.svg" alt="Meowho喵戶">
+  </div>
+</section>
+
+<!-- =========================================================
      開場影片（第一二段）：打開不自動播放，按播放鍵才開始；不算頁碼
      ========================================================= -->
 <section class="slide has-spk opening active" data-label="開場影片">
-  <video src="assets/video/opening.mp4" poster="assets/video/opening_poster.jpg" controls preload="metadata" playsinline></video>
+  <video src="assets/video/opening.mp4?v=1127" poster="assets/video/opening_poster.jpg?v=1127" controls preload="metadata" playsinline></video>
 </section>
 
 <!-- =========================================================
@@ -851,17 +1104,17 @@ code{font:500 .92em ui-monospace,Menlo,monospace;background:var(--cream-d);borde
 <section class="slide has-spk" data-label="Agenda">
   <div class="spk"><span class="nm">子哲</span><div class="avs"><div class="av"><img src="assets/avatars/子哲.jpg" alt="子哲" onerror="this.remove()"></div></div></div>
   <div class="head"><span class="tag"><b>00</b>Agenda</span></div>
-  <h2 class="reveal">今天的<em>報告流程</em></h2>
+  <h2 class="reveal">今天的<em>報告流程</em></h2><div class="stage">
   <div class="body" style="top:290px">
     <div class="agenda reveal d1">
       <div class="ag"><span class="agn">01</span><span class="ib"><svg class="ic"><use href="#i-alert"/></svg></span><div><div class="t">現況與痛點</div><p class="p">領養流程哪裡出問題</p></div></div>
       <div class="ag"><span class="agn">02</span><span class="ib"><svg class="ic"><use href="#i-bulb"/></svg></span><div><div class="t">解決方案</div><p class="p">前導影片、角色與流程</p></div></div>
       <div class="ag"><span class="agn">03</span><span class="ib"><svg class="ic"><use href="#i-users"/></svg></span><div><div class="t">小組分工</div><p class="p">六人六段主線</p></div></div>
-      <div class="ag"><span class="agn">04</span><span class="ib"><svg class="ic"><use href="#i-route"/></svg></span><div><div class="t">DEMO 流程</div><p class="p">中途建貓到貓咪移轉</p></div></div>
-      <div class="ag"><span class="agn">05</span><span class="ib"><svg class="ic"><use href="#i-chart"/></svg></span><div><div class="t">商業價值與風險</div><p class="p">誰會用、怎麼走下去</p></div></div>
+      <div class="ag"><span class="agn">04</span><span class="ib"><svg class="ic"><use href="#i-route"/></svg></span><div><div class="t">Demo 流程</div><p class="p">中途建貓到貓咪移轉</p></div></div>
+      <div class="ag"><span class="agn">05</span><span class="ib"><svg class="ic"><use href="#i-flag"/></svg></span><div><div class="t">目前限制</div><p class="p">還要持續加強的地方</p></div></div>
     </div>
   </div>
-  <div class="pg"><img src="assets/meowho-symbol.svg" alt="">01 / 22</div>
+  </div><div class="pg"><img src="assets/meowho-symbol.svg" alt="">01 / 23</div>
 </section>
 
 <!-- =========================================================
@@ -870,33 +1123,36 @@ code{font:500 .92em ui-monospace,Menlo,monospace;background:var(--cream-d);borde
 <section class="slide has-spk" data-label="01 現況與痛點">
   <div class="spk"><span class="nm">子哲</span><div class="avs"><div class="av"><img src="assets/avatars/子哲.jpg" alt="子哲" onerror="this.remove()"></div></div></div>
   <div class="head"><span class="tag"><b>01</b>現況與痛點</span></div>
-  <h2 class="reveal">送養這件事，三方都在付<em>看不見的成本</em></h2>
+  <h2 class="reveal">送養這件事，三方都在付<em>看不見的成本</em></h2><div class="stage">
   <div class="body" style="top:290px">
     <div class="g g3" style="height:auto">
       <div class="card eared icard reveal d1">
         <img class="pa-av" src="assets/avatars/char_afang.jpg" alt="阿芳（中途）">
         <div class="t">中途</div>
+        <p class="def">暫時收留流浪貓、幫牠找家的人</p>
         <p class="p">表單照標準答案填<br>最後只能靠面談和直覺</p>
       </div>
       <div class="card honey eared icard reveal d2">
         <img class="pa-av" src="assets/avatars/char_xiaoju.jpg" alt="小橘（流浪貓）">
         <div class="t">流浪貓</div>
+        <p class="def">沒有家、等待被領養的貓</p>
         <p class="p">「跟想像的不一樣」<br>被退回，一切重來</p>
       </div>
       <div class="card eared icard reveal d3">
         <img class="pa-av" src="assets/avatars/char_xiaojie.jpg" alt="小傑（想養貓的人）">
         <div class="t">想養貓的人</div>
+        <p class="def">想領養一隻貓的新手飼主</p>
         <p class="p">看照片選貓<br>養了才發現自己沒準備好</p>
       </div>
     </div>
-    <div class="pains reveal d4" style="margin-top:44px">
-      <div class="pain"><span class="pn">1</span><div><div class="t">選貓只看照片</div><p class="p">看不出個性合不合</p></div></div>
-      <div class="pain"><span class="pn">2</span><div><div class="t">審核只靠直覺</div><p class="p">中途沒有客觀依據</p></div></div>
-      <div class="pain"><span class="pn">3</span><div><div class="t">沒有試養管道</div><p class="p">養了才知道不行</p></div></div>
-      <div class="pain hot"><span class="pn">4</span><div><div class="t">退養一再發生</div><p class="p">貓回到原點</p></div></div>
+    <div class="pains pains-ph reveal d4" style="margin-top:30px">
+      <div class="pain"><div class="pph fb" aria-label="臉書送養貼文示意"><div class="fbp"><div class="fh"><img src="assets/avatars/char_afang.jpg" alt=""><div><b>阿芳的中途日記</b><small>2 小時・公開</small></div><span class="dots">···</span></div><div class="ft">【送養】橘貓小橘找家，親人愛撒嬌，有意者請私訊</div><div class="fi"><img src="assets/demo/pain-fbcat.jpg" alt="橘白貓照片"></div><div class="fr"><span class="lk">讚</span><span class="ht">♥</span>1,284<span class="cm">96 則留言・32 次分享</span></div></div></div><div class="pt"><span class="pn">1</span><div><div class="t">選貓只看照片</div><p class="p">看不出個性合不合</p></div></div></div>
+      <div class="pain"><img class="pph" src="assets/demo/pain-form.jpg" alt="拿筆填表格"><div class="pt"><span class="pn">2</span><div><div class="t">審核只靠直覺</div><p class="p">中途沒有客觀依據</p></div></div></div>
+      <div class="pain"><img class="pph" src="assets/demo/pain-hide.jpg" style="object-position:50% 55%" alt="貓躲在毯子裡不出來"><div class="pt"><span class="pn">3</span><div><div class="t">沒有試養管道</div><p class="p">養了才知道不行</p></div></div></div>
+      <div class="pain hot"><img class="pph" src="assets/demo/pain-return.jpg" style="object-position:85% 30%" alt="貓被裝進外出籠"><div class="pt"><span class="pn">4</span><div><div class="t">退養一再發生</div><p class="p">貓回到原點</p></div></div></div>
     </div>
   </div>
-  <div class="pg"><img src="assets/meowho-symbol.svg" alt="">02 / 22</div>
+  </div><div class="pg"><img src="assets/meowho-symbol.svg" alt="">02 / 23</div>
 </section>
 
 <!-- =========================================================
@@ -905,14 +1161,14 @@ code{font:500 .92em ui-monospace,Menlo,monospace;background:var(--cream-d);borde
 <section class="slide has-spk" data-label="03 前導影片">
   <div class="spk"><span class="nm">子哲</span><div class="avs"><div class="av"><img src="assets/avatars/子哲.jpg" alt="子哲" onerror="this.remove()"></div></div></div>
   <div class="head"><span class="tag"><b>02</b>解決方案</span></div>
-  <h2 class="reveal">先看喵戶怎麼<em>陪一隻貓找到家</em></h2>
+  <h2 class="reveal">先看喵戶怎麼<em>陪一隻貓找到家</em></h2><div class="stage">
   <div class="body" style="top:240px">
     <div class="vid reveal d1">
       <!-- 前導影片直接內嵌：按播放才開始（不自動播放），翻走就暫停 -->
       <video src="assets/video/trailer.mp4" poster="assets/video/trailer_poster.jpg" class="pause-on-leave" controls preload="auto" playsinline></video>
     </div>
   </div>
-  <div class="pg"><img src="assets/meowho-symbol.svg" alt="">03 / 22</div>
+  </div><div class="pg"><img src="assets/meowho-symbol.svg" alt="">03 / 23</div>
 </section>
 
 <!-- =========================================================
@@ -921,7 +1177,7 @@ code{font:500 .92em ui-monospace,Menlo,monospace;background:var(--cream-d);borde
 <section class="slide has-spk" data-label="03 三個角色">
   <div class="spk"><span class="nm">子哲</span><div class="avs"><div class="av"><img src="assets/avatars/子哲.jpg" alt="子哲" onerror="this.remove()"></div></div></div>
   <div class="head"><span class="tag"><b>02</b>解決方案</span></div>
-  <h2 class="reveal">喵戶上的<em>三個角色</em></h2>
+  <h2 class="reveal">喵戶上的<em>三個角色</em></h2><div class="stage">
   <div class="body" style="top:250px">
     <div class="roles reveal d1">
       <svg class="lines" viewBox="0 0 1728 740" preserveAspectRatio="none" aria-hidden="true">
@@ -932,12 +1188,12 @@ code{font:500 .92em ui-monospace,Menlo,monospace;background:var(--cream-d);borde
       </svg>
       <div class="rnode coc" style="left:564px;top:0"><span class="ib c" style="background:rgba(255,248,236,.14)"><svg class="ic"><use href="#i-shield"/></svg></span><div><div class="t">管理者 MeowHQ</div><p class="p">審核喵戶、管理 3D 模型、儀表板</p></div></div>
       <div class="hub"><img src="assets/meowho-symbol.svg" alt="">喵戶平台</div>
-      <div class="rnode" style="left:40px;top:540px"><span class="ib"><svg class="ic"><use href="#i-home"/></svg></span><div><div class="t">中途</div><p class="p">建貓、設問卷、決定送養</p></div></div>
-      <div class="rnode hon" style="left:1088px;top:540px"><span class="ib w"><svg class="ic"><use href="#i-user"/></svg></span><div><div class="t">領養人</div><p class="p">找貓、掃描自家、做領養任務</p></div></div>
+      <div class="rnode" style="left:40px;top:540px"><span class="ib"><svg class="ic"><use href="#i-home"/></svg></span><div><div class="t">中途</div><p class="p">建立貓咪資料、設問卷、決定送養</p></div></div>
+      <div class="rnode hon" style="left:1088px;top:540px"><span class="ib w"><svg class="ic"><use href="#i-user"/></svg></span><div><div class="t">領養人</div><p class="p">找貓、拍自家影片、做領養任務</p></div></div>
       <span class="elabel" style="left:864px;top:626px">提出領養＋試養報告　⇄　同意後移轉</span>
     </div>
   </div>
-  <div class="pg"><img src="assets/meowho-symbol.svg" alt="">04 / 22</div>
+  </div><div class="pg"><img src="assets/meowho-symbol.svg" alt="">04 / 23</div>
 </section>
 
 <!-- =========================================================
@@ -946,7 +1202,7 @@ code{font:500 .92em ui-monospace,Menlo,monospace;background:var(--cream-d);borde
 <section class="slide has-spk" data-label="05 解決方案流程">
   <div class="spk"><span class="nm">子哲</span><div class="avs"><div class="av"><img src="assets/avatars/子哲.jpg" alt="子哲" onerror="this.remove()"></div></div></div>
   <div class="head"><span class="tag"><b>02</b>解決方案</span></div>
-  <h2 class="reveal">喵戶的解決方案：<em>兩條流程，在移轉會合</em></h2>
+  <h2 class="reveal">喵戶的解決方案：<em>兩條流程，在移轉會合</em></h2><div class="stage">
   <div class="body" style="top:280px">
     <div class="flow2 reveal d1">
       <svg class="lines" viewBox="0 0 1728 640" preserveAspectRatio="none" aria-hidden="true">
@@ -962,20 +1218,20 @@ code{font:500 .92em ui-monospace,Menlo,monospace;background:var(--cream-d);borde
       </svg>
       <div class="f2who" style="top:50px"><img class="f2av" src="assets/avatars/char_afang.jpg" alt="阿芳">中途</div>
       <div class="f2who b" style="top:430px"><img class="f2av" src="assets/avatars/char_xiaojie.jpg" alt="小傑">領養人</div>
-      <div class="f2s" style="left:240px;top:50px"><span class="ib xs"><svg class="ic"><use href="#i-home"/></svg></span><div class="t">建喵戶</div></div>
-      <div class="f2s" style="left:496px;top:50px"><span class="ftag"><svg class="ic"><use href="#i-spark"/></svg>AI 類本尊 3D 貓</span><span class="ib xs"><svg class="ic"><use href="#i-photo"/></svg></span><div class="t">建貓</div></div>
-      <div class="f2s" style="left:752px;top:50px"><span class="ftag"><svg class="ic"><use href="#i-spark"/></svg>可要求先做任務</span><span class="ib xs"><svg class="ic"><use href="#i-list"/></svg></span><div class="t">設問卷</div></div>
-      <div class="f2s hl" style="left:1264px;top:50px"><span class="ftag"><svg class="ic"><use href="#i-spark"/></svg>看得到試養過程</span><span class="ib xs h"><svg class="ic"><use href="#i-doc"/></svg></span><div class="t">看試養報告</div></div>
-      <div class="f2s" style="left:496px;top:430px"><span class="ftag"><svg class="ic"><use href="#i-spark"/></svg>AI 幫我找貓</span><span class="ib xs"><svg class="ic"><use href="#i-search"/></svg></span><div class="t">找貓</div></div>
-      <div class="f2s" style="left:752px;top:430px"><span class="ftag"><svg class="ic"><use href="#i-spark"/></svg>3D 房間＋AI 安全檢測</span><span class="ib xs"><svg class="ic"><use href="#i-video"/></svg></span><div class="t">拍自家</div></div>
-      <div class="f2s" style="left:1008px;top:430px"><span class="ftag"><svg class="ic"><use href="#i-spark"/></svg>一生 7 個時刻</span><span class="ib xs"><svg class="ic"><use href="#i-cube"/></svg></span><div class="t">領養任務</div></div>
+      <div class="f2s" style="left:240px;top:50px"><span class="ib xs"><svg class="ic"><use href="#i-home"/></svg></span><div class="t">註冊中途</div></div>
+      <div class="f2s" style="left:496px;top:50px"><span class="ftag"><svg class="ic"><use href="#i-spark"/></svg>AI 建立貓的檔案、模型</span><span class="ib xs"><svg class="ic"><use href="#i-photo"/></svg></span><div class="t">建立貓咪</div></div>
+      <div class="f2s" style="left:752px;top:50px"><span class="ib xs"><svg class="ic"><use href="#i-list"/></svg></span><div class="t">設問卷</div></div>
+      <div class="f2s hl" style="left:1264px;top:50px"><span class="ftag"><svg class="ic"><use href="#i-spark"/></svg>看看關鍵節點的選擇</span><span class="ib xs h"><svg class="ic"><use href="#i-doc"/></svg></span><div class="t">看試養報告</div></div>
+      <div class="f2s" style="left:496px;top:430px"><span class="ftag"><svg class="ic"><use href="#i-spark"/></svg>AI 幫我找貓</span><span class="ib xs"><svg class="ic"><use href="#i-search"/></svg></span><div class="t">尋找貓咪</div></div>
+      <div class="f2s" style="left:752px;top:430px"><span class="ftag"><svg class="ic"><use href="#i-spark"/></svg>3D 房間＋居家安全檢測</span><span class="ib xs"><svg class="ic"><use href="#i-video"/></svg></span><div class="t">拍攝居家影片</div></div>
+      <div class="f2s" style="left:1008px;top:430px"><span class="ftag"><svg class="ic"><use href="#i-spark"/></svg>經歷養貓關鍵時刻</span><span class="ib xs"><svg class="ic"><use href="#i-cube"/></svg></span><div class="t">領養任務</div></div>
       <div class="f2s hl" style="left:1264px;top:430px"><span class="ftag"><svg class="ic"><use href="#i-spark"/></svg>自動產生試養報告</span><span class="ib xs h"><svg class="ic"><use href="#i-chat"/></svg></span><div class="t">提出領養</div></div>
       <span class="elabel" style="left:611px;top:320px">貓上架，被找到</span>
       <span class="elabel" style="left:1379px;top:320px">試養報告送到中途</span>
       <div class="f2merge"><img class="f2av" src="assets/avatars/char_xiaoju.jpg" alt="小橘"><b>移轉</b></div>
     </div>
   </div>
-  <div class="pg"><img src="assets/meowho-symbol.svg" alt="">05 / 22</div>
+  </div><div class="pg"><img src="assets/meowho-symbol.svg" alt="">05 / 23</div>
 </section>
 
 <!-- =========================================================
@@ -984,18 +1240,18 @@ code{font:500 .92em ui-monospace,Menlo,monospace;background:var(--cream-d);borde
 <section class="slide has-spk" data-label="07 小組分工">
   <div class="spk"><span class="nm">子哲</span><div class="avs"><div class="av"><img src="assets/avatars/子哲.jpg" alt="子哲" onerror="this.remove()"></div></div></div>
   <div class="head"><span class="tag"><b>03</b>小組分工</span></div>
-  <h2 class="reveal">六個人、六段主線，<em>每人從頭做到尾</em></h2>
+  <h2 class="reveal">六個人、六段主線，<em>每人從頭做到尾</em></h2><div class="stage">
   <div class="body" style="top:270px">
     <div class="team reveal d1">
-      <div class="mem lead-mem"><div class="av"><img src="assets/avatars/子哲.jpg" alt="子哲" onerror="this.remove()"></div><div><div class="who">子哲</div><span class="role">整合・幫我找貓</span><p class="p">主線串接、AI 配對、中途建貓、領養與移轉</p></div></div>
-      <div class="mem"><div class="av"><img src="assets/avatars/渝茜.jpg" alt="渝茜" onerror="this.remove()"></div><div><div class="who">渝茜</div><span class="role">領養任務</span><p class="p">一生 7 個時刻、場景光線、診間、試養報告</p></div></div>
-      <div class="mem"><div class="av"><img src="assets/avatars/Tina.jpg" alt="Tina" onerror="this.remove()"></div><div><div class="who">Tina</div><span class="role">類本尊 3D 貓・後台</span><p class="p">幼貓成貓骨架、貼圖 worker、MeowHQ 後台建置</p></div></div>
-      <div class="mem"><div class="av"><img src="assets/avatars/世安_2026.svg" alt="世安" onerror="this.remove()"></div><div><div class="who">世安</div><span class="role">居家安全檢測</span><p class="p">安全檢測 worker、私有報告、刷牙摸貓</p></div></div>
-      <div class="mem"><div class="av"><img src="assets/avatars/珮瑜.jpg" alt="珮瑜" onerror="this.remove()"></div><div><div class="who">珮瑜</div><span class="role">影片轉 3D 房間</span><p class="p">上傳與拍攝教練、3D 房間、家具切割</p></div></div>
-      <div class="mem"><div class="av"><img src="assets/avatars/清俊.jpg" alt="清俊" onerror="this.remove()"></div><div><div class="who">清俊</div><span class="role">搜尋找貓・帶我回家地圖</span><p class="p">首頁搜尋到貓卡、全島喵戶地圖、點貓進介紹頁</p></div></div>
+      <div class="mem"><div class="av"><img src="assets/avatars/子哲.jpg" alt="子哲" onerror="this.remove()"></div><div><div class="who">子哲<span class="lead-tag">組長</span></div><div class="role">整合・AI 幫我找貓</div><div class="stps"><span class="stp">主線串接</span><span class="stp">建立貓咪</span><span class="stp">提出領養</span><span class="stp">移轉貓咪</span></div></div></div>
+      <div class="mem"><div class="av"><img src="assets/avatars/渝茜.jpg" alt="渝茜" onerror="this.remove()"></div><div><div class="who">渝茜</div><div class="role">領養任務</div><div class="stps"><span class="stp">養貓關鍵時刻</span><span class="stp">整合試養任務</span><span class="stp">試養報告</span></div></div></div>
+      <div class="mem"><div class="av"><img src="assets/avatars/Tina.jpg" alt="Tina" onerror="this.remove()"></div><div><div class="who">Tina</div><div class="role">3D 貓模型・後台</div><div class="stps"><span class="stp">幼貓成貓骨架</span><span class="stp">貼圖 worker</span><span class="stp">MeowHQ 後台建置</span></div></div></div>
+      <div class="mem"><div class="av"><img src="assets/avatars/世安.jpg" alt="世安" onerror="this.remove()"></div><div><div class="who">世安</div><div class="role">居家安全檢測</div><div class="stps"><span class="stp">安全檢測 worker</span><span class="stp">私有報告</span><span class="stp">刷牙摸貓</span></div></div></div>
+      <div class="mem"><div class="av"><img src="assets/avatars/珮瑜.jpg" alt="珮瑜" onerror="this.remove()"></div><div><div class="who">珮瑜</div><div class="role">影片轉 3D 房間</div><div class="stps"><span class="stp">上傳與拍攝指引</span><span class="stp">3D 房間 worker</span><span class="stp">家具辨識</span></div></div></div>
+      <div class="mem"><div class="av"><img src="assets/avatars/清俊.jpg" alt="清俊" onerror="this.remove()"></div><div><div class="who">清俊</div><div class="role">搜尋找貓・帶我回家地圖</div><div class="stps"><span class="stp">首頁搜尋到貓卡</span><span class="stp">全島喵戶地圖</span></div></div></div>
     </div>
   </div>
-  <div class="pg"><img src="assets/meowho-symbol.svg" alt="">06 / 22</div>
+  </div><div class="pg"><img src="assets/meowho-symbol.svg" alt="">06 / 23</div>
 </section>
 
 <!-- =========================================================
@@ -1003,24 +1259,23 @@ code{font:500 .92em ui-monospace,Menlo,monospace;background:var(--cream-d);borde
      ========================================================= -->
 <section class="slide has-spk" data-label="08 Demo 路線">
   <div class="spk"><span class="nm">子哲</span><div class="avs"><div class="av"><img src="assets/avatars/子哲.jpg" alt="子哲" onerror="this.remove()"></div></div></div>
-  <div class="head"><span class="tag"><b>04</b>DEMO 流程</span></div>
-  <h2 class="reveal">DEMO 流程：<em>中途建貓到貓咪移轉</em></h2>
+  <div class="head"><span class="tag"><b>04</b>Demo 流程</span></div>
+  <h2 class="reveal">Demo 流程：<em>中途建貓到貓咪移轉</em></h2><div class="stage">
   <div class="body" style="top:290px">
-    <div class="lsteps reveal d1" style="grid-template-columns:repeat(7,1fr)">
-      <div class="ls"><span class="ib xs"><svg class="ic"><use href="#i-home"/></svg></span><div class="t">中途建貓</div></div>
-      <div class="ls"><span class="ib xs"><svg class="ic"><use href="#i-cat"/></svg></span><div class="t">3D 貓</div></div>
-      <div class="ls hl"><span class="ib xs h"><svg class="ic"><use href="#i-search"/></svg></span><div class="t">搜尋找貓</div></div>
-      <div class="ls hl"><span class="ib xs h"><svg class="ic"><use href="#i-cube"/></svg></span><div class="t">3D 房間</div></div>
-      <div class="ls hl"><span class="ib xs h"><svg class="ic"><use href="#i-shield"/></svg></span><div class="t">安全檢測</div></div>
-      <div class="ls hl"><span class="ib xs h"><svg class="ic"><use href="#i-calendar"/></svg></span><div class="t">領養任務</div></div>
-      <div class="ls hl"><span class="ib xs h"><svg class="ic"><use href="#i-swap"/></svg></span><div class="t">領養移轉</div></div>
+    <div class="lsteps reveal d1" style="grid-template-columns:repeat(6,1fr)">
+      <div class="ls"><span class="ib xs"><svg class="ic"><use href="#i-photo"/></svg></span><div class="t">建立貓咪</div></div>
+      <div class="ls hl"><span class="ib xs h"><svg class="ic"><use href="#i-search"/></svg></span><div class="t">尋找貓咪</div></div>
+      <div class="ls hl"><span class="ib xs h"><svg class="ic"><use href="#i-video"/></svg></span><div class="t">拍攝居家影片</div></div>
+      <div class="ls hl"><span class="ib xs h"><svg class="ic"><use href="#i-cube"/></svg></span><div class="t">領養任務</div></div>
+      <div class="ls hl"><span class="ib xs h"><svg class="ic"><use href="#i-chat"/></svg></span><div class="t">提出領養</div></div>
+      <div class="ls hl"><span class="ib xs h"><svg class="ic"><use href="#i-swap"/></svg></span><div class="t">移轉</div></div>
     </div>
     <div class="g g2 reveal d2" style="height:auto;margin-top:46px">
-      <div class="card eared irow"><span class="ib"><svg class="ic"><use href="#i-flag"/></svg></span><div><div class="t">中途：登入、建貓</div></div></div>
-      <div class="card honey eared irow"><span class="ib w"><svg class="ic"><use href="#i-clock"/></svg></span><div><div class="t">領養人：找貓到做任務</div></div></div>
+      <div class="card eared irow"><span class="ib"><svg class="ic"><use href="#i-flag"/></svg></span><div><div class="t">中途：註冊中途、建立貓咪</div></div></div>
+      <div class="card honey eared irow"><span class="ib w"><svg class="ic"><use href="#i-clock"/></svg></span><div><div class="t">領養人：尋找貓咪到提出領養</div></div></div>
     </div>
   </div>
-  <div class="pg"><img src="assets/meowho-symbol.svg" alt="">07 / 22</div>
+  </div><div class="pg"><img src="assets/meowho-symbol.svg" alt="">07 / 23</div>
 </section>
 
 <!-- =========================================================
@@ -1028,8 +1283,8 @@ code{font:500 .92em ui-monospace,Menlo,monospace;background:var(--cream-d);borde
      ========================================================= -->
 <section class="slide has-spk" data-label="09 中途建貓">
   <div class="spk"><span class="nm">子哲</span><div class="avs"><div class="av"><img src="assets/avatars/子哲.jpg" alt="子哲" onerror="this.remove()"></div></div></div>
-  <div class="head"><span class="tag"><b>04</b>DEMO 流程</span><div class="dbar"><span class="whob w-mid"><img class="whoav" src="assets/avatars/char_afang.jpg" alt="">中途視角</span><span class="dnodes"><span class="dn r-mid now">中途建貓</span><span class="dn r-mid">3D 貓</span><span class="dn r-ado">搜尋找貓</span><span class="dn r-ado">3D 房間</span><span class="dn r-ado">安全檢測</span><span class="dn r-ado">領養任務</span><span class="dn r-both">領養移轉</span></span></div></div>
-  <h2 class="reveal">中途建貓：<em>講一段話</em>，資料就填好</h2>
+  <div class="head"><span class="tag"><b>04</b>Demo 流程</span><div class="dbar"><span class="whob w-mid"><img class="whoav" src="assets/avatars/char_afang.jpg" alt="">中途視角</span><span class="dnodes"><span class="dn r-mid now">建立貓咪</span><span class="dn r-ado">尋找貓咪</span><span class="dn r-ado">拍攝居家影片</span><span class="dn r-ado">領養任務</span><span class="dn r-ado">提出領養</span><span class="dn r-both">移轉</span></span></div></div>
+  <h2 class="reveal">中途建貓：<em>講一段話</em>，資料就填好</h2><div class="stage">
   <div class="body" style="top:250px">
     <div class="g g3" style="height:auto">
       <div class="reveal d1">
@@ -1045,10 +1300,17 @@ code{font:500 .92em ui-monospace,Menlo,monospace;background:var(--cream-d);borde
         <p class="cap"><b>放入照片</b>，背景開始做 3D 分身</p>
       </div>
     </div>
-    <div class="tech reveal d4" style="margin-top:22px"><svg class="ic"><use href="#i-spark"/></svg><span><b>程式亮點</b>LangChain＋Azure OpenAI 從一段話擷取欄位，zod 驗證格式；使用者的話只當資料防注入，RLS 讓中途只改得到自己的貓</span></div>
-    <div class="go-demo reveal d4" style="margin-top:22px"><a class="demo-btn" href="https://meowho.vercel.app/" target="_blank" rel="noopener"><svg class="ic"><use href="#i-home"/></svg>進入 Demo<svg class="ic"><use href="#i-arrow"/></svg></a></div>
+    <div class="ba-mini reveal d4"><span class="o"><b>以前</b>一格一格打字，填完整張表單</span><svg class="ic"><use href="#i-arrow"/></svg><span class="n"><b>喵戶</b>講一段話，AI 自動填好，再補問缺的</span></div>
+    <div class="tech reveal d4" style="margin-top:18px"><svg class="ic"><use href="#i-spark"/></svg><span><b>關鍵技術</b>LangChain 串接 Azure OpenAI，從一段話擷取欄位，再用 zod 檢查格式；使用者的話只當資料，防止提示注入</span></div>
   </div>
-  <div class="pg"><img src="assets/meowho-symbol.svg" alt="">08 / 22</div>
+  </div><div class="pg"><img src="assets/meowho-symbol.svg" alt="">08 / 23</div>
+</section>
+
+<!-- =========================================================
+     OBS 錄影畫面：01 子哲 建立貓咪（不算頁碼）
+     ========================================================= -->
+<section class="slide obs" data-label="OBS 01 子哲 建立貓咪">
+  <img class="obs-img" src="assets/obs/obs01_zihzhe_create.png?v=2" alt="">
 </section>
 
 <!-- =========================================================
@@ -1056,8 +1318,8 @@ code{font:500 .92em ui-monospace,Menlo,monospace;background:var(--cream-d);borde
      ========================================================= -->
 <section class="slide has-spk" data-label="10 類本尊 3D 貓">
   <div class="spk"><span class="nm">Tina</span><div class="avs"><div class="av"><img src="assets/avatars/Tina.jpg" alt="Tina" onerror="this.remove()"></div></div></div>
-  <div class="head"><span class="tag"><b>04</b>DEMO 流程</span><div class="dbar"><span class="whob w-mid"><img class="whoav" src="assets/avatars/char_afang.jpg" alt="">中途視角</span><span class="dnodes"><span class="dn r-mid done">中途建貓</span><span class="dn r-mid now">3D 貓</span><span class="dn r-ado">搜尋找貓</span><span class="dn r-ado">3D 房間</span><span class="dn r-ado">安全檢測</span><span class="dn r-ado">領養任務</span><span class="dn r-both">領養移轉</span></span></div></div>
-  <h2 class="reveal">一張照片，變成<em>像本尊的 3D 貓</em></h2>
+  <div class="head"><span class="tag"><b>04</b>Demo 流程</span><div class="dbar"><span class="whob w-mid"><img class="whoav" src="assets/avatars/char_afang.jpg" alt="">中途視角</span><span class="dnodes"><span class="dn r-mid now">建立貓咪</span><span class="dn r-ado">尋找貓咪</span><span class="dn r-ado">拍攝居家影片</span><span class="dn r-ado">領養任務</span><span class="dn r-ado">提出領養</span><span class="dn r-both">移轉</span></span></div></div>
+  <h2 class="reveal">一張照片，變成<em>像本尊的 3D 貓</em></h2><div class="stage">
   <div class="body" style="top:236px">
     <div class="ck-flow reveal d1">
       <div class="ck-cap">虛擬體驗元件管理｜貓咪製作・製作流程</div>
@@ -1068,7 +1330,6 @@ code{font:500 .92em ui-monospace,Menlo,monospace;background:var(--cream-d);borde
       </div>
     </div>
     <div class="ck-demo reveal d2">
-      <a class="ck-link" href="https://meowho.vercel.app/MeowHQ/assets/cats/cat_20261106_072135" target="_blank" rel="noopener"><svg class="ic"><use href="#i-cat"/></svg>正式站・Cookie 的製作頁<svg class="ic"><use href="#i-arrow"/></svg></a>
       <div class="ck-media">
         <figure class="ck-fig"><img src="assets/demo/cookie_photo.jpg" alt="Cookie 原始照片"><figcaption>原始照片</figcaption></figure>
         <span class="ck-to"><svg class="ic"><use href="#i-arrow"/></svg></span>
@@ -1081,7 +1342,14 @@ code{font:500 .92em ui-monospace,Menlo,monospace;background:var(--cream-d);borde
     </div>
     <div class="tech reveal d3" style="margin-top:18px"><svg class="ic"><use href="#i-gpu"/></svg><span><b>關鍵技術</b>Azure OpenAI 影像模型補出三視角，Hunyuan3D-Paint 在 GPU worker 產生貼圖；貼到已綁骨架的成貓、幼貓母體，動作每隻貓共用</span></div>
   </div>
-  <div class="pg"><img src="assets/meowho-symbol.svg" alt="">09 / 22</div>
+  </div><div class="pg"><img src="assets/meowho-symbol.svg" alt="">09 / 23</div>
+</section>
+
+<!-- =========================================================
+     OBS 錄影畫面：02 Tina 建立貓咪（不算頁碼）
+     ========================================================= -->
+<section class="slide obs" data-label="OBS 02 Tina 建立貓咪">
+  <img class="obs-img" src="assets/obs/obs02_tina_create.png?v=2" alt="">
 </section>
 
 <!-- =========================================================
@@ -1089,8 +1357,8 @@ code{font:500 .92em ui-monospace,Menlo,monospace;background:var(--cream-d);borde
      ========================================================= -->
 <section class="slide has-spk" data-label="12a 搜尋找貓">
   <div class="spk"><span class="nm">清俊</span><div class="avs"><div class="av"><img src="assets/avatars/清俊.jpg" alt="清俊" onerror="this.remove()"></div></div></div>
-  <div class="head"><span class="tag"><b>04</b>DEMO 流程</span><div class="dbar"><span class="whob w-ado"><img class="whoav" src="assets/avatars/char_xiaojie.jpg" alt="">領養人視角</span><span class="dnodes"><span class="dn r-mid done">中途建貓</span><span class="dn r-mid done">3D 貓</span><span class="dn r-ado now">搜尋找貓</span><span class="dn r-ado">3D 房間</span><span class="dn r-ado">安全檢測</span><span class="dn r-ado">領養任務</span><span class="dn r-both">領養移轉</span></span></div></div>
-  <h2 class="reveal">換成領養人：<em>說一句話</em>，找到合得來的貓</h2>
+  <div class="head"><span class="tag"><b>04</b>Demo 流程</span><div class="dbar"><span class="whob w-ado"><img class="whoav" src="assets/avatars/char_xiaojie.jpg" alt="">領養人視角</span><span class="dnodes"><span class="dn r-mid done">建立貓咪</span><span class="dn r-ado now">尋找貓咪</span><span class="dn r-ado">拍攝居家影片</span><span class="dn r-ado">領養任務</span><span class="dn r-ado">提出領養</span><span class="dn r-both">移轉</span></span></div></div>
+  <h2 class="reveal">換成領養人：<em>說一句話</em>，找到合得來的貓</h2><div class="stage">
   <div class="body" style="top:250px">
     <div class="g g3" style="height:auto">
       <div class="reveal d1">
@@ -1107,9 +1375,15 @@ code{font:500 .92em ui-monospace,Menlo,monospace;background:var(--cream-d);borde
       </div>
     </div>
     <div class="tech reveal d4" style="margin-top:22px"><svg class="ic"><use href="#i-search"/></svg><span><b>程式亮點</b>LLM 從一句話抓出條件，再用 Embedding＋pgvector 排序；推薦理由由 AI 依貓咪資料撰寫</span></div>
-    <div class="go-demo reveal d4" style="margin-top:22px"><a class="demo-btn" href="https://meowho.vercel.app/" target="_blank" rel="noopener"><svg class="ic"><use href="#i-home"/></svg>到首頁找貓<svg class="ic"><use href="#i-arrow"/></svg></a></div>
   </div>
-  <div class="pg"><img src="assets/meowho-symbol.svg" alt="">10 / 22</div>
+  </div><div class="pg"><img src="assets/meowho-symbol.svg" alt="">10 / 23</div>
+</section>
+
+<!-- =========================================================
+     OBS 錄影畫面：03 清俊 尋找貓咪（不算頁碼）
+     ========================================================= -->
+<section class="slide obs" data-label="OBS 03 清俊 尋找貓咪">
+  <img class="obs-img" src="assets/obs/obs03_qingjun_find.png?v=2" alt="">
 </section>
 
 <!-- =========================================================
@@ -1117,8 +1391,8 @@ code{font:500 .92em ui-monospace,Menlo,monospace;background:var(--cream-d);borde
      ========================================================= -->
 <section class="slide has-spk" data-label="13 地圖">
   <div class="spk"><span class="nm">清俊</span><div class="avs"><div class="av"><img src="assets/avatars/清俊.jpg" alt="清俊" onerror="this.remove()"></div></div></div>
-  <div class="head"><span class="tag"><b>04</b>DEMO 流程</span><div class="dbar"><span class="whob w-ado"><img class="whoav" src="assets/avatars/char_xiaojie.jpg" alt="">領養人視角</span><span class="dnodes"><span class="dn r-mid done">中途建貓</span><span class="dn r-mid done">3D 貓</span><span class="dn r-ado now">搜尋找貓</span><span class="dn r-ado">3D 房間</span><span class="dn r-ado">安全檢測</span><span class="dn r-ado">領養任務</span><span class="dn r-both">領養移轉</span></span></div></div>
-  <h2 class="reveal">也能用地圖：<em>從你家附近</em>找到貓</h2>
+  <div class="head"><span class="tag"><b>04</b>Demo 流程</span><div class="dbar"><span class="whob w-ado"><img class="whoav" src="assets/avatars/char_xiaojie.jpg" alt="">領養人視角</span><span class="dnodes"><span class="dn r-mid done">建立貓咪</span><span class="dn r-ado now">尋找貓咪</span><span class="dn r-ado">拍攝居家影片</span><span class="dn r-ado">領養任務</span><span class="dn r-ado">提出領養</span><span class="dn r-both">移轉</span></span></div></div>
+  <h2 class="reveal">也能用地圖：<em>從你家附近</em>找到貓</h2><div class="stage">
   <div class="body" style="top:250px">
     <div class="g" style="grid-template-columns:1.5fr 1fr;height:auto">
       <div class="shot reveal d1" style="height:560px"><div class="bar"><i></i><i></i><i></i><span>帶我回家・正式站</span></div><img src="assets/demo/adopt-map.jpg" alt="放大到桃園與北北基，行政區名錯開，喵戶標出等家的貓"></div>
@@ -1130,45 +1404,104 @@ code{font:500 .92em ui-monospace,Menlo,monospace;background:var(--cream-d);borde
     </div>
     <div class="tech reveal d3" style="margin-top:22px"><svg class="ic"><use href="#i-pin"/></svg><span><b>程式亮點</b>不靠地圖套件，台灣、縣市、行政區都是向量圖；縮放時喵戶標籤釘在座標上，字不會漂走</span></div>
   </div>
-  <div class="pg"><img src="assets/meowho-symbol.svg" alt="">11 / 22</div>
+  </div><div class="pg"><img src="assets/meowho-symbol.svg" alt="">11 / 23</div>
 </section>
 
 <!-- =========================================================
-     11 領養人：影片轉 3D 房間（珮瑜）
+     11a 領養人：3D 房間的設計概念與比較（珮瑜）
+     ========================================================= -->
+<section class="slide has-spk" data-label="11a 3D 房間設計">
+  <div class="spk"><span class="nm">珮瑜</span><div class="avs"><div class="av"><img src="assets/avatars/珮瑜.jpg" alt="珮瑜" onerror="this.remove()"></div></div></div>
+  <div class="head"><span class="tag"><b>04</b>Demo 流程</span><div class="dbar"><span class="whob w-ado"><img class="whoav" src="assets/avatars/char_xiaojie.jpg" alt="">領養人視角</span><span class="dnodes"><span class="dn r-mid done">建立貓咪</span><span class="dn r-ado done">尋找貓咪</span><span class="dn r-ado now">拍攝居家影片</span><span class="dn r-ado">領養任務</span><span class="dn r-ado">提出領養</span><span class="dn r-both">移轉</span></span></div></div>
+  <h2 class="reveal">不用專業設備，<em>一支影片就讓貓走進你家</em></h2><div class="stage">
+  <div class="body" style="top:250px">
+    <div class="rd-foot rd-top reveal d1">
+      <div class="rv-keys">
+        <span class="rv-tot"><svg class="ic"><use href="#i-clock"/></svg>全程 15～20 分鐘</span>
+        <span class="rv-k">質感優先</span><span class="rv-k">補開 GPU 快 15%</span><span class="rv-k">一間約 NT$6</span>
+      </div>
+    </div>
+    <table class="rd-t reveal d2">
+      <tr class="rd-th"><th class="rd-c0">用同一個房間模擬</th><th><img class="rd-big" src="assets/demo/room_look_manual.jpg" alt="用 demoroom 的格局模擬家具規劃工具的 3D 房間"><span class="rd-n">手動建模、家具規劃工具</span></th><th><img class="rd-big" src="assets/demo/room_look_scan.jpg" alt="用 demoroom 模擬掃描 App：家具融成一大塊"><span class="rd-n">掃描 App（LiDAR）</span></th><th><img class="rd-big" src="assets/demo/room_look_mesh.jpg" alt="用 demoroom 模擬網格重建：三角形面片與破洞"><span class="rd-n">傳統 3D 網格重建</span></th><th class="me"><img class="rd-big" src="assets/demo/room_look_ours.jpg" alt="demoroom 的 Meowho 3D 房間畫面"><span class="rd-n">Meowho 3D 房間</span></th></tr>
+      <tr><th class="rd-c0">不用專業設備</th><td class="y"><svg class="ic"><use href="#i-check"/></svg></td><td class="m">多數要 LiDAR 手機</td><td class="y"><svg class="ic"><use href="#i-check"/></svg></td><td class="y me"><span class="rd-win"><svg class="ic"><use href="#i-check"/></svg>一般手機就能拍</span></td></tr>
+      <tr><th class="rd-c0">自動完成</th><td class="m">家具要自己一件件擺</td><td class="y"><svg class="ic"><use href="#i-check"/></svg></td><td class="y"><svg class="ic"><use href="#i-check"/></svg></td><td class="y me"><span class="rd-win"><svg class="ic"><use href="#i-check"/></svg>上傳後全自動</span></td></tr>
+      <tr><th class="rd-c0">像真的家</th><td class="n"><svg class="ic"><use href="#i-x"/></svg></td><td class="y"><svg class="ic"><use href="#i-check"/></svg></td><td class="m">細節糊、反光破洞</td><td class="y me"><span class="rd-win"><svg class="ic"><use href="#i-check"/></svg>照片等級</span></td></tr>
+      <tr><th class="rd-c0">家具分得開</th><td class="y"><svg class="ic"><use href="#i-check"/></svg></td><td class="m">多數是一整塊</td><td class="m">整間連成一整塊</td><td class="y me"><span class="rd-win"><svg class="ic"><use href="#i-check"/></svg>AI 一件件分開</span></td></tr>
+      <tr><th class="rd-c0">拍攝前教學</th><td class="m">不需要</td><td class="m">只有拍攝中提示</td><td class="n"><svg class="ic"><use href="#i-x"/></svg></td><td class="y me"><span class="rd-win"><svg class="ic"><use href="#i-check"/></svg>拍攝教練帶著拍</span></td></tr>
+    </table>
+  </div>
+  </div><div class="pg"><img src="assets/meowho-symbol.svg" alt="">12 / 23</div>
+</section>
+
+<!-- =========================================================
+     OBS 錄影畫面：04 珮瑜 拍攝居家影片（不算頁碼）
+     ========================================================= -->
+<section class="slide obs" data-label="OBS 04 珮瑜 拍攝居家影片">
+  <img class="obs-img" src="assets/obs/obs04_peiyu_video.png?v=2" alt="">
+</section>
+
+<!-- =========================================================
+     11 領養人：影片轉 3D 房間的六個步驟（珮瑜）
      ========================================================= -->
 <section class="slide has-spk" data-label="11 3D 房間">
   <div class="spk"><span class="nm">珮瑜</span><div class="avs"><div class="av"><img src="assets/avatars/珮瑜.jpg" alt="珮瑜" onerror="this.remove()"></div></div></div>
-  <div class="head"><span class="tag"><b>04</b>DEMO 流程</span><div class="dbar"><span class="whob w-ado"><img class="whoav" src="assets/avatars/char_xiaojie.jpg" alt="">領養人視角</span><span class="dnodes"><span class="dn r-mid done">中途建貓</span><span class="dn r-mid done">3D 貓</span><span class="dn r-ado done">搜尋找貓</span><span class="dn r-ado now">3D 房間</span><span class="dn r-ado">安全檢測</span><span class="dn r-ado">領養任務</span><span class="dn r-both">領養移轉</span></span></div></div>
-  <h2 class="reveal">一支影片，<em>怎麼變成 3D 房間</em></h2>
+  <div class="head"><span class="tag"><b>04</b>Demo 流程</span><div class="dbar"><span class="whob w-ado"><img class="whoav" src="assets/avatars/char_xiaojie.jpg" alt="">領養人視角</span><span class="dnodes"><span class="dn r-mid done">建立貓咪</span><span class="dn r-ado done">尋找貓咪</span><span class="dn r-ado now">拍攝居家影片</span><span class="dn r-ado">領養任務</span><span class="dn r-ado">提出領養</span><span class="dn r-both">移轉</span></span></div></div>
+  <h2 class="reveal">一支影片，<em>怎麼變成 3D 房間</em></h2><div class="stage">
   <div class="body" style="top:250px">
-    <div class="rv">
-      <div class="rv-flow reveal d1">
-        <div class="rv-step"><span class="rv-n">1</span><div class="rv-tx"><div class="rv-t">拍攝教練</div><p class="rv-w">先教怎麼拍，上傳前檢查影片</p></div><span class="rv-m">插圖＋路線動畫</span></div>
-        <div class="rv-step"><span class="rv-n">2</span><div class="rv-tx"><div class="rv-t">相機定位<span class="gputag">GPU＋CPU</span></div><p class="rv-w">算出每張照片在哪裡拍</p></div><span class="rv-m">COLMAP・GLOMAP</span></div>
-        <div class="rv-step"><span class="rv-n">3</span><div class="rv-tx"><div class="rv-t">3D 重建<span class="gputag">GPU</span></div><p class="rv-w">幾十萬顆橢球堆出房間</p></div><span class="rv-m">Brush・3D Gaussian Splatting</span></div>
-        <div class="rv-step"><span class="rv-n">4</span><div class="rv-tx"><div class="rv-t">認物品<span class="aitag">AI</span><span class="gputag">GPU</span></div><p class="rv-w">找出床、書桌在哪裡</p></div><span class="rv-m">Gemini・Grounding DINO・SAM 2</span></div>
-        <div class="rv-step"><span class="rv-n">5</span><div class="rv-tx"><div class="rv-t">組場景</div><p class="rv-w">家具外框、床面高度寫成一份檔案</p></div><span class="rv-m">scene.json</span></div>
-        <div class="rv-step"><span class="rv-n">6</span><div class="rv-tx"><div class="rv-t">看房間</div><p class="rv-w">網頁走進房間，任務換成你家家具</p></div><span class="rv-m">gaussian-splats-3d・Three.js</span></div>
-      </div>
-      <div class="rv-main reveal d2">
-        <div class="shot vshot rv-shot"><div class="bar"><i></i><i></i><i></i><span>我的 3D 房間（正式站）</span></div><video src="assets/video/room3d.mp4" autoplay loop muted playsinline></video></div>
-        <div class="rv-keys">
-          <span class="rv-tot"><svg class="ic"><use href="#i-clock"/></svg>全程 15～20 分鐘</span>
-          <span class="rv-k">質感優先</span><span class="rv-k">開 GPU 快 15%</span><span class="rv-k">一間 NT$6</span>
+    <div class="rs">
+      <div class="rs-grid">
+        <div class="rs-row">影片 → 3D 房間</div>
+        <div class="rs-card reveal d1">
+          <img class="rs-fig whole" src="assets/demo/room_step_1b.jpg" alt="正式站拍攝教練的拍攝路線">
+          <div class="rs-h"><span class="rs-n">1</span>拍攝教練<span class="rs-g">直覺</span></div>
+          <p class="rs-w">教你繞一圈，上傳前先檢查</p>
+        </div>
+        <div class="rs-card reveal d1">
+          <img class="rs-fig" src="assets/demo/room_step_2b.jpg" alt="demoroom 每張照片的拍攝位置和鏡頭朝向">
+          <div class="rs-h"><span class="rs-n">2</span>相機定位<span class="rs-g">快</span></div>
+          <p class="rs-w">約 300 張照片，算出拍攝位置</p>
+        </div>
+        <div class="rs-card reveal d2">
+          <img class="rs-fig" src="assets/demo/room_step_3.jpg" alt="demoroom 重建好的 3D 房間">
+          <div class="rs-h"><span class="rs-n">3</span>3D 重建<span class="rs-g">像</span></div>
+          <p class="rs-w">幾十萬顆小橢球堆出房間</p>
+        </div>
+        <div class="rs-row cat"><svg class="ic"><use href="#i-paw"/></svg>讓貓走進你家</div>
+        <div class="rs-card cat reveal d2">
+          <img class="rs-fig" src="assets/demo/room_step_4b.jpg" alt="Grounding DINO 框出、SAM 2 描出床、衣櫃、冰箱等家具">
+          <div class="rs-h"><span class="rs-n">4</span>認物品<span class="aitag">AI</span><span class="rs-g">互動</span></div>
+          <p class="rs-w">框出家具、描輪廓，再投回 3D</p>
+        </div>
+        <div class="rs-card cat reveal d3">
+          <img class="rs-fig" src="assets/demo/room_step_5.jpg" alt="demoroom 的家具外框">
+          <div class="rs-h"><span class="rs-n">5</span>組場景<span class="rs-g">互動</span></div>
+          <p class="rs-w">家具變成貓能跳、能躲、能推的物件</p>
+        </div>
+        <div class="rs-card reveal d3">
+          <video class="rs-fig" src="assets/video/room3d.mp4" autoplay loop muted playsinline></video>
+          <div class="rs-h"><span class="rs-n">6</span>看房間<span class="rs-g">互動</span></div>
+          <p class="rs-w">走進房間，任務用你家家具</p>
         </div>
       </div>
     </div>
   </div>
-  <div class="pg"><img src="assets/meowho-symbol.svg" alt="">12 / 22</div>
+  </div><div class="pg"><img src="assets/meowho-symbol.svg" alt="">13 / 23</div>
+</section>
+
+<!-- =========================================================
+     OBS 錄影畫面：04 珮瑜 拍攝居家影片（二）（不算頁碼）
+     ========================================================= -->
+<section class="slide obs" data-label="OBS 04 珮瑜 拍攝居家影片（二）">
+  <img class="obs-img" src="assets/obs/obs04_peiyu_video.png?v=2" alt="">
 </section>
 
 <!-- =========================================================
      12 AI 居家安全檢測｜產品前導（世安）— 使用團隊共用版型
      ========================================================= -->
 <section class="slide has-spk" data-label="12 安全檢測">
-  <div class="spk"><span class="nm">世安</span><div class="avs"><div class="av"><img src="assets/avatars/世安_2026.svg" alt="世安" onerror="this.remove()"></div></div></div>
-  <div class="head"><span class="tag"><b>04</b>DEMO 流程</span><div class="dbar"><span class="whob w-ado"><img class="whoav" src="assets/avatars/char_xiaojie.jpg" alt="">領養人視角</span><span class="dnodes"><span class="dn r-mid done">中途建貓</span><span class="dn r-mid done">3D 貓</span><span class="dn r-ado done">搜尋找貓</span><span class="dn r-ado done">3D 房間</span><span class="dn r-ado now">安全檢測</span><span class="dn r-ado">領養任務</span><span class="dn r-both">領養移轉</span></span></div></div>
-  <h2 class="reveal">準備好貓砂盆和飼料，<em>家裡就安全了嗎？</em></h2>
+  <div class="spk"><span class="nm">世安</span><div class="avs"><div class="av"><img src="assets/avatars/世安.jpg" alt="世安" onerror="this.remove()"></div></div></div>
+  <div class="head"><span class="tag"><b>04</b>Demo 流程</span><div class="dbar"><span class="whob w-ado"><img class="whoav" src="assets/avatars/char_xiaojie.jpg" alt="">領養人視角</span><span class="dnodes"><span class="dn r-mid done">建立貓咪</span><span class="dn r-ado done">尋找貓咪</span><span class="dn r-ado now">拍攝居家影片</span><span class="dn r-ado">領養任務</span><span class="dn r-ado">提出領養</span><span class="dn r-both">移轉</span></span></div></div>
+  <h2 class="reveal">準備好貓砂盆和飼料，<em>家裡就安全了嗎？</em></h2><div class="stage">
   <div class="body" style="top:274px">
     <div class="g reveal d1" style="grid-template-columns:repeat(3,minmax(0,1fr));gap:26px;height:575px">
       <div class="card reveal d1" style="padding:0;overflow:hidden;display:flex;flex-direction:column;border-width:3px;background:#fff;border-radius:26px">
@@ -1203,18 +1536,24 @@ code{font:500 .92em ui-monospace,Menlo,monospace;background:var(--cream-d);borde
       </div>
     </div>
     <div class="tech reveal d3 sa-bar" style="margin-top:23px"><svg class="ic"><use href="#i-shield"/></svg><span>用 AI 找出居家風險，<b>並提供具體改善建議。</b></span></div>
-    <div style="font:500 15px var(--font-body);color:var(--cocoa-2);margin-top:7px;text-align:right">照片為情境示意（Wikimedia Commons／CC0），非本次 AI 偵測結果</div>
   </div>
-  <div class="pg"><img src="assets/meowho-symbol.svg" alt="">13 / 22</div>
+  </div><div class="pg"><img src="assets/meowho-symbol.svg" alt="">14 / 23</div>
+</section>
+
+<!-- =========================================================
+     OBS 錄影畫面：05 世安 拍攝居家影片（不算頁碼）
+     ========================================================= -->
+<section class="slide obs" data-label="OBS 05 世安 拍攝居家影片">
+  <img class="obs-img" src="assets/obs/obs05_shian_video.png?v=2" alt="">
 </section>
 
 <!-- =========================================================
      12b AI 居家安全檢測｜Demo 後技術總結（世安）— 使用團隊共用版型
      ========================================================= -->
 <section class="slide has-spk" data-label="12b WelfareLens 工程">
-  <div class="spk"><span class="nm">世安</span><div class="avs"><div class="av"><img src="assets/avatars/世安_2026.svg" alt="世安" onerror="this.remove()"></div></div></div>
-  <div class="head"><span class="tag"><b>04</b>DEMO 流程</span><div class="dbar"><span class="whob w-ado"><img class="whoav" src="assets/avatars/char_xiaojie.jpg" alt="">領養人視角</span><span class="dnodes"><span class="dn r-mid done">中途建貓</span><span class="dn r-mid done">3D 貓</span><span class="dn r-ado done">搜尋找貓</span><span class="dn r-ado done">3D 房間</span><span class="dn r-ado now">安全檢測</span><span class="dn r-ado">領養任務</span><span class="dn r-both">領養移轉</span></span></div></div>
-  <h2 class="reveal">AI 居家安全檢測｜<em>三大工程亮點</em></h2>
+  <div class="spk"><span class="nm">世安</span><div class="avs"><div class="av"><img src="assets/avatars/世安.jpg" alt="世安" onerror="this.remove()"></div></div></div>
+  <div class="head"><span class="tag"><b>04</b>Demo 流程</span><div class="dbar"><span class="whob w-ado"><img class="whoav" src="assets/avatars/char_xiaojie.jpg" alt="">領養人視角</span><span class="dnodes"><span class="dn r-mid done">建立貓咪</span><span class="dn r-ado done">尋找貓咪</span><span class="dn r-ado now">拍攝居家影片</span><span class="dn r-ado">領養任務</span><span class="dn r-ado">提出領養</span><span class="dn r-both">移轉</span></span></div></div>
+  <h2 class="reveal">AI 居家安全檢測｜<em>三大工程亮點</em></h2><div class="stage">
   <div class="body" style="top:265px">
     <div class="g reveal d1" style="grid-template-columns:repeat(3,minmax(0,1fr));gap:24px;height:628px;align-items:stretch">
       <div class="card" style="padding:26px 25px;border-width:3px;display:flex;flex-direction:column;gap:20px;background:#fff;border-radius:26px;min-width:0;overflow:hidden">
@@ -1237,15 +1576,37 @@ code{font:500 .92em ui-monospace,Menlo,monospace;background:var(--cream-d);borde
           <div style="display:flex;align-items:center;gap:4px;justify-content:space-between"><span style="display:inline-grid;place-items:center;width:47px;height:47px;background:#fff;border:2px solid var(--line);border-radius:12px;font:700 22px var(--font-body);color:var(--cocoa)">1</span><span style="font:700 17px var(--font-body);color:var(--caramel)">›</span><span style="display:inline-grid;place-items:center;width:47px;height:47px;background:#fff;border:2px solid var(--line);border-radius:12px;font:700 22px var(--font-body);color:var(--cocoa)">2</span><span style="font:700 17px var(--font-body);color:var(--caramel)">›</span><span style="display:inline-grid;place-items:center;width:47px;height:47px;background:#fff;border:2px solid var(--line);border-radius:12px;font:700 22px var(--font-body);color:var(--cocoa)">3</span><span style="font:700 17px var(--font-body);color:var(--caramel)">›</span><span style="display:inline-grid;place-items:center;width:47px;height:47px;background:#fff;border:2px solid var(--line);border-radius:12px;font:700 22px var(--font-body);color:var(--cocoa)">4</span><span style="font:700 17px var(--font-body);color:var(--caramel)">›</span><span style="display:inline-grid;place-items:center;width:47px;height:47px;background:#fff;border:2px solid var(--line);border-radius:12px;font:700 22px var(--font-body);color:var(--cocoa)">5</span><span style="font:700 17px var(--font-body);color:var(--caramel)">›</span><span style="display:inline-grid;place-items:center;width:47px;height:47px;background:#fff;border:2px solid var(--line);border-radius:12px;font:700 22px var(--font-body);color:var(--cocoa)">6</span></div>
           <div style="font:700 20px var(--font-body);color:var(--cocoa-2);margin:12px 0 7px">優化｜最多 2 張並行＋API 節流</div>
           <div style="display:flex;justify-content:space-around;gap:7px"><div style="display:flex;gap:3px;padding:7px;background:var(--honey-l);border-radius:12px"><span style="display:inline-grid;place-items:center;width:47px;height:47px;background:#fff;border:2px solid var(--line);border-radius:12px;font:700 22px var(--font-body);color:var(--cocoa)">1</span><span style="display:inline-grid;place-items:center;width:47px;height:47px;background:#fff;border:2px solid var(--line);border-radius:12px;font:700 22px var(--font-body);color:var(--cocoa)">2</span></div><span style="align-self:center;color:var(--caramel);font-size:18px">→</span><div style="display:flex;gap:3px;padding:7px;background:var(--honey-l);border-radius:12px"><span style="display:inline-grid;place-items:center;width:47px;height:47px;background:#fff;border:2px solid var(--line);border-radius:12px;font:700 22px var(--font-body);color:var(--cocoa)">3</span><span style="display:inline-grid;place-items:center;width:47px;height:47px;background:#fff;border:2px solid var(--line);border-radius:12px;font:700 22px var(--font-body);color:var(--cocoa)">4</span></div><span style="align-self:center;color:var(--caramel);font-size:18px">→</span><div style="display:flex;gap:3px;padding:7px;background:var(--honey-l);border-radius:12px"><span style="display:inline-grid;place-items:center;width:47px;height:47px;background:#fff;border:2px solid var(--line);border-radius:12px;font:700 22px var(--font-body);color:var(--cocoa)">5</span><span style="display:inline-grid;place-items:center;width:47px;height:47px;background:#fff;border:2px solid var(--line);border-radius:12px;font:700 22px var(--font-body);color:var(--cocoa)">6</span></div></div>
-          <div style="font:500 15px var(--font-body);color:var(--cocoa-2);margin-top:7px">並行概念示意；完成順序依實際請求而異</div>
         </div>
         <div style="margin-top:auto;padding:15px 17px;background:var(--cream-d);border-radius:15px;font:700 23px/1.45 var(--font-body);color:var(--cocoa);display:flex;align-items:baseline;justify-content:space-between;gap:8px"><span style="font:800 41px/1 var(--font-body);color:var(--caramel)">−45%</span><span>185 秒 → 101 秒</span></div>
-        <div style="font:500 17px var(--font-body);color:var(--cocoa-2);text-align:right;margin-top:-12px">固定 6 次改圖測試，非整份報告</div>
       </div>
     </div>
     <div class="tech reveal d3 sa-bar" style="margin-top:15px;padding:12px 30px"><svg class="ic"><use href="#i-check"/></svg><span>分析結果整理成資料，<b>供領養任務使用。</b></span></div>
   </div>
-  <div class="pg"><img src="assets/meowho-symbol.svg" alt="">14 / 22</div>
+  </div><div class="pg"><img src="assets/meowho-symbol.svg" alt="">15 / 23</div>
+</section>
+
+<!-- =========================================================
+     14 領養任務 ①：三大核心理念（渝茜）
+     ========================================================= -->
+<section class="slide has-spk" data-label="14 三大核心理念">
+  <div class="spk"><span class="nm">渝茜</span><div class="avs"><div class="av"><img src="assets/avatars/渝茜.jpg" alt="渝茜" onerror="this.remove()"></div></div></div>
+  <div class="head"><span class="tag"><b>04</b>Demo 流程</span><div class="dbar"><span class="whob w-ado"><img class="whoav" src="assets/avatars/char_xiaojie.jpg" alt="">領養人視角</span><span class="dnodes"><span class="dn r-mid done">建立貓咪</span><span class="dn r-ado done">尋找貓咪</span><span class="dn r-ado done">拍攝居家影片</span><span class="dn r-ado now">領養任務</span><span class="dn r-ado">提出領養</span><span class="dn r-both">移轉</span></span></div></div>
+  <h2 class="reveal">領養任務的<em>三大核心理念</em></h2><div class="stage">
+  <div style="position: absolute; left: 96px; top: 220px; width: 1728px; height: 704px; display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 30px"><div class="reveal d1" style="background:#fff;border:4px solid #f4dfae;border-radius:28px;overflow:hidden;display:flex;flex-direction:column;align-items:center">
+  <div style="display:flex;align-items:center;justify-content:center;gap:18px;align-self:stretch;height:92px;flex:none;background:#fef5dd"><span style="width:46px;height:46px;border-radius:50%;background:#a5602a;color:#fff;display:grid;place-items:center;font-size:24px;font-weight:800">1</span><div style="margin:0;font-family:'Huninn','Noto Sans TC',sans-serif;font-size:38px;line-height:1.3;font-weight:400;color:#7a4016;white-space:nowrap">量身打造劇情</div></div>
+  
+  <div style="align-self:stretch;flex:1;display:flex;justify-content:center;align-items:center"><div style="width:482px;height:420px;display:flex;flex-direction:column;gap:12px"><div style="height:112px;box-sizing:border-box;border-radius:30px;background:#fff;border:3px solid #c9a46f;display:flex;align-items:center;justify-content:center;gap:22px;padding:0 18px"><b style="color:var(--cocoa);font-size:30px;white-space:nowrap">信任</b><div style="display:flex;gap:2px"><svg viewBox="0 0 24 24" style="width:50px;height:50px" fill="#e2566f"><path d="M12 20.6C6.4 16.6 2.8 13.3 2.8 9.2 2.8 6.4 5 4.2 7.7 4.2c1.8 0 3.3 1 4.3 2.4 1-1.4 2.5-2.4 4.3-2.4 2.7 0 4.9 2.2 4.9 5 0 4.1-3.6 7.4-9.2 11.4Z"/></svg><svg viewBox="0 0 24 24" style="width:50px;height:50px" fill="#e2566f"><path d="M12 20.6C6.4 16.6 2.8 13.3 2.8 9.2 2.8 6.4 5 4.2 7.7 4.2c1.8 0 3.3 1 4.3 2.4 1-1.4 2.5-2.4 4.3-2.4 2.7 0 4.9 2.2 4.9 5 0 4.1-3.6 7.4-9.2 11.4Z"/></svg><svg viewBox="0 0 24 24" style="width:50px;height:50px" fill="#e2566f"><path d="M12 20.6C6.4 16.6 2.8 13.3 2.8 9.2 2.8 6.4 5 4.2 7.7 4.2c1.8 0 3.3 1 4.3 2.4 1-1.4 2.5-2.4 4.3-2.4 2.7 0 4.9 2.2 4.9 5 0 4.1-3.6 7.4-9.2 11.4Z"/></svg><svg viewBox="0 0 24 24" style="width:50px;height:50px" fill="#e0cfb4"><path d="M12 20.6C6.4 16.6 2.8 13.3 2.8 9.2 2.8 6.4 5 4.2 7.7 4.2c1.8 0 3.3 1 4.3 2.4 1-1.4 2.5-2.4 4.3-2.4 2.7 0 4.9 2.2 4.9 5 0 4.1-3.6 7.4-9.2 11.4Z"/></svg><svg viewBox="0 0 24 24" style="width:50px;height:50px" fill="#e0cfb4"><path d="M12 20.6C6.4 16.6 2.8 13.3 2.8 9.2 2.8 6.4 5 4.2 7.7 4.2c1.8 0 3.3 1 4.3 2.4 1-1.4 2.5-2.4 4.3-2.4 2.7 0 4.9 2.2 4.9 5 0 4.1-3.6 7.4-9.2 11.4Z"/></svg></div></div><div style="height:112px;box-sizing:border-box;border-radius:30px;background:#fff;border:3px solid #c9a46f;display:flex;align-items:center;justify-content:center;gap:22px;padding:0 18px"><b style="color:var(--cocoa);font-size:30px;white-space:nowrap">壓力</b><div style="display:flex;gap:2px"><svg viewBox="0 0 24 24" style="width:50px;height:50px" fill="#e0701a"><path d="M12 2.5C11.6 6 6 9.4 6 14.6A6 6 0 0 0 18 14.6c0-2.2-1-3.9-2.2-5.2-.3 1.5-1 2.5-2 3C14.4 9.2 13.4 5 12 2.5z"/></svg><svg viewBox="0 0 24 24" style="width:50px;height:50px" fill="#e0701a"><path d="M12 2.5C11.6 6 6 9.4 6 14.6A6 6 0 0 0 18 14.6c0-2.2-1-3.9-2.2-5.2-.3 1.5-1 2.5-2 3C14.4 9.2 13.4 5 12 2.5z"/></svg><svg viewBox="0 0 24 24" style="width:50px;height:50px" fill="#e0701a"><path d="M12 2.5C11.6 6 6 9.4 6 14.6A6 6 0 0 0 18 14.6c0-2.2-1-3.9-2.2-5.2-.3 1.5-1 2.5-2 3C14.4 9.2 13.4 5 12 2.5z"/></svg><svg viewBox="0 0 24 24" style="width:50px;height:50px" fill="#e0701a"><path d="M12 2.5C11.6 6 6 9.4 6 14.6A6 6 0 0 0 18 14.6c0-2.2-1-3.9-2.2-5.2-.3 1.5-1 2.5-2 3C14.4 9.2 13.4 5 12 2.5z"/></svg><svg viewBox="0 0 24 24" style="width:50px;height:50px" fill="#e0cfb4"><path d="M12 2.5C11.6 6 6 9.4 6 14.6A6 6 0 0 0 18 14.6c0-2.2-1-3.9-2.2-5.2-.3 1.5-1 2.5-2 3C14.4 9.2 13.4 5 12 2.5z"/></svg></div></div><div style="display:flex;flex-direction:column;gap:8px;margin-top:2px"><div style="height:54px;box-sizing:border-box;border:2px solid #c9a46f;border-radius:18px;background:#fff;display:flex;align-items:center;gap:14px;padding:0 20px"><span style="width:34px;height:34px;border-radius:50%;background:#2f7a4a;color:#fff;display:grid;place-items:center;font-size:22px;font-weight:800">✓</span><b style="color:var(--cocoa);font-size:24px;white-space:nowrap">房東同意養貓</b></div><div style="height:54px;box-sizing:border-box;border:2px solid #c9a46f;border-radius:18px;background:#fff;display:flex;align-items:center;gap:14px;padding:0 20px"><span style="width:34px;height:34px;border-radius:50%;background:#f6b53b;color:#1f1a17;display:grid;place-items:center;font-size:22px;font-weight:800">！</span><b style="color:var(--cocoa);font-size:24px;white-space:nowrap">有長輩同住</b></div><div style="height:54px;box-sizing:border-box;border:2px solid #c9a46f;border-radius:18px;background:#fff;display:flex;align-items:center;gap:14px;padding:0 20px"><span style="width:34px;height:34px;border-radius:50%;background:#2f7a4a;color:#fff;display:grid;place-items:center;font-size:22px;font-weight:800">✓</span><b style="color:var(--cocoa);font-size:24px;white-space:nowrap">每月預算 4,000 元</b></div></div></div></div><div style="margin:0;align-self:stretch;height:76px;flex:none;display:flex;align-items:center;justify-content:center;background:#fef5dd;font-size:25px;font-weight:700;color:var(--cocoa);white-space:nowrap">貓與你的條件，決定專屬劇本</div>
+</div><div class="reveal d2" style="background:#fff;border:4px solid #f4dfae;border-radius:28px;overflow:hidden;display:flex;flex-direction:column;align-items:center">
+  <div style="display:flex;align-items:center;justify-content:center;gap:18px;align-self:stretch;height:92px;flex:none;background:#fef5dd"><span style="width:46px;height:46px;border-radius:50%;background:#a5602a;color:#fff;display:grid;place-items:center;font-size:24px;font-weight:800">2</span><div style="margin:0;font-family:'Huninn','Noto Sans TC',sans-serif;font-size:38px;line-height:1.3;font-weight:400;color:#7a4016;white-space:nowrap">在家真實試養</div></div>
+  
+  <div style="align-self:stretch;flex:1;display:flex;justify-content:center;align-items:center"><div style="width:482px;height:420px"><img src="assets/demo/principle_room.jpg" alt="遊戲畫面：掃描出的房間裡放著 3D 的外出籠、餐碗、貓抓板和貓砂盆" style="display:block;width:482px;height:420px;border-radius:14px"></div></div><div style="margin:0;align-self:stretch;height:76px;flex:none;display:flex;align-items:center;justify-content:center;background:#fef5dd;font-size:25px;font-weight:700;color:var(--cocoa);white-space:nowrap">3D 重現房間，互動日常全還原</div>
+</div><div class="reveal d3" style="background:#fff;border:4px solid #f4dfae;border-radius:28px;overflow:hidden;display:flex;flex-direction:column;align-items:center">
+  <div style="display:flex;align-items:center;justify-content:center;gap:18px;align-self:stretch;height:92px;flex:none;background:#fef5dd"><span style="width:46px;height:46px;border-radius:50%;background:#a5602a;color:#fff;display:grid;place-items:center;font-size:24px;font-weight:800">3</span><div style="margin:0;font-family:'Huninn','Noto Sans TC',sans-serif;font-size:38px;line-height:1.3;font-weight:400;color:#7a4016;white-space:nowrap">預演關鍵時刻</div></div>
+  
+  <div style="align-self:stretch;flex:1;display:flex;justify-content:center;align-items:center"><div style="position:relative;width:482px;height:420px"><img src="assets/demo/principle_moments.jpg" alt="遊戲畫面：第 1 天、第 30 天、10 歲、15 歲" style="display:block;width:482px;height:420px;border-radius:14px"><span style="position:absolute;left:8px;top:8px;background:#f6b53b;color:#1f1a17;border-radius:20px;padding:3px 14px;font-size:20px;font-weight:700;line-height:1.5">第 1 天</span><span style="position:absolute;left:253px;top:8px;background:#f6b53b;color:#1f1a17;border-radius:20px;padding:3px 14px;font-size:20px;font-weight:700;line-height:1.5">第 30 天</span><span style="position:absolute;left:8px;top:222px;background:#f6b53b;color:#1f1a17;border-radius:20px;padding:3px 14px;font-size:20px;font-weight:700;line-height:1.5">10 歲</span><span style="position:absolute;left:253px;top:222px;background:#f6b53b;color:#1f1a17;border-radius:20px;padding:3px 14px;font-size:20px;font-weight:700;line-height:1.5">15 歲</span><span style="position:absolute;left:8px;top:163px;width:221px;box-sizing:border-box;text-align:center;background:rgba(255,255,255,.80);border:2px solid #d3ad84;border-radius:12px;padding:3px 4px;font-size:18px;font-weight:700;color:#7a5538;white-space:nowrap">貓躲在籠裡不出來</span><span style="position:absolute;left:253px;top:163px;width:221px;box-sizing:border-box;text-align:center;background:rgba(255,255,255,.80);border:2px solid #d3ad84;border-radius:12px;padding:3px 4px;font-size:18px;font-weight:700;color:#7a5538;white-space:nowrap">要開始練刷牙嗎？</span><span style="position:absolute;left:8px;top:377px;width:221px;box-sizing:border-box;text-align:center;background:rgba(255,255,255,.80);border:2px solid #d3ad84;border-radius:12px;padding:3px 4px;font-size:18px;font-weight:700;color:#7a5538;white-space:nowrap">健檢：醫師建議洗牙</span><span style="position:absolute;left:253px;top:377px;width:221px;box-sizing:border-box;text-align:center;background:rgba(255,255,255,.80);border:2px solid #d3ad84;border-radius:12px;padding:3px 4px;font-size:18px;font-weight:700;color:#7a5538;white-space:nowrap">睡夢中安靜離去</span></div></div><div style="margin:0;align-self:stretch;height:76px;flex:none;display:flex;align-items:center;justify-content:center;background:#fef5dd;font-size:25px;font-weight:700;color:var(--cocoa);white-space:nowrap">走過生老病死，感受一輩子的份量</div>
+</div></div>
+<div style="position:absolute;left:96px;top:942px;width:1728px;height:68px;box-sizing:border-box;border-radius:22px;background:var(--cocoa);color:var(--slide-bg);display:flex;align-items:center;justify-content:center;gap:16px;font-size:23px"><b style="color:var(--honey);font-weight:700">核心玩法</b>你的每一個決定，都會影響後面的劇情發展</div>
+  </div><div class="pg"><img src="assets/meowho-symbol.svg" alt="">16 / 23</div>
 </section>
 
 <!-- =========================================================
@@ -1253,16 +1614,16 @@ code{font:500 .92em ui-monospace,Menlo,monospace;background:var(--cream-d);borde
      ========================================================= -->
 <section class="slide has-spk" data-label="14 領養任務">
   <div class="spk"><span class="nm">渝茜</span><div class="avs"><div class="av"><img src="assets/avatars/渝茜.jpg" alt="渝茜" onerror="this.remove()"></div></div></div>
-  <div class="head"><span class="tag"><b>04</b>DEMO 流程</span><div class="dbar"><span class="whob w-ado"><img class="whoav" src="assets/avatars/char_xiaojie.jpg" alt="">領養人視角</span><span class="dnodes"><span class="dn r-mid done">中途建貓</span><span class="dn r-mid done">3D 貓</span><span class="dn r-ado done">搜尋找貓</span><span class="dn r-ado done">3D 房間</span><span class="dn r-ado done">安全檢測</span><span class="dn r-ado now">領養任務</span><span class="dn r-both">領養移轉</span></span></div></div>
-  <h2 class="reveal">帶牠回家之前，<em>先陪牠過完一生</em></h2>
+  <div class="head"><span class="tag"><b>04</b>Demo 流程</span><div class="dbar"><span class="whob w-ado"><img class="whoav" src="assets/avatars/char_xiaojie.jpg" alt="">領養人視角</span><span class="dnodes"><span class="dn r-mid done">建立貓咪</span><span class="dn r-ado done">尋找貓咪</span><span class="dn r-ado done">拍攝居家影片</span><span class="dn r-ado now">領養任務</span><span class="dn r-ado">提出領養</span><span class="dn r-both">移轉</span></span></div></div>
+  <h2 class="reveal">帶牠回家之前，<em>先陪牠過完一生</em></h2><div class="stage">
   <div class="body" style="top:232px">
     <div class="g reveal d1" style="grid-template-columns:2.15fr 1fr;height:auto;gap:28px;align-items:start">
       <div class="shot" style="height:636px;background:#1d1611;border-width:4px;box-shadow:0 18px 40px rgba(60,40,20,.22)"><video src="assets/demo/life-long.mp4" class="autoplay-on-slide" controls muted playsinline preload="auto" style="width:100%;height:100%;object-fit:contain;display:block;max-height:none"></video></div>
-      <div style="display:grid;gap:10px"><div style="display:flex;align-items:center;gap:16px;background:var(--honey);border:3px solid var(--honey);border-radius:18px;padding:0 18px;height:80px"><span style="flex:none;width:44px;height:44px;border-radius:50%;background:var(--cocoa);color:#fff;display:grid;place-items:center;font:800 22px var(--font-body)">1</span><div style="line-height:1.25"><b style="display:block;font:800 23px var(--font-body);color:var(--cocoa)">第 1 天</b><span style="font:500 19px var(--font-body);color:var(--cocoa-2)">牠躲起來：等牠，還是拉出來</span></div></div><div style="display:flex;align-items:center;gap:16px;background:#fff;border:3px solid var(--line);border-radius:18px;padding:0 18px;height:80px"><span style="flex:none;width:44px;height:44px;border-radius:50%;background:var(--cream-d);color:var(--cocoa);display:grid;place-items:center;font:800 22px var(--font-body)">2</span><div style="line-height:1.25"><b style="display:block;font:800 23px var(--font-body);color:var(--cocoa)">第 3 天</b><span style="font:500 19px var(--font-body);color:var(--cocoa-2)">貓砂盆和碗該分開放</span></div></div><div style="display:flex;align-items:center;gap:16px;background:#fff;border:3px solid var(--caramel);border-radius:18px;padding:0 18px;height:80px"><span style="flex:none;width:44px;height:44px;border-radius:50%;background:var(--cocoa);color:#fff;display:grid;place-items:center;font:800 22px var(--font-body)">3</span><div style="line-height:1.25"><b style="display:block;font:800 23px var(--font-body);color:var(--cocoa)">第 30 天</b><span style="font:500 19px var(--font-body);color:var(--cocoa-2)">半夜跑酷，要不要開始刷牙</span></div></div><div style="display:flex;align-items:center;gap:16px;background:#fff;border:3px solid var(--line);border-radius:18px;padding:0 18px;height:80px"><span style="flex:none;width:44px;height:44px;border-radius:50%;background:var(--cream-d);color:var(--cocoa);display:grid;place-items:center;font:800 22px var(--font-body)">4</span><div style="line-height:1.25"><b style="display:block;font:800 23px var(--font-body);color:var(--cocoa)">半年後</b><span style="font:500 19px var(--font-body);color:var(--cocoa-2)">發情了，要不要結紮</span></div></div><div style="display:flex;align-items:center;gap:16px;background:#fff;border:3px solid var(--line);border-radius:18px;padding:0 18px;height:80px"><span style="flex:none;width:44px;height:44px;border-radius:50%;background:var(--cream-d);color:var(--cocoa);display:grid;place-items:center;font:800 22px var(--font-body)">5</span><div style="line-height:1.25"><b style="display:block;font:800 23px var(--font-body);color:var(--cocoa)">五年後</b><span style="font:500 19px var(--font-body);color:var(--cocoa-2)">家裡的危險，變成意外</span></div></div><div style="display:flex;align-items:center;gap:16px;background:#fff;border:3px solid var(--caramel);border-radius:18px;padding:0 18px;height:80px"><span style="flex:none;width:44px;height:44px;border-radius:50%;background:var(--cocoa);color:#fff;display:grid;place-items:center;font:800 22px var(--font-body)">6</span><div style="line-height:1.25"><b style="display:block;font:800 23px var(--font-body);color:var(--cocoa)">10 年後</b><span style="font:500 19px var(--font-body);color:var(--cocoa-2)">老了，帶去健康檢查</span></div></div><div style="display:flex;align-items:center;gap:16px;background:#fff;border:3px solid var(--line);border-radius:18px;padding:0 18px;height:80px"><span style="flex:none;width:44px;height:44px;border-radius:50%;background:var(--cream-d);color:var(--cocoa);display:grid;place-items:center;font:800 22px var(--font-body)">7</span><div style="line-height:1.25"><b style="display:block;font:800 23px var(--font-body);color:var(--cocoa)">15 歲</b><span style="font:500 19px var(--font-body);color:var(--cocoa-2)">說再見，回顧這一生</span></div></div></div>
+      <div style="display:grid;gap:10px"><div style="display:flex;align-items:center;gap:16px;background:var(--honey);border:3px solid var(--honey);border-radius:18px;padding:0 18px;height:80px"><span style="flex:none;width:44px;height:44px;border-radius:50%;background:var(--cocoa);color:#fff;display:grid;place-items:center;font:800 22px var(--font-body)">1</span><div style="line-height:1.25"><b style="display:block;font:800 23px var(--font-body);color:var(--cocoa)">第 1 天</b><span style="font:500 19px var(--font-body);color:var(--cocoa-2)">牠躲起來：等牠，還是拉出來</span></div></div><div style="display:flex;align-items:center;gap:16px;background:#fff;border:3px solid var(--line);border-radius:18px;padding:0 18px;height:80px"><span style="flex:none;width:44px;height:44px;border-radius:50%;background:var(--cream-d);color:var(--cocoa);display:grid;place-items:center;font:800 22px var(--font-body)">2</span><div style="line-height:1.25"><b style="display:block;font:800 23px var(--font-body);color:var(--cocoa)">第 3 天</b><span style="font:500 19px var(--font-body);color:var(--cocoa-2)">貓砂盆和碗該分開放</span></div></div><div style="display:flex;align-items:center;gap:16px;background:#fff;border:3px solid var(--line);border-radius:18px;padding:0 18px;height:80px"><span style="flex:none;width:44px;height:44px;border-radius:50%;background:var(--cream-d);color:var(--cocoa);display:grid;place-items:center;font:800 22px var(--font-body)">3</span><div style="line-height:1.25"><b style="display:block;font:800 23px var(--font-body);color:var(--cocoa)">第 30 天</b><span style="font:500 19px var(--font-body);color:var(--cocoa-2)">半夜跑酷，要不要開始刷牙</span></div></div><div style="display:flex;align-items:center;gap:16px;background:#fff;border:3px solid var(--line);border-radius:18px;padding:0 18px;height:80px"><span style="flex:none;width:44px;height:44px;border-radius:50%;background:var(--cream-d);color:var(--cocoa);display:grid;place-items:center;font:800 22px var(--font-body)">4</span><div style="line-height:1.25"><b style="display:block;font:800 23px var(--font-body);color:var(--cocoa)">半年後</b><span style="font:500 19px var(--font-body);color:var(--cocoa-2)">發情了，要不要結紮</span></div></div><div style="display:flex;align-items:center;gap:16px;background:#fff;border:3px solid var(--line);border-radius:18px;padding:0 18px;height:80px"><span style="flex:none;width:44px;height:44px;border-radius:50%;background:var(--cream-d);color:var(--cocoa);display:grid;place-items:center;font:800 22px var(--font-body)">5</span><div style="line-height:1.25"><b style="display:block;font:800 23px var(--font-body);color:var(--cocoa)">五年後</b><span style="font:500 19px var(--font-body);color:var(--cocoa-2)">家裡的危險，變成意外</span></div></div><div style="display:flex;align-items:center;gap:16px;background:#fff;border:3px solid var(--line);border-radius:18px;padding:0 18px;height:80px"><span style="flex:none;width:44px;height:44px;border-radius:50%;background:var(--cream-d);color:var(--cocoa);display:grid;place-items:center;font:800 22px var(--font-body)">6</span><div style="line-height:1.25"><b style="display:block;font:800 23px var(--font-body);color:var(--cocoa)">10 年後</b><span style="font:500 19px var(--font-body);color:var(--cocoa-2)">老了，帶去健康檢查</span></div></div><div style="display:flex;align-items:center;gap:16px;background:#fff;border:3px solid var(--line);border-radius:18px;padding:0 18px;height:80px"><span style="flex:none;width:44px;height:44px;border-radius:50%;background:var(--cream-d);color:var(--cocoa);display:grid;place-items:center;font:800 22px var(--font-body)">7</span><div style="line-height:1.25"><b style="display:block;font:800 23px var(--font-body);color:var(--cocoa)">15 歲</b><span style="font:500 19px var(--font-body);color:var(--cocoa-2)">說再見，回顧這一生</span></div></div></div>
     </div>
     <div class="tech reveal d3" style="margin-top:18px"><svg class="ic"><use href="#i-heart"/></svg><span><b>程式亮點</b>每個選擇都換算成貓的「信任」和「壓力」：耐心等牠，信任 +10；硬拉出來，信任 −10、壓力 +15</span></div>
   </div>
-  <div class="pg"><img src="assets/meowho-symbol.svg" alt="">15 / 22</div>
+  </div><div class="pg"><img src="assets/meowho-symbol.svg" alt="">17 / 23</div>
 </section>
 
 <!-- =========================================================
@@ -1270,13 +1631,13 @@ code{font:500 .92em ui-monospace,Menlo,monospace;background:var(--cream-d);borde
      ========================================================= -->
 <section class="slide has-spk" data-label="14b 六個小遊戲">
   <div class="spk"><span class="nm">渝茜</span><div class="avs"><div class="av"><img src="assets/avatars/渝茜.jpg" alt="渝茜" onerror="this.remove()"></div></div></div>
-  <div class="head"><span class="tag"><b>04</b>DEMO 流程</span><div class="dbar"><span class="whob w-ado"><img class="whoav" src="assets/avatars/char_xiaojie.jpg" alt="">領養人視角</span><span class="dnodes"><span class="dn r-mid done">中途建貓</span><span class="dn r-mid done">3D 貓</span><span class="dn r-ado done">搜尋找貓</span><span class="dn r-ado done">3D 房間</span><span class="dn r-ado done">安全檢測</span><span class="dn r-ado now">領養任務</span><span class="dn r-both">領養移轉</span></span></div></div>
-  <h2 class="reveal">每天親手照顧：<em>6 個小遊戲，照真實方法設計</em></h2>
+  <div class="head"><span class="tag"><b>04</b>Demo 流程</span><div class="dbar"><span class="whob w-ado"><img class="whoav" src="assets/avatars/char_xiaojie.jpg" alt="">領養人視角</span><span class="dnodes"><span class="dn r-mid done">建立貓咪</span><span class="dn r-ado done">尋找貓咪</span><span class="dn r-ado done">拍攝居家影片</span><span class="dn r-ado now">領養任務</span><span class="dn r-ado">提出領養</span><span class="dn r-both">移轉</span></span></div></div>
+  <h2 class="reveal">每天親手照顧：<em>6 個小遊戲，照真實方法設計</em></h2><div class="stage">
   <div class="body" style="top:250px">
     <div class="g" style="grid-template-columns:repeat(3,1fr);height:auto;gap:26px 30px"><div class="reveal d1" style="display:grid;grid-template-columns:360px 1fr;gap:18px;align-items:center"><div class="shot" style="height:252px;background:#fff;border-width:3px"><video src="assets/demo/mini-feed.mp4" autoplay loop muted playsinline style="width:100%;height:100%;object-fit:cover;display:block;max-height:none"></video></div><div style="line-height:1.4"><span style="display:inline-grid;place-items:center;width:40px;height:40px;border-radius:50%;background:var(--honey);color:var(--cocoa);font:800 20px var(--font-body);margin-bottom:8px">1</span><b style="display:block;font:800 28px var(--font-body);color:var(--cocoa);margin-bottom:6px">餵飯</b><span style="font:500 20px var(--font-body);color:var(--cocoa-2)">照建議份量倒，不多也不少</span></div></div><div class="reveal d1" style="display:grid;grid-template-columns:360px 1fr;gap:18px;align-items:center"><div class="shot" style="height:252px;background:#fff;border-width:3px"><video src="assets/demo/mini-water.mp4" autoplay loop muted playsinline style="width:100%;height:100%;object-fit:cover;display:block;max-height:none"></video></div><div style="line-height:1.4"><span style="display:inline-grid;place-items:center;width:40px;height:40px;border-radius:50%;background:var(--honey);color:var(--cocoa);font:800 20px var(--font-body);margin-bottom:8px">2</span><b style="display:block;font:800 28px var(--font-body);color:var(--cocoa);margin-bottom:6px">換水</b><span style="font:500 20px var(--font-body);color:var(--cocoa-2)">先刷掉碗裡的水垢，再換水</span></div></div><div class="reveal d1" style="display:grid;grid-template-columns:360px 1fr;gap:18px;align-items:center"><div class="shot" style="height:252px;background:#fff;border-width:3px"><video src="assets/demo/mini-scoop.mp4" autoplay loop muted playsinline style="width:100%;height:100%;object-fit:cover;display:block;max-height:none"></video></div><div style="line-height:1.4"><span style="display:inline-grid;place-items:center;width:40px;height:40px;border-radius:50%;background:var(--honey);color:var(--cocoa);font:800 20px var(--font-body);margin-bottom:8px">3</span><b style="display:block;font:800 28px var(--font-body);color:var(--cocoa);margin-bottom:6px">鏟屎</b><span style="font:500 20px var(--font-body);color:var(--cocoa-2)">貓砂裡的每一坨都要清乾淨</span></div></div><div class="reveal d2" style="display:grid;grid-template-columns:360px 1fr;gap:18px;align-items:center"><div class="shot" style="height:252px;background:#fff;border-width:3px"><video src="assets/demo/mini-pet.mp4" autoplay loop muted playsinline style="width:100%;height:100%;object-fit:cover;display:block;max-height:none"></video></div><div style="line-height:1.4"><span style="display:inline-grid;place-items:center;width:40px;height:40px;border-radius:50%;background:var(--honey);color:var(--cocoa);font:800 20px var(--font-body);margin-bottom:8px">4</span><b style="display:block;font:800 28px var(--font-body);color:var(--cocoa);margin-bottom:6px">摸貓</b><span style="font:500 20px var(--font-body);color:var(--cocoa-2)">牠開始不耐煩，就要停手</span></div></div><div class="reveal d2" style="display:grid;grid-template-columns:360px 1fr;gap:18px;align-items:center"><div class="shot" style="height:252px;background:#fff;border-width:3px"><video src="assets/demo/mini-brush.mp4" autoplay loop muted playsinline style="width:100%;height:100%;object-fit:cover;display:block;max-height:none"></video></div><div style="line-height:1.4"><span style="display:inline-grid;place-items:center;width:40px;height:40px;border-radius:50%;background:var(--honey);color:var(--cocoa);font:800 20px var(--font-body);margin-bottom:8px">5</span><b style="display:block;font:800 28px var(--font-body);color:var(--cocoa);margin-bottom:6px">刷牙</b><span style="font:500 20px var(--font-body);color:var(--cocoa-2)">牠掙扎時先放開，慢慢來</span></div></div><div class="reveal d2" style="display:grid;grid-template-columns:360px 1fr;gap:18px;align-items:center"><div class="shot" style="height:252px;background:#fff;border-width:3px"><video src="assets/demo/mini-nail.mp4" autoplay loop muted playsinline style="width:100%;height:100%;object-fit:cover;display:block;max-height:none"></video></div><div style="line-height:1.4"><span style="display:inline-grid;place-items:center;width:40px;height:40px;border-radius:50%;background:var(--honey);color:var(--cocoa);font:800 20px var(--font-body);margin-bottom:8px">6</span><b style="display:block;font:800 28px var(--font-body);color:var(--cocoa);margin-bottom:6px">剪指甲</b><span style="font:500 20px var(--font-body);color:var(--cocoa-2)">只剪白色尖端，別剪到血管</span></div></div></div>
     <div class="tech reveal d4" style="margin-top:30px"><svg class="ic"><use href="#i-paw"/></svg><span><b>程式亮點</b>6 個小遊戲用同一套方式回報結果（有沒有做好、有沒有被咬），做得好，貓就多信任你一點</span></div>
   </div>
-  <div class="pg"><img src="assets/meowho-symbol.svg" alt="">16 / 22</div>
+  </div><div class="pg"><img src="assets/meowho-symbol.svg" alt="">18 / 23</div>
 </section>
 
 <!-- =========================================================
@@ -1284,8 +1645,8 @@ code{font:500 .92em ui-monospace,Menlo,monospace;background:var(--cream-d);borde
      ========================================================= -->
 <section class="slide has-spk" data-label="15 一生的後果">
   <div class="spk"><span class="nm">渝茜</span><div class="avs"><div class="av"><img src="assets/avatars/渝茜.jpg" alt="渝茜" onerror="this.remove()"></div></div></div>
-  <div class="head"><span class="tag"><b>04</b>DEMO 流程</span><div class="dbar"><span class="whob w-ado"><img class="whoav" src="assets/avatars/char_xiaojie.jpg" alt="">領養人視角</span><span class="dnodes"><span class="dn r-mid done">中途建貓</span><span class="dn r-mid done">3D 貓</span><span class="dn r-ado done">搜尋找貓</span><span class="dn r-ado done">3D 房間</span><span class="dn r-ado done">安全檢測</span><span class="dn r-ado now">領養任務</span><span class="dn r-both">領養移轉</span></span></div></div>
-  <h2 class="reveal">十年後的帳單，<em>在第 30 天就決定了</em></h2>
+  <div class="head"><span class="tag"><b>04</b>Demo 流程</span><div class="dbar"><span class="whob w-ado"><img class="whoav" src="assets/avatars/char_xiaojie.jpg" alt="">領養人視角</span><span class="dnodes"><span class="dn r-mid done">建立貓咪</span><span class="dn r-ado done">尋找貓咪</span><span class="dn r-ado done">拍攝居家影片</span><span class="dn r-ado now">領養任務</span><span class="dn r-ado">提出領養</span><span class="dn r-both">移轉</span></span></div></div>
+  <h2 class="reveal">十年後的帳單，<em>在第 30 天就決定了</em></h2><div class="stage">
   <div class="body" style="top:232px">
     <div class="g reveal d1" style="grid-template-columns:2.15fr 1fr;height:auto;gap:28px;align-items:start">
       <div class="shot" style="height:636px;background:#1d1611;border-width:4px;box-shadow:0 18px 40px rgba(60,40,20,.22)"><video src="assets/demo/life-later.mp4" class="autoplay-on-slide" controls muted playsinline preload="auto" style="width:100%;height:100%;object-fit:contain;display:block;max-height:none"></video></div>
@@ -1298,7 +1659,7 @@ code{font:500 .92em ui-monospace,Menlo,monospace;background:var(--cream-d);borde
     </div>
     <div class="tech reveal d3" style="margin-top:18px"><svg class="ic"><use href="#i-plug"/></svg><span><b>程式亮點</b>把中途填的貓咪個性、你家的 3D 房間、居家安全檢測接進同一條劇情；分數和花費都用固定公式計算</span></div>
   </div>
-  <div class="pg"><img src="assets/meowho-symbol.svg" alt="">17 / 22</div>
+  </div><div class="pg"><img src="assets/meowho-symbol.svg" alt="">19 / 23</div>
 </section>
 <script>
 /* 渝茜頁：翻到這頁時影片自動從頭播放，翻走就暫停 */
@@ -1321,8 +1682,8 @@ code{font:500 .92em ui-monospace,Menlo,monospace;background:var(--cream-d);borde
      ========================================================= -->
 <section class="slide has-spk" data-label="15b 試養報告">
   <div class="spk"><span class="nm">渝茜</span><div class="avs"><div class="av"><img src="assets/avatars/渝茜.jpg" alt="渝茜" onerror="this.remove()"></div></div></div>
-  <div class="head"><span class="tag"><b>04</b>DEMO 流程</span><div class="dbar"><span class="whob w-ado"><img class="whoav" src="assets/avatars/char_xiaojie.jpg" alt="">領養人視角</span><span class="dnodes"><span class="dn r-mid done">中途建貓</span><span class="dn r-mid done">3D 貓</span><span class="dn r-ado done">搜尋找貓</span><span class="dn r-ado done">3D 房間</span><span class="dn r-ado done">安全檢測</span><span class="dn r-ado now">領養任務</span><span class="dn r-both">領養移轉</span></span></div></div>
-  <h2 class="reveal">15 年走完，<em>變成一份只屬於你的試養報告</em></h2>
+  <div class="head"><span class="tag"><b>04</b>Demo 流程</span><div class="dbar"><span class="whob w-ado"><img class="whoav" src="assets/avatars/char_xiaojie.jpg" alt="">領養人視角</span><span class="dnodes"><span class="dn r-mid done">建立貓咪</span><span class="dn r-ado done">尋找貓咪</span><span class="dn r-ado done">拍攝居家影片</span><span class="dn r-ado now">領養任務</span><span class="dn r-ado">提出領養</span><span class="dn r-both">移轉</span></span></div></div>
+  <h2 class="reveal">15 年走完，<em>變成一份只屬於你的試養報告</em></h2><div class="stage">
   <div class="body" style="top:232px">
     <div class="g reveal d1" style="grid-template-columns:2.15fr 1fr;height:auto;gap:28px;align-items:start">
       <div class="shot" style="height:636px;background:#fbf3e6;border-width:4px;box-shadow:0 18px 40px rgba(60,40,20,.22)"><video src="assets/demo/life-report.mp4" class="autoplay-on-slide" controls muted loop playsinline preload="auto" style="width:100%;height:100%;object-fit:cover;object-position:top;display:block;max-height:none"></video></div>
@@ -1335,7 +1696,7 @@ code{font:500 .92em ui-monospace,Menlo,monospace;background:var(--cream-d);borde
     </div>
     <div class="tech reveal d3" style="margin-top:18px"><svg class="ic"><use href="#i-doc"/></svg><span><b>程式亮點</b>報告內容全部從遊戲紀錄算出來：每個選擇、每天的照顧、每筆花費都有依據</span></div>
   </div>
-  <div class="pg"><img src="assets/meowho-symbol.svg" alt="">18 / 22</div>
+  </div><div class="pg"><img src="assets/meowho-symbol.svg" alt="">20 / 23</div>
 </section>
 
 <!-- =========================================================
@@ -1343,8 +1704,8 @@ code{font:500 .92em ui-monospace,Menlo,monospace;background:var(--cream-d);borde
      ========================================================= -->
 <section class="slide has-spk" data-label="16 領養與移轉">
   <div class="spk"><span class="nm">子哲</span><div class="avs"><div class="av"><img src="assets/avatars/子哲.jpg" alt="子哲" onerror="this.remove()"></div></div></div>
-  <div class="head"><span class="tag"><b>04</b>DEMO 流程</span><div class="dbar"><span class="whob w-both"><img class="whoav" src="assets/avatars/char_xiaojie.jpg" alt=""><img class="whoav" src="assets/avatars/char_afang.jpg" alt="">領養人 → 中途</span><span class="dnodes"><span class="dn r-mid done">中途建貓</span><span class="dn r-mid done">3D 貓</span><span class="dn r-ado done">搜尋找貓</span><span class="dn r-ado done">3D 房間</span><span class="dn r-ado done">安全檢測</span><span class="dn r-ado done">領養任務</span><span class="dn r-both now">領養移轉</span></span></div></div>
-  <h2 class="reveal">帶著<em>試養報告</em>找中途，成功就移轉</h2>
+  <div class="head"><span class="tag"><b>04</b>Demo 流程</span><div class="dbar"><span class="whob w-both"><img class="whoav" src="assets/avatars/char_xiaojie.jpg" alt=""><img class="whoav" src="assets/avatars/char_afang.jpg" alt="">領養人 → 中途</span><span class="dnodes"><span class="dn r-mid done">建立貓咪</span><span class="dn r-ado done">尋找貓咪</span><span class="dn r-ado done">拍攝居家影片</span><span class="dn r-ado done">領養任務</span><span class="dn r-ado done">提出領養</span><span class="dn r-both now">移轉</span></span></div></div>
+  <h2 class="reveal">帶著<em>試養報告</em>找中途，成功就移轉</h2><div class="stage">
   <div class="body" style="top:250px">
     <div class="g" style="grid-template-columns:1.45fr 1fr;height:auto">
       <div class="reveal d1">
@@ -1359,69 +1720,33 @@ code{font:500 .92em ui-monospace,Menlo,monospace;background:var(--cream-d);borde
       </div>
     </div>
   </div>
-  <div class="pg"><img src="assets/meowho-symbol.svg" alt="">19 / 22</div>
-</section>
-
-<!-- =========================================================
-     23 商業價值
-     ========================================================= -->
-<section class="slide has-spk" data-label="23 商業價值">
-  <div class="spk"><span class="nm">子哲</span><div class="avs"><div class="av"><img src="assets/avatars/子哲.jpg" alt="子哲" onerror="this.remove()"></div></div></div>
-  <div class="head"><span class="tag"><b>05</b>商業與風險</span></div>
-  <h2 class="reveal">商業價值：<em>領養前準備</em>，成為送養的標準一步</h2>
-  <div class="body" style="top:290px">
-    <div class="g g3" style="height:auto">
-      <div class="card eared icard reveal d1">
-        <span class="ib"><svg class="ic"><use href="#i-users"/></svg></span>
-        <div class="t">誰會用</div>
-        <p class="p">中途社群<br>公私立收容所</p>
-      </div>
-      <div class="card honey eared icard reveal d2">
-        <span class="ib w"><svg class="ic"><use href="#i-coin"/></svg></span>
-        <div class="t">怎麼賺</div>
-        <p class="p">收容所・協會團體方案<br>依報告推薦新手用品</p>
-      </div>
-      <div class="card cocoa eared icard reveal d3">
-        <span class="ib c" style="background:rgba(255,248,236,.14)"><svg class="ic"><use href="#i-chart"/></svg></span>
-        <div class="t">成本控得住</div>
-        <p class="p">GPU 隨開隨關<br>影片處理完就清<br>AI 供應商可切換</p>
-      </div>
-    </div>
-    <div class="biz-hl reveal d4">
-      <svg class="ic"><use href="#i-flag"/></svg>
-      <p>別的平台停在「找到貓」；<br>喵戶處理<b>帶回家之前</b>那一段。</p>
-    </div>
-  </div>
-  <div class="pg"><img src="assets/meowho-symbol.svg" alt="">20 / 22</div>
+  </div><div class="pg"><img src="assets/meowho-symbol.svg" alt="">21 / 23</div>
 </section>
 
 <!-- =========================================================
      24 風險與因應
      ========================================================= -->
-<section class="slide has-spk" data-label="24 風險與因應">
+<section class="slide has-spk" data-label="24 目前限制">
   <div class="spk"><span class="nm">子哲</span><div class="avs"><div class="av"><img src="assets/avatars/子哲.jpg" alt="子哲" onerror="this.remove()"></div></div></div>
-  <div class="head"><span class="tag"><b>05</b>商業與風險</span></div>
-  <h2 class="reveal">風險與因應：<em>誠實面對 AI 做不到的地方</em></h2>
-  <div class="body" style="top:300px">
-    <div class="g g3" style="height:auto">
-      <div class="card eared icard reveal d1" style="padding:48px 36px 44px">
-        <span class="ib"><svg class="ic"><use href="#i-cube"/></svg></span>
-        <div class="t">房間破洞</div>
-        <p class="p">上傳前先檢查影片<br>失敗就通知重拍</p>
+  <div class="head"><span class="tag"><b>05</b>目前限制</span></div>
+  <h2 class="reveal">目前限制：<em>還要持續加強的地方</em></h2><div class="stage">
+  <div class="body" style="top:262px">
+    <div class="g g2" style="height:auto;gap:40px">
+      <div class="lim reveal d1">
+        <div class="shot" style="height:430px"><div class="bar"><i></i><i></i><i></i><span>3D 房間</span></div><img src="assets/demo/room_front.jpg" alt="3D 房間：窗邊出現模糊與破洞"></div>
+        <div class="lim-t"><span class="ib xs"><svg class="ic"><use href="#i-cube"/></svg></span>3D 房間的完整度</div>
+        <div class="lim-row"><b>現況</b>影片晃動或太暗，房間會出現破洞</div>
+        <div class="lim-row n"><b>加強中</b>優化模型建立方式，模糊影像重建</div>
       </div>
-      <div class="card honey eared icard reveal d2" style="padding:48px 36px 44px">
-        <span class="ib w"><svg class="ic"><use href="#i-cat"/></svg></span>
-        <div class="t">貓不夠像</div>
-        <p class="p">中途確認後才公開<br>定位是「像本尊」</p>
-      </div>
-      <div class="card cocoa eared icard reveal d3" style="padding:48px 36px 44px">
-        <span class="ib c" style="background:rgba(255,248,236,.14)"><svg class="ic"><use href="#i-eye"/></svg></span>
-        <div class="t">虛擬≠真實</div>
-        <p class="p">試養報告是面談參考<br>不取代中途的判斷</p>
+      <div class="lim reveal d2">
+        <div class="shot" style="height:430px"><div class="bar"><i></i><i></i><i></i><span>3D 貓</span></div><img src="assets/demo/cat3d_a.png" alt="早期 3D 貓：貼圖破碎、不像本尊" style="object-fit:contain;background:#fff;transform:scale(1.5) translateY(3%)"></div>
+        <div class="lim-t"><span class="ib xs"><svg class="ic"><use href="#i-cat"/></svg></span>3D 貓的相似度</div>
+        <div class="lim-row"><b>現況</b>共用成貓、幼貓兩種體型，特別胖或特殊體型的貓不夠像</div>
+        <div class="lim-row n"><b>加強中</b>多體型骨架建立，更符合每隻貓</div>
       </div>
     </div>
   </div>
-  <div class="pg"><img src="assets/meowho-symbol.svg" alt="">21 / 22</div>
+  </div><div class="pg"><img src="assets/meowho-symbol.svg" alt="">22 / 23</div>
 </section>
 
 <!-- =========================================================
@@ -1455,7 +1780,7 @@ code{font:500 .92em ui-monospace,Menlo,monospace;background:var(--cream-d);borde
 </div>
 
 <!-- 簡報外的控制列與編輯按鈕（PDF 不會出現） -->
-<div class="deck-controls" aria-label="簡報控制"><button id="prevBtn" aria-label="上一頁">‹</button><span id="pageNo">1 / 24</span><button id="nextBtn" aria-label="下一頁">›</button></div>
+<div class="deck-controls" aria-label="簡報控制"><button id="prevBtn" aria-label="上一頁">‹</button><span id="pageNo">1 / 32</span><button id="nextBtn" aria-label="下一頁">›</button></div>
 <div class="edit-hotzone"></div>
 <button class="edit-toggle" id="editToggle" title="編輯模式（E）">編輯文字</button>
 <script>

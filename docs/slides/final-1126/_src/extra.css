@@ -7,9 +7,9 @@
    頭像檔放在 assets/avatars/<名字>.jpg（正方形，至少 400×400）。
    檔案不存在時自動顯示貓耳剪影佔位。 */
 .spk{position:absolute;top:26px;right:52px;display:flex;align-items:center;z-index:6}
-.spk .nm{position:relative;z-index:1;background:#fff;border:3px solid var(--cocoa);border-radius:999px;padding:8px 58px 10px 28px;margin-right:-44px;font:400 34px/1.2 var(--font-display);color:var(--cocoa);white-space:nowrap}
+.spk .nm{position:relative;z-index:1;background:#fff;border:3px solid var(--cocoa);border-radius:999px;padding:6px 48px 8px 24px;margin-right:-38px;font:400 28px/1.2 var(--font-display);color:var(--cocoa);white-space:nowrap}
 .spk .avs{display:flex;position:relative;z-index:2}
-.spk .av{position:relative;width:196px;height:196px;border-radius:50%;border:6px solid var(--cocoa);overflow:hidden;
+.spk .av{position:relative;width:150px;height:150px;border-radius:50%;border:5px solid var(--cocoa);overflow:hidden;
   background:var(--cream-d) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cpath fill='%23e7c99a' d='M62 58 70 22 92 46Q100 44 108 46L130 22 138 58Q146 70 146 86 146 122 100 122 54 122 54 86 54 70 62 58Z'/%3E%3Cpath fill='%23e7c99a' d='M24 200Q28 140 100 136 172 140 176 200Z'/%3E%3C/svg%3E") center/100% no-repeat}
 .spk .av + .av{margin-left:-34px}
 .spk .av img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;max-width:none;max-height:none}
@@ -549,3 +549,244 @@ code{font:500 .92em ui-monospace,Menlo,monospace;background:var(--cream-d);borde
 
 .ck-step > .t{margin:0;align-self:center}
 .ck-shared .ck-step,.ck-lane .ck-step{min-height:64px}
+
+/* ===== 11/26 老師回饋（子哲頁）===== */
+/* 02 角色一句話定義 */
+.icard .def{margin:-4px 0 2px;background:var(--honey-l);border-radius:999px;padding:4px 18px;font:700 22px/1.4 var(--font-body);color:var(--cocoa)}
+.card.honey.icard .def{background:#fff}
+/* 06 分工：對應流程節點 */
+.mem .role{display:block;background:none;padding:0;margin:4px 0 14px;font:400 29px/1.3 var(--font-display);color:var(--caramel);white-space:nowrap}
+.team .mem{grid-template-columns:140px 1fr;gap:22px;padding:28px 26px}
+.team .mem .av{width:140px;height:140px}
+.mem .who{font-size:28px;color:var(--cocoa-2)}
+.team .mem{min-height:300px}
+.stps{display:flex;gap:10px;flex-wrap:wrap}
+.stp{background:var(--honey-l);color:var(--cocoa);border-radius:999px;padding:4px 14px;font:700 19px var(--font-body)}
+.mem.lead-mem .stp{background:#fff}
+/* 08 前後對比 */
+.ba-mini{display:grid;grid-template-columns:1fr 56px 1.2fr;align-items:center;gap:0 14px;margin-top:22px}
+.ba-mini span{border-radius:20px;padding:14px 24px;font:400 24px/1.4 var(--font-body)}
+.ba-mini b{font:400 26px var(--font-display);margin-right:14px}
+.ba-mini .o{background:#efe6da;color:var(--cocoa-2)}
+.ba-mini .n{background:var(--honey-l);color:var(--cocoa)}
+.ba-mini .n b{color:var(--caramel)}
+.ba-mini .ic{font-size:40px;color:var(--caramel);justify-self:center}
+/* 22 目前限制 */
+.lim{display:grid;gap:14px;align-content:start}
+.lim-t{display:flex;align-items:center;gap:14px;font:400 34px var(--font-display);margin-top:6px}
+.lim-row{display:grid;grid-template-columns:96px 1fr;align-items:center;gap:14px;background:#efe6da;border-radius:18px;padding:12px 20px;font:400 23px/1.45 var(--font-body);color:var(--cocoa-2)}
+.lim-row b{font:700 20px var(--font-body);color:var(--cocoa);text-align:center}
+.lim-row.n{background:var(--honey-l);color:var(--cocoa)}
+.lim-row.n b{color:var(--caramel)}
+.lim .shot .bar{position:relative;z-index:2}
+.mem .who .lead-tag{display:inline-block;vertical-align:middle;margin-left:12px;background:var(--cocoa);color:#fff;border-radius:999px;padding:2px 14px;font:700 18px/1.5 var(--font-body)}
+/* 珮瑜頁 11a：四個設計目標＋做法比較表 */
+.rd-goals{display:grid;grid-template-columns:repeat(4,1fr);gap:22px}
+.rd-goal{padding:18px 22px!important;display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto;column-gap:16px;row-gap:6px;align-items:center;background:#fff;border:2px solid var(--line);border-radius:24px;padding:22px 24px}
+.rd-goal .ib{grid-row:1}
+.rd-goal .t{font:400 34px/1.2 var(--font-display);color:var(--cocoa)}
+.rd-goal .p{grid-column:1/-1;font:400 22px/1.45 var(--font-body);color:var(--cocoa-2)}
+.rd-cmp{margin-top:24px}
+.rd-cmp th,.rd-cmp td{text-align:center;vertical-align:middle;padding:6px 14px}
+.rd-cmp th{padding:12px 14px}
+.rd-cmp th:first-child,.rd-cmp td:first-child{text-align:left}
+.rd-cmp td{font-size:23px}
+.rd-cmp th{font-size:22px}
+.rd-cmp td .ic{font-size:30px;margin:0;vertical-align:middle}
+.rd-cmp td.y .ic{color:#3f8a4f}
+.rd-cmp td.n .ic{color:#c0503a}
+.rd-cmp td.m{color:var(--cocoa-2);font-size:21px}
+.rd-cmp tr.me td{background:var(--honey-l);font-weight:700;border-top:2px solid var(--honey)}
+
+/* 珮瑜頁 11：六個步驟，每步一張示意圖 */
+.rs{display:flex;flex-direction:column;gap:16px}
+.rs-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.rs-card{background:#fff;border:2px solid var(--line);border-radius:22px;padding:14px 18px 18px;display:flex;flex-direction:column;gap:8px}
+.rs-fig{width:100%;height:206px;object-fit:cover;background:var(--slide-bg);border-radius:14px;display:block;border:1.5px solid var(--line)}
+.rs-h{display:flex;align-items:center;gap:10px;font:400 30px/1.2 var(--font-display);color:var(--cocoa);margin-top:4px}
+.rs-n{width:40px;height:40px;border-radius:50%;background:var(--cocoa);color:var(--honey);display:grid;place-items:center;font:400 24px/1 var(--font-display);flex:none}
+.rs-h .aitag{font:700 16px/1 var(--font-body);color:#fff;background:var(--cocoa);border-radius:999px;padding:5px 11px}
+.rs-g{margin-left:auto;font:700 17px/1 var(--font-body);color:var(--caramel);background:var(--honey-l);border-radius:999px;padding:6px 12px}
+.rs-w{font:400 21px/1.45 var(--font-body);color:var(--cocoa-2)}
+.rs-m{align-self:flex-start;font:500 17px/1.3 var(--font-body);color:var(--cocoa);background:var(--cream-d);border-radius:999px;padding:6px 14px}
+.rs-shot{height:600px;box-shadow:0 18px 40px rgba(60,40,20,.18)}
+.rs-shot video{object-fit:cover}
+/* 示意圖線條與色塊 */
+.rs-fig *{stroke-linecap:round;stroke-linejoin:round}
+.rs-fig .fl{fill:#fff;stroke:var(--line);stroke-width:3}
+.rs-fig .fu{fill:var(--cream-d);stroke:var(--line);stroke-width:2}
+.rs-fig .path{fill:none;stroke:var(--caramel);stroke-width:3;stroke-dasharray:8 7}
+.rs-fig .flag{fill:var(--honey);stroke:var(--cocoa);stroke-width:2.5}
+.rs-fig .ph{fill:var(--cocoa)}
+.rs-fig .ar,.rs-fig .arrow{fill:none;stroke:var(--caramel);stroke-width:3.5}
+.rs-fig .pts circle{fill:var(--caramel)}
+.rs-fig .cam path{fill:var(--honey);stroke:var(--cocoa);stroke-width:2.5}
+.rs-fig .ray path{stroke:var(--caramel);stroke-width:1.6;stroke-dasharray:4 5;opacity:.7}
+.rs-fig .blob ellipse{fill:var(--honey);opacity:.45}
+.rs-fig .fine ellipse{fill:var(--caramel);opacity:.8}
+.rs-fig .fine2 ellipse{fill:var(--honey)}
+.rs-fig .photo{fill:var(--cream-d);stroke:var(--line);stroke-width:3}
+.rs-fig .mask{fill:var(--honey);opacity:.85;stroke:var(--caramel);stroke-width:2.5}
+.rs-fig .bbox{fill:none;stroke:var(--cocoa);stroke-width:3;stroke-dasharray:9 6}
+.rs-fig .lab{fill:var(--cocoa)}
+.rs-fig .labt{fill:#fff;font:700 15px var(--font-body);text-anchor:middle}
+.rs-fig .floor,.rs-fig .floor2{fill:none;stroke:var(--line);stroke-width:4}
+.rs-fig .floor2{fill:var(--cream-d);stroke-width:2}
+.rs-fig .boxf{fill:var(--honey);stroke:var(--cocoa);stroke-width:2.5}
+.rs-fig .boxt{fill:var(--honey-l);stroke:var(--cocoa);stroke-width:2.5}
+.rs-fig .cup{fill:#fff;stroke:var(--cocoa);stroke-width:2.5}
+.rs-fig .win{fill:#fff;stroke:var(--line);stroke-width:3}
+.rs-fig .winbar{stroke:var(--line);stroke-width:3}
+.rs-fig .paw circle{fill:var(--cocoa)}
+.rs-fig .key rect{fill:#fff;stroke:var(--cocoa);stroke-width:2}
+.rd-goals{gap:18px}
+.rd-cmp{margin-top:16px}
+.rd-m{display:flex;align-items:center;gap:16px}
+.rd-fig{width:150px;height:80px;flex:none;background:var(--slide-bg);border-radius:10px}
+.rd-cmp tr.me .rd-fig{background:#fff}
+.rd-fig *{stroke-linecap:round;stroke-linejoin:round}
+.rd-fig .fl{fill:var(--cream-d);stroke:var(--line);stroke-width:2}
+.rd-fig .bx{fill:#c9b8a6;stroke:var(--cocoa);stroke-width:1.6}
+.rd-cmp tr.me .rd-fig .bx{fill:var(--honey)}
+.rd-fig .ph{fill:var(--cocoa)}
+.rd-fig .beam{stroke:var(--caramel);stroke-width:1.6;stroke-dasharray:3 4}
+.rd-fig .lump{fill:#c9b8a6;stroke:var(--cocoa);stroke-width:1.6}
+.rd-fig .mesh{fill:none;stroke:var(--cocoa-2);stroke-width:1.4}
+.rd-fig .hole{fill:var(--slide-bg);stroke:#c0503a;stroke-width:1.8;stroke-dasharray:3 3}
+.rd-fig .gs ellipse{fill:var(--caramel);opacity:.55}
+.rd-fig .cup{fill:#fff;stroke:var(--cocoa);stroke-width:1.6}
+/* 11a：四種做法，上面是做出來的樣子 */
+.rd-ways{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-top:18px}
+.rd-way{background:#fff;border:2px solid var(--line);border-radius:22px;padding:12px 12px 16px;display:flex;flex-direction:column;gap:10px}
+.rd-way.me{background:var(--honey-l);border:3px solid var(--honey)}
+.rd-pic{display:block;width:100%;aspect-ratio:16/9;border-radius:14px;overflow:hidden}
+.rd-pic img{width:100%;height:100%;object-fit:cover;display:block}
+.rd-name{font:400 27px/1.2 var(--font-display);color:var(--cocoa);padding:0 6px}
+.rd-ck{list-style:none;margin:0;padding:0 6px;display:flex;flex-direction:column;gap:6px}
+.rd-ck li{display:flex;align-items:center;gap:10px;font:400 20px/1.3 var(--font-body);color:var(--cocoa)}
+.rd-ck .ic{font-size:24px;stroke-width:2.6}
+.rd-ck li.y .ic{color:#3f8a4f}
+.rd-ck li.n .ic{color:#c0503a}
+.rd-ck li.m{color:var(--cocoa-2)}
+.rd-ck li.m .ic{color:#c98a1e}
+/* 11a：比較表第一欄放同一房間的模擬畫面 */
+.rd-cmp td{padding:8px 14px}
+.rd-cmp td:first-child{padding:9px 14px}
+.rd-cmp td .ic{font-size:34px}
+.rd-im{width:176px;height:99px;object-fit:cover;border-radius:12px;display:block;flex:none;border:2px solid var(--line)}
+.rd-cmp tr.me .rd-im{border-color:var(--honey)}
+.rd-m span{font:700 23px/1.35 var(--font-body);white-space:normal}
+
+.rs-foot .rv-keys{margin-top:0}
+.rd-foot{margin-top:16px}
+.rd-foot .rv-keys{margin-top:0}
+.rs-row{grid-column:1/-1;display:flex;align-items:center;gap:10px;font:400 26px/1 var(--font-display);color:var(--cocoa);margin:2px 0 -6px}
+.rs-row.cat{color:var(--caramel)}
+.rs-row .ic{font-size:28px}
+.rs-card.cat{background:var(--honey-l);border-color:var(--honey)}
+.rs-card.cat .rs-m,.rs-card.cat .rs-g{background:#fff}
+.rs-fig.whole{object-fit:contain;background:#fdf6ea}
+/* 第 12 頁：四種做法並排，大圖在上 */
+.rd-goals{gap:16px}
+.rd-goal{grid-template-columns:auto auto 1fr;grid-template-rows:auto;padding:12px 18px!important;border-radius:20px}
+.rd-goal .t{font-size:28px;white-space:nowrap}
+.rd-goal .p{grid-column:auto;font-size:19px;line-height:1.35}
+.rd-t{width:100%;table-layout:fixed;border-collapse:separate;border-spacing:0;margin-top:16px}
+.rd-t .rd-c0{width:190px;text-align:left;font:700 22px/1.3 var(--font-body);color:var(--cocoa);padding:0 12px 0 4px;background:none}
+.rd-th .rd-c0{vertical-align:bottom;padding-bottom:14px;font:500 18px/1.3 var(--font-body);color:var(--cocoa-2)}
+.rd-th th{padding:0 10px 10px;vertical-align:bottom;text-align:center}
+.rd-big{display:block;width:100%;height:178px;object-fit:cover;border-radius:16px;border:2px solid var(--line)}
+.rd-n{display:block;margin-top:10px;font:700 23px/1.25 var(--font-body);color:var(--cocoa)}
+.rd-th th.me{background:var(--honey-l);border:3px solid var(--honey);border-bottom:none;border-radius:22px 22px 0 0;padding-top:10px}
+.rd-th th.me .rd-big{height:186px;border:3px solid var(--honey)}
+.rd-th th.me .rd-n{font-size:27px;color:var(--caramel)}
+.rd-t td{text-align:center;vertical-align:middle;padding:9px 10px;border-top:1.5px solid var(--line);font:400 20px/1.3 var(--font-body);color:var(--cocoa)}
+.rd-t tr:not(.rd-th) .rd-c0{border-top:1.5px solid var(--line);padding:9px 12px 9px 4px}
+.rd-t td .ic{font-size:32px;vertical-align:middle}
+.rd-t td.y .ic{color:#3f8a4f}
+.rd-t td.n .ic{color:#c0503a}
+.rd-t td.m{color:var(--cocoa-2);font-size:19px}
+.rd-t td.me{background:var(--honey-l);border-left:3px solid var(--honey);border-right:3px solid var(--honey)}
+.rd-t td.me .ic{font-size:38px;stroke-width:3}
+.rd-t tr:last-child td.me{border-bottom:3px solid var(--honey);border-radius:0 0 22px 22px}
+.rd-goal{column-gap:12px;padding:12px 14px!important}
+.rd-goal .t{font-size:26px}
+.rd-goal .p{font-size:17px;white-space:nowrap}
+.rd-big{height:222px}
+.rd-th th.me .rd-big{height:232px}
+.rd-win{display:inline-flex;align-items:center;gap:8px;font:700 23px/1.2 var(--font-body);color:var(--cocoa);white-space:nowrap}
+.rd-t td.me .rd-win .ic{font-size:32px}
+.rd-t{margin-top:0}
+.rd-big{height:300px}
+.rd-th th.me .rd-big{height:312px}
+.rd-top{margin:0 0 18px}
+
+/* 01 現況與痛點：痛點卡加實景照片（11/27 老師建議；照片 CC0／公有領域） */
+.pains-ph .pain{flex-direction:column;align-items:stretch;gap:0;padding:0;overflow:hidden}
+.pains-ph .pph{display:block;width:100%;height:150px;object-fit:cover}
+.pains-ph .pt{display:flex;align-items:center;gap:16px;padding:18px 22px 20px}
+.pains-ph .pn{width:50px;height:50px;font-size:26px}
+.pains-ph .fb{background:#f0f2f5;padding:10px 14px 0;box-sizing:border-box;overflow:hidden;font-family:-apple-system,"Helvetica Neue","PingFang TC","Noto Sans TC",sans-serif}
+.fb .fbp{background:#fff;border-radius:8px 8px 0 0;box-shadow:0 1px 2px rgba(0,0,0,.2);height:200px;overflow:hidden}
+.fb .fh{display:flex;align-items:center;gap:7px;padding:7px 10px 3px}
+.fb .fh img{width:26px;height:26px;border-radius:50%;object-fit:cover}
+.fb .fh b{display:block;font-size:13px;line-height:1.2;color:#050505}
+.fb .fh small{display:block;font-size:11px;line-height:1.2;color:#65676b}
+.fb .dots{margin-left:auto;color:#65676b;font-size:14px;letter-spacing:1px}
+.fb .ft{padding:2px 10px 5px;font-size:13px;line-height:1.3;color:#050505;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fb .fi img{display:block;width:100%;height:60px;object-fit:cover;object-position:50% 58%}
+.fb .fr{display:flex;align-items:center;gap:4px;padding:4px 10px;font-size:11px;color:#65676b}
+.fb .fr .lk,.fb .fr .ht{display:inline-grid;place-items:center;width:15px;height:15px;border-radius:50%;color:#fff;font-size:8px;font-weight:700}
+.fb .fr .lk{background:#1877f2}.fb .fr .ht{background:#f33e58;margin-left:-6px;border:1px solid #fff}
+.fb .fr .cm{margin-left:auto}
+
+/* 字幕安全區：標題以下內容包在 .stage，各頁另設往上移與縮放（11/27） */
+.stage{position:absolute;inset:0;pointer-events:none}
+.stage>*{pointer-events:auto}
+/* 標題縮小上移（11/27）：內容從 192px 開始，最低到 965px（全頁 1080），以下留給字幕 */
+.head{top:38px;height:48px}
+.tag{padding:6px 22px 6px 8px;font-size:20px;gap:12px}
+.tag b{width:34px;height:34px;font-size:19px}
+h2{top:100px;font-size:48px}
+.slide[data-label="Agenda"] .stage{transform-origin:50% 250px;transform:translateY(-58px) scale(1.2)}
+.slide[data-label="01 現況與痛點"] .stage{transform-origin:50% 290px;transform:translateY(-98px) scale(1.076)}
+.slide[data-label="03 前導影片"] .stage{transform-origin:50% 240px;transform:translateY(-48px) scale(1.025)}
+.slide[data-label="03 三個角色"] .stage{transform-origin:50% 250px;transform:translateY(-58px) scale(1.045)}
+.slide[data-label="05 解決方案流程"] .stage{transform-origin:50% 280px;transform:translateY(-88px) scale(1.077)}
+.slide[data-label="07 小組分工"] .stage{transform-origin:50% 270px;transform:translateY(-78px) scale(1.077)}
+.slide[data-label="08 Demo 路線"] .stage{transform-origin:50% 290px;transform:translateY(-98px) scale(1.076)}
+.slide[data-label="09 中途建貓"] .stage{transform-origin:50% 250px;transform:translateY(-58px) scale(1.077)}
+.slide[data-label="10 類本尊 3D 貓"] .stage{transform-origin:50% 236px;transform:translateY(-44px) scale(1.077)}
+.slide[data-label="12a 搜尋找貓"] .stage{transform-origin:50% 250px;transform:translateY(-58px) scale(1.077)}
+.slide[data-label="13 地圖"] .stage{transform-origin:50% 250px;transform:translateY(-58px) scale(1.077)}
+.slide[data-label="11a 3D 房間設計"] .stage{transform-origin:50% 250px;transform:translateY(-58px) scale(1.053)}
+.slide[data-label="11 3D 房間"] .stage{transform-origin:50% 252px;transform:translateY(-60px) scale(1.013)}
+.slide[data-label="12 安全檢測"] .stage{transform-origin:50% 274px;transform:translateY(-82px) scale(1.076)}
+.slide[data-label="12b WelfareLens 工程"] .stage{transform-origin:50% 265px;transform:translateY(-73px) scale(1.077)}
+.slide[data-label="14 三大核心理念"] .stage{transform-origin:50% 220px;transform:translateY(-28px) scale(0.979)}
+.slide[data-label="14 領養任務"] .stage{transform-origin:50% 232px;transform:translateY(-40px) scale(1.066)}
+.slide[data-label="14b 六個小遊戲"] .stage{transform-origin:50% 250px;transform:translateY(-58px) scale(1.077)}
+.slide[data-label="15 一生的後果"] .stage{transform-origin:50% 232px;transform:translateY(-40px) scale(1.066)}
+.slide[data-label="15b 試養報告"] .stage{transform-origin:50% 232px;transform:translateY(-40px) scale(1.066)}
+.slide[data-label="16 領養與移轉"] .stage{transform-origin:50% 250px;transform:translateY(-58px) scale(1.077)}
+.slide[data-label="24 目前限制"] .stage{transform-origin:50% 222px;transform:translateY(-30px) scale(1.077)}
+/* 封面、結尾：左欄內容往上收，底部留給字幕 */
+.cover h1{top:205px;font-size:120px}
+.cover .theme{top:530px;font-size:34px}
+.cover .qr{top:630px;padding:14px 30px 14px 14px}
+.cover .qr img{width:124px;height:124px}
+.cover .meta{bottom:auto;top:810px;font-size:22px}
+.end h1{top:200px}
+.end .cta{top:550px}
+.end .sub{top:662px}
+.end .vet{bottom:auto;top:740px}
+/* OBS 錄影畫面：整頁圖片（11/27） */
+.slide.obs{padding:0;background:transparent}
+/* 一般瀏覽器：透明窗格顯示棋盤格方便辨認；OBS 瀏覽器來源（window.obsstudio）：整頁透明，可疊錄影 */
+html:not(.in-obs) .slide.obs{background:repeating-conic-gradient(#dcdcdc 0 25%,#fff 0 50%) 0 0/40px 40px}
+html.in-obs:has(.slide.obs.active),html.in-obs:has(.slide.obs.active) body,html.in-obs:has(.slide.obs.active) .deck-viewport,html.in-obs:has(.slide.obs.active) .deck-stage{background:transparent!important}
+.slide.obs .obs-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+/* 00 片頭：只有 logo 置中（11/27） */
+.intro-c{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:56px}
+.intro-c img{height:180px;width:auto}
+.intro-c p{margin:0;font:500 40px/1.4 var(--font-body);color:var(--cocoa-2);letter-spacing:.08em}
