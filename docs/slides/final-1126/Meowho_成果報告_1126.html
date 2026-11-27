@@ -957,26 +957,33 @@ code{font:500 .92em ui-monospace,Menlo,monospace;background:var(--cream-d);borde
 /* 字幕安全區：標題以下內容包在 .stage，各頁另設往上移與縮放（11/27） */
 .stage{position:absolute;inset:0;pointer-events:none}
 .stage>*{pointer-events:auto}
-/* 各頁縮放：內容最低到 880px（全頁 1080），以下留給字幕 */
-.slide[data-label="01 現況與痛點"] .stage{transform-origin:50% 290px;transform:translateY(-45px) scale(0.905)}
-.slide[data-label="03 前導影片"] .stage{transform-origin:50% 240px;transform:scale(0.849)}
-.slide[data-label="03 三個角色"] .stage{transform-origin:50% 250px;transform:translateY(-5px) scale(0.858)}
-.slide[data-label="05 解決方案流程"] .stage{transform-origin:50% 280px;transform:translateY(-35px) scale(0.992)}
-.slide[data-label="07 小組分工"] .stage{transform-origin:50% 270px;transform:translateY(-25px)}
-.slide[data-label="09 中途建貓"] .stage{transform-origin:50% 250px;transform:translateY(-5px) scale(0.842)}
-.slide[data-label="10 類本尊 3D 貓"] .stage{transform-origin:50% 236px;transform:scale(0.867)}
-.slide[data-label="12a 搜尋找貓"] .stage{transform-origin:50% 250px;transform:translateY(-5px) scale(0.941)}
-.slide[data-label="13 地圖"] .stage{transform-origin:50% 250px;transform:translateY(-5px) scale(0.972)}
-.slide[data-label="11a 3D 房間設計"] .stage{transform-origin:50% 250px;transform:translateY(-5px) scale(0.865)}
-.slide[data-label="11 3D 房間"] .stage{transform-origin:50% 252px;transform:translateY(-7px) scale(0.832)}
-.slide[data-label="12 安全檢測"] .stage{transform-origin:50% 274px;transform:translateY(-29px) scale(0.91)}
-.slide[data-label="12b WelfareLens 工程"] .stage{transform-origin:50% 265px;transform:translateY(-20px) scale(0.888)}
-.slide[data-label="14 三大核心理念"] .stage{transform-origin:50% 220px;transform:scale(0.835)}
-.slide[data-label="14 領養任務"] .stage{transform-origin:50% 232px;transform:scale(0.894)}
-.slide[data-label="15 一生的後果"] .stage{transform-origin:50% 232px;transform:scale(0.894)}
-.slide[data-label="15b 試養報告"] .stage{transform-origin:50% 232px;transform:scale(0.894)}
-.slide[data-label="16 領養與移轉"] .stage{transform-origin:50% 250px;transform:translateY(-5px) scale(0.989)}
-.slide[data-label="24 目前限制"] .stage{transform-origin:50% 222px;transform:scale(0.947)}
+/* 標題縮小上移（11/27）：內容從 192px 開始，最低到 880px（全頁 1080），以下留給字幕 */
+.head{top:38px;height:48px}
+.tag{padding:6px 22px 6px 8px;font-size:20px;gap:12px}
+.tag b{width:34px;height:34px;font-size:19px}
+h2{top:100px;font-size:48px}
+.slide[data-label="Agenda"] .stage{transform-origin:50% 250px;transform:translateY(-58px)}
+.slide[data-label="01 現況與痛點"] .stage{transform-origin:50% 290px;transform:translateY(-98px) scale(0.98)}
+.slide[data-label="03 前導影片"] .stage{transform-origin:50% 240px;transform:translateY(-48px) scale(0.912)}
+.slide[data-label="03 三個角色"] .stage{transform-origin:50% 250px;transform:translateY(-58px) scale(0.93)}
+.slide[data-label="05 解決方案流程"] .stage{transform-origin:50% 280px;transform:translateY(-88px) scale(1.05)}
+.slide[data-label="07 小組分工"] .stage{transform-origin:50% 270px;transform:translateY(-78px) scale(1.05)}
+.slide[data-label="08 Demo 路線"] .stage{transform-origin:50% 290px;transform:translateY(-98px)}
+.slide[data-label="09 中途建貓"] .stage{transform-origin:50% 250px;transform:translateY(-58px) scale(1.05)}
+.slide[data-label="10 類本尊 3D 貓"] .stage{transform-origin:50% 236px;transform:translateY(-44px) scale(0.99)}
+.slide[data-label="12a 搜尋找貓"] .stage{transform-origin:50% 250px;transform:translateY(-58px) scale(1.05)}
+.slide[data-label="13 地圖"] .stage{transform-origin:50% 250px;transform:translateY(-58px) scale(1.05)}
+.slide[data-label="11a 3D 房間設計"] .stage{transform-origin:50% 250px;transform:translateY(-58px) scale(0.937)}
+.slide[data-label="11 3D 房間"] .stage{transform-origin:50% 252px;transform:translateY(-60px) scale(0.902)}
+.slide[data-label="12 安全檢測"] .stage{transform-origin:50% 274px;transform:translateY(-82px) scale(0.986)}
+.slide[data-label="12b WelfareLens 工程"] .stage{transform-origin:50% 265px;transform:translateY(-73px) scale(0.962)}
+.slide[data-label="14 三大核心理念"] .stage{transform-origin:50% 220px;transform:translateY(-28px) scale(0.871)}
+.slide[data-label="14 領養任務"] .stage{transform-origin:50% 232px;transform:translateY(-40px) scale(0.949)}
+.slide[data-label="14b 六個小遊戲"] .stage{transform-origin:50% 250px;transform:translateY(-58px) scale(1.05)}
+.slide[data-label="15 一生的後果"] .stage{transform-origin:50% 232px;transform:translateY(-40px) scale(0.949)}
+.slide[data-label="15b 試養報告"] .stage{transform-origin:50% 232px;transform:translateY(-40px) scale(0.949)}
+.slide[data-label="16 領養與移轉"] .stage{transform-origin:50% 250px;transform:translateY(-58px) scale(1.05)}
+.slide[data-label="24 目前限制"] .stage{transform-origin:50% 222px;transform:translateY(-30px) scale(0.99)}
 /* 封面、結尾：左欄內容往上收，底部留給字幕 */
 .cover h1{top:205px;font-size:120px}
 .cover .theme{top:530px;font-size:34px}
@@ -1275,7 +1282,6 @@ code{font:500 .92em ui-monospace,Menlo,monospace;background:var(--cream-d);borde
     </div>
     <div class="ba-mini reveal d4"><span class="o"><b>以前</b>一格一格打字，填完整張表單</span><svg class="ic"><use href="#i-arrow"/></svg><span class="n"><b>喵戶</b>講一段話，AI 自動填好，再補問缺的</span></div>
     <div class="tech reveal d4" style="margin-top:18px"><svg class="ic"><use href="#i-spark"/></svg><span><b>關鍵技術</b>LangChain 串接 Azure OpenAI，從一段話擷取欄位，再用 zod 檢查格式；使用者的話只當資料，防止提示注入</span></div>
-    <div class="go-demo reveal d4" style="margin-top:22px"><a class="demo-btn" href="https://meowho.vercel.app/" target="_blank" rel="noopener"><svg class="ic"><use href="#i-home"/></svg>進入 Demo<svg class="ic"><use href="#i-arrow"/></svg></a></div>
   </div>
   </div><div class="pg"><img src="assets/meowho-symbol.svg" alt="">08 / 23</div>
 </section>
@@ -1297,7 +1303,6 @@ code{font:500 .92em ui-monospace,Menlo,monospace;background:var(--cream-d);borde
       </div>
     </div>
     <div class="ck-demo reveal d2">
-      <a class="ck-link" href="https://meowho.vercel.app/MeowHQ/assets/cats/cat_20261106_072135" target="_blank" rel="noopener"><svg class="ic"><use href="#i-cat"/></svg>正式站・Cookie 的製作頁<svg class="ic"><use href="#i-arrow"/></svg></a>
       <div class="ck-media">
         <figure class="ck-fig"><img src="assets/demo/cookie_photo.jpg" alt="Cookie 原始照片"><figcaption>原始照片</figcaption></figure>
         <span class="ck-to"><svg class="ic"><use href="#i-arrow"/></svg></span>
@@ -1336,7 +1341,6 @@ code{font:500 .92em ui-monospace,Menlo,monospace;background:var(--cream-d);borde
       </div>
     </div>
     <div class="tech reveal d4" style="margin-top:22px"><svg class="ic"><use href="#i-search"/></svg><span><b>程式亮點</b>LLM 從一句話抓出條件，再用 Embedding＋pgvector 排序；推薦理由由 AI 依貓咪資料撰寫</span></div>
-    <div class="go-demo reveal d4" style="margin-top:22px"><a class="demo-btn" href="https://meowho.vercel.app/" target="_blank" rel="noopener"><svg class="ic"><use href="#i-home"/></svg>到首頁找貓<svg class="ic"><use href="#i-arrow"/></svg></a></div>
   </div>
   </div><div class="pg"><img src="assets/meowho-symbol.svg" alt="">10 / 23</div>
 </section>
