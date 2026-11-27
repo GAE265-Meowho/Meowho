@@ -75,13 +75,25 @@ it("preloads each referenced WebP once for desktop, with no preload in the full 
 it("uses the case's independent After coordinates and its two deferred detail assets", () => {
   const html = report(localizedComparison() + candidate("其他房間", "c", "f"));
   const output = openedPanel(renderReportPresentation(html, false, undefined, 0));
+  expect(output.indexOf("局部對照</h3>")).toBeGreaterThan(-1);
+  expect(output.indexOf("局部對照</h3>")).toBeLessThan(output.indexOf("完整影格定位</h3>"));
   expect(output).toContain('class="region estimated" style="left:12%;top:25%;width:30%;height:40%"');
   expect(output).toContain('class="region simulated-region" style="left:42%;top:10%;width:18%;height:25%"');
   expect(output).toContain("綠色虛線為 AI 模擬對應區域。");
   expect(output).toContain(`aria-label="改善前局部｜原圖" style="--evidence-image:url('${path("d")}')"`);
   expect(output).toContain(`aria-label="改善後局部｜AI 模擬示意" style="--evidence-image:url('${path("e")}')"`);
+  expect(output).toContain('class="meow-photo-placeholder" aria-hidden="true">影像暫時無法顯示');
   expect(output).not.toContain(path("f"));
   expect(renderReportPresentation(html, false)).not.toContain('<details class="meow-item" open>');
+});
+
+it("keeps the missing crop on its own side and retains the full frame pair", () => {
+  const output = openedPanel(renderReportPresentation(report(localizedComparison().replace(img("e"), "")), false, undefined, 0));
+  expect(output).toContain('<figure class="meow-after-detail"><figcaption>改善後｜AI 模擬示意</figcaption>');
+  expect(output).toContain("此報告未提供這張局部影像。");
+  expect(output).toContain(path("a"));
+  expect(output).toContain(path("b"));
+  expect(output).not.toContain(path("e"));
 });
 
 it.each([

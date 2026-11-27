@@ -161,6 +161,7 @@ const iconPaths = {
   arrow: '<path d="M4 12h15m-6-6 6 6-6 6"/>',
   download: '<path d="M12 3v12m-4-4 4 4 4-4M4 15v5h16v-5"/>',
   search: '<circle cx="10" cy="10" r="6"/><path d="m15 15 5 5m-10-13v6m-3-3h6"/>',
+  pin: '<path d="M19 10c0 5-7 11-7 11S5 15 5 10a7 7 0 1 1 14 0Z"/><circle cx="12" cy="10" r="2"/>',
   paw: '<path fill="currentColor" stroke="none" d="M12 10c3 0 3.8 3 6 5 3 4-1 7-4 5a4 4 0 0 0-4 0c-3 2-7-1-4-5 2.2-2 3-5 6-5Z"/><ellipse cx="3.5" cy="10" rx="2.1" ry="2.7" fill="currentColor" stroke="none"/><ellipse cx="8.5" cy="5.7" rx="2.1" ry="2.7" fill="currentColor" stroke="none"/><ellipse cx="15.5" cy="5.7" rx="2.1" ry="2.7" fill="currentColor" stroke="none"/><ellipse cx="20.5" cy="10" rx="2.1" ry="2.7" fill="currentColor" stroke="none"/>',
 } as const;
 
@@ -192,8 +193,8 @@ function evidenceImage(path: string, alt: string) {
 function detailFigure(side: "before" | "after", caption: string, image: string | undefined) {
   const label = side === "before" ? "改善前" : "改善後｜AI 模擬示意";
   return `<figure class="meow-${side}-detail">${image && assetPath.test(image)
-    ? `<figcaption>${label}</figcaption><a href="${image}" aria-label="放大${caption}"><div class="meow-photo">${evidenceImage(image, caption)}</div></a>`
-    : "<p>此報告未提供這張局部影像。</p>"}</figure>`;
+    ? `<figcaption>${label}</figcaption><a href="${image}" aria-label="放大${caption}"><div class="meow-photo"><span class="meow-photo-placeholder" aria-hidden="true">影像暫時無法顯示</span>${evidenceImage(image, caption)}</div></a>`
+    : `<figcaption>${label}</figcaption><div class="meow-photo"><p>此報告未提供這張局部影像。</p></div>`}</figure>`;
 }
 
 function preloadEvidence(items: ReturnType<typeof parseReportPresentation>["items"]) {
@@ -282,7 +283,11 @@ function comparison(item: ReturnType<typeof parseReportPresentation>["items"][nu
   const closeups = !item.cropped && (item.detailBefore || item.detailAfter) ? `<section class="meow-closeups"><h3>${icon("search")}局部對照</h3><div class="meow-compare">
     ${detailFigure("before", "改善前局部｜原圖", item.detailBefore)}${item.detailBefore && item.detailAfter ? between : ""}
     ${detailFigure("after", "改善後局部｜AI 模擬示意", item.detailAfter)}</div></section>` : "";
-  return `<div class="meow-evidence-grid"><div class="meow-compare">${before}${item.after ? between : ""}${after}</div>${closeups}</div>`;
+  const frames = `<div class="meow-compare">${before}${item.after ? between : ""}${after}</div>`;
+  const evidence = closeups
+    ? `${closeups}<section class="meow-frame-context"><h3>${icon("pin")}完整影格定位</h3>${frames}</section>`
+    : frames;
+  return `<div class="meow-evidence-grid">${evidence}</div>`;
 }
 
 function renderFullEvidence(html: string, headerEnd: number, bodyEnd: number, images: ReturnType<typeof parseReportPresentation>["images"]) {
