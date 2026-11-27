@@ -38,7 +38,7 @@ def demo(m):
             f'<span class="dnodes">{nodes}</span></div>')
 
 sections = re.split(r'(?=<!-- =+\n)', body)
-out, total = [], body.count('<section ') - body.count('<section class="slide obs"')
+out, total = [], body.count('<section ') - body.count('<section class="slide obs"') - body.count('<section class="slide nopg')
 slides_all = body.count('<section ')
 page = 0
 # 頁尾頁碼從封面後開始算：開場影片和封面都不算
@@ -46,7 +46,7 @@ skip = 2 if 'data-label="開場影片"' in body else 1
 for s in sections:
     if '<section' not in s:
         out.append(s); continue
-    if 'class="slide obs"' in s:
+    if 'class="slide obs"' in s or 'class="slide nopg' in s:
         out.append(s); continue  # OBS 錄影畫面：整頁圖片，不加講者、不算頁碼
     page += 1
     m = re.search(r'<!--SPK:([^>]+)-->', s)

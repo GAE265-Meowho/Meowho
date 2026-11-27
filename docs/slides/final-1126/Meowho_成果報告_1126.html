@@ -1000,6 +1000,10 @@ h2{top:100px;font-size:48px}
 html:not(.in-obs) .slide.obs{background:repeating-conic-gradient(#dcdcdc 0 25%,#fff 0 50%) 0 0/40px 40px}
 html.in-obs:has(.slide.obs.active),html.in-obs:has(.slide.obs.active) body,html.in-obs:has(.slide.obs.active) .deck-viewport,html.in-obs:has(.slide.obs.active) .deck-stage{background:transparent!important}
 .slide.obs .obs-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+/* 00 片頭：logo＋組員名稱置中（11/27） */
+.intro-c{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:56px}
+.intro-c img{height:150px;width:auto}
+.intro-c p{margin:0;font:500 40px/1.4 var(--font-body);color:var(--cocoa-2);letter-spacing:.08em}
 </style>
 </head>
 <body>
@@ -1054,6 +1058,16 @@ html.in-obs:has(.slide.obs.active),html.in-obs:has(.slide.obs.active) body,html.
   <symbol id="i-phone" viewBox="0 0 24 24"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></symbol>
   <symbol id="i-paw" viewBox="0 0 24 24"><circle cx="6" cy="10" r="2"/><circle cx="10" cy="5.5" r="2"/><circle cx="15" cy="5.5" r="2"/><circle cx="19" cy="10" r="2"/><path d="M7.5 18c0-3 2.5-5.5 5-5.5s5 2.5 5 5.5c0 2-2 2.5-3 2-1-.4-2-.4-3 0s-4 .3-4-2z"/></symbol>
 </svg>
+
+<!-- =========================================================
+     00 片頭：只有 logo 與組員名稱（不算頁碼）
+     ========================================================= -->
+<section class="slide nopg intro" data-label="片頭">
+  <div class="intro-c">
+    <img src="assets/meowho-horizontal-color.svg" alt="Meowho喵戶">
+    <p>子哲・渝茜・Tina・世安・珮瑜・清俊</p>
+  </div>
+</section>
 
 <!-- =========================================================
      開場影片（第一二段）：打開不自動播放，按播放鍵才開始；不算頁碼
@@ -1767,7 +1781,7 @@ html.in-obs:has(.slide.obs.active),html.in-obs:has(.slide.obs.active) body,html.
 </div>
 
 <!-- 簡報外的控制列與編輯按鈕（PDF 不會出現） -->
-<div class="deck-controls" aria-label="簡報控制"><button id="prevBtn" aria-label="上一頁">‹</button><span id="pageNo">1 / 31</span><button id="nextBtn" aria-label="下一頁">›</button></div>
+<div class="deck-controls" aria-label="簡報控制"><button id="prevBtn" aria-label="上一頁">‹</button><span id="pageNo">1 / 32</span><button id="nextBtn" aria-label="下一頁">›</button></div>
 <div class="edit-hotzone"></div>
 <button class="edit-toggle" id="editToggle" title="編輯模式（E）">編輯文字</button>
 <script>
