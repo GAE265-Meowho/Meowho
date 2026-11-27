@@ -52,6 +52,11 @@ for s in sections:
     s = re.sub(r'<!--SPK:([^>]+)-->', spk, s)
     s = re.sub(r'<!--DEMO:(\d+)-->', demo, s)
     s = re.sub(r'<!--AV:([^>]+)-->', lambda mm: av(mm.group(1)), s)
+    # 標題以下的內容包進 .stage，方便統一往上縮、底部留字幕空間（11/27）
+    if '<!--PG-->' in s and '</h2>' in s and not re.search(r'data-label="(開場影片|封面|結尾)"', s):
+        i = s.index('</h2>') + len('</h2>')
+        j = s.index('<!--PG-->')
+        s = s[:i] + '<div class="stage">' + s[i:j] + '</div>' + s[j:]
     s = s.replace('<!--PG-->', f'<div class="pg"><img src="assets/meowho-symbol.svg" alt="">{page-skip:02d} / {total-skip:02d}</div>')
     out.append(s)
 

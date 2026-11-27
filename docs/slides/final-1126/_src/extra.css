@@ -7,9 +7,9 @@
    頭像檔放在 assets/avatars/<名字>.jpg（正方形，至少 400×400）。
    檔案不存在時自動顯示貓耳剪影佔位。 */
 .spk{position:absolute;top:26px;right:52px;display:flex;align-items:center;z-index:6}
-.spk .nm{position:relative;z-index:1;background:#fff;border:3px solid var(--cocoa);border-radius:999px;padding:8px 58px 10px 28px;margin-right:-44px;font:400 34px/1.2 var(--font-display);color:var(--cocoa);white-space:nowrap}
+.spk .nm{position:relative;z-index:1;background:#fff;border:3px solid var(--cocoa);border-radius:999px;padding:6px 48px 8px 24px;margin-right:-38px;font:400 28px/1.2 var(--font-display);color:var(--cocoa);white-space:nowrap}
 .spk .avs{display:flex;position:relative;z-index:2}
-.spk .av{position:relative;width:196px;height:196px;border-radius:50%;border:6px solid var(--cocoa);overflow:hidden;
+.spk .av{position:relative;width:150px;height:150px;border-radius:50%;border:5px solid var(--cocoa);overflow:hidden;
   background:var(--cream-d) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Cpath fill='%23e7c99a' d='M62 58 70 22 92 46Q100 44 108 46L130 22 138 58Q146 70 146 86 146 122 100 122 54 122 54 86 54 70 62 58Z'/%3E%3Cpath fill='%23e7c99a' d='M24 200Q28 140 100 136 172 140 176 200Z'/%3E%3C/svg%3E") center/100% no-repeat}
 .spk .av + .av{margin-left:-34px}
 .spk .av img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;max-width:none;max-height:none}
@@ -739,3 +739,37 @@ code{font:500 .92em ui-monospace,Menlo,monospace;background:var(--cream-d);borde
 .fb .fr .lk,.fb .fr .ht{display:inline-grid;place-items:center;width:15px;height:15px;border-radius:50%;color:#fff;font-size:8px;font-weight:700}
 .fb .fr .lk{background:#1877f2}.fb .fr .ht{background:#f33e58;margin-left:-6px;border:1px solid #fff}
 .fb .fr .cm{margin-left:auto}
+
+/* 字幕安全區：標題以下內容包在 .stage，各頁另設往上移與縮放（11/27） */
+.stage{position:absolute;inset:0;pointer-events:none}
+.stage>*{pointer-events:auto}
+/* 各頁縮放：內容最低到 880px（全頁 1080），以下留給字幕 */
+.slide[data-label="01 現況與痛點"] .stage{transform-origin:50% 290px;transform:translateY(-45px) scale(0.905)}
+.slide[data-label="03 前導影片"] .stage{transform-origin:50% 240px;transform:scale(0.849)}
+.slide[data-label="03 三個角色"] .stage{transform-origin:50% 250px;transform:translateY(-5px) scale(0.858)}
+.slide[data-label="05 解決方案流程"] .stage{transform-origin:50% 280px;transform:translateY(-35px) scale(0.992)}
+.slide[data-label="07 小組分工"] .stage{transform-origin:50% 270px;transform:translateY(-25px)}
+.slide[data-label="09 中途建貓"] .stage{transform-origin:50% 250px;transform:translateY(-5px) scale(0.842)}
+.slide[data-label="10 類本尊 3D 貓"] .stage{transform-origin:50% 236px;transform:scale(0.867)}
+.slide[data-label="12a 搜尋找貓"] .stage{transform-origin:50% 250px;transform:translateY(-5px) scale(0.941)}
+.slide[data-label="13 地圖"] .stage{transform-origin:50% 250px;transform:translateY(-5px) scale(0.972)}
+.slide[data-label="11a 3D 房間設計"] .stage{transform-origin:50% 250px;transform:translateY(-5px) scale(0.865)}
+.slide[data-label="11 3D 房間"] .stage{transform-origin:50% 252px;transform:translateY(-7px) scale(0.832)}
+.slide[data-label="12 安全檢測"] .stage{transform-origin:50% 274px;transform:translateY(-29px) scale(0.91)}
+.slide[data-label="12b WelfareLens 工程"] .stage{transform-origin:50% 265px;transform:translateY(-20px) scale(0.888)}
+.slide[data-label="14 三大核心理念"] .stage{transform-origin:50% 220px;transform:scale(0.835)}
+.slide[data-label="14 領養任務"] .stage{transform-origin:50% 232px;transform:scale(0.894)}
+.slide[data-label="15 一生的後果"] .stage{transform-origin:50% 232px;transform:scale(0.894)}
+.slide[data-label="15b 試養報告"] .stage{transform-origin:50% 232px;transform:scale(0.894)}
+.slide[data-label="16 領養與移轉"] .stage{transform-origin:50% 250px;transform:translateY(-5px) scale(0.989)}
+.slide[data-label="24 目前限制"] .stage{transform-origin:50% 222px;transform:scale(0.947)}
+/* 封面、結尾：左欄內容往上收，底部留給字幕 */
+.cover h1{top:205px;font-size:120px}
+.cover .theme{top:530px;font-size:34px}
+.cover .qr{top:630px;padding:14px 30px 14px 14px}
+.cover .qr img{width:124px;height:124px}
+.cover .meta{bottom:auto;top:810px;font-size:22px}
+.end h1{top:200px}
+.end .cta{top:550px}
+.end .sub{top:662px}
+.end .vet{bottom:auto;top:740px}
